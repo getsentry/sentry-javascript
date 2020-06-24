@@ -98,10 +98,12 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#_experiments" class="tsd-kind-icon">_experiments</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.browseroptions.html#allowurls" class="tsd-kind-icon">allow<wbr>Urls</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#attachstacktrace" class="tsd-kind-icon">attach<wbr>Stacktrace</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.browseroptions.html#blacklisturls" class="tsd-kind-icon">blacklist<wbr>Urls</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#debug" class="tsd-kind-icon">debug</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#defaultintegrations" class="tsd-kind-icon">default<wbr>Integrations</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.browseroptions.html#denyurls" class="tsd-kind-icon">deny<wbr>Urls</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#dist" class="tsd-kind-icon">dist</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#dsn" class="tsd-kind-icon">dsn</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#enabled" class="tsd-kind-icon">enabled</a></li>
@@ -114,6 +116,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#normalizedepth" class="tsd-kind-icon">normalize<wbr>Depth</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#release" class="tsd-kind-icon">release</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#samplerate" class="tsd-kind-icon">sample<wbr>Rate</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#shutdowntimeout" class="tsd-kind-icon">shutdown<wbr>Timeout</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#tracessamplerate" class="tsd-kind-icon">traces<wbr>Sample<wbr>Rate</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#transport" class="tsd-kind-icon">transport</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="browser.browseroptions.html#transportoptions" class="tsd-kind-icon">transport<wbr>Options</a></li>
@@ -139,9 +142,26 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#_experiments">_experiments</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L135">types/src/options.ts:135</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L144">types/src/options.ts:144</a></li>
 						</ul>
 					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="allowurls" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> allow<wbr>Urls</h3>
+					<div class="tsd-signature tsd-kind-icon">allow<wbr>Urls<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/browser/src/backend.ts#L18">browser/src/backend.ts:18</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>A pattern for error URLs which should exclusively be sent to Sentry.
+								This is the opposite of {@link Options.denyUrls}.
+							By default, all errors will be sent.</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="attachstacktrace" class="tsd-anchor"></a>
@@ -150,7 +170,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#attachstacktrace">attachStacktrace</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L92">types/src/options.ts:92</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L92">types/src/options.ts:92</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -165,15 +185,15 @@
 					<div class="tsd-signature tsd-kind-icon">blacklist<wbr>Urls<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/browser/src/backend.ts#L18">browser/src/backend.ts:18</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/browser/src/backend.ts#L31">browser/src/backend.ts:31</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>A pattern for error URLs which should not be sent to Sentry.
-								To whitelist certain errors instead, use {@link Options.whitelistUrls}.
-							By default, all errors will be sent.</p>
-						</div>
+						<dl class="tsd-comment-tags">
+							<dt>deprecated</dt>
+							<dd><p>use {@link Options.denyUrls} instead.</p>
+							</dd>
+						</dl>
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
@@ -183,7 +203,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#debug">debug</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L12">types/src/options.ts:12</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L12">types/src/options.ts:12</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -199,13 +219,30 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#defaultintegrations">defaultIntegrations</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L31">types/src/options.ts:31</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L31">types/src/options.ts:31</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
 							<p>If this is set to false, default integrations will not be added, otherwise this will internally be set to the
 							recommended default integrations.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="denyurls" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> deny<wbr>Urls</h3>
+					<div class="tsd-signature tsd-kind-icon">deny<wbr>Urls<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/browser/src/backend.ts#L25">browser/src/backend.ts:25</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>A pattern for error URLs which should not be sent to Sentry.
+								To allow certain errors instead, use {@link Options.allowUrls}.
+							By default, all errors will be sent.</p>
 						</div>
 					</div>
 				</section>
@@ -216,7 +253,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#dist">dist</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L67">types/src/options.ts:67</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L67">types/src/options.ts:67</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -232,7 +269,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#dsn">dsn</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L25">types/src/options.ts:25</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L25">types/src/options.ts:25</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -249,7 +286,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#enabled">enabled</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L19">types/src/options.ts:19</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L19">types/src/options.ts:19</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -267,7 +304,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#environment">environment</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L64">types/src/options.ts:64</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L64">types/src/options.ts:64</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -283,7 +320,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#ignoreerrors">ignoreErrors</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L44">types/src/options.ts:44</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L44">types/src/options.ts:44</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -300,7 +337,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#integrations">integrations</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L38">types/src/options.ts:38</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L38">types/src/options.ts:38</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -318,7 +355,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#loglevel">logLevel</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L76">types/src/options.ts:76</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L76">types/src/options.ts:76</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -334,7 +371,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#maxbreadcrumbs">maxBreadcrumbs</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L73">types/src/options.ts:73</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L73">types/src/options.ts:73</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -351,7 +388,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#maxvaluelength">maxValueLength</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L95">types/src/options.ts:95</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L95">types/src/options.ts:95</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -367,7 +404,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#normalizedepth">normalizeDepth</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L106">types/src/options.ts:106</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L106">types/src/options.ts:106</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -391,7 +428,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#release">release</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L61">types/src/options.ts:61</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L61">types/src/options.ts:61</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -409,12 +446,32 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#samplerate">sampleRate</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L79">types/src/options.ts:79</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L79">types/src/options.ts:79</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
 							<p>A global sample rate to apply to all events (0 - 1).</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+					<a name="shutdowntimeout" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> shutdown<wbr>Timeout</h3>
+					<div class="tsd-signature tsd-kind-icon">shutdown<wbr>Timeout<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
+					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#shutdowntimeout">shutdownTimeout</a></p>
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L142">types/src/options.ts:142</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Controls how many milliseconds to wait before shutting down. The default is
+								SDK-specific but typically around 2 seconds. Setting this too low can cause
+								problems for sending events from command line applications. Setting it too
+								high can cause the application to block for users with network connectivity
+							problems.</p>
 						</div>
 					</div>
 				</section>
@@ -425,7 +482,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#tracessamplerate">tracesSampleRate</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L89">types/src/options.ts:89</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L89">types/src/options.ts:89</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -444,7 +501,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#transport">transport</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L49">types/src/options.ts:49</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L49">types/src/options.ts:49</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -460,7 +517,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#transportoptions">transportOptions</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L54">types/src/options.ts:54</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L54">types/src/options.ts:54</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -475,15 +532,15 @@
 					<div class="tsd-signature tsd-kind-icon">whitelist<wbr>Urls<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/browser/src/backend.ts#L25">browser/src/backend.ts:25</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/browser/src/backend.ts#L28">browser/src/backend.ts:28</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>A pattern for error URLs which should exclusively be sent to Sentry.
-								This is the opposite of {@link Options.blacklistUrls}.
-							By default, all errors will be sent.</p>
-						</div>
+						<dl class="tsd-comment-tags">
+							<dt>deprecated</dt>
+							<dd><p>use {@link Options.allowUrls} instead.</p>
+							</dd>
+						</dl>
 					</div>
 				</section>
 			</section>
@@ -500,7 +557,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#beforebreadcrumb">beforeBreadcrumb</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L133">types/src/options.ts:133</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L133">types/src/options.ts:133</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -543,7 +600,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="types.options.html">Options</a>.<a href="types.options.html#beforesend">beforeSend</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/options.ts#L120">types/src/options.ts:120</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/types/src/options.ts#L120">types/src/options.ts:120</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -596,6 +653,9 @@
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/core.html">core</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/gatsby.html">gatsby</a>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/hub.html">hub</a>
@@ -660,6 +720,9 @@
 									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 										<a href="browser.browseroptions.html#_experiments" class="tsd-kind-icon">_experiments</a>
 									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface">
+										<a href="browser.browseroptions.html#allowurls" class="tsd-kind-icon">allow<wbr>Urls</a>
+									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 										<a href="browser.browseroptions.html#attachstacktrace" class="tsd-kind-icon">attach<wbr>Stacktrace</a>
 									</li>
@@ -671,6 +734,9 @@
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 										<a href="browser.browseroptions.html#defaultintegrations" class="tsd-kind-icon">default<wbr>Integrations</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface">
+										<a href="browser.browseroptions.html#denyurls" class="tsd-kind-icon">deny<wbr>Urls</a>
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 										<a href="browser.browseroptions.html#dist" class="tsd-kind-icon">dist</a>
@@ -707,6 +773,9 @@
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 										<a href="browser.browseroptions.html#samplerate" class="tsd-kind-icon">sample<wbr>Rate</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="browser.browseroptions.html#shutdowntimeout" class="tsd-kind-icon">shutdown<wbr>Timeout</a>
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 										<a href="browser.browseroptions.html#tracessamplerate" class="tsd-kind-icon">traces<wbr>Sample<wbr>Rate</a>
@@ -779,6 +848,9 @@
 				<ul class="after-current">
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/core.html" class="tsd-kind-icon">core</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/gatsby.html" class="tsd-kind-icon">gatsby</a>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/hub.html" class="tsd-kind-icon">hub</a>

@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>IntegrationIndex | Sentry JavaScript SDKs</title>
+	<title>gatsby | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -52,13 +52,10 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="../modules/core.html">core</a>
-				</li>
-				<li>
-					<a href="core.integrationindex.html">IntegrationIndex</a>
+					<a href="gatsby.html">gatsby</a>
 				</li>
 			</ul>
-			<h1>Interface IntegrationIndex</h1>
+			<h1>Package gatsby</h1>
 		</div>
 	</div>
 </header>
@@ -67,26 +64,38 @@
 		<div class="col-8 col-content">
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
-					<div class="lead">
-						<p>Map of integrations assigned to a client</p>
-					</div>
-				</div>
-			</section>
-			<section class="tsd-panel tsd-hierarchy">
-				<h3>Hierarchy</h3>
-				<ul class="tsd-hierarchy">
-					<li>
-						<span class="target">IntegrationIndex</span>
-					</li>
-				</ul>
-			</section>
-			<section class="tsd-panel tsd-kind-interface tsd-parent-kind-external-module">
-				<h3 class="tsd-before-signature">Indexable</h3>
-				<div class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><a href="types.integration.html" class="tsd-signature-type">Integration</a></div>
-				<div class="tsd-comment tsd-typography">
-					<div class="lead">
-						<p>Map of integrations assigned to a client</p>
-					</div>
+					<p align="center">
+						<a href="https://sentry.io" target="_blank" align="center">
+							<img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
+						</a>
+						<br />
+					</p>
+					<h1 id="official-sentry-sdk-for-gatsbyjs">Official Sentry SDK for GatsbyJS</h1>
+					<p>Register the package as a plugin in <code>gastby-config.js</code>:</p>
+					<pre><code class="language-javascript">{
+  <span class="hljs-comment">// ...</span>
+<span class="hljs-symbol">  plugins:</span> [
+    {
+<span class="hljs-symbol">      resolve:</span> <span class="hljs-string">"@sentry/gatsby"</span>,
+<span class="hljs-symbol">      options:</span> {
+<span class="hljs-symbol">          dsn:</span> process.env.SENTRY_DSN, <span class="hljs-comment">// this is the default</span>
+      }
+    },
+    <span class="hljs-comment">// ...</span>
+  ]
+}</code></pre>
+					<p>Options will be passed directly to <code>Sentry.init</code>. The <code>environment</code> value defaults to <code>NODE_ENV</code> (or <code>development</code> if not set).</p>
+					<h2 id="github-actions">GitHub Actions</h2>
+					<p>The <code>release</code> value is inferred from <code>GITHUB_SHA</code>.</p>
+					<h2 id="netlify">Netlify</h2>
+					<p>The <code>release</code> value is inferred from <code>COMMIT_REF</code>.</p>
+					<h2 id="vercel">Vercel</h2>
+					<p>To automatically capture the <code>release</code> value on Vercel you will need to register appropriate <a href="https://vercel.com/docs/v2/build-step#system-environment-variables">system environment variable</a> (e.g. <code>VERCEL_GITHUB_COMMIT_SHA</code>) in your project.</p>
+					<h2 id="links">Links</h2>
+					<ul>
+						<li><a href="https://docs.sentry.io/quickstart/">Official SDK Docs</a></li>
+						<li><a href="http://getsentry.github.io/sentry-javascript/">TypeDoc</a></li>
+					</ul>
 				</div>
 			</section>
 		</div>
@@ -97,113 +106,72 @@
 						<a href="../globals.html"><em>Globals</em></a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/apm.html">apm</a>
+						<a href="apm.html">apm</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/browser.html">browser</a>
+						<a href="browser.html">browser</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="core.html">core</a>
 					</li>
 					<li class="current tsd-kind-external-module">
-						<a href="../modules/core.html">core</a>
+						<a href="gatsby.html">gatsby</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/gatsby.html">gatsby</a>
+						<a href="hub.html">hub</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/hub.html">hub</a>
+						<a href="integrations.html">integrations</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/integrations.html">integrations</a>
+						<a href="minimal.html">minimal</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/minimal.html">minimal</a>
+						<a href="node.html">node</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/node.html">node</a>
+						<a href="types.html">types</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/types.html">types</a>
-					</li>
-					<li class=" tsd-kind-external-module">
-						<a href="../modules/utils.html">utils</a>
+						<a href="utils.html">utils</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/apm.html" class="tsd-kind-icon">apm</a>
+						<a href="apm.html" class="tsd-kind-icon">apm</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/browser.html" class="tsd-kind-icon">browser</a>
+						<a href="browser.html" class="tsd-kind-icon">browser</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="core.html" class="tsd-kind-icon">core</a>
 					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-external-module">
-						<a href="../modules/core.html" class="tsd-kind-icon">core</a>
-						<ul>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module">
-								<a href="../classes/core.api.html" class="tsd-kind-icon">API</a>
-							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-								<a href="../classes/core.baseclient.html" class="tsd-kind-icon">Base<wbr>Client</a>
-							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module">
-								<a href="../classes/core.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
-							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module">
-								<a href="../classes/core.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
-							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module">
-								<a href="../classes/core.nooptransport.html" class="tsd-kind-icon">Noop<wbr>Transport</a>
-							</li>
-							<li class="current tsd-kind-interface tsd-parent-kind-external-module">
-								<a href="core.integrationindex.html" class="tsd-kind-icon">Integration<wbr>Index</a>
-							</li>
-							<li class=" tsd-kind-type-alias tsd-parent-kind-external-module tsd-has-type-parameter">
-								<a href="../modules/core.html#clientclass" class="tsd-kind-icon">Client<wbr>Class</a>
-							</li>
-							<li class=" tsd-kind-variable tsd-parent-kind-external-module">
-								<a href="../modules/core.html#installedintegrations" class="tsd-kind-icon">installed<wbr>Integrations</a>
-							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
-								<a href="../modules/core.html#eventtosentryrequest" class="tsd-kind-icon">event<wbr>ToSentry<wbr>Request</a>
-							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
-								<a href="../modules/core.html#getintegrationstosetup" class="tsd-kind-icon">get<wbr>Integrations<wbr>ToSetup</a>
-							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-								<a href="../modules/core.html#initandbind" class="tsd-kind-icon">init<wbr>And<wbr>Bind</a>
-							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
-								<a href="../modules/core.html#setupintegration" class="tsd-kind-icon">setup<wbr>Integration</a>
-							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-								<a href="../modules/core.html#setupintegrations" class="tsd-kind-icon">setup<wbr>Integrations</a>
-							</li>
-						</ul>
+						<a href="gatsby.html" class="tsd-kind-icon">gatsby</a>
 					</li>
 				</ul>
 				<ul class="after-current">
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/gatsby.html" class="tsd-kind-icon">gatsby</a>
+						<a href="hub.html" class="tsd-kind-icon">hub</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/hub.html" class="tsd-kind-icon">hub</a>
+						<a href="integrations.html" class="tsd-kind-icon">integrations</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/integrations.html" class="tsd-kind-icon">integrations</a>
+						<a href="minimal.html" class="tsd-kind-icon">minimal</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/minimal.html" class="tsd-kind-icon">minimal</a>
+						<a href="node.html" class="tsd-kind-icon">node</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/node.html" class="tsd-kind-icon">node</a>
+						<a href="types.html" class="tsd-kind-icon">types</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="../modules/types.html" class="tsd-kind-icon">types</a>
-					</li>
-					<li class=" tsd-kind-external-module">
-						<a href="../modules/utils.html" class="tsd-kind-icon">utils</a>
+						<a href="utils.html" class="tsd-kind-icon">utils</a>
 					</li>
 				</ul>
 			</nav>
