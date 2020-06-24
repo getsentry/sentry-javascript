@@ -286,12 +286,38 @@ _Old_:
 ```js
 Raven.config('___PUBLIC_DSN___', {
   shouldSendCallback(event) {
-    // Modify the event here
-    if(event.user){
+    // Only send events that include user data
+    if (event.user){
+      return true;
+    }
+    return false;
+  }
+});
+```
+
+_New_:
+
+```js
+Sentry.init({
+  beforeSend(event) {
+    if (event.user) {
+      return event;
+    }
+    return null
+  }
+});
+```
+
+### Modifying Events (`dataCallback`)
+
+_Old_:
+
+```js
+Raven.config('___PUBLIC_DSN___', {
+  dataCallback(event) {
+    if (event.user) {
       // Don't send user's email address
       delete event.user.email;
-    } else {
-      return false; // don't send this event
     }
     return event;
   }
@@ -303,12 +329,8 @@ _New_:
 ```js
 Sentry.init({
   beforeSend(event) {
-    // Modify the event here
-    if(event.user){
-      // Don't send user's email address
+    if (event.user) {
       delete event.user.email;
-    } else {
-      return null; // don't send this event
     }
     return event;
   }
@@ -333,4 +355,24 @@ _New_:
 Sentry.init({
   attachStacktrace: true,
 });
+```
+
+### Disabling Promises Handling
+
+_Old_:
+
+```js
+Raven.config('___PUBLIC_DSN___', {
+  captureUnhandledRejections: false,
+});
+```
+
+_New_:
+
+```js
+Sentry.init({
+  integrations: [new Sentry.Integrations.GlobalHandlers({
+    onunhandledrejection: false
+  })]
+})
 ```
