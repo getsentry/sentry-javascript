@@ -11,6 +11,8 @@ module.exports = {
     '**/build/**/*',
     '**/packages/typescript/**/*',
     '**/dangerfile.ts',
+    // TODO: Don't exclude React
+    '**/packages/react/**/*',
   ],
   mode: 'modules',
   excludeExternals: true,
