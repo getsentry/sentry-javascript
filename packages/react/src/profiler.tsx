@@ -83,9 +83,9 @@ export type ProfilerProps = {
   // in certain environments.
   disabled?: boolean;
   // If time component is on page should be displayed as spans. True by default.
-  hasRenderSpan?: boolean;
+  includeRender?: boolean;
   // If component updates should be displayed as spans. True by default.
-  hasUpdateSpan?: boolean;
+  includeUpdates?: boolean;
   // props given to component being profiled.
   updateProps: { [key: string]: any };
 };
