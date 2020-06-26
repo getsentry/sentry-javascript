@@ -3,6 +3,9 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.18.1
+
 - [react] feat: Update peer dependencies for `react` and `react-dom` (#2694)
 - [react] ref: Change Profiler prop names (#2699)
 
