@@ -120,7 +120,7 @@ describe('withProfiler', () => {
     });
 
     it('is not created if hasRenderSpan is false', () => {
-      const ProfiledComponent = withProfiler(() => <h1>Testing</h1>, { hasRenderSpan: false });
+      const ProfiledComponent = withProfiler(() => <h1>Testing</h1>, { includeRender: false });
       expect(mockStartChild).toHaveBeenCalledTimes(0);
 
       const component = render(<ProfiledComponent />);
@@ -165,7 +165,7 @@ describe('withProfiler', () => {
 
     it('does not get created if hasUpdateSpan is false', () => {
       const ProfiledComponent = withProfiler((props: { num: number }) => <div>{props.num}</div>, {
-        hasUpdateSpan: false,
+        includeUpdates: false,
       });
       const { rerender } = render(<ProfiledComponent num={0} />);
       expect(mockStartChild).toHaveBeenCalledTimes(0);

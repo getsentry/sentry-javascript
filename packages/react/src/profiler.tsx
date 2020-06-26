@@ -83,9 +83,9 @@ export type ProfilerProps = {
   // in certain environments.
   disabled?: boolean;
   // If time component is on page should be displayed as spans. True by default.
-  hasRenderSpan?: boolean;
+  includeRender?: boolean;
   // If component updates should be displayed as spans. True by default.
-  hasUpdateSpan?: boolean;
+  includeUpdates?: boolean;
   // props given to component being profiled.
   updateProps: { [key: string]: any };
 };
@@ -104,8 +104,8 @@ class Profiler extends React.Component<ProfilerProps> {
 
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
-    hasRenderSpan: true,
-    hasUpdateSpan: true,
+    includeRender: true,
+    includeUpdates: true,
   };
 
   public constructor(props: ProfilerProps) {
@@ -130,11 +130,11 @@ class Profiler extends React.Component<ProfilerProps> {
     this.mountActivity = null;
   }
 
-  public componentDidUpdate({ updateProps, hasUpdateSpan = true }: ProfilerProps): void {
+  public componentDidUpdate({ updateProps, includeUpdates = true }: ProfilerProps): void {
     // Only generate an update span if hasUpdateSpan is true, if there is a valid mountSpan,
     // and if the updateProps have changed. It is ok to not do a deep equality check here as it is expensive.
     // We are just trying to give baseline clues for further investigation.
-    if (hasUpdateSpan && this.mountSpan && updateProps !== this.props.updateProps) {
+    if (includeUpdates && this.mountSpan && updateProps !== this.props.updateProps) {
       // See what props haved changed between the previous props, and the current props. This is
       // set as data on the span. We just store the prop keys as the values could be potenially very large.
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
@@ -158,9 +158,9 @@ class Profiler extends React.Component<ProfilerProps> {
   // If a component is unmounted, we can say it is no longer on the screen.
   // This means we can finish the span representing the component render.
   public componentWillUnmount(): void {
-    const { name, hasRenderSpan = true } = this.props;
+    const { name, includeRender = true } = this.props;
 
-    if (this.mountSpan && hasRenderSpan) {
+    if (this.mountSpan && includeRender) {
       // If we were able to obtain the spanId of the mount activity, we should set the
       // next activity as a child to the component mount activity.
       this.mountSpan.startChild({
