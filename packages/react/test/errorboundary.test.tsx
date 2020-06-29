@@ -22,10 +22,10 @@ const TestApp: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
   return (
     <ErrorBoundary
       {...props}
-      onReset={(err: Error, stack: string) => {
+      onReset={(...args) => {
         setError(false);
         if (props.onReset) {
-          props.onReset(err, stack);
+          props.onReset(...args);
         }
       }}
     >
@@ -107,7 +107,7 @@ describe('ErrorBoundary', () => {
     expect(mockOnUnmount).toHaveBeenCalledTimes(0);
     unmount();
     expect(mockOnUnmount).toHaveBeenCalledTimes(1);
-    expect(mockOnUnmount).toHaveBeenCalledWith(null, null);
+    expect(mockOnUnmount).toHaveBeenCalledWith(null, null, null);
   });
 
   it('renders children correctly when there is no error', () => {
@@ -140,12 +140,14 @@ describe('ErrorBoundary', () => {
     it('renders a render props component', async () => {
       let errorString = '';
       let compStack = '';
+      let eventIdString = '';
       const { container } = render(
         <TestApp
-          fallback={({ error, componentStack }) => {
-            if (error && componentStack) {
+          fallback={({ error, componentStack, eventId }) => {
+            if (error && componentStack && eventId) {
               errorString = error.toString();
               compStack = componentStack;
+              eventIdString = eventId;
             }
             return <div>Fallback here</div>;
           }}
@@ -167,6 +169,7 @@ describe('ErrorBoundary', () => {
     in Bam (created by TestApp)
     in ErrorBoundary (created by TestApp)
     in TestApp`);
+      expect(eventIdString).toBe(EVENT_ID);
     });
   });
 
@@ -186,7 +189,7 @@ describe('ErrorBoundary', () => {
       fireEvent.click(btn);
 
       expect(mockOnError).toHaveBeenCalledTimes(1);
-      expect(mockOnError).toHaveBeenCalledWith(expect.any(Error), expect.any(String));
+      expect(mockOnError).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
@@ -249,7 +252,7 @@ describe('ErrorBoundary', () => {
       fireEvent.click(reset);
 
       expect(mockOnReset).toHaveBeenCalledTimes(1);
-      expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String));
+      expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
     });
   });
 });

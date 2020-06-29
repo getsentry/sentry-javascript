@@ -4,6 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [tracing] fix: Add manual Location typing (#2700)
+- [react] feat: Expose eventId on ErrorBoundary component
 
 ## 5.18.1
 
