@@ -34,6 +34,7 @@ export function tracingHandler(): (
 
     let traceId;
     let parentSpanId;
+    let sampled;
 
     // If there is a trace header set, we extract the data from it and set the span on the scope
     // to be the origin an created transaction set the parent_span_id / trace_id
@@ -42,6 +43,7 @@ export function tracingHandler(): (
       if (span) {
         traceId = span.traceId;
         parentSpanId = span.parentSpanId;
+        sampled = span.sampled;
       }
     }
 
@@ -49,6 +51,7 @@ export function tracingHandler(): (
       name: `${reqMethod} ${reqUrl}`,
       op: 'http.server',
       parentSpanId,
+      sampled,
       traceId,
     });
 

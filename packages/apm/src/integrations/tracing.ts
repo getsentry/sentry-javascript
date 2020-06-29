@@ -284,6 +284,52 @@ export class Tracing implements Integration {
   }
 
   /**
+   * Returns a new Transaction either continued from sentry-trace meta or a new one
+   */
+  private static _getNewTransaction(hub: Hub, transactionContext: TransactionContext): Transaction {
+    let traceId;
+    let parentSpanId;
+    let sampled;
+
+    const header = Tracing._getMeta('sentry-trace');
+    if (header) {
+      const span = SpanClass.fromTraceparent(header);
+      if (span) {
+        traceId = span.traceId;
+        parentSpanId = span.parentSpanId;
+        sampled = span.sampled;
+      }
+      Tracing._log(
+        `[Tracing] found 'sentry-meta' '<meta />' continuing trace with: trace_id: ${traceId} span_id: ${parentSpanId}`,
+      );
+    }
+
+    return hub.startTransaction({
+      parentSpanId,
+      sampled,
+      traceId,
+      trimEnd: true,
+      ...transactionContext,
+    }) as Transaction;
+  }
+
+  /**
+   * Returns the value of a meta tag
+   */
+  private static _getMeta(metaName: string): string | null {
+    const metas = document.getElementsByTagName('meta');
+
+    // tslint:disable-next-line: prefer-for-of
+    for (let i = 0; i < metas.length; i++) {
+      if (metas[i].getAttribute('name') === metaName) {
+        return metas[i].getAttribute('content');
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Pings the heartbeat
    */
   private static _pingHeartbeat(): void {
@@ -454,10 +500,7 @@ export class Tracing implements Integration {
       return undefined;
     }
 
-    Tracing._activeTransaction = hub.startTransaction({
-      trimEnd: true,
-      ...transactionContext,
-    }) as Transaction;
+    Tracing._activeTransaction = Tracing._getNewTransaction(hub, transactionContext);
 
     // We set the transaction here on the scope so error events pick up the trace context and attach it to the error
     hub.configureScope(scope => scope.setSpan(Tracing._activeTransaction));
