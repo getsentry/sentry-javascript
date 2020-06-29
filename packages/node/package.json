@@ -22,7 +22,7 @@
     "@sentry/types": "5.18.1",
     "@sentry/utils": "5.18.1",
     "cookie": "^0.3.1",
-    "https-proxy-agent": "^4.0.0",
+    "https-proxy-agent": "^5.0.0",
     "lru_map": "^0.3.3",
     "tslib": "^1.9.3"
   },
