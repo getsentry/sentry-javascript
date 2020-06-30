@@ -5,10 +5,10 @@
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [tracing] fix: Add manual Location typing (#2700)
 - [react] feat: Expose eventId on ErrorBoundary component
-- [gatsby] fix: fix: Add gatsby sdk identifier (#2709)
-
+- [gatsby] fix: Add gatsby SDK identifier (#2709)
 - [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
 - [tracing] fix: Respect sample decision when continuing trace from header in node (#2703)
+- [gatsby] fix: Package gatsby files properly (#2711)
 
 ## 5.18.1
 
