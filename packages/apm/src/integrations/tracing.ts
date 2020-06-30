@@ -561,7 +561,7 @@ export class Tracing implements Integration {
    * @param transactionSpan The transaction span
    */
   private static _addPerformanceEntries(transactionSpan: SpanClass): void {
-    if (!global.performance) {
+    if (!global.performance || !global.performance.getEntries) {
       // Gatekeeper if performance API not available
       return;
     }
