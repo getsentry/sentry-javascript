@@ -15,6 +15,21 @@ exports.onClientEntry = function(_, pluginParams) {
       tracesSampleRate,
       integrations,
     });
+    Sentry.addGlobalEventProcessor(event => {
+      event.sdk = {
+        ...event.sdk,
+        name: 'sentry.javascript.gatsby',
+        packages: [
+          ...((event.sdk && event.sdk.packages) || []),
+          {
+            name: 'npm:@sentry/gatsby',
+            version: Sentry.SDK_VERSION,
+          },
+        ],
+        version: Sentry.SDK_VERSION,
+      };
+      return event;
+    });
     window.Sentry = Sentry;
   });
 };
