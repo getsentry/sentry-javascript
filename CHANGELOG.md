@@ -4,6 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
+- [tracing] fix: Respect sample decision when continuing trace from header in node (#2703)
+
 ## 5.18.1
 
 - [react] feat: Update peer dependencies for `react` and `react-dom` (#2694)
