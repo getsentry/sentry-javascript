@@ -5,7 +5,7 @@
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [tracing] fix: Add manual Location typing (#2700)
 - [react] feat: Expose eventId on ErrorBoundary component
-- [gatsbe] fix: fix: Add gatsby sdk identifier (#2709)
+- [gatsby] fix: fix: Add gatsby sdk identifier (#2709)
 
 ## 5.18.1
 
