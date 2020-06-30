@@ -298,10 +298,10 @@ export class Tracing implements Integration {
         traceId = span.traceId;
         parentSpanId = span.parentSpanId;
         sampled = span.sampled;
+        Tracing._log(
+          `[Tracing] found 'sentry-meta' '<meta />' continuing trace with: trace_id: ${traceId} span_id: ${parentSpanId}`,
+        );
       }
-      Tracing._log(
-        `[Tracing] found 'sentry-meta' '<meta />' continuing trace with: trace_id: ${traceId} span_id: ${parentSpanId}`,
-      );
     }
 
     return hub.startTransaction({
@@ -317,16 +317,8 @@ export class Tracing implements Integration {
    * Returns the value of a meta tag
    */
   private static _getMeta(metaName: string): string | null {
-    const metas = document.getElementsByTagName('meta');
-
-    // tslint:disable-next-line: prefer-for-of
-    for (let i = 0; i < metas.length; i++) {
-      if (metas[i].getAttribute('name') === metaName) {
-        return metas[i].getAttribute('content');
-      }
-    }
-
-    return null;
+    const el = document.querySelector(`meta[name=${metaName}]`);
+    return el ? el.getAttribute('content') : null;
   }
 
   /**
