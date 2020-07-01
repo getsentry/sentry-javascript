@@ -1021,13 +1021,12 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
       if (span) {
         const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
         if (options.headers) {
-          if (Array.isArray(options.headers)) {
-            options.headers = [...options.headers, { 'sentry-trace': span.toTraceparent() }];
+          if (typeof options.headers.append === 'function') {
+            options.headers.append('sentry-trace', span.toTraceparent());
+          } else if (Array.isArray(options.headers)) {
+            options.headers = [...options.headers, ['sentry-trace', span.toTraceparent()]];
           } else {
-            options.headers = {
-              ...options.headers,
-              'sentry-trace': span.toTraceparent(),
-            };
+            options.headers = { ...options.headers, 'sentry-trace': span.toTraceparent() };
           }
         } else {
           options.headers = { 'sentry-trace': span.toTraceparent() };
