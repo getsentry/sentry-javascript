@@ -9,6 +9,7 @@
 - [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
 - [tracing] fix: Respect sample decision when continuing trace from header in node (#2703)
 - [gatsby] fix: Package gatsby files properly (#2711)
+- [tracing] fix: All options of adding fetch headers (#2712)
 
 ## 5.18.1
 
