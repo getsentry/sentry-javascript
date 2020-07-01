@@ -14,14 +14,7 @@ describe('parseRequest', () => {
         host: 'mattrobenolt.com',
       },
       method: 'POST',
-      url: '/some/url?key=value',
       originalUrl: '/some/originalUrl?key=value',
-      user: {
-        custom_property: 'foo',
-        email: 'tobias@mail.com',
-        id: 123,
-        username: 'tobias',
-      },
       route: {
         path: '/path',
         stack: [
@@ -29,6 +22,13 @@ describe('parseRequest', () => {
             name: 'routeHandler',
           },
         ],
+      },
+      url: '/some/url?key=value',
+      user: {
+        custom_property: 'foo',
+        email: 'tobias@mail.com',
+        id: 123,
+        username: 'tobias',
       },
     };
   });

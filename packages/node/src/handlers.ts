@@ -95,11 +95,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
 
     let routePath;
     try {
-      if (request.originalUrl) {
-        routePath = url.parse(request.originalUrl).pathname;
-      } else {
-        routePath = url.parse(request.url).pathname;
-      }
+      routePath = url.parse(request.originalUrl || request.url).pathname;
     } catch (_oO) {
       routePath = request.route.path;
     }
