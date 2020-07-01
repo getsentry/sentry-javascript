@@ -80,6 +80,8 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
   try {
     // Express.js shape
     const request = req as {
+      url: string;
+      originalUrl: string;
       method: string;
       route: {
         path: string;
@@ -91,9 +93,16 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
       };
     };
 
+    let routePath;
+    try {
+      routePath = url.parse(request.originalUrl || request.url).pathname;
+    } catch (_oO) {
+      routePath = request.route.path;
+    }
+
     switch (type) {
       case 'path': {
-        return request.route.path;
+        return routePath;
       }
       case 'handler': {
         return request.route.stack[0].name;
@@ -101,8 +110,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
       case 'methodPath':
       default: {
         const method = request.method.toUpperCase();
-        const path = request.route.path;
-        return `${method}|${path}`;
+        return `${method}|${routePath}`;
       }
     }
   } catch (_oO) {

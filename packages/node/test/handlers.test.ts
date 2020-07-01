@@ -4,21 +4,34 @@ import { Event, Request, User } from '../src';
 import { parseRequest } from '../src/handlers';
 
 describe('parseRequest', () => {
-  const mockReq = {
-    body: 'foo',
-    cookies: { test: 'test' },
-    headers: {
-      host: 'mattrobenolt.com',
-    },
-    method: 'POST',
-    url: '/some/path?key=value',
-    user: {
-      custom_property: 'foo',
-      email: 'tobias@mail.com',
-      id: 123,
-      username: 'tobias',
-    },
-  };
+  let mockReq: { [key: string]: any };
+
+  beforeEach(() => {
+    mockReq = {
+      body: 'foo',
+      cookies: { test: 'test' },
+      headers: {
+        host: 'mattrobenolt.com',
+      },
+      method: 'POST',
+      originalUrl: '/some/originalUrl?key=value',
+      route: {
+        path: '/path',
+        stack: [
+          {
+            name: 'routeHandler',
+          },
+        ],
+      },
+      url: '/some/url?key=value',
+      user: {
+        custom_property: 'foo',
+        email: 'tobias@mail.com',
+        id: 123,
+        username: 'tobias',
+      },
+    };
+  });
 
   describe('parseRequest.contexts runtime', () => {
     test('runtime name must contain node', () => {
@@ -119,6 +132,36 @@ describe('parseRequest', () => {
       expect(parseRequest({}, mockReq, {}).request).toHaveProperty('data');
       expect(parseRequest({}, { ...mockReq, method: 'GET' }, {}).request).not.toHaveProperty('data');
       expect(parseRequest({}, { ...mockReq, method: 'HEAD' }, {}).request).not.toHaveProperty('data');
+    });
+  });
+
+  describe('parseRequest.transaction property', () => {
+    test('extracts method and full route path by default from `originalUrl`', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq);
+      expect(parsedRequest.transaction).toEqual('POST|/some/originalUrl');
+    });
+
+    test('extracts method and full route path by default from `url` if `originalUrl` is not present', () => {
+      delete mockReq.originalUrl;
+      const parsedRequest: Event = parseRequest({}, mockReq);
+      expect(parsedRequest.transaction).toEqual('POST|/some/url');
+    });
+
+    test('fallback to method and `route.path` if previous attempts failed', () => {
+      delete mockReq.originalUrl;
+      delete mockReq.url;
+      const parsedRequest: Event = parseRequest({}, mockReq);
+      expect(parsedRequest.transaction).toEqual('POST|/path');
+    });
+
+    test('can extract path only instead if configured', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq, { transaction: 'path' });
+      expect(parsedRequest.transaction).toEqual('/some/originalUrl');
+    });
+
+    test('can extract handler name instead if configured', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq, { transaction: 'handler' });
+      expect(parsedRequest.transaction).toEqual('routeHandler');
     });
   });
 });
