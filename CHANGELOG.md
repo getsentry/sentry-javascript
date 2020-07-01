@@ -8,7 +8,8 @@
 
 - [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
 - [react] feat: Expose eventId on ErrorBoundary component (#2704)
-- [tracing] fix: Respect fetch headers (#2712)
+- [node] fix: Extract transaction from nested express paths correctly (#2714)
+- [tracing] fix: Respect fetch headers (#2712) (#2713)
 - [tracing] fix: Check if performance.getEntries() exists (#2710)
 - [tracing] fix: Add manual Location typing (#2700)
 - [tracing] fix: Respect sample decision when continuing trace from header in node (#2703)
