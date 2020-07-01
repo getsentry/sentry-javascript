@@ -3,13 +3,18 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-- [tracing] fix: Add manual Location typing (#2700)
-- [react] feat: Expose eventId on ErrorBoundary component
-- [gatsby] fix: Add gatsby SDK identifier (#2709)
+
+## 5.19.0
+
 - [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
+- [react] feat: Expose eventId on ErrorBoundary component (#2704)
+- [tracing] fix: Respect fetch headers (#2712)
+- [tracing] fix: Check if performance.getEntries() exists (#2710)
+- [tracing] fix: Add manual Location typing (#2700)
 - [tracing] fix: Respect sample decision when continuing trace from header in node (#2703)
-- [gatsby] fix: Package gatsby files properly (#2711)
 - [tracing] fix: All options of adding fetch headers (#2712)
+- [gatsby] fix: Add gatsby SDK identifier (#2709)
+- [gatsby] fix: Package gatsby files properly (#2711)
 
 ## 5.18.1
 
