@@ -4,6 +4,7 @@ import { Event, EventProcessor, Integration, Severity, Span, SpanContext, Transa
 import {
   addInstrumentationHandler,
   getGlobalObject,
+  isInstanceOf,
   isMatchingPattern,
   logger,
   safeJoin,
@@ -1019,18 +1020,24 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
     if (activity) {
       const span = activity.span;
       if (span) {
+        const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
         const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
-        if (options.headers) {
-          if (typeof options.headers.append === 'function') {
-            options.headers.append('sentry-trace', span.toTraceparent());
-          } else if (Array.isArray(options.headers)) {
-            options.headers = [...options.headers, ['sentry-trace', span.toTraceparent()]];
+        let headers = options.headers;
+        if (isInstanceOf(request, Request)) {
+          headers = (request as Request).headers;
+        }
+        if (headers) {
+          if (typeof headers.append === 'function') {
+            headers.append('sentry-trace', span.toTraceparent());
+          } else if (Array.isArray(headers)) {
+            headers = [...headers, ['sentry-trace', span.toTraceparent()]];
           } else {
-            options.headers = { ...options.headers, 'sentry-trace': span.toTraceparent() };
+            headers = { ...headers, 'sentry-trace': span.toTraceparent() };
           }
         } else {
-          options.headers = { 'sentry-trace': span.toTraceparent() };
+          headers = { 'sentry-trace': span.toTraceparent() };
         }
+        options.headers = headers;
       }
     }
   }
