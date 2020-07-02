@@ -39,6 +39,7 @@
     "react": "^16.0.0",
     "react-dom": "^16.0.0",
     "react-test-renderer": "^16.13.1",
+    "redux": "^4.0.5",
     "rimraf": "^2.6.3",
     "tslint": "^5.16.0",
     "tslint-react": "^5.0.0",
