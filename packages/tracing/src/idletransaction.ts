@@ -188,24 +188,18 @@ export class IdleTransaction extends Transaction {
         return keepSpan;
       });
 
+      this._finished = true;
+      this.activities = {};
+      // this._onScope is true if the transaction was previously on the scope.
+      if (this._onScope) {
+        clearActiveTransaction(this._idleHub);
+      }
+
       logger.log('[Tracing] flushing IdleTransaction');
       this.finish(endTimestamp);
     } else {
       logger.log('[Tracing] No active IdleTransaction');
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public finish(endTimestamp?: number): string | undefined {
-    this._finished = true;
-    this.activities = {};
-    // this._onScope is true if the transaction was previously on the scope.
-    if (this._onScope) {
-      clearActiveTransaction(this._idleHub);
-    }
-    return super.finish(endTimestamp);
   }
 
   /**
@@ -259,14 +253,10 @@ export class IdleTransaction extends Transaction {
   public initSpanRecorder(maxlen?: number): void {
     if (!this.spanRecorder) {
       const pushActivity = (id: string) => {
-        if (id !== this.spanId) {
-          this._pushActivity(id);
-        }
+        this._pushActivity(id);
       };
       const popActivity = (id: string) => {
-        if (id !== this.spanId) {
-          this._popActivity(id);
-        }
+        this._popActivity(id);
       };
       this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanId, maxlen);
 
