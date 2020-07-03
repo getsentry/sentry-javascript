@@ -1,10 +1,8 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
-import { SpanContext, TransactionContext } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { TransactionContext } from '@sentry/types';
 
-import { Span } from './span';
-import { Transaction } from './transaction';
 import { IdleTransaction } from './idletransaction';
+import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
@@ -54,8 +52,13 @@ function startTransaction(this: Hub, context: TransactionContext): Transaction {
 /**
  * Create new idle transaction.
  */
-export function startIdleTransaction(this: Hub, context: TransactionContext, idleTimeout?: number): IdleTransaction {
-  const transaction = new IdleTransaction(context, this, idleTimeout);
+export function startIdleTransaction(
+  this: Hub,
+  context: TransactionContext,
+  idleTimeout?: number,
+  onScope?: boolean,
+): IdleTransaction {
+  const transaction = new IdleTransaction(context, this, idleTimeout, onScope);
   return sample(this, transaction);
 }
 
