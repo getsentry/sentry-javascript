@@ -1,4 +1,31 @@
 /**
+ * A type returned by some APIs which contains a list of DOMString (strings).
+ *
+ * Copy DOMStringList interface so that user's dont have to include dom typings with Tracing integration
+ * Based on https://github.com/microsoft/TypeScript/blob/4cf0afe2662980ebcd8d444dbd13d8f47d06fcd5/lib/lib.dom.d.ts#L4051
+ */
+interface DOMStringList {
+  /**
+   * Returns the number of strings in strings.
+   */
+  readonly length: number;
+  /**
+   * Returns true if strings contains string, and false otherwise.
+   */
+  contains(str: string): boolean;
+  /**
+   * Returns the string with index index from strings.
+   */
+  item(index: number): string | null;
+  [index: number]: string;
+}
+
+declare var DOMStringList: {
+  prototype: DOMStringList;
+  new (): DOMStringList;
+};
+
+/**
  * The location (URL) of the object it is linked to. Changes done on it are reflected on the object it relates to.
  * Both the Document and Window interface have such a linked Location, accessible via Document.location and Window.location respectively.
  *
