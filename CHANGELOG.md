@@ -18,6 +18,7 @@
 - [browser] fix: Correctly remove all event listeners (#2725)
 - [tracing] fix: Add manual `DOMStringList` typing (#2718)
 - [react] feat: Export `createReduxEnhancer` to log redux actions as breadcrumbs, and attach state as an extra. (#2717)
+- [tracing] feat: `Add @sentry/tracing` (#2719)
 
 ## 5.19.0
 
