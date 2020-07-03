@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 
 import { Span } from './span';
 import { Transaction } from './transaction';
+import { IdleTransaction } from './idletransaction';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
@@ -20,13 +21,10 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * {@see Hub.startTransaction}
+ * Use RNG to generate sampling decision, which all child spans inherit.
  */
-function startTransaction(this: Hub, context: TransactionContext): Transaction {
-  const transaction = new Transaction(context, this);
-
-  const client = this.getClient();
-  // Roll the dice for sampling transaction, all child spans inherit the sampling decision.
+function sample<T extends Transaction>(hub: Hub, transaction: T): T {
+  const client = hub.getClient();
   if (transaction.sampled === undefined) {
     const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
     // if true = we want to have the transaction
@@ -46,41 +44,19 @@ function startTransaction(this: Hub, context: TransactionContext): Transaction {
 }
 
 /**
- * {@see Hub.startSpan}
+ * {@see Hub.startTransaction}
  */
-function startSpan(this: Hub, context: SpanContext): Transaction | Span {
-  /**
-   * @deprecated
-   * TODO: consider removing this in a future release.
-   *
-   * This is for backwards compatibility with releases before startTransaction
-   * existed, to allow for a smoother transition.
-   */
-  {
-    // The `TransactionContext.name` field used to be called `transaction`.
-    const transactionContext = context as Partial<TransactionContext & { transaction: string }>;
-    if (transactionContext.transaction !== undefined) {
-      transactionContext.name = transactionContext.transaction;
-    }
-    // Check for not undefined since we defined it's ok to start a transaction
-    // with an empty name.
-    if (transactionContext.name !== undefined) {
-      logger.warn('Deprecated: Use startTransaction to start transactions and Transaction.startChild to start spans.');
-      return this.startTransaction(transactionContext as TransactionContext);
-    }
-  }
+function startTransaction(this: Hub, context: TransactionContext): Transaction {
+  const transaction = new Transaction(context, this);
+  return sample(this, transaction);
+}
 
-  const scope = this.getScope();
-  if (scope) {
-    // If there is a Span on the Scope we start a child and return that instead
-    const parentSpan = scope.getSpan();
-    if (parentSpan) {
-      return parentSpan.startChild(context);
-    }
-  }
-
-  // Otherwise we return a new Span
-  return new Span(context);
+/**
+ * Create new idle transaction.
+ */
+export function startIdleTransaction(this: Hub, context: TransactionContext, idleTimeout?: number): IdleTransaction {
+  const transaction = new IdleTransaction(context, this, idleTimeout);
+  return sample(this, transaction);
 }
 
 /**
@@ -92,9 +68,6 @@ export function addExtensionMethods(): void {
     carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
     if (!carrier.__SENTRY__.extensions.startTransaction) {
       carrier.__SENTRY__.extensions.startTransaction = startTransaction;
-    }
-    if (!carrier.__SENTRY__.extensions.startSpan) {
-      carrier.__SENTRY__.extensions.startSpan = startSpan;
     }
     if (!carrier.__SENTRY__.extensions.traceHeaders) {
       carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
