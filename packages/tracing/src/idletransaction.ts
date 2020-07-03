@@ -106,10 +106,6 @@ export class IdleTransaction extends Transaction {
       logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
       hub.configureScope(scope => scope.setSpan(this));
     }
-
-    // Start heartbeat so that transactions do not run forever.
-    logger.log('Starting heartbeat');
-    this._pingHeartbeat();
   }
 
   /**
@@ -152,7 +148,7 @@ export class IdleTransaction extends Transaction {
    * Pings the heartbeat
    */
   private _pingHeartbeat(): void {
-    logger.log(`ping Heartbeat -> current counter: ${this._heartbeatCounter}`);
+    logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
     this._heartbeatTimer = (setTimeout(() => {
       this._beat();
     }, 5000) as any) as number;
@@ -241,9 +237,7 @@ export class IdleTransaction extends Transaction {
       const end = timestampWithMs() + timeout / 1000;
 
       setTimeout(() => {
-        if (!this._finished) {
-          this.finishIdleTransaction(end);
-        }
+        this.finishIdleTransaction(end);
       }, timeout);
     }
   }
@@ -275,6 +269,10 @@ export class IdleTransaction extends Transaction {
         }
       };
       this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanId, maxlen);
+
+      // Start heartbeat so that transactions do not run forever.
+      logger.log('Starting heartbeat');
+      this._pingHeartbeat();
     }
     this.spanRecorder.add(this);
   }
