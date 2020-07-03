@@ -2,6 +2,7 @@ import { getMainCarrier, Hub } from '@sentry/hub';
 import { SpanContext, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { IdleTransaction } from './idletransaction';
 import { Span } from './span';
 import { Transaction } from './transaction';
 
@@ -22,8 +23,8 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 /**
  * {@see Hub.startTransaction}
  */
-function startTransaction(this: Hub, context: TransactionContext): Transaction {
-  const transaction = new Transaction(context, this);
+function startTransaction(this: Hub, context: TransactionContext, idleTimeout?: number): Transaction {
+  const transaction = idleTimeout ? new IdleTransaction(context, this, idleTimeout) : new Transaction(context, this);
 
   const client = this.getClient();
   // Roll the dice for sampling transaction, all child spans inherit the sampling decision.

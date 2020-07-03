@@ -1,7 +1,7 @@
 import { addExtensionMethods } from './hubextensions';
-import * as ApmIntegrations from './integrations';
+import * as TracingIntegrations from './integrations';
 
-export { ApmIntegrations as Integrations };
+export { TracingIntegrations as Integrations };
 export { Span, TRACEPARENT_REGEXP } from './span';
 export { Transaction } from './transaction';
 

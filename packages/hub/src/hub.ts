@@ -376,8 +376,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startTransaction(context: TransactionContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context);
+  public startTransaction(context: TransactionContext, idleTimeout?: number): Transaction {
+    return this._callExtensionMethod('startTransaction', context, idleTimeout);
   }
 
   /**

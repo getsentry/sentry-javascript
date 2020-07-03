@@ -198,5 +198,5 @@ export interface Hub {
    *
    * @param context Properties of the new `Transaction`.
    */
-  startTransaction(context: TransactionContext): Transaction;
+  startTransaction(context: TransactionContext, idleTimeout?: number): Transaction;
 }

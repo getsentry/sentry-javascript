@@ -1,79 +1,19 @@
 import { getCurrentHub } from '@sentry/browser';
-import { Integration, IntegrationClass, Span } from '@sentry/types';
-import { logger, timestampWithMs } from '@sentry/utils';
+import { Span, Transaction } from '@sentry/types';
+import { timestampWithMs } from '@sentry/utils';
 import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
-const TRACING_GETTER = ({
-  id: 'Tracing',
-} as any) as IntegrationClass<Integration>;
-
-let globalTracingIntegration: Integration | null = null;
-const getTracingIntegration = () => {
-  if (globalTracingIntegration) {
-    return globalTracingIntegration;
+function getActiveTransaction(): Transaction | undefined {
+  const hub = getCurrentHub();
+  const scope = hub.getScope();
+  if (scope) {
+    return scope.getTransaction();
   }
 
-  globalTracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
-  return globalTracingIntegration;
-};
-
-/**
- * Warn if tracing integration not configured. Will only warn once.
- */
-function warnAboutTracing(name: string): void {
-  if (globalTracingIntegration === null) {
-    logger.warn(
-      `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure the Tracing integration is setup properly.`,
-    );
-  }
-}
-
-/**
- * pushActivity creates an new react activity.
- * Is a no-op if Tracing integration is not valid
- * @param name displayName of component that started activity
- */
-function pushActivity(name: string, op: string): number | null {
-  if (globalTracingIntegration === null) {
-    return null;
-  }
-
-  // tslint:disable-next-line:no-unsafe-any
-  return (globalTracingIntegration as any).constructor.pushActivity(name, {
-    description: `<${name}>`,
-    op: `react.${op}`,
-  });
-}
-
-/**
- * popActivity removes a React activity.
- * Is a no-op if Tracing integration is not valid.
- * @param activity id of activity that is being popped
- */
-function popActivity(activity: number | null): void {
-  if (activity === null || globalTracingIntegration === null) {
-    return;
-  }
-
-  // tslint:disable-next-line:no-unsafe-any
-  (globalTracingIntegration as any).constructor.popActivity(activity);
-}
-
-/**
- * Obtain a span given an activity id.
- * Is a no-op if Tracing integration is not valid.
- * @param activity activity id associated with obtained span
- */
-function getActivitySpan(activity: number | null): Span | undefined {
-  if (activity === null || globalTracingIntegration === null) {
-    return undefined;
-  }
-
-  // tslint:disable-next-line:no-unsafe-any
-  return (globalTracingIntegration as any).constructor.getActivitySpan(activity) as Span | undefined;
+  return undefined;
 }
 
 export type ProfilerProps = {
@@ -95,8 +35,6 @@ export type ProfilerProps = {
  * spans based on component lifecycles.
  */
 class Profiler extends React.Component<ProfilerProps> {
-  // The activity representing how long it takes to mount a component.
-  public mountActivity: number | null = null;
   // The span of the mount activity
   public mountSpan: Span | undefined = undefined;
   // The span of the render
@@ -116,18 +54,21 @@ class Profiler extends React.Component<ProfilerProps> {
       return;
     }
 
-    if (getTracingIntegration()) {
-      this.mountActivity = pushActivity(name, 'mount');
-    } else {
-      warnAboutTracing(name);
+    const activeTransaction = getActiveTransaction();
+
+    if (activeTransaction) {
+      this.mountSpan = activeTransaction.startChild({
+        description: `<${name}>`,
+        op: 'react.mount',
+      });
     }
   }
 
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
-    this.mountSpan = getActivitySpan(this.mountActivity);
-    popActivity(this.mountActivity);
-    this.mountActivity = null;
+    if (this.mountSpan) {
+      this.mountSpan.finish();
+    }
   }
 
   public componentDidUpdate({ updateProps, includeUpdates = true }: ProfilerProps): void {
@@ -221,22 +162,27 @@ function useProfiler(
     hasRenderSpan: true,
   },
 ): void {
-  const [mountActivity] = React.useState(() => {
+  const [mountSpan] = React.useState(() => {
     if (options && options.disabled) {
-      return null;
+      return undefined;
     }
 
-    if (getTracingIntegration()) {
-      return pushActivity(name, 'mount');
+    const activeTransaction = getActiveTransaction();
+
+    if (activeTransaction) {
+      return activeTransaction.startChild({
+        description: `<${name}>`,
+        op: 'react.mount',
+      });
     }
 
-    warnAboutTracing(name);
-    return null;
+    return undefined;
   });
 
   React.useEffect(() => {
-    const mountSpan = getActivitySpan(mountActivity);
-    popActivity(mountActivity);
+    if (mountSpan) {
+      mountSpan.finish();
+    }
 
     return () => {
       if (mountSpan && options.hasRenderSpan) {

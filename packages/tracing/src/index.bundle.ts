@@ -53,7 +53,7 @@ import { Integrations as BrowserIntegrations } from '@sentry/browser';
 import { getGlobalObject } from '@sentry/utils';
 
 import { addExtensionMethods } from './hubextensions';
-import * as ApmIntegrations from './integrations';
+import * as TracingIntegrations from './integrations';
 
 export { Span, TRACEPARENT_REGEXP } from './span';
 
@@ -70,7 +70,7 @@ if (_window.Sentry && _window.Sentry.Integrations) {
 const INTEGRATIONS = {
   ...windowIntegrations,
   ...BrowserIntegrations,
-  Tracing: ApmIntegrations.Tracing,
+  Tracing: TracingIntegrations.BrowserTracing,
 };
 
 export { INTEGRATIONS as Integrations };
