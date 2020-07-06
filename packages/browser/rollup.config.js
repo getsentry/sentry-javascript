@@ -109,7 +109,7 @@ export default [
         },
         include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
       }),
-      ...plugins.slice(1),
+      ...plugins.slice(1).concat(bundleConfig.plugins.slice(-1)),
     ],
   },
   {
