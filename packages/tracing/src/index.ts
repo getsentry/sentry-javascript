@@ -1,7 +1,11 @@
+import { BrowserTracing } from './browser/browsertracing';
 import { addExtensionMethods } from './hubextensions';
 import * as ApmIntegrations from './integrations';
 
-export { ApmIntegrations as Integrations };
+// tslint:disable-next-line: variable-name
+const Integrations = { ...ApmIntegrations, BrowserTracing };
+
+export { Integrations };
 export { Span, TRACEPARENT_REGEXP } from './span';
 export { Transaction } from './transaction';
 

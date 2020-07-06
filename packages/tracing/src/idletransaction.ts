@@ -7,7 +7,7 @@ import { Span } from './span';
 import { SpanStatus } from './spanstatus';
 import { SpanRecorder, Transaction } from './transaction';
 
-const DEFAULT_IDLE_TIMEOUT = 1000;
+export const DEFAULT_IDLE_TIMEOUT = 1000;
 
 /**
  * @inheritDoc
@@ -138,7 +138,7 @@ export class IdleTransaction extends Transaction {
   /**
    * Finish the current active idle transaction
    */
-  public finishIdleTransaction(endTimestamp: number): void {
+  public finishIdleTransaction(endTimestamp: number = timestampWithMs()): void {
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
 

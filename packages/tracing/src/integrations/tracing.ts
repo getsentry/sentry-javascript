@@ -15,8 +15,7 @@ import {
 import { Span as SpanClass } from '../span';
 import { SpanStatus } from '../spanstatus';
 import { Transaction } from '../transaction';
-
-import { Location } from './types';
+import { Location } from '../types';
 
 /**
  * Options for Tracing integration

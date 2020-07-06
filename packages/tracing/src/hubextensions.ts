@@ -53,13 +53,13 @@ function startTransaction(this: Hub, context: TransactionContext): Transaction {
  * Create new idle transaction.
  */
 export function startIdleTransaction(
-  this: Hub,
+  hub: Hub,
   context: TransactionContext,
   idleTimeout?: number,
   onScope?: boolean,
 ): IdleTransaction {
-  const transaction = new IdleTransaction(context, this, idleTimeout, onScope);
-  return sample(this, transaction);
+  const transaction = new IdleTransaction(context, hub, idleTimeout, onScope);
+  return sample(hub, transaction);
 }
 
 /**
