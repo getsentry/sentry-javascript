@@ -13,20 +13,13 @@ const DEFAULT_IDLE_TIMEOUT = 1000;
  * @inheritDoc
  */
 export class IdleTransactionSpanRecorder extends SpanRecorder {
-  private readonly _pushActivity: (id: string) => void;
-  private readonly _popActivity: (id: string) => void;
-  public transactionSpanId: string = '';
-
   public constructor(
-    pushActivity: (id: string) => void,
-    popActivity: (id: string) => void,
-    transactionSpanId: string = '',
+    private readonly _pushActivity: (id: string) => void,
+    private readonly _popActivity: (id: string) => void,
+    public transactionSpanId: string = '',
     maxlen?: number,
   ) {
     super(maxlen);
-    this._pushActivity = pushActivity;
-    this._popActivity = popActivity;
-    this.transactionSpanId = transactionSpanId;
   }
 
   /**
@@ -72,14 +65,6 @@ export class IdleTransaction extends Transaction {
   // Amount of times heartbeat has counted. Will cause transaction to finish after 3 beats.
   private _heartbeatCounter: number = 1;
 
-  // The time to wait in ms until the idle transaction will be finished. Default: 1000
-  private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT;
-
-  // If an idle transaction should be put itself on and off the scope automatically.
-  private readonly _onScope: boolean = false;
-
-  private readonly _idleHub?: Hub;
-
   // We should not use heartbeat if we finished a transaction
   private _finished: boolean = false;
 
@@ -87,24 +72,22 @@ export class IdleTransaction extends Transaction {
 
   public constructor(
     transactionContext: TransactionContext,
-    hub?: Hub,
-    idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
-    onScope: boolean = false,
+    private readonly _idleHub?: Hub,
+    // The time to wait in ms until the idle transaction will be finished. Default: 1000
+    private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
+    // If an idle transaction should be put itself on and off the scope automatically.
+    private readonly _onScope: boolean = false,
   ) {
-    super(transactionContext, hub);
+    super(transactionContext, _idleHub);
 
-    this._idleTimeout = idleTimeout;
-    this._idleHub = hub;
-    this._onScope = onScope;
-
-    if (hub && onScope) {
+    if (_idleHub && _onScope) {
       // There should only be one active transaction on the scope
-      clearActiveTransaction(hub);
+      clearActiveTransaction(_idleHub);
 
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
       logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
-      hub.configureScope(scope => scope.setSpan(this));
+      _idleHub.configureScope(scope => scope.setSpan(this));
     }
   }
 
