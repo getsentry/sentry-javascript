@@ -52,14 +52,12 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
  */
 export class IdleTransaction extends Transaction {
   // Activities store a list of active spans
-  // TODO: Can we use `Set()` here?
   public activities: Record<string, boolean> = {};
 
   // Stores reference to the timeout that calls _beat().
   private _heartbeatTimer: number = 0;
 
   // Track state of activities in previous heartbeat
-  // TODO: If we use sets, this can just be a set, then we can do
   private _prevHeartbeatString: string | undefined;
 
   // Amount of times heartbeat has counted. Will cause transaction to finish after 3 beats.
