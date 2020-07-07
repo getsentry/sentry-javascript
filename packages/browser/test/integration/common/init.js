@@ -3,16 +3,7 @@
 // - make assertions re: wrapped functions
 var originalBuiltIns = {
   setTimeout: setTimeout,
-  setInterval: setInterval,
-  requestAnimationFrame: requestAnimationFrame,
-  xhrProtoOpen: XMLHttpRequest.prototype.open,
-  headAddEventListener: document.head.addEventListener, // use <head> 'cause body isn't closed yet
-  headRemoveEventListener: document.head.removeEventListener,
-  consoleDebug: console.debug,
-  consoleInfo: console.info,
-  consoleWarn: console.warn,
-  consoleError: console.error,
-  consoleLog: console.log,
+  addEventListener: document.addEventListener,
 };
 
 var events = [];
