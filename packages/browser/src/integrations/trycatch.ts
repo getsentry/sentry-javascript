@@ -174,11 +174,34 @@ export class TryCatch implements Integration {
         fn: EventListenerObject,
         options?: boolean | EventListenerOptions,
       ): () => void {
-        let callback = (fn as any) as WrappedFunction;
+        /**
+         * There are 2 possible scenarios here:
+         *
+         * 1. Someone passes a callback, which was attached prior to Sentry initialization, or by using unmodified
+         * method, eg. `document.addEventListener.call(el, name, handler). In this case, we treat this function
+         * as a pass-through, and call original `removeEventListener` with it.
+         *
+         * 2. Someone passes a callback, which was attached after Sentry was initialized, which means that it was using
+         * our wrapped version of `addEventListener`, which internally calls `wrap` helper.
+         * This helper "wraps" whole callback inside a try/catch statement, and attached appropriate metadata to it,
+         * in order for us to make a distinction between wrapped/non-wrapped functions possible.
+         * If a function has `__sentry__` property, it means that it was wrapped, and it has additional property
+         * of `__sentry__original__`, holding the handler. And this original handler, has a reversed link,
+         * with `__sentry_wrapped__` property, which holds the wrapped version.
+         *
+         * When someone adds a handler prior to initialization, and then do it again, but after,
+         * then we have to detach both of them. Otherwise, if we'd detach only wrapped one, it'd be impossible
+         * to get rid of the initial handler and it'd stick there forever.
+         * In case of second scenario, `__sentry_original__` refers to initial handler, and passed function
+         * is a wrapped version.
+         */
+        const callback = (fn as any) as WrappedFunction;
         try {
-          callback = callback && (callback.__sentry_wrapped__ || callback);
+          if (callback && callback.__sentry__) {
+            original.call(this, eventName, callback.__sentry_original__, options);
+          }
         } catch (e) {
-          // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+          // ignore, accessing __sentry__ will throw in some Selenium environments
         }
         return original.call(this, eventName, callback, options);
       };

@@ -27,19 +27,38 @@ describe("wrapped built-ins", function() {
     return runInSandbox(sandbox, function() {
       var div = document.createElement("div");
       document.body.appendChild(div);
-      var click = new MouseEvent("click");
       var fooFn = function() {
         foo();
       };
       var barFn = function() {
         bar();
       };
-      div.addEventListener("click", fooFn, false);
+      div.addEventListener("click", fooFn);
       div.addEventListener("click", barFn);
       div.removeEventListener("click", barFn);
       div.dispatchEvent(new MouseEvent("click"));
     }).then(function(summary) {
       assert.lengthOf(summary.events, 1);
+    });
+  });
+
+  it("should remove the original callback if it was registered before Sentry initialized (w. original method)", function() {
+    return runInSandbox(sandbox, function() {
+      var div = document.createElement("div");
+      document.body.appendChild(div);
+      window.capturedCall = false;
+      var captureFn = function() {
+        window.capturedCall = true;
+      };
+      // Use original addEventListener to simulate non-wrapped behavior (callback is attached without __sentry_wrapped__)
+      window.originalBuiltIns.addEventListener.call(div, "click", captureFn);
+      // Then attach the same callback again, but with already wrapped method
+      div.addEventListener("click", captureFn);
+      div.removeEventListener("click", captureFn);
+      div.dispatchEvent(new MouseEvent("click"));
+    }).then(function(summary) {
+      assert.equal(summary.window.capturedCall, false);
+      delete summary.window.capturedCalls;
     });
   });
 
