@@ -85,6 +85,13 @@ export interface BrowserTracingOptions {
   // TODO: Should this be an option, or a static class variable and passed
   // in and we use something like `BrowserTracing.addRoutingProcessor()`
   routingInstrumentationProcessors: routingInstrumentationProcessor[];
+
+  /**
+   * Flag to enable default routing instrumentation.
+   *
+   * Default: true
+   */
+  defaultRoutingInstrumentation: boolean;
 }
 
 /**
@@ -120,6 +127,7 @@ export class BrowserTracing implements Integration {
       debug: {
         writeAsBreadcrumbs: false,
       },
+      defaultRoutingInstrumentation: true,
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       routingInstrumentationProcessors: [],
       startTransactionOnLocationChange: true,
@@ -143,7 +151,9 @@ export class BrowserTracing implements Integration {
 
     // TODO: is it fine that this is mutable operation? Could also do = [...routingInstr, setHeaderContext]?
     BrowserTracing.options.routingInstrumentationProcessors.push(setHeaderContext);
-    BrowserTracing._initRoutingInstrumentation();
+    if (BrowserTracing.options.defaultRoutingInstrumentation) {
+      BrowserTracing._initRoutingInstrumentation();
+    }
   }
 
   /** Start routing instrumentation */
@@ -151,7 +161,7 @@ export class BrowserTracing implements Integration {
     const { startTransactionOnPageLoad, startTransactionOnLocationChange } = BrowserTracing.options;
 
     if (startTransactionOnPageLoad) {
-      BrowserTracing._activeTransaction = BrowserTracing._createRouteTransaction('pageload');
+      BrowserTracing._activeTransaction = BrowserTracing.createRouteTransaction('pageload');
     }
 
     let startingUrl: string | undefined = global.location.href;
@@ -178,7 +188,7 @@ export class BrowserTracing implements Integration {
             // are navigating to a new page.
             BrowserTracing._activeTransaction.finishIdleTransaction();
           }
-          BrowserTracing._activeTransaction = BrowserTracing._createRouteTransaction('navigation');
+          BrowserTracing._activeTransaction = BrowserTracing.createRouteTransaction('navigation');
         }
       },
       type: 'history',
@@ -186,7 +196,10 @@ export class BrowserTracing implements Integration {
   }
 
   /** Create pageload/navigation idle transaction. */
-  private static _createRouteTransaction(op: 'pageload' | 'navigation'): IdleTransaction | undefined {
+  public static createRouteTransaction(
+    op: 'pageload' | 'navigation',
+    ctx?: TransactionContext,
+  ): IdleTransaction | undefined {
     if (!BrowserTracing._getCurrentHub) {
       return undefined;
     }
@@ -199,7 +212,7 @@ export class BrowserTracing implements Integration {
       return undefined;
     }
 
-    let context: TransactionContext = { name, op };
+    let context: TransactionContext = { name, op, ...ctx };
     if (routingInstrumentationProcessors) {
       for (const processor of routingInstrumentationProcessors) {
         context = processor(context);
