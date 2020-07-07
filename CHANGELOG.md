@@ -3,6 +3,11 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.19.1
+
+- [tracing] fix: APM CDN bundle expose startTransaction (#2726)
+- [browser] fix: Correctly remove all event listeners (#2725)
 - [tracing] fix: Add manual `DOMStringList` typing (#2718)
 
 ## 5.19.0
