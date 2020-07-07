@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [react] feat: Export `createReduxEnhancer` to log redux actions as breadcrumbs, and attach state as an extra. (#2717)
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 5.19.2
