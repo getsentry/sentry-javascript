@@ -85,13 +85,6 @@ export interface BrowserTracingOptions {
   // TODO: Should this be an option, or a static class variable and passed
   // in and we use something like `BrowserTracing.addRoutingProcessor()`
   routingInstrumentationProcessors: routingInstrumentationProcessor[];
-
-  /**
-   * Flag to enable default routing instrumentation.
-   *
-   * Default: true
-   */
-  defaultRoutingInstrumentation: boolean;
 }
 
 /**
@@ -108,33 +101,31 @@ export class BrowserTracing implements Integration {
   public static id: string = 'BrowserTracing';
 
   /** Browser Tracing integration options */
-  public static options: BrowserTracingOptions;
+  public options: BrowserTracingOptions = {
+    beforeNavigate(location: LocationType): string | undefined {
+      return location.pathname;
+    },
+    debug: {
+      writeAsBreadcrumbs: false,
+    },
+    idleTimeout: DEFAULT_IDLE_TIMEOUT,
+    routingInstrumentationProcessors: [],
+    startTransactionOnLocationChange: true,
+    startTransactionOnPageLoad: true,
+  };
 
   /**
    * @inheritDoc
    */
   public name: string = BrowserTracing.id;
 
-  private static _activeTransaction?: IdleTransaction;
+  private _activeTransaction?: IdleTransaction;
 
-  private static _getCurrentHub?: () => Hub;
+  private _getCurrentHub?: () => Hub;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
-    const defaults: BrowserTracingOptions = {
-      beforeNavigate(location: LocationType): string | undefined {
-        return location.pathname;
-      },
-      debug: {
-        writeAsBreadcrumbs: false,
-      },
-      defaultRoutingInstrumentation: true,
-      idleTimeout: DEFAULT_IDLE_TIMEOUT,
-      routingInstrumentationProcessors: [],
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-    };
-    BrowserTracing.options = {
-      ...defaults,
+    this.options = {
+      ...this.options,
       ..._options,
     };
   }
@@ -143,25 +134,24 @@ export class BrowserTracing implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    BrowserTracing._getCurrentHub = getCurrentHub;
+    this._getCurrentHub = getCurrentHub;
 
     if (!global || !global.location) {
       return;
     }
 
-    // TODO: is it fine that this is mutable operation? Could also do = [...routingInstr, setHeaderContext]?
-    BrowserTracing.options.routingInstrumentationProcessors.push(setHeaderContext);
-    if (BrowserTracing.options.defaultRoutingInstrumentation) {
-      BrowserTracing._initRoutingInstrumentation();
-    }
+    this._initRoutingInstrumentation();
   }
 
   /** Start routing instrumentation */
-  private static _initRoutingInstrumentation(): void {
-    const { startTransactionOnPageLoad, startTransactionOnLocationChange } = BrowserTracing.options;
+  private _initRoutingInstrumentation(): void {
+    const { startTransactionOnPageLoad, startTransactionOnLocationChange } = this.options;
+
+    // TODO: is it fine that this is mutable operation? Could also do = [...routingInstr, setHeaderContext]?
+    this.options.routingInstrumentationProcessors.push(setHeaderContext);
 
     if (startTransactionOnPageLoad) {
-      BrowserTracing._activeTransaction = BrowserTracing.createRouteTransaction('pageload');
+      this._activeTransaction = this._createRouteTransaction('pageload');
     }
 
     let startingUrl: string | undefined = global.location.href;
@@ -170,8 +160,8 @@ export class BrowserTracing implements Integration {
       callback: ({ to, from }: { to: string; from?: string }) => {
         /**
          * This early return is there to account for some cases where navigation transaction
-         * starts right after long running pageload. We make sure that if from is undefined
-         * and that a valid startingURL exists, we don't uncessarily create a navigation transaction.
+         * starts right after long running pageload. We make sure that if `from` is undefined
+         * and that a valid `startingURL` exists, we don't uncessarily create a navigation transaction.
          *
          * This was hard to duplicate, but this behaviour stopped as soon as this fix
          * was applied. This issue might also only be caused in certain development environments
@@ -183,12 +173,12 @@ export class BrowserTracing implements Integration {
         }
         if (startTransactionOnLocationChange && from !== to) {
           startingUrl = undefined;
-          if (BrowserTracing._activeTransaction) {
+          if (this._activeTransaction) {
             // We want to finish all current ongoing idle transactions as we
             // are navigating to a new page.
-            BrowserTracing._activeTransaction.finishIdleTransaction();
+            this._activeTransaction.finishIdleTransaction();
           }
-          BrowserTracing._activeTransaction = BrowserTracing.createRouteTransaction('navigation');
+          this._activeTransaction = this._createRouteTransaction('navigation');
         }
       },
       type: 'history',
@@ -196,32 +186,28 @@ export class BrowserTracing implements Integration {
   }
 
   /** Create pageload/navigation idle transaction. */
-  public static createRouteTransaction(
+  private _createRouteTransaction(
     op: 'pageload' | 'navigation',
-    ctx?: TransactionContext,
+    context?: TransactionContext,
   ): IdleTransaction | undefined {
-    if (!BrowserTracing._getCurrentHub) {
+    if (!this._getCurrentHub) {
       return undefined;
     }
 
-    const { beforeNavigate, idleTimeout, routingInstrumentationProcessors } = BrowserTracing.options;
+    const { beforeNavigate, idleTimeout, routingInstrumentationProcessors } = this.options;
 
     // if beforeNavigate returns undefined, we should not start a transaction.
     const name = beforeNavigate(global.location);
     if (name === undefined) {
+      this._log(`[Tracing] Cancelling ${op} idleTransaction due to beforeNavigate:`);
       return undefined;
     }
 
-    let context: TransactionContext = { name, op, ...ctx };
-    if (routingInstrumentationProcessors) {
-      for (const processor of routingInstrumentationProcessors) {
-        context = processor(context);
-      }
-    }
+    const ctx = createContextFromProcessors({ name, op, ...context }, routingInstrumentationProcessors);
 
-    const hub = BrowserTracing._getCurrentHub();
-    BrowserTracing._log(`[Tracing] starting ${op} idleTransaction on scope with context:`, context);
-    const activeTransaction = startIdleTransaction(hub, context, idleTimeout, true);
+    const hub = this._getCurrentHub();
+    this._log(`[Tracing] starting ${op} idleTransaction on scope with context:`, ctx);
+    const activeTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
 
     return activeTransaction;
   }
@@ -229,9 +215,9 @@ export class BrowserTracing implements Integration {
   /**
    * Uses logger.log to log things in the SDK or as breadcrumbs if defined in options
    */
-  private static _log(...args: any[]): void {
-    if (BrowserTracing.options && BrowserTracing.options.debug && BrowserTracing.options.debug.writeAsBreadcrumbs) {
-      const _getCurrentHub = BrowserTracing._getCurrentHub;
+  private _log(...args: any[]): void {
+    if (this.options && this.options.debug && this.options.debug.writeAsBreadcrumbs) {
+      const _getCurrentHub = this._getCurrentHub;
       if (_getCurrentHub) {
         _getCurrentHub().addBreadcrumb({
           category: 'tracing',
@@ -245,9 +231,23 @@ export class BrowserTracing implements Integration {
   }
 }
 
-/**
- * Returns the value of a meta tag
- */
+/** Creates transaction context from a set of processors */
+export function createContextFromProcessors(
+  context: TransactionContext,
+  processors: routingInstrumentationProcessor[],
+): TransactionContext {
+  let ctx = context;
+  for (const processor of processors) {
+    const newContext = processor(context);
+    if (newContext && newContext.name && newContext.op) {
+      ctx = newContext;
+    }
+  }
+
+  return ctx;
+}
+
+/** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | null {
   const el = document.querySelector(`meta[name=${metaName}]`);
   return el ? el.getAttribute('content') : null;

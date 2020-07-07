@@ -113,6 +113,15 @@ describe('BrowserTracing', () => {
         expect(transaction.sampled).toBe(true);
       });
 
+      it('uses a custom routing instrumentation processor', () => {
+        createBrowserTracing(true, { routingInstrumentationProcessors: [] });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+
+        expect(transaction.traceId).toBe('126de09502ae4e0fb26c6967190756a4');
+        expect(transaction.parentSpanId).toBe('b6e54397b12a2a0f');
+        expect(transaction.sampled).toBe(true);
+      });
+
       it('is created with a default idleTimeout', () => {
         createBrowserTracing(true);
         const mockFinish = jest.fn();
