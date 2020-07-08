@@ -52,8 +52,8 @@ export { SDK_NAME, SDK_VERSION } from '@sentry/browser';
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
 import { getGlobalObject } from '@sentry/utils';
 
+import { BrowserTracing } from './browser';
 import { addExtensionMethods } from './hubextensions';
-import * as ApmIntegrations from './integrations';
 
 export { Span, TRACEPARENT_REGEXP } from './span';
 
@@ -70,7 +70,7 @@ if (_window.Sentry && _window.Sentry.Integrations) {
 const INTEGRATIONS = {
   ...windowIntegrations,
   ...BrowserIntegrations,
-  Tracing: ApmIntegrations.Tracing,
+  ...BrowserTracing,
 };
 
 export { INTEGRATIONS as Integrations };

@@ -6,7 +6,7 @@ import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { Span } from '../span';
 
-import { defaultRoutingInstrumentation, defaultBeforeNavigate } from './router';
+import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {

@@ -1,4 +1,4 @@
-import { BrowserTracing } from './browser/browsertracing';
+import { BrowserTracing } from './browser';
 import { addExtensionMethods } from './hubextensions';
 import * as ApmIntegrations from './integrations';
 
