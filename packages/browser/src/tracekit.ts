@@ -50,13 +50,23 @@ const gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:file|https?|blob|chrome|webpac
 const winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 const geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 const chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
+// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
+const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
 /** JSDoc */
 export function computeStackTrace(ex: any): StackTrace {
   // tslint:disable:no-unsafe-any
 
   let stack = null;
-  const popSize: number = ex && ex.framesToPop;
+  let popSize = 0;
+
+  if (ex) {
+    if (typeof ex.framesToPop === 'number') {
+      popSize = ex.framesToPop;
+    } else if (reactMinifiedRegexp.test(ex.message)) {
+      popSize = 1;
+    }
+  }
 
   try {
     // This must be tried first because Opera 10 *destroys*

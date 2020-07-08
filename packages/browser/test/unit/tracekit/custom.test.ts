@@ -352,5 +352,98 @@ describe('Tracekit - Custom Tests', () => {
         },
       ]);
     });
+
+    it('should correctly parse production errors and drop initial frame if its not relevant', () => {
+      const REACT_PRODUCTION_ERROR = {
+        message:
+          'Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.',
+        name: 'Error',
+        stack: `Error: Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+          at http://localhost:5000/static/js/foo.chunk.js:1:21738
+          at a (http://localhost:5000/static/js/foo.chunk.js:1:21841)
+          at ho (http://localhost:5000/static/js/foo.chunk.js:1:68735)
+          at f (http://localhost:5000/:1:980)`,
+      };
+
+      const stacktrace = computeStackTrace(REACT_PRODUCTION_ERROR);
+
+      expect(stacktrace.stack).deep.equal([
+        {
+          args: [],
+          column: 21738,
+          func: '?',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 21841,
+          func: 'a',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 68735,
+          func: 'ho',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 980,
+          func: 'f',
+          line: 1,
+          url: 'http://localhost:5000/',
+        },
+      ]);
+    });
+
+    it('should not drop additional frame for production errors if framesToPop is still there', () => {
+      const REACT_PRODUCTION_ERROR = {
+        framesToPop: 1,
+        message:
+          'Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.',
+        name: 'Error',
+        stack: `Error: Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+          at http://localhost:5000/static/js/foo.chunk.js:1:21738
+          at a (http://localhost:5000/static/js/foo.chunk.js:1:21841)
+          at ho (http://localhost:5000/static/js/foo.chunk.js:1:68735)
+          at f (http://localhost:5000/:1:980)`,
+      };
+
+      const stacktrace = computeStackTrace(REACT_PRODUCTION_ERROR);
+
+      expect(stacktrace.stack).deep.equal([
+        {
+          args: [],
+          column: 21738,
+          func: '?',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 21841,
+          func: 'a',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 68735,
+          func: 'ho',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 980,
+          func: 'f',
+          line: 1,
+          url: 'http://localhost:5000/',
+        },
+      ]);
+    });
   });
 });
