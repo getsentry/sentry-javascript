@@ -17,6 +17,7 @@ import {
   User,
 } from '@sentry/types';
 import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
+
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
