@@ -35,11 +35,6 @@ describe('Hub', () => {
 
   describe('spans', () => {
     describe('sampling', () => {
-      test('set tracesSampleRate 0 on span', () => {
-        const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
-        const span = hub.startSpan({}) as any;
-        expect(span.sampled).toBeUndefined();
-      });
       test('set tracesSampleRate 0 on transaction', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
         const transaction = hub.startTransaction({ name: 'foo' });

@@ -121,7 +121,7 @@ export class IdleTransaction extends Transaction {
       );
       this.setStatus(SpanStatus.DeadlineExceeded);
       this.setTag('heartbeat', 'failed');
-      this.finishIdleTransaction(timestampWithMs());
+      this.finish();
     } else {
       this._pingHeartbeat();
     }
@@ -137,10 +137,8 @@ export class IdleTransaction extends Transaction {
     }, 5000) as any) as number;
   }
 
-  /**
-   * Finish the current active idle transaction
-   */
-  public finishIdleTransaction(endTimestamp: number = timestampWithMs()): void {
+  /** {@inheritDoc} */
+  public finish(endTimestamp: number = timestampWithMs()): string | undefined {
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
 
@@ -179,10 +177,11 @@ export class IdleTransaction extends Transaction {
       }
 
       logger.log('[Tracing] flushing IdleTransaction');
-      this.finish(endTimestamp);
     } else {
       logger.log('[Tracing] No active IdleTransaction');
     }
+
+    return super.finish(endTimestamp);
   }
 
   /**
@@ -214,7 +213,7 @@ export class IdleTransaction extends Transaction {
       const end = timestampWithMs() + timeout / 1000;
 
       setTimeout(() => {
-        this.finishIdleTransaction(end);
+        this.finish(end);
       }, timeout);
     }
   }

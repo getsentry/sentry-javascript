@@ -1,52 +1,15 @@
 import { Hub } from '@sentry/hub';
-import { EventProcessor, Integration, Severity, TransactionContext } from '@sentry/types';
-import { addInstrumentationHandler, getGlobalObject, logger, safeJoin } from '@sentry/utils';
+import { EventProcessor, Integration, Transaction as TransactionType, TransactionContext } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
+import { DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { Span } from '../span';
-import { Location as LocationType } from '../types';
 
-const global = getGlobalObject<Window>();
-
-type routingInstrumentationProcessor = (context: TransactionContext) => TransactionContext;
-
-/**
- * Gets transaction context from a sentry-trace meta.
- */
-const setHeaderContext: routingInstrumentationProcessor = ctx => {
-  const header = getMetaContent('sentry-trace');
-  if (header) {
-    const span = Span.fromTraceparent(header);
-    if (span) {
-      return {
-        ...ctx,
-        parentSpanId: span.parentSpanId,
-        sampled: span.sampled,
-        traceId: span.traceId,
-      };
-    }
-  }
-
-  return ctx;
-};
+import { defaultRoutingInstrumentation, defaultBeforeNavigate } from './router';
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
-  /**
-   * This is only if you want to debug in prod.
-   * writeAsBreadcrumbs: Instead of having console.log statements we log messages to breadcrumbs
-   * so you can investigate whats happening in production with your users to figure why things might not appear the
-   * way you expect them to.
-   *
-   * Default: {
-   *   writeAsBreadcrumbs: false;
-   * }
-   */
-  debug: {
-    writeAsBreadcrumbs: boolean;
-  };
-
   /**
    * The time to wait in ms until the transaction will be finished. The transaction will use the end timestamp of
    * the last finished span as the endtime for the transaction.
@@ -76,15 +39,17 @@ export interface BrowserTracingOptions {
    *
    * If undefined is returned, a pageload/navigation transaction will not be created.
    */
-  beforeNavigate(location: LocationType): string | undefined;
+  beforeNavigate(context: TransactionContext): TransactionContext | undefined;
 
   /**
-   * Set to adjust transaction context before creation of transaction. Useful to set name/data/tags before
-   * a transaction is sent. This option should be used by routing libraries to set context on transactions.
+   * Instrumentation that creates routing change transactions. By default creates
+   * pageload and navigation transactions.
    */
-  // TODO: Should this be an option, or a static class variable and passed
-  // in and we use something like `BrowserTracing.addRoutingProcessor()`
-  routingInstrumentationProcessors: routingInstrumentationProcessor[];
+  routingInstrumentation<T extends TransactionType>(
+    startTransaction: (context: TransactionContext) => T | undefined,
+    startTransactionOnPageLoad?: boolean,
+    startTransactionOnLocationChange?: boolean,
+  ): void;
 }
 
 /**
@@ -102,14 +67,9 @@ export class BrowserTracing implements Integration {
 
   /** Browser Tracing integration options */
   public options: BrowserTracingOptions = {
-    beforeNavigate(location: LocationType): string | undefined {
-      return location.pathname;
-    },
-    debug: {
-      writeAsBreadcrumbs: false,
-    },
+    beforeNavigate: defaultBeforeNavigate,
     idleTimeout: DEFAULT_IDLE_TIMEOUT,
-    routingInstrumentationProcessors: [],
+    routingInstrumentation: defaultRoutingInstrumentation,
     startTransactionOnLocationChange: true,
     startTransactionOnPageLoad: true,
   };
@@ -118,8 +78,6 @@ export class BrowserTracing implements Integration {
    * @inheritDoc
    */
   public name: string = BrowserTracing.id;
-
-  private _activeTransaction?: IdleTransaction;
 
   private _getCurrentHub?: () => Hub;
 
@@ -138,116 +96,58 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
 
-    if (!global || !global.location) {
-      return;
-    }
+    const { routingInstrumentation, startTransactionOnLocationChange, startTransactionOnPageLoad } = this.options;
 
-    this._initRoutingInstrumentation();
+    routingInstrumentation(
+      (context: TransactionContext) => this._createRouteTransaction(context),
+      startTransactionOnPageLoad,
+      startTransactionOnLocationChange,
+    );
   }
 
-  /** Start routing instrumentation */
-  private _initRoutingInstrumentation(): void {
-    const { startTransactionOnPageLoad, startTransactionOnLocationChange } = this.options;
-
-    // TODO: is it fine that this is mutable operation? Could also do = [...routingInstr, setHeaderContext]?
-    this.options.routingInstrumentationProcessors.push(setHeaderContext);
-
-    if (startTransactionOnPageLoad) {
-      this._activeTransaction = this._createRouteTransaction('pageload');
-    }
-
-    let startingUrl: string | undefined = global.location.href;
-
-    // Could this be the one that changes?
-    addInstrumentationHandler({
-      callback: ({ to, from }: { to: string; from?: string }) => {
-        /**
-         * This early return is there to account for some cases where navigation transaction
-         * starts right after long running pageload. We make sure that if `from` is undefined
-         * and that a valid `startingURL` exists, we don't uncessarily create a navigation transaction.
-         *
-         * This was hard to duplicate, but this behaviour stopped as soon as this fix
-         * was applied. This issue might also only be caused in certain development environments
-         * where the usage of a hot module reloader is causing errors.
-         */
-        if (from === undefined && startingUrl && startingUrl.indexOf(to) !== -1) {
-          startingUrl = undefined;
-          return;
-        }
-        if (startTransactionOnLocationChange && from !== to) {
-          startingUrl = undefined;
-          if (this._activeTransaction) {
-            // We want to finish all current ongoing idle transactions as we
-            // are navigating to a new page.
-            this._activeTransaction.finishIdleTransaction();
-          }
-          this._activeTransaction = this._createRouteTransaction('navigation');
-        }
-      },
-      type: 'history',
-    });
-  }
-
-  /** Create pageload/navigation idle transaction. */
-  private _createRouteTransaction(
-    op: 'pageload' | 'navigation',
-    context?: TransactionContext,
-  ): IdleTransaction | undefined {
+  /** Create routing idle transaction. */
+  private _createRouteTransaction(context: TransactionContext): TransactionType | undefined {
     if (!this._getCurrentHub) {
+      logger.warn(`[Tracing] Did not creeate ${context.op} idleTransaction due to invalid _getCurrentHub`);
       return undefined;
     }
 
-    const { beforeNavigate, idleTimeout, routingInstrumentationProcessors } = this.options;
+    const { beforeNavigate, idleTimeout } = this.options;
 
     // if beforeNavigate returns undefined, we should not start a transaction.
-    const name = beforeNavigate(global.location);
-    if (name === undefined) {
-      this._log(`[Tracing] Cancelling ${op} idleTransaction due to beforeNavigate:`);
+    const ctx = beforeNavigate({
+      ...context,
+      ...getHeaderContext(),
+    });
+
+    if (ctx === undefined) {
+      logger.log(`[Tracing] Did not create ${context.op} idleTransaction due to beforeNavigate`);
       return undefined;
     }
 
-    const ctx = createContextFromProcessors({ name, op, ...context }, routingInstrumentationProcessors);
-
     const hub = this._getCurrentHub();
-    this._log(`[Tracing] starting ${op} idleTransaction on scope with context:`, ctx);
-    const activeTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
-
-    return activeTransaction;
-  }
-
-  /**
-   * Uses logger.log to log things in the SDK or as breadcrumbs if defined in options
-   */
-  private _log(...args: any[]): void {
-    if (this.options && this.options.debug && this.options.debug.writeAsBreadcrumbs) {
-      const _getCurrentHub = this._getCurrentHub;
-      if (_getCurrentHub) {
-        _getCurrentHub().addBreadcrumb({
-          category: 'tracing',
-          level: Severity.Debug,
-          message: safeJoin(args, ' '),
-          type: 'debug',
-        });
-      }
-    }
-    logger.log(...args);
+    logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope with context:`, ctx);
+    return startIdleTransaction(hub, ctx, idleTimeout, true) as TransactionType;
   }
 }
 
-/** Creates transaction context from a set of processors */
-export function createContextFromProcessors(
-  context: TransactionContext,
-  processors: routingInstrumentationProcessor[],
-): TransactionContext {
-  let ctx = context;
-  for (const processor of processors) {
-    const newContext = processor(context);
-    if (newContext && newContext.name && newContext.op) {
-      ctx = newContext;
+/**
+ * Gets transaction context from a sentry-trace meta.
+ */
+function getHeaderContext(): Partial<TransactionContext> {
+  const header = getMetaContent('sentry-trace');
+  if (header) {
+    const span = Span.fromTraceparent(header);
+    if (span) {
+      return {
+        parentSpanId: span.parentSpanId,
+        sampled: span.sampled,
+        traceId: span.traceId,
+      };
     }
   }
 
-  return ctx;
+  return {};
 }
 
 /** Returns the value of a meta tag */
