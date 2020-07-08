@@ -1,5 +1,6 @@
 import { Breadcrumb } from './breadcrumb';
 import { EventProcessor } from './eventprocessor';
+import { Extra, Extras } from './extra';
 import { Severity } from './severity';
 import { Span } from './span';
 import { Transaction } from './transaction';
@@ -50,14 +51,14 @@ export interface Scope {
    * Set an object that will be merged sent as extra data with the event.
    * @param extras Extras object to merge into current context.
    */
-  setExtras(extras: { [key: string]: any }): this;
+  setExtras(extras: Extras): this;
 
   /**
    * Set key:value that will be sent as extra data with the event.
    * @param key String of extra
    * @param extra Any kind of data. This data will be normailzed.
    */
-  setExtra(key: string, extra: any): this;
+  setExtra(key: string, extra: Extra): this;
 
   /**
    * Sets the fingerprint on the scope to send with the events.

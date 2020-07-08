@@ -4,6 +4,8 @@ import {
   Event,
   EventHint,
   EventProcessor,
+  Extra,
+  Extras,
   Scope as ScopeInterface,
   ScopeContext,
   Severity,
@@ -147,7 +149,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setExtras(extras: { [key: string]: any }): this {
+  public setExtras(extras: Extras): this {
     this._extra = {
       ...this._extra,
       ...extras,
@@ -159,7 +161,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setExtra(key: string, extra: any): this {
+  public setExtra(key: string, extra: Extra): this {
     this._extra = { ...this._extra, [key]: extra };
     this._notifyScopeListeners();
     return this;

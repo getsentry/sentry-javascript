@@ -1,6 +1,7 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Client } from './client';
 import { Event, EventHint } from './event';
+import { Extra, Extras } from './extra';
 import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
@@ -138,13 +139,13 @@ export interface Hub {
    * @param key String of extra
    * @param extra Any kind of data. This data will be normalized.
    */
-  setExtra(key: string, extra: any): void;
+  setExtra(key: string, extra: Extra): void;
 
   /**
    * Set an object that will be merged sent as extra data with the event.
    * @param extras Extras object to merge into current context.
    */
-  setExtras(extras: { [key: string]: any }): void;
+  setExtras(extras: Extras): void;
 
   /**
    * Sets context data with the given name.

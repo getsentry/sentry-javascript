@@ -1,5 +1,15 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, CaptureContext, Event, Severity, Transaction, TransactionContext, User } from '@sentry/types';
+import {
+  Breadcrumb,
+  CaptureContext,
+  Event,
+  Extra,
+  Extras,
+  Severity,
+  Transaction,
+  TransactionContext,
+  User,
+} from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -105,7 +115,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(extras: { [key: string]: any }): void {
+export function setExtras(extras: Extras): void {
   callOnHub<void>('setExtras', extras);
 }
 
@@ -123,7 +133,7 @@ export function setTags(tags: { [key: string]: string }): void {
  * @param extra Any kind of data. This data will be normalized.
  */
 
-export function setExtra(key: string, extra: any): void {
+export function setExtra(key: string, extra: Extra): void {
   callOnHub<void>('setExtra', key, extra);
 }
 
