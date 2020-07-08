@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/browser';
 import * as Redux from 'redux';
 
-export interface SentryMiddlewareOptions {
+export interface SentryEnhancerOptions {
   /**
    * Transforms the state before attaching it to an event.
    * Use this to remove any private data before sending it to Sentry.
@@ -35,7 +35,7 @@ export interface SentryMiddlewareOptions {
   configureScopeWithState?(scope: Sentry.Scope, state: object | undefined): void;
 }
 
-const defaultOptions: SentryMiddlewareOptions = {
+const defaultOptions: SentryEnhancerOptions = {
   actionBreadcrumbCategory: 'redux.action',
   actionBreadcrumbType: 'info',
   actionTransformer: action => action,
@@ -43,7 +43,7 @@ const defaultOptions: SentryMiddlewareOptions = {
   stateTransformer: state => state,
 };
 
-function createReduxEnhancer(enhancerOptions?: Partial<SentryMiddlewareOptions>): Redux.StoreEnhancer {
+function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): Redux.StoreEnhancer {
   return next => (reducer, initialState) => {
     const options = {
       ...defaultOptions,
