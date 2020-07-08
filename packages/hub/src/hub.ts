@@ -4,6 +4,8 @@ import {
   Client,
   Event,
   EventHint,
+  Extra,
+  Extras,
   Hub as HubInterface,
   Integration,
   IntegrationClass,
@@ -287,7 +289,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setExtras(extras: { [key: string]: any }): void {
+  public setExtras(extras: Extras): void {
     const top = this.getStackTop();
     if (!top.scope) {
       return;
@@ -309,7 +311,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setExtra(key: string, extra: any): void {
+  public setExtra(key: string, extra: Extra): void {
     const top = this.getStackTop();
     if (!top.scope) {
       return;
