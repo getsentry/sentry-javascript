@@ -123,6 +123,8 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
+  // navigationTransactionInvoker() -> Uses history API NavigationTransaction[]
+
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.options = {
       ...this.options,
@@ -156,6 +158,7 @@ export class BrowserTracing implements Integration {
 
     let startingUrl: string | undefined = global.location.href;
 
+    // Could this be the one that changes?
     addInstrumentationHandler({
       callback: ({ to, from }: { to: string; from?: string }) => {
         /**

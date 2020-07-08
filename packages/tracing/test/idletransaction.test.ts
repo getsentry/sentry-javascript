@@ -95,19 +95,24 @@ describe('IdleTransaction', () => {
   });
 
   it('calls beforeFinish callback before finishing', () => {
-    const mockCallback = jest.fn();
+    const mockCallback1 = jest.fn();
+    const mockCallback2 = jest.fn();
     const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
     transaction.initSpanRecorder(10);
-    transaction.beforeFinish(mockCallback);
+    transaction.registerBeforeFinishCallback(mockCallback1);
+    transaction.registerBeforeFinishCallback(mockCallback2);
 
-    expect(mockCallback).toHaveBeenCalledTimes(0);
+    expect(mockCallback1).toHaveBeenCalledTimes(0);
+    expect(mockCallback2).toHaveBeenCalledTimes(0);
 
     const span = transaction.startChild();
     span.finish();
 
     jest.runOnlyPendingTimers();
-    expect(mockCallback).toHaveBeenCalledTimes(1);
-    expect(mockCallback).toHaveBeenLastCalledWith(transaction);
+    expect(mockCallback1).toHaveBeenCalledTimes(1);
+    expect(mockCallback1).toHaveBeenLastCalledWith(transaction);
+    expect(mockCallback2).toHaveBeenCalledTimes(1);
+    expect(mockCallback2).toHaveBeenLastCalledWith(transaction);
   });
 
   it('filters spans on finish', () => {

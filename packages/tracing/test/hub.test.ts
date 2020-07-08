@@ -57,4 +57,5 @@ describe('Hub', () => {
         expect(child.sampled).toBeFalsy();
       });
     });
+  });
 });
