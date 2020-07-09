@@ -7,7 +7,7 @@ import { Span } from './span';
 import { SpanStatus } from './spanstatus';
 import { SpanRecorder, Transaction } from './transaction';
 
-const DEFAULT_IDLE_TIMEOUT = 1000;
+export const DEFAULT_IDLE_TIMEOUT = 1000;
 
 /**
  * @inheritDoc
@@ -45,6 +45,8 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   }
 }
 
+export type BeforeFinishCallback = (transactionSpan: IdleTransaction) => void;
+
 /**
  * An IdleTransaction is a transaction that automatically finishes. It does this by tracking child spans as activities.
  * You can have multiple IdleTransactions active, but if the `onScope` option is specified, the idle transaction will
@@ -66,7 +68,7 @@ export class IdleTransaction extends Transaction {
   // We should not use heartbeat if we finished a transaction
   private _finished: boolean = false;
 
-  private _finishCallback?: (transactionSpan: IdleTransaction) => void;
+  private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
   public constructor(
     transactionContext: TransactionContext,
@@ -119,7 +121,7 @@ export class IdleTransaction extends Transaction {
       );
       this.setStatus(SpanStatus.DeadlineExceeded);
       this.setTag('heartbeat', 'failed');
-      this.finishIdleTransaction(timestampWithMs());
+      this.finish();
     } else {
       this._pingHeartbeat();
     }
@@ -135,15 +137,13 @@ export class IdleTransaction extends Transaction {
     }, 5000) as any) as number;
   }
 
-  /**
-   * Finish the current active idle transaction
-   */
-  public finishIdleTransaction(endTimestamp: number): void {
+  /** {@inheritDoc} */
+  public finish(endTimestamp: number = timestampWithMs()): string | undefined {
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
 
-      if (this._finishCallback) {
-        this._finishCallback(this);
+      for (const callback of this._beforeFinishCallbacks) {
+        callback(this);
       }
 
       this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
@@ -177,10 +177,11 @@ export class IdleTransaction extends Transaction {
       }
 
       logger.log('[Tracing] flushing IdleTransaction');
-      this.finish(endTimestamp);
     } else {
       logger.log('[Tracing] No active IdleTransaction');
     }
+
+    return super.finish(endTimestamp);
   }
 
   /**
@@ -212,7 +213,7 @@ export class IdleTransaction extends Transaction {
       const end = timestampWithMs() + timeout / 1000;
 
       setTimeout(() => {
-        this.finishIdleTransaction(end);
+        this.finish(end);
       }, timeout);
     }
   }
@@ -224,8 +225,8 @@ export class IdleTransaction extends Transaction {
    * This is exposed because users have no other way of running something before an idle transaction
    * finishes.
    */
-  public beforeFinish(callback: (transactionSpan: IdleTransaction) => void): void {
-    this._finishCallback = callback;
+  public registerBeforeFinishCallback(callback: BeforeFinishCallback): void {
+    this._beforeFinishCallbacks.push(callback);
   }
 
   /**

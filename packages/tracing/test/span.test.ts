@@ -320,50 +320,6 @@ describe('Span', () => {
         expect(spanTwo.toJSON().parent_span_id).toEqual(transaction.toJSON().span_id);
       });
     });
-
-    describe('hub.startSpan', () => {
-      test('finish a transaction', () => {
-        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        // @ts-ignore
-        const transaction = hub.startSpan({ name: 'test' });
-        transaction.finish();
-        expect(spy).toHaveBeenCalled();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(0);
-        expect(spy.mock.calls[0][0].timestamp).toBeTruthy();
-        expect(spy.mock.calls[0][0].start_timestamp).toBeTruthy();
-        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
-      });
-
-      test('finish a transaction (deprecated way)', () => {
-        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        // @ts-ignore
-        const transaction = hub.startSpan({ transaction: 'test' });
-        transaction.finish();
-        expect(spy).toHaveBeenCalled();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(0);
-        expect(spy.mock.calls[0][0].timestamp).toBeTruthy();
-        expect(spy.mock.calls[0][0].start_timestamp).toBeTruthy();
-        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
-      });
-
-      test('startSpan with Span on the Scope should be a child', () => {
-        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        const transaction = hub.startTransaction({ name: 'test' });
-        const child1 = transaction.startChild();
-        hub.configureScope(scope => {
-          scope.setSpan(child1);
-        });
-
-        const child2 = hub.startSpan({});
-        child1.finish();
-        child2.finish();
-        transaction.finish();
-
-        expect(spy).toHaveBeenCalled();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(2);
-        expect(child2.parentSpanId).toEqual(child1.spanId);
-      });
-    });
   });
 
   describe('getTraceContext', () => {

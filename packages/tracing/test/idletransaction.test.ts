@@ -48,9 +48,8 @@ describe('IdleTransaction', () => {
   });
 
   it('push and pops activities', () => {
-    const mockFinish = jest.fn();
     const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
-    transaction.finishIdleTransaction = mockFinish;
+    const mockFinish = jest.spyOn(transaction, 'finish');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
 
@@ -76,10 +75,8 @@ describe('IdleTransaction', () => {
   });
 
   it('does not finish if there are still active activities', () => {
-    const mockFinish = jest.fn();
     const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
-
-    transaction.finish = mockFinish;
+    const mockFinish = jest.spyOn(transaction, 'finish');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
 
@@ -95,19 +92,24 @@ describe('IdleTransaction', () => {
   });
 
   it('calls beforeFinish callback before finishing', () => {
-    const mockCallback = jest.fn();
+    const mockCallback1 = jest.fn();
+    const mockCallback2 = jest.fn();
     const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
     transaction.initSpanRecorder(10);
-    transaction.beforeFinish(mockCallback);
+    transaction.registerBeforeFinishCallback(mockCallback1);
+    transaction.registerBeforeFinishCallback(mockCallback2);
 
-    expect(mockCallback).toHaveBeenCalledTimes(0);
+    expect(mockCallback1).toHaveBeenCalledTimes(0);
+    expect(mockCallback2).toHaveBeenCalledTimes(0);
 
     const span = transaction.startChild();
     span.finish();
 
     jest.runOnlyPendingTimers();
-    expect(mockCallback).toHaveBeenCalledTimes(1);
-    expect(mockCallback).toHaveBeenLastCalledWith(transaction);
+    expect(mockCallback1).toHaveBeenCalledTimes(1);
+    expect(mockCallback1).toHaveBeenLastCalledWith(transaction);
+    expect(mockCallback2).toHaveBeenCalledTimes(1);
+    expect(mockCallback2).toHaveBeenLastCalledWith(transaction);
   });
 
   it('filters spans on finish', () => {
@@ -124,7 +126,7 @@ describe('IdleTransaction', () => {
     const cancelledSpan = transaction.startChild({ startTimestamp: transaction.startTimestamp + 4 });
 
     regularSpan.finish(regularSpan.startTimestamp + 4);
-    transaction.finishIdleTransaction(transaction.startTimestamp + 10);
+    transaction.finish(transaction.startTimestamp + 10);
 
     expect(transaction.spanRecorder).toBeDefined();
     if (transaction.spanRecorder) {
@@ -145,9 +147,8 @@ describe('IdleTransaction', () => {
 
   describe('heartbeat', () => {
     it('does not start heartbeat if there is no span recorder', () => {
-      const mockFinish = jest.fn();
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
-      transaction.finish = mockFinish;
+      const mockFinish = jest.spyOn(transaction, 'finish');
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
@@ -164,9 +165,8 @@ describe('IdleTransaction', () => {
       expect(mockFinish).toHaveBeenCalledTimes(0);
     });
     it('finishes a transaction after 3 beats', () => {
-      const mockFinish = jest.fn();
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
-      transaction.finish = mockFinish;
+      const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
@@ -185,9 +185,8 @@ describe('IdleTransaction', () => {
     });
 
     it('resets after new activities are added', () => {
-      const mockFinish = jest.fn();
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
-      transaction.finish = mockFinish;
+      const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
