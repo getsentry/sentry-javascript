@@ -7,6 +7,7 @@ import { BeforeFinishCallback, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../
 import { Span } from '../span';
 import { SpanStatus } from '../spanstatus';
 
+import { registerBackgroundTabDetection } from './backgroundtab';
 import { registerErrorInstrumentation } from './errors';
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
 import { secToMs } from './utils';
@@ -64,6 +65,15 @@ export interface BrowserTracingOptions {
    * Default: 600
    */
   maxTransactionDuration: number;
+
+  /**
+   * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
+   * not suited towards doing precise measurements of operations. Background transaction can mess up your
+   * statistics in non deterministic ways that's why we by default recommend leaving this opition enabled.
+   *
+   * Default: true
+   */
+  markBackgroundTransactions: boolean;
 }
 
 /**
@@ -83,6 +93,7 @@ export class BrowserTracing implements Integration {
   public options: BrowserTracingOptions = {
     beforeNavigate: defaultBeforeNavigate,
     idleTimeout: DEFAULT_IDLE_TIMEOUT,
+    markBackgroundTransactions: true,
     maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION__SECONDS,
     routingInstrumentation: defaultRoutingInstrumentation,
     startTransactionOnLocationChange: true,
@@ -111,7 +122,12 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
 
-    const { routingInstrumentation, startTransactionOnLocationChange, startTransactionOnPageLoad } = this.options;
+    const {
+      routingInstrumentation,
+      startTransactionOnLocationChange,
+      startTransactionOnPageLoad,
+      markBackgroundTransactions,
+    } = this.options;
 
     routingInstrumentation(
       (context: TransactionContext) => this._createRouteTransaction(context),
@@ -121,6 +137,11 @@ export class BrowserTracing implements Integration {
 
     // TODO: Should this be default behaviour?
     registerErrorInstrumentation();
+
+    // TODO: Should this be default behaviour?
+    if (markBackgroundTransactions) {
+      registerBackgroundTabDetection();
+    }
   }
 
   /** Create routing idle transaction. */
