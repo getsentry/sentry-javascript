@@ -3,11 +3,15 @@ import { EventProcessor, Integration, Transaction as TransactionType, Transactio
 import { logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
-import { DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
+import { BeforeFinishCallback, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { Span } from '../span';
+import { SpanStatus } from '../spanstatus';
 
 import { registerErrorInstrumentation } from './errors';
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
+import { secToMs } from './utils';
+
+export const DEFAULT_MAX_TRANSACTION_DURATION__SECONDS = 600;
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
@@ -51,6 +55,15 @@ export interface BrowserTracingOptions {
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
   ): void;
+
+  /**
+   * The maximum duration of a transaction before it will be marked as "deadline_exceeded".
+   * If you never want to mark a transaction set it to 0.
+   * Time is in seconds.
+   *
+   * Default: 600
+   */
+  maxTransactionDuration: number;
 }
 
 /**
@@ -70,6 +83,7 @@ export class BrowserTracing implements Integration {
   public options: BrowserTracingOptions = {
     beforeNavigate: defaultBeforeNavigate,
     idleTimeout: DEFAULT_IDLE_TIMEOUT,
+    maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION__SECONDS,
     routingInstrumentation: defaultRoutingInstrumentation,
     startTransactionOnLocationChange: true,
     startTransactionOnPageLoad: true,
@@ -116,7 +130,7 @@ export class BrowserTracing implements Integration {
       return undefined;
     }
 
-    const { beforeNavigate, idleTimeout } = this.options;
+    const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
 
     // if beforeNavigate returns undefined, we should not start a transaction.
     const ctx = beforeNavigate({
@@ -131,7 +145,10 @@ export class BrowserTracing implements Integration {
 
     const hub = this._getCurrentHub();
     logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope with context:`, ctx);
-    return startIdleTransaction(hub, ctx, idleTimeout, true) as TransactionType;
+    const idleTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
+    idleTransaction.registerBeforeFinishCallback(adjustTransactionDuration(secToMs(maxTransactionDuration)));
+
+    return idleTransaction as TransactionType;
   }
 }
 
@@ -158,4 +175,16 @@ function getHeaderContext(): Partial<TransactionContext> {
 export function getMetaContent(metaName: string): string | null {
   const el = document.querySelector(`meta[name=${metaName}]`);
   return el ? el.getAttribute('content') : null;
+}
+
+/** Adjusts transaction value based on max transaction duration */
+function adjustTransactionDuration(maxDuration: number): BeforeFinishCallback {
+  return (transaction: IdleTransaction, endTimestamp: number): void => {
+    const diff = endTimestamp - transaction.startTimestamp;
+    const isOutdatedTransaction = endTimestamp && (diff > maxDuration || diff < 0);
+    if (isOutdatedTransaction) {
+      transaction.setStatus(SpanStatus.Cancelled);
+      transaction.setTag('maxTransactionDurationExceeded', 'true');
+    }
+  };
 }

@@ -20,3 +20,11 @@ export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurren
 export function msToSec(time: number): number {
   return time / 1000;
 }
+
+/**
+ * Converts from seconds to milliseconds
+ * @param time time in seconds
+ */
+export function secToMs(time: number): number {
+  return time * 1000;
+}

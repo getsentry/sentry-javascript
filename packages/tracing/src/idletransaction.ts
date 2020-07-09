@@ -45,7 +45,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   }
 }
 
-export type BeforeFinishCallback = (transactionSpan: IdleTransaction) => void;
+export type BeforeFinishCallback = (transactionSpan: IdleTransaction, endTimestamp: number) => void;
 
 /**
  * An IdleTransaction is a transaction that automatically finishes. It does this by tracking child spans as activities.
@@ -143,7 +143,7 @@ export class IdleTransaction extends Transaction {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
 
       for (const callback of this._beforeFinishCallbacks) {
-        callback(this);
+        callback(this, endTimestamp);
       }
 
       this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
