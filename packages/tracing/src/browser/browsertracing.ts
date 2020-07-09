@@ -9,13 +9,18 @@ import { SpanStatus } from '../spanstatus';
 
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { registerErrorInstrumentation } from './errors';
+import {
+  defaultRequestInstrumentionOptions,
+  registerRequestInstrumentation,
+  RequestInstrumentationOptions,
+} from './request';
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
 import { secToMs } from './utils';
 
 export const DEFAULT_MAX_TRANSACTION_DURATION__SECONDS = 600;
 
 /** Options for Browser Tracing integration */
-export interface BrowserTracingOptions {
+export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   /**
    * The time to wait in ms until the transaction will be finished. The transaction will use the end timestamp of
    * the last finished span as the endtime for the transaction.
@@ -98,6 +103,7 @@ export class BrowserTracing implements Integration {
     routingInstrumentation: defaultRoutingInstrumentation,
     startTransactionOnLocationChange: true,
     startTransactionOnPageLoad: true,
+    ...defaultRequestInstrumentionOptions,
   };
 
   /**
@@ -107,9 +113,14 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
-  // navigationTransactionInvoker() -> Uses history API NavigationTransaction[]
+  private readonly _emitOptionsWarning: boolean = false;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
+    // NOTE: Logger doesn't work in contructors, as it's initialized after integrations instances
+    if (!_options || !Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
+      this._emitOptionsWarning = true;
+    }
+
     this.options = {
       ...this.options,
       ..._options,
@@ -122,11 +133,24 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
 
+    if (this._emitOptionsWarning) {
+      logger.warn(
+        '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
+      );
+      logger.warn(
+        `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentionOptions.tracingOrigins}`,
+      );
+    }
+
     const {
       routingInstrumentation,
       startTransactionOnLocationChange,
       startTransactionOnPageLoad,
       markBackgroundTransactions,
+      traceFetch,
+      traceXHR,
+      tracingOrigins,
+      shouldCreateSpanForRequest,
     } = this.options;
 
     routingInstrumentation(
@@ -138,10 +162,11 @@ export class BrowserTracing implements Integration {
     // TODO: Should this be default behaviour?
     registerErrorInstrumentation();
 
-    // TODO: Should this be default behaviour?
     if (markBackgroundTransactions) {
       registerBackgroundTabDetection();
     }
+
+    registerRequestInstrumentation({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
   }
 
   /** Create routing idle transaction. */
