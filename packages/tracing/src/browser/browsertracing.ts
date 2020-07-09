@@ -6,6 +6,7 @@ import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { Span } from '../span';
 
+import { registerErrorInstrumentation } from './errors';
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
 
 /** Options for Browser Tracing integration */
@@ -103,6 +104,9 @@ export class BrowserTracing implements Integration {
       startTransactionOnPageLoad,
       startTransactionOnLocationChange,
     );
+
+    // TODO: Should this be default behaviour?
+    registerErrorInstrumentation();
   }
 
   /** Create routing idle transaction. */

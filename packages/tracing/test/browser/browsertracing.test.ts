@@ -1,10 +1,11 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub } from '@sentry/hub';
+import { Hub, makeMain } from '@sentry/hub';
 // tslint:disable-next-line: no-implicit-dependencies
 import { JSDOM } from 'jsdom';
 
 import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
+import { getActiveTransaction } from '../../src/browser/utils';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
@@ -12,8 +13,10 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: ({ callback }: any): void => {
-      mockChangeHistory = callback;
+    addInstrumentationHandler: ({ callback, type }: any): void => {
+      if (type === 'history') {
+        mockChangeHistory = callback;
+      }
     },
   };
 });
@@ -33,14 +36,8 @@ describe('BrowserTracing', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+    makeMain(hub);
     document.head.innerHTML = '';
-  });
-
-  afterEach(() => {
-    const transaction = getActiveTransaction(hub);
-    if (transaction) {
-      transaction.finish();
-    }
   });
 
   // tslint:disable-next-line: completed-docs
@@ -240,13 +237,3 @@ describe('getMeta', () => {
     expect(meta).toBe(null);
   });
 });
-
-/** Get active transaction from scope */
-function getActiveTransaction(hub: Hub): IdleTransaction | undefined {
-  const scope = hub.getScope();
-  if (scope) {
-    return scope.getTransaction() as IdleTransaction;
-  }
-
-  return undefined;
-}
