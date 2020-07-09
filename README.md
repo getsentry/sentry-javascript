@@ -13,13 +13,13 @@ To install the stable version:
 with npm:
 
 ```shell
-npm install --save @sentry/rrweb
+npm install --save @sentry/rrweb rrweb
 ```
 
 with yarn:
 
 ```shell
-yarn add @sentry/rrweb
+yarn add @sentry/rrweb rrweb
 ```
 
 ## Setup
