@@ -185,6 +185,7 @@ export class BrowserTracing implements Integration {
     const ctx = beforeNavigate({
       ...context,
       ...getHeaderContext(),
+      trimEnd: true,
     });
 
     if (ctx === undefined) {
@@ -193,7 +194,7 @@ export class BrowserTracing implements Integration {
     }
 
     const hub = this._getCurrentHub();
-    logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope with context:`, ctx);
+    logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope`);
     const idleTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
     idleTransaction.registerBeforeFinishCallback(adjustTransactionDuration(secToMs(maxTransactionDuration)));
     idleTransaction.registerBeforeFinishCallback(transaction => {
