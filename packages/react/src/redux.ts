@@ -8,15 +8,13 @@ export interface SentryEnhancerOptions {
    * Use this to remove any private data before sending it to Sentry.
    * Return null to not attach the state.
    */
-  // tslint:disable-next-line: no-null-undefined-union
-  stateTransformer<S>(state: S | undefined): S | null | undefined;
+  stateTransformer(state: any | undefined): any | null | void;
   /**
    * Transforms the action before sending it as a breadcrumb.
    * Use this to remove any private data before sending it to Sentry.
    * Return null to not send the breadcrumb.
    */
-  // tslint:disable-next-line: no-null-undefined-union
-  actionTransformer<A>(action: Redux.Action<A>): Redux.Action<A> | null | undefined;
+  actionTransformer(action: Redux.AnyAction): Redux.AnyAction | null | void;
   /**
    * Category of the breadcrumb sent by actions. Default is 'redux.action'
    */
@@ -32,7 +30,7 @@ export interface SentryEnhancerOptions {
   /**
    * Called on every state update, configure the Sentry Scope with the redux state.
    */
-  configureScopeWithState?<S>(scope: Sentry.Scope, state: S | undefined): void;
+  configureScopeWithState?(scope: Sentry.Scope, state: any): void;
 }
 
 const defaultOptions: SentryEnhancerOptions = {
@@ -40,6 +38,7 @@ const defaultOptions: SentryEnhancerOptions = {
   actionBreadcrumbType: 'info',
   actionTransformer: action => action,
   stateExtraKey: 'redux.state',
+  // tslint:disable-next-line: no-unsafe-any
   stateTransformer: state => state,
 };
 
