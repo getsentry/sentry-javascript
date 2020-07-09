@@ -139,6 +139,9 @@ export class IdleTransaction extends Transaction {
 
   /** {@inheritDoc} */
   public finish(endTimestamp: number = timestampWithMs()): string | undefined {
+    this._finished = true;
+    this.activities = {};
+
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
 
@@ -169,8 +172,6 @@ export class IdleTransaction extends Transaction {
         return keepSpan;
       });
 
-      this._finished = true;
-      this.activities = {};
       // this._onScope is true if the transaction was previously on the scope.
       if (this._onScope) {
         clearActiveTransaction(this._idleHub);
@@ -213,7 +214,9 @@ export class IdleTransaction extends Transaction {
       const end = timestampWithMs() + timeout / 1000;
 
       setTimeout(() => {
-        this.finish(end);
+        if (!this._finished) {
+          this.finish(end);
+        }
       }, timeout);
     }
   }

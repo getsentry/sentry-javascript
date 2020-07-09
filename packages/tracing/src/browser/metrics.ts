@@ -66,6 +66,7 @@ export class MetricsInstrumentation {
       // i.e. entries that occurred before calling `observe()` below.
       po.observe({
         buffered: true,
+        // @ts-ignore
         type: 'largest-contentful-paint',
       });
 
@@ -164,7 +165,7 @@ export class MetricsInstrumentation {
       transaction.startChild({
         description: 'evaluation',
         endTimestamp: tracingInitMarkStartTime,
-        op: `script`,
+        op: 'script',
         startTimestamp: entryScriptStartEndTime,
       });
     }
@@ -230,7 +231,7 @@ function addResourceSpans(
     transaction.startChild({
       description: `${entry.initiatorType} ${resourceName}`,
       endTimestamp,
-      op: `resource`,
+      op: 'resource',
       startTimestamp,
     });
 

@@ -43,6 +43,7 @@ export function defaultRoutingInstrumentation<T extends TransactionType>(
         if (from !== to) {
           startingUrl = undefined;
           if (activeTransaction) {
+            logger.log(`[Tracing] finishing current idleTransaction with op: ${activeTransaction.op}`);
             // We want to finish all current ongoing idle transactions as we
             // are navigating to a new page.
             activeTransaction.finish();
