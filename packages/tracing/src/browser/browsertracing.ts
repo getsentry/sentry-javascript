@@ -9,6 +9,7 @@ import { SpanStatus } from '../spanstatus';
 
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { registerErrorInstrumentation } from './errors';
+import { MetricsInstrumentation } from './metrics';
 import {
   defaultRequestInstrumentionOptions,
   registerRequestInstrumentation,
@@ -113,6 +114,8 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
+  private readonly _metrics: MetricsInstrumentation = new MetricsInstrumentation();
+
   private readonly _emitOptionsWarning: boolean = false;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
@@ -193,6 +196,9 @@ export class BrowserTracing implements Integration {
     logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope with context:`, ctx);
     const idleTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
     idleTransaction.registerBeforeFinishCallback(adjustTransactionDuration(secToMs(maxTransactionDuration)));
+    idleTransaction.registerBeforeFinishCallback(transaction => {
+      this._metrics.addPerformanceEntires(transaction);
+    });
 
     return idleTransaction as TransactionType;
   }
