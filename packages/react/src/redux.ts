@@ -8,13 +8,13 @@ export interface SentryEnhancerOptions {
    * Use this to remove any private data before sending it to Sentry.
    * Return null to not attach the state.
    */
-  stateTransformer(state: any | undefined): any | null | void;
+  stateTransformer(state: any | undefined): any | null;
   /**
    * Transforms the action before sending it as a breadcrumb.
    * Use this to remove any private data before sending it to Sentry.
    * Return null to not send the breadcrumb.
    */
-  actionTransformer(action: Redux.AnyAction): Redux.AnyAction | null | void;
+  actionTransformer(action: Redux.AnyAction): Redux.AnyAction | null;
   /**
    * Category of the breadcrumb sent by actions. Default is 'redux.action'
    */
@@ -61,6 +61,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
       Sentry.configureScope(scope => {
         /* Action breadcrumbs */
         const transformedAction = options.actionTransformer ? options.actionTransformer(action) : action;
+        // tslint:disable-next-line: strict-type-predicates
         if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
           scope.addBreadcrumb({
             category: options.actionBreadcrumbCategory,
