@@ -71,8 +71,6 @@ describe('registerErrorHandlers()', () => {
     mockErrorCallback();
     expect(transaction.status).toBe(SpanStatus.InternalError);
 
-    // mockUnhandledRejectionCallback();
-    // expect(transaction.status).toBe(undefined);
     transaction.finish();
   });
 
