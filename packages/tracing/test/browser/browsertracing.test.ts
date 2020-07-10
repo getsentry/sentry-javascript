@@ -10,6 +10,7 @@ import {
   DEFAULT_MAX_TRANSACTION_DURATION__SECONDS,
   getMetaContent,
 } from '../../src/browser/browsertracing';
+import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
 import { getActiveTransaction, secToMs } from '../../src/browser/utils';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
@@ -73,10 +74,12 @@ describe('BrowserTracing', () => {
     expect(browserTracing.options).toEqual({
       beforeNavigate: expect.any(Function),
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
+      markBackgroundTransactions: true,
       maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION__SECONDS,
       routingInstrumentation: defaultRoutingInstrumentation,
       startTransactionOnLocationChange: true,
       startTransactionOnPageLoad: true,
+      ...defaultRequestInstrumentionOptions,
     });
   });
 
@@ -99,6 +102,21 @@ describe('BrowserTracing', () => {
       expect(transaction).toBeDefined();
       expect(transaction.name).toBe('a/path');
       expect(transaction.op).toBe('pageload');
+    });
+
+    it('trims all transactions', () => {
+      createBrowserTracing(true, {
+        routingInstrumentation: customRoutingInstrumentation,
+      });
+
+      const transaction = getActiveTransaction(hub) as IdleTransaction;
+      const span = transaction.startChild();
+      span.finish();
+
+      if (span.endTimestamp) {
+        transaction.finish(span.endTimestamp + 12345);
+      }
+      expect(transaction.endTimestamp).toBe(span.endTimestamp);
     });
 
     describe('beforeNavigate', () => {

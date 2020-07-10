@@ -76,7 +76,7 @@ export const defaultRequestInstrumentionOptions: RequestInstrumentationOptions =
 };
 
 /** Registers span creators for xhr and fetch requests  */
-export function registerRequestInstrumentation(_options: Partial<RequestInstrumentationOptions>): void {
+export function registerRequestInstrumentation(_options?: Partial<RequestInstrumentationOptions>): void {
   const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentionOptions,
     ..._options,
@@ -198,6 +198,8 @@ function xhrCallback(
   if (handlerData.xhr.__sentry_own_request__) {
     return;
   }
+
+  // logger.log('XHR', JSON.stringify(handlerData));
 
   if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
     const span = spans[handlerData.xhr.__sentry_xhr_span_id__];
