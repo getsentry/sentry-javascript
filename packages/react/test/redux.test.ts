@@ -1,4 +1,5 @@
-import * as Sentry from '@sentry/browser';
+// tslint:disable-next-line: no-implicit-dependencies
+import * as Sentry from '@sentry/minimal';
 import { Scope } from '@sentry/types';
 import * as Redux from 'redux';
 
@@ -7,7 +8,7 @@ import { createReduxEnhancer } from '../src/redux';
 const mockAddBreadcrumb = jest.fn();
 const mockSetExtra = jest.fn();
 
-jest.mock('@sentry/browser', () => ({
+jest.mock('@sentry/minimal', () => ({
   configureScope: (callback: (scope: any) => Partial<Scope>) =>
     callback({
       addBreadcrumb: mockAddBreadcrumb,

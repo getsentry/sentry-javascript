@@ -1,6 +1,7 @@
 // @flow
-import * as Sentry from '@sentry/browser';
-import * as Redux from 'redux';
+import { configureScope } from '@sentry/minimal';
+import { Scope } from '@sentry/types';
+import { Action, AnyAction, PreloadedState, Reducer, StoreEnhancer, StoreEnhancerStoreCreator } from 'redux';
 
 export interface SentryEnhancerOptions {
   /**
@@ -14,7 +15,7 @@ export interface SentryEnhancerOptions {
    * Use this to remove any private data before sending it to Sentry.
    * Return null to not send the breadcrumb.
    */
-  actionTransformer(action: Redux.AnyAction): Redux.AnyAction | null;
+  actionTransformer(action: AnyAction): AnyAction | null;
   /**
    * Category of the breadcrumb sent by actions. Default is 'redux.action'
    */
@@ -30,7 +31,7 @@ export interface SentryEnhancerOptions {
   /**
    * Called on every state update, configure the Sentry Scope with the redux state.
    */
-  configureScopeWithState?(scope: Sentry.Scope, state: any): void;
+  configureScopeWithState?(scope: Scope, state: any): void;
 }
 
 const defaultOptions: SentryEnhancerOptions = {
@@ -42,23 +43,20 @@ const defaultOptions: SentryEnhancerOptions = {
   stateTransformer: state => state,
 };
 
-function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): Redux.StoreEnhancer {
+function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): StoreEnhancer {
   const options = {
     ...defaultOptions,
     ...enhancerOptions,
   };
 
-  return (next: Redux.StoreEnhancerStoreCreator): Redux.StoreEnhancerStoreCreator => <
-    S = any,
-    A extends Redux.Action = Redux.AnyAction
-  >(
-    reducer: Redux.Reducer<S, A>,
-    initialState?: Redux.PreloadedState<S>,
+  return (next: StoreEnhancerStoreCreator): StoreEnhancerStoreCreator => <S = any, A extends Action = AnyAction>(
+    reducer: Reducer<S, A>,
+    initialState?: PreloadedState<S>,
   ) => {
-    const sentryReducer: Redux.Reducer<S, A> = (state, action): S => {
+    const sentryReducer: Reducer<S, A> = (state, action): S => {
       const newState = reducer(state, action);
 
-      Sentry.configureScope(scope => {
+      configureScope(scope => {
         /* Action breadcrumbs */
         const transformedAction = options.actionTransformer ? options.actionTransformer(action) : action;
         // tslint:disable-next-line: strict-type-predicates
