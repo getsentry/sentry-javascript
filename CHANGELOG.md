@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.19.2
+
+- [gatsby] fix: Include correct gatsby files in npm tarball (#2731)
+- [browser] fix: Correctly detach event listeners (#2737)
+- [browser] fix: Drop initial frame for production react errors (#2728)
+- [node] chore: Upgrade https-proxy-agent to v5 (#2702)
+- [types] ref: Define type for Extra(s) (#2727)
+
 ## 5.19.1
 
 - [tracing] fix: APM CDN bundle expose startTransaction (#2726)
