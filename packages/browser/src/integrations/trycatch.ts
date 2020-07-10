@@ -185,25 +185,18 @@ export class TryCatch implements Integration {
          * our wrapped version of `addEventListener`, which internally calls `wrap` helper.
          * This helper "wraps" whole callback inside a try/catch statement, and attached appropriate metadata to it,
          * in order for us to make a distinction between wrapped/non-wrapped functions possible.
-         * If a function has `__sentry__` property, it means that it was wrapped, and it has additional property
-         * of `__sentry__original__`, holding the handler. And this original handler, has a reversed link,
-         * with `__sentry_wrapped__` property, which holds the wrapped version.
+         * If a function was wrapped, it has additional property of `__sentry_wrapped__`, holding the handler.
          *
          * When someone adds a handler prior to initialization, and then do it again, but after,
          * then we have to detach both of them. Otherwise, if we'd detach only wrapped one, it'd be impossible
          * to get rid of the initial handler and it'd stick there forever.
-         * In case of second scenario, `__sentry_original__` refers to initial handler, and passed function
-         * is a wrapped version.
          */
-        const callback = (fn as any) as WrappedFunction;
         try {
-          if (callback && callback.__sentry__) {
-            original.call(this, eventName, callback.__sentry_original__, options);
-          }
+          original.call(this, eventName, ((fn as unknown) as WrappedFunction).__sentry_wrapped__, options);
         } catch (e) {
-          // ignore, accessing __sentry__ will throw in some Selenium environments
+          // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
         }
-        return original.call(this, eventName, callback, options);
+        return original.call(this, eventName, fn, options);
       };
     });
   }

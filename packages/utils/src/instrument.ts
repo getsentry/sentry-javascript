@@ -400,13 +400,12 @@ function instrumentDOM(): void {
         fn: EventListenerOrEventListenerObject,
         options?: boolean | EventListenerOptions,
       ): () => void {
-        let callback = fn as WrappedFunction;
         try {
-          callback = callback && (callback.__sentry_wrapped__ || callback);
+          original.call(this, eventName, ((fn as unknown) as WrappedFunction).__sentry_wrapped__, options);
         } catch (e) {
           // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
         }
-        return original.call(this, eventName, callback, options);
+        return original.call(this, eventName, fn, options);
       };
     });
   });
