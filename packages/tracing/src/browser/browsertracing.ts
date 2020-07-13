@@ -74,8 +74,8 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
   /**
    * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
-   * not suited towards doing precise measurements of operations. Background transaction can mess up your
-   * statistics in non deterministic ways that's why we by default recommend leaving this opition enabled.
+   * not suited towards doing precise measurements of operations. By default, we recommend that this option
+   * be enabled as background transactions can mess up your statistics in nondeterministic ways.
    *
    * Default: true
    */
@@ -119,14 +119,23 @@ export class BrowserTracing implements Integration {
   private readonly _emitOptionsWarning: boolean = false;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
-    // NOTE: Logger doesn't work in contructors, as it's initialized after integrations instances
-    if (!_options || !Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
+    let tracingOrigins = defaultRequestInstrumentionOptions.tracingOrigins;
+    // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
+    if (
+      _options &&
+      _options.tracingOrigins &&
+      Array.isArray(_options.tracingOrigins) &&
+      _options.tracingOrigins.length !== 0
+    ) {
+      tracingOrigins = _options.tracingOrigins;
+    } else {
       this._emitOptionsWarning = true;
     }
 
     this.options = {
       ...this.options,
       ..._options,
+      tracingOrigins,
     };
   }
 

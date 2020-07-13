@@ -16,6 +16,7 @@ import { getActiveTransaction, secToMs } from '../../src/browser/utils';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
+
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
@@ -27,6 +28,9 @@ jest.mock('@sentry/utils', () => {
     },
   };
 });
+
+const { logger } = jest.requireActual('@sentry/utils');
+const warnSpy = jest.spyOn(logger, 'warn');
 
 beforeAll(() => {
   const dom = new JSDOM();
@@ -45,6 +49,8 @@ describe('BrowserTracing', () => {
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
     makeMain(hub);
     document.head.innerHTML = '';
+
+    warnSpy.mockClear();
   });
 
   afterEach(() => {
@@ -117,6 +123,47 @@ describe('BrowserTracing', () => {
         transaction.finish(span.endTimestamp + 12345);
       }
       expect(transaction.endTimestamp).toBe(span.endTimestamp);
+    });
+
+    describe('tracingOrigins', () => {
+      it('warns and uses default tracing origins if non are provided', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(2);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+      });
+
+      it('warns and uses default tracing origins if array not given', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+          tracingOrigins: [],
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(2);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+      });
+
+      it('warns and uses default tracing origins if tracing origins are not defined', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+          tracingOrigins: undefined,
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(2);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+      });
+
+      it('sets tracing origins if provided and does not warn', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+          tracingOrigins: ['something'],
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(0);
+        expect(inst.options.tracingOrigins).toEqual(['something']);
+      });
     });
 
     describe('beforeNavigate', () => {
