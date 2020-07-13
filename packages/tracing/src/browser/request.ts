@@ -86,19 +86,18 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
   // regexp everytime we create a request.
   const urlMap: Record<string, boolean> = {};
 
-  const shouldCreateSpan = shouldCreateSpanForRequest
-    ? shouldCreateSpanForRequest
-    : (url: string) => {
-        if (urlMap[url]) {
-          return urlMap[url];
-        }
-        const origins = tracingOrigins;
-        const decision =
-          origins.some((origin: string | RegExp) => isMatchingPattern(url, origin)) &&
-          !isMatchingPattern(url, 'sentry_key');
-        urlMap[url] = decision;
-        return urlMap[url];
-      };
+  const defaultShouldCreateSpan = (url: string): boolean => {
+    if (urlMap[url]) {
+      return urlMap[url];
+    }
+    const origins = tracingOrigins;
+    urlMap[url] =
+      origins.some((origin: string | RegExp) => isMatchingPattern(url, origin)) &&
+      !isMatchingPattern(url, 'sentry_key');
+    return urlMap[url];
+  };
+
+  const shouldCreateSpan = shouldCreateSpanForRequest || defaultShouldCreateSpan;
 
   const spans: Record<string, Span | undefined> = {};
 
@@ -198,8 +197,6 @@ function xhrCallback(
   if (handlerData.xhr.__sentry_own_request__) {
     return;
   }
-
-  // logger.log('XHR', JSON.stringify(handlerData));
 
   if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
     const span = spans[handlerData.xhr.__sentry_xhr_span_id__];

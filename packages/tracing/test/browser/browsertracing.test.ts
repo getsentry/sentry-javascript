@@ -256,7 +256,7 @@ describe('BrowserTracing', () => {
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION__SECONDS) + 1);
 
-        expect(transaction.status).toBe(SpanStatus.Cancelled);
+        expect(transaction.status).toBe(SpanStatus.DeadlineExceeded);
         expect(transaction.tags.maxTransactionDurationExceeded).toBeDefined();
       });
 

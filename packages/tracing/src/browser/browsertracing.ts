@@ -3,7 +3,7 @@ import { EventProcessor, Integration, Transaction as TransactionType, Transactio
 import { logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
-import { BeforeFinishCallback, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
+import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { Span } from '../span';
 import { SpanStatus } from '../spanstatus';
 
@@ -205,9 +205,9 @@ export class BrowserTracing implements Integration {
     const hub = this._getCurrentHub();
     logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope`);
     const idleTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
-    idleTransaction.registerBeforeFinishCallback(adjustTransactionDuration(secToMs(maxTransactionDuration)));
-    idleTransaction.registerBeforeFinishCallback(transaction => {
+    idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {
       this._metrics.addPerformanceEntires(transaction);
+      adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);
     });
 
     return idleTransaction as TransactionType;
@@ -240,13 +240,11 @@ export function getMetaContent(metaName: string): string | null {
 }
 
 /** Adjusts transaction value based on max transaction duration */
-function adjustTransactionDuration(maxDuration: number): BeforeFinishCallback {
-  return (transaction: IdleTransaction, endTimestamp: number): void => {
-    const diff = endTimestamp - transaction.startTimestamp;
-    const isOutdatedTransaction = endTimestamp && (diff > maxDuration || diff < 0);
-    if (isOutdatedTransaction) {
-      transaction.setStatus(SpanStatus.Cancelled);
-      transaction.setTag('maxTransactionDurationExceeded', 'true');
-    }
-  };
+function adjustTransactionDuration(maxDuration: number, transaction: IdleTransaction, endTimestamp: number): void {
+  const diff = endTimestamp - transaction.startTimestamp;
+  const isOutdatedTransaction = endTimestamp && (diff > maxDuration || diff < 0);
+  if (isOutdatedTransaction) {
+    transaction.setStatus(SpanStatus.DeadlineExceeded);
+    transaction.setTag('maxTransactionDurationExceeded', 'true');
+  }
 }

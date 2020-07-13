@@ -161,6 +161,7 @@ export class MetricsInstrumentation {
           // Ignore other entry types.
         }
       });
+
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
       transaction.startChild({
         description: 'evaluation',
