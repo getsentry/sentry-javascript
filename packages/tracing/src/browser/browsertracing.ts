@@ -18,7 +18,7 @@ import {
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
 import { secToMs } from './utils';
 
-export const DEFAULT_MAX_TRANSACTION_DURATION__SECONDS = 600;
+export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions extends RequestInstrumentationOptions {
@@ -100,7 +100,7 @@ export class BrowserTracing implements Integration {
     beforeNavigate: defaultBeforeNavigate,
     idleTimeout: DEFAULT_IDLE_TIMEOUT,
     markBackgroundTransactions: true,
-    maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION__SECONDS,
+    maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
     routingInstrumentation: defaultRoutingInstrumentation,
     startTransactionOnLocationChange: true,
     startTransactionOnPageLoad: true,

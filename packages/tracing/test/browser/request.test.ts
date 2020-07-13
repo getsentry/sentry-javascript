@@ -21,9 +21,9 @@ jest.mock('@sentry/utils', () => {
 
 describe('registerRequestInstrumentation', () => {
   beforeEach(() => {
-    mockFetchCallback.mockClear();
-    mockXHRCallback.mockClear();
-    mockAddInstrumentationHandler.mockClear();
+    mockFetchCallback.mockReset();
+    mockXHRCallback.mockReset();
+    mockAddInstrumentationHandler.mockReset();
   });
 
   it('tracks fetch and xhr requests', () => {

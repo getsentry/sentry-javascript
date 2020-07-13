@@ -7,7 +7,7 @@ import { SpanStatus } from '../../src';
 import {
   BrowserTracing,
   BrowserTracingOptions,
-  DEFAULT_MAX_TRANSACTION_DURATION__SECONDS,
+  DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
   getMetaContent,
 } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
@@ -81,7 +81,7 @@ describe('BrowserTracing', () => {
       beforeNavigate: expect.any(Function),
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       markBackgroundTransactions: true,
-      maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION__SECONDS,
+      maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
       routingInstrumentation: defaultRoutingInstrumentation,
       startTransactionOnLocationChange: true,
       startTransactionOnPageLoad: true,
@@ -254,7 +254,7 @@ describe('BrowserTracing', () => {
       it('cancels a transaction if exceeded', () => {
         createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION__SECONDS) + 1);
+        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS) + 1);
 
         expect(transaction.status).toBe(SpanStatus.DeadlineExceeded);
         expect(transaction.tags.maxTransactionDurationExceeded).toBeDefined();
@@ -263,7 +263,7 @@ describe('BrowserTracing', () => {
       it('does not cancel a transaction if not exceeded', () => {
         createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION__SECONDS));
+        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS));
 
         expect(transaction.status).toBe(undefined);
         expect(transaction.tags.maxTransactionDurationExceeded).not.toBeDefined();
@@ -272,7 +272,7 @@ describe('BrowserTracing', () => {
       it('can have a custom value', () => {
         const customMaxTransactionDuration = 700;
         // Test to make sure default duration is less than tested custom value.
-        expect(DEFAULT_MAX_TRANSACTION_DURATION__SECONDS < customMaxTransactionDuration).toBe(true);
+        expect(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS < customMaxTransactionDuration).toBe(true);
         createBrowserTracing(true, {
           maxTransactionDuration: customMaxTransactionDuration,
           routingInstrumentation: customRoutingInstrumentation,

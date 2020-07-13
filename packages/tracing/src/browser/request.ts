@@ -99,7 +99,7 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
 
   const shouldCreateSpan = shouldCreateSpanForRequest || defaultShouldCreateSpan;
 
-  const spans: Record<string, Span | undefined> = {};
+  const spans: Record<string, Span> = {};
 
   if (traceFetch) {
     addInstrumentationHandler({
@@ -126,9 +126,9 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
 function fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
-  spans: Record<string, Span | undefined>,
+  spans: Record<string, Span>,
 ): void {
-  if (!shouldCreateSpan(handlerData.fetchData.url)) {
+  if (!shouldCreateSpan(handlerData.fetchData.url) || !handlerData.fetchData) {
     return;
   }
 
@@ -136,6 +136,9 @@ function fetchCallback(
     const span = spans[handlerData.fetchData.__span];
     if (span) {
       span.finish();
+
+      // tslint:disable-next-line: no-dynamic-delete
+      delete spans[handlerData.fetchData.__span];
     }
     return;
   }
@@ -182,7 +185,7 @@ function fetchCallback(
 function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
-  spans: Record<string, Span | undefined>,
+  spans: Record<string, Span>,
 ): void {
   if (!handlerData || !handlerData.xhr || !handlerData.xhr.__sentry_xhr__) {
     return;
@@ -205,6 +208,9 @@ function xhrCallback(
       span.setData('method', xhr.method);
       span.setHttpStatus(xhr.status_code);
       span.finish();
+
+      // tslint:disable-next-line: no-dynamic-delete
+      delete spans[handlerData.xhr.__sentry_xhr_span_id__];
     }
     return;
   }
