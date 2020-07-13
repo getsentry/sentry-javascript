@@ -123,7 +123,7 @@ export class MetricsInstrumentation {
       }
     }
 
-    let entryScriptStartEndTime: number | undefined;
+    let entryScriptStartTimestamp: number | undefined;
     let tracingInitMarkStartTime: number | undefined;
 
     global.performance
@@ -153,8 +153,8 @@ export class MetricsInstrumentation {
             const resourceName = (entry.name as string).replace(window.location.origin, '');
             const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
             // We remember the entry script end time to calculate the difference to the first init mark
-            if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
-              entryScriptStartEndTime = endTimestamp;
+            if (entryScriptStartTimestamp === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
+              entryScriptStartTimestamp = endTimestamp;
             }
             break;
           default:
@@ -162,12 +162,12 @@ export class MetricsInstrumentation {
         }
       });
 
-    if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
+    if (entryScriptStartTimestamp !== undefined && tracingInitMarkStartTime !== undefined) {
       transaction.startChild({
         description: 'evaluation',
         endTimestamp: tracingInitMarkStartTime,
         op: 'script',
-        startTimestamp: entryScriptStartEndTime,
+        startTimestamp: entryScriptStartTimestamp,
       });
     }
 
