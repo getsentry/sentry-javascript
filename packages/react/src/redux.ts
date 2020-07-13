@@ -25,9 +25,9 @@ export interface SentryEnhancerOptions {
    */
   actionBreadcrumbType: string;
   /**
-   * The extra key to pass the state to. Default is 'redux.state'
+   * The context key to pass the state to. Default is 'redux.state'
    */
-  stateExtraKey: string;
+  stateContextKey: string;
   /**
    * Called on every state update, configure the Sentry Scope with the redux state.
    */
@@ -38,7 +38,7 @@ const defaultOptions: SentryEnhancerOptions = {
   actionBreadcrumbCategory: 'redux.action',
   actionBreadcrumbType: 'info',
   actionTransformer: action => action,
-  stateExtraKey: 'redux.state',
+  stateContextKey: 'redux.state',
   // tslint:disable-next-line: no-unsafe-any
   stateTransformer: state => state,
 };
@@ -71,9 +71,10 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         /* Set latest state to scope */
         const transformedState = options.stateTransformer ? options.stateTransformer(newState) : newState;
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
-          scope.setExtra(options.stateExtraKey, transformedState);
+          // tslint:disable-next-line: no-unsafe-any
+          scope.setContext(options.stateContextKey, transformedState);
         } else {
-          scope.setExtra(options.stateExtraKey, undefined);
+          scope.setContext(options.stateContextKey, null);
         }
 
         /* Allow user to configure scope with latest state */

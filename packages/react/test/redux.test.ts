@@ -6,19 +6,19 @@ import * as Redux from 'redux';
 import { createReduxEnhancer } from '../src/redux';
 
 const mockAddBreadcrumb = jest.fn();
-const mockSetExtra = jest.fn();
+const mockSetContext = jest.fn();
 
 jest.mock('@sentry/minimal', () => ({
   configureScope: (callback: (scope: any) => Partial<Scope>) =>
     callback({
       addBreadcrumb: mockAddBreadcrumb,
-      setExtra: mockSetExtra,
+      setContext: mockSetContext,
     }),
 }));
 
 afterEach(() => {
   mockAddBreadcrumb.mockReset();
-  mockSetExtra.mockReset();
+  mockSetContext.mockReset();
 });
 
 describe('createReduxEnhancer', () => {
@@ -60,7 +60,7 @@ describe('createReduxEnhancer', () => {
     const updateAction = { type: ACTION_TYPE, newValue: 'updated' };
     store.dispatch(updateAction);
 
-    expect(mockSetExtra).toBeCalledWith('redux.state', {
+    expect(mockSetContext).toBeCalledWith('redux.state', {
       value: 'updated',
     });
   });
@@ -81,7 +81,7 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockSetExtra).toBeCalledWith('redux.state', {
+      expect(mockSetContext).toBeCalledWith('redux.state', {
         superSecret: 'REDACTED',
         value: 123,
       });
@@ -100,7 +100,7 @@ describe('createReduxEnhancer', () => {
       Redux.createStore((state = initialState) => state, enhancer);
 
       // Check that state is cleared
-      expect(mockSetExtra).toBeCalledWith('redux.state', undefined);
+      expect(mockSetContext).toBeCalledWith('redux.state', null);
     });
 
     it('transforms actions', () => {
