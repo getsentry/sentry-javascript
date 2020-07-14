@@ -5,51 +5,36 @@ import * as React from 'react';
 
 import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 
-const TEST_SPAN_ID = '518999beeceb49af';
-const TEST_TIMESTAMP = '123456';
-
 const mockStartChild = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs }));
-const mockPushActivity = jest.fn().mockReturnValue(1);
-const mockPopActivity = jest.fn();
-const mockLoggerWarn = jest.fn();
-const mockGetActivitySpan = jest.fn().mockReturnValue({
-  spanId: TEST_SPAN_ID,
-  startChild: mockStartChild,
-});
+const mockFinish = jest.fn();
 
-jest.mock('@sentry/utils', () => ({
-  logger: {
-    warn: (message: string) => {
-      mockLoggerWarn(message);
-    },
-  },
-  timestampWithMs: () => TEST_TIMESTAMP,
-}));
+// @sent
+class MockSpan {
+  public constructor(public readonly ctx: SpanContext) {}
+
+  public startChild(ctx: SpanContext): MockSpan {
+    mockStartChild(ctx);
+    return new MockSpan(ctx);
+  }
+
+  public finish(): void {
+    mockFinish();
+  }
+}
+
+let activeTransaction: Record<string, any>;
 
 jest.mock('@sentry/browser', () => ({
   getCurrentHub: () => ({
-    getIntegration: (_: string) => {
-      class MockIntegration {
-        public constructor(name: string) {
-          this.name = name;
-        }
-        public name: string;
-        public setupOnce: () => void = jest.fn();
-        public static pushActivity: () => void = mockPushActivity;
-        public static popActivity: () => void = mockPopActivity;
-        public static getActivitySpan: () => void = mockGetActivitySpan;
-      }
-      return new MockIntegration('test');
-    },
+    getScope: () => ({
+      getTransaction: () => activeTransaction,
+    }),
   }),
 }));
 
 beforeEach(() => {
-  mockPushActivity.mockClear();
-  mockPopActivity.mockClear();
-  mockLoggerWarn.mockClear();
-  mockGetActivitySpan.mockClear();
   mockStartChild.mockClear();
+  activeTransaction = new MockSpan({ op: 'pageload' });
 });
 
 describe('withProfiler', () => {
@@ -75,30 +60,23 @@ describe('withProfiler', () => {
   describe('mount span', () => {
     it('does not get created if Profiler is disabled', () => {
       const ProfiledComponent = withProfiler(() => <h1>Testing</h1>, { disabled: true });
-      expect(mockPushActivity).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(0);
       render(<ProfiledComponent />);
-      expect(mockPushActivity).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(0);
     });
 
     it('is created when a component is mounted', () => {
       const ProfiledComponent = withProfiler(() => <h1>Testing</h1>);
 
-      expect(mockPushActivity).toHaveBeenCalledTimes(0);
-      expect(mockGetActivitySpan).toHaveBeenCalledTimes(0);
-      expect(mockPopActivity).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(0);
 
       render(<ProfiledComponent />);
 
-      expect(mockPushActivity).toHaveBeenCalledTimes(1);
-      expect(mockPushActivity).toHaveBeenLastCalledWith(UNKNOWN_COMPONENT, {
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
+      expect(mockStartChild).toHaveBeenLastCalledWith({
         description: `<${UNKNOWN_COMPONENT}>`,
         op: 'react.mount',
       });
-      expect(mockGetActivitySpan).toHaveBeenCalledTimes(1);
-      expect(mockGetActivitySpan).toHaveBeenLastCalledWith(1);
-
-      expect(mockPopActivity).toHaveBeenCalledTimes(1);
-      expect(mockPopActivity).toHaveBeenLastCalledWith(1);
     });
   });
 
@@ -110,13 +88,13 @@ describe('withProfiler', () => {
       const component = render(<ProfiledComponent />);
       component.unmount();
 
-      expect(mockStartChild).toHaveBeenCalledTimes(1);
-      expect(mockStartChild).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          description: `<${UNKNOWN_COMPONENT}>`,
-          op: 'react.render',
-        }),
-      );
+      expect(mockStartChild).toHaveBeenCalledTimes(2);
+      expect(mockStartChild).toHaveBeenLastCalledWith({
+        description: `<${UNKNOWN_COMPONENT}>`,
+        endTimestamp: expect.any(Number),
+        op: 'react.render',
+        startTimestamp: undefined,
+      });
     });
 
     it('is not created if hasRenderSpan is false', () => {
@@ -126,7 +104,7 @@ describe('withProfiler', () => {
       const component = render(<ProfiledComponent />);
       component.unmount();
 
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -134,33 +112,33 @@ describe('withProfiler', () => {
     it('is created when component is updated', () => {
       const ProfiledComponent = withProfiler((props: { num: number }) => <div>{props.num}</div>);
       const { rerender } = render(<ProfiledComponent num={0} />);
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
 
       // Dispatch new props
       rerender(<ProfiledComponent num={1} />);
-      expect(mockStartChild).toHaveBeenCalledTimes(1);
+      expect(mockStartChild).toHaveBeenCalledTimes(2);
       expect(mockStartChild).toHaveBeenLastCalledWith({
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
-        endTimestamp: TEST_TIMESTAMP,
+        endTimestamp: expect.any(Number),
         op: 'react.update',
-        startTimestamp: TEST_TIMESTAMP,
+        startTimestamp: expect.any(Number),
       });
 
       // New props yet again
       rerender(<ProfiledComponent num={2} />);
-      expect(mockStartChild).toHaveBeenCalledTimes(2);
+      expect(mockStartChild).toHaveBeenCalledTimes(3);
       expect(mockStartChild).toHaveBeenLastCalledWith({
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
-        endTimestamp: TEST_TIMESTAMP,
+        endTimestamp: expect.any(Number),
         op: 'react.update',
-        startTimestamp: TEST_TIMESTAMP,
+        startTimestamp: expect.any(Number),
       });
 
       // Should not create spans if props haven't changed
       rerender(<ProfiledComponent num={2} />);
-      expect(mockStartChild).toHaveBeenCalledTimes(2);
+      expect(mockStartChild).toHaveBeenCalledTimes(3);
     });
 
     it('does not get created if hasUpdateSpan is false', () => {
@@ -168,11 +146,11 @@ describe('withProfiler', () => {
         includeUpdates: false,
       });
       const { rerender } = render(<ProfiledComponent num={0} />);
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
 
       // Dispatch new props
       rerender(<ProfiledComponent num={1} />);
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
     });
   });
 });
@@ -182,23 +160,18 @@ describe('useProfiler()', () => {
     it('does not get created if Profiler is disabled', () => {
       // tslint:disable-next-line: no-void-expression
       renderHook(() => useProfiler('Example', { disabled: true }));
-      expect(mockPushActivity).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(0);
     });
 
     it('is created when a component is mounted', () => {
       // tslint:disable-next-line: no-void-expression
       renderHook(() => useProfiler('Example'));
 
-      expect(mockPushActivity).toHaveBeenCalledTimes(1);
-      expect(mockPushActivity).toHaveBeenLastCalledWith('Example', {
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
+      expect(mockStartChild).toHaveBeenLastCalledWith({
         description: '<Example>',
         op: 'react.mount',
       });
-      expect(mockGetActivitySpan).toHaveBeenCalledTimes(1);
-      expect(mockGetActivitySpan).toHaveBeenLastCalledWith(1);
-
-      expect(mockPopActivity).toHaveBeenCalledTimes(1);
-      expect(mockPopActivity).toHaveBeenLastCalledWith(1);
     });
   });
 
@@ -206,18 +179,18 @@ describe('useProfiler()', () => {
     it('does not get created when hasRenderSpan is false', () => {
       // tslint:disable-next-line: no-void-expression
       const component = renderHook(() => useProfiler('Example', { hasRenderSpan: false }));
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
       component.unmount();
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
     });
 
     it('is created by default', () => {
       // tslint:disable-next-line: no-void-expression
       const component = renderHook(() => useProfiler('Example'));
 
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
-      component.unmount();
       expect(mockStartChild).toHaveBeenCalledTimes(1);
+      component.unmount();
+      expect(mockStartChild).toHaveBeenCalledTimes(2);
       expect(mockStartChild).toHaveBeenLastCalledWith(
         expect.objectContaining({
           description: '<Example>',
