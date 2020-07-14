@@ -1,22 +1,36 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub } from '@sentry/hub';
+import { Hub, makeMain } from '@sentry/hub';
 // tslint:disable-next-line: no-implicit-dependencies
 import { JSDOM } from 'jsdom';
 
-import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src/browser/browsertracing';
+import { SpanStatus } from '../../src';
+import {
+  BrowserTracing,
+  BrowserTracingOptions,
+  DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
+  getMetaContent,
+} from '../../src/browser/browsertracing';
+import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
+import { getActiveTransaction, secToMs } from '../../src/browser/utils';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
+
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: ({ callback }: any): void => {
-      mockChangeHistory = callback;
+    addInstrumentationHandler: ({ callback, type }: any): void => {
+      if (type === 'history') {
+        mockChangeHistory = callback;
+      }
     },
   };
 });
+
+const { logger } = jest.requireActual('@sentry/utils');
+const warnSpy = jest.spyOn(logger, 'warn');
 
 beforeAll(() => {
   const dom = new JSDOM();
@@ -33,13 +47,17 @@ describe('BrowserTracing', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+    makeMain(hub);
     document.head.innerHTML = '';
+
+    warnSpy.mockClear();
   });
 
   afterEach(() => {
-    const transaction = getActiveTransaction(hub);
-    if (transaction) {
-      transaction.finish();
+    const activeTransaction = getActiveTransaction();
+    if (activeTransaction) {
+      // Should unset off of scope.
+      activeTransaction.finish();
     }
   });
 
@@ -62,12 +80,20 @@ describe('BrowserTracing', () => {
     expect(browserTracing.options).toEqual({
       beforeNavigate: expect.any(Function),
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
+      markBackgroundTransactions: true,
+      maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
       routingInstrumentation: defaultRoutingInstrumentation,
       startTransactionOnLocationChange: true,
       startTransactionOnPageLoad: true,
+      ...defaultRequestInstrumentionOptions,
     });
   });
 
+  /**
+   * All of these tests under `describe('route transaction')` are tested with
+   * `browserTracing.options = { routingInstrumentation: customRoutingInstrumentation }`,
+   * so that we can show this functionality works independent of the default routing integration.
+   */
   describe('route transaction', () => {
     const customRoutingInstrumentation = (startTransaction: Function) => {
       startTransaction({ name: 'a/path', op: 'pageload' });
@@ -84,44 +110,102 @@ describe('BrowserTracing', () => {
       expect(transaction.op).toBe('pageload');
     });
 
-    it('calls beforeNavigate on transaction creation', () => {
-      const mockBeforeNavigation = jest.fn().mockReturnValue({ name: 'here/is/my/path' });
+    it('trims all transactions', () => {
       createBrowserTracing(true, {
-        beforeNavigate: mockBeforeNavigation,
         routingInstrumentation: customRoutingInstrumentation,
       });
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
-      expect(transaction).toBeDefined();
 
-      expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
+      const transaction = getActiveTransaction(hub) as IdleTransaction;
+      const span = transaction.startChild();
+      span.finish();
+
+      if (span.endTimestamp) {
+        transaction.finish(span.endTimestamp + 12345);
+      }
+      expect(transaction.endTimestamp).toBe(span.endTimestamp);
     });
 
-    it('is not created if beforeNavigate returns undefined', () => {
-      const mockBeforeNavigation = jest.fn().mockReturnValue(undefined);
-      createBrowserTracing(true, {
-        beforeNavigate: mockBeforeNavigation,
-        routingInstrumentation: customRoutingInstrumentation,
-      });
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
-      expect(transaction).not.toBeDefined();
+    describe('tracingOrigins', () => {
+      it('warns and uses default tracing origins if non are provided', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+        });
 
-      expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
+        expect(warnSpy).toHaveBeenCalledTimes(2);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+      });
+
+      it('warns and uses default tracing origins if array not given', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+          tracingOrigins: [],
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(2);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+      });
+
+      it('warns and uses default tracing origins if tracing origins are not defined', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+          tracingOrigins: undefined,
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(2);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+      });
+
+      it('sets tracing origins if provided and does not warn', () => {
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customRoutingInstrumentation,
+          tracingOrigins: ['something'],
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(0);
+        expect(inst.options.tracingOrigins).toEqual(['something']);
+      });
     });
 
-    it('can use a custom beforeNavigate', () => {
-      const mockBeforeNavigation = jest.fn(ctx => ({
-        ...ctx,
-        op: 'something-else',
-      }));
-      createBrowserTracing(true, {
-        beforeNavigate: mockBeforeNavigation,
-        routingInstrumentation: customRoutingInstrumentation,
-      });
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
-      expect(transaction).toBeDefined();
-      expect(transaction.op).toBe('something-else');
+    describe('beforeNavigate', () => {
+      it('is called on transaction creation', () => {
+        const mockBeforeNavigation = jest.fn().mockReturnValue({ name: 'here/is/my/path' });
+        createBrowserTracing(true, {
+          beforeNavigate: mockBeforeNavigation,
+          routingInstrumentation: customRoutingInstrumentation,
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        expect(transaction).toBeDefined();
 
-      expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
+        expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not create a transaction if it returns undefined', () => {
+        const mockBeforeNavigation = jest.fn().mockReturnValue(undefined);
+        createBrowserTracing(true, {
+          beforeNavigate: mockBeforeNavigation,
+          routingInstrumentation: customRoutingInstrumentation,
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        expect(transaction).not.toBeDefined();
+
+        expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
+      });
+
+      it('can be a custom value', () => {
+        const mockBeforeNavigation = jest.fn(ctx => ({
+          ...ctx,
+          op: 'something-else',
+        }));
+        createBrowserTracing(true, {
+          beforeNavigate: mockBeforeNavigation,
+          routingInstrumentation: customRoutingInstrumentation,
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        expect(transaction).toBeDefined();
+        expect(transaction.op).toBe('something-else');
+
+        expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('sets transaction context from sentry-trace header', () => {
@@ -136,32 +220,70 @@ describe('BrowserTracing', () => {
       expect(transaction.sampled).toBe(true);
     });
 
-    it('is created with a default idleTimeout', () => {
-      createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
-      const mockFinish = jest.fn();
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
-      transaction.finish = mockFinish;
+    describe('idleTimeout', () => {
+      it('is created by default', () => {
+        createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+        const mockFinish = jest.fn();
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.finish = mockFinish;
 
-      const span = transaction.startChild(); // activities = 1
-      span.finish(); // activities = 0
+        const span = transaction.startChild(); // activities = 1
+        span.finish(); // activities = 0
 
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-      jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
-      expect(mockFinish).toHaveBeenCalledTimes(1);
+        expect(mockFinish).toHaveBeenCalledTimes(0);
+        jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
+        expect(mockFinish).toHaveBeenCalledTimes(1);
+      });
+
+      it('can be a custom value', () => {
+        createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customRoutingInstrumentation });
+        const mockFinish = jest.fn();
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.finish = mockFinish;
+
+        const span = transaction.startChild(); // activities = 1
+        span.finish(); // activities = 0
+
+        expect(mockFinish).toHaveBeenCalledTimes(0);
+        jest.advanceTimersByTime(2000);
+        expect(mockFinish).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('can be created with a custom idleTimeout', () => {
-      createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customRoutingInstrumentation });
-      const mockFinish = jest.fn();
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
-      transaction.finish = mockFinish;
+    describe('maxTransactionDuration', () => {
+      it('cancels a transaction if exceeded', () => {
+        createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS) + 1);
 
-      const span = transaction.startChild(); // activities = 1
-      span.finish(); // activities = 0
+        expect(transaction.status).toBe(SpanStatus.DeadlineExceeded);
+        expect(transaction.tags.maxTransactionDurationExceeded).toBeDefined();
+      });
 
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-      jest.advanceTimersByTime(2000);
-      expect(mockFinish).toHaveBeenCalledTimes(1);
+      it('does not cancel a transaction if not exceeded', () => {
+        createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS));
+
+        expect(transaction.status).toBe(undefined);
+        expect(transaction.tags.maxTransactionDurationExceeded).not.toBeDefined();
+      });
+
+      it('can have a custom value', () => {
+        const customMaxTransactionDuration = 700;
+        // Test to make sure default duration is less than tested custom value.
+        expect(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS < customMaxTransactionDuration).toBe(true);
+        createBrowserTracing(true, {
+          maxTransactionDuration: customMaxTransactionDuration,
+          routingInstrumentation: customRoutingInstrumentation,
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+
+        transaction.finish(transaction.startTimestamp + secToMs(customMaxTransactionDuration));
+
+        expect(transaction.status).toBe(undefined);
+        expect(transaction.tags.maxTransactionDurationExceeded).not.toBeDefined();
+      });
     });
   });
 
@@ -240,13 +362,3 @@ describe('getMeta', () => {
     expect(meta).toBe(null);
   });
 });
-
-/** Get active transaction from scope */
-function getActiveTransaction(hub: Hub): IdleTransaction | undefined {
-  const scope = hub.getScope();
-  if (scope) {
-    return scope.getTransaction() as IdleTransaction;
-  }
-
-  return undefined;
-}

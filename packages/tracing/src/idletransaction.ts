@@ -45,7 +45,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   }
 }
 
-export type BeforeFinishCallback = (transactionSpan: IdleTransaction) => void;
+export type BeforeFinishCallback = (transactionSpan: IdleTransaction, endTimestamp: number) => void;
 
 /**
  * An IdleTransaction is a transaction that automatically finishes. It does this by tracking child spans as activities.
@@ -139,11 +139,14 @@ export class IdleTransaction extends Transaction {
 
   /** {@inheritDoc} */
   public finish(endTimestamp: number = timestampWithMs()): string | undefined {
+    this._finished = true;
+    this.activities = {};
+
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
 
       for (const callback of this._beforeFinishCallbacks) {
-        callback(this);
+        callback(this, endTimestamp);
       }
 
       this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
@@ -169,8 +172,6 @@ export class IdleTransaction extends Transaction {
         return keepSpan;
       });
 
-      this._finished = true;
-      this.activities = {};
       // this._onScope is true if the transaction was previously on the scope.
       if (this._onScope) {
         clearActiveTransaction(this._idleHub);
@@ -213,7 +214,9 @@ export class IdleTransaction extends Transaction {
       const end = timestampWithMs() + timeout / 1000;
 
       setTimeout(() => {
-        this.finish(end);
+        if (!this._finished) {
+          this.finish(end);
+        }
       }, timeout);
     }
   }
