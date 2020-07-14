@@ -184,7 +184,7 @@ export class BrowserTracing implements Integration {
   /** Create routing idle transaction. */
   private _createRouteTransaction(context: TransactionContext): TransactionType | undefined {
     if (!this._getCurrentHub) {
-      logger.warn(`[Tracing] Did not creeate ${context.op} idleTransaction due to invalid _getCurrentHub`);
+      logger.warn(`[Tracing] Did not create ${context.op} idleTransaction due to invalid _getCurrentHub`);
       return undefined;
     }
 
