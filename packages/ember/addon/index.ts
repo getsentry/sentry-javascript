@@ -9,6 +9,9 @@ export function SentryForEmber() {
   assert('Missing configuration for Sentry', config);
 
   const initConfig = Object.assign({}, config);
+
+  createEmberEventProcessor();
+
   Sentry.init(initConfig);
 }
 
@@ -34,5 +37,3 @@ function createEmberEventProcessor(): void {
 }
 
 export * from '@sentry/browser';
-
-createEmberEventProcessor();
