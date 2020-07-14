@@ -17,28 +17,17 @@ export interface SentryEnhancerOptions {
    */
   actionTransformer(action: AnyAction): AnyAction | null;
   /**
-   * Category of the breadcrumb sent by actions. Default is 'redux.action'
-   */
-  actionBreadcrumbCategory: string;
-  /**
-   * Type of the breadcrumb sent by actions. Default is 'info'
-   */
-  actionBreadcrumbType: string;
-  /**
-   * The context key to pass the state to. Default is 'redux.state'
-   */
-  stateContextKey: string;
-  /**
    * Called on every state update, configure the Sentry Scope with the redux state.
    */
   configureScopeWithState?(scope: Scope, state: any): void;
 }
 
+const ACTION_BREADCRUMB_CATEGORY = 'redux.action';
+const ACTION_BREADCRUMB_TYPE = 'info';
+const STATE_CONTEXT_KEY = 'redux.state';
+
 const defaultOptions: SentryEnhancerOptions = {
-  actionBreadcrumbCategory: 'redux.action',
-  actionBreadcrumbType: 'info',
   actionTransformer: action => action,
-  stateContextKey: 'redux.state',
   // tslint:disable-next-line: no-unsafe-any
   stateTransformer: state => state,
 };
@@ -58,23 +47,23 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
 
       configureScope(scope => {
         /* Action breadcrumbs */
-        const transformedAction = options.actionTransformer ? options.actionTransformer(action) : action;
+        const transformedAction = options.actionTransformer(action);
         // tslint:disable-next-line: strict-type-predicates
         if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
           scope.addBreadcrumb({
-            category: options.actionBreadcrumbCategory,
+            category: ACTION_BREADCRUMB_CATEGORY,
             data: transformedAction,
-            type: options.actionBreadcrumbType,
+            type: ACTION_BREADCRUMB_TYPE,
           });
         }
 
         /* Set latest state to scope */
-        const transformedState = options.stateTransformer ? options.stateTransformer(newState) : newState;
+        const transformedState = options.stateTransformer(newState);
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
           // tslint:disable-next-line: no-unsafe-any
-          scope.setContext(options.stateContextKey, transformedState);
+          scope.setContext(STATE_CONTEXT_KEY, transformedState);
         } else {
-          scope.setContext(options.stateContextKey, null);
+          scope.setContext(STATE_CONTEXT_KEY, null);
         }
 
         /* Allow user to configure scope with latest state */
