@@ -256,9 +256,9 @@ function addPerformanceNavigationTiming(
   }
   transaction.startChild({
     description: event,
-    endTimestamp: end + timeOrigin,
+    endTimestamp: timeOrigin + msToSec(end),
     op: 'browser',
-    startTimestamp: start + timeOrigin,
+    startTimestamp: timeOrigin + msToSec(start),
   });
 }
 
