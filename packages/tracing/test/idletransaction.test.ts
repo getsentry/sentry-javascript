@@ -107,9 +107,9 @@ describe('IdleTransaction', () => {
 
     jest.runOnlyPendingTimers();
     expect(mockCallback1).toHaveBeenCalledTimes(1);
-    expect(mockCallback1).toHaveBeenLastCalledWith(transaction);
+    expect(mockCallback1).toHaveBeenLastCalledWith(transaction, expect.any(Number));
     expect(mockCallback2).toHaveBeenCalledTimes(1);
-    expect(mockCallback2).toHaveBeenLastCalledWith(transaction);
+    expect(mockCallback2).toHaveBeenLastCalledWith(transaction, expect.any(Number));
   });
 
   it('filters spans on finish', () => {
