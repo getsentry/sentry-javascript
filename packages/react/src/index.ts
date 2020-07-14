@@ -25,5 +25,6 @@ export * from '@sentry/browser';
 
 export { Profiler, withProfiler, useProfiler } from './profiler';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
+export { createReduxEnhancer } from './redux';
 
 createReactEventProcessor();
