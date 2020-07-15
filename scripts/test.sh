@@ -8,7 +8,11 @@ if [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 6 ]]; then
   yarn install --ignore-engines
   yarn build
   nvm use 6
-  yarn test --ignore="@sentry/browser" --ignore="@sentry/integrations" --ignore="@sentry/react" # latest version of karma doesn't run on node 6
+  yarn test --ignore="@sentry/browser" --ignore="@sentry/integrations" --ignore="@sentry/react"  --ignore="@sentry/tracing" # latest version of karma doesn't run on node 6
+elif [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 8 ]]; then
+  yarn install
+  yarn build
+  yarn test --ignore="@sentry/tracing"
 else
   yarn install
   yarn build
