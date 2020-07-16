@@ -4,7 +4,7 @@ import { getGlobalObject, logger, parseRetryAfterHeader, supportsReferrerPolicy,
 
 import { BaseTransport } from './base';
 
-const global = /*#__PURE__*/ getGlobalObject<Window>();
+const global = getGlobalObject<Window>();
 
 /** `fetch` based transport */
 export class FetchTransport extends BaseTransport {
