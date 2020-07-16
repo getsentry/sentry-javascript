@@ -19,4 +19,5 @@ zeus upload -t "application/javascript" ./packages/browser/build/bundle*
 zeus upload -t "application/javascript" ./packages/integrations/build/*
 # Upload "apm" bundles
 zeus upload -t "application/javascript" ./packages/apm/build/*
-
+# Upload "tracing" bundles
+zeus upload -t "application/javascript" ./packages/tracing/build/*
