@@ -26,6 +26,7 @@ let activeTransaction: Record<string, any>;
 
 jest.mock('@sentry/browser', () => ({
   getCurrentHub: () => ({
+    getIntegration: () => undefined,
     getScope: () => ({
       getTransaction: () => activeTransaction,
     }),
