@@ -3,8 +3,8 @@ export * from './exports';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { getGlobalObject } from '@sentry/utils';
 
-import * as BrowserIntegrations from './integrations';
-import * as Transports from './transports';
+import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { BaseTransport, FetchTransport, XHRTransport } from './transports';
 
 let windowIntegrations = {};
 
@@ -19,7 +19,17 @@ if (_window.Sentry && _window.Sentry.Integrations) {
 const INTEGRATIONS = {
   ...windowIntegrations,
   ...CoreIntegrations,
-  ...BrowserIntegrations,
+  Breadcrumbs,
+  GlobalHandlers,
+  LinkedErrors,
+  TryCatch,
+  UserAgent,
 };
 
-export { INTEGRATIONS as Integrations, Transports };
+const TRANSPORTS = {
+  BaseTransport,
+  FetchTransport,
+  XHRTransport,
+};
+
+export { INTEGRATIONS as Integrations, TRANSPORTS as Transports };

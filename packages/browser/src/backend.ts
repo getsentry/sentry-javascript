@@ -1,8 +1,8 @@
 import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
-import { addExceptionMechanism, supportsFetch, SyncPromise } from '@sentry/utils';
+import { supportsFetch } from '@sentry/utils';
 
-import { eventFromString, eventFromUnknownInput } from './eventbuilder';
+import { eventFromException, eventFromMessage } from './eventbuilder';
 import { FetchTransport, XHRTransport } from './transports';
 
 /**
@@ -63,32 +63,12 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
    * @inheritDoc
    */
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    const syntheticException = (hint && hint.syntheticException) || undefined;
-    const event = eventFromUnknownInput(exception, syntheticException, {
-      attachStacktrace: this._options.attachStacktrace,
-    });
-    addExceptionMechanism(event, {
-      handled: true,
-      type: 'generic',
-    });
-    event.level = Severity.Error;
-    if (hint && hint.event_id) {
-      event.event_id = hint.event_id;
-    }
-    return SyncPromise.resolve(event);
+    return eventFromException(this._options, exception, hint);
   }
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    const syntheticException = (hint && hint.syntheticException) || undefined;
-    const event = eventFromString(message, syntheticException, {
-      attachStacktrace: this._options.attachStacktrace,
-    });
-    event.level = level;
-    if (hint && hint.event_id) {
-      event.event_id = hint.event_id;
-    }
-    return SyncPromise.resolve(event);
+    return eventFromMessage(this._options, message, level, hint);
   }
 }
