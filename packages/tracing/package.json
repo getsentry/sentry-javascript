@@ -16,7 +16,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "5.19.2",
     "@sentry/hub": "5.19.2",
     "@sentry/minimal": "5.19.2",
     "@sentry/types": "5.19.2",
@@ -24,6 +23,7 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@sentry/browser": "5.19.2",
     "@types/express": "^4.17.1",
     "@types/jsdom": "^16.2.3",
     "jest": "^24.7.1",

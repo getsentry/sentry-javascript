@@ -27,6 +27,7 @@ const paths = {
   '@sentry/hub': ['../hub/src'],
   '@sentry/types': ['../types/src'],
   '@sentry/minimal': ['../minimal/src'],
+  '@sentry/browser': ['../browser/src'],
 };
 
 const plugins = [
