@@ -2,8 +2,8 @@ import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@s
 import { getGlobalObject, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
-import { BrowserClient, ReportDialogOptions } from './client';
-import { wrap as internalWrap } from './helpers';
+import { BrowserClient } from './client';
+import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
