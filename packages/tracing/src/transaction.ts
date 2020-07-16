@@ -1,38 +1,8 @@
-// tslint:disable:max-classes-per-file
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 import { isInstanceOf, logger } from '@sentry/utils';
 
-import { Span as SpanClass } from './span';
-
-/**
- * Keeps track of finished spans for a given transaction
- * @internal
- * @hideconstructor
- * @hidden
- */
-export class SpanRecorder {
-  private readonly _maxlen: number;
-  public spans: SpanClass[] = [];
-
-  public constructor(maxlen: number = 1000) {
-    this._maxlen = maxlen;
-  }
-
-  /**
-   * This is just so that we don't run out of memory while recording a lot
-   * of spans. At some point we just stop and flush out the start of the
-   * trace tree (i.e.the first n spans with the smallest
-   * start_timestamp).
-   */
-  public add(span: SpanClass): void {
-    if (this.spans.length > this._maxlen) {
-      span.spanRecorder = undefined;
-    } else {
-      this.spans.push(span);
-    }
-  }
-}
+import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass {

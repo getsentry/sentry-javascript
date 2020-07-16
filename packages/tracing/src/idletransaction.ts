@@ -3,9 +3,9 @@ import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 
-import { Span } from './span';
+import { Span, SpanRecorder } from './span';
 import { SpanStatus } from './spanstatus';
-import { SpanRecorder, Transaction } from './transaction';
+import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
 

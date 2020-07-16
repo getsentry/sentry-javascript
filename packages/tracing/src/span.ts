@@ -1,8 +1,8 @@
+// tslint:disable:max-classes-per-file
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
-import { SpanRecorder } from './transaction';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
@@ -11,6 +11,35 @@ export const TRACEPARENT_REGEXP = new RegExp(
   '-?([01])?' + // sampled
     '[ \\t]*$', // whitespace
 );
+
+/**
+ * Keeps track of finished spans for a given transaction
+ * @internal
+ * @hideconstructor
+ * @hidden
+ */
+export class SpanRecorder {
+  private readonly _maxlen: number;
+  public spans: Span[] = [];
+
+  public constructor(maxlen: number = 1000) {
+    this._maxlen = maxlen;
+  }
+
+  /**
+   * This is just so that we don't run out of memory while recording a lot
+   * of spans. At some point we just stop and flush out the start of the
+   * trace tree (i.e.the first n spans with the smallest
+   * start_timestamp).
+   */
+  public add(span: Span): void {
+    if (this.spans.length > this._maxlen) {
+      span.spanRecorder = undefined;
+    } else {
+      this.spans.push(span);
+    }
+  }
+}
 
 /**
  * Span contains all data about a span
