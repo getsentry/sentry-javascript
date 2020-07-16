@@ -4,7 +4,7 @@ import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
-const NODE_VERSION = parseSemver(process.versions.node);
+const NODE_VERSION = /*#__PURE__*/ parseSemver(process.versions.node);
 
 /** http module integration */
 export class Http implements Integration {

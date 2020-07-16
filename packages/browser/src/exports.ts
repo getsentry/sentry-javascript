@@ -39,6 +39,7 @@ export {
 
 export { BrowserOptions } from './backend';
 export { BrowserClient } from './client';
-export { ReportDialogOptions } from './helpers';
+export { injectReportDialog, ReportDialogOptions } from './helpers';
+export { eventFromException, eventFromMessage } from './eventbuilder';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';

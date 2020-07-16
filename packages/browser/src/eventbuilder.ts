@@ -16,6 +16,7 @@ import { computeStackTrace } from './tracekit';
 
 /**
  * Builds and Event from a Exception
+ * @hidden
  */
 export function eventFromException(options: Options, exception: any, hint?: EventHint): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
@@ -35,6 +36,7 @@ export function eventFromException(options: Options, exception: any, hint?: Even
 
 /**
  * Builds and Event from a Message
+ * @hidden
  */
 export function eventFromMessage(
   options: Options,
@@ -53,7 +55,9 @@ export function eventFromMessage(
   return SyncPromise.resolve(event);
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
@@ -119,8 +123,9 @@ export function eventFromUnknownInput(
   return event;
 }
 
-// this._options.attachStacktrace
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function eventFromString(
   input: string,
   syntheticException?: Error,

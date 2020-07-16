@@ -37,7 +37,7 @@ export {
   withScope,
 } from '@sentry/core';
 
-export { NodeOptions } from './backend';
+export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
@@ -59,7 +59,7 @@ export { INTEGRATIONS as Integrations, Transports, Handlers };
 
 // We need to patch domain on the global __SENTRY__ object to make it work for node
 // if we don't do this, browser bundlers will have troubles resolving require('domain')
-const carrier = getMainCarrier();
+const carrier = /*#__PURE__*/ getMainCarrier();
 if (carrier.__SENTRY__) {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
   if (!carrier.__SENTRY__.extensions.domain) {

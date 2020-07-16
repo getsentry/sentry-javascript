@@ -188,6 +188,7 @@ export interface ReportDialogOptions {
 
 /**
  * Injects the Report Dialog script
+ * @hidden
  */
 export function injectReportDialog(options: ReportDialogOptions = {}): void {
   const script = document.createElement('script');
