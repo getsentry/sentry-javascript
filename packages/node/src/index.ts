@@ -37,7 +37,7 @@ export {
   withScope,
 } from '@sentry/core';
 
-export { NodeOptions } from './backend';
+export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
