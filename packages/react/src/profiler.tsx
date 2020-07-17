@@ -1,6 +1,6 @@
-import { getCurrentHub } from '@sentry/browser';
-import { Integration, IntegrationClass, Span } from '@sentry/types';
-import { logger, timestampWithMs } from '@sentry/utils';
+import { getCurrentHub, Hub } from '@sentry/browser';
+import { Integration, IntegrationClass, Span, Transaction } from '@sentry/types';
+import { timestampWithMs } from '@sentry/utils';
 import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -11,6 +11,7 @@ const TRACING_GETTER = ({
 } as any) as IntegrationClass<Integration>;
 
 let globalTracingIntegration: Integration | null = null;
+/** @deprecated remove when @sentry/apm no longer used */
 const getTracingIntegration = () => {
   if (globalTracingIntegration) {
     return globalTracingIntegration;
@@ -21,20 +22,10 @@ const getTracingIntegration = () => {
 };
 
 /**
- * Warn if tracing integration not configured. Will only warn once.
- */
-function warnAboutTracing(name: string): void {
-  if (globalTracingIntegration === null) {
-    logger.warn(
-      `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure the Tracing integration is setup properly.`,
-    );
-  }
-}
-
-/**
  * pushActivity creates an new react activity.
  * Is a no-op if Tracing integration is not valid
  * @param name displayName of component that started activity
+ * @deprecated remove when @sentry/apm no longer used
  */
 function pushActivity(name: string, op: string): number | null {
   if (globalTracingIntegration === null) {
@@ -52,6 +43,7 @@ function pushActivity(name: string, op: string): number | null {
  * popActivity removes a React activity.
  * Is a no-op if Tracing integration is not valid.
  * @param activity id of activity that is being popped
+ * @deprecated remove when @sentry/apm no longer used
  */
 function popActivity(activity: number | null): void {
   if (activity === null || globalTracingIntegration === null) {
@@ -66,6 +58,7 @@ function popActivity(activity: number | null): void {
  * Obtain a span given an activity id.
  * Is a no-op if Tracing integration is not valid.
  * @param activity activity id associated with obtained span
+ * @deprecated remove when @sentry/apm no longer used
  */
 function getActivitySpan(activity: number | null): Span | undefined {
   if (activity === null || globalTracingIntegration === null) {
@@ -96,11 +89,9 @@ export type ProfilerProps = {
  */
 class Profiler extends React.Component<ProfilerProps> {
   // The activity representing how long it takes to mount a component.
-  public mountActivity: number | null = null;
+  private _mountActivity: number | null = null;
   // The span of the mount activity
-  public mountSpan: Span | undefined = undefined;
-  // The span of the render
-  public renderSpan: Span | undefined = undefined;
+  private _mountSpan: Span | undefined = undefined;
 
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
@@ -116,25 +107,40 @@ class Profiler extends React.Component<ProfilerProps> {
       return;
     }
 
+    // If they are using @sentry/apm, we need to push/pop activities
+    // tslint:disable-next-line: deprecation
     if (getTracingIntegration()) {
-      this.mountActivity = pushActivity(name, 'mount');
+      // tslint:disable-next-line: deprecation
+      this._mountActivity = pushActivity(name, 'mount');
     } else {
-      warnAboutTracing(name);
+      const activeTransaction = getActiveTransaction();
+      if (activeTransaction) {
+        this._mountSpan = activeTransaction.startChild({
+          description: `<${name}>`,
+          op: 'react.mount',
+        });
+      }
     }
   }
 
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
-    this.mountSpan = getActivitySpan(this.mountActivity);
-    popActivity(this.mountActivity);
-    this.mountActivity = null;
+    if (this._mountSpan) {
+      this._mountSpan.finish();
+    } else {
+      // tslint:disable-next-line: deprecation
+      this._mountSpan = getActivitySpan(this._mountActivity);
+      // tslint:disable-next-line: deprecation
+      popActivity(this._mountActivity);
+      this._mountActivity = null;
+    }
   }
 
   public componentDidUpdate({ updateProps, includeUpdates = true }: ProfilerProps): void {
     // Only generate an update span if hasUpdateSpan is true, if there is a valid mountSpan,
     // and if the updateProps have changed. It is ok to not do a deep equality check here as it is expensive.
     // We are just trying to give baseline clues for further investigation.
-    if (includeUpdates && this.mountSpan && updateProps !== this.props.updateProps) {
+    if (includeUpdates && this._mountSpan && updateProps !== this.props.updateProps) {
       // See what props haved changed between the previous props, and the current props. This is
       // set as data on the span. We just store the prop keys as the values could be potenially very large.
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
@@ -142,7 +148,7 @@ class Profiler extends React.Component<ProfilerProps> {
         // The update span is a point in time span with 0 duration, just signifying that the component
         // has been updated.
         const now = timestampWithMs();
-        this.mountSpan.startChild({
+        this._mountSpan.startChild({
           data: {
             changedProps,
           },
@@ -160,14 +166,14 @@ class Profiler extends React.Component<ProfilerProps> {
   public componentWillUnmount(): void {
     const { name, includeRender = true } = this.props;
 
-    if (this.mountSpan && includeRender) {
+    if (this._mountSpan && includeRender) {
       // If we were able to obtain the spanId of the mount activity, we should set the
       // next activity as a child to the component mount activity.
-      this.mountSpan.startChild({
+      this._mountSpan.startChild({
         description: `<${name}>`,
         endTimestamp: timestampWithMs(),
         op: `react.render`,
-        startTimestamp: this.mountSpan.endTimestamp,
+        startTimestamp: this._mountSpan.endTimestamp,
       });
     }
   }
@@ -221,22 +227,26 @@ function useProfiler(
     hasRenderSpan: true,
   },
 ): void {
-  const [mountActivity] = React.useState(() => {
+  const [mountSpan] = React.useState(() => {
     if (options && options.disabled) {
-      return null;
+      return undefined;
     }
 
-    if (getTracingIntegration()) {
-      return pushActivity(name, 'mount');
+    const activeTransaction = getActiveTransaction();
+    if (activeTransaction) {
+      return activeTransaction.startChild({
+        description: `<${name}>`,
+        op: 'react.mount',
+      });
     }
 
-    warnAboutTracing(name);
-    return null;
+    return undefined;
   });
 
   React.useEffect(() => {
-    const mountSpan = getActivitySpan(mountActivity);
-    popActivity(mountActivity);
+    if (mountSpan) {
+      mountSpan.finish();
+    }
 
     return () => {
       if (mountSpan && options.hasRenderSpan) {
@@ -252,3 +262,15 @@ function useProfiler(
 }
 
 export { withProfiler, Profiler, useProfiler };
+
+/** Grabs active transaction off scope */
+export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
+  if (hub) {
+    const scope = hub.getScope();
+    if (scope) {
+      return scope.getTransaction() as T | undefined;
+    }
+  }
+
+  return undefined;
+}

@@ -1,12 +1,20 @@
-import { EventProcessor, Hub, Integration, IntegrationClass, Span } from '@sentry/types';
+import { EventProcessor, Hub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
 /**
  * Used to extract Tracing integration from the current client,
  * without the need to import `Tracing` itself from the @sentry/apm package.
+ * @deprecated as @sentry/tracing should be used over @sentry/apm.
  */
 const TRACING_GETTER = ({
   id: 'Tracing',
+} as any) as IntegrationClass<Integration>;
+
+/**
+ * Used to extract BrowserTracing integration from @sentry/tracing
+ */
+const BROWSER_TRACING_GETTER = ({
+  id: 'BrowserTracing',
 } as any) as IntegrationClass<Integration>;
 
 /** Global Vue object limited to the methods/attributes we require */
@@ -229,6 +237,7 @@ export class Vue implements Integration {
 
           // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
           // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
+          // tslint:disable-next-line: deprecation
           const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
           if (tracingIntegration) {
             // tslint:disable-next-line:no-unsafe-any
@@ -238,6 +247,15 @@ export class Vue implements Integration {
             if (transaction) {
               // tslint:disable-next-line:no-unsafe-any
               this._rootSpan = transaction.startChild({
+                description: 'Application Render',
+                op: 'Vue',
+              });
+            }
+            // Use functionality from @sentry/tracing
+          } else {
+            const activeTransaction = getActiveTransaction(getCurrentHub());
+            if (activeTransaction) {
+              this._rootSpan = activeTransaction.startChild({
                 description: 'Application Render',
                 op: 'Vue',
               });
@@ -315,14 +333,17 @@ export class Vue implements Integration {
       if (this._tracingActivity) {
         // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
         // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
+        // tslint:disable-next-line: deprecation
         const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
         if (tracingIntegration) {
           // tslint:disable-next-line:no-unsafe-any
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
-          if (this._rootSpan) {
-            this._rootSpan.finish(timestamp);
-          }
         }
+      }
+
+      // We should always finish the span, only should pop activity if using @sentry/apm
+      if (this._rootSpan) {
+        this._rootSpan.finish(timestamp);
       }
     }, this._options.tracingOptions.timeout);
   }
@@ -333,7 +354,8 @@ export class Vue implements Integration {
 
     this._options.Vue.mixin({
       beforeCreate(this: ViewModel): void {
-        if (getCurrentHub().getIntegration(TRACING_GETTER)) {
+        // tslint:disable-next-line: deprecation
+        if (getCurrentHub().getIntegration(TRACING_GETTER) || getCurrentHub().getIntegration(BROWSER_TRACING_GETTER)) {
           // `this` points to currently rendered component
           applyTracingHooks(this, getCurrentHub);
         } else {
@@ -404,4 +426,22 @@ export class Vue implements Integration {
       this._startTracing(getCurrentHub);
     }
   }
+}
+
+// tslint:disable-next-line: completed-docs
+interface HubType extends Hub {
+  // tslint:disable-next-line: completed-docs
+  getScope?(): Scope | undefined;
+}
+
+/** Grabs active transaction off scope */
+export function getActiveTransaction<T extends Transaction>(hub: HubType): T | undefined {
+  if (hub && hub.getScope) {
+    const scope = hub.getScope() as Scope;
+    if (scope) {
+      return scope.getTransaction() as T | undefined;
+    }
+  }
+
+  return undefined;
 }
