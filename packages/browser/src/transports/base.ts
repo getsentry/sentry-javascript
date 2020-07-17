@@ -25,7 +25,9 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public sendEvent(_: Event): PromiseLike<Response> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method');
+    throw new SentryError(
+      'LOLOLOLOLOOLOLOLOLOLOLOLOLOLOLOL O OO OLLDFASDF ASDF ASDF Transport Class has to implement `sendEvent` method',
+    );
   }
 
   /**
