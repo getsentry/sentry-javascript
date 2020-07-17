@@ -12,7 +12,7 @@ if [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 6 ]]; then
 elif [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 8 ]]; then
   yarn install --ignore-engines --ignore-scripts
   yarn build
-  yarn test --ignore="@sentry/tracing"
+  yarn test --ignore="@sentry/tracing" --ignore="@sentry/react"
 else
   yarn install
   yarn build

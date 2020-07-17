@@ -7,8 +7,20 @@ module.exports = [
   },
   {
     name: '@sentry/browser - Webpack',
-    path: 'packages/browser/dist/index.js',
+    path: 'packages/browser/esm/index.js',
     import: '{ init }',
     limit: '18 KB',
+  },
+  {
+    name: '@sentry/react - Webpack',
+    path: 'packages/react/esm/index.js',
+    import: '{ init }',
+    limit: '19 KB',
+  },
+  {
+    name: '@sentry/browser + @sentry/tracing - CDN Bundle (gzipped)',
+    path: 'packages/tracing/build/bundle.tracing.min.js',
+    gzip: true,
+    limit: '23 KB',
   },
 ];
