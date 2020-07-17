@@ -4,7 +4,8 @@ on:
     branches:
       - master
 jobs:
-  size:
+  job_1:
+    name: Size Check
     runs-on: ubuntu-latest
     env:
       CI_JOB_NUMBER: 1

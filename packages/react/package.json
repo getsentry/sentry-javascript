@@ -45,7 +45,7 @@
     "tslint": "^5.16.0",
     "tslint-react": "^5.0.0",
     "tslint-react-hooks": "^2.2.2",
-    "typescript": "^3.5.1"
+    "typescript": "3.9.7"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",

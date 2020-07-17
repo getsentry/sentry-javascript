@@ -8,6 +8,15 @@ import { getFunctionName, getGlobalObject } from './misc';
 import { fill } from './object';
 import { supportsHistory, supportsNativeFetch } from './supports';
 
+declare global {
+  /**
+   * @inheritDoc
+   */
+  interface Window {
+    console: Console;
+  }
+}
+
 const global = getGlobalObject<Window>();
 
 /** Object describing handler that will be triggered for a given `type` of instrumentation */
