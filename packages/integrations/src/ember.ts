@@ -50,21 +50,18 @@ export class Ember implements Integration {
       }
     };
 
-    this._Ember.RSVP.on(
-      'error',
-      (reason: any): void => {
-        if (getCurrentHub().getIntegration(Ember)) {
-          getCurrentHub().withScope(scope => {
-            if (isInstanceOf(reason, Error)) {
-              scope.setExtra('context', 'Unhandled Promise error detected');
-              getCurrentHub().captureException(reason, { originalException: reason });
-            } else {
-              scope.setExtra('reason', reason);
-              getCurrentHub().captureMessage('Unhandled Promise error detected');
-            }
-          });
-        }
-      },
-    );
+    this._Ember.RSVP.on('error', (reason: any): void => {
+      if (getCurrentHub().getIntegration(Ember)) {
+        getCurrentHub().withScope(scope => {
+          if (isInstanceOf(reason, Error)) {
+            scope.setExtra('context', 'Unhandled Promise error detected');
+            getCurrentHub().captureException(reason, { originalException: reason });
+          } else {
+            scope.setExtra('reason', reason);
+            getCurrentHub().captureMessage('Unhandled Promise error detected');
+          }
+        });
+      }
+    });
   }
 }

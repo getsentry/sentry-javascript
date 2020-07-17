@@ -38,8 +38,8 @@
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
-    "tslint": "^5.16.0",
-    "typescript": "^3.4.5"
+    "tslint": "5.16.0",
+    "typescript": "3.4.5"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm build:bundle",
