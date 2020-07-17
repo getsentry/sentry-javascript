@@ -15,7 +15,7 @@
     "tslint-consistent-codestyle": "^1.15.1"
   },
   "peerDependencies": {
-    "tslint": "^5.11.0",
+    "tslint": "5.16.0",
     "typescript": "^3.2.0"
   },
   "scripts": {

@@ -804,9 +804,15 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
 
       return Promise.all([
-        client.flush(1).then(() => expect(true).toEqual(true)),
-        client.flush(1).then(() => expect(true).toEqual(true)),
-        client.flush(1).then(() => expect(true).toEqual(true)),
+        client.flush(1).then(() => {
+          expect(true).toEqual(true);
+        }),
+        client.flush(1).then(() => {
+          expect(true).toEqual(true);
+        }),
+        client.flush(1).then(() => {
+          expect(true).toEqual(true);
+        }),
       ]);
     });
   });

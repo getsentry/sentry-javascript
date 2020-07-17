@@ -268,7 +268,7 @@ export class Scope implements ScopeInterface {
     }
 
     if (typeof captureContext === 'function') {
-      const updatedScope = (captureContext as (<T>(scope: T) => T))(this);
+      const updatedScope = (captureContext as <T>(scope: T) => T)(this);
       return updatedScope instanceof Scope ? updatedScope : this;
     }
 

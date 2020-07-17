@@ -115,9 +115,7 @@ export class IdleTransaction extends Transaction {
 
     if (this._heartbeatCounter >= 3) {
       logger.log(
-        `[Tracing] Transaction: ${
-          SpanStatus.Cancelled
-        } -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
+        `[Tracing] Transaction: ${SpanStatus.Cancelled} -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
       );
       this.setStatus(SpanStatus.DeadlineExceeded);
       this.setTag('heartbeat', 'failed');

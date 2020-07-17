@@ -37,8 +37,8 @@
     "prettier": "^1.17.0",
     "prettier-check": "^2.0.0",
     "rimraf": "^2.6.3",
-    "tslint": "^5.16.0",
-    "typescript": "3.9.7"
+    "tslint": "5.16.0",
+    "typescript": "3.4.5"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",

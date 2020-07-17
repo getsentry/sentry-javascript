@@ -17,9 +17,7 @@ export function registerBackgroundTabDetection(): void {
       const activeTransaction = getActiveTransaction() as IdleTransaction;
       if (global.document.hidden && activeTransaction) {
         logger.log(
-          `[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background, op: ${
-            activeTransaction.op
-          }`,
+          `[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background, op: ${activeTransaction.op}`,
         );
         activeTransaction.setStatus(SpanStatus.Cancelled);
         activeTransaction.setTag('visibilitychange', 'document.hidden');

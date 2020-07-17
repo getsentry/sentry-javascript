@@ -42,10 +42,10 @@
     "react-test-renderer": "^16.13.1",
     "redux": "^4.0.5",
     "rimraf": "^2.6.3",
-    "tslint": "^5.16.0",
+    "tslint": "5.16.0",
     "tslint-react": "^5.0.0",
     "tslint-react-hooks": "^2.2.2",
-    "typescript": "3.9.7"
+    "typescript": "3.4.5"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
