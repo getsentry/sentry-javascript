@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
 
-import { IdleTransaction, IdleTransactionSpanRecorder } from '../src/idletransaction';
+import { IdleTransaction, IdleTransactionSpanRecorder, DEFAULT_IDLE_TIMEOUT } from '../src/idletransaction';
 import { Span } from '../src/span';
 import { SpanStatus } from '../src/spanstatus';
 
@@ -145,6 +145,25 @@ describe('IdleTransaction', () => {
     }
   });
 
+  describe('_initTimeout', () => {
+    it('finishes if no activities are added to the transaction', () => {
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000);
+      transaction.initSpanRecorder(10);
+
+      jest.runTimersToTime(DEFAULT_IDLE_TIMEOUT);
+      expect(transaction.endTimestamp).toBeDefined();
+    });
+
+    it('does not finish if a activity is started', () => {
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000);
+      transaction.initSpanRecorder(10);
+      transaction.startChild({});
+
+      jest.runTimersToTime(DEFAULT_IDLE_TIMEOUT);
+      expect(transaction.endTimestamp).toBeUndefined();
+    });
+  });
+
   describe('heartbeat', () => {
     it('does not start heartbeat if there is no span recorder', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
@@ -164,12 +183,14 @@ describe('IdleTransaction', () => {
       jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
     });
+
     it('finishes a transaction after 3 beats', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
       const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
+      transaction.startChild({});
 
       // Beat 1
       jest.runOnlyPendingTimers();
@@ -190,6 +211,7 @@ describe('IdleTransaction', () => {
       transaction.initSpanRecorder(10);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
+      transaction.startChild({});
 
       // Beat 1
       jest.runOnlyPendingTimers();
