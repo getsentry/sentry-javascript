@@ -1,7 +1,7 @@
 import { getCurrentHub, Hub } from '@sentry/browser';
 import { Integration, IntegrationClass, Span, Transaction } from '@sentry/types';
 import { timestampWithMs } from '@sentry/utils';
-import * as hoistNonReactStatic from 'hoist-non-react-statics';
+import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
 export const UNKNOWN_COMPONENT = 'unknown';
@@ -209,7 +209,7 @@ function withProfiler<P extends object>(
 
   // Copy over static methods from Wrapped component to Profiler HOC
   // See: https://reactjs.org/docs/higher-order-components.html#static-methods-must-be-copied-over
-  hoistNonReactStatic(Wrapped, WrappedComponent);
+  hoistNonReactStatics(Wrapped, WrappedComponent);
   return Wrapped;
 }
 
