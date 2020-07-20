@@ -20,6 +20,9 @@ module.exports = {
   env: {
     browser: true
   },
+  globals: {
+    "QUnit": true
+  },
   rules: {},
   overrides: [
     // node files
