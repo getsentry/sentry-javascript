@@ -70,6 +70,10 @@ export class IdleTransaction extends Transaction {
 
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
+  // If a transaction is created and no activities are added, we want to make sure that
+  // it times out properly. This is cleared and not used when activities are added.
+  private _initTimeout: any;
+
   public constructor(
     transactionContext: TransactionContext,
     private readonly _idleHub?: Hub,
@@ -188,6 +192,11 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
+    if (this._initTimeout) {
+      // tslint:disable-next-line: no-unsafe-any
+      clearTimeout(this._initTimeout);
+      this._initTimeout = undefined;
+    }
     logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
     logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
@@ -235,12 +244,25 @@ export class IdleTransaction extends Transaction {
    */
   public initSpanRecorder(maxlen?: number): void {
     if (!this.spanRecorder) {
+      this._initTimeout = setTimeout(() => {
+        if (!this._finished) {
+          this.finish();
+        }
+      }, this._idleTimeout);
+
       const pushActivity = (id: string) => {
+        if (this._finished) {
+          return;
+        }
         this._pushActivity(id);
       };
       const popActivity = (id: string) => {
+        if (this._finished) {
+          return;
+        }
         this._popActivity(id);
       };
+
       this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanId, maxlen);
 
       // Start heartbeat so that transactions do not run forever.

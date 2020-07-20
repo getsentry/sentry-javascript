@@ -1,12 +1,28 @@
 exports.onClientEntry = function(_, pluginParams) {
-  require.ensure(['@sentry/react', '@sentry/apm'], function(require) {
+  require.ensure(['@sentry/react'], function(require) {
     const Sentry = require('@sentry/react');
-    const TracingIntegration = require('@sentry/apm').Integrations.Tracing;
+
+    let TracingIntegration = undefined;
+    let BrowserTracingIntegration = undefined;
+    try {
+      BrowserTracingIntegration = require('@sentry/tracing').Integrations.BrowserTracing;
+    } catch (_) {}
+    try {
+      /** @deprecated Remove when @sentry/apm is no longer used */
+      TracingIntegration = require('@sentry/apm').Integrations.Tracing;
+    } catch (_) {}
+
     const tracesSampleRate = pluginParams.tracesSampleRate !== undefined ? pluginParams.tracesSampleRate : 0;
     const integrations = [...(pluginParams.integrations || [])];
+
     if (tracesSampleRate) {
-      integrations.push(new TracingIntegration());
+      if (BrowserTracingIntegration) {
+        integrations.push(new BrowserTracingIntegration());
+      } else if (TracingIntegration) {
+        integrations.push(new TracingIntegration());
+      }
     }
+
     Sentry.init({
       environment: process.env.NODE_ENV || 'development',
       release: __SENTRY_RELEASE__,
@@ -15,6 +31,7 @@ exports.onClientEntry = function(_, pluginParams) {
       tracesSampleRate,
       integrations,
     });
+
     Sentry.addGlobalEventProcessor(event => {
       event.sdk = {
         ...event.sdk,
