@@ -24,7 +24,10 @@ module.exports = function(environment) {
   };
 
   ENV['@sentry/ember'] = {
-    dsn: process.env.SENTRY_DSN
+    sentry: {
+      dsn: process.env.SENTRY_DSN
+    },
+    ignoreEmberOnErrorWarning: true
   };
 
   if (environment === 'development') {

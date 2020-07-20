@@ -2,24 +2,28 @@ import * as Sentry from '@sentry/browser';
 import { addGlobalEventProcessor, SDK_VERSION } from '@sentry/browser';
 import environmentConfig from 'ember-get-config';
 
-import { run } from '@ember/runloop';
+import { next } from '@ember/runloop';
 import { assert, warn, runInDebug } from '@ember/debug';
 import Ember from 'ember';
 
 export function SentryForEmber() {
   const config = environmentConfig['@sentry/ember'];
-  assert('Missing configuration for Sentry', config);
+  assert('Missing configuration', config);
+  assert('Missing configuration for Sentry.', config.sentry);
 
-  const initConfig = Object.assign({}, config);
+  const initConfig = Object.assign({}, config.sentry);
 
   createEmberEventProcessor();
 
   Sentry.init(initConfig);
 
   runInDebug(() => {
-    run.next(() => {
+    if (config.ignoreEmberOnErrorWarning) {
+      return;
+    }
+    next(null, function () {
       warn(
-        'Ember.onerror found. Using Ember.onerror can hide some errors (such as flushed runloop errors) from Sentry. Use Sentry.captureException to capture errors within Ember.onError or remove it to have errors caught by Sentry directly.',
+        'Ember.onerror found. Using Ember.onerror can hide some errors (such as flushed runloop errors) from Sentry. Use Sentry.captureException to capture errors within Ember.onError or remove it to have errors caught by Sentry directly. This error can be silenced via addon configuration.',
         !Ember.onerror,
         {
           id: '@sentry/ember.ember-onerror-detected',

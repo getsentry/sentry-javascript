@@ -22,15 +22,17 @@ This package is an Ember addon that wraps `@sentry/browser`, with added function
 As with other Ember addons, run:
 `ember install @sentry/ember`
 
-Then add config to `config/environment.js`
+Then add the following config to `config/environment.js`
 
 ```javascript
   ENV['@sentry/ember'] = {
-    dsn: '__DSN__'
+    sentry: {
+      dsn: '__DSN__' // replace __DSN__ with your DSN
+    }
   };
 ```
 
-### Usage 
+### Usage
 
 To use this SDK, call `SentryForEmber` before the application is initialized, in `app.js`. This will load Sentry config from `environment.js` for you.
 
@@ -48,6 +50,17 @@ export default class App extends Application {
   podModulePrefix = config.podModulePrefix;
   Resolver = Resolver;
 }
+```
+
+### Additional Configuration
+
+Aside from configuration passed from this addon into `@sentry/browser` via the `sentry` property, there is also the following Ember specific configuration.
+
+```javascript
+  ENV['@sentry/ember'] = {
+    ignoreEmberOnErrorWarning: false, // Will silence Ember.onError warning without the need of using Ember debugging tools. False by default.
+    sentry: ... // See sentry-javascript configuration https://docs.sentry.io/error-reporting/configuration/?platform=javascript
+  };
 ```
 
 ## Testing
