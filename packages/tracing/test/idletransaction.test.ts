@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
 
-import { IdleTransaction, IdleTransactionSpanRecorder, DEFAULT_IDLE_TIMEOUT } from '../src/idletransaction';
+import { DEFAULT_IDLE_TIMEOUT, IdleTransaction, IdleTransactionSpanRecorder } from '../src/idletransaction';
 import { Span } from '../src/span';
 import { SpanStatus } from '../src/spanstatus';
 
