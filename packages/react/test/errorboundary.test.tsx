@@ -202,28 +202,28 @@ describe('ErrorBoundary', () => {
       });
     });
 
-    it('calls `beforeSend()` when an error occurs', () => {
-      const mockBeforeSend = jest.fn();
+    it('calls `beforeCapture()` when an error occurs', () => {
+      const mockBeforeCapture = jest.fn();
 
-      const testBeforeSend = (...args: any[]) => {
+      const testBeforeCapture = (...args: any[]) => {
         expect(mockCaptureException).toHaveBeenCalledTimes(0);
-        mockBeforeSend(...args);
+        mockBeforeCapture(...args);
       };
 
       render(
-        <TestApp fallback={<p>You have hit an error</p>} beforeSend={testBeforeSend}>
+        <TestApp fallback={<p>You have hit an error</p>} beforeCapture={testBeforeCapture}>
           <h1>children</h1>
         </TestApp>,
       );
 
-      expect(mockBeforeSend).toHaveBeenCalledTimes(0);
+      expect(mockBeforeCapture).toHaveBeenCalledTimes(0);
       expect(mockCaptureException).toHaveBeenCalledTimes(0);
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
 
-      expect(mockBeforeSend).toHaveBeenCalledTimes(1);
-      expect(mockBeforeSend).toHaveBeenLastCalledWith(expect.any(Scope), expect.any(Error), expect.any(String));
+      expect(mockBeforeCapture).toHaveBeenCalledTimes(1);
+      expect(mockBeforeCapture).toHaveBeenLastCalledWith(expect.any(Scope), expect.any(Error), expect.any(String));
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
     });
 

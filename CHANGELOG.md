@@ -5,7 +5,7 @@
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [react] feat: Export `createReduxEnhancer` to log redux actions as breadcrumbs, and attach state as an extra. (#2717)
 - [tracing] feat: `Add @sentry/tracing` (#2719)
-- [react] feat: Add `beforeSend` option to ErrorBoundary
+- [react] feat: Add `beforeCapture` option to ErrorBoundary (#2753)
 
 ## 5.19.2
 

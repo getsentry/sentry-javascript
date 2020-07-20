@@ -39,7 +39,7 @@ export type ErrorBoundaryProps = {
   /** Called on componentWillUnmount() */
   onUnmount?(error: Error | null, componentStack: string | null, eventId: string | null): void;
   /** Called before error is sent to Sentry, allows for you to add tags or context using the scope */
-  beforeSend?(scope: Scope, error: Error | null, componentStack: string | null): void;
+  beforeCapture?(scope: Scope, error: Error | null, componentStack: string | null): void;
 };
 
 type ErrorBoundaryState = {
@@ -62,11 +62,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   public state: ErrorBoundaryState = INITIAL_STATE;
 
   public componentDidCatch(error: Error, { componentStack }: React.ErrorInfo): void {
-    const { beforeSend, onError, showDialog, dialogOptions } = this.props;
+    const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
 
     withScope(scope => {
-      if (beforeSend) {
-        beforeSend(scope, error, componentStack);
+      if (beforeCapture) {
+        beforeCapture(scope, error, componentStack);
       }
       const eventId = captureException(error, { contexts: { react: { componentStack } } });
       if (onError) {
