@@ -7,6 +7,7 @@
 - [tracing] feat: `Add @sentry/tracing` (#2719)
 - [gatsby] fix: Make APM optional in gatsby package (#2752)
 - [tracing] ref: Use idleTimout if no activities occur in idle transaction (#2752)
+- [react] feat: Add `beforeCapture` option to ErrorBoundary (#2753)
 
 ## 5.19.2
 
