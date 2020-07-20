@@ -38,7 +38,7 @@ export type ErrorBoundaryProps = {
   onReset?(error: Error | null, componentStack: string | null, eventId: string | null): void;
   /** Called on componentWillUnmount() */
   onUnmount?(error: Error | null, componentStack: string | null, eventId: string | null): void;
-  /** Called before error is sent to Sentry, allows for you to add tags or context using the scope */
+  /** Called before the error is captured by Sentry, allows for you to add tags or context using the scope */
   beforeCapture?(scope: Scope, error: Error | null, componentStack: string | null): void;
 };
 
