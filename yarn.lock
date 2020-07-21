@@ -1458,11 +1458,6 @@
   resolved "https://registry.yarnpkg.com/@types/highlight.js/-/highlight.js-9.12.4.tgz#8c3496bd1b50cc04aeefd691140aa571d4dbfa34"
   integrity sha512-t2szdkwmg2JJyuCM20e8kR2X59WCE5Zkl4bzm1u1Oukjm79zpbiAv+QjnwLnuuV0WHEcX2NgUItu0pAMKuOPww==
 
-"@types/history@*", "@types/history@^4.7.6":
-  version "4.7.6"
-  resolved "https://registry.yarnpkg.com/@types/history/-/history-4.7.6.tgz#ed8fc802c45b8e8f54419c2d054e55c9ea344356"
-  integrity sha512-GRTZLeLJ8ia00ZH8mxMO8t0aC9M1N9bN461Z2eaRurJo6Fpa+utgCwLzI4jQHcrdzuzp5WPN9jRwpsCQ1VhJ5w==
-
 "@types/history@^3":
   version "3.2.4"
   resolved "https://registry.yarnpkg.com/@types/history/-/history-3.2.4.tgz#0b6c62240d1fac020853aa5608758991d9f6ef3d"
@@ -1604,20 +1599,12 @@
   resolved "https://registry.yarnpkg.com/@types/range-parser/-/range-parser-1.2.3.tgz#7ee330ba7caafb98090bece86a5ee44115904c2c"
   integrity sha512-ewFXqrQHlFsgc09MK5jP5iR7vumV/BYayNC6PgJO2LPe8vrnNFyjQjSppfEngITi0qvfKtzFvgKymGheFM9UOA==
 
-"@types/react-router-3@npm:@types/react-router@3.0.20":
+"@types/react-router-3@npm:@types/react-router@^3.2.0":
   version "3.0.20"
   resolved "https://registry.yarnpkg.com/@types/react-router/-/react-router-3.0.20.tgz#a711682475ccef70ad9ad9e459859380221e6ee6"
   integrity sha512-0sx2ThGYgblXPf8we/c+umFzP3RCbBp1bbFmd3pO1UaOYnTDno82iql3MQTVqB09rhopKORNfakDU/9xZ4QR6g==
   dependencies:
     "@types/history" "^3"
-    "@types/react" "*"
-
-"@types/react-router@^5.1.8":
-  version "5.1.8"
-  resolved "https://registry.yarnpkg.com/@types/react-router/-/react-router-5.1.8.tgz#4614e5ba7559657438e17766bb95ef6ed6acc3fa"
-  integrity sha512-HzOyJb+wFmyEhyfp4D4NYrumi+LQgQL/68HvJO+q6XtuHSDvw6Aqov7sCAhjbNq3bUPgPqbdvjXC5HeB2oEAPg==
-  dependencies:
-    "@types/history" "*"
     "@types/react" "*"
 
 "@types/react-test-renderer@*":
@@ -6417,11 +6404,6 @@ hmac-drbg@^1.0.0:
     minimalistic-assert "^1.0.0"
     minimalistic-crypto-utils "^1.0.1"
 
-hoist-non-react-statics@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-1.2.0.tgz#aa448cf0986d55cc40773b17174b7dd066cb7cfb"
-  integrity sha1-qkSM8JhtVcxAdzsXF0t90GbLfPs=
-
 hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
@@ -10623,7 +10605,7 @@ promzard@^0.3.0:
   dependencies:
     read "1"
 
-prop-types@^15.5.6, prop-types@^15.6.2:
+prop-types@^15.6.2, prop-types@^15.7.2:
   version "15.7.2"
   resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.7.2.tgz#52c41e75b8c87e72b9d9360e0206b99dcbffa6c5"
   integrity sha512-8QQikdH7//R2vurIJSutZ1smHYTcLpRWEOlHnzcWHmBYrOGUysKwSsrC89BCiFj3CbrfJ/nXFdJepOVrY1GCHQ==
@@ -10861,22 +10843,23 @@ react-dom@^16.0.0:
     prop-types "^15.6.2"
     scheduler "^0.19.1"
 
-react-is@^16.12.0, react-is@^16.7.0, react-is@^16.8.1, react-is@^16.8.4, react-is@^16.8.6:
+react-is@^16.12.0, react-is@^16.13.0, react-is@^16.7.0, react-is@^16.8.1, react-is@^16.8.4, react-is@^16.8.6:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
-"react-router-3@npm:react-router@3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/react-router/-/react-router-3.2.0.tgz#62b6279d589b70b34e265113e4c0a9261a02ed36"
-  integrity sha512-sXlLOg0TRCqnjCVskqBHGjzNjcJKUqXEKnDSuxMYJSPJNq9hROE9VsiIW2kfIq7Ev+20Iz0nxayekXyv0XNmsg==
+"react-router-3@npm:react-router@^3.2.0":
+  version "3.2.6"
+  resolved "https://registry.yarnpkg.com/react-router/-/react-router-3.2.6.tgz#cad202796a7bba3efc2100da453b3379c9d4aeb4"
+  integrity sha512-nlxtQE8B22hb/JxdaslI1tfZacxFU8x8BJryXOnR2RxB4vc01zuHYAHAIgmBkdk1kzXaA25hZxK6KAH/+CXArw==
   dependencies:
     create-react-class "^15.5.1"
     history "^3.0.0"
-    hoist-non-react-statics "^1.2.0"
+    hoist-non-react-statics "^3.3.2"
     invariant "^2.2.1"
     loose-envify "^1.2.0"
-    prop-types "^15.5.6"
+    prop-types "^15.7.2"
+    react-is "^16.13.0"
     warning "^3.0.0"
 
 react-test-renderer@^16.13.1:
