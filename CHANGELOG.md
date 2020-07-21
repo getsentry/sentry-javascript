@@ -3,6 +3,7 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- [ember] feat: Add `@sentry/ember` (#2739)
 
 ## 5.20.0
 
