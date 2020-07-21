@@ -1,5 +1,5 @@
-import * as Sentry from '@sentry/browser';
-import * as hoistNonReactStatic from 'hoist-non-react-statics';
+import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
+import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
 export const UNKNOWN_COMPONENT = 'unknown';
@@ -18,7 +18,7 @@ export type ErrorBoundaryProps = {
    * Options to be passed into the Sentry report dialog.
    * No-op if {@link showDialog} is false.
    */
-  dialogOptions?: Sentry.ReportDialogOptions;
+  dialogOptions?: ReportDialogOptions;
   // tslint:disable no-null-undefined-union
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
@@ -38,6 +38,8 @@ export type ErrorBoundaryProps = {
   onReset?(error: Error | null, componentStack: string | null, eventId: string | null): void;
   /** Called on componentWillUnmount() */
   onUnmount?(error: Error | null, componentStack: string | null, eventId: string | null): void;
+  /** Called before the error is captured by Sentry, allows for you to add tags or context using the scope */
+  beforeCapture?(scope: Scope, error: Error | null, componentStack: string | null): void;
 };
 
 type ErrorBoundaryState = {
@@ -60,18 +62,24 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   public state: ErrorBoundaryState = INITIAL_STATE;
 
   public componentDidCatch(error: Error, { componentStack }: React.ErrorInfo): void {
-    const eventId = Sentry.captureException(error, { contexts: { react: { componentStack } } });
-    const { onError, showDialog, dialogOptions } = this.props;
-    if (onError) {
-      onError(error, componentStack, eventId);
-    }
-    if (showDialog) {
-      Sentry.showReportDialog({ ...dialogOptions, eventId });
-    }
+    const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
 
-    // componentDidCatch is used over getDerivedStateFromError
-    // so that componentStack is accessible through state.
-    this.setState({ error, componentStack, eventId });
+    withScope(scope => {
+      if (beforeCapture) {
+        beforeCapture(scope, error, componentStack);
+      }
+      const eventId = captureException(error, { contexts: { react: { componentStack } } });
+      if (onError) {
+        onError(error, componentStack, eventId);
+      }
+      if (showDialog) {
+        showReportDialog({ ...dialogOptions, eventId });
+      }
+
+      // componentDidCatch is used over getDerivedStateFromError
+      // so that componentStack is accessible through state.
+      this.setState({ error, componentStack, eventId });
+    });
   }
 
   public componentDidMount(): void {
@@ -134,7 +142,7 @@ function withErrorBoundary<P extends object>(
 
   // Copy over static methods from Wrapped component to Profiler HOC
   // See: https://reactjs.org/docs/higher-order-components.html#static-methods-must-be-copied-over
-  hoistNonReactStatic(Wrapped, WrappedComponent);
+  hoistNonReactStatics(Wrapped, WrappedComponent);
   return Wrapped;
 }
 

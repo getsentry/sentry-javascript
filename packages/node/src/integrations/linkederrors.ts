@@ -13,6 +13,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public readonly name: string = LinkedErrors.id;
+
   /**
    * @inheritDoc
    */
@@ -43,7 +44,8 @@ export class LinkedErrors implements Integration {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
-        return (self.handler(event, hint) as unknown) as PromiseLike<Event>;
+        const handler = self._handler && self._handler.bind(self);
+        return typeof handler === 'function' ? handler(event, hint) : event;
       }
       return event;
     });
@@ -52,13 +54,13 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public handler(event: Event, hint?: EventHint): PromiseLike<Event> {
+  private _handler(event: Event, hint?: EventHint): PromiseLike<Event> {
     if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
       return SyncPromise.resolve(event);
     }
 
     return new SyncPromise<Event>(resolve => {
-      this.walkErrorTree(hint.originalException as Error, this._key)
+      this._walkErrorTree(hint.originalException as Error, this._key)
         .then((linkedErrors: Exception[]) => {
           if (event && event.exception && event.exception.values) {
             event.exception.values = [...linkedErrors, ...event.exception.values];
@@ -74,14 +76,14 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): PromiseLike<Exception[]> {
+  private _walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): PromiseLike<Exception[]> {
     if (!isInstanceOf(error[key], Error) || stack.length + 1 >= this._limit) {
       return SyncPromise.resolve(stack);
     }
     return new SyncPromise<Exception[]>((resolve, reject) => {
       getExceptionFromError(error[key])
         .then((exception: Exception) => {
-          this.walkErrorTree(error[key], key, [exception, ...stack])
+          this._walkErrorTree(error[key], key, [exception, ...stack])
             .then(resolve)
             .then(null, () => {
               reject();

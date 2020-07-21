@@ -60,7 +60,10 @@ export function resolve(...args: string[]): string {
   // handle relative paths to be safe (might happen when process.cwd() fails)
 
   // Normalize the path
-  resolvedPath = normalizeArray(resolvedPath.split('/').filter(p => !!p), !resolvedAbsolute).join('/');
+  resolvedPath = normalizeArray(
+    resolvedPath.split('/').filter(p => !!p),
+    !resolvedAbsolute,
+  ).join('/');
 
   return (resolvedAbsolute ? '/' : '') + resolvedPath || '.';
 }
@@ -125,7 +128,10 @@ export function normalizePath(path: string): string {
   const trailingSlash = path.substr(-1) === '/';
 
   // Normalize the path
-  let normalizedPath = normalizeArray(path.split('/').filter(p => !!p), !isPathAbsolute).join('/');
+  let normalizedPath = normalizeArray(
+    path.split('/').filter(p => !!p),
+    !isPathAbsolute,
+  ).join('/');
 
   if (!normalizedPath && !isPathAbsolute) {
     normalizedPath = '.';

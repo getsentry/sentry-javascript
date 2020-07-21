@@ -1,6 +1,6 @@
 {
   "name": "@sentry/apm",
-  "version": "5.19.1",
+  "version": "5.20.0",
   "description": "Extensions for APM",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/apm",
@@ -16,11 +16,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "5.19.1",
-    "@sentry/hub": "5.19.1",
-    "@sentry/minimal": "5.19.1",
-    "@sentry/types": "5.19.1",
-    "@sentry/utils": "5.19.1",
+    "@sentry/browser": "5.20.0",
+    "@sentry/hub": "5.20.0",
+    "@sentry/minimal": "5.20.0",
+    "@sentry/types": "5.20.0",
+    "@sentry/utils": "5.20.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
@@ -36,8 +36,8 @@
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
-    "tslint": "^5.16.0",
-    "typescript": "^3.4.5"
+    "tslint": "5.16.0",
+    "typescript": "3.4.5"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm build:bundle",

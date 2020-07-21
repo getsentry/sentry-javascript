@@ -14,11 +14,11 @@ describe('LinkedErrors', () => {
   describe('handler', () => {
     it('should bail out if event doesnt contain exception', async () => {
       expect.assertions(2);
-      const spy = jest.spyOn(linkedErrors, 'walkErrorTree');
+      const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const event = {
         message: 'foo',
       };
-      return linkedErrors.handler(event).then((result: any) => {
+      return linkedErrors._handler(event).then((result: any) => {
         expect(spy.mock.calls.length).toEqual(0);
         expect(result).toEqual(event);
       });
@@ -26,7 +26,7 @@ describe('LinkedErrors', () => {
 
     it('should bail out if event contains exception, but no hint', async () => {
       expect.assertions(2);
-      const spy = jest.spyOn(linkedErrors, 'walkErrorTree');
+      const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const one = new Error('originalException');
       const backend = new NodeBackend({});
       let event: Event | undefined;
@@ -34,7 +34,7 @@ describe('LinkedErrors', () => {
         .eventFromException(one)
         .then(eventFromException => {
           event = eventFromException;
-          return linkedErrors.handler(eventFromException);
+          return linkedErrors._handler(eventFromException);
         })
         .then(result => {
           expect(spy.mock.calls.length).toEqual(0);
@@ -44,7 +44,7 @@ describe('LinkedErrors', () => {
 
     it('should call walkErrorTree if event contains exception and hint with originalException', async () => {
       expect.assertions(1);
-      const spy = jest.spyOn(linkedErrors, 'walkErrorTree').mockImplementation(
+      const spy = jest.spyOn(linkedErrors, '_walkErrorTree').mockImplementation(
         async () =>
           new Promise<[]>(resolve => {
             resolve([]);
@@ -54,7 +54,7 @@ describe('LinkedErrors', () => {
       const backend = new NodeBackend({});
       return backend.eventFromException(one).then(event =>
         linkedErrors
-          .handler(event, {
+          ._handler(event, {
             originalException: one,
           })
           .then(_ => {
@@ -74,7 +74,7 @@ describe('LinkedErrors', () => {
       const backend = new NodeBackend({});
       return backend.eventFromException(one).then(event =>
         linkedErrors
-          .handler(event, {
+          ._handler(event, {
             originalException: one,
           })
           .then((result: any) => {
@@ -107,7 +107,7 @@ describe('LinkedErrors', () => {
       const backend = new NodeBackend({});
       return backend.eventFromException(one).then(event =>
         linkedErrors
-          .handler(event, {
+          ._handler(event, {
             originalException: one,
           })
           .then((result: any) => {
@@ -140,7 +140,7 @@ describe('LinkedErrors', () => {
       const backend = new NodeBackend({});
       return backend.eventFromException(one).then(event =>
         linkedErrors
-          .handler(event, {
+          ._handler(event, {
             originalException: one,
           })
           .then((result: any) => {

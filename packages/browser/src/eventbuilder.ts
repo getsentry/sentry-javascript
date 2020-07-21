@@ -1,4 +1,4 @@
-import { Event } from '@sentry/types';
+import { Event, EventHint, Options, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -8,12 +8,56 @@ import {
   isErrorEvent,
   isEvent,
   isPlainObject,
+  SyncPromise,
 } from '@sentry/utils';
 
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 
-/** JSDoc */
+/**
+ * Builds and Event from a Exception
+ * @hidden
+ */
+export function eventFromException(options: Options, exception: any, hint?: EventHint): PromiseLike<Event> {
+  const syntheticException = (hint && hint.syntheticException) || undefined;
+  const event = eventFromUnknownInput(exception, syntheticException, {
+    attachStacktrace: options.attachStacktrace,
+  });
+  addExceptionMechanism(event, {
+    handled: true,
+    type: 'generic',
+  });
+  event.level = Severity.Error;
+  if (hint && hint.event_id) {
+    event.event_id = hint.event_id;
+  }
+  return SyncPromise.resolve(event);
+}
+
+/**
+ * Builds and Event from a Message
+ * @hidden
+ */
+export function eventFromMessage(
+  options: Options,
+  message: string,
+  level: Severity = Severity.Info,
+  hint?: EventHint,
+): PromiseLike<Event> {
+  const syntheticException = (hint && hint.syntheticException) || undefined;
+  const event = eventFromString(message, syntheticException, {
+    attachStacktrace: options.attachStacktrace,
+  });
+  event.level = level;
+  if (hint && hint.event_id) {
+    event.event_id = hint.event_id;
+  }
+  return SyncPromise.resolve(event);
+}
+
+/**
+ * @hidden
+ */
 export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
@@ -79,8 +123,9 @@ export function eventFromUnknownInput(
   return event;
 }
 
-// this._options.attachStacktrace
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function eventFromString(
   input: string,
   syntheticException?: Error,

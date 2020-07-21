@@ -7,7 +7,7 @@ branches:
     - /^release\/.+$/
     - /^major\/.+$/
 
-install: yarn --ignore-engines
+install: yarn --ignore-engines --ignore-scripts
 os: linux
 
 language: node_js

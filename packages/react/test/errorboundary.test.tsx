@@ -1,3 +1,4 @@
+import { Scope } from '@sentry/browser';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 
@@ -7,15 +8,19 @@ const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
 const EVENT_ID = 'test-id-123';
 
-jest.mock('@sentry/browser', () => ({
-  captureException: (err: any, ctx: any) => {
-    mockCaptureException(err, ctx);
-    return EVENT_ID;
-  },
-  showReportDialog: (options: any) => {
-    mockShowReportDialog(options);
-  },
-}));
+jest.mock('@sentry/browser', () => {
+  const actual = jest.requireActual('@sentry/browser');
+  return {
+    ...actual,
+    captureException: (err: any, ctx: any) => {
+      mockCaptureException(err, ctx);
+      return EVENT_ID;
+    },
+    showReportDialog: (options: any) => {
+      mockShowReportDialog(options);
+    },
+  };
+});
 
 const TestApp: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
   const [isError, setError] = React.useState(false);
@@ -195,6 +200,31 @@ describe('ErrorBoundary', () => {
       expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
         contexts: { react: { componentStack: expect.any(String) } },
       });
+    });
+
+    it('calls `beforeCapture()` when an error occurs', () => {
+      const mockBeforeCapture = jest.fn();
+
+      const testBeforeCapture = (...args: any[]) => {
+        expect(mockCaptureException).toHaveBeenCalledTimes(0);
+        mockBeforeCapture(...args);
+      };
+
+      render(
+        <TestApp fallback={<p>You have hit an error</p>} beforeCapture={testBeforeCapture}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockBeforeCapture).toHaveBeenCalledTimes(0);
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockBeforeCapture).toHaveBeenCalledTimes(1);
+      expect(mockBeforeCapture).toHaveBeenLastCalledWith(expect.any(Scope), expect.any(Error), expect.any(String));
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
     });
 
     it('shows a Sentry Report Dialog with correct options', () => {

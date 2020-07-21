@@ -1,5 +1,5 @@
-import { captureException, withScope } from '@sentry/core';
-import { Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
+import { API, captureException, withScope } from '@sentry/core';
+import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
 import { addExceptionMechanism, addExceptionTypeValue } from '@sentry/utils';
 
 let ignoreOnError: number = 0;
@@ -157,4 +157,48 @@ export function wrap(
   }
 
   return sentryWrapped;
+}
+
+/**
+ * All properties the report dialog supports
+ */
+export interface ReportDialogOptions {
+  [key: string]: any;
+  eventId?: string;
+  dsn?: DsnLike;
+  user?: {
+    email?: string;
+    name?: string;
+  };
+  lang?: string;
+  title?: string;
+  subtitle?: string;
+  subtitle2?: string;
+  labelName?: string;
+  labelEmail?: string;
+  labelComments?: string;
+  labelClose?: string;
+  labelSubmit?: string;
+  errorGeneric?: string;
+  errorFormEntry?: string;
+  successMessage?: string;
+  /** Callback after reportDialog showed up */
+  onLoad?(): void;
+}
+
+/**
+ * Injects the Report Dialog script
+ * @hidden
+ */
+export function injectReportDialog(options: ReportDialogOptions = {}): void {
+  const script = document.createElement('script');
+  script.async = true;
+  // tslint:disable-next-line: no-non-null-assertion
+  script.src = new API(options.dsn!).getReportDialogEndpoint(options);
+
+  if (options.onLoad) {
+    script.onload = options.onLoad;
+  }
+
+  (document.head || document.body).appendChild(script);
 }
