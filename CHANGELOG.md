@@ -3,11 +3,17 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.20.0
+
+- [browser] feat: Make `@sentry/browser` more treeshakeable (#2747)
+- [browser] fix: Make sure that handler exists in `LinkedErrors` integration (#2742)
+- [tracing] feat: Introduce `@sentry/tracing` (#2719)
+- [tracing] ref: Use `idleTimout` if no activities occur in idle transaction (#2752)
 - [react] feat: Export `createReduxEnhancer` to log redux actions as breadcrumbs, and attach state as an extra. (#2717)
-- [tracing] feat: `Add @sentry/tracing` (#2719)
-- [gatsby] fix: Make APM optional in gatsby package (#2752)
-- [tracing] ref: Use idleTimout if no activities occur in idle transaction (#2752)
 - [react] feat: Add `beforeCapture` option to ErrorBoundary (#2753)
+- [react] fix: Change import of `hoist-non-react-statics` (#2755)
+- [gatsby] fix: Make `@sentry/apm` optional in `@sentry/gatsby` package (#2752)
 
 ## 5.19.2
 
