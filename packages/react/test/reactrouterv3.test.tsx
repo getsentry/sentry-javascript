@@ -9,37 +9,26 @@ declare module 'react-router-3' {
   type History = { replace: Function; push: Function };
   export function createMemoryHistory(): History;
   export const Router: React.ComponentType<{ history: History }>;
-  export const Route: React.ComponentType<{ path: string; component: React.ComponentType<any> }>;
+  export const Route: React.ComponentType<{ path: string; component?: React.ComponentType<any> }>;
   export const IndexRoute: React.ComponentType<{ component: React.ComponentType<any> }>;
   export const match: Match;
   export const createRoutes: (routes: any) => RouteType[];
 }
 
-const App: React.FC = ({ children }) => <div>{children}</div>;
-
-function Home(): JSX.Element {
-  return <div>Home</div>;
-}
-
-function About(): JSX.Element {
-  return <div>About</div>;
-}
-
-function Features(): JSX.Element {
-  return <div>Features</div>;
-}
-
-function Users({ params }: { params: Record<string, string> }): JSX.Element {
-  return <div>{params.userid}</div>;
-}
-
 describe('React Router V3', () => {
   const routes = (
-    <Route path="/" component={App}>
-      <IndexRoute component={Home} />
-      <Route path="about" component={About} />
-      <Route path="features" component={Features} />
-      <Route path="users/:userid" component={Users} />
+    <Route path="/" component={({ children }: { children: JSX.Element }) => <div>{children}</div>}>
+      <IndexRoute component={() => <div>Home</div>} />
+      <Route path="about" component={() => <div>About</div>} />
+      <Route path="features" component={() => <div>Features</div>} />
+      <Route
+        path="users/:userid"
+        component={({ params }: { params: Record<string, string> }) => <div>{params.userid}</div>}
+      />
+      <Route path="organizations/">
+        <Route path=":orgid" component={() => <div>OrgId</div>} />
+        <Route path=":orgid/v1/:teamid" component={() => <div>Team</div>} />
+      </Route>
     </Route>
   );
   const history = createMemoryHistory();
@@ -127,6 +116,32 @@ describe('React Router V3', () => {
       name: '/users/:userid',
       op: 'navigation',
       tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
+    });
+  });
+
+  it('normalizes nested transaction names', () => {
+    const mockStartTransaction = jest.fn();
+    instrumentation(mockStartTransaction);
+    const { container } = render(<Router history={history}>{routes}</Router>);
+
+    history.push('/organizations/1234/v1/758');
+    expect(container.innerHTML).toContain('Team');
+
+    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/organizations/:orgid/v1/:teamid',
+      op: 'navigation',
+      tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
+    });
+
+    history.push('/organizations/543');
+    expect(container.innerHTML).toContain('OrgId');
+
+    expect(mockStartTransaction).toHaveBeenCalledTimes(3);
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/organizations/:orgid',
+      op: 'navigation',
+      tags: { from: '/organizations/:orgid/v1/:teamid', 'routing.instrumentation': 'react-router-v3' },
     });
   });
 });
