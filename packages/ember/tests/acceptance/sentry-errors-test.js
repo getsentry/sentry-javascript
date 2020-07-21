@@ -2,8 +2,8 @@ import { test, module } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { find, click, visit } from '@ember/test-helpers';
 import { run } from '@ember/runloop';
+import Ember from 'ember';
 import sinon from 'sinon';
-import RSVP from 'rsvp';
 
 const defaultAssertOptions = {
   method: 'POST',

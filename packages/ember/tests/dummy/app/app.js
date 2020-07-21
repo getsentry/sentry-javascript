@@ -5,11 +5,10 @@ import config from './config/environment';
 import { SentryForEmber } from '@sentry/ember';
 
 import { Transports } from '@sentry/browser';
-import { Event, Response } from '@sentry/types';
 import Ember from 'ember';
 
 class TestFetchTransport extends Transports.FetchTransport {
-  public sendEvent(event: Event): PromiseLike<Response> {
+  sendEvent(event) {
     if (Ember.testing) {
       if (!window._sentryTestEvents) {
         window._sentryTestEvents = [];
