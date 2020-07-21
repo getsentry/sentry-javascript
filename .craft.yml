@@ -29,3 +29,13 @@ targets:
     onlyIfPresent: /^sentry-node-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/node'
+  - name: registry
+    type: sdk
+    onlyIfPresent: /^sentry-react-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/react'
+  - name: registry
+    type: sdk
+    onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/gatsby'
