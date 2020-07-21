@@ -1,17 +1,18 @@
 import * as Sentry from '@sentry/browser';
 import { addGlobalEventProcessor, SDK_VERSION } from '@sentry/browser';
+import { Transport } from '@sentry/types';
 import environmentConfig from 'ember-get-config';
 
 import { next } from '@ember/runloop';
 import { assert, warn, runInDebug } from '@ember/debug';
 import Ember from 'ember';
 
-export function SentryForEmber() {
+export function SentryForEmber(_runtimeConfigOverride: { transport?: Transport } | undefined) {
   const config = environmentConfig['@sentry/ember'];
   assert('Missing configuration', config);
   assert('Missing configuration for Sentry.', config.sentry);
 
-  const initConfig = Object.assign({}, config.sentry);
+  const initConfig = Object.assign({}, config.sentry, _runtimeConfigOverride || {});
 
   createEmberEventProcessor();
 

@@ -7,25 +7,25 @@ import RSVP from 'rsvp';
 
 const defaultAssertOptions = {
   method: 'POST',
-  urlIncludes: '/store/',
   errorBodyContains: [],
 };
 
+function assertSentryEventCount(assert, count) {
+  assert.equal(window._sentryTestEvents.length, count, 'Check correct number of Sentry events were sent');
+}
+
 function assertSentryCall(assert, callNumber, options) {
-  const stubbedFetch = window.fetch;
+  const sentryTestEvents = window._sentryTestEvents;
   const assertOptions = Object.assign({}, defaultAssertOptions, options);
 
-  const call = stubbedFetch.getCall(callNumber);
-  assert.equal(call.args.length, 2, 'Called with same number of args');
-  assert.ok(call.args[0].includes(assertOptions.urlIncludes), 'Fetch url matches');
-  assert.equal(call.args[1].method, assertOptions.method, 'Fetch method matches');
+  const event = sentryTestEvents[callNumber];
 
   /**
    * Body could be parsed here to check exact properties, but that requires too much implementation specific detail,
    * instead this loosely matches on contents to check the correct error is being sent.
    */
   assert.ok(assertOptions.errorBodyContains.length, 'Must pass strings to check against error body');
-  const errorBody = call.args[1].body;
+  const errorBody = JSON.stringify(event);
   assertOptions.errorBodyContains.forEach((bodyContent) => {
     assert.ok(errorBody.includes(bodyContent), `Checking that error body includes ${bodyContent}`);
   });
@@ -35,6 +35,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
   setupApplicationTest(hooks);
 
   hooks.beforeEach(function () {
+    window._sentryTestEvents = [];
     const errorMessages = [];
     this.errorMessages = errorMessages;
 
@@ -58,11 +59,24 @@ module('Acceptance | Sentry Errors', function (hooks) {
       errorMessages.push(error.message);
       throw error;
     };
+
+    this._windowOnError = window.onerror;
+    /**
+     * Will collect errors when run via testem in cli
+     */
+
+    window.onerror = function (error, ...args) {
+      errorMessages.push(error.split('Error: ')[1]);
+      if (this._windowOnError) {
+        return this._windowOnError(error, ...args);
+      }
+    };
   });
 
   hooks.afterEach(function () {
     this.fetchStub.restore();
     this.qunitOnUnhandledRejection.restore();
+    window.onerror = this._windowOnError;
   });
 
   test('Check "Throw Generic Javascript Error"', async function (assert) {
@@ -71,7 +85,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     await click(button);
 
-    assert.equal(window.fetch.getCalls().length, 1, 'Fetch was called once');
+    assertSentryEventCount(assert, 1);
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
@@ -81,7 +95,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     await click(button);
 
-    assert.equal(window.fetch.getCalls().length, 1, 'Fetch was called once');
+    assertSentryEventCount(assert, 1);
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
@@ -91,7 +105,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     await click(button);
 
-    assert.equal(window.fetch.getCalls().length, 0, 'Error should be caught');
+    assertSentryEventCount(assert, 0);
   });
 
   test('Check "Error From Fetch"', async function (assert) {
@@ -106,8 +120,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
     const done = assert.async();
 
     run.next(() => {
-      assert.equal(window.fetch.getCalls().length, 2, 'Fetch was called twice');
-      assertSentryCall(assert, 1, { errorBodyContains: [...this.errorMessages] });
+      assertSentryEventCount(assert, 1);
+      assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
       done();
     });
   });
@@ -118,7 +132,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     await click(button);
 
-    assert.equal(window.fetch.getCalls().length, 1, 'Fetch was called once');
+    assertSentryEventCount(assert, 1);
     assert.ok(this.qunitOnUnhandledRejection.calledOnce, 'Uncaught rejection should only be called once');
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
@@ -129,7 +143,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     await click(button);
 
-    assert.equal(window.fetch.getCalls().length, 1, 'Fetch was called once');
+    assertSentryEventCount(assert, 1);
     assert.ok(this.qunitOnUnhandledRejection.calledOnce, 'Uncaught rejection should only be called once');
     assertSentryCall(assert, 0, { errorBodyContains: [this.qunitOnUnhandledRejection.getCall(0).args[0]] });
   });
@@ -140,7 +154,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     await click(button);
 
-    assert.equal(window.fetch.getCalls().length, 1, 'Fetch was called once');
+    assertSentryEventCount(assert, 1);
     assert.ok(this.qunitOnUnhandledRejection.calledOnce, 'Uncaught rejection should only be called once');
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
