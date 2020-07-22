@@ -3,6 +3,7 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- [react] feat: Don't add sdk event processor if running in React Native (#2762)
 
 ## 5.20.0
 
