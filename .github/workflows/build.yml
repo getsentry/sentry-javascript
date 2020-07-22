@@ -28,8 +28,8 @@ jobs:
         with:
           name: build
           path: |
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
+            packages/**/dist
+            packages/**/esm
 
   job_2:
     name: Lint
@@ -44,5 +44,6 @@ jobs:
             */*/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
+      - uses: actions/download-artifact@v2
       - name: Run Linter
         run: yarn lint
