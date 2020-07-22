@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.build.json",
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ],
+  "exclude": [
+    "dist"
+  ],
+  "compilerOptions": {
+    "target": "es2016",
+    "rootDir": ".",
+    "types": [
+      "node",
+      "jest"
+    ],
+    "lib": [
+      "dom",
+      "es7"
+    ]
+  }
+}
