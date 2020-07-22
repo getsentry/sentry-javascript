@@ -15,6 +15,6 @@ elif [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 8 ]]; then
   yarn test --ignore="@sentry/tracing" --ignore="@sentry/react" --ignore="@sentry/ember"
 else
   yarn install
-  yarn build
-  yarn test
+  yarn build --ignore="@sentry/ember"
+  yarn test --ignore="@sentry/ember"
 fi

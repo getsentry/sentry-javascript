@@ -1,0 +1,46 @@
+name: '@sentry/ember'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'packages/ember/**'
+
+env:
+  lerna-package: '@sentry/ember'
+
+jobs:
+  test:
+    name: 'Test Ember Package'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Set up Volta
+        uses: volta-cli/action@v1
+
+      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v1
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies (yarn)
+        run: yarn install
+
+      - name: Lint
+        run: yarn run lint --scope=${{env.lerna-package}}
+
+      - name: Build dependent packages
+        run:  yarn build --ignore="@sentry/integrations" --ignore="@sentry/ember" --ignore="@sentry/react" --ignore="@sentry/apm" --ignore="@sentry/gatsby" --ignore="@sentry/node"
+
+      - name: Test
+        run: yarn test --scope=${{env.lerna-package}}
