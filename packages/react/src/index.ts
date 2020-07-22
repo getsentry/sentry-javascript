@@ -1,7 +1,11 @@
 import { addGlobalEventProcessor, SDK_VERSION } from '@sentry/browser';
 
 function createReactEventProcessor(): void {
-  if (addGlobalEventProcessor) {
+  // Only add the event processor if not running in React Native.
+  // tslint:disable-next-line: strict-type-predicates
+  const isReactNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
+
+  if (addGlobalEventProcessor && !isReactNative) {
     addGlobalEventProcessor(event => {
       event.sdk = {
         ...event.sdk,
