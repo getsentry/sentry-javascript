@@ -77,6 +77,11 @@ const defaultOptions: SentryEnhancerOptions = {
   stateTransformer: state => state || null,
 };
 
+/**
+ * Creates an enhancer that would be passed to Redux's createStore to log actions and the latest state to Sentry.
+ *
+ * @param enhancerOptions Options to pass to the enhancer
+ */
 function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): StoreEnhancer {
   const options = {
     ...defaultOptions,
