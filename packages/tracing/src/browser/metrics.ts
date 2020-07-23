@@ -1,6 +1,5 @@
 import { getGlobalObject, logger } from '@sentry/utils';
 
-import { Span } from '../span';
 import { Transaction } from '../transaction';
 
 import { msToSec } from './utils';
@@ -216,30 +215,20 @@ function addResourceSpans(
   timeOrigin: number,
 ): number | undefined {
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-    // We need to update existing spans with new timing info
-    if (transaction.spanRecorder) {
-      transaction.spanRecorder.spans.map((finishedSpan: Span) => {
-        if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-          finishedSpan.startTimestamp = timeOrigin + startTime;
-          finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
-        }
-      });
-    }
-  } else {
-    const startTimestamp = timeOrigin + startTime;
-    const endTimestamp = startTimestamp + duration;
-
-    transaction.startChild({
-      description: `${entry.initiatorType} ${resourceName}`,
-      endTimestamp,
-      op: 'resource',
-      startTimestamp,
-    });
-
-    return endTimestamp;
+    return undefined;
   }
 
-  return undefined;
+  const startTimestamp = timeOrigin + startTime;
+  const endTimestamp = startTimestamp + duration;
+
+  transaction.startChild({
+    description: `${entry.initiatorType} ${resourceName}`,
+    endTimestamp,
+    op: 'resource',
+    startTimestamp,
+  });
+
+  return endTimestamp;
 }
 
 /** Create performance navigation related spans */

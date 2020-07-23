@@ -661,15 +661,7 @@ export class Tracing implements Integration {
           case 'resource':
             const resourceName = entry.name.replace(window.location.origin, '');
             if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-              // We need to update existing spans with new timing info
-              if (transactionSpan.spanRecorder) {
-                transactionSpan.spanRecorder.spans.map((finishedSpan: Span) => {
-                  if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-                    finishedSpan.startTimestamp = timeOrigin + startTime;
-                    finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
-                  }
-                });
-              }
+              // do nothing, we can't adjust timings just based on urls
             } else {
               const resource = transactionSpan.startChild({
                 description: `${entry.initiatorType} ${resourceName}`,

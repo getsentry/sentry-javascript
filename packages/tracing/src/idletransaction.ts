@@ -63,7 +63,7 @@ export class IdleTransaction extends Transaction {
   private _prevHeartbeatString: string | undefined;
 
   // Amount of times heartbeat has counted. Will cause transaction to finish after 3 beats.
-  private _heartbeatCounter: number = 1;
+  private _heartbeatCounter: number = 0;
 
   // We should not use heartbeat if we finished a transaction
   private _finished: boolean = false;
@@ -119,7 +119,7 @@ export class IdleTransaction extends Transaction {
 
     if (this._heartbeatCounter >= 3) {
       logger.log(
-        `[Tracing] Transaction: ${SpanStatus.Cancelled} -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
+        `[Tracing] Transaction: ${SpanStatus.DeadlineExceeded} -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
       );
       this.setStatus(SpanStatus.DeadlineExceeded);
       this.setTag('heartbeat', 'failed');
