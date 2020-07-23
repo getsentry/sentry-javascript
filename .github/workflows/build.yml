@@ -1,0 +1,99 @@
+name: 'Build & Test'
+on:
+  push:
+    branches:
+      - master
+      - release/**
+  pull_request:
+
+jobs:
+  job_build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - name: Install
+        run: yarn install
+      - name: Build
+        run: yarn build
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: |
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+
+  job_size_check:
+    name: Size Check
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
+      - uses: andresz1/size-limit-action@v1.4.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          build_script: echo "doing nothing"
+          skip_step: install
+
+  job_lint:
+    name: Lint
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
+      - name: Run Linter
+        run: yarn lint
+
+  job_unit_test:
+    name: Test
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
+      - name: Unit Tests
+        run: yarn test
