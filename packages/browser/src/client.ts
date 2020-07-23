@@ -68,22 +68,13 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     }
 
     if (!this._isEnabled()) {
-      logger.error('Trying to call showReportDialog with Sentry Client is disabled');
+      logger.error('Trying to call showReportDialog with Sentry Client disabled');
       return;
     }
 
-    const dsn = options.dsn || this.getDsn();
-
-    if (!options.eventId) {
-      logger.error('Missing `eventId` option in showReportDialog call');
-      return;
-    }
-
-    if (!dsn) {
-      logger.error('Missing `Dsn` option in showReportDialog call');
-      return;
-    }
-
-    injectReportDialog(options);
+    injectReportDialog({
+      ...options,
+      dsn: options.dsn || this.getDsn(),
+    });
   }
 }
