@@ -3,6 +3,7 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- [react] feat: Add instrumentation for React Router v3 (#2759)
 
 ## 5.20.0
 
