@@ -47,6 +47,8 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
       - uses: actions/download-artifact@v2
+        with:
+          name: build
       - name: Run Linter
         run: yarn lint
 
@@ -65,5 +67,8 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
       - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
       - name: Unit Tests
         run: yarn test
