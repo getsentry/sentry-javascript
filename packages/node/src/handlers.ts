@@ -407,6 +407,11 @@ export function errorHandler(options?: {
 
     if (shouldHandleError(error)) {
       withScope(_scope => {
+        // For some reason we need to set the transaction on the scope again
+        const transaction = (res as any).__sentry_transaction as Span;
+        if (transaction && _scope.getSpan() === undefined) {
+          _scope.setSpan(transaction);
+        }
         const eventId = captureException(error);
         (res as any).sentry = eventId;
         next(error);
