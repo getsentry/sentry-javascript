@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  job_1:
+  job_build:
     name: Build
     runs-on: ubuntu-latest
     steps:
@@ -32,9 +32,33 @@ jobs:
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
 
-  job_2:
+  job_size_check:
+    name: Size Check
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
+      - uses: andresz1/size-limit-action@v1.4.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          build_script: echo "doing nothing"
+          skip_step: install
+
+  job_lint:
     name: Lint
-    needs: job_1
+    needs: job_build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -53,9 +77,9 @@ jobs:
       - name: Run Linter
         run: yarn lint
 
-  job_3:
+  job_unit_test:
     name: Test
-    needs: job_1
+    needs: job_build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
