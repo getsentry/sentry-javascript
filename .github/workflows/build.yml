@@ -45,7 +45,6 @@ jobs:
             node_modules
             */*/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-      - run: yarn install
       - uses: actions/download-artifact@v2
         with:
           name: build
@@ -53,8 +52,7 @@ jobs:
       - uses: andresz1/size-limit-action@v1.4.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          build_script: echo "doing nothing"
-          skip_step: install
+          skip_step: build
 
   job_lint:
     name: Lint
