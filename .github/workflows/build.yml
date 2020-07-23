@@ -28,11 +28,13 @@ jobs:
         with:
           name: build
           path: |
+            ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
 
   job_2:
     name: Lint
+    needs: job_1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -47,3 +49,21 @@ jobs:
       - uses: actions/download-artifact@v2
       - name: Run Linter
         run: yarn lint
+
+  job_3:
+    name: Test
+    needs: job_1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+      - name: Unit Tests
+        run: yarn test
