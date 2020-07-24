@@ -6,6 +6,7 @@
 - [react] feat: Add instrumentation for React Router v3 (#2759)
 - [apm/tracing] fix: Make sure fetch requests are being timed correctly (#2772)
 - [apm/tracing] fix: Make sure pageload transactions start timestamps are correctly generated (#2773)
+- [react] ref: Use inline types to avoid redux dependency. (#2768)
 
 ## 5.20.0
 
