@@ -3,10 +3,16 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.20.1
+
 - [react] feat: Add instrumentation for React Router v3 (#2759)
 - [apm/tracing] fix: Make sure fetch requests are being timed correctly (#2772)
 - [apm/tracing] fix: Make sure pageload transactions start timestamps are correctly generated (#2773)
 - [react] ref: Use inline types to avoid redux dependency. (#2768)
+- [core] ref: Expose sentry request for electron (#2774)
+- [node] fix: Set transaction on scope in node for request (#2769)
+- [browser] fix: Make sure that DSN is always passed to report dialog (#2770)
 
 ## 5.20.0
 
