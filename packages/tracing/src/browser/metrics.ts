@@ -1,9 +1,9 @@
+import { SpanContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { Transaction } from '../transaction';
 
 import { msToSec } from './utils';
-import { TransactionContext, SpanContext } from '@sentry/types';
 
 const global = getGlobalObject<Window>();
 
