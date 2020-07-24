@@ -1049,7 +1049,7 @@ function historyCallback(_: { [key: string]: any }): void {
 
 /**
  * Helper function to start child on transactions. This function will make sure that the transaction will
- * will use the start timestamp of the created child span if it is earlier than the transactions actual
+ * use the start timestamp of the created child span if it is earlier than the transactions actual
  * start timestamp.
  */
 export function _startChild(parent: Span, { startTimestamp, ...ctx }: SpanContext): Span {

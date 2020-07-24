@@ -1,6 +1,7 @@
 import { SpanContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
+import { Span } from '../span';
 import { Transaction } from '../transaction';
 
 import { msToSec } from './utils';
@@ -273,7 +274,7 @@ function addRequest(transaction: Transaction, entry: Record<string, any>, timeOr
 
 /**
  * Helper function to start child on transactions. This function will make sure that the transaction will
- * will use the start timestamp of the created child span if it is earlier than the transactions actual
+ * use the start timestamp of the created child span if it is earlier than the transactions actual
  * start timestamp.
  */
 export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }: SpanContext): Span {
