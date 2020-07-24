@@ -660,17 +660,9 @@ export class Tracing implements Integration {
             break;
           case 'resource':
             const resourceName = entry.name.replace(window.location.origin, '');
-            if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-              // We need to update existing spans with new timing info
-              if (transactionSpan.spanRecorder) {
-                transactionSpan.spanRecorder.spans.map((finishedSpan: Span) => {
-                  if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-                    finishedSpan.startTimestamp = timeOrigin + startTime;
-                    finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
-                  }
-                });
-              }
-            } else {
+            // we already instrument based on fetch and xhr, so we don't need to
+            // duplicate spans here.
+            if (entry.initiatorType !== 'xmlhttprequest' && entry.initiatorType !== 'fetch') {
               const resource = transactionSpan.startChild({
                 description: `${entry.initiatorType} ${resourceName}`,
                 op: `resource`,
