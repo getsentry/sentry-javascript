@@ -3,6 +3,7 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import { Transaction } from '../transaction';
 
 import { msToSec } from './utils';
+import { TransactionContext, SpanContext } from '@sentry/types';
 
 const global = getGlobalObject<Window>();
 
@@ -162,7 +163,7 @@ export class MetricsInstrumentation {
       });
 
     if (entryScriptStartTimestamp !== undefined && tracingInitMarkStartTime !== undefined) {
-      transaction.startChild({
+      _startChild(transaction, {
         description: 'evaluation',
         endTimestamp: tracingInitMarkStartTime,
         op: 'script',
@@ -195,7 +196,7 @@ function addMeasureSpans(
   const measureStartTimestamp = timeOrigin + startTime;
   const measureEndTimestamp = measureStartTimestamp + duration;
 
-  transaction.startChild({
+  _startChild(transaction, {
     description: entry.name as string,
     endTimestamp: measureEndTimestamp,
     op: entry.entryType as string,
@@ -223,7 +224,7 @@ function addResourceSpans(
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
 
-  transaction.startChild({
+  _startChild(transaction, {
     description: `${entry.initiatorType} ${resourceName}`,
     endTimestamp,
     op: 'resource',
@@ -245,7 +246,7 @@ function addPerformanceNavigationTiming(
   if (!start || !end) {
     return;
   }
-  transaction.startChild({
+  _startChild(transaction, {
     description: event,
     endTimestamp: timeOrigin + msToSec(end),
     op: 'browser',
@@ -255,17 +256,33 @@ function addPerformanceNavigationTiming(
 
 /** Create request and response related spans */
 function addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  transaction.startChild({
+  _startChild(transaction, {
     description: 'request',
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
     startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
   });
 
-  transaction.startChild({
+  _startChild(transaction, {
     description: 'response',
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
     startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+  });
+}
+
+/**
+ * Helper function to start child on transactions. This function will make sure that the transaction will
+ * will use the start timestamp of the created child span if it is earlier than the transactions actual
+ * start timestamp.
+ */
+export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }: SpanContext): Span {
+  if (startTimestamp && transaction.startTimestamp > startTimestamp) {
+    transaction.startTimestamp = startTimestamp;
+  }
+
+  return transaction.startChild({
+    startTimestamp,
+    ...ctx,
   });
 }
