@@ -4,8 +4,8 @@ import { timestampWithMs } from '@sentry/utils';
 import { API } from './api';
 
 /** A generic client request. */
-interface SentryRequest {
-  body: string;
+export interface SentryRequest {
+  body: string | Buffer;
   url: string;
   // headers would contain auth & content-type headers for @sentry/node, but
   // since @sentry/browser avoids custom headers to prevent CORS preflight
