@@ -5,7 +5,7 @@ import { API } from './api';
 
 /** A generic client request. */
 export interface SentryRequest {
-  body: string | Buffer;
+  body: string;
   url: string;
   // headers would contain auth & content-type headers for @sentry/node, but
   // since @sentry/browser avoids custom headers to prevent CORS preflight
