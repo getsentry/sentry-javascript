@@ -214,6 +214,8 @@ function addResourceSpans(
   duration: number,
   timeOrigin: number,
 ): number | undefined {
+  // we already instrument based on fetch and xhr, so we don't need to
+  // duplicate spans here.
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
     return undefined;
   }

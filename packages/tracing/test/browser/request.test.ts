@@ -2,7 +2,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
 import { Span, Transaction } from '../../src';
-import { fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
+import { _fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 
 declare global {
@@ -69,21 +69,17 @@ describe('registerRequestInstrumentation', () => {
   });
 });
 
-describe('fetchCallback', () => {
+describe('_fetchCallback()', () => {
   let hub: Hub;
   let transaction: Transaction;
-  beforeEach(() => {
+  beforeAll(() => {
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
     makeMain(hub);
-    transaction = hub.startTransaction({ name: 'organizations/users/:userid', op: 'pageload' }) as Transaction;
-    hub.configureScope(scope => scope.setSpan(transaction));
   });
 
-  afterEach(() => {
-    if (transaction) {
-      transaction.finish();
-    }
-    hub.configureScope(scope => scope.setSpan(undefined));
+  beforeEach(() => {
+    transaction = hub.startTransaction({ name: 'organizations/users/:userid', op: 'pageload' }) as Transaction;
+    hub.configureScope(scope => scope.setSpan(transaction));
   });
 
   it('does not create span if it should not be created', () => {
@@ -98,7 +94,7 @@ describe('fetchCallback', () => {
     };
     const spans = {};
 
-    fetchCallback(data, shouldCreateSpan, spans);
+    _fetchCallback(data, shouldCreateSpan, spans);
     expect(spans).toEqual({});
   });
 
@@ -110,7 +106,7 @@ describe('fetchCallback', () => {
     };
     const spans = {};
 
-    fetchCallback(data, shouldCreateSpan, spans);
+    _fetchCallback(data, shouldCreateSpan, spans);
     expect(spans).toEqual({});
   });
 
@@ -127,7 +123,7 @@ describe('fetchCallback', () => {
     const spans: Record<string, Span> = {};
 
     // Start fetch request
-    fetchCallback(data, shouldCreateSpan, spans);
+    _fetchCallback(data, shouldCreateSpan, spans);
     const spanKey = Object.keys(spans)[0];
 
     const fetchSpan = spans[spanKey];
@@ -151,7 +147,7 @@ describe('fetchCallback', () => {
     };
 
     // End fetch request
-    fetchCallback(newData, shouldCreateSpan, spans);
+    _fetchCallback(newData, shouldCreateSpan, spans);
     expect(spans).toEqual({});
     if (transaction.spanRecorder) {
       expect(transaction.spanRecorder.spans[1].endTimestamp).toBeDefined();

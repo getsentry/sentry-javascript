@@ -104,7 +104,7 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
   if (traceFetch) {
     addInstrumentationHandler({
       callback: (handlerData: FetchData) => {
-        fetchCallback(handlerData, shouldCreateSpan, spans);
+        _fetchCallback(handlerData, shouldCreateSpan, spans);
       },
       type: 'fetch',
     });
@@ -123,7 +123,7 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
 /**
  * Create and track fetch request spans
  */
-export function fetchCallback(
+export function _fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,

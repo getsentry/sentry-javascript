@@ -118,9 +118,7 @@ export class IdleTransaction extends Transaction {
     this._prevHeartbeatString = heartbeatString;
 
     if (this._heartbeatCounter >= 3) {
-      logger.log(
-        `[Tracing] Transaction: ${SpanStatus.DeadlineExceeded} -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
-      );
+      logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
       this.setStatus(SpanStatus.DeadlineExceeded);
       this.setTag('heartbeat', 'failed');
       this.finish();

@@ -660,9 +660,9 @@ export class Tracing implements Integration {
             break;
           case 'resource':
             const resourceName = entry.name.replace(window.location.origin, '');
-            if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-              // do nothing, we can't adjust timings just based on urls
-            } else {
+            // we already instrument based on fetch and xhr, so we don't need to
+            // duplicate spans here.
+            if (entry.initiatorType !== 'xmlhttprequest' && entry.initiatorType !== 'fetch') {
               const resource = transactionSpan.startChild({
                 description: `${entry.initiatorType} ${resourceName}`,
                 op: `resource`,
