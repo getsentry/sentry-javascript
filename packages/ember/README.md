@@ -63,6 +63,10 @@ Aside from configuration passed from this addon into `@sentry/browser` via the `
   };
 ```
 
+### Supported Versions
+
+`@sentry/ember` currently supports Ember **3.8+** for error monitoring.
+
 ### Previous Integration
 
 Previously we've recommended using the Ember integration from `@sentry/integrations` but moving forward we will be using
