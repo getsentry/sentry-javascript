@@ -1,6 +1,6 @@
 import { API, captureException, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, logger } from '@sentry/utils';
 
 let ignoreOnError: number = 0;
 
@@ -191,10 +191,18 @@ export interface ReportDialogOptions {
  * @hidden
  */
 export function injectReportDialog(options: ReportDialogOptions = {}): void {
+  if (!options.eventId) {
+    logger.error(`Missing eventId option in showReportDialog call`);
+    return;
+  }
+  if (!options.dsn) {
+    logger.error(`Missing dsn option in showReportDialog call`);
+    return;
+  }
+
   const script = document.createElement('script');
   script.async = true;
-  // tslint:disable-next-line: no-non-null-assertion
-  script.src = new API(options.dsn!).getReportDialogEndpoint(options);
+  script.src = new API(options.dsn).getReportDialogEndpoint(options);
 
   if (options.onLoad) {
     script.onload = options.onLoad;

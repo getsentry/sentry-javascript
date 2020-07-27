@@ -581,7 +581,7 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: completed-docs
     function addPerformanceNavigationTiming(parent: Span, entry: { [key: string]: number }, event: string): void {
-      parent.startChild({
+      _startChild(parent, {
         description: event,
         endTimestamp: timeOrigin + Tracing._msToSec(entry[`${event}End`]),
         op: 'browser',
@@ -591,14 +591,14 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: completed-docs
     function addRequest(parent: Span, entry: { [key: string]: number }): void {
-      parent.startChild({
+      _startChild(parent, {
         description: 'request',
         endTimestamp: timeOrigin + Tracing._msToSec(entry.responseEnd),
         op: 'browser',
         startTimestamp: timeOrigin + Tracing._msToSec(entry.requestStart),
       });
 
-      parent.startChild({
+      _startChild(parent, {
         description: 'response',
         endTimestamp: timeOrigin + Tracing._msToSec(entry.responseEnd),
         op: 'browser',
@@ -648,35 +648,27 @@ export class Tracing implements Integration {
           case 'mark':
           case 'paint':
           case 'measure':
-            const mark = transactionSpan.startChild({
+            const mark = _startChild(transactionSpan, {
               description: entry.name,
+              endTimestamp: timeOrigin + startTime + duration,
               op: entry.entryType,
+              startTimestamp: timeOrigin + startTime,
             });
-            mark.startTimestamp = timeOrigin + startTime;
-            mark.endTimestamp = mark.startTimestamp + duration;
             if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
               tracingInitMarkStartTime = mark.startTimestamp;
             }
             break;
           case 'resource':
             const resourceName = entry.name.replace(window.location.origin, '');
-            if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-              // We need to update existing spans with new timing info
-              if (transactionSpan.spanRecorder) {
-                transactionSpan.spanRecorder.spans.map((finishedSpan: Span) => {
-                  if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-                    finishedSpan.startTimestamp = timeOrigin + startTime;
-                    finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
-                  }
-                });
-              }
-            } else {
-              const resource = transactionSpan.startChild({
+            // we already instrument based on fetch and xhr, so we don't need to
+            // duplicate spans here.
+            if (entry.initiatorType !== 'xmlhttprequest' && entry.initiatorType !== 'fetch') {
+              const resource = _startChild(transactionSpan, {
                 description: `${entry.initiatorType} ${resourceName}`,
+                endTimestamp: timeOrigin + startTime + duration,
                 op: `resource`,
+                startTimestamp: timeOrigin + startTime,
               });
-              resource.startTimestamp = timeOrigin + startTime;
-              resource.endTimestamp = resource.startTimestamp + duration;
               // We remember the entry script end time to calculate the difference to the first init mark
               if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
                 entryScriptStartEndTime = resource.endTimestamp;
@@ -689,7 +681,7 @@ export class Tracing implements Integration {
       });
 
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
-      transactionSpan.startChild({
+      _startChild(transactionSpan, {
         description: 'evaluation',
         endTimestamp: tracingInitMarkStartTime,
         op: `script`,
@@ -1053,4 +1045,20 @@ function historyCallback(_: { [key: string]: any }): void {
       op: 'navigation',
     });
   }
+}
+
+/**
+ * Helper function to start child on transactions. This function will make sure that the transaction will
+ * use the start timestamp of the created child span if it is earlier than the transactions actual
+ * start timestamp.
+ */
+export function _startChild(parent: Span, { startTimestamp, ...ctx }: SpanContext): Span {
+  if (startTimestamp && parent.startTimestamp > startTimestamp) {
+    parent.startTimestamp = startTimestamp;
+  }
+
+  return parent.startChild({
+    startTimestamp,
+    ...ctx,
+  });
 }

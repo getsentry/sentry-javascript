@@ -1,3 +1,4 @@
+import { SpanContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { Span } from '../span';
@@ -163,7 +164,7 @@ export class MetricsInstrumentation {
       });
 
     if (entryScriptStartTimestamp !== undefined && tracingInitMarkStartTime !== undefined) {
-      transaction.startChild({
+      _startChild(transaction, {
         description: 'evaluation',
         endTimestamp: tracingInitMarkStartTime,
         op: 'script',
@@ -196,7 +197,7 @@ function addMeasureSpans(
   const measureStartTimestamp = timeOrigin + startTime;
   const measureEndTimestamp = measureStartTimestamp + duration;
 
-  transaction.startChild({
+  _startChild(transaction, {
     description: entry.name as string,
     endTimestamp: measureEndTimestamp,
     op: entry.entryType as string,
@@ -215,31 +216,23 @@ function addResourceSpans(
   duration: number,
   timeOrigin: number,
 ): number | undefined {
+  // we already instrument based on fetch and xhr, so we don't need to
+  // duplicate spans here.
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-    // We need to update existing spans with new timing info
-    if (transaction.spanRecorder) {
-      transaction.spanRecorder.spans.map((finishedSpan: Span) => {
-        if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-          finishedSpan.startTimestamp = timeOrigin + startTime;
-          finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
-        }
-      });
-    }
-  } else {
-    const startTimestamp = timeOrigin + startTime;
-    const endTimestamp = startTimestamp + duration;
-
-    transaction.startChild({
-      description: `${entry.initiatorType} ${resourceName}`,
-      endTimestamp,
-      op: 'resource',
-      startTimestamp,
-    });
-
-    return endTimestamp;
+    return undefined;
   }
 
-  return undefined;
+  const startTimestamp = timeOrigin + startTime;
+  const endTimestamp = startTimestamp + duration;
+
+  _startChild(transaction, {
+    description: `${entry.initiatorType} ${resourceName}`,
+    endTimestamp,
+    op: 'resource',
+    startTimestamp,
+  });
+
+  return endTimestamp;
 }
 
 /** Create performance navigation related spans */
@@ -254,7 +247,7 @@ function addPerformanceNavigationTiming(
   if (!start || !end) {
     return;
   }
-  transaction.startChild({
+  _startChild(transaction, {
     description: event,
     endTimestamp: timeOrigin + msToSec(end),
     op: 'browser',
@@ -264,17 +257,33 @@ function addPerformanceNavigationTiming(
 
 /** Create request and response related spans */
 function addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  transaction.startChild({
+  _startChild(transaction, {
     description: 'request',
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
     startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
   });
 
-  transaction.startChild({
+  _startChild(transaction, {
     description: 'response',
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
     startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+  });
+}
+
+/**
+ * Helper function to start child on transactions. This function will make sure that the transaction will
+ * use the start timestamp of the created child span if it is earlier than the transactions actual
+ * start timestamp.
+ */
+export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }: SpanContext): Span {
+  if (startTimestamp && transaction.startTimestamp > startTimestamp) {
+    transaction.startTimestamp = startTimestamp;
+  }
+
+  return transaction.startChild({
+    startTimestamp,
+    ...ctx,
   });
 }

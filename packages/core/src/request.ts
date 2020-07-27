@@ -4,7 +4,7 @@ import { timestampWithMs } from '@sentry/utils';
 import { API } from './api';
 
 /** A generic client request. */
-interface SentryRequest {
+export interface SentryRequest {
   body: string;
   url: string;
   // headers would contain auth & content-type headers for @sentry/node, but
