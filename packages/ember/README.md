@@ -63,6 +63,11 @@ Aside from configuration passed from this addon into `@sentry/browser` via the `
   };
 ```
 
+### Previous Integration
+
+Previously we've recommended using the Ember integration from `@sentry/integrations` but moving forward we will be using
+this Ember addon to offer more Ember-specific error and performancing monitoring.
+
 ## Testing
 
 You can find example instrumentation in the `dummy` application, which is also used for testing. To test with the dummy
