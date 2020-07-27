@@ -2,7 +2,7 @@ import Application from '@ember/application';
 import Resolver from 'ember-resolver';
 import loadInitializers from 'ember-load-initializers';
 import config from './config/environment';
-import { SentryForEmber } from '@sentry/ember';
+import { InitSentryForEmber } from '@sentry/ember';
 
 import { Transports } from '@sentry/browser';
 import Ember from 'ember';
@@ -20,7 +20,7 @@ class TestFetchTransport extends Transports.FetchTransport {
   }
 }
 
-SentryForEmber({ transport: TestFetchTransport });
+InitSentryForEmber({ transport: TestFetchTransport });
 
 export default class App extends Application {
   modulePrefix = config.modulePrefix;
