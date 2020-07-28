@@ -17,8 +17,10 @@
   },
   "dependencies": {
     "@sentry/core": "5.20.1",
+    "@sentry/minimal": "5.20.1",
     "@sentry/types": "5.20.1",
     "@sentry/utils": "5.20.1",
+    "localforage": "^1.8.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
