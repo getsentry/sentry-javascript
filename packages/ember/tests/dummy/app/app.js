@@ -20,7 +20,9 @@ class TestFetchTransport extends Transports.FetchTransport {
   }
 }
 
-InitSentryForEmber({ transport: TestFetchTransport });
+InitSentryForEmber({
+  transport: TestFetchTransport,
+});
 
 export default class App extends Application {
   modulePrefix = config.modulePrefix;

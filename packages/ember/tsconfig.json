@@ -12,7 +12,7 @@
     "noEmitOnError": false,
     "noEmit": true,
     "baseUrl": ".",
-    "module": "es6",
+    "module": "esnext",
     "experimentalDecorators": true,
     "paths": {
       "dummy/tests/*": ["tests/*"],

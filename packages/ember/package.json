@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@sentry/browser": "5.20.1",
+    "@sentry/tracing": "5.20.1",
     "@sentry/types": "5.20.1",
     "@sentry/utils": "5.20.1",
     "ember-get-config": "^0.2.4",
