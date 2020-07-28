@@ -1,14 +1,15 @@
 import { Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
-type ReactRouterInstrumentation = <T extends Transaction>(
-  startTransaction: (context: TransactionContext) => T | undefined,
-  startTransactionOnPageLoad?: boolean,
-  startTransactionOnLocationChange?: boolean,
-) => void;
+import { Location, ReactRouterInstrumentation } from './types';
 
 // Many of the types below had to be mocked out to prevent typescript issues
 // these types are required for correct functionality.
+
+type HistoryV3 = {
+  location?: Location;
+  listen?(cb: (location: Location) => void): void;
+} & Record<string, any>;
 
 export type Route = { path?: string; childRoutes?: Route[] };
 
@@ -16,16 +17,6 @@ export type Match = (
   props: { location: Location; routes: Route[] },
   cb: (error?: Error, _redirectLocation?: Location, renderProps?: { routes?: Route[] }) => void,
 ) => void;
-
-type Location = {
-  pathname: string;
-  action?: 'PUSH' | 'REPLACE' | 'POP';
-} & Record<string, any>;
-
-type History = {
-  location?: Location;
-  listen?(cb: (location: Location) => void): void;
-} & Record<string, any>;
 
 const global = getGlobalObject<Window>();
 
@@ -38,7 +29,7 @@ const global = getGlobalObject<Window>();
  * @param match `Router.match` utility
  */
 export function reactRouterV3Instrumentation(
-  history: History,
+  history: HistoryV3,
   routes: Route[],
   match: Match,
 ): ReactRouterInstrumentation {
