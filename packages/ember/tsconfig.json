@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "target": "es2017",
+    "allowJs": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "alwaysStrict": true,
+    "noImplicitUseStrict": false,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "noEmitOnError": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "module": "es6",
+    "experimentalDecorators": true,
+    "paths": {
+      "dummy/tests/*": ["tests/*"],
+      "dummy/*": ["tests/dummy/app/*", "app/*"],
+      "@sentry/ember": ["addon"],
+      "@sentry/ember/*": ["addon/*"],
+      "@sentry/ember/test-support": ["addon-test-support"],
+      "@sentry/ember/test-support/*": ["addon-test-support/*"],
+      "*": ["types/*"]
+    }
+  },
+  "include": ["app/**/*", "addon/**/*", "tests/**/*", "types/**/*", "test-support/**/*", "addon-test-support/**/*"]
+}
