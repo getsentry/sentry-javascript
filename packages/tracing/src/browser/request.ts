@@ -40,9 +40,9 @@ export interface RequestInstrumentationOptions {
 }
 
 /** Data returned from fetch callback */
-interface FetchData {
+export interface FetchData {
   args: any[];
-  fetchData: {
+  fetchData?: {
     method: string;
     url: string;
     // span_id
@@ -104,7 +104,7 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
   if (traceFetch) {
     addInstrumentationHandler({
       callback: (handlerData: FetchData) => {
-        fetchCallback(handlerData, shouldCreateSpan, spans);
+        _fetchCallback(handlerData, shouldCreateSpan, spans);
       },
       type: 'fetch',
     });
@@ -123,12 +123,12 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
 /**
  * Create and track fetch request spans
  */
-function fetchCallback(
+export function _fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
-  if (!shouldCreateSpan(handlerData.fetchData.url) || !handlerData.fetchData) {
+  if (!handlerData.fetchData || !shouldCreateSpan(handlerData.fetchData.url)) {
     return;
   }
 
@@ -154,6 +154,7 @@ function fetchCallback(
       op: 'http',
     });
 
+    handlerData.fetchData.__span = span.spanId;
     spans[span.spanId] = span;
 
     const request = (handlerData.args[0] = handlerData.args[0] as string | Request);

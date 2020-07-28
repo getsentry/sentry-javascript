@@ -19,7 +19,11 @@ export function registerBackgroundTabDetection(): void {
         logger.log(
           `[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background, op: ${activeTransaction.op}`,
         );
-        activeTransaction.setStatus(SpanStatus.Cancelled);
+        // We should not set status if it is already set, this prevent important statuses like
+        // error or data loss from being overwritten on transaction.
+        if (!activeTransaction.status) {
+          activeTransaction.setStatus(SpanStatus.Cancelled);
+        }
         activeTransaction.setTag('visibilitychange', 'document.hidden');
         activeTransaction.finish();
       }
