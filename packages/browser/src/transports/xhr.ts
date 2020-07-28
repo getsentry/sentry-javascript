@@ -41,7 +41,12 @@ export class XHRTransport extends BaseTransport {
 
           if (status === Status.RateLimit) {
             const now = Date.now();
-            this._disabledUntil = new Date(now + parseRetryAfterHeader(now, request.getResponseHeader('Retry-After')));
+            /**
+             * "The search for the header name is case-insensitive."
+             * https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/getResponseHeader
+             */
+            const retryAfterHeader = request.getResponseHeader('Retry-After');
+            this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
             logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
           }
 
