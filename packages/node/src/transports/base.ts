@@ -111,7 +111,7 @@ export abstract class BaseTransport implements Transport {
                * https://nodejs.org/api/http.html#http_message_headers
                */
               let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
-              retryAfterHeader = Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader;
+              retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
               this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
               logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
             }
