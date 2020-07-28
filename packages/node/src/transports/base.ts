@@ -106,9 +106,13 @@ export abstract class BaseTransport implements Transport {
           } else {
             if (status === Status.RateLimit) {
               const now = Date.now();
-              let header = res.headers ? res.headers['Retry-After'] : '';
-              header = Array.isArray(header) ? header[0] : header;
-              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, header));
+              /**
+               * "Key-value pairs of header names and values. Header names are lower-cased."
+               * https://nodejs.org/api/http.html#http_message_headers
+               */
+              let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
+              retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
+              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
               logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
             }
 
