@@ -1,7 +1,7 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { captureEvent } from '@sentry/minimal';
 import { Event, Integration } from '@sentry/types';
-import { getGlobalObject, uuid4 } from '@sentry/utils';
+import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
 // @ts-ignore
 import localforage = require('localforage');
 
@@ -34,7 +34,7 @@ export class Offline implements Integration {
 
     getGlobalObject<Window>().addEventListener('online', () => {
       this._sendEvents().catch(() => {
-        // todo: handle localforage error
+        logger.warn('could not send cached events');
       });
     });
   }
@@ -51,8 +51,8 @@ export class Offline implements Integration {
         if ('navigator' in global && 'onLine' in global.navigator && !global.navigator.onLine) {
           try {
             await this._cacheEvent(event);
-          } catch (error) {
-            // todo: handle localforage error
+          } catch (_error) {
+            logger.warn('could not cache event while offline');
           }
 
           // return null on success or failure, because being offline will still result in an error
@@ -92,8 +92,8 @@ export class Offline implements Integration {
             .then(_ => _)
             .catch(_ => _);
         }
-      } catch (error) {
-        // handle JSON.parse error
+      } catch (_error) {
+        logger.warn('could not send cached event');
       }
     });
   }
