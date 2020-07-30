@@ -18,7 +18,6 @@ let transport: Transports.BaseTransport;
 
 describe('FetchTransport', () => {
   beforeEach(() => {
-    // @ts-ignore
     fetch = stub(window, 'fetch');
     transport = new Transports.FetchTransport({ dsn: testDsn });
   });

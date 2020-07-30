@@ -6,25 +6,25 @@ import { wrap } from '../../../src/helpers';
 
 describe('internal wrap()', () => {
   it('should wrap only functions', () => {
-    const fn = () => 1337;
+    const fn = (): number => 1337;
     const obj = { pickle: 'Rick' };
     const arr = ['Morty'];
     const str = 'Rick';
     const num = 42;
 
     expect(wrap(fn)).not.equal(fn);
-    // @ts-ignore
+    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
     expect(wrap(obj)).equal(obj);
-    // @ts-ignore
+    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
     expect(wrap(arr)).equal(arr);
-    // @ts-ignore
+    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
     expect(wrap(str)).equal(str);
-    // @ts-ignore
+    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
     expect(wrap(num)).equal(num);
   });
 
   it('should preserve correct function name when accessed', () => {
-    const namedFunction = () => 1337;
+    const namedFunction = (): number => 1337;
     expect(wrap(namedFunction)).not.equal(namedFunction);
     expect(namedFunction.name).equal('namedFunction');
     expect(wrap(namedFunction).name).equal('namedFunction');
@@ -119,8 +119,8 @@ describe('internal wrap()', () => {
 
   it('recrusively wraps arguments that are functions', () => {
     const fn = (() => 1337) as WrappedFunction;
-    const fnArgA = () => 1337;
-    const fnArgB = () => 1337;
+    const fnArgA = (): number => 1337;
+    const fnArgB = (): number => 1337;
 
     const wrapped = wrap(fn);
     wrapped(fnArgA, fnArgB);
@@ -161,7 +161,7 @@ describe('internal wrap()', () => {
         return;
       },
     };
-    // @ts-ignore
+    // @ts-ignore eventFn does not have property handleEvent
     context.eventFn.handleEvent = function(): void {
       expect(this).equal(context);
     };
@@ -176,7 +176,7 @@ describe('internal wrap()', () => {
   });
 
   it('should rethrow caught exceptions', () => {
-    const fn = () => {
+    const fn = (): number => {
       throw new Error('boom');
     };
     const wrapped = wrap(fn);

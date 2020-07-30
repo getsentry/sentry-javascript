@@ -29,6 +29,16 @@ const noAsyncAwait = {
           });
         }
       },
+
+      ArrowFunctionExpression(node) {
+        if (node.async) {
+          context.report({
+            node,
+            message:
+              'Using async-await can add a lot to bundle size. Please do not use it outside of tests, use Promises instead',
+          });
+        }
+      },
     };
   },
 };

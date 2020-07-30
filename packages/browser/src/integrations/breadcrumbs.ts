@@ -40,12 +40,12 @@ export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Breadcrumbs.id;
+  public static id: string = 'Breadcrumbs';
 
   /**
    * @inheritDoc
    */
-  public static id = 'Breadcrumbs';
+  public name: string = Breadcrumbs.id;
 
   /** JSDoc */
   private readonly _options: BreadcrumbsOptions;
@@ -83,6 +83,57 @@ export class Breadcrumbs implements Integration {
         event,
       },
     );
+  }
+
+  /**
+   * Instrument browser built-ins w/ breadcrumb capturing
+   *  - Console API
+   *  - DOM API (click/typing)
+   *  - XMLHttpRequest API
+   *  - Fetch API
+   *  - History API
+   */
+  public setupOnce(): void {
+    if (this._options.console) {
+      addInstrumentationHandler({
+        callback: (...args) => {
+          this._consoleBreadcrumb(...args);
+        },
+        type: 'console',
+      });
+    }
+    if (this._options.dom) {
+      addInstrumentationHandler({
+        callback: (...args) => {
+          this._domBreadcrumb(...args);
+        },
+        type: 'dom',
+      });
+    }
+    if (this._options.xhr) {
+      addInstrumentationHandler({
+        callback: (...args) => {
+          this._xhrBreadcrumb(...args);
+        },
+        type: 'xhr',
+      });
+    }
+    if (this._options.fetch) {
+      addInstrumentationHandler({
+        callback: (...args) => {
+          this._fetchBreadcrumb(...args);
+        },
+        type: 'fetch',
+      });
+    }
+    if (this._options.history) {
+      addInstrumentationHandler({
+        callback: (...args) => {
+          this._historyBreadcrumb(...args);
+        },
+        type: 'history',
+      });
+    }
   }
 
   /**
@@ -255,56 +306,5 @@ export class Breadcrumbs implements Integration {
         to,
       },
     });
-  }
-
-  /**
-   * Instrument browser built-ins w/ breadcrumb capturing
-   *  - Console API
-   *  - DOM API (click/typing)
-   *  - XMLHttpRequest API
-   *  - Fetch API
-   *  - History API
-   */
-  public setupOnce(): void {
-    if (this._options.console) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._consoleBreadcrumb(...args);
-        },
-        type: 'console',
-      });
-    }
-    if (this._options.dom) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._domBreadcrumb(...args);
-        },
-        type: 'dom',
-      });
-    }
-    if (this._options.xhr) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._xhrBreadcrumb(...args);
-        },
-        type: 'xhr',
-      });
-    }
-    if (this._options.fetch) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._fetchBreadcrumb(...args);
-        },
-        type: 'fetch',
-      });
-    }
-    if (this._options.history) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._historyBreadcrumb(...args);
-        },
-        type: 'history',
-      });
-    }
   }
 }

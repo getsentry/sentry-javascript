@@ -9,12 +9,12 @@ export class UserAgent implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = UserAgent.id;
+  public static id: string = 'UserAgent';
 
   /**
    * @inheritDoc
    */
-  public static id = 'UserAgent';
+  public name: string = UserAgent.id;
 
   /**
    * @inheritDoc

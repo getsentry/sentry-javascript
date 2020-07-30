@@ -105,6 +105,7 @@
     observer.observe(node, { characterData: true });
 
     return function() {
+      // eslint-disable-next-line no-plusplus
       node.data = iterations = ++iterations % 2;
     };
   }
@@ -478,11 +479,11 @@
 
   var id = 0;
   function nextId() {
-    return id++;
+    return (id += 1);
   }
 
   function makePromise(promise) {
-    promise[PROMISE_ID] = id++;
+    promise[PROMISE_ID] = id += 1;
     promise._state = undefined;
     promise._result = undefined;
     promise._subscribers = [];
@@ -545,7 +546,7 @@
         if (_then === then && entry._state !== PENDING) {
           this._settledAt(entry._state, i, entry._result);
         } else if (typeof _then !== "function") {
-          this._remaining--;
+          this._remaining -= 1;
           this._result[i] = entry;
         } else if (c === Promise$2) {
           var promise = new c(noop);
@@ -572,7 +573,7 @@
       var promise = this.promise;
 
       if (promise._state === PENDING) {
-        this._remaining--;
+        this._remaining -= 1;
 
         if (state === REJECTED) {
           reject(promise, value);

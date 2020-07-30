@@ -24,21 +24,21 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = GlobalHandlers.id;
+  public static id: string = 'GlobalHandlers';
 
   /**
    * @inheritDoc
    */
-  public static id = 'GlobalHandlers';
+  public name: string = GlobalHandlers.id;
 
   /** JSDoc */
   private readonly _options: GlobalHandlersIntegrations;
 
   /** JSDoc */
-  private _onErrorHandlerInstalled = false;
+  private _onErrorHandlerInstalled: boolean = false;
 
   /** JSDoc */
-  private _onUnhandledRejectionHandlerInstalled = false;
+  private _onUnhandledRejectionHandlerInstalled: boolean = false;
 
   /** JSDoc */
   public constructor(options?: GlobalHandlersIntegrations) {

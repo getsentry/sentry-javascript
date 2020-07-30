@@ -27,7 +27,7 @@ export class XHRTransport extends BaseTransport {
       new SyncPromise<Response>((resolve, reject) => {
         const request = new XMLHttpRequest();
 
-        request.onreadystatechange = () => {
+        request.onreadystatechange = (): void => {
           if (request.readyState !== 4) {
             return;
           }

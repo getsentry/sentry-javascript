@@ -51,6 +51,7 @@
     "danger-plugin-tslint": "^2.0.0",
     "eslint": "^7.5.0",
     "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-jsdoc": "^30.0.3",
     "eslint-plugin-sentry-sdk": "file:./eslint-plugin-sentry-sdk",
     "jest": "^24.7.1",
     "karma-browserstack-launcher": "^1.5.1",

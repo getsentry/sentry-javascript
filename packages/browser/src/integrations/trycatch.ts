@@ -51,12 +51,12 @@ export class TryCatch implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = TryCatch.id;
+  public static id: string = 'TryCatch';
 
   /**
    * @inheritDoc
    */
-  public static id = 'TryCatch';
+  public name: string = TryCatch.id;
 
   /** JSDoc */
   private readonly _options: TryCatchOptions;
@@ -73,6 +73,35 @@ export class TryCatch implements Integration {
       setTimeout: true,
       ...options,
     };
+  }
+
+  /**
+   * Wrap timer functions and event targets to catch errors
+   * and provide better metadata.
+   */
+  public setupOnce(): void {
+    const global = getGlobalObject();
+
+    if (this._options.setTimeout) {
+      fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
+    }
+
+    if (this._options.setInterval) {
+      fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
+    }
+
+    if (this._options.requestAnimationFrame) {
+      fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
+    }
+
+    if (this._options.XMLHttpRequest && 'XMLHttpRequest' in global) {
+      fill(XMLHttpRequest.prototype, 'send', this._wrapXHR.bind(this));
+    }
+
+    if (this._options.eventTarget) {
+      const eventTarget = Array.isArray(this._options.eventTarget) ? this._options.eventTarget : DEFAULT_EVENT_TARGET;
+      eventTarget.forEach(this._wrapEventTarget.bind(this));
+    }
   }
 
   /** JSDoc */
@@ -245,34 +274,5 @@ export class TryCatch implements Integration {
 
       return originalSend.apply(this, args);
     };
-  }
-
-  /**
-   * Wrap timer functions and event targets to catch errors
-   * and provide better metadata.
-   */
-  public setupOnce(): void {
-    const global = getGlobalObject();
-
-    if (this._options.setTimeout) {
-      fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
-    }
-
-    if (this._options.setInterval) {
-      fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
-    }
-
-    if (this._options.requestAnimationFrame) {
-      fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
-    }
-
-    if (this._options.XMLHttpRequest && 'XMLHttpRequest' in global) {
-      fill(XMLHttpRequest.prototype, 'send', this._wrapXHR.bind(this));
-    }
-
-    if (this._options.eventTarget) {
-      const eventTarget = Array.isArray(this._options.eventTarget) ? this._options.eventTarget : DEFAULT_EVENT_TARGET;
-      eventTarget.forEach(this._wrapEventTarget.bind(this));
-    }
   }
 }
