@@ -1,7 +1,8 @@
 import { captureEvent } from '@sentry/minimal';
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
-import localforage from 'localforage';
+// @ts-ignore
+import localforage = require('localforage');
 
 /**
  * cache offline errors and send when connected
