@@ -13,6 +13,7 @@ import {
  * @hidden
  */
 export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   __sentry_xhr__?: {
     method?: string;
@@ -44,7 +45,7 @@ export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Breadcrumbs';
+  public static id = 'Breadcrumbs';
 
   /** JSDoc */
   private readonly _options: BreadcrumbsOptions;
@@ -87,6 +88,7 @@ export class Breadcrumbs implements Integration {
   /**
    * Creates breadcrumbs from console API calls
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
     const breadcrumb = {
       category: 'console',
@@ -117,6 +119,7 @@ export class Breadcrumbs implements Integration {
   /**
    * Creates breadcrumbs from DOM API calls
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _domBreadcrumb(handlerData: { [key: string]: any }): void {
     let target;
 
@@ -148,6 +151,7 @@ export class Breadcrumbs implements Integration {
   /**
    * Creates breadcrumbs from XHR API calls
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _xhrBreadcrumb(handlerData: { [key: string]: any }): void {
     if (handlerData.endTimestamp) {
       // We only capture complete, non-sentry requests
@@ -173,6 +177,7 @@ export class Breadcrumbs implements Integration {
   /**
    * Creates breadcrumbs from fetch API calls
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
     // We only capture complete fetch requests
     if (!handlerData.endTimestamp) {
@@ -218,6 +223,7 @@ export class Breadcrumbs implements Integration {
   /**
    * Creates breadcrumbs from history API calls
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _historyBreadcrumb(handlerData: { [key: string]: any }): void {
     const global = getGlobalObject<Window>();
     let from = handlerData.from;

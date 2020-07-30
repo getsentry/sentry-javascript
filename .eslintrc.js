@@ -7,12 +7,20 @@ module.exports = {
   plugins: ['sentry-sdk'],
   overrides: [
     {
+      files: ['*.js'],
+      rules: {
+        'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      },
+    },
+    {
       files: ['*.ts'],
       extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint'],
       plugins: ['@typescript-eslint'],
       parser: '@typescript-eslint/parser',
       rules: {
         'sentry-sdk/no-async-await': 'error',
+        // Make sure variables marked with _ are ignored (ex. _varName)
+        '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       },
     },
     {
@@ -20,9 +28,6 @@ module.exports = {
         jest: true,
       },
       files: ['*.test.ts'],
-      extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint'],
-      plugins: ['@typescript-eslint'],
-      parser: '@typescript-eslint/parser',
     },
     {
       files: ['*.config.js'],

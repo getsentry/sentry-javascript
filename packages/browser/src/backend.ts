@@ -62,7 +62,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
+  public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
     return eventFromException(this._options, exception, hint);
   }
   /**

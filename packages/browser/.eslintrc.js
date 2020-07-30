@@ -5,7 +5,7 @@ module.exports = {
     browser: true,
   },
   extends: ['../../.eslintrc.js'],
-  ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*'],
+  ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*', 'src/loader.js'],
   overrides: [
     {
       files: ['test/integration/**/*'],
@@ -23,5 +23,7 @@ module.exports = {
       },
     },
   ],
-  rules: {},
+  rules: {
+    'no-prototype-builtins': 'off',
+  },
 };

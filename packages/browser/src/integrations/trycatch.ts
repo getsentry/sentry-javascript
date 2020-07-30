@@ -56,7 +56,7 @@ export class TryCatch implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'TryCatch';
+  public static id = 'TryCatch';
 
   /** JSDoc */
   private readonly _options: TryCatchOptions;
@@ -77,6 +77,7 @@ export class TryCatch implements Integration {
 
   /** JSDoc */
   private _wrapTimeFunction(original: () => void): () => number {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function(this: any, ...args: any[]): number {
       const originalCallback = args[0];
       args[0] = wrap(originalCallback, {
@@ -91,7 +92,9 @@ export class TryCatch implements Integration {
   }
 
   /** JSDoc */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _wrapRAF(original: any): (callback: () => void) => any {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function(this: any, callback: () => void): () => void {
       return original.call(
         this,
@@ -111,6 +114,7 @@ export class TryCatch implements Integration {
 
   /** JSDoc */
   private _wrapEventTarget(target: string): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const global = getGlobalObject() as { [key: string]: any };
     const proto = global[target] && global[target].prototype;
 
@@ -122,6 +126,7 @@ export class TryCatch implements Integration {
       original: () => void,
     ): (eventName: string, fn: EventListenerObject, options?: boolean | AddEventListenerOptions) => void {
       return function(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this: any,
         eventName: string,
         fn: EventListenerObject,
@@ -149,6 +154,7 @@ export class TryCatch implements Integration {
         return original.call(
           this,
           eventName,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           wrap((fn as any) as WrappedFunction, {
             mechanism: {
               data: {
@@ -167,8 +173,10 @@ export class TryCatch implements Integration {
 
     fill(proto, 'removeEventListener', function(
       original: () => void,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): (this: any, eventName: string, fn: EventListenerObject, options?: boolean | EventListenerOptions) => () => void {
       return function(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this: any,
         eventName: string,
         fn: EventListenerObject,
@@ -203,13 +211,16 @@ export class TryCatch implements Integration {
 
   /** JSDoc */
   private _wrapXHR(originalSend: () => void): () => void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function(this: XMLHttpRequest, ...args: any[]): void {
-      const xhr = this; // tslint:disable-line:no-this-assignment
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const xhr = this;
       const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress', 'onreadystatechange'];
 
       xmlHttpRequestProps.forEach(prop => {
         if (prop in xhr && typeof xhr[prop] === 'function') {
-          fill(xhr, prop, function(original: WrappedFunction): Function {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fill(xhr, prop, function(original: WrappedFunction): () => any {
             const wrapOptions = {
               mechanism: {
                 data: {

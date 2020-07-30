@@ -2,7 +2,7 @@ import { API, captureException, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
 import { addExceptionMechanism, addExceptionTypeValue, logger } from '@sentry/utils';
 
-let ignoreOnError: number = 0;
+let ignoreOnError = 0;
 
 /**
  * @hidden
@@ -36,6 +36,7 @@ export function wrap(
     mechanism?: Mechanism;
   } = {},
   before?: WrappedFunction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   // tslint:disable-next-line:strict-type-predicates
   if (typeof fn !== 'function') {
@@ -59,6 +60,8 @@ export function wrap(
     return fn;
   }
 
+  /* eslint-disable prefer-rest-params */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sentryWrapped: WrappedFunction = function(this: any): void {
     const args = Array.prototype.slice.call(arguments);
 
@@ -69,6 +72,7 @@ export function wrap(
         before.apply(this, arguments);
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
@@ -110,6 +114,7 @@ export function wrap(
       throw ex;
     }
   };
+  /* eslint-enable prefer-rest-params */
 
   // Accessing some objects may throw
   // ref: https://github.com/getsentry/sentry-javascript/issues/1168
@@ -119,7 +124,7 @@ export function wrap(
         sentryWrapped[property] = fn[property];
       }
     }
-  } catch (_oO) {} // tslint:disable-line:no-empty
+  } catch (_oO) {} // eslint-disable-line no-empty
 
   fn.prototype = fn.prototype || {};
   sentryWrapped.prototype = fn.prototype;
@@ -163,6 +168,7 @@ export function wrap(
  * All properties the report dialog supports
  */
 export interface ReportDialogOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   eventId?: string;
   dsn?: DsnLike;

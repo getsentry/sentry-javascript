@@ -1102,9 +1102,9 @@
     /**
     `finally` will be invoked regardless of the promise's fate just as native
     try/catch/finally behaves
-  
+
     Synchronous example:
-  
+
     ```js
     findAuthor() {
       if (Math.random() > 0.5) {
@@ -1112,7 +1112,7 @@
       }
       return new Author();
     }
-  
+
     try {
       return findAuthor(); // succeed or fail
     } catch(error) {
@@ -1122,9 +1122,9 @@
       // doesn't affect the return value
     }
     ```
-  
+
     Asynchronous example:
-  
+
     ```js
     findAuthor().catch(function(reason){
       return findOtherAuther();
@@ -1132,7 +1132,7 @@
       // author was either found, or not
     });
     ```
-  
+
     @method finally
     @param {Function} callback
     @return {Promise}
@@ -1172,7 +1172,6 @@
   Promise$2._setAsap = setAsap;
   Promise$2._asap = asap;
 
-  /*global self*/
   function polyfill() {
     var local = void 0;
 
