@@ -7,8 +7,6 @@ import localforage = require('localforage');
  * cache offline errors and send when connected
  */
 export class Offline implements Integration {
-  // tslint:disable: no-unsafe-any
-
   /**
    * @inheritDoc
    */
@@ -27,7 +25,7 @@ export class Offline implements Integration {
   /**
    * event cache
    */
-  public offlineEventStore: any;
+  public offlineEventStore: LocalForage; // type imported from localforage
 
   /**
    * @inheritDoc
@@ -37,7 +35,7 @@ export class Offline implements Integration {
       name: 'sentry/offlineEventStore',
     });
 
-    getGlobalObject<Window>().addEventListener('online', () => {
+    getGlobalObject<Window>().addEventListener('online', (): void => {
       this._sendEvents().catch(() => {
         logger.warn('could not send cached events');
       });
@@ -76,7 +74,7 @@ export class Offline implements Integration {
    * @param event an event
    */
   private async _cacheEvent(event: Event): Promise<Event> {
-    return this.offlineEventStore.setItem(uuid4(), event);
+    return this.offlineEventStore.setItem<Event>(uuid4(), event);
   }
 
   /**
@@ -90,15 +88,15 @@ export class Offline implements Integration {
    * send all events
    */
   private async _sendEvents(): Promise<void> {
-    return this.offlineEventStore.iterate((event: any, cacheKey: string, _index: number): void => {
+    return this.offlineEventStore.iterate<Event, void>((event: Event, cacheKey: string, _index: number): void => {
       try {
         if (this.hub) {
           const newEventId = this.hub.captureEvent(event);
 
           if (newEventId) {
-            this._purgeEvent(cacheKey)
-              .then(_ => _)
-              .catch(_ => _);
+            this._purgeEvent(cacheKey).catch((_error: any): void => {
+              logger.warn('could not purge event from cache');
+            });
           }
         } else {
           logger.warn('no hub found - could not send cached event');
