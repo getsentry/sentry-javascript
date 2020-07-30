@@ -1,14 +1,14 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { captureEvent } from '@sentry/minimal';
-import { Event, Integration } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
-// @ts-ignore
-import localforage = require('localforage');
+import localforage from 'localforage';
 
 /**
  * cache offline errors and send when connected
  */
 export class Offline implements Integration {
+  // tslint:disable: no-unsafe-any
+
   /**
    * @inheritDoc
    */
@@ -42,7 +42,7 @@ export class Offline implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor(async (event: Event) => {
       if (getCurrentHub().getIntegration(Offline)) {
         const global = getGlobalObject<Window>();
@@ -83,7 +83,7 @@ export class Offline implements Integration {
    * send all events
    */
   private async _sendEvents(): Promise<void> {
-    return this.offlineEventStore.iterate((event: any, cacheKey: string, _index: number) => {
+    return this.offlineEventStore.iterate((event: any, cacheKey: string, _index: number): void => {
       try {
         const newEventId = captureEvent(event);
 
