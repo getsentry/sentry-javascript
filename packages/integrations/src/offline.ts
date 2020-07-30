@@ -48,17 +48,15 @@ export class Offline implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.hub = getCurrentHub();
 
-    addGlobalEventProcessor(async (event: Event) => {
+    addGlobalEventProcessor((event: Event) => {
       if (this.hub && this.hub.getIntegration(Offline)) {
         const global = getGlobalObject<Window>();
 
         // cache if we are positively offline
         if ('navigator' in global && 'onLine' in global.navigator && !global.navigator.onLine) {
-          try {
-            await this._cacheEvent(event);
-          } catch (_error) {
+          this._cacheEvent(event).catch((_error: any) => {
             logger.warn('could not cache event while offline');
-          }
+          });
 
           // return null on success or failure, because being offline will still result in an error
           return null;
@@ -89,20 +87,16 @@ export class Offline implements Integration {
    */
   private async _sendEvents(): Promise<void> {
     return this.offlineEventStore.iterate<Event, void>((event: Event, cacheKey: string, _index: number): void => {
-      try {
-        if (this.hub) {
-          const newEventId = this.hub.captureEvent(event);
+      if (this.hub) {
+        const newEventId = this.hub.captureEvent(event);
 
-          if (newEventId) {
-            this._purgeEvent(cacheKey).catch((_error: any): void => {
-              logger.warn('could not purge event from cache');
-            });
-          }
-        } else {
-          logger.warn('no hub found - could not send cached event');
+        if (newEventId) {
+          this._purgeEvent(cacheKey).catch((_error: any): void => {
+            logger.warn('could not purge event from cache');
+          });
         }
-      } catch (_error) {
-        logger.warn('could not send cached event');
+      } else {
+        logger.warn('no hub found - could not send cached event');
       }
     });
   }
