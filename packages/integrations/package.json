@@ -16,7 +16,6 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/minimal": "5.20.1",
     "@sentry/types": "5.20.1",
     "@sentry/utils": "5.20.1",
     "localforage": "^1.8.1",

@@ -1,4 +1,3 @@
-import { captureEvent } from '@sentry/minimal';
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
 // @ts-ignore
@@ -19,6 +18,11 @@ export class Offline implements Integration {
    * @inheritDoc
    */
   public readonly name: string = Offline.id;
+
+  /**
+   * the current hub instance
+   */
+  public hub?: Hub;
 
   /**
    * event cache
@@ -44,8 +48,10 @@ export class Offline implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    this.hub = getCurrentHub();
+
     addGlobalEventProcessor(async (event: Event) => {
-      if (getCurrentHub().getIntegration(Offline)) {
+      if (this.hub && this.hub.getIntegration(Offline)) {
         const global = getGlobalObject<Window>();
 
         // cache if we are positively offline
@@ -86,12 +92,16 @@ export class Offline implements Integration {
   private async _sendEvents(): Promise<void> {
     return this.offlineEventStore.iterate((event: any, cacheKey: string, _index: number): void => {
       try {
-        const newEventId = captureEvent(event);
+        if (this.hub) {
+          const newEventId = this.hub.captureEvent(event);
 
-        if (newEventId) {
-          this._purgeEvent(cacheKey)
-            .then(_ => _)
-            .catch(_ => _);
+          if (newEventId) {
+            this._purgeEvent(cacheKey)
+              .then(_ => _)
+              .catch(_ => _);
+          }
+        } else {
+          logger.warn('no hub found - could not send cached event');
         }
       } catch (_error) {
         logger.warn('could not send cached event');
