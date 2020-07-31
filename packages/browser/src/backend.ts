@@ -31,11 +31,6 @@ export interface BrowserOptions extends Options {
   blacklistUrls?: Array<string | RegExp>;
 }
 
-const lol = async () => {
-  await new Promise();
-  return 'hello';
-};
-
 /**
  * The Sentry Browser SDK Backend.
  * @hidden
