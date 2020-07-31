@@ -41,17 +41,3 @@ export function init(options: ServerlessOptions = {}): void {
 
   initAndBind(ServerlessClient, options);
 }
-
-/**
- * A promise that resolves when all current events have been sent.
- * If you provide a timeout and the queue takes longer to drain the promise returns false.
- *
- * @param timeout Maximum time in ms the client should wait.
- */
-export async function flush(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient<ServerlessClient>();
-  if (client) {
-    return client.flush(timeout);
-  }
-  return Promise.reject(false);
-}

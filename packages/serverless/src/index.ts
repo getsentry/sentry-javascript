@@ -38,14 +38,13 @@ export {
 } from '@sentry/core';
 
 import * as ServerlessIntegrations from './integrations';
-import * as Handlers from './handlers';
-export { ServerlessIntegrations as Integrations, Handlers };
+export { ServerlessIntegrations as Integrations };
 export { init } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 import { getMainCarrier } from '@sentry/hub';
 import * as domain from 'domain';
 
-// We need to patch domain on the global __SENTRY__ object to make it work for node
+// We need to patch domain on the global __SENTRY__ object to make it work for serverless
 // if we don't do this, browser bundlers will have troubles resolving require('domain')
 const carrier = getMainCarrier();
 if (carrier.__SENTRY__) {

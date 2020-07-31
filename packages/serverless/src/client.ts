@@ -1,5 +1,6 @@
 import { BaseClient, Scope } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
+
 import { ServerlessBackend, ServerlessOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';
 
