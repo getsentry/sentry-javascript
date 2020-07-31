@@ -2,7 +2,7 @@ import { API, captureException, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
 import { addExceptionMechanism, addExceptionTypeValue, logger } from '@sentry/utils';
 
-let ignoreOnError = 0;
+let ignoreOnError: number = 0;
 
 /**
  * @hidden
