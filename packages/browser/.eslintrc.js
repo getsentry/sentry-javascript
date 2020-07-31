@@ -11,10 +11,18 @@ module.exports = {
   ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*', 'src/loader.js'],
   overrides: [
     {
+      files: ['*.ts', '*.tsx', '*.d.ts'],
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+    },
+    {
       files: ['test/**/*'],
       rules: {
         'jsdoc/require-jsdoc': 'off',
         'no-console': 'off',
+        'max-lines': 'off',
+        'prefer-template': 'off',
       },
     },
     {

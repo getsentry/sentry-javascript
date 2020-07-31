@@ -162,7 +162,6 @@ export class TryCatch implements Integration {
         options?: boolean | AddEventListenerOptions,
       ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
         try {
-          // tslint:disable-next-line:no-unbound-method strict-type-predicates
           if (typeof fn.handleEvent === 'function') {
             fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
               mechanism: {

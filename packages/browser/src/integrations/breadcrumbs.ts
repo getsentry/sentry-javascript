@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
 import { Event, Integration, Severity } from '@sentry/types';
 import {
@@ -291,11 +292,9 @@ export class Breadcrumbs implements Integration {
     // Use only the path component of the URL if the URL matches the current
     // document (almost all the time when using pushState)
     if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host) {
-      // tslint:disable-next-line:no-parameter-reassignment
       to = parsedTo.relative;
     }
     if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host) {
-      // tslint:disable-next-line:no-parameter-reassignment
       from = parsedFrom.relative;
     }
 
