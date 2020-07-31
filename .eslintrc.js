@@ -20,9 +20,6 @@ module.exports = {
       extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint'],
       plugins: ['@typescript-eslint'],
       parser: '@typescript-eslint/parser',
-      parserOptions: {
-        project: './tsconfig.json',
-      },
       rules: {
         // We want to prevent async await usage in our files to prevent uncessary bundle size. Turned off in tests.
         'sentry-sdk/no-async-await': 'error',
