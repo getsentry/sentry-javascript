@@ -91,5 +91,7 @@
       }
     }
   },
-  "sideEffects": false
+  "sideEffects": [
+    "./src/index.ts"
+  ]
 }
