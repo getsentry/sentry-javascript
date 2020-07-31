@@ -76,8 +76,7 @@ function reactRouterInstrumentation(
 
     if (startTransactionOnLocationChange && history.listen) {
       history.listen((location, action) => {
-        // console.log(location, action);
-        if (action && action === 'PUSH') {
+        if (action && (action === 'PUSH' || action === 'POP')) {
           if (activeTransaction) {
             activeTransaction.finish();
           }
@@ -131,11 +130,9 @@ function computeRootMatch(pathname: string): Match {
   return { path: '/', url: '/', params: {}, isExact: pathname === '/' };
 }
 
-export const withSentryRouting = (Route: React.ElementType) => (props: any) => {
-  // tslint:disable: no-unsafe-any
+export const withSentryRouting = (Route: React.ElementType) => (props: { computedMatch?: Match }) => {
   if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
     activeTransaction.setName(props.computedMatch.path);
   }
   return <Route {...props} />;
-  // tslint:enable: no-unsafe-any
 };

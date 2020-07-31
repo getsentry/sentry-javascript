@@ -41,9 +41,10 @@ export function reactRouterV3Instrumentation(
     let activeTransaction: Transaction | undefined;
     let prevName: string | undefined;
 
+    // Have to use global.location because history.location might not be defined.
     if (startTransactionOnPageLoad && global && global.location) {
-      // Have to use global.location because history.location might not be defined.
       prevName = normalizeTransactionName(routes, global.location, match);
+
       activeTransaction = startTransaction({
         name: prevName,
         op: 'pageload',
@@ -55,7 +56,7 @@ export function reactRouterV3Instrumentation(
 
     if (startTransactionOnLocationChange && history.listen) {
       history.listen(location => {
-        if (location.action === 'PUSH') {
+        if (location.action === 'PUSH' || location.action === 'POP') {
           if (activeTransaction) {
             activeTransaction.finish();
           }
@@ -63,7 +64,6 @@ export function reactRouterV3Instrumentation(
           if (prevName) {
             tags.from = prevName;
           }
-
           prevName = normalizeTransactionName(routes, location, match);
           activeTransaction = startTransaction({
             name: prevName,
