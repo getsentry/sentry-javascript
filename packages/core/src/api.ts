@@ -75,7 +75,8 @@ export class API {
   /** Returns the url to the report dialog endpoint. */
   public getReportDialogEndpoint(
     dialogOptions: {
-      [key: string]: unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: any;
       user?: { name?: string; email?: string };
     } = {},
   ): string {

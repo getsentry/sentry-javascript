@@ -194,7 +194,7 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureException('a');
-      // @ts-ignore Says mock object is type unknown, so can't access event_id
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].event_id).toBeTruthy();
     });
 
@@ -203,11 +203,11 @@ describe('Hub', () => {
       const spy = jest.spyOn(hub as any, '_invokeClient');
       const ex = new Error('foo');
       hub.captureException(ex);
-      // @ts-ignore Says mock object is type unknown, so can't access event_id
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].originalException).toBe(ex);
-      // @ts-ignore Says mock object is type unknown, so can't access event_id
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
-      // @ts-ignore Says mock object is type unknown, so can't access event_id
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].syntheticException.message).toBe('Sentry syntheticException');
     });
   });

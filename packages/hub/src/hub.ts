@@ -312,7 +312,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setContext(name: string, context: { [key: string]: unknown } | null): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public setContext(name: string, context: { [key: string]: any } | null): void {
     const top = this.getStackTop();
     if (!top.scope) {
       return;
