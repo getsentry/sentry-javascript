@@ -24,12 +24,12 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = GlobalHandlers.id;
+  public static id: string = 'GlobalHandlers';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'GlobalHandlers';
+  public name: string = GlobalHandlers.id;
 
   /** JSDoc */
   private readonly _options: GlobalHandlersIntegrations;
@@ -72,6 +72,7 @@ export class GlobalHandlers implements Integration {
     }
 
     addInstrumentationHandler({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
         const error = data.error;
         const currentHub = getCurrentHub();
@@ -117,6 +118,7 @@ export class GlobalHandlers implements Integration {
     }
 
     addInstrumentationHandler({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callback: (e: any) => {
         let error = e;
 
@@ -177,6 +179,7 @@ export class GlobalHandlers implements Integration {
   /**
    * This function creates a stack from an old, error-less onerror handler.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any): Event {
     const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
 
@@ -209,6 +212,7 @@ export class GlobalHandlers implements Integration {
   /**
    * This function creates an Event from an TraceKitStackTrace that has part of it missing.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _eventFromIncompleteRejection(error: any): Event {
     return {
       exception: {
@@ -223,6 +227,7 @@ export class GlobalHandlers implements Integration {
   }
 
   /** JSDoc */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
     event.exception = event.exception || {};
     event.exception.values = event.exception.values || [];

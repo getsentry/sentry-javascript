@@ -1,7 +1,3 @@
-// tslint:disable:prefer-template
-// tslint:disable:object-literal-sort-keys
-// tslint:disable:max-file-line-count
-
 import { expect } from 'chai';
 
 import { computeStackTrace } from '../../../src/tracekit';

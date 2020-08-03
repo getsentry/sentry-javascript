@@ -1,5 +1,3 @@
-// tslint:disable:object-literal-sort-keys
-
 /**
  * This was originally forked from https://github.com/occ/TraceKit, but has since been
  * largely modified and is now maintained as part of Sentry JS SDK.
@@ -54,9 +52,8 @@ const chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
 /** JSDoc */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export function computeStackTrace(ex: any): StackTrace {
-  // tslint:disable:no-unsafe-any
-
   let stack = null;
   let popSize = 0;
 
@@ -98,9 +95,8 @@ export function computeStackTrace(ex: any): StackTrace {
 }
 
 /** JSDoc */
-// tslint:disable-next-line:cyclomatic-complexity
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function computeStackTraceFromStackProp(ex: any): StackTrace | null {
-  // tslint:disable:no-conditional-assignment
   if (!ex || !ex.stack) {
     return null;
   }
@@ -184,6 +180,7 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
 }
 
 /** JSDoc */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
   if (!ex || !ex.stacktrace) {
     return null;
@@ -193,13 +190,12 @@ function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
   // reliably in other circumstances.
   const stacktrace = ex.stacktrace;
   const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
-  const opera11Regex = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\))? in (.*):\s*$/i;
+  const opera11Regex = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\((.*)\))? in (.*):\s*$/i;
   const lines = stacktrace.split('\n');
   const stack = [];
   let parts;
 
   for (let line = 0; line < lines.length; line += 2) {
-    // tslint:disable:no-conditional-assignment
     let element = null;
     if ((parts = opera10Regex.exec(lines[line]))) {
       element = {
@@ -255,6 +251,7 @@ function popFrames(stacktrace: StackTrace, popSize: number): StackTrace {
  * https://github.com/getsentry/sentry-javascript/issues/1949
  * In this specific case we try to extract stacktrace.message.error.message
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractMessage(ex: any): string {
   const message = ex && ex.message;
   if (!message) {

@@ -21,6 +21,7 @@ import { SimpleTransport } from './mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, no-var
 declare var global: any;
 
 describe('SentryBrowser', () => {
@@ -95,16 +96,18 @@ describe('SentryBrowser', () => {
 
       const event = beforeSend.args[0][0];
       expect(event.exception).to.not.be.undefined;
+      /* eslint-disable @typescript-eslint/no-non-null-assertion */
       expect(event.exception!.values![0]).to.not.be.undefined;
       expect(event.exception!.values![0].type).to.equal('Error');
       expect(event.exception!.values![0].value).to.equal('test');
       expect(event.exception!.values![0].stacktrace).to.not.be.empty;
+      /* eslint-enable @typescript-eslint/no-non-null-assertion */
     });
 
     it('should capture a message', done => {
       getCurrentHub().bindClient(
         new BrowserClient({
-          beforeSend: (event: Event) => {
+          beforeSend: (event: Event): Event | null => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
             done();
@@ -119,7 +122,7 @@ describe('SentryBrowser', () => {
     it('should capture an event', done => {
       getCurrentHub().bindClient(
         new BrowserClient({
-          beforeSend: (event: Event) => {
+          beforeSend: (event: Event): Event | null => {
             expect(event.message).to.equal('event');
             expect(event.exception).to.be.undefined;
             done();
@@ -186,9 +189,11 @@ describe('wrap()', () => {
   it('should wrap and call function while capturing error', done => {
     getCurrentHub().bindClient(
       new BrowserClient({
-        beforeSend: (event: Event) => {
+        beforeSend: (event: Event): Event | null => {
+          /* eslint-disable @typescript-eslint/no-non-null-assertion */
           expect(event.exception!.values![0].type).to.equal('TypeError');
           expect(event.exception!.values![0].value).to.equal('mkey');
+          /* eslint-enable @typescript-eslint/no-non-null-assertion */
           done();
           return null;
         },
@@ -208,14 +213,14 @@ describe('wrap()', () => {
 
   it('should allow for passing this and arguments through binding', () => {
     const result = wrap(
-      function(this: any, a: string, b: number): any[] {
+      function(this: unknown, a: string, b: number): unknown[] {
         return [this, a, b];
       }.bind({ context: 'this' }, 'b', 42),
     );
 
-    expect((result as any[])[0]).to.deep.equal({ context: 'this' });
-    expect((result as any[])[1]).to.equal('b');
-    expect((result as any[])[2]).to.equal(42);
+    expect((result as unknown[])[0]).to.deep.equal({ context: 'this' });
+    expect((result as unknown[])[1]).to.equal('b');
+    expect((result as unknown[])[2]).to.equal(42);
 
     const result2 = wrap(
       function(this: { x: number }): number {

@@ -61,6 +61,7 @@
 
   function normalizeName(name) {
     if (typeof name !== "string") {
+      // eslint-disable-next-line no-param-reassign
       name = String(name);
     }
     if (/[^a-z0-9\-#$%&'*+.^_`|~]/i.test(name)) {
@@ -71,6 +72,7 @@
 
   function normalizeValue(value) {
     if (typeof value !== "string") {
+      // eslint-disable-next-line no-param-reassign
       value = String(value);
     }
     return value;
@@ -113,7 +115,9 @@
   }
 
   Headers.prototype.append = function(name, value) {
+    // eslint-disable-next-line no-param-reassign
     name = normalizeName(name);
+    // eslint-disable-next-line no-param-reassign
     value = normalizeValue(value);
     var oldValue = this.map[name];
     this.map[name] = oldValue ? oldValue + ", " + value : value;
@@ -124,6 +128,7 @@
   };
 
   Headers.prototype.get = function(name) {
+    // eslint-disable-next-line no-param-reassign
     name = normalizeName(name);
     return this.has(name) ? this.map[name] : null;
   };
@@ -252,6 +257,7 @@
       ) {
         this._bodyArrayBuffer = bufferClone(body);
       } else {
+        // eslint-disable-next-line no-param-reassign
         this._bodyText = body = Object.prototype.toString.call(body);
       }
 
@@ -338,6 +344,7 @@
   }
 
   function Request(input, options) {
+    // eslint-disable-next-line no-param-reassign
     options = options || {};
     var body = options.body;
 
@@ -416,6 +423,7 @@
 
   function Response(bodyInit, options) {
     if (!options) {
+      // eslint-disable-next-line no-param-reassign
       options = {};
     }
 

@@ -28,7 +28,6 @@ describe('XHRTransport', () => {
   });
 
   it('inherits composeEndpointUrl() implementation', () => {
-    // tslint:disable-next-line:deprecation
     expect(transport.url).equal(transportUrl);
   });
 
@@ -118,7 +117,7 @@ describe('XHRTransport', () => {
 
       expect(res.status).equal(Status.Success);
       const requestHeaders: { [key: string]: string } = request.requestHeaders as { [key: string]: string };
-      const authHeaderLabel: string = 'Authorization';
+      const authHeaderLabel = 'Authorization';
       expect(requestHeaders[authHeaderLabel]).equal('Basic GVzdDp0ZXN0Cg==');
     });
   });

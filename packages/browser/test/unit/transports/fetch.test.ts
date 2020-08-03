@@ -18,7 +18,6 @@ let transport: Transports.BaseTransport;
 
 describe('FetchTransport', () => {
   beforeEach(() => {
-    // @ts-ignore
     fetch = stub(window, 'fetch');
     transport = new Transports.FetchTransport({ dsn: testDsn });
   });
@@ -28,7 +27,6 @@ describe('FetchTransport', () => {
   });
 
   it('inherits composeEndpointUrl() implementation', () => {
-    // tslint:disable-next-line:deprecation
     expect(transport.url).equal(transportUrl);
   });
 

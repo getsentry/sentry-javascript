@@ -1,6 +1,0 @@
-{
-  "extends": "@sentry/typescript/tslint",
-  "rules": {
-    "no-console": true
-  }
-}

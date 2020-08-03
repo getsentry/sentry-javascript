@@ -1,0 +1,16 @@
+# THIS IS A TEMPORARY FILE
+# THIS WILL BE REMOVED AFTER WE FINISH ESLINT UPGRADE
+
+packages/apm/**/*
+packages/core/**/*
+packages/ember/**/*
+packages/gatsby/**/*
+packages/hub/**/*
+packages/integrations/**/*
+packages/minimal/**/*
+packages/node/**/*
+packages/react/**/*
+packages/tracing/**/*
+packages/types/**/*
+packages/typescript/**/*
+packages/utils/**/*

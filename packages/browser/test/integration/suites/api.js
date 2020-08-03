@@ -127,7 +127,7 @@ describe("API", function() {
       }
 
       // Same exceptions and same stacktrace, dedupe
-      for (var i = 0; i < 2; i++) {
+      for (var j = 0; j < 2; j++) {
         throwError();
       }
 
@@ -206,7 +206,7 @@ describe("API", function() {
       }
 
       // Same messages and same stacktrace, dedupe
-      for (var i = 0; i < 2; i++) {
+      for (var j = 0; j < 2; j++) {
         captureMessage("same message, same stacktrace");
       }
 

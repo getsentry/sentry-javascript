@@ -13,12 +13,12 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = LinkedErrors.id;
+  public static id: string = 'LinkedErrors';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'LinkedErrors';
+  public readonly name: string = LinkedErrors.id;
 
   /**
    * @inheritDoc

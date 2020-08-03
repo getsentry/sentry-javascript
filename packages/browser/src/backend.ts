@@ -39,6 +39,19 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
+  public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
+    return eventFromException(this._options, exception, hint);
+  }
+  /**
+   * @inheritDoc
+   */
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+    return eventFromMessage(this._options, message, level, hint);
+  }
+
+  /**
+   * @inheritDoc
+   */
   protected _setupTransport(): Transport {
     if (!this._options.dsn) {
       // We return the noop transport here in case there is no Dsn.
@@ -57,18 +70,5 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       return new FetchTransport(transportOptions);
     }
     return new XHRTransport(transportOptions);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(this._options, exception, hint);
-  }
-  /**
-   * @inheritDoc
-   */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return eventFromMessage(this._options, message, level, hint);
   }
 }

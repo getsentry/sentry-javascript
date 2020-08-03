@@ -19,7 +19,6 @@ describe('BaseTransport', () => {
 
   it('has correct endpoint url', () => {
     const transport = new SimpleTransport({ dsn: testDsn });
-    // tslint:disable-next-line:deprecation
     expect(transport.url).equal('https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7');
   });
 });

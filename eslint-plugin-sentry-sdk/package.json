@@ -1,0 +1,11 @@
+{
+  "name": "eslint-plugin-sentry-sdk",
+  "version": "0.0.1",
+  "main": "index.js",
+  "devDependencies": {
+    "eslint": "^7.5.0"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  }
+}

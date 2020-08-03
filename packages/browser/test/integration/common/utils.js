@@ -34,6 +34,7 @@ function supportsNativeFetch() {
         result = isNativeFunc(sandbox.contentWindow.fetch);
       }
       window.document.head.removeChild(sandbox);
+      // eslint-disable-next-line no-empty
     } catch (o_O) {}
   }
 

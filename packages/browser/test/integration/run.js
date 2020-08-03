@@ -24,6 +24,7 @@ function writeFile(file, data) {
   fs.writeFileSync(path.resolve(__dirname, file), data);
 }
 
+// eslint-disable-next-line no-unused-vars
 function copyFile(from, to) {
   log("Copying file:\n\t=> from:", from, "\n\t=> to:", to);
   fs.copyFileSync(path.resolve(__dirname, from), path.resolve(__dirname, to));
@@ -43,7 +44,7 @@ function replacePlaceholders(templateFile) {
   log("Replacing placeholders for file:", templateFile);
 
   return readFile(templateFile).replace(
-    /\{\{ ?([a-zA-Z-_\.\/]+) ?\}\}/g,
+    /\{\{ ?([a-zA-Z-_./]+) ?\}\}/g,
     match => {
       const matchFile = match.slice(2, -2).trim();
       log("\t=> matched placeholder:", matchFile);

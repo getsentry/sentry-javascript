@@ -105,6 +105,7 @@
     observer.observe(node, { characterData: true });
 
     return function() {
+      // eslint-disable-next-line no-plusplus
       node.data = iterations = ++iterations % 2;
     };
   }
@@ -478,11 +479,11 @@
 
   var id = 0;
   function nextId() {
-    return id++;
+    return (id += 1);
   }
 
   function makePromise(promise) {
-    promise[PROMISE_ID] = id++;
+    promise[PROMISE_ID] = id += 1;
     promise._state = undefined;
     promise._result = undefined;
     promise._subscribers = [];
@@ -545,7 +546,7 @@
         if (_then === then && entry._state !== PENDING) {
           this._settledAt(entry._state, i, entry._result);
         } else if (typeof _then !== "function") {
-          this._remaining--;
+          this._remaining -= 1;
           this._result[i] = entry;
         } else if (c === Promise$2) {
           var promise = new c(noop);
@@ -572,7 +573,7 @@
       var promise = this.promise;
 
       if (promise._state === PENDING) {
-        this._remaining--;
+        this._remaining -= 1;
 
         if (state === REJECTED) {
           reject(promise, value);
@@ -1102,9 +1103,9 @@
     /**
     `finally` will be invoked regardless of the promise's fate just as native
     try/catch/finally behaves
-  
+
     Synchronous example:
-  
+
     ```js
     findAuthor() {
       if (Math.random() > 0.5) {
@@ -1112,7 +1113,7 @@
       }
       return new Author();
     }
-  
+
     try {
       return findAuthor(); // succeed or fail
     } catch(error) {
@@ -1122,9 +1123,9 @@
       // doesn't affect the return value
     }
     ```
-  
+
     Asynchronous example:
-  
+
     ```js
     findAuthor().catch(function(reason){
       return findOtherAuther();
@@ -1132,7 +1133,7 @@
       // author was either found, or not
     });
     ```
-  
+
     @method finally
     @param {Function} callback
     @return {Promise}
@@ -1172,7 +1173,6 @@
   Promise$2._setAsap = setAsap;
   Promise$2._asap = asap;
 
-  /*global self*/
   function polyfill() {
     var local = void 0;
 
