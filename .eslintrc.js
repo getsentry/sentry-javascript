@@ -93,6 +93,8 @@ module.exports = {
       files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx'],
       rules: {
         'max-lines': 'off',
+
+        '@typescript-eslint/explicit-function-return-type': 'off',
       },
     },
     {

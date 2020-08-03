@@ -24,11 +24,12 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = InboundFilters.id;
+  public static id: string = 'InboundFilters';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'InboundFilters';
+  public name: string = InboundFilters.id;
 
   public constructor(private readonly _options: Partial<InboundFiltersOptions> = {}) {}
 
@@ -139,7 +140,6 @@ export class InboundFilters implements Integration {
 
   /** JSDoc */
   private _mergeOptions(clientOptions: Partial<InboundFiltersOptions> = {}): Partial<InboundFiltersOptions> {
-    // tslint:disable:deprecation
     return {
       allowUrls: [
         ...(this._options.whitelistUrls || []),
