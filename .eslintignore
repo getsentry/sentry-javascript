@@ -5,7 +5,6 @@ packages/apm/**/*
 packages/ember/**/*
 packages/gatsby/**/*
 packages/integrations/**/*
-packages/minimal/**/*
 packages/node/**/*
 packages/react/**/*
 packages/tracing/**/*

@@ -16,10 +16,11 @@ import {
  * @param method function to call on hub.
  * @param args to pass to function.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function callOnHub<T>(method: string, ...args: any[]): T {
   const hub = getCurrentHub();
   if (hub && hub[method as keyof Hub]) {
-    // tslint:disable-next-line:no-unsafe-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (hub[method as keyof Hub] as any)(...args);
   }
   throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
@@ -31,6 +32,7 @@ function callOnHub<T>(method: string, ...args: any[]): T {
  * @param exception An exception-like object.
  * @returns The generated eventId.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export function captureException(exception: any, captureContext?: CaptureContext): string {
   let syntheticException: Error;
   try {
@@ -107,6 +109,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param name of the context
  * @param context Any kind of data. This data will be normalized.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): void {
   callOnHub<void>('setContext', name, context);
 }
@@ -132,7 +135,6 @@ export function setTags(tags: { [key: string]: string }): void {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-
 export function setExtra(key: string, extra: Extra): void {
   callOnHub<void>('setExtra', key, extra);
 }
@@ -182,6 +184,7 @@ export function withScope(callback: (scope: Scope) => void): void {
  * @param args Arguments to pass to the client/fontend.
  * @hidden
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);
 }
