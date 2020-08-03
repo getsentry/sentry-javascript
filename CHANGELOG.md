@@ -4,6 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [ember] feat: Add `@sentry/ember` (#2739)
+- [apm/tracing] fix: Mark side effects for tracing hub extensions (#2788)
 
 ## 5.20.1
 

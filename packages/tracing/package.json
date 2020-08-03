@@ -82,5 +82,7 @@
       }
     }
   },
-  "sideEffects": true
+  "sideEffects": [
+    "./src/index.ts"
+  ]
 }
