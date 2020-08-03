@@ -4,7 +4,7 @@ import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
 import { TestClient } from '../mocks/client';
 
-// eslint-disable-next-line no-var, @typescript-eslint/no-explicit-any
+// eslint-disable-next-line no-var
 declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Hub, Scope } from '@sentry/hub';
 import { Event, Severity, Span } from '@sentry/types';
 import { SentryError } from '@sentry/utils';

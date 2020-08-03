@@ -15,5 +15,12 @@ module.exports = {
         project: './tsconfig.json',
       },
     },
+    {
+      files: ['test/**/*'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
+      },
+    },
   ],
 };

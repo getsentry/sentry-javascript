@@ -1,6 +1,5 @@
 import { InboundFilters } from '../../../src/integrations/inboundfilters';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let inboundFilters: any;
 
 describe('InboundFilters', () => {

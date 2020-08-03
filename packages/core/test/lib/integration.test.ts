@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Integration } from '@sentry/types';
 
 import { getIntegrationsToSetup } from '../../src/integration';
