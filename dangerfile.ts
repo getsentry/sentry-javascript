@@ -16,7 +16,7 @@ async function eslint(): Promise<void[]> {
   const allFiles = danger.git.created_files.concat(danger.git.modified_files);
   const cli = new CLIEngine({});
   // let eslint filter down to non-ignored, matching the extensions expected
-  const filesToLint = allFiles.filter(f => !cli.isPathIgnored(f));
+  const filesToLint = allFiles.filter(f => !cli.isPathIgnored(f) || !f.endsWith('lock') || !f.endsWith('json'));
   return Promise.all(filesToLint.map(f => lintFile(cli, f)));
 }
 
