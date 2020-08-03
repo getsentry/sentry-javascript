@@ -24,9 +24,6 @@ module.exports = {
         project: './tsconfig.json',
       },
       rules: {
-        // We want to prevent async await usage in our files to prevent uncessary bundle size. Turned off in tests.
-        'sentry-sdk/no-async-await': 'error',
-
         // Unused variables should be removed unless they are marked with and underscore (ex. _varName).
         '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
 
@@ -71,6 +68,14 @@ module.exports = {
             leadingUnderscore: 'require',
           },
         ],
+      },
+    },
+    {
+      // Configuration for files under src
+      files: ['src/**/*'],
+      rules: {
+        // We want to prevent async await usage in our files to prevent uncessary bundle size.
+        'sentry-sdk/no-async-await': 'error',
 
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
@@ -87,8 +92,6 @@ module.exports = {
       },
       files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx'],
       rules: {
-        'sentry-sdk/no-async-await': 'off',
-        'jsdoc/require-jsdoc': 'off',
         'max-lines': 'off',
       },
     },

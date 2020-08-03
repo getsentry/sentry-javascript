@@ -12,7 +12,7 @@ const packages = ['apm', 'core', 'hub', 'integrations', 'minimal', 'node', 'type
  * Eslint your code with Danger
  * Based on fork from: https://github.com/appcelerator/danger-plugin-eslint
  */
-async function eslint() {
+async function eslint(): Promise<void[]> {
   const allFiles = danger.git.created_files.concat(danger.git.modified_files);
   const cli = new CLIEngine({});
   // let eslint filter down to non-ignored, matching the extensions expected
@@ -20,7 +20,8 @@ async function eslint() {
   return Promise.all(filesToLint.map(f => lintFile(cli, f)));
 }
 
-async function lintFile(linter: CLIEngine, path: string) {
+/** JSDoc */
+async function lintFile(linter: CLIEngine, path: string): Promise<void> {
   const contents = await danger.github.utils.fileContents(path);
   const report = linter.executeOnText(contents, path);
 
@@ -31,7 +32,7 @@ async function lintFile(linter: CLIEngine, path: string) {
         return;
       }
 
-      const noop = () => {};
+      const noop = (): void => undefined;
       const fn = { 0: noop, 1: warn, 2: fail }[msg.severity];
 
       fn(`${path} line ${msg.line} – ${msg.message} (${msg.ruleId})`, path, msg.line);
@@ -39,7 +40,7 @@ async function lintFile(linter: CLIEngine, path: string) {
   }
 }
 
-export default async () => {
+export default async (): Promise<void> => {
   if (!danger.github) {
     return;
   }
