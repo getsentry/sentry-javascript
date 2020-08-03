@@ -3,11 +3,12 @@ import { Hub } from './hub';
 
 /** Integration Class Interface */
 export interface IntegrationClass<T> {
-  new (...args: any[]): T;
   /**
    * Property that holds the integration name
    */
   id: string;
+
+  new (...args: any[]): T;
 }
 
 /** Integration interface */

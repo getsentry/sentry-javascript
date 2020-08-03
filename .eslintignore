@@ -8,6 +8,5 @@ packages/integrations/**/*
 packages/node/**/*
 packages/react/**/*
 packages/tracing/**/*
-packages/types/**/*
 packages/typescript/**/*
 packages/utils/**/*

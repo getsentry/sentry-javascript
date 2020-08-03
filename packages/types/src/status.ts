@@ -13,8 +13,8 @@ export enum Status {
   /** A server-side error ocurred during submission. */
   Failed = 'failed',
 }
-// tslint:disable:completed-docs
-// tslint:disable:no-unnecessary-qualifier no-namespace
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Status {
   /**
    * Converts a HTTP status code into a {@link Status}.
