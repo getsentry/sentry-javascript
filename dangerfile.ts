@@ -4,41 +4,8 @@ import { promisify } from 'util';
 import { resolve } from 'path';
 import tslint from 'danger-plugin-tslint';
 import { prettyResults } from 'danger-plugin-tslint/dist/prettyResults';
-import { CLIEngine } from 'eslint';
 
 const packages = ['apm', 'core', 'hub', 'integrations', 'minimal', 'node', 'types', 'utils'];
-
-/**
- * Eslint your code with Danger
- * Based on fork from: https://github.com/appcelerator/danger-plugin-eslint
- */
-async function eslint(): Promise<void[]> {
-  const allFiles = danger.git.created_files.concat(danger.git.modified_files);
-  const cli = new CLIEngine({});
-  // let eslint filter down to non-ignored, matching the extensions expected
-  const filesToLint = allFiles.filter(f => !cli.isPathIgnored(f) || !f.endsWith('lock') || !f.endsWith('json'));
-  return Promise.all(filesToLint.map(f => lintFile(cli, f)));
-}
-
-/** JSDoc */
-async function lintFile(linter: CLIEngine, path: string): Promise<void> {
-  const contents = await danger.github.utils.fileContents(path);
-  const report = linter.executeOnText(contents, path);
-
-  if (report.results.length !== 0) {
-    report.results[0].messages.map(msg => {
-      if (msg.fatal) {
-        fail(`Fatal error linting ${path} with eslint.`);
-        return;
-      }
-
-      const noop = (): void => undefined;
-      const fn = { 0: noop, 1: warn, 2: fail }[msg.severity];
-
-      fn(`${path} line ${msg.line} – ${msg.message} (${msg.ruleId})`, path, msg.line);
-    });
-  }
-}
 
 export default async (): Promise<void> => {
   if (!danger.github) {
@@ -73,8 +40,6 @@ export default async (): Promise<void> => {
       message('✅ TSLint passed');
     }
   });
-
-  await eslint();
 
   const hasChangelog = danger.git.modified_files.indexOf('CHANGELOG.md') !== -1;
   const isTrivial = (danger.github.pr.body + danger.github.pr.title).includes('#trivial');
