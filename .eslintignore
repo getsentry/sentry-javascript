@@ -4,7 +4,6 @@
 packages/apm/**/*
 packages/ember/**/*
 packages/gatsby/**/*
-packages/hub/**/*
 packages/integrations/**/*
 packages/minimal/**/*
 packages/node/**/*

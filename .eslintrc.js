@@ -125,5 +125,8 @@ module.exports = {
 
     // Limit maximum file size to reduce complexity. Turned off in tests.
     'max-lines': 'error',
+
+    // We should require a whitespace beginning a comment
+    'spaced-comment': 'error',
   },
 };
