@@ -35,11 +35,15 @@ export class Offline implements Integration {
       name: 'sentry/offlineEventStore',
     });
 
-    getGlobalObject<Window>().addEventListener('online', (): void => {
-      this._sendEvents().catch(() => {
-        logger.warn('could not send cached events');
+    const global = getGlobalObject<Window>();
+
+    if ('addEventListener' in global) {
+      global.addEventListener('online', (): void => {
+        this._sendEvents().catch(() => {
+          logger.warn('could not send cached events');
+        });
       });
-    });
+    }
   }
 
   /**
