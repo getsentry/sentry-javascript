@@ -1,7 +1,7 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
-// @ts-ignore
-import localforage = require('localforage');
+// @ts-ignore: Module '"localforage"' has no default export.
+import localforage from 'localforage';
 
 /**
  * cache offline errors and send when connected
