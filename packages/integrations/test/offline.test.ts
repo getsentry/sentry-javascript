@@ -44,12 +44,36 @@ describe('Offline', () => {
     beforeEach(() => {
       online = true;
 
-      setupIntegration();
-      processEvents();
+      initIntegration();
     });
 
     it('does not store events in offline store', async () => {
+      setupOnce();
+      processEvents();
+
       expect(await integration.offlineEventStore.length()).toEqual(0);
+    });
+
+    describe('when there are already events in the cache from a previous offline session', () => {
+      beforeEach(done => {
+        const event = { message: 'previous event' };
+
+        integration.offlineEventStore
+          .setItem('previous', event)
+          .then(() => {
+            done();
+          })
+          .catch(error => error);
+      });
+
+      it('sends stored events', async () => {
+        expect(await integration.offlineEventStore.length()).toEqual(1);
+
+        setupOnce();
+        processEvents();
+
+        expect(await integration.offlineEventStore.length()).toEqual(0);
+      });
     });
   });
 
@@ -57,7 +81,8 @@ describe('Offline', () => {
     beforeEach(() => {
       online = false;
 
-      setupIntegration();
+      initIntegration();
+      setupOnce();
       processEvents();
     });
 
@@ -99,6 +124,23 @@ function getCurrentHub(): Hub {
 }
 
 /** JSDoc */
+function initIntegration(): void {
+  eventListeners = [];
+  eventProcessors = [];
+
+  utils.getGlobalObject.mockImplementation(() => ({
+    addEventListener: (_windowEvent, callback) => {
+      eventListeners.push(callback);
+    },
+    navigator: {
+      onLine: online,
+    },
+  }));
+
+  integration = new Offline();
+}
+
+/** JSDoc */
 function processEventListeners(): void {
   eventListeners.forEach(listener => {
     listener();
@@ -115,19 +157,6 @@ function processEvents(): void {
 }
 
 /** JSDoc */
-function setupIntegration(): void {
-  eventListeners = [];
-  eventProcessors = [];
-
-  utils.getGlobalObject.mockImplementation(() => ({
-    addEventListener: (_windowEvent, callback) => {
-      eventListeners.push(callback);
-    },
-    navigator: {
-      onLine: online,
-    },
-  }));
-
-  integration = new Offline();
+function setupOnce(): void {
   integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 }

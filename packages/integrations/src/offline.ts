@@ -18,6 +18,11 @@ export class Offline implements Integration {
   public readonly name: string = Offline.id;
 
   /**
+   * the global instance
+   */
+  public global: Window;
+
+  /**
    * the current hub instance
    */
   public hub?: Hub;
@@ -31,14 +36,13 @@ export class Offline implements Integration {
    * @inheritDoc
    */
   public constructor() {
+    this.global = getGlobalObject<Window>();
     this.offlineEventStore = localforage.createInstance({
       name: 'sentry/offlineEventStore',
     });
 
-    const global = getGlobalObject<Window>();
-
-    if ('addEventListener' in global) {
-      global.addEventListener('online', (): void => {
+    if ('addEventListener' in this.global) {
+      this.global.addEventListener('online', (): void => {
         this._sendEvents().catch(() => {
           logger.warn('could not send cached events');
         });
@@ -54,10 +58,8 @@ export class Offline implements Integration {
 
     addGlobalEventProcessor((event: Event) => {
       if (this.hub && this.hub.getIntegration(Offline)) {
-        const global = getGlobalObject<Window>();
-
         // cache if we are positively offline
-        if ('navigator' in global && 'onLine' in global.navigator && !global.navigator.onLine) {
+        if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
           this._cacheEvent(event).catch((_error: any) => {
             logger.warn('could not cache event while offline');
           });
@@ -69,6 +71,13 @@ export class Offline implements Integration {
 
       return event;
     });
+
+    // if online now, send any events stored in a previous offline session
+    if ('navigator' in this.global && 'onLine' in this.global.navigator && this.global.navigator.onLine) {
+      this._sendEvents().catch(() => {
+        logger.warn('could not send cached events');
+      });
+    }
   }
 
   /**
