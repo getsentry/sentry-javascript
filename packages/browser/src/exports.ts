@@ -9,6 +9,7 @@ export {
   Exception,
   Response,
   Severity,
+  ScopeContext,
   StackFrame,
   Stacktrace,
   Status,
