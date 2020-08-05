@@ -153,9 +153,8 @@ export function wrap(
         },
       });
     }
-  } catch (_oO) {
-    /*no-empty*/
-  }
+    // eslint-disable-next-line no-empty
+  } catch (_oO) {}
 
   return sentryWrapped;
 }

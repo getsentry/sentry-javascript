@@ -50,6 +50,7 @@ function supportsOnunhandledRejection() {
 }
 
 function isBelowIE11() {
+  // eslint-disable-next-line spaced-comment
   return /*@cc_on!@*/ false == !false;
 }
 

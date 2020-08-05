@@ -1,4 +1,4 @@
-/*!
+/* !
  * @overview es6-promise - an implementation of Promise API.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
  * @license   Licensed under MIT license
@@ -222,7 +222,7 @@
   `value`
 */
   function resolve$1(object) {
-    /*jshint validthis:true */
+    /* jshint validthis:true */
     var Constructor = this;
 
     if (
@@ -722,7 +722,7 @@
   promise to settle.
 */
   function race(entries) {
-    /*jshint validthis:true */
+    /* jshint validthis:true */
     var Constructor = this;
 
     if (!isArray(entries)) {
@@ -774,7 +774,7 @@
   @return {Promise} a promise rejected with the given `reason`.
 */
   function reject$1(reason) {
-    /*jshint validthis:true */
+    /* jshint validthis:true */
     var Constructor = this;
     var promise = new Constructor(noop);
     reject(promise, reason);
