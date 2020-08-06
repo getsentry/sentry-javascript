@@ -16,6 +16,8 @@
     "access": "public"
   },
   "devDependencies": {
+    "@codemod/cli": "^2.2.0",
+    "json-schema-to-typescript": "^9.1.1",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.17.0",
     "prettier-check": "^2.0.0",
@@ -36,7 +38,9 @@
     "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:tslint": "tslint --fix -t stylish -p ."
+    "fix:tslint": "tslint --fix -t stylish -p .",
+    "update:types": "curl -s https://getsentry.github.io/relay/event-schema/event.schema.json | json2ts > src/sentry.ts && yarn codemod:types && yarn fix:prettier",
+    "codemod:types": "codemod -p scripts/codemod-types.js src/sentry.ts"
   },
   "sideEffects": false
 }
