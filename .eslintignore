@@ -1,7 +1,6 @@
 # THIS IS A TEMPORARY FILE
 # THIS WILL BE REMOVED AFTER WE FINISH ESLINT UPGRADE
 
-packages/ember/**/*
 packages/integrations/**/*
 packages/node/**/*
 packages/react/**/*
