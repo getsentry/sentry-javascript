@@ -39,10 +39,10 @@
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
-    "lint:eslint": "eslint . --format stylish",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:eslint": "lint:eslint --fix",
+    "fix:eslint": "eslint . --format stylish --fix",
     "test": "jest",
     "test:watch": "jest --watch"
   },

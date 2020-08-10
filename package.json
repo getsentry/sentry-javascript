@@ -19,6 +19,7 @@
     "yarn": "1.13.0"
   },
   "workspaces": [
+    "packages/angular",
     "packages/apm",
     "packages/browser",
     "packages/core",
