@@ -3,8 +3,9 @@ import { configureScope } from '@sentry/minimal';
 import { Event, Integration } from '@sentry/types';
 
 export class TestIntegration implements Integration {
-  public name: string = 'TestIntegration';
   public static id: string = 'TestIntegration';
+
+  public name: string = 'TestIntegration';
 
   public setupOnce(): void {
     configureScope(scope => {
@@ -13,11 +14,7 @@ export class TestIntegration implements Integration {
           return event;
         }
 
-        if (true) {
-          return null;
-        }
-
-        // return event;
+        return null;
       });
     });
   }

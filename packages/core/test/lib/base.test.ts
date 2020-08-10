@@ -8,6 +8,7 @@ import { TestIntegration } from '../mocks/integration';
 import { FakeTransport } from '../mocks/transport';
 
 const PUBLIC_DSN = 'https://username@domain/123';
+// eslint-disable-next-line no-var
 declare var global: any;
 
 jest.mock('@sentry/utils', () => {
@@ -18,7 +19,7 @@ jest.mock('@sentry/utils', () => {
     uuid4(): string {
       return '42';
     },
-    getGlobalObject(): object {
+    getGlobalObject(): any {
       return {
         console: {
           log(): void {

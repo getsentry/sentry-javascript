@@ -209,13 +209,13 @@ describe('Scope', () => {
       const scope = new Scope();
       const event: Event = {};
 
-      // @ts-ignore
+      // @ts-ignore we want to be able to assign string value
       event.fingerprint = 'foo';
       await scope.applyToEvent(event).then(processedEvent => {
         expect(processedEvent!.fingerprint).toEqual(['foo']);
       });
 
-      // @ts-ignore
+      // @ts-ignore we want to be able to assign string value
       event.fingerprint = 'bar';
       await scope.applyToEvent(event).then(processedEvent => {
         expect(processedEvent!.fingerprint).toEqual(['bar']);
@@ -337,7 +337,7 @@ describe('Scope', () => {
     });
 
     test('given neither function, Scope or plain object, returns original scope', () => {
-      // @ts-ignore
+      // @ts-ignore we want to be able to update scope with string
       const updatedScope = scope.update('wat');
       expect(updatedScope).toEqual(scope);
     });
@@ -361,7 +361,7 @@ describe('Scope', () => {
     });
 
     test('given callback function, when it doesnt return instanceof Scope, ignore it and return original scope', () => {
-      const cb = jest.fn().mockImplementationOnce(v => 'wat');
+      const cb = jest.fn().mockImplementationOnce(_v => 'wat');
       const updatedScope = scope.update(cb);
       expect(cb).toHaveBeenCalledWith(scope);
       expect(updatedScope).toEqual(scope);

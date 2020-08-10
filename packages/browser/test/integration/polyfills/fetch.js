@@ -1,4 +1,4 @@
-/*!
+/* !
  * @overview whatwg-fetch - an implementation of Fetch API.
  * @copyright Copyright (c) 2014-2016 GitHub, Inc.
  * @license   Licensed under MIT license

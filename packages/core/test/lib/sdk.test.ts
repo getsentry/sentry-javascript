@@ -1,23 +1,24 @@
-import { Integration } from '@sentry/types';
+import { Integration, Client } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
 import { TestClient } from '../mocks/client';
 
+// eslint-disable-next-line no-var
 declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
 jest.mock('@sentry/hub', () => ({
   getCurrentHub(): {
-    bindClient(client: any): boolean;
+    bindClient(client: Client): boolean;
     getClient(): boolean;
   } {
     return {
       getClient(): boolean {
         return false;
       },
-      bindClient(client: any): boolean {
+      bindClient(client: Client): boolean {
         client.setupIntegrations();
         return true;
       },
@@ -26,11 +27,11 @@ jest.mock('@sentry/hub', () => ({
 }));
 
 class MockIntegration implements Integration {
+  public name: string;
+  public setupOnce: () => void = jest.fn();
   public constructor(name: string) {
     this.name = name;
   }
-  public name: string;
-  public setupOnce: () => void = jest.fn();
 }
 
 describe('SDK', () => {

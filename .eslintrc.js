@@ -93,6 +93,8 @@ module.exports = {
       files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx'],
       rules: {
         'max-lines': 'off',
+
+        '@typescript-eslint/explicit-function-return-type': 'off',
       },
     },
     {
@@ -123,5 +125,8 @@ module.exports = {
 
     // Limit maximum file size to reduce complexity. Turned off in tests.
     'max-lines': 'error',
+
+    // We should require a whitespace beginning a comment
+    'spaced-comment': 'error',
   },
 };

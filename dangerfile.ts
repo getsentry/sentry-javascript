@@ -6,7 +6,7 @@ import tslint from 'danger-plugin-tslint';
 import { prettyResults } from 'danger-plugin-tslint/dist/prettyResults';
 import { CLIEngine } from 'eslint';
 
-const PACKAGES = ['apm', 'core', 'hub', 'integrations', 'minimal', 'node', 'types', 'utils'];
+const PACKAGES = ['apm', 'integrations', 'node', 'utils'];
 const EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'];
 
 /**

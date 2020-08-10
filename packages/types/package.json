@@ -19,7 +19,6 @@
     "npm-run-all": "^4.1.2",
     "prettier": "^1.17.0",
     "prettier-check": "^2.0.0",
-    "tslint": "5.16.0",
     "typescript": "3.4.5"
   },
   "scripts": {
@@ -30,13 +29,13 @@
     "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "link:yarn": "yarn link",
-    "lint": "run-s lint:prettier lint:tslint",
+    "lint": "run-s lint:prettier lint:eslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
-    "lint:tslint": "tslint -t stylish -p .",
-    "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
-    "fix": "run-s fix:tslint fix:prettier",
+    "lint:eslint": "eslint . --format stylish",
+    "lint:eslint:json": "eslint . --format json | tee lint-results.json",
+    "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:tslint": "tslint --fix -t stylish -p ."
+    "fix:eslint": "eslint . --format stylish --fix"
   },
   "sideEffects": false
 }
