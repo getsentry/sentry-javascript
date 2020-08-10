@@ -6,11 +6,15 @@ exports.onClientEntry = function(_, pluginParams) {
     let BrowserTracingIntegration = undefined;
     try {
       BrowserTracingIntegration = require('@sentry/tracing').Integrations.BrowserTracing;
-    } catch (_) {}
+    } catch (_) {
+      /* no-empty */
+    }
     try {
       /** @deprecated Remove when @sentry/apm is no longer used */
       TracingIntegration = require('@sentry/apm').Integrations.Tracing;
-    } catch (_) {}
+    } catch (_) {
+      /* no-empty */
+    }
 
     const tracesSampleRate = pluginParams.tracesSampleRate !== undefined ? pluginParams.tracesSampleRate : 0;
     const integrations = [...(pluginParams.integrations || [])];
@@ -25,7 +29,9 @@ exports.onClientEntry = function(_, pluginParams) {
 
     Sentry.init({
       environment: process.env.NODE_ENV || 'development',
+      // eslint-disable-next-line no-undef
       release: __SENTRY_RELEASE__,
+      // eslint-disable-next-line no-undef
       dsn: __SENTRY_DSN__,
       ...pluginParams,
       tracesSampleRate,

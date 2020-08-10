@@ -2,7 +2,6 @@
 # THIS WILL BE REMOVED AFTER WE FINISH ESLINT UPGRADE
 
 packages/ember/**/*
-packages/gatsby/**/*
 packages/integrations/**/*
 packages/node/**/*
 packages/react/**/*
