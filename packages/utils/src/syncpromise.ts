@@ -224,6 +224,7 @@ class SyncPromise<T> implements PromiseLike<T> {
 
       if (this._state === States.RESOLVED) {
         if (handler.onfulfilled) {
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           handler.onfulfilled((this._value as unknown) as any);
         }
       }

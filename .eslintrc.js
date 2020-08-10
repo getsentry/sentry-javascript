@@ -72,13 +72,16 @@ module.exports = {
         // Prefer for-of loop over for loop if index is only used to access array
         '@typescript-eslint/prefer-for-of': 'error',
 
-        // Make sure all expressions are used
+        // Make sure all expressions are used. Turned off in tests
         // Must disable base rule to prevent false positives
         'no-unused-expressions': 'off',
         '@typescript-eslint/no-unused-expressions': 'error',
 
         // Make sure Promises are handled appropriately
         '@typescript-eslint/no-floating-promises': 'error',
+
+        // Do not use deprecated methods
+        'deprecation/deprecation': 'error',
       },
     },
     {
@@ -106,6 +109,8 @@ module.exports = {
         'max-lines': 'off',
 
         '@typescript-eslint/explicit-function-return-type': 'off',
+        'no-unused-expressions': 'off',
+        '@typescript-eslint/no-unused-expressions': 'off',
       },
     },
     {
@@ -146,10 +151,7 @@ module.exports = {
     // Limit cyclomatic complexity
     complexity: 'error',
 
-    // Make sure all expressions are used
+    // Make sure all expressions are used. Turn off on tests.
     'no-unused-expressions': 'error',
-
-    // Do not use deprecated methods
-    'deprecation/deprecation': 'error',
   },
 };

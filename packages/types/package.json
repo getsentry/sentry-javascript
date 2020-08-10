@@ -32,7 +32,6 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:eslint": "eslint . --format stylish",
-    "lint:eslint:json": "eslint . --format json | tee lint-results.json",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:eslint": "eslint . --format stylish --fix"

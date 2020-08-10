@@ -91,6 +91,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
     this._processing = true;
 
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this._getBackend()
       .eventFromException(exception, hint)
       .then(event => {
@@ -111,6 +112,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       ? this._getBackend().eventFromMessage(`${message}`, level, hint)
       : this._getBackend().eventFromException(message, hint);
 
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     promisedEvent.then(event => {
       eventId = this.captureEvent(event, hint, scope);
     });
