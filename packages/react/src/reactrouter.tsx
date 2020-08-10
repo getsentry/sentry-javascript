@@ -1,81 +1,91 @@
-import { Transaction, TransactionContext } from '@sentry/types';
+import { Transaction } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
+import * as React from 'react';
 
-type ReactRouterInstrumentation = <T extends Transaction>(
-  startTransaction: (context: TransactionContext) => T | undefined,
-  startTransactionOnPageLoad?: boolean,
-  startTransactionOnLocationChange?: boolean,
-) => void;
+import { Action, Location, ReactRouterInstrumentation } from './types';
 
-// Many of the types below had to be mocked out to prevent typescript issues
-// these types are required for correct functionality.
+type Match = { path: string; url: string; params: Record<string, any>; isExact: boolean };
 
-export type Route = { path?: string; childRoutes?: Route[] };
-
-export type Match = (
-  props: { location: Location; routes: Route[] },
-  cb: (error?: Error, _redirectLocation?: Location, renderProps?: { routes?: Route[] }) => void,
-) => void;
-
-type Location = {
-  pathname: string;
-  action?: 'PUSH' | 'REPLACE' | 'POP';
-} & Record<string, any>;
-
-type History = {
+export type RouterHistory = {
   location?: Location;
-  listen?(cb: (location: Location) => void): void;
+  listen?(cb: (location: Location, action: Action) => void): void;
 } & Record<string, any>;
+
+export type RouteConfig = {
+  path?: string | string[];
+  exact?: boolean;
+  component?: JSX.Element;
+  routes?: RouteConfig[];
+  [propName: string]: any;
+};
+
+type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null;
 
 const global = getGlobalObject<Window>();
 
-/**
- * Creates routing instrumentation for React Router v3
- * Works for React Router >= 3.2.0 and < 4.0.0
- *
- * @param history object from the `history` library
- * @param routes a list of all routes, should be
- * @param match `Router.match` utility
- */
-export function reactRouterV3Instrumentation(
-  history: History,
-  routes: Route[],
-  match: Match,
-): ReactRouterInstrumentation {
-  return (
-    startTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad: boolean = true,
-    startTransactionOnLocationChange: boolean = true,
-  ) => {
-    let activeTransaction: Transaction | undefined;
-    let prevName: string | undefined;
+let activeTransaction: Transaction | undefined;
 
+export function reactRouterV4Instrumentation(
+  history: RouterHistory,
+  routes?: RouteConfig[],
+  matchPath?: MatchPath,
+): ReactRouterInstrumentation {
+  return reactRouterInstrumentation(history, 'react-router-v4', routes, matchPath);
+}
+
+export function reactRouterV5Instrumentation(
+  history: RouterHistory,
+  routes?: RouteConfig[],
+  matchPath?: MatchPath,
+): ReactRouterInstrumentation {
+  return reactRouterInstrumentation(history, 'react-router-v5', routes, matchPath);
+}
+
+function reactRouterInstrumentation(
+  history: RouterHistory,
+  name: string,
+  allRoutes: RouteConfig[] = [],
+  matchPath?: MatchPath,
+): ReactRouterInstrumentation {
+  function getName(pathname: string): string {
+    if (allRoutes === [] || !matchPath) {
+      return pathname;
+    }
+
+    const branches = matchRoutes(allRoutes, pathname, matchPath);
+    // tslint:disable-next-line: prefer-for-of
+    for (let x = 0; x < branches.length; x++) {
+      if (branches[x].match.isExact) {
+        return branches[x].match.path;
+      }
+    }
+
+    return pathname;
+  }
+
+  return (startTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true) => {
     if (startTransactionOnPageLoad && global && global.location) {
-      // Have to use global.location because history.location might not be defined.
-      prevName = normalizeTransactionName(routes, global.location, match);
       activeTransaction = startTransaction({
-        name: prevName,
+        name: getName(global.location.pathname),
         op: 'pageload',
         tags: {
-          'routing.instrumentation': 'react-router-v3',
+          'routing.instrumentation': name,
         },
       });
     }
 
     if (startTransactionOnLocationChange && history.listen) {
-      history.listen(location => {
-        if (location.action === 'PUSH') {
+      history.listen((location, action) => {
+        if (action && (action === 'PUSH' || action === 'POP')) {
           if (activeTransaction) {
             activeTransaction.finish();
           }
-          const tags: Record<string, string> = { 'routing.instrumentation': 'react-router-v3' };
-          if (prevName) {
-            tags.from = prevName;
-          }
+          const tags = {
+            'routing.instrumentation': name,
+          };
 
-          prevName = normalizeTransactionName(routes, location, match);
           activeTransaction = startTransaction({
-            name: prevName,
+            name: getName(location.pathname),
             op: 'navigation',
             tags,
           });
@@ -86,54 +96,43 @@ export function reactRouterV3Instrumentation(
 }
 
 /**
- * Normalize transaction names using `Router.match`
+ * Matches a set of routes to a pathname
+ * Based on implementation from
  */
-function normalizeTransactionName(appRoutes: Route[], location: Location, match: Match): string {
-  let name = location.pathname;
-  match(
-    {
-      location,
-      routes: appRoutes,
-    },
-    (error, _redirectLocation, renderProps) => {
-      if (error || !renderProps) {
-        return name;
+function matchRoutes(
+  routes: RouteConfig[],
+  pathname: string,
+  matchPath: MatchPath,
+  branch: Array<{ route: RouteConfig; match: Match }> = [],
+): Array<{ route: RouteConfig; match: Match }> {
+  routes.some(route => {
+    const match = route.path
+      ? matchPath(pathname, route)
+      : branch.length
+      ? branch[branch.length - 1].match // use parent match
+      : computeRootMatch(pathname); // use default "root" match
+
+    if (match) {
+      branch.push({ route, match });
+
+      if (route.routes) {
+        matchRoutes(route.routes, pathname, matchPath, branch);
       }
-
-      const routePath = getRouteStringFromRoutes(renderProps.routes || []);
-      if (routePath.length === 0 || routePath === '/*') {
-        return name;
-      }
-
-      name = routePath;
-      return name;
-    },
-  );
-  return name;
-}
-
-/**
- * Generate route name from array of routes
- */
-function getRouteStringFromRoutes(routes: Route[]): string {
-  if (!Array.isArray(routes) || routes.length === 0) {
-    return '';
-  }
-
-  const routesWithPaths: Route[] = routes.filter((route: Route) => !!route.path);
-
-  let index = -1;
-  for (let x = routesWithPaths.length - 1; x >= 0; x--) {
-    const route = routesWithPaths[x];
-    if (route.path && route.path.startsWith('/')) {
-      index = x;
-      break;
     }
-  }
 
-  return routesWithPaths
-    .slice(index)
-    .filter(({ path }) => !!path)
-    .map(({ path }) => path)
-    .join('');
+    return !!match;
+  });
+
+  return branch;
 }
+
+function computeRootMatch(pathname: string): Match {
+  return { path: '/', url: '/', params: {}, isExact: pathname === '/' };
+}
+
+export const withSentryRouting = (Route: React.ElementType) => (props: { computedMatch?: Match }) => {
+  if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
+    activeTransaction.setName(props.computedMatch.path);
+  }
+  return <Route {...props} />;
+};
