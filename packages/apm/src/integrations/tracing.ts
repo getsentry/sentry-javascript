@@ -1,4 +1,4 @@
-// tslint:disable: max-file-line-count
+/* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
@@ -41,13 +41,7 @@ export interface TracingOptions {
    * Default: true
    */
   traceXHR: boolean;
-  /**
-   * This function will be called before creating a span for a request with the given url.
-   * Return false if you don't want a span for the given url.
-   *
-   * By default it uses the `tracingOrigins` options as a url match.
-   */
-  shouldCreateSpanForRequest(url: string): boolean;
+
   /**
    * The time to wait in ms until the transaction will be finished. The transaction will use the end timestamp of
    * the last finished span as the endtime for the transaction.
@@ -112,6 +106,14 @@ export interface TracingOptions {
   };
 
   /**
+   * This function will be called before creating a span for a request with the given url.
+   * Return false if you don't want a span for the given url.
+   *
+   * By default it uses the `tracingOrigins` options as a url match.
+   */
+  shouldCreateSpanForRequest(url: string): boolean;
+
+  /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows for users
    * to set a custom navigation transaction name based on the current `window.location`. Defaults to returning
    * `window.location.pathname`.
@@ -137,15 +139,12 @@ export class Tracing implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Tracing.id;
-
-  /**
-   * @inheritDoc
-   */
   public static id: string = 'Tracing';
 
   /** JSDoc */
   public static options: TracingOptions;
+
+  public static _activities: { [key: number]: Activity } = {};
 
   /**
    * Returns current hub.
@@ -156,10 +155,6 @@ export class Tracing implements Integration {
 
   private static _currentIndex: number = 1;
 
-  public static _activities: { [key: number]: Activity } = {};
-
-  private readonly _emitOptionsWarning: boolean = false;
-
   private static _performanceCursor: number = 0;
 
   private static _heartbeatTimer: number = 0;
@@ -169,12 +164,15 @@ export class Tracing implements Integration {
   private static _heartbeatCounter: number = 0;
 
   /** Holds the latest LargestContentfulPaint value (it changes during page load). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static _lcp?: { [key: string]: any };
 
-  /** Force any pending LargestContentfulPaint records to be dispatched. */
-  private static _forceLCP = () => {
-    /* No-op, replaced later if LCP API is available. */
-  };
+  /**
+   * @inheritDoc
+   */
+  public name: string = Tracing.id;
+
+  private readonly _emitOptionsWarning: boolean = false;
 
   /**
    * Constructor for Tracing
@@ -223,258 +221,144 @@ export class Tracing implements Integration {
   }
 
   /**
-   * @inheritDoc
+   * Returns the current active idle transaction if there is one
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    Tracing._getCurrentHub = getCurrentHub;
+  public static getTransaction(): Transaction | undefined {
+    return Tracing._activeTransaction;
+  }
 
-    if (this._emitOptionsWarning) {
-      logger.warn(
-        '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
-      );
-      logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
+  /**
+   * Starts tracking for a specifc activity
+   *
+   * @param name Name of the activity, can be any string (Only used internally to identify the activity)
+   * @param spanContext If provided a Span with the SpanContext will be created.
+   * @param options _autoPopAfter_ | Time in ms, if provided the activity will be popped automatically after this timeout. This can be helpful in cases where you cannot gurantee your application knows the state and calls `popActivity` for sure.
+   */
+  public static pushActivity(
+    name: string,
+    spanContext?: SpanContext,
+    options?: {
+      autoPopAfter?: number;
+    },
+  ): number {
+    const activeTransaction = Tracing._activeTransaction;
+
+    if (!activeTransaction) {
+      Tracing._log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
+      return 0;
     }
 
-    // Starting pageload transaction
-    if (global.location && Tracing.options && Tracing.options.startTransactionOnPageLoad) {
-      Tracing.startIdleTransaction({
-        name: Tracing.options.beforeNavigate(window.location),
-        op: 'pageload',
-      });
+    const _getCurrentHub = Tracing._getCurrentHub;
+    if (spanContext && _getCurrentHub) {
+      const hub = _getCurrentHub();
+      if (hub) {
+        const span = activeTransaction.startChild(spanContext);
+        Tracing._activities[Tracing._currentIndex] = {
+          name,
+          span,
+        };
+      }
+    } else {
+      Tracing._activities[Tracing._currentIndex] = {
+        name,
+      };
     }
 
-    this._setupXHRTracing();
-
-    this._setupFetchTracing();
-
-    this._setupHistory();
-
-    this._setupErrorHandling();
-
-    this._setupBackgroundTabDetection();
-
-    Tracing._pingHeartbeat();
-
-    // This EventProcessor makes sure that the transaction is not longer than maxTransactionDuration
-    addGlobalEventProcessor((event: Event) => {
-      const self = getCurrentHub().getIntegration(Tracing);
-      if (!self) {
-        return event;
-      }
-
-      const isOutdatedTransaction =
-        event.timestamp &&
-        event.start_timestamp &&
-        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
-          event.timestamp - event.start_timestamp < 0);
-
-      if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
-        Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} since it maxed out maxTransactionDuration`);
-        if (event.contexts && event.contexts.trace) {
-          event.contexts.trace = {
-            ...event.contexts.trace,
-            status: SpanStatus.DeadlineExceeded,
-          };
-          event.tags = {
-            ...event.tags,
-            maxTransactionDurationExceeded: 'true',
-          };
-        }
-      }
-
-      return event;
-    });
-  }
-
-  /**
-   * Returns a new Transaction either continued from sentry-trace meta or a new one
-   */
-  private static _getNewTransaction(hub: Hub, transactionContext: TransactionContext): Transaction {
-    let traceId;
-    let parentSpanId;
-    let sampled;
-
-    const header = Tracing._getMeta('sentry-trace');
-    if (header) {
-      const span = SpanClass.fromTraceparent(header);
-      if (span) {
-        traceId = span.traceId;
-        parentSpanId = span.parentSpanId;
-        sampled = span.sampled;
-        Tracing._log(
-          `[Tracing] found 'sentry-meta' '<meta />' continuing trace with: trace_id: ${traceId} span_id: ${parentSpanId}`,
-        );
-      }
+    Tracing._log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
+    Tracing._log('[Tracing] activies count', Object.keys(Tracing._activities).length);
+    if (options && typeof options.autoPopAfter === 'number') {
+      Tracing._log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
+      const index = Tracing._currentIndex;
+      setTimeout(() => {
+        Tracing.popActivity(index, {
+          autoPop: true,
+          status: SpanStatus.DeadlineExceeded,
+        });
+      }, options.autoPopAfter);
     }
-
-    return hub.startTransaction({
-      parentSpanId,
-      sampled,
-      traceId,
-      trimEnd: true,
-      ...transactionContext,
-    }) as Transaction;
+    // eslint-disable-next-line no-plusplus
+    return Tracing._currentIndex++;
   }
 
   /**
-   * Returns the value of a meta tag
-   */
-  private static _getMeta(metaName: string): string | null {
-    const el = document.querySelector(`meta[name=${metaName}]`);
-    return el ? el.getAttribute('content') : null;
-  }
-
-  /**
-   * Pings the heartbeat
-   */
-  private static _pingHeartbeat(): void {
-    Tracing._heartbeatTimer = (setTimeout(() => {
-      Tracing._beat();
-    }, 5000) as any) as number;
-  }
-
-  /**
-   * Checks when entries of Tracing._activities are not changing for 3 beats. If this occurs we finish the transaction
+   * Removes activity and finishes the span in case there is one
+   * @param id the id of the activity being removed
+   * @param spanData span data that can be updated
    *
    */
-  private static _beat(): void {
-    clearTimeout(Tracing._heartbeatTimer);
-    const keys = Object.keys(Tracing._activities);
-    if (keys.length) {
-      const heartbeatString = keys.reduce((prev: string, current: string) => prev + current);
-      if (heartbeatString === Tracing._prevHeartbeatString) {
-        Tracing._heartbeatCounter++;
-      } else {
-        Tracing._heartbeatCounter = 0;
-      }
-      if (Tracing._heartbeatCounter >= 3) {
-        if (Tracing._activeTransaction) {
-          Tracing._log(
-            `[Tracing] Transaction: ${SpanStatus.Cancelled} -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
-          );
-          Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
-          Tracing._activeTransaction.setTag('heartbeat', 'failed');
-          Tracing.finishIdleTransaction(timestampWithMs());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static popActivity(id: number, spanData?: { [key: string]: any }): void {
+    // The !id is on purpose to also fail with 0
+    // Since 0 is returned by push activity in case there is no active transaction
+    if (!id) {
+      return;
+    }
+
+    const activity = Tracing._activities[id];
+
+    if (activity) {
+      Tracing._log(`[Tracing] popActivity ${activity.name}#${id}`);
+      const span = activity.span;
+      if (span) {
+        if (spanData) {
+          Object.keys(spanData).forEach((key: string) => {
+            span.setData(key, spanData[key]);
+            if (key === 'status_code') {
+              span.setHttpStatus(spanData[key] as number);
+            }
+            if (key === 'status') {
+              span.setStatus(spanData[key] as SpanStatus);
+            }
+          });
         }
-      }
-      Tracing._prevHeartbeatString = heartbeatString;
-    }
-    Tracing._pingHeartbeat();
-  }
-
-  /**
-   * Discards active transactions if tab moves to background
-   */
-  private _setupBackgroundTabDetection(): void {
-    if (Tracing.options && Tracing.options.markBackgroundTransactions && global.document) {
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden && Tracing._activeTransaction) {
-          Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background`);
-          Tracing._activeTransaction.setStatus(SpanStatus.Cancelled);
-          Tracing._activeTransaction.setTag('visibilitychange', 'document.hidden');
-          Tracing.finishIdleTransaction(timestampWithMs());
+        if (Tracing.options && Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
+          Tracing._addSpanDebugInfo(span);
         }
-      });
-    }
-  }
-
-  /**
-   * Unsets the current active transaction + activities
-   */
-  private static _resetActiveTransaction(): void {
-    // We want to clean up after ourselves
-    // If there is still the active transaction on the scope we remove it
-    const _getCurrentHub = Tracing._getCurrentHub;
-    if (_getCurrentHub) {
-      const hub = _getCurrentHub();
-      const scope = hub.getScope();
-      if (scope) {
-        if (scope.getSpan() === Tracing._activeTransaction) {
-          scope.setSpan(undefined);
-        }
+        span.finish();
       }
+      // tslint:disable-next-line: no-dynamic-delete
+      delete Tracing._activities[id];
     }
-    // ------------------------------------------------------------------
-    Tracing._activeTransaction = undefined;
-    Tracing._activities = {};
-  }
 
-  /**
-   * Registers to History API to detect navigation changes
-   */
-  private _setupHistory(): void {
-    if (Tracing.options.startTransactionOnLocationChange) {
-      addInstrumentationHandler({
-        callback: historyCallback,
-        type: 'history',
-      });
-    }
-  }
+    const count = Object.keys(Tracing._activities).length;
 
-  /**
-   * Attaches to fetch to add sentry-trace header + creating spans
-   */
-  private _setupFetchTracing(): void {
-    if (Tracing.options.traceFetch && supportsNativeFetch()) {
-      addInstrumentationHandler({
-        callback: fetchCallback,
-        type: 'fetch',
-      });
+    Tracing._log('[Tracing] activies count', count);
+
+    if (count === 0 && Tracing._activeTransaction) {
+      const timeout = Tracing.options && Tracing.options.idleTimeout;
+      Tracing._log(`[Tracing] Flushing Transaction in ${timeout}ms`);
+      // We need to add the timeout here to have the real endtimestamp of the transaction
+      // Remeber timestampWithMs is in seconds, timeout is in ms
+      const end = timestampWithMs() + timeout / 1000;
+      setTimeout(() => {
+        Tracing.finishIdleTransaction(end);
+      }, timeout);
     }
   }
 
   /**
-   * Attaches to XHR to add sentry-trace header + creating spans
+   * Get span based on activity id
    */
-  private _setupXHRTracing(): void {
-    if (Tracing.options.traceXHR) {
-      addInstrumentationHandler({
-        callback: xhrCallback,
-        type: 'xhr',
-      });
+  public static getActivitySpan(id: number): Span | undefined {
+    if (!id) {
+      return undefined;
     }
+    const activity = Tracing._activities[id];
+    if (activity) {
+      return activity.span;
+    }
+    return undefined;
   }
 
   /**
-   * Configures global error listeners
+   * Sets the status of the current active transaction (if there is one)
    */
-  private _setupErrorHandling(): void {
-    // tslint:disable-next-line: completed-docs
-    function errorCallback(): void {
-      if (Tracing._activeTransaction) {
-        /**
-         * If an error or unhandled promise occurs, we mark the active transaction as failed
-         */
-        Tracing._log(`[Tracing] Transaction: ${SpanStatus.InternalError} -> Global error occured`);
-        Tracing._activeTransaction.setStatus(SpanStatus.InternalError);
-      }
+  public static setTransactionStatus(status: SpanStatus): void {
+    const active = Tracing._activeTransaction;
+    if (active) {
+      Tracing._log('[Tracing] setTransactionStatus', status);
+      active.setStatus(status);
     }
-    addInstrumentationHandler({
-      callback: errorCallback,
-      type: 'error',
-    });
-    addInstrumentationHandler({
-      callback: errorCallback,
-      type: 'unhandledrejection',
-    });
-  }
-
-  /**
-   * Uses logger.log to log things in the SDK or as breadcrumbs if defined in options
-   */
-  private static _log(...args: any[]): void {
-    if (Tracing.options && Tracing.options.debug && Tracing.options.debug.writeAsBreadcrumbs) {
-      const _getCurrentHub = Tracing._getCurrentHub;
-      if (_getCurrentHub) {
-        _getCurrentHub().addBreadcrumb({
-          category: 'tracing',
-          level: Severity.Debug,
-          message: safeJoin(args, ' '),
-          type: 'debug',
-        });
-      }
-    }
-    logger.log(...args);
   }
 
   /**
@@ -552,6 +436,129 @@ export class Tracing implements Integration {
     }
   }
 
+  /** Force any pending LargestContentfulPaint records to be dispatched. */
+  private static _forceLCP: () => void = (): void => {
+    /* No-op, replaced later if LCP API is available. */
+  };
+
+  /**
+   * Returns a new Transaction either continued from sentry-trace meta or a new one
+   */
+  private static _getNewTransaction(hub: Hub, transactionContext: TransactionContext): Transaction {
+    let traceId;
+    let parentSpanId;
+    let sampled;
+
+    const header = Tracing._getMeta('sentry-trace');
+    if (header) {
+      const span = SpanClass.fromTraceparent(header);
+      if (span) {
+        traceId = span.traceId;
+        parentSpanId = span.parentSpanId;
+        sampled = span.sampled;
+        Tracing._log(
+          `[Tracing] found 'sentry-meta' '<meta />' continuing trace with: trace_id: ${traceId} span_id: ${parentSpanId}`,
+        );
+      }
+    }
+
+    return hub.startTransaction({
+      parentSpanId,
+      sampled,
+      traceId,
+      trimEnd: true,
+      ...transactionContext,
+    }) as Transaction;
+  }
+
+  /**
+   * Returns the value of a meta tag
+   */
+  private static _getMeta(metaName: string): string | null {
+    const el = document.querySelector(`meta[name=${metaName}]`);
+    return el ? el.getAttribute('content') : null;
+  }
+
+  /**
+   * Pings the heartbeat
+   */
+  private static _pingHeartbeat(): void {
+    Tracing._heartbeatTimer = (setTimeout(() => {
+      Tracing._beat();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }, 5000) as any) as number;
+  }
+
+  /**
+   * Checks when entries of Tracing._activities are not changing for 3 beats. If this occurs we finish the transaction
+   *
+   */
+  private static _beat(): void {
+    clearTimeout(Tracing._heartbeatTimer);
+    const keys = Object.keys(Tracing._activities);
+    if (keys.length) {
+      const heartbeatString = keys.reduce((prev: string, current: string) => prev + current);
+      if (heartbeatString === Tracing._prevHeartbeatString) {
+        // eslint-disable-next-line no-plusplus
+        Tracing._heartbeatCounter++;
+      } else {
+        Tracing._heartbeatCounter = 0;
+      }
+      if (Tracing._heartbeatCounter >= 3) {
+        if (Tracing._activeTransaction) {
+          Tracing._log(
+            `[Tracing] Transaction: ${SpanStatus.Cancelled} -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
+          );
+          Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
+          Tracing._activeTransaction.setTag('heartbeat', 'failed');
+          Tracing.finishIdleTransaction(timestampWithMs());
+        }
+      }
+      Tracing._prevHeartbeatString = heartbeatString;
+    }
+    Tracing._pingHeartbeat();
+  }
+
+  /**
+   * Unsets the current active transaction + activities
+   */
+  private static _resetActiveTransaction(): void {
+    // We want to clean up after ourselves
+    // If there is still the active transaction on the scope we remove it
+    const _getCurrentHub = Tracing._getCurrentHub;
+    if (_getCurrentHub) {
+      const hub = _getCurrentHub();
+      const scope = hub.getScope();
+      if (scope) {
+        if (scope.getSpan() === Tracing._activeTransaction) {
+          scope.setSpan(undefined);
+        }
+      }
+    }
+    // ------------------------------------------------------------------
+    Tracing._activeTransaction = undefined;
+    Tracing._activities = {};
+  }
+
+  /**
+   * Uses logger.log to log things in the SDK or as breadcrumbs if defined in options
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private static _log(...args: any[]): void {
+    if (Tracing.options && Tracing.options.debug && Tracing.options.debug.writeAsBreadcrumbs) {
+      const _getCurrentHub = Tracing._getCurrentHub;
+      if (_getCurrentHub) {
+        _getCurrentHub().addBreadcrumb({
+          category: 'tracing',
+          level: Severity.Debug,
+          message: safeJoin(args, ' '),
+          type: 'debug',
+        });
+      }
+    }
+    logger.log(...args);
+  }
+
   /**
    * This uses `performance.getEntries()` to add additional spans to the active transaction.
    * Also, we update our timings since we consider the timings in this API to be more correct than our manual
@@ -579,7 +586,7 @@ export class Tracing implements Integration {
 
     const timeOrigin = Tracing._msToSec(performance.timeOrigin);
 
-    // tslint:disable-next-line: completed-docs
+    // eslint-disable-next-line jsdoc/require-jsdoc
     function addPerformanceNavigationTiming(parent: Span, entry: { [key: string]: number }, event: string): void {
       _startChild(parent, {
         description: event,
@@ -589,7 +596,7 @@ export class Tracing implements Integration {
       });
     }
 
-    // tslint:disable-next-line: completed-docs
+    // eslint-disable-next-line jsdoc/require-jsdoc
     function addRequest(parent: Span, entry: { [key: string]: number }): void {
       _startChild(parent, {
         description: 'request',
@@ -609,7 +616,7 @@ export class Tracing implements Integration {
     let entryScriptSrc: string | undefined;
 
     if (global.document) {
-      // tslint:disable-next-line: prefer-for-of
+      // eslint-disable-next-line @typescript-eslint/prefer-for-of
       for (let i = 0; i < document.scripts.length; i++) {
         // We go through all scripts on the page and look for 'data-entry'
         // We remember the name and measure the time between this script finished loading and
@@ -624,10 +631,10 @@ export class Tracing implements Integration {
     let entryScriptStartEndTime: number | undefined;
     let tracingInitMarkStartTime: number | undefined;
 
-    // tslint:disable: no-unsafe-any
     performance
       .getEntries()
       .slice(Tracing._performanceCursor)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .forEach((entry: any) => {
         const startTime = Tracing._msToSec(entry.startTime as number);
         const duration = Tracing._msToSec(entry.duration as number);
@@ -647,7 +654,7 @@ export class Tracing implements Integration {
             break;
           case 'mark':
           case 'paint':
-          case 'measure':
+          case 'measure': {
             const mark = _startChild(transactionSpan, {
               description: entry.name,
               endTimestamp: timeOrigin + startTime + duration,
@@ -658,7 +665,8 @@ export class Tracing implements Integration {
               tracingInitMarkStartTime = mark.startTimestamp;
             }
             break;
-          case 'resource':
+          }
+          case 'resource': {
             const resourceName = entry.name.replace(window.location.origin, '');
             // we already instrument based on fetch and xhr, so we don't need to
             // duplicate spans here.
@@ -675,6 +683,7 @@ export class Tracing implements Integration {
               }
             }
             break;
+          }
           default:
           // Ignore other entry types.
         }
@@ -716,7 +725,7 @@ export class Tracing implements Integration {
         { once: true },
       );
 
-      const updateLCP = (entry: PerformanceEntry) => {
+      const updateLCP = (entry: PerformanceEntry): void => {
         // Only include an LCP entry if the page wasn't hidden prior to
         // the entry being dispatched. This typically happens when a page is
         // loaded in a background tab.
@@ -726,9 +735,9 @@ export class Tracing implements Integration {
           // The `renderTime` value may not be available if the element is an image
           // that's loaded cross-origin without the `Timing-Allow-Origin` header.
           Tracing._lcp = {
-            // @ts-ignore
+            // @ts-ignore property id does not exist on entry
             ...(entry.id && { elementId: entry.id }),
-            // @ts-ignore
+            // @ts-ignore property size does not exist on entry
             ...(entry.size && { elementSize: entry.size }),
             value: entry.startTime,
           };
@@ -744,34 +753,16 @@ export class Tracing implements Integration {
       // i.e. entries that occurred before calling `observe()` below.
       po.observe({
         buffered: true,
-        // @ts-ignore
+        // @ts-ignore not assignable, so have to ignore
         type: 'largest-contentful-paint',
       });
 
-      Tracing._forceLCP = () => {
+      Tracing._forceLCP = (): void => {
         po.takeRecords().forEach(updateLCP);
       };
     } catch (e) {
       // Do nothing if the browser doesn't support this API.
     }
-  }
-
-  /**
-   * Sets the status of the current active transaction (if there is one)
-   */
-  public static setTransactionStatus(status: SpanStatus): void {
-    const active = Tracing._activeTransaction;
-    if (active) {
-      Tracing._log('[Tracing] setTransactionStatus', status);
-      active.setStatus(status);
-    }
-  }
-
-  /**
-   * Returns the current active idle transaction if there is one
-   */
-  public static getTransaction(): Transaction | undefined {
-    return Tracing._activeTransaction;
   }
 
   /**
@@ -786,15 +777,15 @@ export class Tracing implements Integration {
    * Adds debug data to the span
    */
   private static _addSpanDebugInfo(span: Span): void {
-    // tslint:disable: no-unsafe-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const debugData: any = {};
     if (global.performance) {
       debugData.performance = true;
       debugData['performance.timeOrigin'] = global.performance.timeOrigin;
       debugData['performance.now'] = global.performance.now();
-      // tslint:disable-next-line: deprecation
+      // eslint-disable-next-line deprecation/deprecation
       if (global.performance.timing) {
-        // tslint:disable-next-line: deprecation
+        // eslint-disable-next-line deprecation/deprecation
         debugData['performance.timing.navigationStart'] = performance.timing.navigationStart;
       }
     } else {
@@ -806,130 +797,150 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Starts tracking for a specifc activity
-   *
-   * @param name Name of the activity, can be any string (Only used internally to identify the activity)
-   * @param spanContext If provided a Span with the SpanContext will be created.
-   * @param options _autoPopAfter_ | Time in ms, if provided the activity will be popped automatically after this timeout. This can be helpful in cases where you cannot gurantee your application knows the state and calls `popActivity` for sure.
+   * @inheritDoc
    */
-  public static pushActivity(
-    name: string,
-    spanContext?: SpanContext,
-    options?: {
-      autoPopAfter?: number;
-    },
-  ): number {
-    const activeTransaction = Tracing._activeTransaction;
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    Tracing._getCurrentHub = getCurrentHub;
 
-    if (!activeTransaction) {
-      Tracing._log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
-      return 0;
+    if (this._emitOptionsWarning) {
+      logger.warn(
+        '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
+      );
+      logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
     }
 
-    const _getCurrentHub = Tracing._getCurrentHub;
-    if (spanContext && _getCurrentHub) {
-      const hub = _getCurrentHub();
-      if (hub) {
-        const span = activeTransaction.startChild(spanContext);
-        Tracing._activities[Tracing._currentIndex] = {
-          name,
-          span,
-        };
+    // Starting pageload transaction
+    if (global.location && Tracing.options && Tracing.options.startTransactionOnPageLoad) {
+      Tracing.startIdleTransaction({
+        name: Tracing.options.beforeNavigate(window.location),
+        op: 'pageload',
+      });
+    }
+
+    this._setupXHRTracing();
+
+    this._setupFetchTracing();
+
+    this._setupHistory();
+
+    this._setupErrorHandling();
+
+    this._setupBackgroundTabDetection();
+
+    Tracing._pingHeartbeat();
+
+    // This EventProcessor makes sure that the transaction is not longer than maxTransactionDuration
+    addGlobalEventProcessor((event: Event) => {
+      const self = getCurrentHub().getIntegration(Tracing);
+      if (!self) {
+        return event;
       }
-    } else {
-      Tracing._activities[Tracing._currentIndex] = {
-        name,
-      };
-    }
 
-    Tracing._log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
-    Tracing._log('[Tracing] activies count', Object.keys(Tracing._activities).length);
-    if (options && typeof options.autoPopAfter === 'number') {
-      Tracing._log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
-      const index = Tracing._currentIndex;
-      setTimeout(() => {
-        Tracing.popActivity(index, {
-          autoPop: true,
-          status: SpanStatus.DeadlineExceeded,
-        });
-      }, options.autoPopAfter);
-    }
-    return Tracing._currentIndex++;
+      const isOutdatedTransaction =
+        event.timestamp &&
+        event.start_timestamp &&
+        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
+          event.timestamp - event.start_timestamp < 0);
+
+      if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
+        Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} since it maxed out maxTransactionDuration`);
+        if (event.contexts && event.contexts.trace) {
+          event.contexts.trace = {
+            ...event.contexts.trace,
+            status: SpanStatus.DeadlineExceeded,
+          };
+          event.tags = {
+            ...event.tags,
+            maxTransactionDurationExceeded: 'true',
+          };
+        }
+      }
+
+      return event;
+    });
   }
 
   /**
-   * Removes activity and finishes the span in case there is one
-   * @param id the id of the activity being removed
-   * @param spanData span data that can be updated
-   *
+   * Discards active transactions if tab moves to background
    */
-  public static popActivity(id: number, spanData?: { [key: string]: any }): void {
-    // The !id is on purpose to also fail with 0
-    // Since 0 is returned by push activity in case there is no active transaction
-    if (!id) {
-      return;
-    }
-
-    const activity = Tracing._activities[id];
-
-    if (activity) {
-      Tracing._log(`[Tracing] popActivity ${activity.name}#${id}`);
-      const span = activity.span;
-      if (span) {
-        if (spanData) {
-          Object.keys(spanData).forEach((key: string) => {
-            span.setData(key, spanData[key]);
-            if (key === 'status_code') {
-              span.setHttpStatus(spanData[key] as number);
-            }
-            if (key === 'status') {
-              span.setStatus(spanData[key] as SpanStatus);
-            }
-          });
+  private _setupBackgroundTabDetection(): void {
+    if (Tracing.options && Tracing.options.markBackgroundTransactions && global.document) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && Tracing._activeTransaction) {
+          Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background`);
+          Tracing._activeTransaction.setStatus(SpanStatus.Cancelled);
+          Tracing._activeTransaction.setTag('visibilitychange', 'document.hidden');
+          Tracing.finishIdleTransaction(timestampWithMs());
         }
-        if (Tracing.options && Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
-          Tracing._addSpanDebugInfo(span);
-        }
-        span.finish();
-      }
-      // tslint:disable-next-line: no-dynamic-delete
-      delete Tracing._activities[id];
-    }
-
-    const count = Object.keys(Tracing._activities).length;
-
-    Tracing._log('[Tracing] activies count', count);
-
-    if (count === 0 && Tracing._activeTransaction) {
-      const timeout = Tracing.options && Tracing.options.idleTimeout;
-      Tracing._log(`[Tracing] Flushing Transaction in ${timeout}ms`);
-      // We need to add the timeout here to have the real endtimestamp of the transaction
-      // Remeber timestampWithMs is in seconds, timeout is in ms
-      const end = timestampWithMs() + timeout / 1000;
-      setTimeout(() => {
-        Tracing.finishIdleTransaction(end);
-      }, timeout);
+      });
     }
   }
 
   /**
-   * Get span based on activity id
+   * Registers to History API to detect navigation changes
    */
-  public static getActivitySpan(id: number): Span | undefined {
-    if (!id) {
-      return undefined;
+  private _setupHistory(): void {
+    if (Tracing.options.startTransactionOnLocationChange) {
+      addInstrumentationHandler({
+        callback: historyCallback,
+        type: 'history',
+      });
     }
-    const activity = Tracing._activities[id];
-    if (activity) {
-      return activity.span;
+  }
+
+  /**
+   * Attaches to fetch to add sentry-trace header + creating spans
+   */
+  private _setupFetchTracing(): void {
+    if (Tracing.options.traceFetch && supportsNativeFetch()) {
+      addInstrumentationHandler({
+        callback: fetchCallback,
+        type: 'fetch',
+      });
     }
-    return undefined;
+  }
+
+  /**
+   * Attaches to XHR to add sentry-trace header + creating spans
+   */
+  private _setupXHRTracing(): void {
+    if (Tracing.options.traceXHR) {
+      addInstrumentationHandler({
+        callback: xhrCallback,
+        type: 'xhr',
+      });
+    }
+  }
+
+  /**
+   * Configures global error listeners
+   */
+  private _setupErrorHandling(): void {
+    // eslint-disable-next-line jsdoc/require-jsdoc
+    function errorCallback(): void {
+      if (Tracing._activeTransaction) {
+        /**
+         * If an error or unhandled promise occurs, we mark the active transaction as failed
+         */
+        Tracing._log(`[Tracing] Transaction: ${SpanStatus.InternalError} -> Global error occured`);
+        Tracing._activeTransaction.setStatus(SpanStatus.InternalError);
+      }
+    }
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'error',
+    });
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'unhandledrejection',
+    });
   }
 }
 
 /**
  * Creates breadcrumbs from XHR API calls
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function xhrCallback(handlerData: { [key: string]: any }): void {
   if (!Tracing.options.traceXHR) {
     return;
@@ -984,6 +995,7 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
 /**
  * Creates breadcrumbs from fetch API calls
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fetchCallback(handlerData: { [key: string]: any }): void {
   // tslint:disable: no-unsafe-any
   if (!Tracing.options.traceFetch) {
@@ -1011,6 +1023,7 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
       const span = activity.span;
       if (span) {
         const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
         let headers = options.headers;
         if (isInstanceOf(request, Request)) {
@@ -1037,6 +1050,7 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
 /**
  * Creates transaction from navigation changes
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function historyCallback(_: { [key: string]: any }): void {
   if (Tracing.options.startTransactionOnLocationChange && global && global.location) {
     Tracing.finishIdleTransaction(timestampWithMs());

@@ -12,8 +12,9 @@ import { Span as SpanClass } from './span';
  * @hidden
  */
 export class SpanRecorder {
-  private readonly _maxlen: number;
   public spans: SpanClass[] = [];
+
+  private readonly _maxlen: number;
 
   public constructor(maxlen: number = 1000) {
     this._maxlen = maxlen;
@@ -36,12 +37,12 @@ export class SpanRecorder {
 
 /** JSDoc */
 export class Transaction extends SpanClass {
+  public name?: string;
+
   /**
    * The reference to the current hub.
    */
   private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
-
-  public name?: string;
 
   private readonly _trimEnd?: boolean;
 

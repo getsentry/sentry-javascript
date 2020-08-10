@@ -69,7 +69,7 @@ describe('Hub', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
         const transaction = hub.startTransaction({ name: 'transaction' });
         expect(transaction.spanId).toBeTruthy();
-        // tslint:disable-next-line: no-unbound-method
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(transaction.setName).toBeTruthy();
       });
 
@@ -80,7 +80,7 @@ describe('Hub', () => {
         hub.configureScope(scope => {
           scope.setSpan(parentSpan);
         });
-        // @ts-ignore
+        // @ts-ignore name does not exist on SpanContext
         const span = hub.startSpan({ name: 'test' }) as any;
         expect(span.trace_id).toEqual(parentSpan.trace_id);
       });

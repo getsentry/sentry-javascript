@@ -4,7 +4,7 @@ module.exports = {
     node: true,
   },
   extends: ['prettier', 'eslint:recommended'],
-  plugins: ['sentry-sdk', 'jsdoc'],
+  plugins: ['sentry-sdk', 'jsdoc', 'deprecation'],
   ignorePatterns: ['eslint-plugin-sentry-sdk'],
   overrides: [
     {
@@ -68,6 +68,17 @@ module.exports = {
             leadingUnderscore: 'require',
           },
         ],
+
+        // Prefer for-of loop over for loop if index is only used to access array
+        '@typescript-eslint/prefer-for-of': 'error',
+
+        // Make sure all expressions are used
+        // Must disable base rule to prevent false positives
+        'no-unused-expressions': 'off',
+        '@typescript-eslint/no-unused-expressions': 'error',
+
+        // Make sure Promises are handled appropriately
+        '@typescript-eslint/no-floating-promises': 'error',
       },
     },
     {
@@ -128,5 +139,17 @@ module.exports = {
 
     // We should require a whitespace beginning a comment
     'spaced-comment': 'error',
+
+    // Disallow usage of bitwise operators - this makes it an opt in operation
+    'no-bitwise': 'error',
+
+    // Limit cyclomatic complexity
+    complexity: 'error',
+
+    // Make sure all expressions are used
+    'no-unused-expressions': 'error',
+
+    // Do not use deprecated methods
+    'deprecation/deprecation': 'error',
   },
 };

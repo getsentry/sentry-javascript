@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable prefer-rest-params */
 import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -34,12 +36,12 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Express.id;
+  public static id: string = 'Express';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'Express';
+  public name: string = Express.id;
 
   /**
    * Express App instance
@@ -77,6 +79,7 @@ export class Express implements Integration {
  * // error handler
  * app.use(function (err, req, res, next) { ... })
  */
+// eslint-disable-next-line @typescript-eslint/ban-types
 function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
   const arrity = fn.length;
 
