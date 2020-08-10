@@ -1,5 +1,3 @@
-// tslint:disable:max-classes-per-file
-
 import { AfterViewInit, Directive, Injectable, Input, OnInit } from '@angular/core';
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';

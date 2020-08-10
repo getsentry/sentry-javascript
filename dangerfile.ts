@@ -1,7 +1,8 @@
 import { exec } from 'child_process';
-import { danger, fail, message, schedule, warn } from 'danger';
 import { promisify } from 'util';
 import { resolve } from 'path';
+
+import { danger, fail, message, schedule, warn } from 'danger';
 import tslint from 'danger-plugin-tslint';
 import { prettyResults } from 'danger-plugin-tslint/dist/prettyResults';
 import { CLIEngine } from 'eslint';
