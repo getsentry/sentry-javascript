@@ -3,7 +3,6 @@
 import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-// tslint:disable: completed-docs
 // Have to manually set types because we are using package-alias
 interface Application {
   use(...args: any): any;
@@ -16,7 +15,6 @@ type NextFunction = (...args: any) => any;
 interface Response {
   once(name: string, callback: () => void): void;
 }
-// tslint:enable: completed-docs
 
 /**
  * Internal helper for `__sentry_transaction`
@@ -183,7 +181,7 @@ function wrapUseArgs(args: IArguments): unknown[] {
  * Patches original app.use to utilize our tracing functionality
  */
 function instrumentMiddlewares(app: Application): Application {
-  // tslint:disable-next-line: no-unbound-method
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const originalAppUse = app.use;
   app.use = function(): any {
     return originalAppUse.apply(this, wrapUseArgs(arguments));
