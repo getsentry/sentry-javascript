@@ -1,11 +1,10 @@
 import { exec } from 'child_process';
-import { promisify } from 'util';
-import { resolve } from 'path';
-
 import { danger, fail, message, schedule, warn } from 'danger';
 import tslint from 'danger-plugin-tslint';
 import { prettyResults } from 'danger-plugin-tslint/dist/prettyResults';
 import { CLIEngine } from 'eslint';
+import { resolve } from 'path';
+import { promisify } from 'util';
 
 const PACKAGES = ['integrations', 'node'];
 const EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'];
