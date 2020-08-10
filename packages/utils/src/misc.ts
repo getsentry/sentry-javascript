@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Event, Integration, StackFrame, WrappedFunction } from '@sentry/types';
 
 import { isString } from './is';
@@ -25,8 +26,8 @@ interface SentryGlobal {
  *
  * @param request The module path to resolve
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function dynamicRequire(mod: any, request: string): any {
-  // tslint:disable-next-line: no-unsafe-any
   return mod.require(request);
 }
 
@@ -36,7 +37,6 @@ export function dynamicRequire(mod: any, request: string): any {
  * @returns Answer to given question
  */
 export function isNodeEnv(): boolean {
-  // tslint:disable:strict-type-predicates
   return Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
 }
 
@@ -56,7 +56,6 @@ export function getGlobalObject<T>(): T & SentryGlobal {
     ? self
     : fallbackGlobalObject) as T & SentryGlobal;
 }
-// tslint:enable:strict-type-predicates
 
 /**
  * Extended Window interface that allows for Crypto API usage in IE browsers
@@ -80,10 +79,10 @@ export function uuid4(): string {
     crypto.getRandomValues(arr);
 
     // set 4 in byte 7
-    // tslint:disable-next-line:no-bitwise
+    // eslint-disable-next-line no-bitwise
     arr[3] = (arr[3] & 0xfff) | 0x4000;
     // set 2 most significant bits of byte 9 to '10'
-    // tslint:disable-next-line:no-bitwise
+    // eslint-disable-next-line no-bitwise
     arr[4] = (arr[4] & 0x3fff) | 0x8000;
 
     const pad = (num: number): string => {
@@ -100,9 +99,9 @@ export function uuid4(): string {
   }
   // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
   return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    // tslint:disable-next-line:no-bitwise
+    // eslint-disable-next-line no-bitwise
     const r = (Math.random() * 16) | 0;
-    // tslint:disable-next-line:no-bitwise
+    // eslint-disable-next-line no-bitwise
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
@@ -127,7 +126,7 @@ export function parseUrl(
     return {};
   }
 
-  const match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
+  const match = url.match(/^(([^:/?#]+):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
 
   if (!match) {
     return {};
@@ -228,11 +227,12 @@ export function addExceptionMechanism(
 ): void {
   // TODO: Use real type with `keyof Mechanism` thingy and maybe make it better?
   try {
-    // @ts-ignore
-    // tslint:disable:no-non-null-assertion
+    // @ts-ignore Type 'Mechanism | {}' is not assignable to type 'Mechanism | undefined'
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     event.exception!.values![0].mechanism = event.exception!.values![0].mechanism || {};
     Object.keys(mechanism).forEach(key => {
-      // @ts-ignore
+      // @ts-ignore Mechanism has no index signature
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       event.exception!.values![0].mechanism[key] = mechanism[key];
     });
   } catch (_oO) {
@@ -277,6 +277,7 @@ export function htmlTreeAsString(elem: unknown): string {
     const sepLength = separator.length;
     let nextStr;
 
+    // eslint-disable-next-line no-plusplus
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
       nextStr = _htmlElementAsString(currentElem);
       // bail out if
@@ -306,10 +307,10 @@ export function htmlTreeAsString(elem: unknown): string {
  */
 function _htmlElementAsString(el: unknown): string {
   const elem = el as {
-    getAttribute(key: string): string; // tslint:disable-line:completed-docs
     tagName?: string;
     id?: string;
     className?: string;
+    getAttribute(key: string): string;
   };
 
   const out = [];
@@ -328,6 +329,7 @@ function _htmlElementAsString(el: unknown): string {
     out.push(`#${elem.id}`);
   }
 
+  // eslint-disable-next-line prefer-const
   className = elem.className;
   if (className && isString(className)) {
     classes = className.split(/\s+/);
@@ -353,11 +355,11 @@ let prevNow = 0;
  * Cross platform compatible partial performance implementation
  */
 interface CrossPlatformPerformance {
+  timeOrigin: number;
   /**
    * Returns the current timestamp in ms
    */
   now(): number;
-  timeOrigin: number;
 }
 
 const performanceFallback: CrossPlatformPerformance = {
@@ -372,7 +374,7 @@ const performanceFallback: CrossPlatformPerformance = {
   timeOrigin: INITIAL_TIME,
 };
 
-export const crossPlatformPerformance: CrossPlatformPerformance = (() => {
+export const crossPlatformPerformance: CrossPlatformPerformance = ((): CrossPlatformPerformance => {
   if (isNodeEnv()) {
     try {
       const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: CrossPlatformPerformance };
@@ -392,12 +394,11 @@ export const crossPlatformPerformance: CrossPlatformPerformance = (() => {
   //
   // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
   // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
-  // tslint:disable-next-line:strict-type-predicates
   if (performance.timeOrigin === undefined) {
     // As of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always a
     // valid fallback. In the absence of a initial time provided by the browser, fallback to INITIAL_TIME.
-    // @ts-ignore
-    // tslint:disable-next-line:deprecation
+    // @ts-ignore ignored because timeOrigin is a readonly property but we want to override
+    // eslint-disable-next-line deprecation/deprecation
     performance.timeOrigin = (performance.timing && performance.timing.navigationStart) || INITIAL_TIME;
   }
 

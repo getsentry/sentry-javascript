@@ -77,13 +77,17 @@ describe('SyncPromise', () => {
         });
       });
 
-    return c
-      .then(val => f(SyncPromise.resolve('x'), val))
-      .then(val => f(b, val))
-      .then(val => f(a, val))
-      .then(val => {
-        expect(val).toBe(res);
-      });
+    return (
+      c
+        // @ts-ignore Argument of type 'PromiseLike<string>' is not assignable to parameter of type 'SyncPromise<string>'
+        .then(val => f(SyncPromise.resolve('x'), val))
+        .then(val => f(b, val))
+        // @ts-ignore Argument of type 'SyncPromise<string>' is not assignable to parameter of type 'string'
+        .then(val => f(a, val))
+        .then(val => {
+          expect(val).toBe(res);
+        })
+    );
   });
 
   test('simple static', () => {

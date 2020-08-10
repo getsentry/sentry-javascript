@@ -60,8 +60,9 @@ describe('fill()', () => {
   test('internal flags shouldnt be enumerable', () => {
     const source = {
       foo: (): number => 42,
-    };
+    } as any;
     const name = 'foo';
+    // @ts-ignore cb has any type
     const replacement = cb => cb;
 
     fill(source, name, replacement);
@@ -79,6 +80,7 @@ describe('fill()', () => {
     const bar = {};
     source.foo.prototype = bar;
     const name = 'foo';
+    // @ts-ignore cb has any type
     const replacement = cb => cb;
 
     fill(source, name, replacement);
@@ -118,21 +120,15 @@ describe('normalize()', () => {
   });
 
   test('extracts extra properties from error objects', () => {
-    const obj = new Error('Wubba Lubba Dub Dub');
-    // @ts-ignore
+    const obj = new Error('Wubba Lubba Dub Dub') as any;
     obj.reason = new TypeError("I'm pickle Riiick!");
-    // @ts-ignore
     obj.extra = 'some extra prop';
 
-    // Stack is inconsistent across browsers, so override it and just make sure its stringified
     obj.stack = 'x';
-    // @ts-ignore
     obj.reason.stack = 'x';
 
     // IE 10/11
-    // @ts-ignore
     delete obj.description;
-    // @ts-ignore
     delete obj.reason.description;
 
     expect(normalize(obj)).toEqual({
@@ -150,22 +146,19 @@ describe('normalize()', () => {
 
   describe('decycles cyclical structures', () => {
     test('circular objects', () => {
-      const obj = { name: 'Alice' };
-      // @ts-ignore
+      const obj = { name: 'Alice' } as any;
       obj.self = obj;
       expect(normalize(obj)).toEqual({ name: 'Alice', self: '[Circular ~]' });
     });
 
     test('circular objects with intermediaries', () => {
-      const obj = { name: 'Alice' };
-      // @ts-ignore
+      const obj = { name: 'Alice' } as any;
       obj.identity = { self: obj };
       expect(normalize(obj)).toEqual({ name: 'Alice', identity: { self: '[Circular ~]' } });
     });
 
     test('deep circular objects', () => {
-      const obj = { name: 'Alice', child: { name: 'Bob' } };
-      // @ts-ignore
+      const obj = { name: 'Alice', child: { name: 'Bob' } } as any;
       obj.child.self = obj.child;
       expect(normalize(obj)).toEqual({
         name: 'Alice',
@@ -174,8 +167,7 @@ describe('normalize()', () => {
     });
 
     test('deep circular objects with intermediaries', () => {
-      const obj = { name: 'Alice', child: { name: 'Bob' } };
-      // @ts-ignore
+      const obj = { name: 'Alice', child: { name: 'Bob' } } as any;
       obj.child.identity = { self: obj.child };
       expect(normalize(obj)).toEqual({
         name: 'Alice',
@@ -184,8 +176,7 @@ describe('normalize()', () => {
     });
 
     test('circular objects in an array', () => {
-      const obj = { name: 'Alice' };
-      // @ts-ignore
+      const obj = { name: 'Alice' } as any;
       obj.self = [obj, obj];
       expect(normalize(obj)).toEqual({
         name: 'Alice',
@@ -197,10 +188,8 @@ describe('normalize()', () => {
       const obj = {
         name: 'Alice',
         children: [{ name: 'Bob' }, { name: 'Eve' }],
-      };
-      // @ts-ignore
+      } as any;
       obj.children[0].self = obj.children[0];
-      // @ts-ignore
       obj.children[1].self = obj.children[1];
       expect(normalize(obj)).toEqual({
         name: 'Alice',
@@ -212,6 +201,7 @@ describe('normalize()', () => {
     });
 
     test('circular arrays', () => {
+      // eslint-disable-next-line @typescript-eslint/ban-types
       const obj: object[] = [];
       obj.push(obj);
       obj.push(obj);
@@ -219,6 +209,7 @@ describe('normalize()', () => {
     });
 
     test('circular arrays with intermediaries', () => {
+      // eslint-disable-next-line @typescript-eslint/ban-types
       const obj: object[] = [];
       obj.push({ name: 'Alice', self: obj });
       obj.push({ name: 'Bob', self: obj });
@@ -229,11 +220,9 @@ describe('normalize()', () => {
     });
 
     test('repeated objects in objects', () => {
-      const obj = {};
+      const obj = {} as any;
       const alice = { name: 'Alice' };
-      // @ts-ignore
       obj.alice1 = alice;
-      // @ts-ignore
       obj.alice2 = alice;
       expect(normalize(obj)).toEqual({
         alice1: { name: 'Alice' },
@@ -248,17 +237,13 @@ describe('normalize()', () => {
     });
 
     test('error objects with circular references', () => {
-      const obj = new Error('Wubba Lubba Dub Dub');
-      // @ts-ignore
+      const obj = new Error('Wubba Lubba Dub Dub') as any;
       obj.reason = obj;
 
-      // Stack is inconsistent across browsers, so override it and just make sure its stringified
       obj.stack = 'x';
-      // @ts-ignore
       obj.reason.stack = 'x';
 
       // IE 10/11
-      // @ts-ignore
       delete obj.description;
 
       expect(normalize(obj)).toEqual({
@@ -274,7 +259,7 @@ describe('normalize()', () => {
     test('simple object', () => {
       const circular = {
         foo: 1,
-      };
+      } as any;
       circular.bar = circular;
 
       const normalized = normalize(circular);
@@ -290,7 +275,7 @@ describe('normalize()', () => {
     test('complex object', () => {
       const circular = {
         foo: 1,
-      };
+      } as any;
       circular.bar = [
         {
           baz: circular,
@@ -320,7 +305,7 @@ describe('normalize()', () => {
     test('object with non-enumerable properties', () => {
       const circular = {
         foo: 1,
-      };
+      } as any;
       circular.bar = circular;
       circular.baz = {
         one: 1337,
@@ -351,10 +336,9 @@ describe('normalize()', () => {
 
   describe('calls toJSON if implemented', () => {
     test('primitive values', () => {
-      // tslint:disable:no-construct
-      const a = new Number(1);
+      const a = new Number(1) as any;
       a.toJSON = () => 10;
-      const b = new String('2');
+      const b = new String('2') as any;
       b.toJSON = () => '20';
       expect(normalize(a)).toEqual(10);
       expect(normalize(b)).toEqual('20');
@@ -364,11 +348,12 @@ describe('normalize()', () => {
       const a = Object.create({});
       a.toJSON = () => 1;
       function B(): void {
-        /*no-empty*/
+        /* no-empty */
       }
       B.prototype.toJSON = () => 2;
-      const c = [];
+      const c: any = [];
       c.toJSON = () => 3;
+      // @ts-ignore target lacks a construct signature
       expect(normalize([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
     });
   });
@@ -485,7 +470,7 @@ describe('normalize()', () => {
           {
             something: 'else',
             fn: () => {
-              /*no-empty*/
+              /* no-empty */
             },
           },
         ],
@@ -518,7 +503,7 @@ describe('normalize()', () => {
       },
       baz: NaN,
       qux: function qux(): void {
-        /*no-empty*/
+        /* no-empty */
       },
     };
     const result = normalize(obj);
