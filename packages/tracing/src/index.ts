@@ -13,3 +13,5 @@ export { SpanStatus } from './spanstatus';
 
 // We are patching the global object with our hub extension methods
 addExtensionMethods();
+
+export { addExtensionMethods };
