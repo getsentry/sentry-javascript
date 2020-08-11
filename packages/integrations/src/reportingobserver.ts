@@ -83,8 +83,6 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    // tslint:disable:no-unsafe-any
-
     if (!supportsReportingObserver()) {
       return;
     }
@@ -120,7 +118,7 @@ export class ReportingObserver implements Integration {
             [key: string]: any;
           } = {};
 
-          // tslint:disable-next-line:forin
+          // eslint-disable-next-line guard-for-in
           for (const prop in report.body) {
             plainBody[prop] = report.body[prop];
           }

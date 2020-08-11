@@ -45,7 +45,6 @@ export namespace SpanStatus {
    * @param httpStatus The HTTP response status code.
    * @returns The span status or {@link SpanStatus.UnknownError}.
    */
-  // tslint:disable-next-line:completed-docs
   export function fromHttpCode(httpStatus: number): SpanStatus {
     if (httpStatus < 400) {
       return SpanStatus.Ok;

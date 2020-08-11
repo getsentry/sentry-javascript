@@ -87,6 +87,12 @@ module.exports = {
         'simple-import-sort/sort': 'error',
         'sort-imports': 'off',
         'import/order': 'off',
+
+        // Disallow delete operator. We should make this operation opt in (by disabling this rule).
+        '@typescript-eslint/no-dynamic-delete': 'error',
+
+        // We should prevent against overloads unless necessary.
+        '@typescript-eslint/unified-signatures': 'error',
       },
     },
     {
@@ -102,6 +108,9 @@ module.exports = {
           'error',
           { require: { ClassDeclaration: true, MethodDefinition: true }, checkConstructors: false },
         ],
+
+        // All imports should be accounted for
+        'import/no-extraneous-dependencies': 'error',
       },
     },
     {
@@ -164,5 +173,8 @@ module.exports = {
 
     // imports should be ordered.
     'import/order': ['error', { 'newlines-between': 'always' }],
+
+    // Make sure for in loops check for properties
+    'guard-for-in': 'error',
   },
 };

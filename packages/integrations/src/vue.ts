@@ -43,10 +43,8 @@ interface ViewModel {
     __file?: string;
     $_sentryPerfHook?: boolean;
   };
-  $once(hook: string, cb: () => void): void; // tslint:disable-line:completed-docs
+  $once(hook: string, cb: () => void): void;
 }
-
-// tslint:enable:completed-docs
 
 /** Vue Integration configuration */
 interface IntegrationOptions {
@@ -155,7 +153,7 @@ export class Vue implements Integration {
    */
   public constructor(options: Partial<IntegrationOptions>) {
     this._options = {
-      Vue: getGlobalObject<any>().Vue, // tslint:disable-line:no-unsafe-any
+      Vue: getGlobalObject<any>().Vue,
       attachProps: true,
       logErrors: false,
       tracing: false,
@@ -353,7 +351,6 @@ export class Vue implements Integration {
         // eslint-disable-next-line deprecation/deprecation
         const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
         if (tracingIntegration) {
-          // tslint:disable-next-line:no-unsafe-any
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
         }
       }
@@ -431,9 +428,7 @@ export class Vue implements Integration {
   }
 }
 
-// tslint:disable-next-line: completed-docs
 interface HubType extends Hub {
-  // tslint:disable-next-line: completed-docs
   getScope?(): Scope | undefined;
 }
 

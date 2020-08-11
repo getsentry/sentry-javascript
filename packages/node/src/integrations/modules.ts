@@ -86,7 +86,6 @@ export class Modules implements Integration {
   /** Fetches the list of modules and the versions loaded by the entry file for your node.js app. */
   private _getModules(): { [key: string]: string } {
     if (!moduleCache) {
-      // tslint:disable-next-line:no-unsafe-any
       moduleCache = collectModules();
     }
     return moduleCache;

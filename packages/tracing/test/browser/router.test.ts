@@ -1,4 +1,3 @@
-// tslint:disable-next-line: no-implicit-dependencies
 import { JSDOM } from 'jsdom';
 
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from '../../src/browser/router';

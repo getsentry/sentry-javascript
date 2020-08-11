@@ -14,7 +14,6 @@ type NextFunction = (...args: any) => any;
 interface Response {
   once(name: string, callback: () => void): void;
 }
-// tslint:enable: completed-docs
 
 /**
  * Internal helper for `__sentry_transaction`

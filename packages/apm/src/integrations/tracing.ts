@@ -315,7 +315,7 @@ export class Tracing implements Integration {
         }
         span.finish();
       }
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete Tracing._activities[id];
     }
 
@@ -698,7 +698,6 @@ export class Tracing implements Integration {
     }
 
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
-    // tslint:enable: no-unsafe-any
   }
 
   /**
@@ -792,7 +791,6 @@ export class Tracing implements Integration {
     }
     debugData['Date.now()'] = Date.now();
     span.setData('sentry_debug', debugData);
-    // tslint:enable: no-unsafe-any
   }
 
   /**
@@ -945,12 +943,10 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
     return;
   }
 
-  // tslint:disable-next-line: no-unsafe-any
   if (!handlerData || !handlerData.xhr || !handlerData.xhr.__sentry_xhr__) {
     return;
   }
 
-  // tslint:disable: no-unsafe-any
   const xhr = handlerData.xhr.__sentry_xhr__;
 
   if (!Tracing.options.shouldCreateSpanForRequest(xhr.url)) {
@@ -988,7 +984,6 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
       }
     }
   }
-  // tslint:enable: no-unsafe-any
 }
 
 /**
@@ -996,7 +991,6 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fetchCallback(handlerData: { [key: string]: any }): void {
-  // tslint:disable: no-unsafe-any
   if (!Tracing.options.traceFetch) {
     return;
   }
@@ -1043,7 +1037,6 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
       }
     }
   }
-  // tslint:enable: no-unsafe-any
 }
 
 /**

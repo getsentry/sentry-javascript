@@ -1,4 +1,3 @@
-// tslint:disable: max-classes-per-file
 import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
@@ -194,7 +193,6 @@ export class IdleTransaction extends Transaction {
    */
   private _pushActivity(spanId: string): void {
     if (this._initTimeout) {
-      // tslint:disable-next-line: no-unsafe-any
       clearTimeout(this._initTimeout);
       this._initTimeout = undefined;
     }
@@ -210,7 +208,7 @@ export class IdleTransaction extends Transaction {
   private _popActivity(spanId: string): void {
     if (this.activities[spanId]) {
       logger.log(`[Tracing] popActivity ${spanId}`);
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this.activities[spanId];
       logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
     }

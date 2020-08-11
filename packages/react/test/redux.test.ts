@@ -1,4 +1,3 @@
-// tslint:disable-next-line: no-implicit-dependencies
 import * as Sentry from '@sentry/minimal';
 import { Scope } from '@sentry/types';
 import * as Redux from 'redux';

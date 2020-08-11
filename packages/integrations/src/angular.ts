@@ -56,7 +56,6 @@ export class Angular implements Integration {
 
     this._getCurrentHub = getCurrentHub;
 
-    // tslint:disable: no-unsafe-any
     this._angular.module(Angular.moduleName, []).config([
       '$provide',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +63,6 @@ export class Angular implements Integration {
         $provide.decorator('$exceptionHandler', ['$delegate', this._$exceptionHandlerDecorator.bind(this)]);
       },
     ]);
-    // tslint:enable: no-unsafe-any
   }
 
   /**
@@ -106,7 +104,6 @@ export class Angular implements Integration {
           hub.captureException(exception);
         });
       }
-      // tslint:disable-next-line: no-unsafe-any
       $delegate(exception, cause);
     };
   }

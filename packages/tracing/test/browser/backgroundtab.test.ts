@@ -1,6 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
-// tslint:disable-next-line: no-implicit-dependencies
 import { JSDOM } from 'jsdom';
 
 import { SpanStatus } from '../../src';

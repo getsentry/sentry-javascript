@@ -88,7 +88,6 @@ export class ExtraErrorData implements Integration {
           if (isError(value)) {
             value = (value as Error).toString();
           }
-          // tslint:disable:no-unsafe-any
           extraErrorInfo[key] = value;
         }
         result = extraErrorInfo;

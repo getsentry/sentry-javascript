@@ -1,6 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
-// tslint:disable-next-line: no-implicit-dependencies
 import { JSDOM } from 'jsdom';
 
 import { SpanStatus } from '../../src';
@@ -61,7 +60,6 @@ describe('BrowserTracing', () => {
     }
   });
 
-  // tslint:disable-next-line: completed-docs
   function createBrowserTracing(setup?: boolean, _options?: Partial<BrowserTracingOptions>): BrowserTracing {
     const inst = new BrowserTracing(_options);
     if (setup) {

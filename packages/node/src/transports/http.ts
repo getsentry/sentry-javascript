@@ -12,7 +12,7 @@ export class HTTPTransport extends BaseTransport {
     const proxy = options.httpProxy || process.env.http_proxy;
     this.module = http;
     this.client = proxy
-      ? (new (require('https-proxy-agent'))(proxy) as http.Agent) // tslint:disable-line:no-unsafe-any
+      ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
       : new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
   }
 

@@ -76,7 +76,6 @@ const STATE_CONTEXT_KEY = 'redux.state';
 
 const defaultOptions: SentryEnhancerOptions = {
   actionTransformer: action => action,
-  // tslint:disable-next-line: no-unsafe-any
   stateTransformer: state => state || null,
 };
 

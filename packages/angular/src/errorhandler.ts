@@ -78,7 +78,6 @@ class SentryErrorHandler implements AngularErrorHandler {
     // Allow custom overrides of extracting function
     if (this._options.extractor) {
       const defaultExtractor = this._defaultExtractor.bind(this);
-      // tslint:disable-next-line:no-unsafe-any
       return this._options.extractor(error, defaultExtractor);
     }
 

@@ -64,7 +64,6 @@ function getActivitySpan(activity: number | null): Span | undefined {
     return undefined;
   }
 
-  // tslint:disable-next-line:no-unsafe-any
   return (globalTracingIntegration as any).constructor.getActivitySpan(activity) as Span | undefined;
 }
 

@@ -138,7 +138,7 @@ export function _fetchCallback(
     if (span) {
       span.finish();
 
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[handlerData.fetchData.__span];
     }
     return;
@@ -166,9 +166,7 @@ export function _fetchCallback(
       headers = (request as Request).headers;
     }
     if (headers) {
-      // tslint:disable-next-line: no-unsafe-any
       if (typeof headers.append === 'function') {
-        // tslint:disable-next-line: no-unsafe-any
         headers.append('sentry-trace', span.toTraceparent());
       } else if (Array.isArray(headers)) {
         headers = [...headers, ['sentry-trace', span.toTraceparent()]];
@@ -212,7 +210,7 @@ function xhrCallback(
       span.setHttpStatus(xhr.status_code);
       span.finish();
 
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[handlerData.xhr.__sentry_xhr_span_id__];
     }
     return;

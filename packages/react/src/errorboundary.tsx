@@ -19,7 +19,6 @@ export type ErrorBoundaryProps = {
    * No-op if {@link showDialog} is false.
    */
   dialogOptions?: ReportDialogOptions;
-  // tslint:disable no-null-undefined-union
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
    *
@@ -29,7 +28,6 @@ export type ErrorBoundaryProps = {
    *
    */
   fallback?: React.ReactNode | FallbackRender;
-  // tslint:enable no-null-undefined-union
   /** Called with the error boundary encounters an error */
   onError?(error: Error, componentStack: string, eventId: string): void;
   /** Called on componentDidMount() */
