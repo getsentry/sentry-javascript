@@ -24,8 +24,8 @@
   "devDependencies": {
     "@types/eslint": "^7.2.0",
     "@types/md5": "2.1.33",
-    "@sentry/eslint-plugin": "5.20.1",
-    "eslint": "^7.6.0",
+    "eslint-config-sentry-sdks": "5.20.1",
+    "eslint": "7.6.0",
     "btoa": "^1.2.1",
     "chai": "^4.1.2",
     "chokidar": "^3.0.2",

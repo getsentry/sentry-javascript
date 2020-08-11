@@ -23,8 +23,8 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/eslint-plugin": "5.20.1",
-    "eslint": "^7.6.0",
+    "eslint-config-sentry-sdks": "5.20.1",
+    "eslint": "7.6.0",
     "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
     "prettier": "1.17.0",

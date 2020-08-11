@@ -19,7 +19,7 @@
 
 ## General
 
-Install with `yarn add -D @sentry/eslint-config`
+Install with `yarn add -D eslint-config-sentry-sdks`
 
 ## Configuration
 

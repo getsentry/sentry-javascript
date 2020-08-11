@@ -8,7 +8,7 @@ module.exports = {
     ecmaVersion: 2018,
     jsx: true,
   },
-  extends: ['@sentry', 'plugin:react/recommended', 'plugin:react-hooks/recommended'],
+  extends: ['sentry-sdks', 'plugin:react/recommended', 'plugin:react-hooks/recommended'],
   ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*'],
   overrides: [
     {
