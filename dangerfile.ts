@@ -1,12 +1,12 @@
 import { exec } from 'child_process';
 import { danger, fail, message, schedule, warn } from 'danger';
-import { promisify } from 'util';
-import { resolve } from 'path';
 import tslint from 'danger-plugin-tslint';
 import { prettyResults } from 'danger-plugin-tslint/dist/prettyResults';
 import { CLIEngine } from 'eslint';
+import { resolve } from 'path';
+import { promisify } from 'util';
 
-const PACKAGES = ['apm', 'integrations', 'node', 'utils'];
+const PACKAGES = ['integrations', 'node'];
 const EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'];
 
 /**
@@ -15,6 +15,7 @@ const EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'];
  */
 async function eslint(): Promise<void[]> {
   const allFiles = danger.git.created_files.concat(danger.git.modified_files);
+  // eslint-disable-next-line deprecation/deprecation
   const cli = new CLIEngine({});
   // let eslint filter down to non-ignored, matching the extensions expected
   const filesToLint = allFiles.filter(f => !cli.isPathIgnored(f) && EXTENSIONS.some(ext => f.endsWith(ext)));
@@ -22,6 +23,7 @@ async function eslint(): Promise<void[]> {
 }
 
 /** JSDoc */
+// eslint-disable-next-line deprecation/deprecation
 async function lintFile(linter: CLIEngine, path: string): Promise<void> {
   const contents = await danger.github.utils.fileContents(path);
   const report = linter.executeOnText(contents, path);

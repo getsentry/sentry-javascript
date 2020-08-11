@@ -232,6 +232,7 @@
   function Body() {
     this.bodyUsed = false;
 
+    // eslint-disable-next-line complexity
     this._initBody = function(body) {
       this._bodyInit = body;
       if (!body) {

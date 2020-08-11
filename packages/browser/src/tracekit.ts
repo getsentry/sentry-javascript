@@ -95,7 +95,7 @@ export function computeStackTrace(ex: any): StackTrace {
 }
 
 /** JSDoc */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, complexity
 function computeStackTraceFromStackProp(ex: any): StackTrace | null {
   if (!ex || !ex.stack) {
     return null;

@@ -19,6 +19,7 @@
     "yarn": "1.13.0"
   },
   "workspaces": [
+    "packages/angular",
     "packages/apm",
     "packages/browser",
     "packages/core",
@@ -52,8 +53,11 @@
     "danger-plugin-tslint": "^2.0.0",
     "eslint": "^7.5.0",
     "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-deprecation": "^1.1.0",
+    "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-jsdoc": "^30.0.3",
     "eslint-plugin-sentry-sdk": "file:./eslint-plugin-sentry-sdk",
+    "eslint-plugin-simple-import-sort": "^5.0.3",
     "jest": "^24.7.1",
     "karma-browserstack-launcher": "^1.5.1",
     "karma-firefox-launcher": "^1.1.0",

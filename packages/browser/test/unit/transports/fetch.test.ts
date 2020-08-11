@@ -27,6 +27,7 @@ describe('FetchTransport', () => {
   });
 
   it('inherits composeEndpointUrl() implementation', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(transport.url).equal(transportUrl);
   });
 

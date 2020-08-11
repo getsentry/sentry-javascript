@@ -1,5 +1,3 @@
-// tslint:disable:max-classes-per-file
-
 import { AfterViewInit, Directive, Injectable, Input, OnInit } from '@angular/core';
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
@@ -54,14 +52,7 @@ export function getActiveTransaction(): Transaction | undefined {
  */
 @Injectable({ providedIn: 'root' })
 export class TraceService {
-  private routingSpan?: Span;
-
-  public constructor(private readonly router: Router) {
-    this.navStart$.subscribe();
-    this.navEnd$.subscribe();
-  }
-
-  public navStart$: Observable<Event> = this.router.events.pipe(
+  public navStart$: Observable<Event> = this._router.events.pipe(
     filter(event => event instanceof NavigationStart),
     tap(event => {
       if (!instrumentationInitialized) {
@@ -80,7 +71,7 @@ export class TraceService {
       }
 
       if (activeTransaction) {
-        this.routingSpan = activeTransaction.startChild({
+        this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
           op: `angular.routing`,
           tags: {
@@ -95,15 +86,22 @@ export class TraceService {
     }),
   );
 
-  public navEnd$: Observable<Event> = this.router.events.pipe(
+  public navEnd$: Observable<Event> = this._router.events.pipe(
     filter(event => event instanceof NavigationEnd),
     tap(() => {
-      if (this.routingSpan) {
-        this.routingSpan.finish();
-        delete this.routingSpan;
+      if (this._routingSpan) {
+        this._routingSpan.finish();
+        delete this._routingSpan;
       }
     }),
   );
+
+  private _routingSpan?: Span;
+
+  public constructor(private readonly _router: Router) {
+    this.navStart$.subscribe();
+    this.navEnd$.subscribe();
+  }
 }
 
 const UNKNOWN_COMPONENT = 'unknown';
@@ -113,9 +111,9 @@ const UNKNOWN_COMPONENT = 'unknown';
  */
 @Directive({ selector: '[trace]' })
 export class TraceDirective implements OnInit, AfterViewInit {
-  private tracingSpan?: Span;
-
   @Input('trace') public componentName: string = UNKNOWN_COMPONENT;
+
+  private _tracingSpan?: Span;
 
   /**
    * Implementation of OnInit lifecycle method
@@ -124,7 +122,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
   public ngOnInit(): void {
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
-      this.tracingSpan = activeTransaction.startChild({
+      this._tracingSpan = activeTransaction.startChild({
         description: `<${this.componentName}>`,
         op: `angular.initialize`,
       });
@@ -136,8 +134,8 @@ export class TraceDirective implements OnInit, AfterViewInit {
    * @inheritdoc
    */
   public ngAfterViewInit(): void {
-    if (this.tracingSpan) {
-      this.tracingSpan.finish();
+    if (this._tracingSpan) {
+      this._tracingSpan.finish();
     }
   }
 }
@@ -148,10 +146,11 @@ export class TraceDirective implements OnInit, AfterViewInit {
 export function TraceClassDecorator(): ClassDecorator {
   let tracingSpan: Span;
 
-  return (target: Function) => {
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  return target => {
     // tslint:disable-next-line:no-unsafe-any
     const originalOnInit = target.prototype.ngOnInit;
-    // tslint:disable-next-line:no-unsafe-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngOnInit = function(...args: any[]): ReturnType<typeof originalOnInit> {
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
@@ -161,14 +160,12 @@ export function TraceClassDecorator(): ClassDecorator {
         });
       }
       if (originalOnInit) {
-        // tslint:disable-next-line:no-unsafe-any
         return originalOnInit.apply(this, args);
       }
     };
 
-    // tslint:disable-next-line:no-unsafe-any
     const originalAfterViewInit = target.prototype.ngAfterViewInit;
-    // tslint:disable-next-line:no-unsafe-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngAfterViewInit = function(...args: any[]): ReturnType<typeof originalAfterViewInit> {
       if (tracingSpan) {
         tracingSpan.finish();
@@ -185,8 +182,10 @@ export function TraceClassDecorator(): ClassDecorator {
  * Decorator function that can be used to capture a single lifecycle methods of the component.
  */
 export function TraceMethodDecorator(): MethodDecorator {
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/ban-types
   return (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function(...args: any[]): ReturnType<typeof originalMethod> {
       const now = timestampWithMs();
       const activeTransaction = getActiveTransaction();

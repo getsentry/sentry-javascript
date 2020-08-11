@@ -34,3 +34,7 @@ lint-results.json
 
 # legacy
 tmp.js
+
+# eslint
+.eslintcache
+eslintcache/*

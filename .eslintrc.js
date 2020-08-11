@@ -3,8 +3,8 @@ module.exports = {
   env: {
     node: true,
   },
-  extends: ['prettier', 'eslint:recommended'],
-  plugins: ['sentry-sdk', 'jsdoc'],
+  extends: ['prettier', 'eslint:recommended', 'plugin:import/errors', 'plugin:import/warnings'],
+  plugins: ['sentry-sdk', 'simple-import-sort'],
   ignorePatterns: ['eslint-plugin-sentry-sdk'],
   overrides: [
     {
@@ -17,8 +17,8 @@ module.exports = {
     {
       // Configuration for typescript files
       files: ['*.ts', '*.tsx', '*.d.ts'],
-      extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint'],
-      plugins: ['@typescript-eslint'],
+      extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint', 'plugin:import/typescript'],
+      plugins: ['@typescript-eslint', 'jsdoc', 'deprecation'],
       parser: '@typescript-eslint/parser',
       parserOptions: {
         project: './tsconfig.json',
@@ -68,6 +68,25 @@ module.exports = {
             leadingUnderscore: 'require',
           },
         ],
+
+        // Prefer for-of loop over for loop if index is only used to access array
+        '@typescript-eslint/prefer-for-of': 'error',
+
+        // Make sure all expressions are used. Turned off in tests
+        // Must disable base rule to prevent false positives
+        'no-unused-expressions': 'off',
+        '@typescript-eslint/no-unused-expressions': 'error',
+
+        // Make sure Promises are handled appropriately
+        '@typescript-eslint/no-floating-promises': 'error',
+
+        // Do not use deprecated methods
+        'deprecation/deprecation': 'error',
+
+        // sort imports
+        'simple-import-sort/sort': 'error',
+        'sort-imports': 'off',
+        'import/order': 'off',
       },
     },
     {
@@ -95,6 +114,8 @@ module.exports = {
         'max-lines': 'off',
 
         '@typescript-eslint/explicit-function-return-type': 'off',
+        'no-unused-expressions': 'off',
+        '@typescript-eslint/no-unused-expressions': 'off',
       },
     },
     {
@@ -128,5 +149,20 @@ module.exports = {
 
     // We should require a whitespace beginning a comment
     'spaced-comment': 'error',
+
+    // Disallow usage of bitwise operators - this makes it an opt in operation
+    'no-bitwise': 'error',
+
+    // Limit cyclomatic complexity
+    complexity: 'error',
+
+    // Make sure all expressions are used. Turn off on tests.
+    'no-unused-expressions': 'error',
+
+    // We shouldn't make assumptions about imports/exports being dereferenced.
+    'import/namespace': 'off',
+
+    // imports should be ordered.
+    'import/order': ['error', { 'newlines-between': 'always' }],
   },
 };

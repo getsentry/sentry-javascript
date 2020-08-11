@@ -1,5 +1,5 @@
-/* tslint:disable:only-arrow-functions no-unsafe-any */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
 
 import { isInstanceOf, isString } from './is';
@@ -81,7 +81,6 @@ function instrument(type: InstrumentHandlerType): void {
  * @hidden
  */
 export function addInstrumentationHandler(handler: InstrumentHandler): void {
-  // tslint:disable-next-line:strict-type-predicates
   if (!handler || typeof handler.type !== 'string' || typeof handler.callback !== 'function') {
     return;
   }
@@ -221,7 +220,8 @@ function instrumentXHR(): void {
 
   fill(xhrproto, 'open', function(originalOpen: () => void): () => void {
     return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      const xhr = this; // tslint:disable-line:no-this-assignment
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const xhr = this;
       const url = args[1];
       xhr.__sentry_xhr__ = {
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
@@ -342,6 +342,7 @@ function instrumentDOM(): void {
   ['EventTarget', 'Node'].forEach((target: string) => {
     const proto = (global as any)[target] && (global as any)[target].prototype;
 
+    // eslint-disable-next-line no-prototype-builtins
     if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }
@@ -428,7 +429,7 @@ let lastCapturedEvent: Event | undefined;
  * @hidden
  */
 function domEventHandler(name: string, handler: Function, debounce: boolean = false): (event: Event) => void {
-  return (event: Event) => {
+  return (event: Event): void => {
     // reset keypress timeout; e.g. triggering a 'click' after
     // a 'keypress' will reset the keypress debounce so that a new
     // set of keypresses can be recorded
@@ -466,7 +467,7 @@ function keypressEventHandler(handler: Function): (event: Event) => void {
   // TODO: if somehow user switches keypress target before
   //       debounce timeout is triggered, we will only capture
   //       a single breadcrumb from the FIRST target (acceptable?)
-  return (event: Event) => {
+  return (event: Event): void => {
     let target;
 
     try {
@@ -514,6 +515,7 @@ function instrumentError(): void {
     });
 
     if (_oldOnErrorHandler) {
+      // eslint-disable-next-line prefer-rest-params
       return _oldOnErrorHandler.apply(this, arguments);
     }
 
@@ -530,6 +532,7 @@ function instrumentUnhandledRejection(): void {
     triggerHandlers('unhandledrejection', e);
 
     if (_oldOnUnhandledRejectionHandler) {
+      // eslint-disable-next-line prefer-rest-params
       return _oldOnUnhandledRejectionHandler.apply(this, arguments);
     }
 

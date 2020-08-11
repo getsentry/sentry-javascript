@@ -44,6 +44,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
       super.sendEvent(event);
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     TestBackend.sendEventCalled && TestBackend.sendEventCalled(event);
   }
 

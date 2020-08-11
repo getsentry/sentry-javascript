@@ -3,10 +3,10 @@ import { SyncPromise } from './syncpromise';
 
 /** A simple queue that holds promises. */
 export class PromiseBuffer<T> {
-  public constructor(protected _limit?: number) {}
-
   /** Internal set of queued Promises */
   private readonly _buffer: Array<PromiseLike<T>> = [];
+
+  public constructor(protected _limit?: number) {}
 
   /**
    * Says if the buffer is ready to take more requests

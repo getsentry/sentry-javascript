@@ -23,6 +23,7 @@ module.exports = {
         'no-console': 'off',
         'max-lines': 'off',
         'prefer-template': 'off',
+        'no-unused-expressions': 'off',
       },
     },
     {

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const path = require("path");
+
 const rimraf = require("rimraf");
 const karma = require("karma");
-const path = require("path");
 const chokidar = require("chokidar");
 
 const isDebugMode = process.argv.some(x => x === "--debug");
