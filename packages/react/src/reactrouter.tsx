@@ -1,9 +1,13 @@
 import { Transaction } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
+import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
 import { Action, Location, ReactRouterInstrumentation } from './types';
 
+// We need to disable eslint no-explict-any because any is required for the
+// react-router typings.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type Match = { path: string; url: string; params: Record<string, any>; isExact: boolean };
 
 export type RouterHistory = {
@@ -12,14 +16,26 @@ export type RouterHistory = {
 } & Record<string, any>;
 
 export type RouteConfig = {
+  [propName: string]: any;
   path?: string | string[];
   exact?: boolean;
   component?: JSX.Element;
   routes?: RouteConfig[];
-  [propName: string]: any;
 };
 
+interface RouteProps {
+  location?: Location;
+  component?: React.ComponentType<any> | React.ComponentType<any>;
+  render?: (props: any) => React.ReactNode;
+  children?: ((props: any) => React.ReactNode) | React.ReactNode;
+  path?: string | string[];
+  exact?: boolean;
+  sensitive?: boolean;
+  strict?: boolean;
+}
+
 type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const global = getGlobalObject<Window>();
 
@@ -53,7 +69,7 @@ function reactRouterInstrumentation(
     }
 
     const branches = matchRoutes(allRoutes, pathname, matchPath);
-    // tslint:disable-next-line: prefer-for-of
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let x = 0; x < branches.length; x++) {
       if (branches[x].match.isExact) {
         return branches[x].match.path;
@@ -63,7 +79,7 @@ function reactRouterInstrumentation(
     return pathname;
   }
 
-  return (startTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true) => {
+  return (startTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
     if (startTransactionOnPageLoad && global && global.location) {
       activeTransaction = startTransaction({
         name: getName(global.location.pathname),
@@ -130,9 +146,20 @@ function computeRootMatch(pathname: string): Match {
   return { path: '/', url: '/', params: {}, isExact: pathname === '/' };
 }
 
-export const withSentryRouting = (Route: React.ElementType) => (props: { computedMatch?: Match }) => {
-  if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
-    activeTransaction.setName(props.computedMatch.path);
-  }
-  return <Route {...props} />;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withSentryRouting<P extends RouteProps & Record<string, any>>(
+  Route: React.ComponentType<P>,
+): React.FC<P> {
+  const componentDisplayName = Route.displayName || Route.name;
+
+  const WrappedRoute: React.FC<P> = (props: P) => {
+    if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
+      activeTransaction.setName(props.computedMatch.path);
+    }
+    return <Route {...props} />;
+  };
+
+  WrappedRoute.displayName = `sentryRoute(${componentDisplayName})`;
+  hoistNonReactStatics(WrappedRoute, Route);
+  return WrappedRoute;
+}

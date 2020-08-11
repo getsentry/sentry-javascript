@@ -47,15 +47,18 @@ describe('createReduxEnhancer', () => {
     };
     const ACTION_TYPE = 'UPDATE_VALUE';
 
-    const store = Redux.createStore((state: object = initialState, action: { type: string; newValue: any }) => {
-      if (action.type === ACTION_TYPE) {
-        return {
-          ...state,
-          value: action.newValue,
-        };
-      }
-      return state;
-    }, enhancer);
+    const store = Redux.createStore(
+      (state: Record<string, unknown> = initialState, action: { type: string; newValue: any }) => {
+        if (action.type === ACTION_TYPE) {
+          return {
+            ...state,
+            value: action.newValue,
+          };
+        }
+        return state;
+      },
+      enhancer,
+    );
 
     const updateAction = { type: ACTION_TYPE, newValue: 'updated' };
     store.dispatch(updateAction);
@@ -205,15 +208,18 @@ describe('createReduxEnhancer', () => {
 
     const UPDATE_VALUE = 'UPDATE_VALUE';
 
-    const store = Redux.createStore((state: object = initialState, action: { type: string; value: any }) => {
-      if (action.type === UPDATE_VALUE) {
-        return {
-          ...state,
-          value: action.value,
-        };
-      }
-      return state;
-    }, enhancer);
+    const store = Redux.createStore(
+      (state: Record<string, unknown> = initialState, action: { type: string; value: any }) => {
+        if (action.type === UPDATE_VALUE) {
+          return {
+            ...state,
+            value: action.value,
+          };
+        }
+        return state;
+      },
+      enhancer,
+    );
 
     store.dispatch({
       type: UPDATE_VALUE,

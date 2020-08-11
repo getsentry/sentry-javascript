@@ -43,7 +43,7 @@ module.exports = {
         // Enforce type annotations to maintain consistency. This is especially important as
         // we have a public API, so we want changes to be very explicit.
         '@typescript-eslint/typedef': ['error', { arrowParameter: false }],
-        '@typescript-eslint/explicit-function-return-type': 'error',
+        '@typescript-eslint/explicit-function-return-type': ['error', { allowExpressions: true }],
 
         // Consistent ordering of fields, methods and constructors for classes should be enforced
         '@typescript-eslint/member-ordering': 'error',

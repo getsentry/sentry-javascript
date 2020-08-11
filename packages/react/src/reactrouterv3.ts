@@ -9,6 +9,7 @@ import { Location, ReactRouterInstrumentation } from './types';
 type HistoryV3 = {
   location?: Location;
   listen?(cb: (location: Location) => void): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } & Record<string, any>;
 
 export type Route = { path?: string; childRoutes?: Route[] };

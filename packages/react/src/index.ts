@@ -1,5 +1,10 @@
 import { addGlobalEventProcessor, SDK_VERSION } from '@sentry/browser';
 
+/**
+ * A global side effect that makes sure Sentry events that user
+ * `@sentry/react` will correctly have Sentry events associated
+ * with it.
+ */
 function createReactEventProcessor(): void {
   if (addGlobalEventProcessor) {
     addGlobalEventProcessor(event => {
