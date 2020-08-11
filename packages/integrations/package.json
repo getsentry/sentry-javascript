@@ -21,11 +21,12 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@sentry/eslint-plugin": "5.20.1",
+    "eslint": "^7.6.0",
     "chai": "^4.1.2",
     "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
-    "prettier": "^1.17.0",
-    "prettier-check": "^2.0.0",
+    "prettier": "1.17.0",
     "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
@@ -45,7 +46,7 @@
     "clean": "rimraf dist coverage esm build .rpt2_cache",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",

@@ -38,7 +38,7 @@
   },
   "scripts": {
     "link:yarn": "yarn link",
-    "lint": "prettier-check \"{src,test}/**/*.ts\"",
-    "fix": "prettier --write \"{src,test}/**/*.ts\""
+    "lint": "prettier --check \"**/*.js\"",
+    "fix": "prettier --write \"**/*.js\""
   }
 }

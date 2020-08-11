@@ -16,9 +16,10 @@
     "access": "public"
   },
   "devDependencies": {
+    "@sentry/eslint-plugin": "5.20.1",
+    "eslint": "^7.6.0",
     "npm-run-all": "^4.1.2",
-    "prettier": "^1.17.0",
-    "prettier-check": "^2.0.0",
+    "prettier": "1.17.0",
     "typescript": "3.4.5"
   },
   "scripts": {
@@ -30,7 +31,7 @@
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",

@@ -28,7 +28,7 @@ correctly use the typescript rules. This configuration comes with
 
 ```json
 {
-  "extends": ["sentry-sdks"],
+  "extends": ["@sentry"],
   "overrides": [
     {
       "files": ["*.ts", "*.tsx", "*.d.ts"],

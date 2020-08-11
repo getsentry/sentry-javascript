@@ -8,7 +8,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require('../../../lib/rules/no-async-await'),
+var rule = require('../../../src/rules/no-async-await'),
   path = require('path'),
   RuleTester = require('eslint').RuleTester;
 

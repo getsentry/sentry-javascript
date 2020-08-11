@@ -26,9 +26,10 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@sentry/eslint-plugin": "5.20.1",
+    "eslint": "^7.6.0",
     "npm-run-all": "^4.1.2",
-    "prettier": "^1.17.0",
-    "prettier-check": "^2.0.0",
+    "prettier": "1.17.0",
     "rimraf": "^2.6.3",
     "typescript": "^3.5.1"
   },
@@ -42,7 +43,7 @@
     "clean": "rimraf dist coverage build esm",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",

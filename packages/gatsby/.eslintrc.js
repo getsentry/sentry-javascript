@@ -8,7 +8,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2018,
   },
-  extends: ['../../.eslintrc.js'],
+  extends: ['@sentry'],
   ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*'],
   overrides: [
     {
