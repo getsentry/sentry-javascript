@@ -1,0 +1,44 @@
+{
+  "name": "@sentry/eslint-config",
+  "version": "5.20.1",
+  "description": "Official Sentry SDK eslint config",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-config",
+  "author": "Sentry",
+  "license": "MIT",
+  "keywords": [
+    "eslint",
+    "eslint-config",
+    "sentry"
+  ],
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry/eslint-plugin": "5.20.1",
+    "@sentry/typescript": "5.20.1",
+    "@typescript-eslint/eslint-plugin": "^3.9.0",
+    "@typescript-eslint/parser": "^3.9.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-deprecation": "^1.1.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-jsdoc": "^30.0.3",
+    "eslint-plugin-simple-import-sort": "^5.0.3"
+  },
+  "devDependencies": {
+    "eslint": ">=5",
+    "prettier": "^1.17.0"
+  },
+  "scripts": {
+    "link:yarn": "yarn link",
+    "lint": "prettier-check \"{src,test}/**/*.ts\"",
+    "fix": "prettier --write \"{src,test}/**/*.ts\""
+  }
+}
