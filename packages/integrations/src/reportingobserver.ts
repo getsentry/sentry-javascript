@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
 
@@ -55,11 +56,12 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = ReportingObserver.id;
+  public static id: string = 'ReportingObserver';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'ReportingObserver';
+  public readonly name: string = ReportingObserver.id;
 
   /**
    * Returns current hub.

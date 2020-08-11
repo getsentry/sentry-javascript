@@ -5,11 +5,12 @@ export class SessionTiming implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = SessionTiming.id;
+  public static id: string = 'SessionTiming';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'SessionTiming';
+  public name: string = SessionTiming.id;
 
   /** Exact time Client was initialized expressed in milliseconds since Unix Epoch. */
   protected readonly _startTime: number = Date.now();

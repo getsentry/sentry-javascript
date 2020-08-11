@@ -11,12 +11,12 @@ export class ExtraErrorData implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = ExtraErrorData.id;
+  public static id: string = 'ExtraErrorData';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'ExtraErrorData';
+  public name: string = ExtraErrorData.id;
 
   /**
    * @inheritDoc

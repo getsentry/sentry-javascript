@@ -6,22 +6,25 @@ export class Ember implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Ember.id;
-  /**
-   * @inheritDoc
-   */
   public static id: string = 'Ember';
 
   /**
    * @inheritDoc
    */
-  private readonly _Ember: any; // tslint:disable-line:variable-name
+  public name: string = Ember.id;
 
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any
+  private readonly _Ember: any;
+
+  /**
+   * @inheritDoc
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(options: { Ember?: any } = {}) {
-    // tslint:disable-next-line: no-unsafe-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._Ember = options.Ember || getGlobalObject<any>().Ember;
   }
 
@@ -29,8 +32,6 @@ export class Ember implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    // tslint:disable:no-unsafe-any
-
     if (!this._Ember) {
       logger.error('EmberIntegration is missing an Ember instance');
       return;
@@ -50,6 +51,7 @@ export class Ember implements Integration {
       }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._Ember.RSVP.on('error', (reason: any): void => {
       if (getCurrentHub().getIntegration(Ember)) {
         getCurrentHub().withScope(scope => {

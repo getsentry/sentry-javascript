@@ -6,7 +6,7 @@ import { CLIEngine } from 'eslint';
 import { resolve } from 'path';
 import { promisify } from 'util';
 
-const PACKAGES = ['integrations', 'node'];
+const PACKAGES = ['node'];
 const EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'];
 
 /**
