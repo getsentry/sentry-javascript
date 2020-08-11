@@ -1,5 +1,5 @@
 {
-  "name": "eslint-plugin-sentry-sdk",
+  "name": "eslint-plugin-sentry-sdks",
   "version": "0.0.1",
   "main": "index.js",
   "devDependencies": {

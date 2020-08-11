@@ -4,8 +4,8 @@ module.exports = {
     node: true,
   },
   extends: ['prettier', 'eslint:recommended', 'plugin:import/errors', 'plugin:import/warnings'],
-  plugins: ['sentry-sdk', 'simple-import-sort'],
-  ignorePatterns: ['eslint-plugin-sentry-sdk'],
+  plugins: ['sentry-sdks', 'simple-import-sort'],
+  ignorePatterns: ['eslint-plugin-sentry-sdks'],
   overrides: [
     {
       // Configuration for JavaScript files
