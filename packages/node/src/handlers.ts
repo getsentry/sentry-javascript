@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Span } from '@sentry/apm';
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { Event } from '@sentry/types';
@@ -253,7 +255,7 @@ export function parseRequest(
   },
   options?: ParseRequestOptions,
 ): Event {
-  // tslint:disable-next-line:no-parameter-reassignment
+  // eslint-disable-next-line no-param-reassign
   options = {
     ip: false,
     request: true,
@@ -334,7 +336,7 @@ export function requestHandler(
     next: (error?: any) => void,
   ): void {
     if (options && options.flushTimeout && options.flushTimeout > 0) {
-      // tslint:disable-next-line: no-unbound-method
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
       res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
         flush(options.flushTimeout)
@@ -403,6 +405,7 @@ export function errorHandler(options?: {
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
@@ -428,6 +431,7 @@ export function errorHandler(options?: {
  * @hidden
  */
 export function logAndExitProcess(error: Error): void {
+  // eslint-disable-next-line no-console
   console.error(error && error.stack ? error.stack : error);
 
   const client = getCurrentHub().getClient<NodeClient>();

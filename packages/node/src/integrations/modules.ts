@@ -9,7 +9,7 @@ function collectModules(): {
   [name: string]: string;
 } {
   const mainPaths = (require.main && require.main.paths) || [];
-  const paths = require.cache ? Object.keys(require.cache as {}) : [];
+  const paths = require.cache ? Object.keys(require.cache as Record<string, unknown>) : [];
   const infos: {
     [name: string]: string;
   } = {};
@@ -61,11 +61,12 @@ export class Modules implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Modules.id;
+  public static id: string = 'Modules';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'Modules';
+  public name: string = Modules.id;
 
   /**
    * @inheritDoc

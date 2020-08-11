@@ -2,7 +2,6 @@ import * as fs from 'fs';
 
 import * as Parsers from '../src/parsers';
 import * as stacktrace from '../src/stacktrace';
-
 import { getError } from './helper/error';
 
 describe('parsers.ts', () => {

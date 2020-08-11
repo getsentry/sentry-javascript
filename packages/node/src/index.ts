@@ -63,7 +63,7 @@ const carrier = getMainCarrier();
 if (carrier.__SENTRY__) {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
   if (!carrier.__SENTRY__.extensions.domain) {
-    // @ts-ignore
+    // @ts-ignore domain is missing from extensions Type
     carrier.__SENTRY__.extensions.domain = domain;
   }
 }

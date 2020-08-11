@@ -11,11 +11,12 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Http.id;
+  public static id: string = 'Http';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'Http';
+  public name: string = Http.id;
 
   /**
    * @inheritDoc
