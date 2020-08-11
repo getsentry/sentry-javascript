@@ -390,7 +390,7 @@ export class Hub implements HubInterface {
   private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       (top.client as any)[method](...args, top.scope);
     }
   }
@@ -470,6 +470,7 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const domain = sentry.extensions[property] as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub

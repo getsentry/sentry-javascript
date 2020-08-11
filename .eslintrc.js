@@ -93,6 +93,11 @@ module.exports = {
 
         // We should prevent against overloads unless necessary.
         '@typescript-eslint/unified-signatures': 'error',
+
+        // Disallow unsafe any usage. We should enforce that types be used as possible, or unknown be used
+        // instead of any. This is especially important for methods that expose a public API, as users
+        // should know exactly what they have to provide to use those methods. Turned off in tests.
+        '@typescript-eslint/no-unsafe-member-access': 'error',
       },
     },
     {
@@ -125,6 +130,7 @@ module.exports = {
         '@typescript-eslint/explicit-function-return-type': 'off',
         'no-unused-expressions': 'off',
         '@typescript-eslint/no-unused-expressions': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
       },
     },
     {

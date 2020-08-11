@@ -78,7 +78,7 @@ export type ProfilerProps = {
   // If component updates should be displayed as spans. True by default.
   includeUpdates?: boolean;
   // props given to component being profiled.
-  updateProps: { [key: string]: any };
+  updateProps: { [key: string]: unknown };
 };
 
 /**

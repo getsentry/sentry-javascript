@@ -93,6 +93,7 @@ function createHandlerWrapper(
         }
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalHandler
         .apply(this, arguments)
         .once('response', function(this: http.IncomingMessage, res: http.ServerResponse): void {

@@ -24,6 +24,7 @@ module.exports = {
         'max-lines': 'off',
         'prefer-template': 'off',
         'no-unused-expressions': 'off',
+        'guard-for-in': 'off',
       },
     },
     {

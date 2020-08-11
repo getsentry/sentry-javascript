@@ -166,9 +166,11 @@ export function supportsHistory(): boolean {
   //       a try/catch block*, will cause Chrome to output an error to console.error
   // borrowed from: https://github.com/angular/angular.js/pull/13945/files
   const global = getGlobalObject<Window>();
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chrome = (global as any).chrome;
   const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   const hasHistoryApi = 'history' in global && !!global.history.pushState && !!global.history.replaceState;
 
   return !isChromePackagedApp && hasHistoryApi;

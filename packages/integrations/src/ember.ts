@@ -24,7 +24,7 @@ export class Ember implements Integration {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(options: { Ember?: any } = {}) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     this._Ember = options.Ember || getGlobalObject<any>().Ember;
   }
 
@@ -37,6 +37,7 @@ export class Ember implements Integration {
       return;
     }
 
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const oldOnError = this._Ember.onerror;
 
     this._Ember.onerror = (error: Error): void => {
@@ -66,4 +67,5 @@ export class Ember implements Integration {
       }
     });
   }
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }

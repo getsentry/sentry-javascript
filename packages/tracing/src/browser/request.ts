@@ -166,7 +166,9 @@ export function _fetchCallback(
       headers = (request as Request).headers;
     }
     if (headers) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (typeof headers.append === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         headers.append('sentry-trace', span.toTraceparent());
       } else if (Array.isArray(headers)) {
         headers = [...headers, ['sentry-trace', span.toTraceparent()]];

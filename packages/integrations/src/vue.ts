@@ -153,6 +153,7 @@ export class Vue implements Integration {
    */
   public constructor(options: Partial<IntegrationOptions>) {
     this._options = {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Vue: getGlobalObject<any>().Vue,
       attachProps: true,
       logErrors: false,
@@ -255,6 +256,7 @@ export class Vue implements Integration {
 
           // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
           // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           // eslint-disable-next-line deprecation/deprecation
           const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
           if (tracingIntegration) {
@@ -276,6 +278,7 @@ export class Vue implements Integration {
               });
             }
           }
+          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
         });
       }
     };
@@ -351,6 +354,7 @@ export class Vue implements Integration {
         // eslint-disable-next-line deprecation/deprecation
         const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
         if (tracingIntegration) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
         }
       }

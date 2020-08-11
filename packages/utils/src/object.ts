@@ -253,10 +253,12 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
     return serializeValue(value);
   }
 
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   // If value implements `toJSON` method, call it and return early
   if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
     return value.toJSON();
   }
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
   // If normalized value is a primitive, there are no branches left to walk, so we can just bail out, as theres no point in going down that branch any further
   const normalized = normalizeValue(value, key);

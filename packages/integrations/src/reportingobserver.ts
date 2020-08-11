@@ -89,11 +89,13 @@ export class ReportingObserver implements Integration {
 
     this._getCurrentHub = getCurrentHub;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const observer = new (getGlobalObject<any>().ReportingObserver)(this.handler.bind(this), {
       buffered: true,
       types: this._options.types,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     observer.observe();
   }
 

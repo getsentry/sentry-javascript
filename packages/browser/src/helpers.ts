@@ -69,7 +69,7 @@ export function wrap(
         before.apply(this, arguments);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
@@ -77,6 +77,7 @@ export function wrap(
         // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
         //       means the sentry.javascript SDK caught an error invoking your application code. This
         //       is expected behavior and NOT indicative of a bug with sentry.javascript.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return fn.handleEvent.apply(this, wrappedArguments);
       }
       // Attempt to invoke user-land function

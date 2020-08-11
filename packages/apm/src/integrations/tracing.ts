@@ -630,6 +630,7 @@ export class Tracing implements Integration {
     let entryScriptStartEndTime: number | undefined;
     let tracingInitMarkStartTime: number | undefined;
 
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     performance
       .getEntries()
       .slice(Tracing._performanceCursor)
@@ -687,6 +688,7 @@ export class Tracing implements Integration {
           // Ignore other entry types.
         }
       });
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
       _startChild(transactionSpan, {
@@ -771,6 +773,7 @@ export class Tracing implements Integration {
     return time / 1000;
   }
 
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   /**
    * Adds debug data to the span
    */
@@ -792,6 +795,7 @@ export class Tracing implements Integration {
     debugData['Date.now()'] = Date.now();
     span.setData('sentry_debug', debugData);
   }
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
   /**
    * @inheritDoc
@@ -934,6 +938,7 @@ export class Tracing implements Integration {
   }
 }
 
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /**
  * Creates breadcrumbs from XHR API calls
  */
@@ -1038,6 +1043,7 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
 /**
  * Creates transaction from navigation changes

@@ -41,7 +41,7 @@ export class Angular implements Integration {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(options: { angular?: any } = {}) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     this._angular = options.angular || getGlobalObject<any>().angular;
   }
 
@@ -56,10 +56,12 @@ export class Angular implements Integration {
 
     this._getCurrentHub = getCurrentHub;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     this._angular.module(Angular.moduleName, []).config([
       '$provide',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ($provide: any): void => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         $provide.decorator('$exceptionHandler', ['$delegate', this._$exceptionHandlerDecorator.bind(this)]);
       },
     ]);

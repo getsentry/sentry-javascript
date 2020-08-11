@@ -64,6 +64,7 @@ export function tracingHandler(): (
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     (res as any).__sentry_transaction = transaction;
 
     res.once('finish', () => {
@@ -411,11 +412,13 @@ export function errorHandler(options?: {
     if (shouldHandleError(error)) {
       withScope(_scope => {
         // For some reason we need to set the transaction on the scope again
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;
         if (transaction && _scope.getSpan() === undefined) {
           _scope.setSpan(transaction);
         }
         const eventId = captureException(error);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (res as any).sentry = eventId;
         next(error);
       });

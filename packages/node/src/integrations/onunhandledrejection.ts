@@ -52,6 +52,7 @@ export class OnUnhandledRejection implements Integration {
       return;
     }
 
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const context = (promise.domain && promise.domain.sentryContext) || {};
 
     hub.withScope((scope: Scope) => {
@@ -70,6 +71,7 @@ export class OnUnhandledRejection implements Integration {
 
       hub.captureException(reason, { originalException: promise });
     });
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
     this._handleRejection(reason);
   }
@@ -90,6 +92,7 @@ export class OnUnhandledRejection implements Integration {
     if (this._options.mode === 'warn') {
       consoleSandbox(() => {
         console.warn(rejectionWarning);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         console.error(reason && reason.stack ? reason.stack : reason);
       });
     } else if (this._options.mode === 'strict') {
