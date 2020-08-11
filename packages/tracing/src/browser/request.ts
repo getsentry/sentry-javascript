@@ -1,7 +1,6 @@
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-
 import { getActiveTransaction } from './utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
@@ -41,6 +40,7 @@ export interface RequestInstrumentationOptions {
 
 /** Data returned from fetch callback */
 export interface FetchData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args: any[];
   fetchData?: {
     method: string;
@@ -59,11 +59,12 @@ interface XHRData {
       method: string;
       url: string;
       status_code: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: Record<string, any>;
     };
     __sentry_xhr_span_id__?: string;
     __sentry_own_request__: boolean;
-    setRequestHeader?: Function;
+    setRequestHeader?: (key: string, val: string) => void;
   };
   startTimestamp: number;
   endTimestamp?: number;
@@ -158,6 +159,7 @@ export function _fetchCallback(
     spans[span.spanId] = span;
 
     const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
     let headers = options.headers;
     if (isInstanceOf(request, Request)) {

@@ -6,8 +6,8 @@ import { _fetchCallback, FetchData, registerRequestInstrumentation } from '../..
 import { addExtensionMethods } from '../../src/hubextensions';
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace NodeJS {
-    // tslint:disable-next-line: completed-docs
     interface Global {
       // Have to mock out Request because it is not defined in jest environment
       Request: Request;
@@ -17,7 +17,7 @@ declare global {
 
 beforeAll(() => {
   addExtensionMethods();
-  // @ts-ignore
+  // @ts-ignore need to override global Request
   global.Request = {};
 });
 

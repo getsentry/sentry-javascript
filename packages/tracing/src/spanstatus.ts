@@ -1,4 +1,5 @@
 /** The status of an Span. */
+// eslint-disable-next-line import/export
 export enum SpanStatus {
   /** The operation completed successfully. */
   Ok = 'ok',
@@ -36,7 +37,7 @@ export enum SpanStatus {
   DataLoss = 'data_loss',
 }
 
-// tslint:disable:no-unnecessary-qualifier no-namespace
+// eslint-disable-next-line @typescript-eslint/no-namespace, import/export
 export namespace SpanStatus {
   /**
    * Converts a HTTP status code into a {@link SpanStatus}.

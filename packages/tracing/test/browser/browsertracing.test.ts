@@ -34,11 +34,11 @@ const warnSpy = jest.spyOn(logger, 'warn');
 
 beforeAll(() => {
   const dom = new JSDOM();
-  // @ts-ignore
+  // @ts-ignore need to override global document
   global.document = dom.window.document;
-  // @ts-ignore
+  // @ts-ignore need to override global document
   global.window = dom.window;
-  // @ts-ignore
+  // @ts-ignore need to override global document
   global.location = dom.window.location;
 });
 
@@ -95,7 +95,7 @@ describe('BrowserTracing', () => {
    * so that we can show this functionality works independent of the default routing integration.
    */
   describe('route transaction', () => {
-    const customRoutingInstrumentation = (startTransaction: Function) => {
+    const customRoutingInstrumentation = (startTransaction: (obj: any) => void) => {
       startTransaction({ name: 'a/path', op: 'pageload' });
     };
 

@@ -11,13 +11,13 @@ describe('registerBackgroundTabDetection', () => {
   let hub: Hub;
   beforeEach(() => {
     const dom = new JSDOM();
-    // @ts-ignore
+    // @ts-ignore need to override global document
     global.document = dom.window.document;
 
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
     makeMain(hub);
 
-    // @ts-ignore
+    // @ts-ignore need to override global document
     global.document.addEventListener = jest.fn((event, callback) => {
       events[event] = callback;
     });
@@ -29,7 +29,7 @@ describe('registerBackgroundTabDetection', () => {
   });
 
   it('does not creates an event listener if global document is undefined', () => {
-    // @ts-ignore;
+    // @ts-ignore need to override global document
     global.document = undefined;
     registerBackgroundTabDetection();
     expect(events).toMatchObject({});
@@ -46,7 +46,7 @@ describe('registerBackgroundTabDetection', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
 
     // Simulate document visibility hidden event
-    // @ts-ignore
+    // @ts-ignore need to override global document
     global.document.hidden = true;
     events.visibilitychange();
 

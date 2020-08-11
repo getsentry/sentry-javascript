@@ -72,6 +72,7 @@ export class IdleTransaction extends Transaction {
 
   // If a transaction is created and no activities are added, we want to make sure that
   // it times out properly. This is cleared and not used when activities are added.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _initTimeout: any;
 
   public constructor(
@@ -93,48 +94,6 @@ export class IdleTransaction extends Transaction {
       logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
-  }
-
-  /**
-   * Checks when entries of this.activities are not changing for 3 beats.
-   * If this occurs we finish the transaction.
-   */
-  private _beat(): void {
-    clearTimeout(this._heartbeatTimer);
-    // We should not be running heartbeat if the idle transaction is finished.
-    if (this._finished) {
-      return;
-    }
-
-    const keys = Object.keys(this.activities);
-    const heartbeatString = keys.length ? keys.reduce((prev: string, current: string) => prev + current) : '';
-
-    if (heartbeatString === this._prevHeartbeatString) {
-      this._heartbeatCounter++;
-    } else {
-      this._heartbeatCounter = 1;
-    }
-
-    this._prevHeartbeatString = heartbeatString;
-
-    if (this._heartbeatCounter >= 3) {
-      logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
-      this.setStatus(SpanStatus.DeadlineExceeded);
-      this.setTag('heartbeat', 'failed');
-      this.finish();
-    } else {
-      this._pingHeartbeat();
-    }
-  }
-
-  /**
-   * Pings the heartbeat
-   */
-  private _pingHeartbeat(): void {
-    logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
-    this._heartbeatTimer = (setTimeout(() => {
-      this._beat();
-    }, 5000) as any) as number;
   }
 
   /** {@inheritDoc} */
@@ -186,6 +145,50 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
+   * Register a callback function that gets excecuted before the transaction finishes.
+   * Useful for cleanup or if you want to add any additional spans based on current context.
+   *
+   * This is exposed because users have no other way of running something before an idle transaction
+   * finishes.
+   */
+  public registerBeforeFinishCallback(callback: BeforeFinishCallback): void {
+    this._beforeFinishCallbacks.push(callback);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public initSpanRecorder(maxlen?: number): void {
+    if (!this.spanRecorder) {
+      this._initTimeout = setTimeout(() => {
+        if (!this._finished) {
+          this.finish();
+        }
+      }, this._idleTimeout);
+
+      const pushActivity = (id: string): void => {
+        if (this._finished) {
+          return;
+        }
+        this._pushActivity(id);
+      };
+      const popActivity = (id: string): void => {
+        if (this._finished) {
+          return;
+        }
+        this._popActivity(id);
+      };
+
+      this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanId, maxlen);
+
+      // Start heartbeat so that transactions do not run forever.
+      logger.log('Starting heartbeat');
+      this._pingHeartbeat();
+    }
+    this.spanRecorder.add(this);
+  }
+
+  /**
    * Start tracking a specific activity.
    * @param spanId The span id that represents the activity
    */
@@ -227,47 +230,45 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
-   * Register a callback function that gets excecuted before the transaction finishes.
-   * Useful for cleanup or if you want to add any additional spans based on current context.
-   *
-   * This is exposed because users have no other way of running something before an idle transaction
-   * finishes.
+   * Checks when entries of this.activities are not changing for 3 beats.
+   * If this occurs we finish the transaction.
    */
-  public registerBeforeFinishCallback(callback: BeforeFinishCallback): void {
-    this._beforeFinishCallbacks.push(callback);
+  private _beat(): void {
+    clearTimeout(this._heartbeatTimer);
+    // We should not be running heartbeat if the idle transaction is finished.
+    if (this._finished) {
+      return;
+    }
+
+    const keys = Object.keys(this.activities);
+    const heartbeatString = keys.length ? keys.reduce((prev: string, current: string) => prev + current) : '';
+
+    if (heartbeatString === this._prevHeartbeatString) {
+      this._heartbeatCounter += 1;
+    } else {
+      this._heartbeatCounter = 1;
+    }
+
+    this._prevHeartbeatString = heartbeatString;
+
+    if (this._heartbeatCounter >= 3) {
+      logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
+      this.setStatus(SpanStatus.DeadlineExceeded);
+      this.setTag('heartbeat', 'failed');
+      this.finish();
+    } else {
+      this._pingHeartbeat();
+    }
   }
 
   /**
-   * @inheritDoc
+   * Pings the heartbeat
    */
-  public initSpanRecorder(maxlen?: number): void {
-    if (!this.spanRecorder) {
-      this._initTimeout = setTimeout(() => {
-        if (!this._finished) {
-          this.finish();
-        }
-      }, this._idleTimeout);
-
-      const pushActivity = (id: string) => {
-        if (this._finished) {
-          return;
-        }
-        this._pushActivity(id);
-      };
-      const popActivity = (id: string) => {
-        if (this._finished) {
-          return;
-        }
-        this._popActivity(id);
-      };
-
-      this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanId, maxlen);
-
-      // Start heartbeat so that transactions do not run forever.
-      logger.log('Starting heartbeat');
-      this._pingHeartbeat();
-    }
-    this.spanRecorder.add(this);
+  private _pingHeartbeat(): void {
+    logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
+    this._heartbeatTimer = (setTimeout(() => {
+      this._beat();
+    }, 5000) as unknown) as number;
   }
 }
 

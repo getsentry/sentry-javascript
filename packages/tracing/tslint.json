@@ -1,3 +1,0 @@
-{
-  "extends": "@sentry/typescript/tslint"
-}
