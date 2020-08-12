@@ -193,10 +193,7 @@ describe('normalize()', () => {
       obj.children[1].self = obj.children[1];
       expect(normalize(obj)).toEqual({
         name: 'Alice',
-        children: [
-          { name: 'Bob', self: '[Circular ~]' },
-          { name: 'Eve', self: '[Circular ~]' },
-        ],
+        children: [{ name: 'Bob', self: '[Circular ~]' }, { name: 'Eve', self: '[Circular ~]' }],
       });
     });
 
@@ -213,10 +210,7 @@ describe('normalize()', () => {
       const obj: object[] = [];
       obj.push({ name: 'Alice', self: obj });
       obj.push({ name: 'Bob', self: obj });
-      expect(normalize(obj)).toEqual([
-        { name: 'Alice', self: '[Circular ~]' },
-        { name: 'Bob', self: '[Circular ~]' },
-      ]);
+      expect(normalize(obj)).toEqual([{ name: 'Alice', self: '[Circular ~]' }, { name: 'Bob', self: '[Circular ~]' }]);
     });
 
     test('repeated objects in objects', () => {

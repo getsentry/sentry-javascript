@@ -1,17 +1,18 @@
-// This is a temporary file. It will be removed when we migrate
-// the eslint configs to another repo.
-
-'use strict';
-
 /**
- * Rule to disallow usage of async await
+ * @fileoverview Rule to disallow using async await
  * @author Abhijeet Prasad
  */
-const noAsyncAwait = {
+'use strict';
+
+//------------------------------------------------------------------------------
+// Rule Definition
+//------------------------------------------------------------------------------
+
+module.exports = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Disallow usage of async await',
+      description: 'disallow usage of async await',
       category: 'Best Practices',
       recommended: true,
     },
@@ -19,6 +20,18 @@ const noAsyncAwait = {
     schema: [],
   },
   create: function(context) {
+    // variables should be defined here
+
+    //----------------------------------------------------------------------
+    // Helpers
+    //----------------------------------------------------------------------
+
+    // any helper functions should go here or else delete this section
+
+    //----------------------------------------------------------------------
+    // Public
+    //----------------------------------------------------------------------
+
     return {
       FunctionDeclaration(node) {
         if (node.async) {
@@ -40,11 +53,5 @@ const noAsyncAwait = {
         }
       },
     };
-  },
-};
-
-module.exports = {
-  rules: {
-    'no-async-await': noAsyncAwait,
   },
 };

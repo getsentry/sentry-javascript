@@ -5,7 +5,6 @@ module.exports = {
   },
   extends: ['prettier', 'eslint:recommended', 'plugin:import/errors', 'plugin:import/warnings'],
   plugins: ['sentry-sdks', 'simple-import-sort'],
-  ignorePatterns: ['eslint-plugin-sentry-sdks'],
   overrides: [
     {
       // Configuration for JavaScript files
@@ -20,9 +19,6 @@ module.exports = {
       extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint', 'plugin:import/typescript'],
       plugins: ['@typescript-eslint', 'jsdoc', 'deprecation'],
       parser: '@typescript-eslint/parser',
-      parserOptions: {
-        project: './tsconfig.json',
-      },
       rules: {
         // Unused variables should be removed unless they are marked with and underscore (ex. _varName).
         '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
@@ -111,7 +107,10 @@ module.exports = {
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
         'jsdoc/require-jsdoc': [
           'error',
-          { require: { ClassDeclaration: true, MethodDefinition: true }, checkConstructors: false },
+          {
+            require: { ClassDeclaration: true, MethodDefinition: true },
+            checkConstructors: false,
+          },
         ],
 
         // All imports should be accounted for

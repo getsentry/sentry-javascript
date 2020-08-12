@@ -91,7 +91,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
         stack: [
           {
             name: string;
-          },
+          }
         ];
       };
     };

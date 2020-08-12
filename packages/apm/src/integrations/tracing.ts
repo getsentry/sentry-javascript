@@ -506,7 +506,9 @@ export class Tracing implements Integration {
       if (Tracing._heartbeatCounter >= 3) {
         if (Tracing._activeTransaction) {
           Tracing._log(
-            `[Tracing] Transaction: ${SpanStatus.Cancelled} -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
+            `[Tracing] Transaction: ${
+              SpanStatus.Cancelled
+            } -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
           );
           Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
           Tracing._activeTransaction.setTag('heartbeat', 'failed');
