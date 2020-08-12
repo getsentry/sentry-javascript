@@ -7,6 +7,7 @@
 ## 5.21.1
 
 - [ember] fix: Make the package public and fix the build by bumping TypeScript to v3.9
+- [eslint] test: Don't test eslint config/plugin on Node <= v8
 
 ## 5.21.0
 
