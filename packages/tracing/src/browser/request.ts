@@ -78,6 +78,7 @@ export const defaultRequestInstrumentionOptions: RequestInstrumentationOptions =
 
 /** Registers span creators for xhr and fetch requests  */
 export function registerRequestInstrumentation(_options?: Partial<RequestInstrumentationOptions>): void {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentionOptions,
     ..._options,
