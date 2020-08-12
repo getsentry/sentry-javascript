@@ -24,7 +24,7 @@ module.exports = {
       },
     },
     {
-      files: ['test/**.js'],
+      files: ['test/**/*.js'],
       rules: {
         'import/order': 'off',
       },
@@ -33,6 +33,6 @@ module.exports = {
   rules: {
     'prefer-rest-params': 'off',
     '@typescript-eslint/no-var-requires': 'off',
-    '@sentry-internal/no-async-await': 'off',
+    '@sentry-internal/sdk/no-async-await': 'off',
   },
 };

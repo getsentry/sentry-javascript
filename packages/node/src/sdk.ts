@@ -124,7 +124,7 @@ export function lastEventId(): string | undefined {
  *
  * @param timeout Maximum time in ms the client should wait.
  */
-export function flush(timeout?: number): PromiseLike<boolean> {
+export async function flush(timeout?: number): Promise<boolean> {
   const client = getCurrentHub().getClient<NodeClient>();
   if (client) {
     return client.flush(timeout);
@@ -138,7 +138,7 @@ export function flush(timeout?: number): PromiseLike<boolean> {
  *
  * @param timeout Maximum time in ms the client should wait.
  */
-export function close(timeout?: number): PromiseLike<boolean> {
+export async function close(timeout?: number): Promise<boolean> {
   const client = getCurrentHub().getClient<NodeClient>();
   if (client) {
     return client.close(timeout);
