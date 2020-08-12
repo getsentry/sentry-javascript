@@ -146,9 +146,9 @@ export class TraceDirective implements OnInit, AfterViewInit {
 export function TraceClassDecorator(): ClassDecorator {
   let tracingSpan: Span;
 
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   return target => {
-    // tslint:disable-next-line:no-unsafe-any
     const originalOnInit = target.prototype.ngOnInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngOnInit = function(...args: any[]): ReturnType<typeof originalOnInit> {
@@ -171,11 +171,11 @@ export function TraceClassDecorator(): ClassDecorator {
         tracingSpan.finish();
       }
       if (originalAfterViewInit) {
-        // tslint:disable-next-line:no-unsafe-any
         return originalAfterViewInit.apply(this, args);
       }
     };
   };
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }
 
 /**
@@ -198,7 +198,7 @@ export function TraceMethodDecorator(): MethodDecorator {
         });
       }
       if (originalMethod) {
-        // tslint:disable-next-line:no-unsafe-any
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return originalMethod.apply(this, args);
       }
     };

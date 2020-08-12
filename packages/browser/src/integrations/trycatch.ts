@@ -125,6 +125,7 @@ export class TryCatch implements Integration {
   private _wrapRAF(original: any): (callback: () => void) => any {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function(this: any, callback: () => void): () => void {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return original.call(
         this,
         wrap(callback, {
@@ -145,8 +146,10 @@ export class TryCatch implements Integration {
   private _wrapEventTarget(target: string): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const global = getGlobalObject() as { [key: string]: any };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const proto = global[target] && global[target].prototype;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }

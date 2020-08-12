@@ -1,12 +1,8 @@
 import { exec } from 'child_process';
 import { danger, fail, message, schedule, warn } from 'danger';
-import tslint from 'danger-plugin-tslint';
-import { prettyResults } from 'danger-plugin-tslint/dist/prettyResults';
 import { CLIEngine } from 'eslint';
-import { resolve } from 'path';
 import { promisify } from 'util';
 
-const PACKAGES = ['integrations', 'node'];
 const EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'];
 
 /**
@@ -47,35 +43,6 @@ export default async (): Promise<void> => {
   if (!danger.github) {
     return;
   }
-
-  schedule(async () => {
-    const tsLintResult = (
-      await Promise.all(
-        PACKAGES.map(packageName => {
-          return new Promise<string>(res => {
-            tslint({
-              lintResultsJsonPath: resolve(__dirname, 'packages', packageName, 'lint-results.json'),
-              handleResults: results => {
-                if (results.length > 0) {
-                  const formattedResults = prettyResults(results);
-                  res(`TSLint failed: **@sentry/${packageName}**\n\n${formattedResults}`);
-                } else {
-                  res('');
-                }
-              },
-            });
-          });
-        }),
-      )
-    ).filter(str => str.length);
-    if (tsLintResult.length) {
-      tsLintResult.forEach(tsLintFail => {
-        fail(`${tsLintFail}`);
-      });
-    } else {
-      message('✅ TSLint passed');
-    }
-  });
 
   await eslint();
 

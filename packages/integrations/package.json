@@ -32,7 +32,6 @@
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
-    "tslint": "5.16.0",
     "typescript": "3.4.5"
   },
   "scripts": {
@@ -45,13 +44,12 @@
     "build:bundle": "rollup --config",
     "clean": "rimraf dist coverage esm build .rpt2_cache",
     "link:yarn": "yarn link",
-    "lint": "run-s lint:prettier lint:tslint",
+    "lint": "run-s lint:prettier lint:eslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
-    "lint:tslint": "tslint -t stylish -p .",
-    "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
-    "fix": "run-s fix:tslint fix:prettier",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:tslint": "tslint --fix -t stylish -p .",
+    "fix:eslint": "eslint . --format stylish --fix",
     "test": "jest",
     "test:watch": "jest --watch"
   },

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
 
@@ -55,11 +56,12 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = ReportingObserver.id;
+  public static id: string = 'ReportingObserver';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'ReportingObserver';
+  public readonly name: string = ReportingObserver.id;
 
   /**
    * Returns current hub.
@@ -81,19 +83,19 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    // tslint:disable:no-unsafe-any
-
     if (!supportsReportingObserver()) {
       return;
     }
 
     this._getCurrentHub = getCurrentHub;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const observer = new (getGlobalObject<any>().ReportingObserver)(this.handler.bind(this), {
       buffered: true,
       types: this._options.types,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     observer.observe();
   }
 
@@ -118,7 +120,7 @@ export class ReportingObserver implements Integration {
             [key: string]: any;
           } = {};
 
-          // tslint:disable-next-line:forin
+          // eslint-disable-next-line guard-for-in
           for (const prop in report.body) {
             plainBody[prop] = report.body[prop];
           }

@@ -4,8 +4,8 @@ module.exports = {
     node: true,
   },
   extends: ['prettier', 'eslint:recommended', 'plugin:import/errors', 'plugin:import/warnings'],
-  plugins: ['sentry-sdk', 'simple-import-sort'],
-  ignorePatterns: ['eslint-plugin-sentry-sdk'],
+  plugins: ['sentry-sdks', 'simple-import-sort'],
+  ignorePatterns: ['eslint-plugin-sentry-sdks'],
   overrides: [
     {
       // Configuration for JavaScript files
@@ -43,7 +43,7 @@ module.exports = {
         // Enforce type annotations to maintain consistency. This is especially important as
         // we have a public API, so we want changes to be very explicit.
         '@typescript-eslint/typedef': ['error', { arrowParameter: false }],
-        '@typescript-eslint/explicit-function-return-type': 'error',
+        '@typescript-eslint/explicit-function-return-type': ['error', { allowExpressions: true }],
 
         // Consistent ordering of fields, methods and constructors for classes should be enforced
         '@typescript-eslint/member-ordering': 'error',
@@ -87,6 +87,17 @@ module.exports = {
         'simple-import-sort/sort': 'error',
         'sort-imports': 'off',
         'import/order': 'off',
+
+        // Disallow delete operator. We should make this operation opt in (by disabling this rule).
+        '@typescript-eslint/no-dynamic-delete': 'error',
+
+        // We should prevent against overloads unless necessary.
+        '@typescript-eslint/unified-signatures': 'error',
+
+        // Disallow unsafe any usage. We should enforce that types be used as possible, or unknown be used
+        // instead of any. This is especially important for methods that expose a public API, as users
+        // should know exactly what they have to provide to use those methods. Turned off in tests.
+        '@typescript-eslint/no-unsafe-member-access': 'error',
       },
     },
     {
@@ -94,7 +105,7 @@ module.exports = {
       files: ['src/**/*'],
       rules: {
         // We want to prevent async await usage in our files to prevent uncessary bundle size.
-        'sentry-sdk/no-async-await': 'error',
+        'sentry-sdks/no-async-await': 'error',
 
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
@@ -102,6 +113,9 @@ module.exports = {
           'error',
           { require: { ClassDeclaration: true, MethodDefinition: true }, checkConstructors: false },
         ],
+
+        // All imports should be accounted for
+        'import/no-extraneous-dependencies': 'error',
       },
     },
     {
@@ -116,6 +130,7 @@ module.exports = {
         '@typescript-eslint/explicit-function-return-type': 'off',
         'no-unused-expressions': 'off',
         '@typescript-eslint/no-unused-expressions': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
       },
     },
     {
@@ -164,5 +179,8 @@ module.exports = {
 
     // imports should be ordered.
     'import/order': ['error', { 'newlines-between': 'always' }],
+
+    // Make sure for in loops check for properties
+    'guard-for-in': 'error',
   },
 };

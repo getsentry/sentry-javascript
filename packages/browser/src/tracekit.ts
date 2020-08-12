@@ -3,6 +3,8 @@
  * largely modified and is now maintained as part of Sentry JS SDK.
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 /**
  * An object representing a single stack frame.
  * {Object} StackFrame

@@ -99,7 +99,7 @@ export interface Location {
    */
   reload(): void;
   /** @deprecated */
-  // tslint:disable-next-line: unified-signatures completed-docs
+  // eslint-disable-next-line @typescript-eslint/unified-signatures
   reload(forcedReload: boolean): void;
   /**
    * Removes the current page from the session history and navigates to the given URL.

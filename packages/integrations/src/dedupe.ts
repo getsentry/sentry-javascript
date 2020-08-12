@@ -5,7 +5,7 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  private _previousEvent?: Event;
+  public static id: string = 'Dedupe';
 
   /**
    * @inheritDoc
@@ -15,7 +15,7 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Dedupe';
+  private _previousEvent?: Event;
 
   /**
    * @inheritDoc
@@ -92,7 +92,7 @@ export class Dedupe implements Integration {
 
     if (exception) {
       try {
-        // @ts-ignore
+        // @ts-ignore Object could be undefined
         return exception.values[0].stacktrace.frames;
       } catch (_oO) {
         return undefined;

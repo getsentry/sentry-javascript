@@ -36,14 +36,14 @@ export interface HTTPRequest {
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
-  /** API object */
-  protected _api: API;
-
   /** The Agent used for corresponding transport */
   public module?: HTTPRequest;
 
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
+
+  /** API object */
+  protected _api: API;
 
   /** A simple buffer holding all requests. */
   protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
@@ -54,6 +54,20 @@ export abstract class BaseTransport implements Transport {
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendEvent(_: Event): PromiseLike<Response> {
+    throw new SentryError('Transport Class has to implement `sendEvent` method.');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public close(timeout?: number): PromiseLike<boolean> {
+    return this._buffer.drain(timeout);
   }
 
   /** Returns a build request option object used by request */
@@ -136,19 +150,5 @@ export abstract class BaseTransport implements Transport {
         req.end(sentryReq.body);
       }),
     );
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public sendEvent(_: Event): PromiseLike<Response> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method.');
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public close(timeout?: number): PromiseLike<boolean> {
-    return this._buffer.drain(timeout);
   }
 }

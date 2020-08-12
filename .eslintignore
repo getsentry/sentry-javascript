@@ -1,8 +1,4 @@
 # THIS IS A TEMPORARY FILE
 # THIS WILL BE REMOVED AFTER WE FINISH ESLINT UPGRADE
 
-packages/integrations/**/*
-packages/node/**/*
-packages/react/**/*
-packages/tracing/**/*
 packages/typescript/**/*

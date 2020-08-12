@@ -8,12 +8,12 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = CaptureConsole.id;
+  public static id: string = 'CaptureConsole';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'CaptureConsole';
+  public name: string = CaptureConsole.id;
 
   /**
    * @inheritDoc
@@ -42,7 +42,8 @@ export class CaptureConsole implements Integration {
         return;
       }
 
-      fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]): void => {
         const hub = getCurrentHub();
 
         if (hub.getIntegration(CaptureConsole)) {

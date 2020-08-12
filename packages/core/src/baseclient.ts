@@ -330,6 +330,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // so this block overwrites the normalized event to add back the original
     // Transaction information prior to normalization.
     if (event.contexts && event.contexts.trace) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       normalized.contexts.trace = event.contexts.trace;
     }
     return normalized;

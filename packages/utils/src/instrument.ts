@@ -153,6 +153,7 @@ function instrumentFetch(): void {
         ...commonHandlerData,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(global, args).then(
         (response: Response) => {
           triggerHandlers('fetch', {
@@ -188,6 +189,7 @@ interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   };
 }
 
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /** Extract `method` from fetch call arguments */
 function getFetchMethod(fetchArgs: any[] = []): string {
   if ('Request' in global && isInstanceOf(fetchArgs[0], Request) && fetchArgs[0].method) {
@@ -209,6 +211,7 @@ function getFetchUrl(fetchArgs: any[] = []): string {
   }
   return String(fetchArgs[0]);
 }
+/* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
 /** JSDoc */
 function instrumentXHR(): void {
@@ -224,11 +227,13 @@ function instrumentXHR(): void {
       const xhr = this;
       const url = args[1];
       xhr.__sentry_xhr__ = {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
         url: args[1],
       };
 
       // if Sentry key appears in URL, don't capture it as a request
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (isString(url) && xhr.__sentry_xhr__.method === 'POST' && url.match(/sentry_key/)) {
         xhr.__sentry_own_request__ = true;
       }
@@ -340,12 +345,14 @@ function instrumentDOM(): void {
 
   // After hooking into document bubbled up click and keypresses events, we also hook into user handled click & keypresses.
   ['EventTarget', 'Node'].forEach((target: string) => {
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const proto = (global as any)[target] && (global as any)[target].prototype;
 
     // eslint-disable-next-line no-prototype-builtins
     if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     fill(proto, 'addEventListener', function(
       original: () => void,

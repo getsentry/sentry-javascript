@@ -594,7 +594,7 @@ describe('BaseClient', () => {
             spanId: '9e15bf99fbe4bc80',
             startTimestamp: 1591603196.637835,
             traceId: '86f39e84263a4de99c326acab3bfe3bd',
-          } as any) as Span, // `as any` to bypass linter https://palantir.github.io/tslint/rules/no-object-literal-type-assertion/
+          } as unknown) as Span,
           ({
             description: 'first-contentful-paint',
             endTimestamp: 1591603196.637835,

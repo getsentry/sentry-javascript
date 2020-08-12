@@ -1,4 +1,3 @@
-// tslint:disable:max-classes-per-file
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 import { isInstanceOf, logger } from '@sentry/utils';

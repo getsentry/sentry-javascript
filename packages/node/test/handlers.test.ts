@@ -73,7 +73,7 @@ describe('parseRequest', () => {
         {},
         {
           ...mockReq,
-          // @ts-ignore
+          // @ts-ignore user is not assignable to object
           user: 'wat',
         },
       );

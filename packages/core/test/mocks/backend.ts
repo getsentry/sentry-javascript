@@ -26,8 +26,10 @@ export class TestBackend extends BaseBackend<TestOptions> {
       exception: {
         values: [
           {
+            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
+            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },

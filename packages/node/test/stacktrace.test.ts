@@ -12,9 +12,6 @@
 
 import * as stacktrace from '../src/stacktrace';
 
-// tslint:disable:typedef
-// tslint:disable:prefer-template
-
 function testBasic() {
   return new Error('something went wrong');
 }

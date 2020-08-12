@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-// tslint:disable: completed-docs
 // Have to manually set types because we are using package-alias
 interface Application {
   use(...args: any): any;
@@ -14,7 +14,6 @@ type NextFunction = (...args: any) => any;
 interface Response {
   once(name: string, callback: () => void): void;
 }
-// tslint:enable: completed-docs
 
 /**
  * Internal helper for `__sentry_transaction`
@@ -34,12 +33,12 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Express.id;
+  public static id: string = 'Express';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'Express';
+  public name: string = Express.id;
 
   /**
    * Express App instance
@@ -77,6 +76,7 @@ export class Express implements Integration {
  * // error handler
  * app.use(function (err, req, res, next) { ... })
  */
+// eslint-disable-next-line @typescript-eslint/ban-types
 function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
   const arrity = fn.length;
 
@@ -93,6 +93,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
             span.finish();
           });
         }
+        // eslint-disable-next-line prefer-rest-params
         return fn.apply(this, arguments);
       };
     }
@@ -114,6 +115,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
           if (span) {
             span.finish();
           }
+          // eslint-disable-next-line prefer-rest-params
           return next.apply(this, arguments);
         });
       };
@@ -137,6 +139,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
           if (span) {
             span.finish();
           }
+          // eslint-disable-next-line prefer-rest-params
           return next.apply(this, arguments);
         });
       };
@@ -180,9 +183,10 @@ function wrapUseArgs(args: IArguments): unknown[] {
  * Patches original app.use to utilize our tracing functionality
  */
 function instrumentMiddlewares(app: Application): Application {
-  // tslint:disable-next-line: no-unbound-method
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const originalAppUse = app.use;
   app.use = function(): any {
+    // eslint-disable-next-line prefer-rest-params
     return originalAppUse.apply(this, wrapUseArgs(arguments));
   };
   return app;

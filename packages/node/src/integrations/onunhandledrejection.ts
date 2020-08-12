@@ -11,11 +11,12 @@ export class OnUnhandledRejection implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = OnUnhandledRejection.id;
+  public static id: string = 'OnUnhandledRejection';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'OnUnhandledRejection';
+  public name: string = OnUnhandledRejection.id;
 
   /**
    * @inheritDoc
@@ -42,6 +43,7 @@ export class OnUnhandledRejection implements Integration {
    * @param reason string
    * @param promise promise
    */
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public sendUnhandledPromise(reason: any, promise: any): void {
     const hub = getCurrentHub();
 
@@ -50,6 +52,7 @@ export class OnUnhandledRejection implements Integration {
       return;
     }
 
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const context = (promise.domain && promise.domain.sentryContext) || {};
 
     hub.withScope((scope: Scope) => {
@@ -68,6 +71,7 @@ export class OnUnhandledRejection implements Integration {
 
       hub.captureException(reason, { originalException: promise });
     });
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
     this._handleRejection(reason);
   }
@@ -75,6 +79,7 @@ export class OnUnhandledRejection implements Integration {
   /**
    * Handler for `mode` option
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _handleRejection(reason: any): void {
     // https://github.com/nodejs/node/blob/7cf6f9e964aa00772965391c23acda6d71972a9a/lib/internal/process/promises.js#L234-L240
     const rejectionWarning =
@@ -83,9 +88,11 @@ export class OnUnhandledRejection implements Integration {
       'or by rejecting a promise which was not handled with .catch().' +
       ' The promise rejected with the reason:';
 
+    /* eslint-disable no-console */
     if (this._options.mode === 'warn') {
       consoleSandbox(() => {
         console.warn(rejectionWarning);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         console.error(reason && reason.stack ? reason.stack : reason);
       });
     } else if (this._options.mode === 'strict') {
@@ -94,5 +101,6 @@ export class OnUnhandledRejection implements Integration {
       });
       logAndExitProcess(reason);
     }
+    /* eslint-enable no-console */
   }
 }
