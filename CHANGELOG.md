@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.21.1
+
+- [ember] fix: Make the package public and fix the build by bumping TypeScript to v3.9
+
 ## 5.21.0
 
 - [all] feat: Convert `sentry-javascript` to `ESLint` (#2786)
