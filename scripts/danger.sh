@@ -6,10 +6,10 @@ yarn
 yarn build
 if [[ ! -z $DANGER_GITHUB_API_TOKEN ]]; then
   yarn lint
-  yarn test
+  yarn test --ignore="@sentry/ember"
   yarn codecov
   yarn danger ci || true # for external PRs danger will fail because of token
 else
   yarn lint
-  yarn test
+  yarn test --ignore="@sentry/ember"
 fi

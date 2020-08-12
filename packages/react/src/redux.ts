@@ -117,6 +117,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         }
 
         /* Allow user to configure scope with latest state */
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         const { configureScopeWithState } = options;
         if (typeof configureScopeWithState === 'function') {
           configureScopeWithState(scope, newState);
