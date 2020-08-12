@@ -33,7 +33,7 @@
     "gatsby": "*"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config": "5.20.1",
+    "@sentry-internal/eslint-config-sdk": "5.20.1",
     "eslint": "7.6.0",
     "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
