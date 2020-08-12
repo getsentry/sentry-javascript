@@ -7,8 +7,8 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2018,
   },
-  extends: ['sentry-sdks'],
-  ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*', 'test/manual/**/*'],
+  extends: ['@sentry-internal/sdk'],
+  ignorePatterns: ['build/**', 'dist/**', 'esm/**', 'examples/**', 'scripts/**', 'test/manual/**'],
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
@@ -17,7 +17,7 @@ module.exports = {
       },
     },
     {
-      files: ['test/**/*'],
+      files: ['test/**'],
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
@@ -33,6 +33,6 @@ module.exports = {
   rules: {
     'prefer-rest-params': 'off',
     '@typescript-eslint/no-var-requires': 'off',
-    'sentry-sdks/no-async-await': 'off',
+    '@sentry-internal/sdk/no-async-await': 'off',
   },
 };

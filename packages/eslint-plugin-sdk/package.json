@@ -1,9 +1,9 @@
 {
-  "name": "eslint-plugin-sentry-sdks",
+  "name": "@sentry-internal/eslint-plugin-sdk",
   "version": "5.20.1",
   "description": "Official Sentry SDK eslint plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-plugin-sentry-sdks",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-plugin-sdk",
   "author": "Sentry",
   "license": "MIT",
   "keywords": [
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "prettier": "1.17.0",
-    "typescript": "3.4.5",
+    "typescript": "3.6.5",
     "mocha": "^6.2.0"
   },
   "scripts": {

@@ -92,7 +92,5 @@ extensions for APM
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
   utility functions useful for various SDKs.
-- [`@sentry/typescript`](https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript): Shared
-  Typescript compiler and linter options.
 - [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
   packages.

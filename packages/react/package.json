@@ -28,7 +28,7 @@
     "react-dom": "15.x || 16.x"
   },
   "devDependencies": {
-    "eslint-config-sentry-sdks": "5.20.1",
+    "@sentry-internal/eslint-config-sdk": "5.20.1",
     "eslint": "7.6.0",
     "@testing-library/react": "^10.0.6",
     "@testing-library/react-hooks": "^3.3.0",
@@ -55,7 +55,7 @@
     "react-test-renderer": "^16.13.1",
     "redux": "^4.0.5",
     "rimraf": "^2.6.3",
-    "typescript": "3.4.5"
+    "typescript": "3.6.5"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",

@@ -7,8 +7,8 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2018,
   },
-  extends: ['sentry-sdks'],
-  ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*', 'src/loader.js'],
+  extends: ['@sentry-internal/sdk'],
+  ignorePatterns: ['build/**', 'dist/**', 'esm/**', 'examples/**', 'scripts/**', 'coverage/**', 'src/loader.js'],
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
@@ -17,7 +17,7 @@ module.exports = {
       },
     },
     {
-      files: ['test/**/*'],
+      files: ['test/**'],
       rules: {
         'jsdoc/require-jsdoc': 'off',
         'no-console': 'off',
@@ -28,7 +28,7 @@ module.exports = {
       },
     },
     {
-      files: ['test/integration/**/*'],
+      files: ['test/integration/**'],
       env: {
         mocha: true,
       },
@@ -37,7 +37,7 @@ module.exports = {
       },
     },
     {
-      files: ['test/integration/common/**/*', 'test/integration/suites/**/*'],
+      files: ['test/integration/common/**', 'test/integration/suites/**'],
       rules: {
         'no-unused-vars': 'off',
       },

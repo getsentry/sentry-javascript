@@ -21,8 +21,8 @@ module.exports = {
   rules: {},
   overrides: [
     {
-      files: ['addon/**/*'],
-      plugins: ['sentry-sdks'],
+      files: ['addon/**'],
+      plugins: ['@sentry-internal/eslint-plugin-sdk'],
     },
     // node files
     {

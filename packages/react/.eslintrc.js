@@ -8,8 +8,8 @@ module.exports = {
     ecmaVersion: 2018,
     jsx: true,
   },
-  extends: ['sentry-sdks', 'plugin:react/recommended', 'plugin:react-hooks/recommended'],
-  ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*'],
+  extends: ['@sentry-internal/sdk', 'plugin:react/recommended', 'plugin:react-hooks/recommended'],
+  ignorePatterns: ['build/**', 'dist/**', 'esm/**', 'examples/**', 'scripts/**'],
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
@@ -24,7 +24,7 @@ module.exports = {
       },
     },
     {
-      files: ['test/**/*'],
+      files: ['test/**'],
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
       },
