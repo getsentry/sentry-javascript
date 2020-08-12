@@ -7,7 +7,7 @@ module.exports = {
     ecmaVersion: 2018,
   },
   extends: ['sentry-sdks'],
-  ignorePatterns: ['build/**/*', 'dist/**/*', 'esm/**/*', 'examples/**/*', 'scripts/**/*'],
+  ignorePatterns: ['build/**', 'dist/**', 'esm/**', 'examples/**', 'scripts/**'],
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
@@ -16,7 +16,7 @@ module.exports = {
       },
     },
     {
-      files: ['test/**/*'],
+      files: ['test/**'],
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
