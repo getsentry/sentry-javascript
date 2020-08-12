@@ -1,5 +1,5 @@
 {
-  "name": "@sentry/typescript",
+  "name": "@sentry-internal/typescript",
   "version": "5.20.1",
   "description": "Typescript configuration used at Sentry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",

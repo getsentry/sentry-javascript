@@ -60,7 +60,7 @@
     "ember-qunit": "^4.6.0",
     "ember-resolver": "^8.0.0",
     "ember-sinon-qunit": "^5.0.0",
-    "ember-source": "~3.19.0",
+    "ember-source": "~3.12.0",
     "ember-source-channel-url": "^2.0.1",
     "ember-template-lint": "^2.9.1",
     "ember-test-selectors": "^4.1.0",

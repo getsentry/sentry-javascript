@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@sentry-internal/eslint-plugin": "5.20.1",
-    "@sentry/typescript": "5.20.1",
+    "@sentry-internal/typescript": "5.20.1",
     "@typescript-eslint/eslint-plugin": "^3.9.0",
     "@typescript-eslint/parser": "^3.9.0",
     "eslint-config-prettier": "^6.11.0",
