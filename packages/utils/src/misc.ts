@@ -48,14 +48,14 @@ const fallbackGlobalObject = {};
  *
  * @returns Global scope object
  */
-export function getGlobalObject<T>(): T & SentryGlobal {
+export function getGlobalObject<T>(): T & typeof globalThis & SentryGlobal {
   return (isNodeEnv()
     ? global
     : typeof window !== 'undefined'
     ? window
     : typeof self !== 'undefined'
     ? self
-    : fallbackGlobalObject) as T & SentryGlobal;
+    : fallbackGlobalObject) as T & typeof globalThis & SentryGlobal;
 }
 
 /**
