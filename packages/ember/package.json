@@ -9,6 +9,9 @@
   "keywords": [
     "ember-addon"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "directories": {
     "doc": "doc",
     "test": "tests"
