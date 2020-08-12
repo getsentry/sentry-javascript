@@ -1,6 +1,6 @@
 import { EventProcessor, Hub, Integration, Scope } from '@sentry/types';
-import { uuid4 } from '@sentry/utils';
-
+import * as Sentry from '@sentry/node';
+import {} from '@sentry/node';
 /**
  * NodeJS integration
  *
@@ -70,7 +70,7 @@ export class AWSLambda implements Integration {
     const rapidRuntime = lambdaBootstrap?.children[0].exports;
 
     /** handler that is invoked in case of unhandled and handled exception */
-    const invokedFunction = rapidRuntime.prototype.postInvocationError;
+    const originalPostInvocationError = rapidRuntime.prototype.postInvocationError;
 
     this.getCurrentHub = getCurrentHub;
 
@@ -101,17 +101,15 @@ export class AWSLambda implements Integration {
      */
     function timeOutError(configuredTime: number): void {
       setTimeout(() => {
-        /** return current event with event id  */
-        invokeEvent(uuid4());
-
         /**
          * setting parameters in scope which will be displayed as additional data in Sentry dashboard
          */
         setParameters();
 
         const error = new Error(
-          `WARNING : Function is expected to get timed out. Configured timeout duration = ${configuredTime +
-            1} seconds.`,
+          `WARNING : Function is expected to get timed out. Configured timeout duration = ${
+            configuredTime + 1
+          } seconds.`,
         );
         /** capturing the exception and re-directing it to the Sentry Dashboard */
         hub.captureException(error);
@@ -181,22 +179,6 @@ export class AWSLambda implements Integration {
     }
 
     /**
-     * This function return event within hub
-     * @param eventId  - contains event Id of the event
-     * @hidden
-     */
-    function invokeEvent(eventId: String): void {
-      if (hub && hub.getIntegration(AWSLambda)) {
-        hub.withScope((scope: Scope) => {
-          scope.addEventProcessor(event => {
-            event.event_id = eventId.toString();
-            return event;
-          });
-        });
-      }
-    }
-
-    /**
      * setting parameters in scope which will be displayed as additional data in Sentry dashboard
      * @hidden
      */
@@ -223,10 +205,11 @@ export class AWSLambda implements Integration {
      * @param id  - holds event id value
      * @param callback  - callback function
      */
-    rapidRuntime.prototype.postInvocationError = function(error: Error, id: string, callback: () => void): void {
-      /** return current event with event id  */
-      invokeEvent(id);
-
+    rapidRuntime.prototype.postInvocationError = async function (
+      error: Error,
+      id: string,
+      callback: () => void,
+    ): Promise<void> {
       /**
        * setting parameters in scope which will be displayed as additional data in Sentry dashboard
        */
@@ -235,14 +218,12 @@ export class AWSLambda implements Integration {
       /** capturing the exception and re-directing it to the Sentry Dashboard */
       hub.captureException(error);
 
+      await Sentry.flush(2000);
       /**
        * Here, we make sure the error has been captured by Sentry Dashboard
        * and then re-raised the exception
        */
-      setTimeout(() => {
-        // re-raising the exception so as to capture it as an event.
-        invokedFunction.call(this, error, id, callback);
-      }, 1000);
+      originalPostInvocationError.call(this, error, id, callback);
     };
   }
 }
