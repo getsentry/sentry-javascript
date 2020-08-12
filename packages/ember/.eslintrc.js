@@ -22,7 +22,7 @@ module.exports = {
   overrides: [
     {
       files: ['addon/**'],
-      plugins: ['sentry-sdks'],
+      plugins: ['@sentry-internal'],
     },
     // node files
     {
