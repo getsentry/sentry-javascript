@@ -7,7 +7,6 @@ import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { Span } from '../span';
 import { SpanStatus } from '../spanstatus';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { registerErrorInstrumentation } from './errors';
 import { MetricsInstrumentation } from './metrics';
 import {
   defaultRequestInstrumentionOptions,
@@ -170,9 +169,6 @@ export class BrowserTracing implements Integration {
       startTransactionOnPageLoad,
       startTransactionOnLocationChange,
     );
-
-    // TODO: Should this be default behaviour?
-    registerErrorInstrumentation();
 
     if (markBackgroundTransactions) {
       registerBackgroundTabDetection();
