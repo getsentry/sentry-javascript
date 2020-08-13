@@ -19,9 +19,9 @@
     "@angular/common": "^10.0.3",
     "@angular/core": "^10.0.3",
     "@angular/router": "^10.0.3",
-    "@sentry/browser": "5.19.1",
-    "@sentry/types": "5.19.1",
-    "@sentry/utils": "5.19.1",
+    "@sentry/browser": "5.21.1",
+    "@sentry/types": "5.21.1",
+    "@sentry/utils": "5.21.1",
     "rxjs": "^6.6.0",
     "tslib": "^1.9.3"
   },
