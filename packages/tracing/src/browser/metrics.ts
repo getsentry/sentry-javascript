@@ -212,10 +212,17 @@ function addMeasureSpans(
   return measureStartTimestamp;
 }
 
+export interface ResourceEntry extends Record<string, unknown> {
+  initiatorType?: string;
+  transferSize?: number;
+  encodedBodySize?: number;
+  decodedBodySize?: number;
+}
+
 /** Create resource related spans */
-function addResourceSpans(
+export function addResourceSpans(
   transaction: Transaction,
-  entry: Record<string, unknown>,
+  entry: ResourceEntry,
   resourceName: string,
   startTime: number,
   duration: number,
@@ -227,15 +234,15 @@ function addResourceSpans(
     return undefined;
   }
 
-  const tags: Record<string, string> = {};
+  const data: Record<string, any> = {};
   if (entry.transferSize) {
-    tags.transferSize = (entry.transferSize as number).toString();
+    data.transferSize = entry.transferSize;
   }
   if (entry.encodedBodySize) {
-    tags.encodedBodySize = (entry.encodedBodySize as number).toString();
+    data.encodedBodySize = entry.encodedBodySize;
   }
   if (entry.decodedBodySize) {
-    tags.decodedBodySize = (entry.decodedBodySize as number).toString();
+    data.decodedBodySize = entry.decodedBodySize;
   }
 
   const startTimestamp = timeOrigin + startTime;
@@ -246,7 +253,7 @@ function addResourceSpans(
     endTimestamp,
     op: entry.initiatorType && entry.initiatorType !== '' ? `resource.${entry.initiatorType}` : 'resource',
     startTimestamp,
-    tags,
+    data,
   });
 
   return endTimestamp;
