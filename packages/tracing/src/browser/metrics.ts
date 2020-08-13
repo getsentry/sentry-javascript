@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { SpanContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
@@ -214,7 +215,7 @@ function addMeasureSpans(
 /** Create resource related spans */
 function addResourceSpans(
   transaction: Transaction,
-  entry: Record<string, any>,
+  entry: Record<string, unknown>,
   resourceName: string,
   startTime: number,
   duration: number,
@@ -226,14 +227,26 @@ function addResourceSpans(
     return undefined;
   }
 
+  const tags: Record<string, string> = {};
+  if (entry.transferSize) {
+    tags.transferSize = (entry.transferSize as number).toString();
+  }
+  if (entry.encodedBodySize) {
+    tags.encodedBodySize = (entry.encodedBodySize as number).toString();
+  }
+  if (entry.decodedBodySize) {
+    tags.decodedBodySize = (entry.decodedBodySize as number).toString();
+  }
+
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
 
   _startChild(transaction, {
-    description: `${entry.initiatorType} ${resourceName}`,
+    description: resourceName,
     endTimestamp,
-    op: 'resource',
+    op: entry.initiatorType && entry.initiatorType !== '' ? `resource.${entry.initiatorType}` : 'resource',
     startTimestamp,
+    tags,
   });
 
   return endTimestamp;
