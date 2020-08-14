@@ -142,4 +142,28 @@ describe('addResourceSpans', () => {
       );
     }
   });
+
+  it('allows for enter size of 0', () => {
+    const entry: ResourceEntry = {
+      initiatorType: 'css',
+      transferSize: 0,
+      encodedBodySize: 0,
+      decodedBodySize: 0,
+    };
+
+    addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          decodedBodySize: entry.decodedBodySize,
+          encodedBodySize: entry.encodedBodySize,
+          transferSize: entry.transferSize,
+        },
+      }),
+    );
+  });
 });
