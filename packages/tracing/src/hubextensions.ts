@@ -1,10 +1,10 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
 import { SampleContext, TransactionContext } from '@sentry/types';
+import { hasTracingEnabled, logger } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
-import { hasTracingEnabled, logger } from '@sentry/utils';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
@@ -33,16 +33,16 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  * Mutates the given Transaction object and then returns the mutated object.
  */
 function sample<T extends Transaction>(hub: Hub, transaction: T): T {
+  const client = hub.getClient();
+  const options = (client && client.getOptions()) || {};
+
   // nothing to do if tracing is disabled
-  if (!hasTracingEnabled(hub)) {
+  if (!hasTracingEnabled(options)) {
     transaction.sampled = false;
     return transaction;
   }
 
   logger.log('Tracing enabled');
-
-  const client = hub.getClient();
-  const options = (client && client.getOptions()) || {};
 
   // we have to test for a pre-existsing sampling decision, in case this transaction is a child transaction and has
   // inherited its parent's decision

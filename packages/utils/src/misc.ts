@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, Hub, Integration, StackFrame, WrappedFunction } from '@sentry/types';
+import { Event, Integration, Options, StackFrame, WrappedFunction } from '@sentry/types';
 
 import { isString } from './is';
 import { snipLine } from './string';
@@ -526,9 +526,6 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
  *
  * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
  */
-export function hasTracingEnabled(hub: Hub): boolean {
-  const client = hub.getClient();
-  const options = (client && client.getOptions()) || {};
-
+export function hasTracingEnabled(options: Options): boolean {
   return !!options.tracesSampleRate || !!options.tracesSampler;
 }

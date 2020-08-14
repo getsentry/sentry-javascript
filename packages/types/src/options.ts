@@ -2,8 +2,8 @@ import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { LogLevel } from './loglevel';
-import { Transport, TransportClass, TransportOptions } from './transport';
 import { SampleContext } from './transaction';
+import { Transport, TransportClass, TransportOptions } from './transport';
 
 /** Base configuration options for every SDK. */
 export interface Options {
@@ -85,12 +85,9 @@ export interface Options {
    * 0.0 = 0% chance of a given trace being sent (send no traces)
    * 1.0 = 100% chance of a given trace being sent (send all traces)
    *
-   * Default: 0.0
+   * Can be omitted without disabling tracing if `tracesSampler` is defined. If neither is defined, tracing is disabled.
    */
   tracesSampleRate?: number;
-
-  /** Function to compute tracing sample rate dynamically and filter unwanted traces */
-  tracesSampler?(traceContext: SampleContext): number | null;
 
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
@@ -148,4 +145,13 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
+
+  /**
+   * Function to compute tracing sample rate dynamically and filter unwanted traces.
+   *
+   * Can be defined in place of `tracesSampleRate`. If neither is defined, tracing is disabled.
+   *
+   * @returns A sample rate or `null` to drop the trace.
+   */
+  tracesSampler?(traceContext: SampleContext): number | null;
 }
