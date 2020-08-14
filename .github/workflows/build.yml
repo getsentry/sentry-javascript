@@ -18,19 +18,14 @@ jobs:
           path: |
             node_modules
             */*/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - name: Install
         run: yarn install
       - name: Build
         run: yarn build
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build
-          path: |
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
 
   job_size_check:
     name: Size Check
@@ -44,11 +39,10 @@ jobs:
           path: |
             node_modules
             */*/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-      - uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: ${{ github.workspace }}/packages
       - uses: andresz1/size-limit-action@v1.4.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -66,12 +60,11 @@ jobs:
           path: |
             node_modules
             */*/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
-      - uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: ${{ github.workspace }}/packages
       - name: Run Linter
         run: yarn lint
 
@@ -87,14 +80,15 @@ jobs:
           path: |
             node_modules
             */*/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
-      - uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: ${{ github.workspace }}/packages
       - name: Danger JS Action
         uses: danger/danger-js@9.1.8
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
 
   job_unit_test:
     name: Test
@@ -108,14 +102,13 @@ jobs:
           path: |
             node_modules
             */*/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
-      - uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: ${{ github.workspace }}/packages
       - name: Unit Tests
-        run: yarn test
+        run: yarn test --ignore="@sentry/ember"
       - uses: codecov/codecov-action@v1
 
   job_browserstack_test:
@@ -130,12 +123,11 @@ jobs:
           path: |
             node_modules
             */*/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
-      - uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: ${{ github.workspace }}/packages
       - name: Integration Tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -158,18 +150,20 @@ jobs:
           path: |
             node_modules
             */*/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install
-      - uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: ${{ github.workspace }}/packages
+      - name: Install Zeus
+        run: |
+          yarn global add @zeus-ci/cli
+          echo "::add-path::$(yarn global bin)"
       - name: Upload to Zeus
         env:
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
           ZEUS_HOOK_BASE: ${{ secrets.ZEUS_HOOK_BASE }}
         run: |
-          yarn global add @zeus-ci/cli
           zeus job update -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
           yarn lerna changed --include-merged-tags -p
           node scripts/package-and-upload-to-zeus.js
