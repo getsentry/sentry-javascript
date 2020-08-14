@@ -114,7 +114,7 @@ jobs:
         with:
           name: build
           path: ${{ github.workspace }}/packages
-      - name: Unit Tests
+      - name: Integration Tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
@@ -123,3 +123,36 @@ jobs:
           yarn test:integration:checkbrowsers
           yarn test:integration
           yarn test:package
+
+  job_zeus:
+    name: Zeus
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
+      - name: Upload to Zeus
+        env:
+          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
+          ZEUS_HOOK_BASE: ${{ secrets.ZEUS_HOOK_BASE }}
+        run: |
+          zeus job update -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
+          yarn global add @zeus-ci/cli
+          yarn lerna changed --include-merged-tags -p
+          node scripts/package-and-upload-to-zeus.js
+          zeus upload -t "application/javascript" ./packages/browser/build/bundle*
+          zeus upload -t "application/javascript" ./packages/integrations/build/*
+          zeus upload -t "application/javascript" ./packages/apm/build/*
+          zeus upload -t "application/javascript" ./packages/tracing/build/*
+          zeus job update --status=passed -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
