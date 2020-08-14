@@ -10,7 +10,6 @@ module.exports = {
     '**/esm/**/*',
     '**/build/**/*',
     '**/packages/typescript/**/*',
-    '**/dangerfile.ts',
     // TODO: Don't exclude React
     '**/packages/react/**/*',
   ],

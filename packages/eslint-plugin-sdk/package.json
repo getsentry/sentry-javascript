@@ -30,6 +30,7 @@
     "link:yarn": "yarn link",
     "lint": "prettier --check \"{src,test}/**/*.js\"",
     "fix": "prettier --write \"{src,test}/**/*.js\"",
-    "test": "mocha test --recursive"
+    "test": "mocha test --recursive",
+    "pack": "npm pack"
   }
 }

@@ -60,7 +60,8 @@
     "test:watch": "jest --watch",
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:webpack": "cd test/manual/webpack-domain/ && yarn && node npm-build.js",
-    "version": "node ../../scripts/versionbump.js src/version.ts"
+    "version": "node ../../scripts/versionbump.js src/version.ts",
+    "pack": "npm pack"
   },
   "jest": {
     "collectCoverage": true,

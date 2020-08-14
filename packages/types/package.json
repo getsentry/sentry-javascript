@@ -35,7 +35,8 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:eslint": "eslint . --format stylish --fix"
+    "fix:eslint": "eslint . --format stylish --fix",
+    "pack": "npm pack"
   },
   "sideEffects": false
 }
