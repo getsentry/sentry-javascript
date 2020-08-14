@@ -75,6 +75,27 @@ jobs:
       - name: Run Linter
         run: yarn lint
 
+  job_danger:
+    name: Danger
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
+      - name: Danger JS Action
+        uses: danger/danger-js@9.1.8
+
   job_unit_test:
     name: Test
     needs: job_build
@@ -95,6 +116,7 @@ jobs:
           path: ${{ github.workspace }}/packages
       - name: Unit Tests
         run: yarn test
+      - uses: codecov/codecov-action@v1
 
   job_browserstack_test:
     name: Browserstack
@@ -147,8 +169,8 @@ jobs:
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
           ZEUS_HOOK_BASE: ${{ secrets.ZEUS_HOOK_BASE }}
         run: |
-          zeus job update -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
           yarn global add @zeus-ci/cli
+          zeus job update -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
           yarn lerna changed --include-merged-tags -p
           node scripts/package-and-upload-to-zeus.js
           zeus upload -t "application/javascript" ./packages/browser/build/bundle*

@@ -20,10 +20,6 @@ cache:
 
 jobs:
   include:
-    - stage: Test
-      name: '@sentry/packages - build + lint + test + codecov + danger [node v12]'
-      node_js: '12'
-      script: scripts/danger.sh
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
       script: scripts/test.sh
