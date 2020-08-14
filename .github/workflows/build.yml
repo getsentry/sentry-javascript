@@ -95,3 +95,28 @@ jobs:
           path: ${{ github.workspace }}/packages
       - name: Unit Tests
         run: yarn test
+
+  job_integration_test:
+    name: Test
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - run: yarn install
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: ${{ github.workspace }}/packages
+      - name: Unit Tests
+        run: |
+          cd packages/browser &&
+          yarn test:integration:checkbrowsers &&
+          yarn test:integration &&
+          yarn test:package
