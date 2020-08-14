@@ -3,6 +3,7 @@ import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { LogLevel } from './loglevel';
 import { Transport, TransportClass, TransportOptions } from './transport';
+import { SampleContext } from './transaction';
 
 /** Base configuration options for every SDK. */
 export interface Options {
@@ -87,6 +88,9 @@ export interface Options {
    * Default: 0.0
    */
   tracesSampleRate?: number;
+
+  /** Function to compute tracing sample rate dynamically and filter unwanted traces */
+  tracesSampler?(traceContext: SampleContext): number | null;
 
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;

@@ -48,3 +48,11 @@ export interface Transaction extends TransactionContext, Span {
    */
   setName(name: string): void;
 }
+
+/**
+ * The data passed to the `tracesSampler` function, which forms the basis for whatever decisions it might make.
+ */
+export interface SampleContext {
+  [key: string]: string;
+  // TODO (kmclb) fill this out
+}

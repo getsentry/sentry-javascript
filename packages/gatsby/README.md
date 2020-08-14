@@ -40,7 +40,7 @@ To automatically capture the `release` value on Vercel you will need to register
 
 ## Sentry Performance
 
-To enable Tracing support, supply the `tracesSampleRate` to the options and make sure you have installed the `@sentry/tracing` package. This will also turn on the `BrowserTracing` integration for automatic instrumentation of the browser.
+To enable Tracing support, supply either `tracesSampleRate` or `tracesSampler` to the options and make sure you have installed the `@sentry/tracing` package. This will also turn on the `BrowserTracing` integration for automatic instrumentation of the browser.
 
 ```javascript
 {
@@ -50,7 +50,10 @@ To enable Tracing support, supply the `tracesSampleRate` to the options and make
       resolve: "@sentry/gatsby",
       options: {
           dsn: process.env.SENTRY_DSN, // this is the default
-          tracesSampleRate: 1, // this is just to test, you should lower this in production
+
+          // A rate of 1 means all traces will be sent, so it's good for testing.
+          // In production, you'll likely want to either choose a lower rate or use `tracesSampler` instead.
+          tracesSampleRate: 1,
       }
     },
     // ...
