@@ -16,8 +16,8 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            node_modules
-            */*/node_modules
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
@@ -37,8 +37,8 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            node_modules
-            */*/node_modules
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
@@ -58,8 +58,8 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            node_modules
-            */*/node_modules
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
@@ -78,8 +78,8 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            node_modules
-            */*/node_modules
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
@@ -90,7 +90,7 @@ jobs:
       - uses: codecov/codecov-action@v1
 
   job_browserstack_test:
-    name: Browserstack
+    name: BrowserStack
     needs: job_build
     runs-on: ubuntu-latest
     steps:
@@ -99,8 +99,8 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            node_modules
-            */*/node_modules
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
@@ -127,8 +127,8 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            node_modules
-            */*/node_modules
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
@@ -153,7 +153,7 @@ jobs:
           zeus job update --status=passed -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
 
   job_artifacts:
-    name: Artifact Upload
+    name: Artifacts Upload
     needs: job_build
     runs-on: ubuntu-latest
     steps:
@@ -162,15 +162,15 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            node_modules
-            */*/node_modules
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - name: Pack
         run: yarn pack:changed
-      - name: Archive production artifacts
+      - name: Archive Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
