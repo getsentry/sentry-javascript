@@ -1,6 +1,6 @@
 const Sentry = require('@sentry/react');
 const Tracing = require('@sentry/tracing');
-const Utils = require('@sentry/utils');
+const Utils = require('@sentry/utils')
 
 exports.onClientEntry = function(_, pluginParams) {
   if (pluginParams === undefined) {

@@ -21,8 +21,8 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * Use sample rate (given in options as either a constant or ) along with a random number generator to make a sampling
- * decision, which all child spans and child transactions inherit.
+ * Use sample rate along with a random number generator to make a sampling decision, which all child spans and child
+ * transactions inherit.
  *
  * Sample rate is set in SDK config, either as a constant (`tracesSampleRate`) or a function to compute the rate
  * (`tracesSampler`).
@@ -36,8 +36,8 @@ function sample<T extends Transaction>(hub: Hub, transaction: T): T {
   const client = hub.getClient();
   const options = (client && client.getOptions()) || {};
 
-  // nothing to do if tracing is disabled
-  if (!hasTracingEnabled(options)) {
+  // nothing to do if there's no client or if tracing is disabled
+  if (!client || !hasTracingEnabled(options)) {
     transaction.sampled = false;
     return transaction;
   }
@@ -47,23 +47,17 @@ function sample<T extends Transaction>(hub: Hub, transaction: T): T {
   // we have to test for a pre-existsing sampling decision, in case this transaction is a child transaction and has
   // inherited its parent's decision
   if (transaction.sampled === undefined) {
-    let sampleRate;
+    const sampleContext: SampleContext = {}; // TODO (kmclb) build context object
 
-    // prefer the hook
-    if (options.tracesSampler) {
-      // TODO (kmclb) build context object
-      const sampleContext: SampleContext = {};
-      sampleRate = options.tracesSampler(sampleContext);
-    }
-    // we would have bailed at the beginning if neither `tracesSampler` nor `tracesSampleRate` were defined, so if the
-    // former isn't, the latter must be
-    else {
-      sampleRate = options.tracesSampleRate;
-    }
+    // we would have bailed at the beginning if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of
+    // these should work; prefer the hook if so
+    const sampleRate =
+      typeof options.tracesSampler === 'function' ? options.tracesSampler(sampleContext) : options.tracesSampleRate;
 
-    // if the function returned either 0 or null, it's a sign the transaction should be dropped
+    // if the function returned either 0 or null, or if the sample rate is set to 0, it's a sign the transaction should
+    // be dropped
     if (!sampleRate) {
-      logger.log('Discarding trace because tracesSampler returned 0 or null');
+      logger.log('Discarding trace because tracesSampler returned 0 or null or sampleRate is set to 0');
       transaction.sampled = false;
       return transaction;
     }
@@ -80,7 +74,7 @@ function sample<T extends Transaction>(hub: Hub, transaction: T): T {
 
   // at this point we know we're keeping the transaction, whether because of an inherited decision or because it got
   // lucky with the dice roll
-  const experimentsOptions = (client && client.getOptions()._experiments) || {};
+  const experimentsOptions = options._experiments || {};
   transaction.initSpanRecorder(experimentsOptions.maxSpans as number);
 
   return transaction;
