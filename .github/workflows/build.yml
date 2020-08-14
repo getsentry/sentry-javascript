@@ -68,28 +68,6 @@ jobs:
       - name: Run Linter
         run: yarn lint
 
-  job_danger:
-    name: Danger
-    needs: job_build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - uses: actions/cache@v2
-        with:
-          path: |
-            node_modules
-            */*/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-      - run: yarn install
-      - name: Danger JS Action
-        uses: danger/danger-js@9.1.8
-        env:
-          GITHUB_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
-
   job_unit_test:
     name: Test
     needs: job_build
@@ -132,6 +110,7 @@ jobs:
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        if: "'refs/heads/master' == github.ref || startsWith(github.ref, 'refs/tags/')"
         run: |
           cd packages/browser
           yarn test:integration:checkbrowsers
