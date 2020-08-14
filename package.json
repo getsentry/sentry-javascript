@@ -11,6 +11,7 @@
     "lint": "lerna run --stream --concurrency 1 lint",
     "test": "lerna run --stream --concurrency 1 --sort test",
     "codecov": "codecov",
+    "pack:changed": "lerna run pack --since",
     "postpublish": "make publish-docs"
   },
   "volta": {

@@ -19,6 +19,7 @@
     "typescript": "3.9.7"
   },
   "scripts": {
-    "link:yarn": "yarn link"
+    "link:yarn": "yarn link",
+    "pack": "npm pack"
   }
 }

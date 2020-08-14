@@ -26,7 +26,8 @@
     "test:ember": "ember test",
     "test:ember-compatibility": "ember try:each",
     "prepublishOnly": "ember ts:precompile",
-    "postpublish": "ember ts:clean"
+    "postpublish": "ember ts:clean",
+    "pack": "npm pack"
   },
   "dependencies": {
     "@sentry/browser": "5.21.1",
