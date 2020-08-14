@@ -194,6 +194,7 @@ jobs:
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
         with:
+          name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/browser/build/**
             ${{ github.workspace }}/packages/integrations/build/**
