@@ -165,12 +165,12 @@ jobs:
           ZEUS_HOOK_BASE: ${{ secrets.ZEUS_HOOK_BASE }}
         run: |
           zeus job update -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
-          yarn lerna changed --include-merged-tags -p
-          node scripts/package-and-upload-to-zeus.js
-          zeus upload -t "application/javascript" ./packages/browser/build/bundle*
-          zeus upload -t "application/javascript" ./packages/integrations/build/*
-          zeus upload -t "application/javascript" ./packages/apm/build/*
-          zeus upload -t "application/javascript" ./packages/tracing/build/*
+          yarn pack:changed
+          zeus upload -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -t "application/tar+npm" ./packages/**/*.tgz
+          zeus upload -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -t "application/javascript" ./packages/browser/build/*
+          zeus upload -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -t "application/javascript" ./packages/integrations/build/*
+          zeus upload -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -t "application/javascript" ./packages/apm/build/*
+          zeus upload -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -t "application/javascript" ./packages/tracing/build/*
           zeus job update --status=passed -b $GITHUB_RUN_ID -j $GITHUB_RUN_NUMBER -r $GITHUB_SHA
 
   job_artifacts:
