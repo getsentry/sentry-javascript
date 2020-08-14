@@ -96,8 +96,8 @@ jobs:
       - name: Unit Tests
         run: yarn test
 
-  job_integration_test:
-    name: Test
+  job_browserstack_test:
+    name: Browserstack
     needs: job_build
     runs-on: ubuntu-latest
     steps:
@@ -116,7 +116,7 @@ jobs:
           path: ${{ github.workspace }}/packages
       - name: Unit Tests
         run: |
-          cd packages/browser &&
-          yarn test:integration:checkbrowsers &&
-          yarn test:integration &&
+          cd packages/browser
+          yarn test:integration:checkbrowsers
+          yarn test:integration
           yarn test:package
