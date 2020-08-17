@@ -760,7 +760,9 @@ export class Tracing implements Integration {
       });
 
       Tracing._forceLCP = (): void => {
-        po.takeRecords().forEach(updateLCP);
+        if (po.takeRecords) {
+          po.takeRecords().forEach(updateLCP);
+        }
       };
     } catch (e) {
       // Do nothing if the browser doesn't support this API.
