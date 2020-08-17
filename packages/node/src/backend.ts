@@ -39,6 +39,9 @@ export interface NodeOptions extends Options {
 
   /** Sets the number of context lines for each frame when loading a file. */
   frameContextLines?: number;
+
+  /** handler */
+  aws_context?: string;
 }
 
 /**
@@ -90,7 +93,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         // which is much better than creating new group when any key/value change
         const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
-        getCurrentHub().configureScope(scope => {
+        getCurrentHub().configureScope((scope) => {
           scope.setExtra('__serialized__', normalizeToSize(exception as {}));
         });
 
@@ -106,7 +109,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     return new SyncPromise<Event>((resolve, reject) =>
       parseError(ex as Error, this._options)
-        .then(event => {
+        .then((event) => {
           addExceptionTypeValue(event, undefined, undefined);
           addExceptionMechanism(event, mechanism);
 
@@ -129,11 +132,11 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       message,
     };
 
-    return new SyncPromise<Event>(resolve => {
+    return new SyncPromise<Event>((resolve) => {
       if (this._options.attachStacktrace && hint && hint.syntheticException) {
         const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
         parseStack(stack, this._options)
-          .then(frames => {
+          .then((frames) => {
             event.stacktrace = {
               frames: prepareFramesForEvent(frames),
             };

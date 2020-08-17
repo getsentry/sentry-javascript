@@ -1,6 +1,6 @@
 import { EventProcessor, Hub, Integration, Scope } from '@sentry/types';
 import * as Sentry from '@sentry/node';
-import {} from '@sentry/node';
+
 /**
  * NodeJS integration
  *
@@ -61,7 +61,7 @@ export class AWSLambda implements Integration {
       return;
     }
 
-    const nodeJs: string = 'Nodejs';
+    const nodeJs: string = 'node';
 
     /** capturing this context */
     const setupOnceContext = this;
@@ -84,11 +84,12 @@ export class AWSLambda implements Integration {
 
     /** checking if configured Time In Milliseconds is greater than timeout Warning Buffer */
     if (this.configuredTimeInMilliseconds > timeoutWarningBuffer) {
-      const configuredTimeInSec = this.configuredTimeInMilliseconds / millisToSeconds;
-      const configuredTime = Math.floor(configuredTimeInSec);
+      const configuredTimeInSec = Math.floor(this.configuredTimeInMilliseconds / millisToSeconds);
+      const configuredTimeInMilli = Math.floor(configuredTimeInSec * millisToSeconds);
+
       /** check timeout flag */
       if (this.timeoutWarning === true) {
-        timeOutError(configuredTime);
+        timeOutError(configuredTimeInMilli);
       }
     }
 
@@ -106,13 +107,17 @@ export class AWSLambda implements Integration {
          */
         setParameters();
 
+        const convertTimeToSeconds = Math.floor(configuredTime / millisToSeconds);
+
         const error = new Error(
           `WARNING : Function is expected to get timed out. Configured timeout duration = ${
-            configuredTime + 1
+            convertTimeToSeconds + 1
           } seconds.`,
         );
+
         /** capturing the exception and re-directing it to the Sentry Dashboard */
         hub.captureException(error);
+        Sentry.flush(2000);
       }, configuredTime);
     }
 
@@ -217,8 +222,8 @@ export class AWSLambda implements Integration {
 
       /** capturing the exception and re-directing it to the Sentry Dashboard */
       hub.captureException(error);
-
       await Sentry.flush(2000);
+
       /**
        * Here, we make sure the error has been captured by Sentry Dashboard
        * and then re-raised the exception
