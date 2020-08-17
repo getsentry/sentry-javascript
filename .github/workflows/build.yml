@@ -31,6 +31,7 @@ jobs:
     name: Size Check
     needs: job_build
     runs-on: ubuntu-latest
+    if: ${{ github.head_ref }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
@@ -93,6 +94,7 @@ jobs:
     name: BrowserStack
     needs: job_build
     runs-on: ubuntu-latest
+    if: "'refs/heads/master' == github.ref || startsWith(github.ref, 'refs/tags/')"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
@@ -110,7 +112,6 @@ jobs:
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-        if: "'refs/heads/master' == github.ref || startsWith(github.ref, 'refs/tags/')"
         run: |
           cd packages/browser
           yarn test:integration:checkbrowsers
