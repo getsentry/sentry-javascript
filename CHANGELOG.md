@@ -3,6 +3,7 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- [apm/tracing] fix: Make sure Performance Observer takeRecords() is defined
 
 ## 5.21.1
 
