@@ -27,8 +27,8 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  * Sample rate is set in SDK config, either as a constant (`tracesSampleRate`) or a function to compute the rate
  * (`tracesSampler`).
  *
- * Called every time a transaction is created. Only transactions which emerge with sampled === true will be sent to
- * Sentry.
+ * Called every time a transaction is created. Only transactions which emerge with a `sampled` value of `true` will be
+ * sent to Sentry.
  *
  * Mutates the given Transaction object and then returns the mutated object.
  */
@@ -61,7 +61,7 @@ function sample<T extends Transaction>(hub: Hub, transaction: T): T {
       return transaction;
     }
 
-    // now we roll the dice (Math.random is inclusive of 0, but not of 1)
+    // now we roll the dice (Math.random is inclusive of 0, but not of 1, so strict < is safe here)
     transaction.sampled = Math.random() < sampleRate;
 
     // if we're not going to keep it, we're done
