@@ -3,8 +3,8 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>utils | Sentry JavaScript SDKs</title>
-	<meta name="description" content="">
+	<title>utils | Sentry JavaScript SDKs - v5.21.1</title>
+	<meta name="description" content="Documentation for Sentry JavaScript SDKs - v5.21.1">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
 </head>
@@ -13,7 +13,7 @@
 	<div class="tsd-page-toolbar">
 		<div class="container">
 			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.js" data-base="..">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.json" data-base="..">
 					<div class="field">
 						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
 						<input id="tsd-search-field" type="text" />
@@ -22,7 +22,7 @@
 						<li class="state loading">Preparing search index...</li>
 						<li class="state failure">The search index is not available</li>
 					</ul>
-					<a href="../index.html" class="title">Sentry JavaScript SDKs</a>
+					<a href="../index.html" class="title">Sentry JavaScript SDKs - v5.21.1</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -70,17 +70,23 @@
 						</a>
 						<br />
 					</p>
-					<h1 id="sentry-javascript-sdk-utilities">Sentry JavaScript SDK Utilities</h1>
+					<a href="#sentry-javascript-sdk-utilities" id="sentry-javascript-sdk-utilities" style="color: inherit; text-decoration: none;">
+						<h1>Sentry JavaScript SDK Utilities</h1>
+					</a>
 					<p><a href="https://www.npmjs.com/package/@sentry/utils"><img src="https://img.shields.io/npm/v/@sentry/utils.svg" alt="npm version"></a>
 						<a href="https://www.npmjs.com/package/@sentry/utils"><img src="https://img.shields.io/npm/dm/@sentry/utils.svg" alt="npm dm"></a>
 						<a href="https://www.npmjs.com/package/@sentry/utils"><img src="https://img.shields.io/npm/dt/@sentry/utils.svg" alt="npm dt"></a>
 					<a href="http://getsentry.github.io/sentry-javascript/"><img src="https://img.shields.io/badge/docs-typedoc-blue.svg" alt="typedoc"></a></p>
-					<h2 id="links">Links</h2>
+					<a href="#links" id="links" style="color: inherit; text-decoration: none;">
+						<h2>Links</h2>
+					</a>
 					<ul>
 						<li><a href="https://docs.sentry.io/quickstart/">Official SDK Docs</a></li>
 						<li><a href="http://getsentry.github.io/sentry-javascript/">TypeDoc</a></li>
 					</ul>
-					<h2 id="general">General</h2>
+					<a href="#general" id="general" style="color: inherit; text-decoration: none;">
+						<h2>General</h2>
+					</a>
 					<p>Common utilities used by the Sentry JavaScript SDKs. <strong>Warning, only submodule imports are allowed here.</strong> Also note,
 						this function shouldn&#39;t be used externally, we will break them from time to time. This package is not part of our public
 					API contract, we use them only internally.</p>
@@ -91,119 +97,505 @@
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
+							<h3>References</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#dsn" class="tsd-kind-icon">Dsn</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#memo" class="tsd-kind-icon">Memo</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#promisebuffer" class="tsd-kind-icon">Promise<wbr>Buffer</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#sentryerror" class="tsd-kind-icon">Sentry<wbr>Error</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#syncpromise" class="tsd-kind-icon">Sync<wbr>Promise</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#addcontexttoframe" class="tsd-kind-icon">add<wbr>Context<wbr>ToFrame</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#basename" class="tsd-kind-icon">basename</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#consolesandbox" class="tsd-kind-icon">console<wbr>Sandbox</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#crossplatformperformance" class="tsd-kind-icon">cross<wbr>Platform<wbr>Performance</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#dirname" class="tsd-kind-icon">dirname</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#dropundefinedkeys" class="tsd-kind-icon">drop<wbr>Undefined<wbr>Keys</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#dynamicrequire" class="tsd-kind-icon">dynamic<wbr>Require</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#extractexceptionkeysformessage" class="tsd-kind-icon">extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#fill" class="tsd-kind-icon">fill</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#forget" class="tsd-kind-icon">forget</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#geteventdescription" class="tsd-kind-icon">get<wbr>Event<wbr>Description</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#getfunctionname" class="tsd-kind-icon">get<wbr>Function<wbr>Name</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#getglobalobject" class="tsd-kind-icon">get<wbr>Global<wbr>Object</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#getlocationhref" class="tsd-kind-icon">get<wbr>Location<wbr>Href</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#htmltreeasstring" class="tsd-kind-icon">html<wbr>Tree<wbr>AsString</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isabsolute" class="tsd-kind-icon">is<wbr>Absolute</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isdomerror" class="tsd-kind-icon">isDOMError</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isdomexception" class="tsd-kind-icon">isDOMException</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#iselement" class="tsd-kind-icon">is<wbr>Element</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#iserror" class="tsd-kind-icon">is<wbr>Error</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#iserrorevent" class="tsd-kind-icon">is<wbr>Error<wbr>Event</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isevent" class="tsd-kind-icon">is<wbr>Event</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isinstanceof" class="tsd-kind-icon">is<wbr>Instance<wbr>Of</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#ismatchingpattern" class="tsd-kind-icon">is<wbr>Matching<wbr>Pattern</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isnodeenv" class="tsd-kind-icon">is<wbr>Node<wbr>Env</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isplainobject" class="tsd-kind-icon">is<wbr>Plain<wbr>Object</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isprimitive" class="tsd-kind-icon">is<wbr>Primitive</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isregexp" class="tsd-kind-icon">is<wbr>Reg<wbr>Exp</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isstring" class="tsd-kind-icon">is<wbr>String</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#issyntheticevent" class="tsd-kind-icon">is<wbr>Synthetic<wbr>Event</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#isthenable" class="tsd-kind-icon">is<wbr>Thenable</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#join" class="tsd-kind-icon">join</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#normalize" class="tsd-kind-icon">normalize</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#normalizepath" class="tsd-kind-icon">normalize<wbr>Path</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#normalizetosize" class="tsd-kind-icon">normalize<wbr>ToSize</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#parseretryafterheader" class="tsd-kind-icon">parse<wbr>Retry<wbr>After<wbr>Header</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#parsesemver" class="tsd-kind-icon">parse<wbr>Semver</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#parseurl" class="tsd-kind-icon">parse<wbr>Url</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#relative" class="tsd-kind-icon">relative</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#resolve" class="tsd-kind-icon">resolve</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#safejoin" class="tsd-kind-icon">safe<wbr>Join</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#snipline" class="tsd-kind-icon">snip<wbr>Line</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportsdomerror" class="tsd-kind-icon">supportsDOMError</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportsdomexception" class="tsd-kind-icon">supportsDOMException</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportserrorevent" class="tsd-kind-icon">supports<wbr>Error<wbr>Event</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportsfetch" class="tsd-kind-icon">supports<wbr>Fetch</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportshistory" class="tsd-kind-icon">supports<wbr>History</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportsnativefetch" class="tsd-kind-icon">supports<wbr>Native<wbr>Fetch</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportsreferrerpolicy" class="tsd-kind-icon">supports<wbr>Referrer<wbr>Policy</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#supportsreportingobserver" class="tsd-kind-icon">supports<wbr>Reporting<wbr>Observer</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#timestampwithms" class="tsd-kind-icon">timestamp<wbr>With<wbr>Ms</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#truncate" class="tsd-kind-icon">truncate</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#urlencode" class="tsd-kind-icon">url<wbr>Encode</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#uuid4" class="tsd-kind-icon">uuid4</a></li>
+								<li class="tsd-kind-reference tsd-parent-kind-module"><a href="utils.html#walk" class="tsd-kind-icon">walk</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
 							<h3>Classes</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-class tsd-parent-kind-external-module"><a href="../classes/utils.dsn.html" class="tsd-kind-icon">Dsn</a></li>
-								<li class="tsd-kind-class tsd-parent-kind-external-module"><a href="../classes/utils.memo.html" class="tsd-kind-icon">Memo</a></li>
-								<li class="tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter"><a href="../classes/utils.promisebuffer.html" class="tsd-kind-icon">Promise<wbr>Buffer</a></li>
-								<li class="tsd-kind-class tsd-parent-kind-external-module"><a href="../classes/utils.sentryerror.html" class="tsd-kind-icon">Sentry<wbr>Error</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/utils.dsn-1.html" class="tsd-kind-icon">Dsn</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/utils.memo-1.html" class="tsd-kind-icon">Memo</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/utils.promisebuffer-1.html" class="tsd-kind-icon">Promise<wbr>Buffer</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/utils.sentryerror-1.html" class="tsd-kind-icon">Sentry<wbr>Error</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/utils.syncpromise-1.html" class="tsd-kind-icon">Sync<wbr>Promise</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Variables</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-variable tsd-parent-kind-external-module"><a href="utils.html#crossplatformperformance" class="tsd-kind-icon">cross<wbr>Platform<wbr>Performance</a></li>
-								<li class="tsd-kind-variable tsd-parent-kind-external-module"><a href="utils.html#setprototypeof" class="tsd-kind-icon">set<wbr>Prototype<wbr>Of</a></li>
+								<li class="tsd-kind-variable tsd-parent-kind-module"><a href="utils.html#crossplatformperformance-1" class="tsd-kind-icon">cross<wbr>Platform<wbr>Performance</a></li>
+								<li class="tsd-kind-variable tsd-parent-kind-module"><a href="utils.html#logger-1" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-variable tsd-parent-kind-module"><a href="utils.html#setprototypeof" class="tsd-kind-icon">set<wbr>Prototype<wbr>Of</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Functions</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#addcontexttoframe" class="tsd-kind-icon">add<wbr>Context<wbr>ToFrame</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#basename" class="tsd-kind-icon">basename</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#consolesandbox" class="tsd-kind-icon">console<wbr>Sandbox</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#dirname" class="tsd-kind-icon">dirname</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter"><a href="utils.html#dropundefinedkeys" class="tsd-kind-icon">drop<wbr>Undefined<wbr>Keys</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#dynamicrequire" class="tsd-kind-icon">dynamic<wbr>Require</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#extractexceptionkeysformessage" class="tsd-kind-icon">extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#fill" class="tsd-kind-icon">fill</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#forget" class="tsd-kind-icon">forget</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#geteventdescription" class="tsd-kind-icon">get<wbr>Event<wbr>Description</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#getfunctionname" class="tsd-kind-icon">get<wbr>Function<wbr>Name</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter"><a href="utils.html#getglobalobject" class="tsd-kind-icon">get<wbr>Global<wbr>Object</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#getlocationhref" class="tsd-kind-icon">get<wbr>Location<wbr>Href</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#htmltreeasstring" class="tsd-kind-icon">html<wbr>Tree<wbr>AsString</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isabsolute" class="tsd-kind-icon">is<wbr>Absolute</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isdomerror" class="tsd-kind-icon">isDOMError</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isdomexception" class="tsd-kind-icon">isDOMException</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#iselement" class="tsd-kind-icon">is<wbr>Element</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#iserror" class="tsd-kind-icon">is<wbr>Error</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#iserrorevent" class="tsd-kind-icon">is<wbr>Error<wbr>Event</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isevent" class="tsd-kind-icon">is<wbr>Event</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isinstanceof" class="tsd-kind-icon">is<wbr>Instance<wbr>Of</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#ismatchingpattern" class="tsd-kind-icon">is<wbr>Matching<wbr>Pattern</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isnodeenv" class="tsd-kind-icon">is<wbr>Node<wbr>Env</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isplainobject" class="tsd-kind-icon">is<wbr>Plain<wbr>Object</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isprimitive" class="tsd-kind-icon">is<wbr>Primitive</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isregexp" class="tsd-kind-icon">is<wbr>Reg<wbr>Exp</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isstring" class="tsd-kind-icon">is<wbr>String</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#issyntheticevent" class="tsd-kind-icon">is<wbr>Synthetic<wbr>Event</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isthenable" class="tsd-kind-icon">is<wbr>Thenable</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#join" class="tsd-kind-icon">join</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#normalize" class="tsd-kind-icon">normalize</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#normalizepath" class="tsd-kind-icon">normalize<wbr>Path</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter"><a href="utils.html#normalizetosize" class="tsd-kind-icon">normalize<wbr>ToSize</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#parseretryafterheader" class="tsd-kind-icon">parse<wbr>Retry<wbr>After<wbr>Header</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#parsesemver" class="tsd-kind-icon">parse<wbr>Semver</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#parseurl" class="tsd-kind-icon">parse<wbr>Url</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#relative" class="tsd-kind-icon">relative</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#resolve" class="tsd-kind-icon">resolve</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#safejoin" class="tsd-kind-icon">safe<wbr>Join</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#snipline" class="tsd-kind-icon">snip<wbr>Line</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportsdomerror" class="tsd-kind-icon">supportsDOMError</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportsdomexception" class="tsd-kind-icon">supportsDOMException</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportserrorevent" class="tsd-kind-icon">supports<wbr>Error<wbr>Event</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportsfetch" class="tsd-kind-icon">supports<wbr>Fetch</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportshistory" class="tsd-kind-icon">supports<wbr>History</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportsnativefetch" class="tsd-kind-icon">supports<wbr>Native<wbr>Fetch</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportsreferrerpolicy" class="tsd-kind-icon">supports<wbr>Referrer<wbr>Policy</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#supportsreportingobserver" class="tsd-kind-icon">supports<wbr>Reporting<wbr>Observer</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#timestampwithms" class="tsd-kind-icon">timestamp<wbr>With<wbr>Ms</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#truncate" class="tsd-kind-icon">truncate</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#urlencode" class="tsd-kind-icon">url<wbr>Encode</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#uuid4" class="tsd-kind-icon">uuid4</a></li>
-								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#walk" class="tsd-kind-icon">walk</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#addcontexttoframe-1" class="tsd-kind-icon">add<wbr>Context<wbr>ToFrame</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#basename-1" class="tsd-kind-icon">basename</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#consolesandbox-1" class="tsd-kind-icon">console<wbr>Sandbox</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#dirname-1" class="tsd-kind-icon">dirname</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter"><a href="utils.html#dropundefinedkeys-1" class="tsd-kind-icon">drop<wbr>Undefined<wbr>Keys</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#dynamicrequire-1" class="tsd-kind-icon">dynamic<wbr>Require</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#extractexceptionkeysformessage-1" class="tsd-kind-icon">extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#fill-1" class="tsd-kind-icon">fill</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#forget-1" class="tsd-kind-icon">forget</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#geteventdescription-1" class="tsd-kind-icon">get<wbr>Event<wbr>Description</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#getfunctionname-1" class="tsd-kind-icon">get<wbr>Function<wbr>Name</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter"><a href="utils.html#getglobalobject-1" class="tsd-kind-icon">get<wbr>Global<wbr>Object</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#getlocationhref-1" class="tsd-kind-icon">get<wbr>Location<wbr>Href</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#htmltreeasstring-1" class="tsd-kind-icon">html<wbr>Tree<wbr>AsString</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isabsolute-1" class="tsd-kind-icon">is<wbr>Absolute</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isdomerror-1" class="tsd-kind-icon">isDOMError</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isdomexception-1" class="tsd-kind-icon">isDOMException</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#iselement-1" class="tsd-kind-icon">is<wbr>Element</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#iserror-1" class="tsd-kind-icon">is<wbr>Error</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#iserrorevent-1" class="tsd-kind-icon">is<wbr>Error<wbr>Event</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isevent-1" class="tsd-kind-icon">is<wbr>Event</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isinstanceof-1" class="tsd-kind-icon">is<wbr>Instance<wbr>Of</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#ismatchingpattern-1" class="tsd-kind-icon">is<wbr>Matching<wbr>Pattern</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isnodeenv-1" class="tsd-kind-icon">is<wbr>Node<wbr>Env</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isplainobject-1" class="tsd-kind-icon">is<wbr>Plain<wbr>Object</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isprimitive-1" class="tsd-kind-icon">is<wbr>Primitive</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isregexp-1" class="tsd-kind-icon">is<wbr>Reg<wbr>Exp</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isstring-1" class="tsd-kind-icon">is<wbr>String</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#issyntheticevent-1" class="tsd-kind-icon">is<wbr>Synthetic<wbr>Event</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#isthenable-1" class="tsd-kind-icon">is<wbr>Thenable</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#join-1" class="tsd-kind-icon">join</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#normalize-1" class="tsd-kind-icon">normalize</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#normalizepath-1" class="tsd-kind-icon">normalize<wbr>Path</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter"><a href="utils.html#normalizetosize-1" class="tsd-kind-icon">normalize<wbr>ToSize</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#parseretryafterheader-1" class="tsd-kind-icon">parse<wbr>Retry<wbr>After<wbr>Header</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#parsesemver-1" class="tsd-kind-icon">parse<wbr>Semver</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#parseurl-1" class="tsd-kind-icon">parse<wbr>Url</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#relative-1" class="tsd-kind-icon">relative</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#resolve-1" class="tsd-kind-icon">resolve</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#safejoin-1" class="tsd-kind-icon">safe<wbr>Join</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#snipline-1" class="tsd-kind-icon">snip<wbr>Line</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportsdomerror-1" class="tsd-kind-icon">supportsDOMError</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportsdomexception-1" class="tsd-kind-icon">supportsDOMException</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportserrorevent-1" class="tsd-kind-icon">supports<wbr>Error<wbr>Event</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportsfetch-1" class="tsd-kind-icon">supports<wbr>Fetch</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportshistory-1" class="tsd-kind-icon">supports<wbr>History</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportsnativefetch-1" class="tsd-kind-icon">supports<wbr>Native<wbr>Fetch</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportsreferrerpolicy-1" class="tsd-kind-icon">supports<wbr>Referrer<wbr>Policy</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#supportsreportingobserver-1" class="tsd-kind-icon">supports<wbr>Reporting<wbr>Observer</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#timestampwithms-1" class="tsd-kind-icon">timestamp<wbr>With<wbr>Ms</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#truncate-1" class="tsd-kind-icon">truncate</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#urlencode-1" class="tsd-kind-icon">url<wbr>Encode</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#uuid4-1" class="tsd-kind-icon">uuid4</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="utils.html#walk-1" class="tsd-kind-icon">walk</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Variables</h2>
-				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-external-module">
+				<h2>References</h2>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="dsn" class="tsd-anchor"></a>
+					<h3>Dsn</h3>
+					Re-exports <a href="../classes/utils.dsn-1.html">Dsn</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="memo" class="tsd-anchor"></a>
+					<h3>Memo</h3>
+					Re-exports <a href="../classes/utils.memo-1.html">Memo</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="promisebuffer" class="tsd-anchor"></a>
+					<h3>Promise<wbr>Buffer</h3>
+					Re-exports <a href="../classes/utils.promisebuffer-1.html">PromiseBuffer</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="sentryerror" class="tsd-anchor"></a>
+					<h3>Sentry<wbr>Error</h3>
+					Re-exports <a href="../classes/utils.sentryerror-1.html">SentryError</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="syncpromise" class="tsd-anchor"></a>
+					<h3>Sync<wbr>Promise</h3>
+					Re-exports <a href="../classes/utils.syncpromise-1.html">SyncPromise</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="addcontexttoframe" class="tsd-anchor"></a>
+					<h3>add<wbr>Context<wbr>ToFrame</h3>
+					Re-exports <a href="utils.html#addcontexttoframe-1">addContextToFrame</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="basename" class="tsd-anchor"></a>
+					<h3>basename</h3>
+					Re-exports <a href="utils.html#basename-1">basename</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="consolesandbox" class="tsd-anchor"></a>
+					<h3>console<wbr>Sandbox</h3>
+					Re-exports <a href="utils.html#consolesandbox-1">consoleSandbox</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
 					<a name="crossplatformperformance" class="tsd-anchor"></a>
+					<h3>cross<wbr>Platform<wbr>Performance</h3>
+					Re-exports <a href="utils.html#crossplatformperformance-1">crossPlatformPerformance</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="dirname" class="tsd-anchor"></a>
+					<h3>dirname</h3>
+					Re-exports <a href="utils.html#dirname-1">dirname</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="dropundefinedkeys" class="tsd-anchor"></a>
+					<h3>drop<wbr>Undefined<wbr>Keys</h3>
+					Re-exports <a href="utils.html#dropundefinedkeys-1">dropUndefinedKeys</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="dynamicrequire" class="tsd-anchor"></a>
+					<h3>dynamic<wbr>Require</h3>
+					Re-exports <a href="utils.html#dynamicrequire-1">dynamicRequire</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="extractexceptionkeysformessage" class="tsd-anchor"></a>
+					<h3>extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message</h3>
+					Re-exports <a href="utils.html#extractexceptionkeysformessage-1">extractExceptionKeysForMessage</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="fill" class="tsd-anchor"></a>
+					<h3>fill</h3>
+					Re-exports <a href="utils.html#fill-1">fill</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="forget" class="tsd-anchor"></a>
+					<h3>forget</h3>
+					Re-exports <a href="utils.html#forget-1">forget</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="geteventdescription" class="tsd-anchor"></a>
+					<h3>get<wbr>Event<wbr>Description</h3>
+					Re-exports <a href="utils.html#geteventdescription-1">getEventDescription</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="getfunctionname" class="tsd-anchor"></a>
+					<h3>get<wbr>Function<wbr>Name</h3>
+					Re-exports <a href="utils.html#getfunctionname-1">getFunctionName</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="getglobalobject" class="tsd-anchor"></a>
+					<h3>get<wbr>Global<wbr>Object</h3>
+					Re-exports <a href="utils.html#getglobalobject-1">getGlobalObject</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="getlocationhref" class="tsd-anchor"></a>
+					<h3>get<wbr>Location<wbr>Href</h3>
+					Re-exports <a href="utils.html#getlocationhref-1">getLocationHref</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="htmltreeasstring" class="tsd-anchor"></a>
+					<h3>html<wbr>Tree<wbr>AsString</h3>
+					Re-exports <a href="utils.html#htmltreeasstring-1">htmlTreeAsString</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isabsolute" class="tsd-anchor"></a>
+					<h3>is<wbr>Absolute</h3>
+					Re-exports <a href="utils.html#isabsolute-1">isAbsolute</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isdomerror" class="tsd-anchor"></a>
+					<h3>isDOMError</h3>
+					Re-exports <a href="utils.html#isdomerror-1">isDOMError</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isdomexception" class="tsd-anchor"></a>
+					<h3>isDOMException</h3>
+					Re-exports <a href="utils.html#isdomexception-1">isDOMException</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="iselement" class="tsd-anchor"></a>
+					<h3>is<wbr>Element</h3>
+					Re-exports <a href="utils.html#iselement-1">isElement</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="iserror" class="tsd-anchor"></a>
+					<h3>is<wbr>Error</h3>
+					Re-exports <a href="utils.html#iserror-1">isError</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="iserrorevent" class="tsd-anchor"></a>
+					<h3>is<wbr>Error<wbr>Event</h3>
+					Re-exports <a href="utils.html#iserrorevent-1">isErrorEvent</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isevent" class="tsd-anchor"></a>
+					<h3>is<wbr>Event</h3>
+					Re-exports <a href="utils.html#isevent-1">isEvent</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isinstanceof" class="tsd-anchor"></a>
+					<h3>is<wbr>Instance<wbr>Of</h3>
+					Re-exports <a href="utils.html#isinstanceof-1">isInstanceOf</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="ismatchingpattern" class="tsd-anchor"></a>
+					<h3>is<wbr>Matching<wbr>Pattern</h3>
+					Re-exports <a href="utils.html#ismatchingpattern-1">isMatchingPattern</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isnodeenv" class="tsd-anchor"></a>
+					<h3>is<wbr>Node<wbr>Env</h3>
+					Re-exports <a href="utils.html#isnodeenv-1">isNodeEnv</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isplainobject" class="tsd-anchor"></a>
+					<h3>is<wbr>Plain<wbr>Object</h3>
+					Re-exports <a href="utils.html#isplainobject-1">isPlainObject</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isprimitive" class="tsd-anchor"></a>
+					<h3>is<wbr>Primitive</h3>
+					Re-exports <a href="utils.html#isprimitive-1">isPrimitive</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isregexp" class="tsd-anchor"></a>
+					<h3>is<wbr>Reg<wbr>Exp</h3>
+					Re-exports <a href="utils.html#isregexp-1">isRegExp</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isstring" class="tsd-anchor"></a>
+					<h3>is<wbr>String</h3>
+					Re-exports <a href="utils.html#isstring-1">isString</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="issyntheticevent" class="tsd-anchor"></a>
+					<h3>is<wbr>Synthetic<wbr>Event</h3>
+					Re-exports <a href="utils.html#issyntheticevent-1">isSyntheticEvent</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="isthenable" class="tsd-anchor"></a>
+					<h3>is<wbr>Thenable</h3>
+					Re-exports <a href="utils.html#isthenable-1">isThenable</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="join" class="tsd-anchor"></a>
+					<h3>join</h3>
+					Re-exports <a href="utils.html#join-1">join</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="logger" class="tsd-anchor"></a>
+					<h3>logger</h3>
+					Re-exports <a href="utils.html#logger-1">logger</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="normalize" class="tsd-anchor"></a>
+					<h3>normalize</h3>
+					Re-exports <a href="utils.html#normalize-1">normalize</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="normalizepath" class="tsd-anchor"></a>
+					<h3>normalize<wbr>Path</h3>
+					Re-exports <a href="utils.html#normalizepath-1">normalizePath</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="normalizetosize" class="tsd-anchor"></a>
+					<h3>normalize<wbr>ToSize</h3>
+					Re-exports <a href="utils.html#normalizetosize-1">normalizeToSize</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="parseretryafterheader" class="tsd-anchor"></a>
+					<h3>parse<wbr>Retry<wbr>After<wbr>Header</h3>
+					Re-exports <a href="utils.html#parseretryafterheader-1">parseRetryAfterHeader</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="parsesemver" class="tsd-anchor"></a>
+					<h3>parse<wbr>Semver</h3>
+					Re-exports <a href="utils.html#parsesemver-1">parseSemver</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="parseurl" class="tsd-anchor"></a>
+					<h3>parse<wbr>Url</h3>
+					Re-exports <a href="utils.html#parseurl-1">parseUrl</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="relative" class="tsd-anchor"></a>
+					<h3>relative</h3>
+					Re-exports <a href="utils.html#relative-1">relative</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="resolve" class="tsd-anchor"></a>
+					<h3>resolve</h3>
+					Re-exports <a href="utils.html#resolve-1">resolve</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="safejoin" class="tsd-anchor"></a>
+					<h3>safe<wbr>Join</h3>
+					Re-exports <a href="utils.html#safejoin-1">safeJoin</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="snipline" class="tsd-anchor"></a>
+					<h3>snip<wbr>Line</h3>
+					Re-exports <a href="utils.html#snipline-1">snipLine</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportsdomerror" class="tsd-anchor"></a>
+					<h3>supportsDOMError</h3>
+					Re-exports <a href="utils.html#supportsdomerror-1">supportsDOMError</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportsdomexception" class="tsd-anchor"></a>
+					<h3>supportsDOMException</h3>
+					Re-exports <a href="utils.html#supportsdomexception-1">supportsDOMException</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportserrorevent" class="tsd-anchor"></a>
+					<h3>supports<wbr>Error<wbr>Event</h3>
+					Re-exports <a href="utils.html#supportserrorevent-1">supportsErrorEvent</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportsfetch" class="tsd-anchor"></a>
+					<h3>supports<wbr>Fetch</h3>
+					Re-exports <a href="utils.html#supportsfetch-1">supportsFetch</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportshistory" class="tsd-anchor"></a>
+					<h3>supports<wbr>History</h3>
+					Re-exports <a href="utils.html#supportshistory-1">supportsHistory</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportsnativefetch" class="tsd-anchor"></a>
+					<h3>supports<wbr>Native<wbr>Fetch</h3>
+					Re-exports <a href="utils.html#supportsnativefetch-1">supportsNativeFetch</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportsreferrerpolicy" class="tsd-anchor"></a>
+					<h3>supports<wbr>Referrer<wbr>Policy</h3>
+					Re-exports <a href="utils.html#supportsreferrerpolicy-1">supportsReferrerPolicy</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="supportsreportingobserver" class="tsd-anchor"></a>
+					<h3>supports<wbr>Reporting<wbr>Observer</h3>
+					Re-exports <a href="utils.html#supportsreportingobserver-1">supportsReportingObserver</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="timestampwithms" class="tsd-anchor"></a>
+					<h3>timestamp<wbr>With<wbr>Ms</h3>
+					Re-exports <a href="utils.html#timestampwithms-1">timestampWithMs</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="truncate" class="tsd-anchor"></a>
+					<h3>truncate</h3>
+					Re-exports <a href="utils.html#truncate-1">truncate</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="urlencode" class="tsd-anchor"></a>
+					<h3>url<wbr>Encode</h3>
+					Re-exports <a href="utils.html#urlencode-1">urlEncode</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="uuid4" class="tsd-anchor"></a>
+					<h3>uuid4</h3>
+					Re-exports <a href="utils.html#uuid4-1">uuid4</a>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-reference tsd-parent-kind-module">
+					<a name="walk" class="tsd-anchor"></a>
+					<h3>walk</h3>
+					Re-exports <a href="utils.html#walk-1">walk</a>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Variables</h2>
+				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-module">
+					<a name="crossplatformperformance-1" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagConst">Const</span> cross<wbr>Platform<wbr>Performance</h3>
-					<div class="tsd-signature tsd-kind-icon">cross<wbr>Platform<wbr>Performance<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">CrossPlatformPerformance</span><span class="tsd-signature-symbol"> =&nbsp;(() &#x3D;&gt; {if (isNodeEnv()) {try {const perfHooks &#x3D; dynamicRequire(module, &#x27;perf_hooks&#x27;) as { performance: CrossPlatformPerformance };return perfHooks.performance;} catch (_) {return performanceFallback;}}const { performance } &#x3D; getGlobalObject&lt;Window&gt;();if (!performance || !performance.now) {return performanceFallback;}// Polyfill for performance.timeOrigin.//// While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin// is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.// tslint:disable-next-line:strict-type-predicatesif (performance.timeOrigin &#x3D;&#x3D;&#x3D; undefined) {// As of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always a// valid fallback. In the absence of a initial time provided by the browser, fallback to INITIAL_TIME.// @ts-ignore// tslint:disable-next-line:deprecationperformance.timeOrigin &#x3D; (performance.timing &amp;&amp; performance.timing.navigationStart) || INITIAL_TIME;}return performance;})()</span></div>
+					<div class="tsd-signature tsd-kind-icon">cross<wbr>Platform<wbr>Performance<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">CrossPlatformPerformance</span><span class="tsd-signature-symbol"> = ((): CrossPlatformPerformance &#x3D;&gt; {if (isNodeEnv()) {try {const perfHooks &#x3D; dynamicRequire(module, &#x27;perf_hooks&#x27;) as { performance: CrossPlatformPerformance };return perfHooks.performance;} catch (_) {return performanceFallback;}}const { performance } &#x3D; getGlobalObject&lt;Window&gt;();if (!performance || !performance.now) {return performanceFallback;}// Polyfill for performance.timeOrigin.//// While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin// is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.if (performance.timeOrigin &#x3D;&#x3D;&#x3D; undefined) {// As of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always a// valid fallback. In the absence of a initial time provided by the browser, fallback to INITIAL_TIME.// @ts-ignore ignored because timeOrigin is a readonly property but we want to override// eslint-disable-next-line deprecation/deprecationperformance.timeOrigin &#x3D; (performance.timing &amp;&amp; performance.timing.navigationStart) || INITIAL_TIME;}return performance;})()</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L375">utils/src/misc.ts:375</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L378">packages/utils/src/misc.ts:378</a></li>
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-external-module">
-					<a name="setprototypeof" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagConst">Const</span> set<wbr>Prototype<wbr>Of</h3>
-					<div class="tsd-signature tsd-kind-icon">set<wbr>Prototype<wbr>Of<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">setPrototypeOf</span><span class="tsd-signature-symbol"> =&nbsp;Object.setPrototypeOf || ({ __proto__: [] } instanceof Array ? setProtoOf : mixinProperties)</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-module">
+					<a name="logger-1" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagConst">Const</span> logger</h3>
+					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span><span class="tsd-signature-symbol"> = (global.__SENTRY__.logger as Logger) || (global.__SENTRY__.logger &#x3D; new Logger())</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/polyfill.ts#L1">utils/src/polyfill.ts:1</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/logger.ts#L63">packages/utils/src/logger.ts:63</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-module">
+					<a name="setprototypeof" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagConst">Const</span> set<wbr>Prototype<wbr>Of</h3>
+					<div class="tsd-signature tsd-kind-icon">set<wbr>Prototype<wbr>Of<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">setPrototypeOf</span><span class="tsd-signature-symbol"> = Object.setPrototypeOf || ({ __proto__: [] } instanceof Array ? setProtoOf : mixinProperties)</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/polyfill.ts#L1">packages/utils/src/polyfill.ts:1</a></li>
 						</ul>
 					</aside>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="addcontexttoframe" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="addcontexttoframe-1" class="tsd-anchor"></a>
 					<h3>add<wbr>Context<wbr>ToFrame</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>Context<wbr>ToFrame<span class="tsd-signature-symbol">(</span>lines<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span>, frame<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.stackframe.html" class="tsd-signature-type">StackFrame</a>, linesOfContext<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Context<wbr>ToFrame<span class="tsd-signature-symbol">(</span>lines<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span>, frame<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.stackframe-1.html" class="tsd-signature-type">StackFrame</a>, linesOfContext<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L496">utils/src/misc.ts:496</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L498">packages/utils/src/misc.ts:498</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -220,13 +612,13 @@
 									</div>
 								</li>
 								<li>
-									<h5>frame: <a href="../interfaces/types.stackframe.html" class="tsd-signature-type">StackFrame</a></h5>
+									<h5>frame: <a href="../interfaces/types.stackframe-1.html" class="tsd-signature-type">StackFrame</a></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>StackFrame that will be mutated</p>
 									</div>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> linesOfContext: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;5</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> linesOfContext: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 5</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>number of context lines we want to add pre/post</p>
 									</div>
@@ -236,17 +628,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="basename" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="basename-1" class="tsd-anchor"></a>
 					<h3>basename</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">basename<span class="tsd-signature-symbol">(</span>path<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, ext<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/path.ts#L172">utils/src/path.ts:172</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/path.ts#L176">packages/utils/src/path.ts:176</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -267,17 +659,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="consolesandbox" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="consolesandbox-1" class="tsd-anchor"></a>
 					<h3>console<wbr>Sandbox</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">console<wbr>Sandbox<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">console<wbr>Sandbox<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L172">utils/src/misc.ts:172</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L172">packages/utils/src/misc.ts:172</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -288,10 +680,10 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>callback: <span class="tsd-signature-type">function</span></h5>
+									<h5>callback: <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">any</span></h5>
 									<ul class="tsd-parameters">
-										<li class="tsd-parameter-siganture">
-											<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+										<li class="tsd-parameter-signature">
+											<ul class="tsd-signatures tsd-kind-type-literal">
 												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 											</ul>
 											<ul class="tsd-descriptions">
@@ -307,17 +699,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="dirname" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="dirname-1" class="tsd-anchor"></a>
 					<h3>dirname</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">dirname<span class="tsd-signature-symbol">(</span>path<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/path.ts#L153">utils/src/path.ts:153</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/path.ts#L157">packages/utils/src/path.ts:157</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -335,17 +727,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-					<a name="dropundefinedkeys" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="dropundefinedkeys-1" class="tsd-anchor"></a>
 					<h3>drop<wbr>Undefined<wbr>Keys</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
 						<li class="tsd-signature tsd-kind-icon">drop<wbr>Undefined<wbr>Keys&lt;T&gt;<span class="tsd-signature-symbol">(</span>val<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/object.ts#L359">utils/src/object.ts:359</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/object.ts#L354">packages/utils/src/object.ts:354</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -370,17 +762,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="dynamicrequire" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="dynamicrequire-1" class="tsd-anchor"></a>
 					<h3>dynamic<wbr>Require</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">dynamic<wbr>Require<span class="tsd-signature-symbol">(</span>mod<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, request<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L28">utils/src/misc.ts:28</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L30">packages/utils/src/misc.ts:30</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -404,17 +796,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="extractexceptionkeysformessage" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="extractexceptionkeysformessage-1" class="tsd-anchor"></a>
 					<h3>extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message<span class="tsd-signature-symbol">(</span>exception<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, maxLength<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/object.ts#L328">utils/src/object.ts:328</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/object.ts#L324">packages/utils/src/object.ts:324</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -430,24 +822,24 @@
 									<h5>exception: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> maxLength: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;40</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> maxLength: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 40</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="fill" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="fill-1" class="tsd-anchor"></a>
 					<h3>fill</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">fill<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, replacement<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">fill<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">{}</span>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, replacement<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/object.ts#L16">utils/src/object.ts:16</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/object.ts#L17">packages/utils/src/object.ts:17</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -458,7 +850,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>source: <span class="tsd-signature-type">object</span></h5>
+									<h5>source: <span class="tsd-signature-symbol">{}</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>An object that contains a method to be wrapped.</p>
 									</div>
@@ -475,13 +867,13 @@
 									</div>
 								</li>
 								<li>
-									<h5>replacement: <span class="tsd-signature-type">function</span></h5>
+									<h5>replacement: <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">any</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>A function that should be used to wrap a given method.</p>
 									</div>
 									<ul class="tsd-parameters">
-										<li class="tsd-parameter-siganture">
-											<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+										<li class="tsd-parameter-signature">
+											<ul class="tsd-signatures tsd-kind-type-literal">
 												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 											</ul>
 											<ul class="tsd-descriptions">
@@ -504,17 +896,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="forget" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="forget-1" class="tsd-anchor"></a>
 					<h3>forget</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">forget<span class="tsd-signature-symbol">(</span>promise<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">PromiseLike</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/async.ts#L5">utils/src/async.ts:5</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/async.ts#L6">packages/utils/src/async.ts:6</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -535,17 +927,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="geteventdescription" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="geteventdescription-1" class="tsd-anchor"></a>
 					<h3>get<wbr>Event<wbr>Description</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Event<wbr>Description<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Event<wbr>Description<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.event-1.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L151">utils/src/misc.ts:151</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L151">packages/utils/src/misc.ts:151</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -556,7 +948,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>event: <a href="../interfaces/types.event.html" class="tsd-signature-type">Event</a></h5>
+									<h5>event: <a href="../interfaces/types.event-1.html" class="tsd-signature-type">Event</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
@@ -564,17 +956,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="getfunctionname" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="getfunctionname-1" class="tsd-anchor"></a>
 					<h3>get<wbr>Function<wbr>Name</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Function<wbr>Name<span class="tsd-signature-symbol">(</span>fn<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L476">utils/src/misc.ts:476</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L478">packages/utils/src/misc.ts:478</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -592,17 +984,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-					<a name="getglobalobject" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="getglobalobject-1" class="tsd-anchor"></a>
 					<h3>get<wbr>Global<wbr>Object</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Global<wbr>Object&lt;T&gt;<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-type">SentryGlobal</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Global<wbr>Object&lt;T&gt;<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-symbol">typeof </span><span class="tsd-signature-type">globalThis</span><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-type">SentryGlobal</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L50">utils/src/misc.ts:50</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L51">packages/utils/src/misc.ts:51</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -616,25 +1008,22 @@
 									<h4>T</h4>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span>
-								<span class="tsd-signature-symbol"> &amp; </span>
-								<span class="tsd-signature-type">SentryGlobal</span>
-							</h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-symbol">typeof </span><span class="tsd-signature-type">globalThis</span><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-type">SentryGlobal</span></h4>
 							<p>Global scope object</p>
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="getlocationhref" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="getlocationhref-1" class="tsd-anchor"></a>
 					<h3>get<wbr>Location<wbr>Href</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Location<wbr>Href<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L246">utils/src/misc.ts:246</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L247">packages/utils/src/misc.ts:247</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -646,17 +1035,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="htmltreeasstring" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="htmltreeasstring-1" class="tsd-anchor"></a>
 					<h3>html<wbr>Tree<wbr>AsString</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">html<wbr>Tree<wbr>AsString<span class="tsd-signature-symbol">(</span>elem<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L260">utils/src/misc.ts:260</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L261">packages/utils/src/misc.ts:261</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -677,17 +1066,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isabsolute" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isabsolute-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Absolute</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Absolute<span class="tsd-signature-symbol">(</span>path<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/path.ts#L142">utils/src/path.ts:142</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/path.ts#L146">packages/utils/src/path.ts:146</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -705,17 +1094,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isdomerror" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isdomerror-1" class="tsd-anchor"></a>
 					<h3>isDOMError</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">isDOMError<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L39">utils/src/is.ts:39</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L41">packages/utils/src/is.ts:41</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -738,17 +1127,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isdomexception" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isdomexception-1" class="tsd-anchor"></a>
 					<h3>isDOMException</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">isDOMException<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L50">utils/src/is.ts:50</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L52">packages/utils/src/is.ts:52</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -771,17 +1160,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="iselement" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="iselement-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Element</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Element<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L106">utils/src/is.ts:106</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L107">packages/utils/src/is.ts:107</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -804,17 +1193,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="iserror" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="iserror-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Error</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Error<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L8">utils/src/is.ts:8</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L10">packages/utils/src/is.ts:10</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -837,17 +1226,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="iserrorevent" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="iserrorevent-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Error<wbr>Event</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Error<wbr>Event<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L28">utils/src/is.ts:28</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L30">packages/utils/src/is.ts:30</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -870,17 +1259,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isevent" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isevent-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Event</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Event<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L94">utils/src/is.ts:94</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L96">packages/utils/src/is.ts:96</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -903,17 +1292,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isinstanceof" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isinstanceof-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Instance<wbr>Of</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Instance<wbr>Of<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, base<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L151">utils/src/is.ts:151</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L149">packages/utils/src/is.ts:149</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -942,17 +1331,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="ismatchingpattern" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="ismatchingpattern-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Matching<wbr>Pattern</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Matching<wbr>Pattern<span class="tsd-signature-symbol">(</span>value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, pattern<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/string.ts#L91">utils/src/string.ts:91</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/string.ts#L91">packages/utils/src/string.ts:91</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -979,17 +1368,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isnodeenv" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isnodeenv-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Node<wbr>Env</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Node<wbr>Env<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L38">utils/src/misc.ts:38</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L40">packages/utils/src/misc.ts:40</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1002,17 +1391,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isplainobject" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isplainobject-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Plain<wbr>Object</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Plain<wbr>Object<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L83">utils/src/is.ts:83</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L85">packages/utils/src/is.ts:85</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1035,17 +1424,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isprimitive" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isprimitive-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Primitive</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Primitive<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L72">utils/src/is.ts:72</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L74">packages/utils/src/is.ts:74</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1068,17 +1457,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isregexp" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isregexp-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Reg<wbr>Exp</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Reg<wbr>Exp<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L118">utils/src/is.ts:118</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L118">packages/utils/src/is.ts:118</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1101,17 +1490,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isstring" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isstring-1" class="tsd-anchor"></a>
 					<h3>is<wbr>String</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>String<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L61">utils/src/is.ts:61</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L63">packages/utils/src/is.ts:63</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1134,17 +1523,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="issyntheticevent" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="issyntheticevent-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Synthetic<wbr>Event</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Synthetic<wbr>Event<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L139">utils/src/is.ts:139</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L138">packages/utils/src/is.ts:138</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1167,17 +1556,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="isthenable" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="isthenable-1" class="tsd-anchor"></a>
 					<h3>is<wbr>Thenable</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Thenable<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/is.ts#L126">utils/src/is.ts:126</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/is.ts#L126">packages/utils/src/is.ts:126</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1198,17 +1587,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="join" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="join-1" class="tsd-anchor"></a>
 					<h3>join</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">join<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/path.ts#L148">utils/src/path.ts:148</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/path.ts#L152">packages/utils/src/path.ts:152</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1226,17 +1615,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="normalize" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="normalize-1" class="tsd-anchor"></a>
 					<h3>normalize</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">normalize<span class="tsd-signature-symbol">(</span>input<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, depth<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/object.ts#L314">utils/src/object.ts:314</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/object.ts#L310">packages/utils/src/object.ts:310</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1267,17 +1656,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="normalizepath" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="normalizepath-1" class="tsd-anchor"></a>
 					<h3>normalize<wbr>Path</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">normalize<wbr>Path<span class="tsd-signature-symbol">(</span>path<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/path.ts#L123">utils/src/path.ts:123</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/path.ts#L127">packages/utils/src/path.ts:127</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1295,17 +1684,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-					<a name="normalizetosize" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="normalizetosize-1" class="tsd-anchor"></a>
 					<h3>normalize<wbr>ToSize</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-						<li class="tsd-signature tsd-kind-icon">normalize<wbr>ToSize&lt;T&gt;<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span>, depth<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, maxSize<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">normalize<wbr>ToSize&lt;T&gt;<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">{}</span>, depth<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, maxSize<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/object.ts#L160">utils/src/object.ts:160</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/object.ts#L156">packages/utils/src/object.ts:156</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1322,7 +1711,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>object: <span class="tsd-signature-type">object</span></h5>
+									<h5>object: <span class="tsd-signature-symbol">{}</span></h5>
 									<ul class="tsd-parameters">
 										<li class="tsd-parameter-index-signature">
 											<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></h5>
@@ -1330,27 +1719,27 @@
 									</ul>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> depth: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;3</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> depth: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 3</span></h5>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> maxSize: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;100 * 1024</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> maxSize: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 100 * 1024</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="parseretryafterheader" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="parseretryafterheader-1" class="tsd-anchor"></a>
 					<h3>parse<wbr>Retry<wbr>After<wbr>Header</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">parse<wbr>Retry<wbr>After<wbr>Header<span class="tsd-signature-symbol">(</span>now<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, header<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L453">utils/src/misc.ts:453</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L455">packages/utils/src/misc.ts:455</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1377,17 +1766,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="parsesemver" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="parsesemver-1" class="tsd-anchor"></a>
 					<h3>parse<wbr>Semver</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">parse<wbr>Semver<span class="tsd-signature-symbol">(</span>input<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">SemVer</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L432">utils/src/misc.ts:432</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L434">packages/utils/src/misc.ts:434</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1408,17 +1797,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="parseurl" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="parseurl-1" class="tsd-anchor"></a>
 					<h3>parse<wbr>Url</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">parse<wbr>Url<span class="tsd-signature-symbol">(</span>url<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">parse<wbr>Url<span class="tsd-signature-symbol">(</span>url<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">{ </span>host<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span>path<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span>protocol<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span>relative<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> }</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L118">utils/src/misc.ts:118</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L118">packages/utils/src/misc.ts:118</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1435,24 +1824,36 @@
 									<h5>url: <span class="tsd-signature-type">string</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">{ </span>host<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span>path<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span>protocol<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span>relative<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> }</span></h4>
 							<p>parsed URL object</p>
 							<ul class="tsd-parameters">
+								<li class="tsd-parameter">
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> host<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li class="tsd-parameter">
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> path<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li class="tsd-parameter">
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> protocol<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li class="tsd-parameter">
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> relative<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+								</li>
 							</ul>
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="relative" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="relative-1" class="tsd-anchor"></a>
 					<h3>relative</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">relative<span class="tsd-signature-symbol">(</span>from<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, to<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/path.ts#L93">utils/src/path.ts:93</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/path.ts#L96">packages/utils/src/path.ts:96</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1473,17 +1874,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="resolve" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="resolve-1" class="tsd-anchor"></a>
 					<h3>resolve</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">resolve<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/path.ts#L43">utils/src/path.ts:43</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/path.ts#L46">packages/utils/src/path.ts:46</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1501,17 +1902,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="safejoin" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="safejoin-1" class="tsd-anchor"></a>
 					<h3>safe<wbr>Join</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">safe<wbr>Join<span class="tsd-signature-symbol">(</span>input<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span>, delimiter<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/string.ts#L67">utils/src/string.ts:67</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/string.ts#L67">packages/utils/src/string.ts:67</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1539,17 +1940,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="snipline" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="snipline-1" class="tsd-anchor"></a>
 					<h3>snip<wbr>Line</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">snip<wbr>Line<span class="tsd-signature-symbol">(</span>line<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, colno<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/string.ts#L27">utils/src/string.ts:27</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/string.ts#L25">packages/utils/src/string.ts:25</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1572,17 +1973,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportsdomerror" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportsdomerror-1" class="tsd-anchor"></a>
 					<h3>supportsDOMError</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supportsDOMError<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L26">utils/src/supports.ts:26</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L25">packages/utils/src/supports.ts:25</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1596,17 +1997,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportsdomexception" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportsdomexception-1" class="tsd-anchor"></a>
 					<h3>supportsDOMException</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supportsDOMException<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L46">utils/src/supports.ts:46</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L43">packages/utils/src/supports.ts:43</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1620,17 +2021,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportserrorevent" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportserrorevent-1" class="tsd-anchor"></a>
 					<h3>supports<wbr>Error<wbr>Event</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supports<wbr>Error<wbr>Event<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L10">utils/src/supports.ts:10</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L10">packages/utils/src/supports.ts:10</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1644,17 +2045,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportsfetch" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportsfetch-1" class="tsd-anchor"></a>
 					<h3>supports<wbr>Fetch</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supports<wbr>Fetch<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L62">utils/src/supports.ts:62</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L58">packages/utils/src/supports.ts:58</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1668,17 +2069,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportshistory" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportshistory-1" class="tsd-anchor"></a>
 					<h3>supports<wbr>History</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supports<wbr>History<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L172">utils/src/supports.ts:172</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L164">packages/utils/src/supports.ts:164</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1692,17 +2093,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportsnativefetch" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportsnativefetch-1" class="tsd-anchor"></a>
 					<h3>supports<wbr>Native<wbr>Fetch</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supports<wbr>Native<wbr>Fetch<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L92">utils/src/supports.ts:92</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L86">packages/utils/src/supports.ts:86</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1716,17 +2117,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportsreferrerpolicy" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportsreferrerpolicy-1" class="tsd-anchor"></a>
 					<h3>supports<wbr>Referrer<wbr>Policy</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supports<wbr>Referrer<wbr>Policy<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L145">utils/src/supports.ts:145</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L138">packages/utils/src/supports.ts:138</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1740,17 +2141,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="supportsreportingobserver" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="supportsreportingobserver-1" class="tsd-anchor"></a>
 					<h3>supports<wbr>Reporting<wbr>Observer</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">supports<wbr>Reporting<wbr>Observer<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/supports.ts#L134">utils/src/supports.ts:134</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/supports.ts#L128">packages/utils/src/supports.ts:128</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1764,17 +2165,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="timestampwithms" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="timestampwithms-1" class="tsd-anchor"></a>
 					<h3>timestamp<wbr>With<wbr>Ms</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">timestamp<wbr>With<wbr>Ms<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L410">utils/src/misc.ts:410</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L412">packages/utils/src/misc.ts:412</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1786,17 +2187,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="truncate" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="truncate-1" class="tsd-anchor"></a>
 					<h3>truncate</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">truncate<span class="tsd-signature-symbol">(</span>str<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, max<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/string.ts#L10">utils/src/string.ts:10</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/string.ts#L10">packages/utils/src/string.ts:10</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1813,7 +2214,7 @@
 									</div>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> max: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> max: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 0</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>Maximum number of characters in truncated string</p>
 									</div>
@@ -1824,17 +2225,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="urlencode" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="urlencode-1" class="tsd-anchor"></a>
 					<h3>url<wbr>Encode</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">url<wbr>Encode<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">url<wbr>Encode<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">{}</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/object.ts#L51">utils/src/object.ts:51</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/object.ts#L51">packages/utils/src/object.ts:51</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1845,7 +2246,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>object: <span class="tsd-signature-type">object</span></h5>
+									<h5>object: <span class="tsd-signature-symbol">{}</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>An object that contains serializable values</p>
 									</div>
@@ -1861,17 +2262,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="uuid4" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="uuid4-1" class="tsd-anchor"></a>
 					<h3>uuid4</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
 						<li class="tsd-signature tsd-kind-icon">uuid4<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/misc.ts#L73">utils/src/misc.ts:73</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/misc.ts#L73">packages/utils/src/misc.ts:73</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1884,17 +2285,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="walk" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="walk-1" class="tsd-anchor"></a>
 					<h3>walk</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">walk<span class="tsd-signature-symbol">(</span>key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, depth<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, memo<span class="tsd-signature-symbol">?: </span><a href="../classes/utils.memo.html" class="tsd-signature-type">Memo</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">walk<span class="tsd-signature-symbol">(</span>key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, depth<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, memo<span class="tsd-signature-symbol">?: </span><a href="../classes/utils.memo-1.html" class="tsd-signature-type">Memo</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/b7baedd9/packages/utils/src/object.ts#L255">utils/src/object.ts:255</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5ed31354/packages/utils/src/object.ts#L250">packages/utils/src/object.ts:250</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1917,13 +2318,13 @@
 									</div>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> depth: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;+Infinity</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> depth: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = +Infinity</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>Optional number indicating how deep should walking be performed</p>
 									</div>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> memo: <a href="../classes/utils.memo.html" class="tsd-signature-type">Memo</a><span class="tsd-signature-symbol"> =&nbsp;new Memo()</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> memo: <a href="../classes/utils.memo-1.html" class="tsd-signature-type">Memo</a><span class="tsd-signature-symbol"> = new Memo()</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>Optional Memo class handling decycling</p>
 									</div>
@@ -1941,251 +2342,464 @@
 					<li class="globals  ">
 						<a href="../globals.html"><em>Globals</em></a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="angular.html">angular</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="apm.html">apm</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="browser.html">browser</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="core.html">core</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="ember.html">ember</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="gatsby.html">gatsby</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="hub.html">hub</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="integrations.html">integrations</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="minimal.html">minimal</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="node.html">node</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="react.html">react</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="tracing.html">tracing</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="types.html">types</a>
 					</li>
-					<li class="current tsd-kind-external-module">
+					<li class="current tsd-kind-module">
 						<a href="utils.html">utils</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="angular.html" class="tsd-kind-icon">angular</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="apm.html" class="tsd-kind-icon">apm</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="browser.html" class="tsd-kind-icon">browser</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="core.html" class="tsd-kind-icon">core</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="ember.html" class="tsd-kind-icon">ember</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="gatsby.html" class="tsd-kind-icon">gatsby</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="hub.html" class="tsd-kind-icon">hub</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="integrations.html" class="tsd-kind-icon">integrations</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="minimal.html" class="tsd-kind-icon">minimal</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="node.html" class="tsd-kind-icon">node</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="react.html" class="tsd-kind-icon">react</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="tracing.html" class="tsd-kind-icon">tracing</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="types.html" class="tsd-kind-icon">types</a>
 					</li>
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-external-module">
+					<li class="current tsd-kind-module">
 						<a href="utils.html" class="tsd-kind-icon">utils</a>
 						<ul>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module">
-								<a href="../classes/utils.dsn.html" class="tsd-kind-icon">Dsn</a>
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
+								<a href="utils.html#dsn" class="tsd-kind-icon">Dsn</a>
 							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module">
-								<a href="../classes/utils.memo.html" class="tsd-kind-icon">Memo</a>
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
+								<a href="utils.html#memo" class="tsd-kind-icon">Memo</a>
 							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-								<a href="../classes/utils.promisebuffer.html" class="tsd-kind-icon">Promise<wbr>Buffer</a>
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
+								<a href="utils.html#promisebuffer" class="tsd-kind-icon">Promise<wbr>Buffer</a>
 							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-external-module">
-								<a href="../classes/utils.sentryerror.html" class="tsd-kind-icon">Sentry<wbr>Error</a>
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
+								<a href="utils.html#sentryerror" class="tsd-kind-icon">Sentry<wbr>Error</a>
 							</li>
-							<li class=" tsd-kind-variable tsd-parent-kind-external-module">
-								<a href="utils.html#crossplatformperformance" class="tsd-kind-icon">cross<wbr>Platform<wbr>Performance</a>
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
+								<a href="utils.html#syncpromise" class="tsd-kind-icon">Sync<wbr>Promise</a>
 							</li>
-							<li class=" tsd-kind-variable tsd-parent-kind-external-module">
-								<a href="utils.html#setprototypeof" class="tsd-kind-icon">set<wbr>Prototype<wbr>Of</a>
-							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#addcontexttoframe" class="tsd-kind-icon">add<wbr>Context<wbr>ToFrame</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#basename" class="tsd-kind-icon">basename</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#consolesandbox" class="tsd-kind-icon">console<wbr>Sandbox</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
+								<a href="utils.html#crossplatformperformance" class="tsd-kind-icon">cross<wbr>Platform<wbr>Performance</a>
+							</li>
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#dirname" class="tsd-kind-icon">dirname</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#dropundefinedkeys" class="tsd-kind-icon">drop<wbr>Undefined<wbr>Keys</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#dynamicrequire" class="tsd-kind-icon">dynamic<wbr>Require</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#extractexceptionkeysformessage" class="tsd-kind-icon">extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#fill" class="tsd-kind-icon">fill</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#forget" class="tsd-kind-icon">forget</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#geteventdescription" class="tsd-kind-icon">get<wbr>Event<wbr>Description</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#getfunctionname" class="tsd-kind-icon">get<wbr>Function<wbr>Name</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#getglobalobject" class="tsd-kind-icon">get<wbr>Global<wbr>Object</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#getlocationhref" class="tsd-kind-icon">get<wbr>Location<wbr>Href</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#htmltreeasstring" class="tsd-kind-icon">html<wbr>Tree<wbr>AsString</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isabsolute" class="tsd-kind-icon">is<wbr>Absolute</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isdomerror" class="tsd-kind-icon">isDOMError</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isdomexception" class="tsd-kind-icon">isDOMException</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#iselement" class="tsd-kind-icon">is<wbr>Element</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#iserror" class="tsd-kind-icon">is<wbr>Error</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#iserrorevent" class="tsd-kind-icon">is<wbr>Error<wbr>Event</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isevent" class="tsd-kind-icon">is<wbr>Event</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isinstanceof" class="tsd-kind-icon">is<wbr>Instance<wbr>Of</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#ismatchingpattern" class="tsd-kind-icon">is<wbr>Matching<wbr>Pattern</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isnodeenv" class="tsd-kind-icon">is<wbr>Node<wbr>Env</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isplainobject" class="tsd-kind-icon">is<wbr>Plain<wbr>Object</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isprimitive" class="tsd-kind-icon">is<wbr>Primitive</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isregexp" class="tsd-kind-icon">is<wbr>Reg<wbr>Exp</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isstring" class="tsd-kind-icon">is<wbr>String</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#issyntheticevent" class="tsd-kind-icon">is<wbr>Synthetic<wbr>Event</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#isthenable" class="tsd-kind-icon">is<wbr>Thenable</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#join" class="tsd-kind-icon">join</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
+								<a href="utils.html#logger" class="tsd-kind-icon">logger</a>
+							</li>
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#normalize" class="tsd-kind-icon">normalize</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#normalizepath" class="tsd-kind-icon">normalize<wbr>Path</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#normalizetosize" class="tsd-kind-icon">normalize<wbr>ToSize</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#parseretryafterheader" class="tsd-kind-icon">parse<wbr>Retry<wbr>After<wbr>Header</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#parsesemver" class="tsd-kind-icon">parse<wbr>Semver</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#parseurl" class="tsd-kind-icon">parse<wbr>Url</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#relative" class="tsd-kind-icon">relative</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#resolve" class="tsd-kind-icon">resolve</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#safejoin" class="tsd-kind-icon">safe<wbr>Join</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#snipline" class="tsd-kind-icon">snip<wbr>Line</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportsdomerror" class="tsd-kind-icon">supportsDOMError</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportsdomexception" class="tsd-kind-icon">supportsDOMException</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportserrorevent" class="tsd-kind-icon">supports<wbr>Error<wbr>Event</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportsfetch" class="tsd-kind-icon">supports<wbr>Fetch</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportshistory" class="tsd-kind-icon">supports<wbr>History</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportsnativefetch" class="tsd-kind-icon">supports<wbr>Native<wbr>Fetch</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportsreferrerpolicy" class="tsd-kind-icon">supports<wbr>Referrer<wbr>Policy</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#supportsreportingobserver" class="tsd-kind-icon">supports<wbr>Reporting<wbr>Observer</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#timestampwithms" class="tsd-kind-icon">timestamp<wbr>With<wbr>Ms</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#truncate" class="tsd-kind-icon">truncate</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#urlencode" class="tsd-kind-icon">url<wbr>Encode</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#uuid4" class="tsd-kind-icon">uuid4</a>
 							</li>
-							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+							<li class=" tsd-kind-reference tsd-parent-kind-module">
 								<a href="utils.html#walk" class="tsd-kind-icon">walk</a>
+							</li>
+							<li class=" tsd-kind-class tsd-parent-kind-module">
+								<a href="../classes/utils.dsn-1.html" class="tsd-kind-icon">Dsn</a>
+							</li>
+							<li class=" tsd-kind-class tsd-parent-kind-module">
+								<a href="../classes/utils.memo-1.html" class="tsd-kind-icon">Memo</a>
+							</li>
+							<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+								<a href="../classes/utils.promisebuffer-1.html" class="tsd-kind-icon">Promise<wbr>Buffer</a>
+							</li>
+							<li class=" tsd-kind-class tsd-parent-kind-module">
+								<a href="../classes/utils.sentryerror-1.html" class="tsd-kind-icon">Sentry<wbr>Error</a>
+							</li>
+							<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+								<a href="../classes/utils.syncpromise-1.html" class="tsd-kind-icon">Sync<wbr>Promise</a>
+							</li>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="utils.html#crossplatformperformance-1" class="tsd-kind-icon">cross<wbr>Platform<wbr>Performance</a>
+							</li>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="utils.html#logger-1" class="tsd-kind-icon">logger</a>
+							</li>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="utils.html#setprototypeof" class="tsd-kind-icon">set<wbr>Prototype<wbr>Of</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#addcontexttoframe-1" class="tsd-kind-icon">add<wbr>Context<wbr>ToFrame</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#basename-1" class="tsd-kind-icon">basename</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#consolesandbox-1" class="tsd-kind-icon">console<wbr>Sandbox</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#dirname-1" class="tsd-kind-icon">dirname</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+								<a href="utils.html#dropundefinedkeys-1" class="tsd-kind-icon">drop<wbr>Undefined<wbr>Keys</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#dynamicrequire-1" class="tsd-kind-icon">dynamic<wbr>Require</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#extractexceptionkeysformessage-1" class="tsd-kind-icon">extract<wbr>Exception<wbr>Keys<wbr>For<wbr>Message</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#fill-1" class="tsd-kind-icon">fill</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#forget-1" class="tsd-kind-icon">forget</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#geteventdescription-1" class="tsd-kind-icon">get<wbr>Event<wbr>Description</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#getfunctionname-1" class="tsd-kind-icon">get<wbr>Function<wbr>Name</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+								<a href="utils.html#getglobalobject-1" class="tsd-kind-icon">get<wbr>Global<wbr>Object</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#getlocationhref-1" class="tsd-kind-icon">get<wbr>Location<wbr>Href</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#htmltreeasstring-1" class="tsd-kind-icon">html<wbr>Tree<wbr>AsString</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isabsolute-1" class="tsd-kind-icon">is<wbr>Absolute</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isdomerror-1" class="tsd-kind-icon">isDOMError</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isdomexception-1" class="tsd-kind-icon">isDOMException</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#iselement-1" class="tsd-kind-icon">is<wbr>Element</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#iserror-1" class="tsd-kind-icon">is<wbr>Error</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#iserrorevent-1" class="tsd-kind-icon">is<wbr>Error<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isevent-1" class="tsd-kind-icon">is<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isinstanceof-1" class="tsd-kind-icon">is<wbr>Instance<wbr>Of</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#ismatchingpattern-1" class="tsd-kind-icon">is<wbr>Matching<wbr>Pattern</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isnodeenv-1" class="tsd-kind-icon">is<wbr>Node<wbr>Env</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isplainobject-1" class="tsd-kind-icon">is<wbr>Plain<wbr>Object</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isprimitive-1" class="tsd-kind-icon">is<wbr>Primitive</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isregexp-1" class="tsd-kind-icon">is<wbr>Reg<wbr>Exp</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isstring-1" class="tsd-kind-icon">is<wbr>String</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#issyntheticevent-1" class="tsd-kind-icon">is<wbr>Synthetic<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#isthenable-1" class="tsd-kind-icon">is<wbr>Thenable</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#join-1" class="tsd-kind-icon">join</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#normalize-1" class="tsd-kind-icon">normalize</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#normalizepath-1" class="tsd-kind-icon">normalize<wbr>Path</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+								<a href="utils.html#normalizetosize-1" class="tsd-kind-icon">normalize<wbr>ToSize</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#parseretryafterheader-1" class="tsd-kind-icon">parse<wbr>Retry<wbr>After<wbr>Header</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#parsesemver-1" class="tsd-kind-icon">parse<wbr>Semver</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#parseurl-1" class="tsd-kind-icon">parse<wbr>Url</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#relative-1" class="tsd-kind-icon">relative</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#resolve-1" class="tsd-kind-icon">resolve</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#safejoin-1" class="tsd-kind-icon">safe<wbr>Join</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#snipline-1" class="tsd-kind-icon">snip<wbr>Line</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportsdomerror-1" class="tsd-kind-icon">supportsDOMError</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportsdomexception-1" class="tsd-kind-icon">supportsDOMException</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportserrorevent-1" class="tsd-kind-icon">supports<wbr>Error<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportsfetch-1" class="tsd-kind-icon">supports<wbr>Fetch</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportshistory-1" class="tsd-kind-icon">supports<wbr>History</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportsnativefetch-1" class="tsd-kind-icon">supports<wbr>Native<wbr>Fetch</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportsreferrerpolicy-1" class="tsd-kind-icon">supports<wbr>Referrer<wbr>Policy</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#supportsreportingobserver-1" class="tsd-kind-icon">supports<wbr>Reporting<wbr>Observer</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#timestampwithms-1" class="tsd-kind-icon">timestamp<wbr>With<wbr>Ms</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#truncate-1" class="tsd-kind-icon">truncate</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#urlencode-1" class="tsd-kind-icon">url<wbr>Encode</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#uuid4-1" class="tsd-kind-icon">uuid4</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-module">
+								<a href="utils.html#walk-1" class="tsd-kind-icon">walk</a>
 							</li>
 						</ul>
 					</li>
@@ -2201,65 +2815,31 @@
 		<h2>Legend</h2>
 		<div class="tsd-legend-group">
 			<ul class="tsd-legend">
-				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
 				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
 				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
 				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
-				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
-				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
 				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
-				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
 				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
-				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
-				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
 			</ul>
 		</div>
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>
-<script>if (location.protocol == 'file:') document.write('<script src="../assets/js/search.js"><' + '/script>');</script>
 </body>
 </html>

@@ -3,8 +3,8 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Sentry JavaScript SDKs</title>
-	<meta name="description" content="">
+	<title>Sentry JavaScript SDKs - v5.21.1</title>
+	<meta name="description" content="Documentation for Sentry JavaScript SDKs - v5.21.1">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="assets/css/main.css">
 </head>
@@ -13,7 +13,7 @@
 	<div class="tsd-page-toolbar">
 		<div class="container">
 			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="assets/js/search.js" data-base=".">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
 					<div class="field">
 						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
 						<input id="tsd-search-field" type="text" />
@@ -22,7 +22,7 @@
 						<li class="state loading">Preparing search index...</li>
 						<li class="state failure">The search index is not available</li>
 					</ul>
-					<a href="index.html" class="title">Sentry JavaScript SDKs</a>
+					<a href="index.html" class="title">Sentry JavaScript SDKs - v5.21.1</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -52,7 +52,7 @@
 					<a href="globals.html">Globals</a>
 				</li>
 			</ul>
-			<h1> Sentry JavaScript SDKs</h1>
+			<h1>Sentry JavaScript SDKs - v5.21.1</h1>
 		</div>
 	</div>
 </header>
@@ -66,15 +66,19 @@
 					</a>
 					<br />
 				</p>
-				<p><a href="https://travis-ci.com/getsentry/sentry-javascript"><img src="https://travis-ci.com/getsentry/sentry-javascript.svg?branch=master" alt="Build Status"></a>
+				<p><img src="https://github.com/getsentry/sentry-javascript/workflows/Build%20&%20Test/badge.svg" alt="Build &amp; Test">
 					<a href="https://codecov.io/gh/getsentry/sentry-javascript"><img src="https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg" alt="codecov"></a>
 					<a href="https://www.npmjs.com/package/@sentry/core"><img src="https://img.shields.io/npm/v/@sentry/core.svg" alt="npm version"></a>
 					<a href="http://getsentry.github.io/sentry-javascript/"><img src="https://img.shields.io/badge/docs-typedoc-blue.svg" alt="typedoc"></a>
 				<a href="https://discord.gg/Ww9hbqr"><img src="https://img.shields.io/discord/621778831602221064" alt="Discord"></a></p>
-				<h1 id="official-sentry-sdks-for-javascript">Official Sentry SDKs for JavaScript</h1>
+				<a href="#official-sentry-sdks-for-javascript" id="official-sentry-sdks-for-javascript" style="color: inherit; text-decoration: none;">
+					<h1>Official Sentry SDKs for JavaScript</h1>
+				</a>
 				<p>This is the next line of Sentry JavaScript SDKs, comprised in the <code>@sentry/</code> namespace. It will provide a more
 				convenient interface and improved consistency between various JavaScript environments.</p>
-				<h2 id="links">Links</h2>
+				<a href="#links" id="links" style="color: inherit; text-decoration: none;">
+					<h2>Links</h2>
+				</a>
 				<ul>
 					<li><a href="http://getsentry.github.io/sentry-javascript/"><img src="https://img.shields.io/badge/documentation-TypeDoc-green.svg" alt="TypeDoc"></a></li>
 					<li><a href="https://docs.sentry.io/quickstart/"><img src="https://img.shields.io/badge/documentation-sentry.io-green.svg" alt="Documentation"></a></li>
@@ -83,14 +87,18 @@
 					<li><a href="http://stackoverflow.com/questions/tagged/sentry"><img src="https://img.shields.io/badge/stack%20overflow-sentry-green.svg" alt="Stack Overflow"></a></li>
 					<li><a href="https://twitter.com/intent/follow?screen_name=getsentry"><img src="https://img.shields.io/twitter/follow/getsentry?label=getsentry&style=social" alt="Twitter Follow"></a></li>
 				</ul>
-				<h2 id="contents">Contents</h2>
+				<a href="#contents" id="contents" style="color: inherit; text-decoration: none;">
+					<h2>Contents</h2>
+				</a>
 				<ul>
 					<li><a href="https://github.com/getsentry/sentry-javascript/blob/master/CONTRIBUTING.md">Contributing</a></li>
 					<li><a href="#supported-platforms">Supported Platforms</a></li>
 					<li><a href="#installation-and-usage">Installation and Usage</a></li>
 					<li><a href="#other-packages">Other Packages</a></li>
 				</ul>
-				<h2 id="supported-platforms">Supported Platforms</h2>
+				<a href="#supported-platforms" id="supported-platforms" style="color: inherit; text-decoration: none;">
+					<h2>Supported Platforms</h2>
+				</a>
 				<p>For each major JavaScript platform, there is a specific high-level SDK that provides all the tools you need in a single
 				package. Please refer to the README and instructions of those SDKs for more detailed information:</p>
 				<ul>
@@ -111,20 +119,24 @@
 						same as for <code>raven-js</code> we still support and release bug fixes for the SDK but all new features will be implemented in
 					<code>@sentry/node</code> which is the successor.</li>
 				</ul>
-				<h2 id="installation-and-usage">Installation and Usage</h2>
+				<a href="#installation-and-usage" id="installation-and-usage" style="color: inherit; text-decoration: none;">
+					<h2>Installation and Usage</h2>
+				</a>
 				<p>To install a SDK, simply add the high-level package, for example:</p>
 				<pre><code class="language-sh">npm install --save @sentry/browser
 yarn add @sentry/browser</code></pre>
 				<p>Setup and usage of these SDKs always follows the same principle.</p>
-				<pre><code class="language-javascript"><span class="hljs-keyword">import</span> { init, captureMessage } <span class="hljs-keyword">from</span> <span class="hljs-string">'@sentry/browser'</span>;
+				<pre><code class="language-javascript"><span class="hljs-keyword">import</span> { init, captureMessage } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@sentry/browser&#x27;</span>;
 
 init({
-  <span class="hljs-attr">dsn</span>: <span class="hljs-string">'__DSN__'</span>,
+  <span class="hljs-attr">dsn</span>: <span class="hljs-string">&#x27;__DSN__&#x27;</span>,
   <span class="hljs-comment">// ...</span>
 });
 
-captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
-				<h2 id="other-packages">Other Packages</h2>
+captureMessage(<span class="hljs-string">&#x27;Hello, world!&#x27;</span>);</code></pre>
+				<a href="#other-packages" id="other-packages" style="color: inherit; text-decoration: none;">
+					<h2>Other Packages</h2>
+				</a>
 				<p>Besides the high-level SDKs, this repository contains shared packages, helpers and configuration used for SDK
 					development. If you&#39;re thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
 				below:</p>
@@ -139,8 +151,6 @@ captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
 					JavaScript SDKs with interfaces, type definitions and base classes.</li>
 					<li><a href="https://github.com/getsentry/sentry-javascript/tree/master/packages/utils"><code>@sentry/utils</code></a>: A set of helpers and
 					utility functions useful for various SDKs.</li>
-					<li><a href="https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript"><code>@sentry/typescript</code></a>: Shared
-					Typescript compiler and linter options.</li>
 					<li><a href="https://github.com/getsentry/sentry-javascript/tree/master/packages/types"><code>@sentry/types</code></a>: Types used in all
 					packages.</li>
 				</ul>
@@ -152,68 +162,92 @@ captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
 					<li class="globals  ">
 						<a href="globals.html"><em>Globals</em></a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="modules/angular.html">angular</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/apm.html">apm</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/browser.html">browser</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/core.html">core</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="modules/ember.html">ember</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/gatsby.html">gatsby</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/hub.html">hub</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/integrations.html">integrations</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/minimal.html">minimal</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/node.html">node</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="modules/react.html">react</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/tracing.html">tracing</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/types.html">types</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/utils.html">utils</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="modules/angular.html" class="tsd-kind-icon">angular</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/apm.html" class="tsd-kind-icon">apm</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/browser.html" class="tsd-kind-icon">browser</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/core.html" class="tsd-kind-icon">core</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="modules/ember.html" class="tsd-kind-icon">ember</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/gatsby.html" class="tsd-kind-icon">gatsby</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/hub.html" class="tsd-kind-icon">hub</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/integrations.html" class="tsd-kind-icon">integrations</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/minimal.html" class="tsd-kind-icon">minimal</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/node.html" class="tsd-kind-icon">node</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
+						<a href="modules/react.html" class="tsd-kind-icon">react</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/tracing.html" class="tsd-kind-icon">tracing</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/types.html" class="tsd-kind-icon">types</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class=" tsd-kind-module">
 						<a href="modules/utils.html" class="tsd-kind-icon">utils</a>
 					</li>
 				</ul>
@@ -226,65 +260,31 @@ captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
 		<h2>Legend</h2>
 		<div class="tsd-legend-group">
 			<ul class="tsd-legend">
-				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
 				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
 				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
 				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
-				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
-				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
 				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
-				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
 				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
-				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
-				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
 			</ul>
 		</div>
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="assets/js/main.js"></script>
-<script>if (location.protocol == 'file:') document.write('<script src="assets/js/search.js"><' + '/script>');</script>
 </body>
 </html>
