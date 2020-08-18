@@ -28,12 +28,21 @@ export class Http implements Integration {
    */
   private readonly _tracing: boolean;
 
+  private readonly _mapRequestUrl: (url: string) => string | false;
+
   /**
    * @inheritDoc
    */
-  public constructor(options: { breadcrumbs?: boolean; tracing?: boolean } = {}) {
+  public constructor(
+    options: {
+      breadcrumbs?: boolean;
+      tracing?: boolean;
+      mapRequestUrl?: (url: string) => string | false;
+    } = {},
+  ) {
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
     this._tracing = typeof options.tracing === 'undefined' ? false : options.tracing;
+    this._mapRequestUrl = options.mapRequestUrl || ((url: string) => url);
   }
 
   /**
@@ -45,7 +54,7 @@ export class Http implements Integration {
       return;
     }
 
-    const handlerWrapper = createHandlerWrapper(this._breadcrumbs, this._tracing);
+    const handlerWrapper = createHandlerWrapper(this._breadcrumbs, this._tracing, this._mapRequestUrl);
 
     const httpModule = require('http');
     fill(httpModule, 'get', handlerWrapper);
@@ -68,12 +77,17 @@ export class Http implements Integration {
 function createHandlerWrapper(
   breadcrumbsEnabled: boolean,
   tracingEnabled: boolean,
+  mapRequestUrl: (url: string) => string | false,
 ): (originalHandler: () => http.ClientRequest) => (options: string | http.ClientRequestArgs) => http.ClientRequest {
   return function handlerWrapper(
     originalHandler: () => http.ClientRequest,
   ): (options: string | http.ClientRequestArgs) => http.ClientRequest {
     return function(this: typeof http | typeof https, options: string | http.ClientRequestArgs): http.ClientRequest {
-      const requestUrl = extractUrl(options);
+      const requestUrl = mapRequestUrl(extractUrl(options));
+      if (requestUrl === false) {
+        // eslint-disable-next-line prefer-rest-params
+        return Reflect.apply(originalHandler, this, arguments);
+      }
 
       if (isSentryRequest(requestUrl)) {
         return originalHandler.apply(this, arguments);
