@@ -19,7 +19,9 @@ jest.mock('@sentry/utils', () => {
       if (type === 'unhandledrejection') {
         mockUnhandledRejectionCallback = callback;
       }
-      return mockAddInstrumentationHandler({ callback, type });
+      if (typeof mockAddInstrumentationHandler === 'function') {
+        return mockAddInstrumentationHandler({ callback, type });
+      }
     },
   };
 });
