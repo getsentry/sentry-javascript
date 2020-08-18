@@ -36,14 +36,14 @@ export interface HTTPRequest {
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
-  /** API object */
-  protected _api: API;
-
   /** The Agent used for corresponding transport */
   public module?: HTTPRequest;
 
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
+
+  /** API object */
+  protected _api: API;
 
   /** A simple buffer holding all requests. */
   protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
@@ -54,6 +54,20 @@ export abstract class BaseTransport implements Transport {
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendEvent(_: Event): PromiseLike<Response> {
+    throw new SentryError('Transport Class has to implement `sendEvent` method.');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public close(timeout?: number): PromiseLike<boolean> {
+    return this._buffer.drain(timeout);
   }
 
   /** Returns a build request option object used by request */
@@ -106,9 +120,13 @@ export abstract class BaseTransport implements Transport {
           } else {
             if (status === Status.RateLimit) {
               const now = Date.now();
-              let header = res.headers ? res.headers['Retry-After'] : '';
-              header = Array.isArray(header) ? header[0] : header;
-              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, header));
+              /**
+               * "Key-value pairs of header names and values. Header names are lower-cased."
+               * https://nodejs.org/api/http.html#http_message_headers
+               */
+              let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
+              retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
+              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
               logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
             }
 
@@ -132,19 +150,5 @@ export abstract class BaseTransport implements Transport {
         req.end(sentryReq.body);
       }),
     );
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public sendEvent(_: Event): PromiseLike<Response> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method.');
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public close(timeout?: number): PromiseLike<boolean> {
-    return this._buffer.drain(timeout);
   }
 }

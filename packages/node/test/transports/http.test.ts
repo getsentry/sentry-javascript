@@ -87,11 +87,11 @@ describe('HTTPTransport', () => {
     }
   });
 
-  test('back-off using Retry-After header', async () => {
+  test('back-off using retry-after header', async () => {
     const retryAfterSeconds = 10;
     mockReturnCode = 429;
     mockHeaders = {
-      'Retry-After': retryAfterSeconds,
+      'retry-after': retryAfterSeconds,
     };
     const transport = createTransport({ dsn });
 

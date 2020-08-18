@@ -16,6 +16,7 @@ import { NodeBackend } from '../src/backend';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
+// eslint-disable-next-line no-var
 declare var global: any;
 
 describe('SentryNode', () => {
@@ -61,7 +62,7 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.Mock<(event: Event) => void>;
+    let s: jest.SpyInstance<void, Event[]>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -90,7 +91,7 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.Mock<(event: Event) => void>;
+    let s: jest.SpyInstance<void, Event[]>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -227,7 +228,8 @@ describe('SentryNode', () => {
         }),
       );
       try {
-        // @ts-ignore
+        // @ts-ignore allow function declarations in strict mode
+        // eslint-disable-next-line no-inner-declarations
         function testy(): void {
           throw new Error('test');
         }
