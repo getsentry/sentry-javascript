@@ -151,7 +151,7 @@ export interface Options {
    *
    * Can be defined in place of `tracesSampleRate`. If neither is defined, tracing is disabled.
    *
-   * @returns A sample rate or `null` to drop the trace.
+   * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent).
    */
-  tracesSampler?(traceContext: SampleContext): number | null;
+  tracesSampler?(traceContext: SampleContext): number;
 }

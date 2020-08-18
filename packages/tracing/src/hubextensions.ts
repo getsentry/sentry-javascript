@@ -54,10 +54,9 @@ function sample<T extends Transaction>(hub: Hub, transaction: T): T {
     const sampleRate =
       typeof options.tracesSampler === 'function' ? options.tracesSampler(sampleContext) : options.tracesSampleRate;
 
-    // if the function returned either 0 or null, or if the sample rate is set to 0, it's a sign the transaction should
-    // be dropped
+    // if the function returned 0, or if the sample rate is set to 0, it's a sign the transaction should be dropped
     if (!sampleRate) {
-      logger.log('Discarding trace because tracesSampler returned 0 or null or sampleRate is set to 0');
+      logger.log('Discarding trace because tracesSampler returned 0 or tracesSampleRate is set to 0');
       transaction.sampled = false;
       return transaction;
     }
