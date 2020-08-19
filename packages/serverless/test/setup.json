@@ -1,0 +1,19 @@
+{
+  "name": "testCase",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Sentry",
+  "license": "MIT",
+  "dependencies": {
+    "@sentry/node": "^5.19.0",
+    "lru-cache": "^5.1.1",
+    "lru-map": "^1.6.1",
+    "tslib": "^1.13.0",
+    "util": "^0.12.3"
+  }
+}
