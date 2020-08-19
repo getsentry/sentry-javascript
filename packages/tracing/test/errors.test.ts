@@ -1,9 +1,9 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
-import { SpanStatus } from '../../src';
-import { registerErrorInstrumentation } from '../../src/browser/errors';
-import { addExtensionMethods } from '../../src/hubextensions';
+import { SpanStatus } from '../src';
+import { registerErrorInstrumentation } from '../src/errors';
+import { _addTracingExtensions } from '../src/hubextensions';
 
 const mockAddInstrumentationHandler = jest.fn();
 let mockErrorCallback: () => void = () => undefined;
@@ -19,13 +19,15 @@ jest.mock('@sentry/utils', () => {
       if (type === 'unhandledrejection') {
         mockUnhandledRejectionCallback = callback;
       }
-      return mockAddInstrumentationHandler({ callback, type });
+      if (typeof mockAddInstrumentationHandler === 'function') {
+        return mockAddInstrumentationHandler({ callback, type });
+      }
     },
   };
 });
 
 beforeAll(() => {
-  addExtensionMethods();
+  _addTracingExtensions();
 });
 
 describe('registerErrorHandlers()', () => {
