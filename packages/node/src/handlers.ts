@@ -123,10 +123,19 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
 /** Default request keys that'll be used to extract data from the request */
 const DEFAULT_REQUEST_KEYS = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
 
-/** JSDoc */
-function extractRequestData(req: { [key: string]: any }, keys: boolean | string[]): { [key: string]: string } {
-  const request: { [key: string]: any } = {};
-  const attributes = Array.isArray(keys) ? keys : DEFAULT_REQUEST_KEYS;
+/**
+ * Normalizes data from the request object, accounting for framework differences.
+ *
+ * @param req The request object from which to extract data
+ * @param keys An optional array of keys to include in the normalized data. Defaults to DEFAULT_REQUEST_KEYS if not
+ * provided.
+ * @returns An object containing normalized request data
+ */
+export function extractRequestData(
+  req: { [key: string]: any },
+  keys: string[] = DEFAULT_REQUEST_KEYS,
+): { [key: string]: string } {
+  const requestData: { [key: string]: any } = {};
 
   // headers:
   //   node, express: req.headers
@@ -157,27 +166,27 @@ function extractRequestData(req: { [key: string]: any }, keys: boolean | string[
   // absolute url
   const absoluteUrl = `${protocol}://${host}${originalUrl}`;
 
-  attributes.forEach(key => {
+  keys.forEach(key => {
     switch (key) {
       case 'headers':
-        request.headers = headers;
+        requestData.headers = headers;
         break;
       case 'method':
-        request.method = method;
+        requestData.method = method;
         break;
       case 'url':
-        request.url = absoluteUrl;
+        requestData.url = absoluteUrl;
         break;
       case 'cookies':
         // cookies:
         //   node, express, koa: req.headers.cookie
-        request.cookies = cookie.parse(headers.cookie || '');
+        requestData.cookies = cookie.parse(headers.cookie || '');
         break;
       case 'query_string':
         // query string:
         //   node: req.url (raw)
         //   express, koa: req.query
-        request.query_string = url.parse(originalUrl || '', false).query;
+        requestData.query_string = url.parse(originalUrl || '', false).query;
         break;
       case 'data':
         if (method === 'GET' || method === 'HEAD') {
@@ -186,17 +195,17 @@ function extractRequestData(req: { [key: string]: any }, keys: boolean | string[
         // body data:
         //   node, express, koa: req.body
         if (req.body !== undefined) {
-          request.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
+          requestData.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
         }
         break;
       default:
         if ({}.hasOwnProperty.call(req, key)) {
-          request[key] = (req as { [key: string]: any })[key];
+          requestData[key] = (req as { [key: string]: any })[key];
         }
     }
   });
 
-  return request;
+  return requestData;
 }
 
 /** Default user keys that'll be used to extract data from the request */
@@ -279,7 +288,7 @@ export function parseRequest(
   if (options.request) {
     event.request = {
       ...event.request,
-      ...extractRequestData(req, options.request),
+      ...extractRequestData(req), // extract default keys given in DEFAULT_REQUEST_KEYS
     };
   }
 
