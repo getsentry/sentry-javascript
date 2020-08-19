@@ -39,6 +39,10 @@ module.exports = {
         // Enforce type annotations to maintain consistency. This is especially important as
         // we have a public API, so we want changes to be very explicit.
         '@typescript-eslint/typedef': ['error', { arrowParameter: false }],
+
+        // Although for most codebases inferencing the return type is fine, we explicitly ask to annotate
+        // all functions with a return type. This is so that intent is as clear as possible. We are guarding against
+        // cases where you accidently refactor a function's return type to be the wrong type.
         '@typescript-eslint/explicit-function-return-type': ['error', { allowExpressions: true }],
 
         // Consistent ordering of fields, methods and constructors for classes should be enforced
