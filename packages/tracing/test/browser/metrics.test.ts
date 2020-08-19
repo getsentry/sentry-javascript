@@ -91,9 +91,9 @@ describe('addResourceSpans', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transaction.startChild).toHaveBeenLastCalledWith({
       data: {
-        decodedBodySize: entry.decodedBodySize,
-        encodedBodySize: entry.encodedBodySize,
-        transferSize: entry.transferSize,
+        ['Decoded Body Size']: entry.decodedBodySize,
+        ['Encoded Body Size']: entry.encodedBodySize,
+        ['Transfer Size']: entry.transferSize,
       },
       description: '/assets/to/css',
       endTimestamp: timeOrigin + startTime + duration,
@@ -159,9 +159,9 @@ describe('addResourceSpans', () => {
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: {
-          decodedBodySize: entry.decodedBodySize,
-          encodedBodySize: entry.encodedBodySize,
-          transferSize: entry.transferSize,
+          ['Decoded Body Size']: entry.decodedBodySize,
+          ['Encoded Body Size']: entry.encodedBodySize,
+          ['Transfer Size']: entry.transferSize,
         },
       }),
     );
