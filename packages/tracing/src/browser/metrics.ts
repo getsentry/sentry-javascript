@@ -236,13 +236,13 @@ export function addResourceSpans(
 
   const data: Record<string, any> = {};
   if ('transferSize' in entry) {
-    data.transferSize = entry.transferSize;
+    data['Transfer Size'] = entry.transferSize;
   }
   if ('encodedBodySize' in entry) {
-    data.encodedBodySize = entry.encodedBodySize;
+    data['Encoded Body Size'] = entry.encodedBodySize;
   }
   if ('decodedBodySize' in entry) {
-    data.decodedBodySize = entry.decodedBodySize;
+    data['Decoded Body Size'] = entry.decodedBodySize;
   }
 
   const startTimestamp = timeOrigin + startTime;
