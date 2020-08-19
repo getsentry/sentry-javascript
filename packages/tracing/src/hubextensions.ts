@@ -32,7 +32,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  *
  * Mutates the given Transaction object and then returns the mutated object.
  */
-function sample<T extends Transaction>(hub: Hub, transaction: T): T {
+function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: SampleContext = {}): T {
   const client = hub.getClient();
   const options = (client && client.getOptions()) || {};
 
@@ -47,8 +47,6 @@ function sample<T extends Transaction>(hub: Hub, transaction: T): T {
   // we have to test for a pre-existsing sampling decision, in case this transaction is a child transaction and has
   // inherited its parent's decision
   if (transaction.sampled === undefined) {
-    const sampleContext: SampleContext = {}; // TODO (kmclb) build context object
-
     // we would have bailed at the beginning if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of
     // these should work; prefer the hook if so
     const sampleRate =
@@ -82,9 +80,9 @@ function sample<T extends Transaction>(hub: Hub, transaction: T): T {
 /**
  * {@see Hub.startTransaction}
  */
-function startTransaction(this: Hub, context: TransactionContext): Transaction {
+function startTransaction(this: Hub, context: TransactionContext, sampleContext?: SampleContext): Transaction {
   const transaction = new Transaction(context, this);
-  return sample(this, transaction);
+  return sample(this, transaction, sampleContext);
 }
 
 /**
@@ -95,9 +93,10 @@ export function startIdleTransaction(
   context: TransactionContext,
   idleTimeout?: number,
   onScope?: boolean,
+  sampleContext?: SampleContext,
 ): IdleTransaction {
   const transaction = new IdleTransaction(context, hub, idleTimeout, onScope);
-  return sample(hub, transaction);
+  return sample(hub, transaction, sampleContext);
 }
 
 /**

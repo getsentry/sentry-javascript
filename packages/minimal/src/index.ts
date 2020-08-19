@@ -5,6 +5,7 @@ import {
   Event,
   Extra,
   Extras,
+  SampleContext,
   Severity,
   Transaction,
   TransactionContext,
@@ -205,7 +206,8 @@ export function _callOnClient(method: string, ...args: any[]): void {
  * Sentry.
  *
  * @param context Properties of the new `Transaction`.
+ * @param sampleContext Information given to the transaction sampling function
  */
-export function startTransaction(context: TransactionContext): Transaction {
-  return callOnHub('startTransaction', { ...context });
+export function startTransaction(context: TransactionContext, sampleContext?: SampleContext): Transaction {
+  return callOnHub('startTransaction', { ...context }, sampleContext);
 }

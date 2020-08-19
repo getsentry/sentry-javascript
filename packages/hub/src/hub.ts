@@ -10,6 +10,7 @@ import {
   Hub as HubInterface,
   Integration,
   IntegrationClass,
+  SampleContext,
   Severity,
   Span,
   SpanContext,
@@ -369,8 +370,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startTransaction(context: TransactionContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context);
+  public startTransaction(context: TransactionContext, sampleContext?: SampleContext): Transaction {
+    return this._callExtensionMethod('startTransaction', context, sampleContext);
   }
 
   /**

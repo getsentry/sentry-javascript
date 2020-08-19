@@ -6,7 +6,7 @@ import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
-import { Transaction, TransactionContext } from './transaction';
+import { SampleContext, Transaction, TransactionContext } from './transaction';
 import { User } from './user';
 
 /**
@@ -198,6 +198,7 @@ export interface Hub {
    * Sentry.
    *
    * @param context Properties of the new `Transaction`.
+   * @param sampleContext Information given to the transaction sampling function
    */
-  startTransaction(context: TransactionContext): Transaction;
+  startTransaction(context: TransactionContext, sampleContext?: SampleContext): Transaction;
 }

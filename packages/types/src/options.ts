@@ -151,6 +151,10 @@ export interface Options {
    *
    * Can be defined in place of `tracesSampleRate`. If neither is defined, tracing is disabled.
    *
+   * `startTransaction` or `startIdleTransaction` accept a `sampleContext` argument, which is then passed to this
+   * function, meant to provide information on which to make a sampling decision. Additional information may be included
+   * automatically, depending on the SDK and any included integrations.
+   *
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent).
    */
   tracesSampler?(traceContext: SampleContext): number;
