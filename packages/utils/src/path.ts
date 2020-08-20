@@ -11,15 +11,18 @@ function normalizeArray(parts: string[], allowAboveRoot?: boolean): string[] {
       parts.splice(i, 1);
     } else if (last === '..') {
       parts.splice(i, 1);
+      // eslint-disable-next-line no-plusplus
       up++;
     } else if (up) {
       parts.splice(i, 1);
+      // eslint-disable-next-line no-plusplus
       up--;
     }
   }
 
   // if the path is allowed to go above the root, restore leading ..s
   if (allowAboveRoot) {
+    // eslint-disable-next-line no-plusplus
     for (; up--; up) {
       parts.unshift('..');
     }
@@ -30,7 +33,7 @@ function normalizeArray(parts: string[], allowAboveRoot?: boolean): string[] {
 
 // Split a filename into [root, dir, basename, ext], unix version
 // 'root' is just a slash, or nothing.
-const splitPathRe = /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
+const splitPathRe = /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^/]+?|)(\.[^./]*|))(?:[/]*)$/;
 /** JSDoc */
 function splitPath(filename: string): string[] {
   const parts = splitPathRe.exec(filename);
@@ -60,10 +63,7 @@ export function resolve(...args: string[]): string {
   // handle relative paths to be safe (might happen when process.cwd() fails)
 
   // Normalize the path
-  resolvedPath = normalizeArray(
-    resolvedPath.split('/').filter(p => !!p),
-    !resolvedAbsolute,
-  ).join('/');
+  resolvedPath = normalizeArray(resolvedPath.split('/').filter(p => !!p), !resolvedAbsolute).join('/');
 
   return (resolvedAbsolute ? '/' : '') + resolvedPath || '.';
 }
@@ -94,9 +94,10 @@ function trim(arr: string[]): string[] {
 // posix version
 /** JSDoc */
 export function relative(from: string, to: string): string {
-  // tslint:disable:no-parameter-reassignment
+  /* eslint-disable no-param-reassign */
   from = resolve(from).substr(1);
   to = resolve(to).substr(1);
+  /* eslint-enable no-param-reassign */
 
   const fromParts = trim(from.split('/'));
   const toParts = trim(to.split('/'));
@@ -128,10 +129,7 @@ export function normalizePath(path: string): string {
   const trailingSlash = path.substr(-1) === '/';
 
   // Normalize the path
-  let normalizedPath = normalizeArray(
-    path.split('/').filter(p => !!p),
-    !isPathAbsolute,
-  ).join('/');
+  let normalizedPath = normalizeArray(path.split('/').filter(p => !!p), !isPathAbsolute).join('/');
 
   if (!normalizedPath && !isPathAbsolute) {
     normalizedPath = '.';

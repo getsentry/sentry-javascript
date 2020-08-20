@@ -1,11 +1,6 @@
-// tslint:disable:prefer-template
-// tslint:disable:object-literal-sort-keys
-// tslint:disable:max-file-line-count
-
 import { expect } from 'chai';
 
 import { computeStackTrace } from '../../../src/tracekit';
-
 import {
   ANDROID_REACT_NATIVE,
   ANDROID_REACT_NATIVE_HERMES,
@@ -15,13 +10,13 @@ import {
   CHROME_48_BLOB,
   CHROME_48_EVAL,
   CHROME_XX_WEBPACK,
-  FIREFOX_14,
   FIREFOX_3,
+  FIREFOX_7,
+  FIREFOX_14,
   FIREFOX_31,
   FIREFOX_43_EVAL,
   FIREFOX_44_NS_EXCEPTION,
   FIREFOX_50_RESOURCE_URL,
-  FIREFOX_7,
   IE_10,
   IE_11,
   IE_11_EVAL,

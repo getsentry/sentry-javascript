@@ -17,7 +17,7 @@ export abstract class BaseTransport implements Transport {
 
   public constructor(public options: TransportOptions) {
     this._api = new API(this.options.dsn);
-    // tslint:disable-next-line:deprecation
+    // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
   }
 

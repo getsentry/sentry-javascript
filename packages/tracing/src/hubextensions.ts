@@ -1,6 +1,7 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 
+import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
 
@@ -63,9 +64,9 @@ export function startIdleTransaction(
 }
 
 /**
- * This patches the global object and injects the Tracing extensions methods
+ * @private
  */
-export function addExtensionMethods(): void {
+export function _addTracingExtensions(): void {
   const carrier = getMainCarrier();
   if (carrier.__SENTRY__) {
     carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
@@ -76,4 +77,14 @@ export function addExtensionMethods(): void {
       carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
     }
   }
+}
+
+/**
+ * This patches the global object and injects the Tracing extensions methods
+ */
+export function addExtensionMethods(): void {
+  _addTracingExtensions();
+
+  // If an error happens globally, we should make sure transaction status is set to error.
+  registerErrorInstrumentation();
 }

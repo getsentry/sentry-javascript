@@ -12,12 +12,12 @@ export class Debug implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Debug.id;
+  public static id: string = 'Debug';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'Debug';
+  public name: string = Debug.id;
 
   /** JSDoc */
   private readonly _options: DebugOptions;
@@ -40,12 +40,12 @@ export class Debug implements Integration {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(Debug);
       if (self) {
-        // tslint:disable:no-console
-        // tslint:disable:no-debugger
         if (self._options.debugger) {
+          // eslint-disable-next-line no-debugger
           debugger;
         }
 
+        /* eslint-disable no-console */
         consoleSandbox(() => {
           if (self._options.stringify) {
             console.log(JSON.stringify(event, null, 2));
@@ -59,6 +59,7 @@ export class Debug implements Integration {
             }
           }
         });
+        /* eslint-enable no-console */
       }
       return event;
     });

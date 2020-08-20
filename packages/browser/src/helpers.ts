@@ -1,6 +1,6 @@
 import { API, captureException, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, logger } from '@sentry/utils';
 
 let ignoreOnError: number = 0;
 
@@ -36,8 +36,8 @@ export function wrap(
     mechanism?: Mechanism;
   } = {},
   before?: WrappedFunction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
-  // tslint:disable-next-line:strict-type-predicates
   if (typeof fn !== 'function') {
     return fn;
   }
@@ -59,16 +59,17 @@ export function wrap(
     return fn;
   }
 
+  /* eslint-disable prefer-rest-params */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sentryWrapped: WrappedFunction = function(this: any): void {
     const args = Array.prototype.slice.call(arguments);
 
-    // tslint:disable:no-unsafe-any
     try {
-      // tslint:disable-next-line:strict-type-predicates
       if (before && typeof before === 'function') {
         before.apply(this, arguments);
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
@@ -76,6 +77,7 @@ export function wrap(
         // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
         //       means the sentry.javascript SDK caught an error invoking your application code. This
         //       is expected behavior and NOT indicative of a bug with sentry.javascript.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return fn.handleEvent.apply(this, wrappedArguments);
       }
       // Attempt to invoke user-land function
@@ -83,7 +85,6 @@ export function wrap(
       //       means the sentry.javascript SDK caught an error invoking your application code. This
       //       is expected behavior and NOT indicative of a bug with sentry.javascript.
       return fn.apply(this, wrappedArguments);
-      // tslint:enable:no-unsafe-any
     } catch (ex) {
       ignoreNextOnError();
 
@@ -110,6 +111,7 @@ export function wrap(
       throw ex;
     }
   };
+  /* eslint-enable prefer-rest-params */
 
   // Accessing some objects may throw
   // ref: https://github.com/getsentry/sentry-javascript/issues/1168
@@ -119,7 +121,7 @@ export function wrap(
         sentryWrapped[property] = fn[property];
       }
     }
-  } catch (_oO) {} // tslint:disable-line:no-empty
+  } catch (_oO) {} // eslint-disable-line no-empty
 
   fn.prototype = fn.prototype || {};
   sentryWrapped.prototype = fn.prototype;
@@ -152,9 +154,8 @@ export function wrap(
         },
       });
     }
-  } catch (_oO) {
-    /*no-empty*/
-  }
+    // eslint-disable-next-line no-empty
+  } catch (_oO) {}
 
   return sentryWrapped;
 }
@@ -163,6 +164,7 @@ export function wrap(
  * All properties the report dialog supports
  */
 export interface ReportDialogOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   eventId?: string;
   dsn?: DsnLike;
@@ -191,12 +193,21 @@ export interface ReportDialogOptions {
  * @hidden
  */
 export function injectReportDialog(options: ReportDialogOptions = {}): void {
+  if (!options.eventId) {
+    logger.error(`Missing eventId option in showReportDialog call`);
+    return;
+  }
+  if (!options.dsn) {
+    logger.error(`Missing dsn option in showReportDialog call`);
+    return;
+  }
+
   const script = document.createElement('script');
   script.async = true;
-  // tslint:disable-next-line: no-non-null-assertion
-  script.src = new API(options.dsn!).getReportDialogEndpoint(options);
+  script.src = new API(options.dsn).getReportDialogEndpoint(options);
 
   if (options.onLoad) {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     script.onload = options.onLoad;
   }
 

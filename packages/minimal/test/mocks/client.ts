@@ -3,7 +3,7 @@ import { getCurrentHub } from '@sentry/hub';
 export class TestClient {
   public static instance?: TestClient;
 
-  public constructor(public options: object) {
+  public constructor(public options: Record<string, unknown>) {
     TestClient.instance = this;
   }
 
@@ -14,6 +14,6 @@ export class TestClient {
 
 export class TestClient2 {}
 
-export function init(options: object): void {
+export function init(options: Record<string, unknown>): void {
   getCurrentHub().bindClient(new TestClient(options) as any);
 }

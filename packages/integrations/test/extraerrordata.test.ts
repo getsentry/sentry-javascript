@@ -1,4 +1,4 @@
-import { ExtendedError, SentryEvent } from '@sentry/types';
+import { Event as SentryEvent, ExtendedError } from '@sentry/types';
 
 import { ExtraErrorData } from '../src/extraerrordata';
 
@@ -44,6 +44,7 @@ describe('ExtraErrorData()', () => {
 
   it('should not remove previous data existing in extra field', () => {
     event = {
+      // @ts-ignore Allow contexts on event
       contexts: {
         foo: 42,
       },
@@ -81,6 +82,7 @@ describe('ExtraErrorData()', () => {
 
   it('should return event if there is no originalException', () => {
     const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      // @ts-ignore Allow event to have extra properties
       notOriginalException: 'fooled you',
     });
 

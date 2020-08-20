@@ -1,14 +1,15 @@
-// tslint:disable:deprecation
 import { Integration } from '@sentry/types';
 
 import { getIntegrationsToSetup } from '../../src/integration';
 
 /** JSDoc */
 class MockIntegration implements Integration {
+  public name: string;
+
   public constructor(name: string) {
     this.name = name;
   }
-  public name: string;
+
   public setupOnce(): void {
     // noop
   }

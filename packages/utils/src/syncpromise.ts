@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/typedef */
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { isThenable } from './is';
 
 /** SyncPromise internal states */
@@ -31,11 +35,6 @@ class SyncPromise<T> implements PromiseLike<T> {
     } catch (e) {
       this._reject(e);
     }
-  }
-
-  /** JSDoc */
-  public toString(): string {
-    return '[object SyncPromise]';
   }
 
   /** JSDoc */
@@ -164,6 +163,11 @@ class SyncPromise<T> implements PromiseLike<T> {
   }
 
   /** JSDoc */
+  public toString(): string {
+    return '[object SyncPromise]';
+  }
+
+  /** JSDoc */
   private readonly _resolve = (value?: T | PromiseLike<T> | null) => {
     this._setResult(States.RESOLVED, value);
   };
@@ -220,6 +224,7 @@ class SyncPromise<T> implements PromiseLike<T> {
 
       if (this._state === States.RESOLVED) {
         if (handler.onfulfilled) {
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           handler.onfulfilled((this._value as unknown) as any);
         }
       }

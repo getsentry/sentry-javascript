@@ -17,6 +17,7 @@ import {
 } from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
 
+// eslint-disable-next-line no-var
 declare var global: any;
 
 describe('Minimal', () => {

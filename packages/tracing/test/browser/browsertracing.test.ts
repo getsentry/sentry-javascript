@@ -1,6 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
-// tslint:disable-next-line: no-implicit-dependencies
 import { JSDOM } from 'jsdom';
 
 import { SpanStatus } from '../../src';
@@ -34,11 +33,11 @@ const warnSpy = jest.spyOn(logger, 'warn');
 
 beforeAll(() => {
   const dom = new JSDOM();
-  // @ts-ignore
+  // @ts-ignore need to override global document
   global.document = dom.window.document;
-  // @ts-ignore
+  // @ts-ignore need to override global document
   global.window = dom.window;
-  // @ts-ignore
+  // @ts-ignore need to override global document
   global.location = dom.window.location;
 });
 
@@ -61,7 +60,6 @@ describe('BrowserTracing', () => {
     }
   });
 
-  // tslint:disable-next-line: completed-docs
   function createBrowserTracing(setup?: boolean, _options?: Partial<BrowserTracingOptions>): BrowserTracing {
     const inst = new BrowserTracing(_options);
     if (setup) {
@@ -95,7 +93,7 @@ describe('BrowserTracing', () => {
    * so that we can show this functionality works independent of the default routing integration.
    */
   describe('route transaction', () => {
-    const customRoutingInstrumentation = (startTransaction: Function) => {
+    const customRoutingInstrumentation = (startTransaction: (obj: any) => void) => {
       startTransaction({ name: 'a/path', op: 'pageload' });
     };
 

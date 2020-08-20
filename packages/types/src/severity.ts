@@ -1,4 +1,5 @@
 /** JSDoc */
+// eslint-disable-next-line import/export
 export enum Severity {
   /** JSDoc */
   Fatal = 'fatal',
@@ -15,8 +16,8 @@ export enum Severity {
   /** JSDoc */
   Critical = 'critical',
 }
-// tslint:disable:completed-docs
-// tslint:disable:no-unnecessary-qualifier no-namespace
+
+// eslint-disable-next-line @typescript-eslint/no-namespace, import/export
 export namespace Severity {
   /**
    * Converts a string-based level into a {@link Severity}.

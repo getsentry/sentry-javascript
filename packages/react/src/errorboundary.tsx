@@ -7,8 +7,8 @@ export const UNKNOWN_COMPONENT = 'unknown';
 export type FallbackRender = (fallback: {
   error: Error | null;
   componentStack: string | null;
-  resetError(): void;
   eventId: string | null;
+  resetError(): void;
 }) => React.ReactNode;
 
 export type ErrorBoundaryProps = {
@@ -19,7 +19,6 @@ export type ErrorBoundaryProps = {
    * No-op if {@link showDialog} is false.
    */
   dialogOptions?: ReportDialogOptions;
-  // tslint:disable no-null-undefined-union
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
    *
@@ -29,7 +28,6 @@ export type ErrorBoundaryProps = {
    *
    */
   fallback?: React.ReactNode | FallbackRender;
-  // tslint:enable no-null-undefined-union
   /** Called with the error boundary encounters an error */
   onError?(error: Error, componentStack: string, eventId: string): void;
   /** Called on componentDidMount() */
@@ -97,7 +95,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
-  public resetErrorBoundary = () => {
+  public resetErrorBoundary: () => void = () => {
     const { onReset } = this.props;
     const { error, componentStack, eventId } = this.state;
     if (onReset) {
@@ -126,7 +124,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-function withErrorBoundary<P extends object>(
+function withErrorBoundary<P extends Record<string, unknown>>(
   WrappedComponent: React.ComponentType<P>,
   errorBoundaryOptions: ErrorBoundaryProps,
 ): React.FC<P> {

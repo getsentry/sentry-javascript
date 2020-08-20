@@ -3,8 +3,9 @@ exports.onCreateWebpackConfig = ({ plugins, actions }) => {
     plugins: [
       plugins.define({
         __SENTRY_RELEASE__: JSON.stringify(
-          // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
-          process.env.GITHUB_SHA ||
+          process.env.SENTRY_RELEASE ||
+            // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
+            process.env.GITHUB_SHA ||
             // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
             process.env.COMMIT_REF ||
             // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables

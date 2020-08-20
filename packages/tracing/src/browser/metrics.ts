@@ -1,8 +1,10 @@
+/* eslint-disable max-lines */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { SpanContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { Span } from '../span';
 import { Transaction } from '../transaction';
-
 import { msToSec } from './utils';
 
 const global = getGlobalObject<Window>();
@@ -12,71 +14,6 @@ export class MetricsInstrumentation {
   private _lcp: Record<string, any> = {};
 
   private _performanceCursor: number = 0;
-
-  private _forceLCP = () => {
-    /* No-op, replaced later if LCP API is available. */
-    return;
-  };
-
-  /** Starts tracking the Largest Contentful Paint on the current page. */
-  private _trackLCP(): void {
-    // Based on reference implementation from https://web.dev/lcp/#measure-lcp-in-javascript.
-    // Use a try/catch instead of feature detecting `largest-contentful-paint`
-    // support, since some browsers throw when using the new `type` option.
-    // https://bugs.webkit.org/show_bug.cgi?id=209216
-    try {
-      // Keep track of whether (and when) the page was first hidden, see:
-      // https://github.com/w3c/page-visibility/issues/29
-      // NOTE: ideally this check would be performed in the document <head>
-      // to avoid cases where the visibility state changes before this code runs.
-      let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
-      document.addEventListener(
-        'visibilitychange',
-        event => {
-          firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
-        },
-        { once: true },
-      );
-
-      const updateLCP = (entry: PerformanceEntry) => {
-        // Only include an LCP entry if the page wasn't hidden prior to
-        // the entry being dispatched. This typically happens when a page is
-        // loaded in a background tab.
-        if (entry.startTime < firstHiddenTime) {
-          // NOTE: the `startTime` value is a getter that returns the entry's
-          // `renderTime` value, if available, or its `loadTime` value otherwise.
-          // The `renderTime` value may not be available if the element is an image
-          // that's loaded cross-origin without the `Timing-Allow-Origin` header.
-          this._lcp = {
-            // @ts-ignore
-            ...(entry.id && { elementId: entry.id }),
-            // @ts-ignore
-            ...(entry.size && { elementSize: entry.size }),
-            value: entry.startTime,
-          };
-        }
-      };
-
-      // Create a PerformanceObserver that calls `updateLCP` for each entry.
-      const po = new PerformanceObserver(entryList => {
-        entryList.getEntries().forEach(updateLCP);
-      });
-
-      // Observe entries of type `largest-contentful-paint`, including buffered entries,
-      // i.e. entries that occurred before calling `observe()` below.
-      po.observe({
-        buffered: true,
-        // @ts-ignore
-        type: 'largest-contentful-paint',
-      });
-
-      this._forceLCP = () => {
-        po.takeRecords().forEach(updateLCP);
-      };
-    } catch (e) {
-      // Do nothing if the browser doesn't support this API.
-    }
-  }
 
   public constructor() {
     if (global && global.performance) {
@@ -111,7 +48,7 @@ export class MetricsInstrumentation {
     let entryScriptSrc: string | undefined;
 
     if (global.document) {
-      // tslint:disable-next-line: prefer-for-of
+      // eslint-disable-next-line @typescript-eslint/prefer-for-of
       for (let i = 0; i < document.scripts.length; i++) {
         // We go through all scripts on the page and look for 'data-entry'
         // We remember the name and measure the time between this script finished loading and
@@ -143,13 +80,14 @@ export class MetricsInstrumentation {
             break;
           case 'mark':
           case 'paint':
-          case 'measure':
+          case 'measure': {
             const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
             if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
               tracingInitMarkStartTime = startTimestamp;
             }
             break;
-          case 'resource':
+          }
+          case 'resource': {
             const resourceName = (entry.name as string).replace(window.location.origin, '');
             const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
             // We remember the entry script end time to calculate the difference to the first init mark
@@ -157,13 +95,14 @@ export class MetricsInstrumentation {
               entryScriptStartTimestamp = endTimestamp;
             }
             break;
+          }
           default:
           // Ignore other entry types.
         }
       });
 
     if (entryScriptStartTimestamp !== undefined && tracingInitMarkStartTime !== undefined) {
-      transaction.startChild({
+      _startChild(transaction, {
         description: 'evaluation',
         endTimestamp: tracingInitMarkStartTime,
         op: 'script',
@@ -172,6 +111,73 @@ export class MetricsInstrumentation {
     }
 
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
+  }
+
+  private _forceLCP: () => void = () => {
+    /* No-op, replaced later if LCP API is available. */
+    return;
+  };
+
+  /** Starts tracking the Largest Contentful Paint on the current page. */
+  private _trackLCP(): void {
+    // Based on reference implementation from https://web.dev/lcp/#measure-lcp-in-javascript.
+    // Use a try/catch instead of feature detecting `largest-contentful-paint`
+    // support, since some browsers throw when using the new `type` option.
+    // https://bugs.webkit.org/show_bug.cgi?id=209216
+    try {
+      // Keep track of whether (and when) the page was first hidden, see:
+      // https://github.com/w3c/page-visibility/issues/29
+      // NOTE: ideally this check would be performed in the document <head>
+      // to avoid cases where the visibility state changes before this code runs.
+      let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
+      document.addEventListener(
+        'visibilitychange',
+        event => {
+          firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
+        },
+        { once: true },
+      );
+
+      const updateLCP = (entry: PerformanceEntry): void => {
+        // Only include an LCP entry if the page wasn't hidden prior to
+        // the entry being dispatched. This typically happens when a page is
+        // loaded in a background tab.
+        if (entry.startTime < firstHiddenTime) {
+          // NOTE: the `startTime` value is a getter that returns the entry's
+          // `renderTime` value, if available, or its `loadTime` value otherwise.
+          // The `renderTime` value may not be available if the element is an image
+          // that's loaded cross-origin without the `Timing-Allow-Origin` header.
+          this._lcp = {
+            // @ts-ignore can't access id on entry
+            ...(entry.id && { elementId: entry.id }),
+            // @ts-ignore can't access id on entry
+            ...(entry.size && { elementSize: entry.size }),
+            value: entry.startTime,
+          };
+        }
+      };
+
+      // Create a PerformanceObserver that calls `updateLCP` for each entry.
+      const po = new PerformanceObserver(entryList => {
+        entryList.getEntries().forEach(updateLCP);
+      });
+
+      // Observe entries of type `largest-contentful-paint`, including buffered entries,
+      // i.e. entries that occurred before calling `observe()` below.
+      po.observe({
+        buffered: true,
+        // @ts-ignore type does not exist on obj
+        type: 'largest-contentful-paint',
+      });
+
+      this._forceLCP = () => {
+        if (po.takeRecords) {
+          po.takeRecords().forEach(updateLCP);
+        }
+      };
+    } catch (e) {
+      // Do nothing if the browser doesn't support this API.
+    }
   }
 }
 
@@ -196,7 +202,7 @@ function addMeasureSpans(
   const measureStartTimestamp = timeOrigin + startTime;
   const measureEndTimestamp = measureStartTimestamp + duration;
 
-  transaction.startChild({
+  _startChild(transaction, {
     description: entry.name as string,
     endTimestamp: measureEndTimestamp,
     op: entry.entryType as string,
@@ -206,40 +212,51 @@ function addMeasureSpans(
   return measureStartTimestamp;
 }
 
+export interface ResourceEntry extends Record<string, unknown> {
+  initiatorType?: string;
+  transferSize?: number;
+  encodedBodySize?: number;
+  decodedBodySize?: number;
+}
+
 /** Create resource related spans */
-function addResourceSpans(
+export function addResourceSpans(
   transaction: Transaction,
-  entry: Record<string, any>,
+  entry: ResourceEntry,
   resourceName: string,
   startTime: number,
   duration: number,
   timeOrigin: number,
 ): number | undefined {
+  // we already instrument based on fetch and xhr, so we don't need to
+  // duplicate spans here.
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-    // We need to update existing spans with new timing info
-    if (transaction.spanRecorder) {
-      transaction.spanRecorder.spans.map((finishedSpan: Span) => {
-        if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-          finishedSpan.startTimestamp = timeOrigin + startTime;
-          finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
-        }
-      });
-    }
-  } else {
-    const startTimestamp = timeOrigin + startTime;
-    const endTimestamp = startTimestamp + duration;
-
-    transaction.startChild({
-      description: `${entry.initiatorType} ${resourceName}`,
-      endTimestamp,
-      op: 'resource',
-      startTimestamp,
-    });
-
-    return endTimestamp;
+    return undefined;
   }
 
-  return undefined;
+  const data: Record<string, any> = {};
+  if ('transferSize' in entry) {
+    data['Transfer Size'] = entry.transferSize;
+  }
+  if ('encodedBodySize' in entry) {
+    data['Encoded Body Size'] = entry.encodedBodySize;
+  }
+  if ('decodedBodySize' in entry) {
+    data['Decoded Body Size'] = entry.decodedBodySize;
+  }
+
+  const startTimestamp = timeOrigin + startTime;
+  const endTimestamp = startTimestamp + duration;
+
+  _startChild(transaction, {
+    description: resourceName,
+    endTimestamp,
+    op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource',
+    startTimestamp,
+    data,
+  });
+
+  return endTimestamp;
 }
 
 /** Create performance navigation related spans */
@@ -254,7 +271,7 @@ function addPerformanceNavigationTiming(
   if (!start || !end) {
     return;
   }
-  transaction.startChild({
+  _startChild(transaction, {
     description: event,
     endTimestamp: timeOrigin + msToSec(end),
     op: 'browser',
@@ -264,17 +281,33 @@ function addPerformanceNavigationTiming(
 
 /** Create request and response related spans */
 function addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  transaction.startChild({
+  _startChild(transaction, {
     description: 'request',
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
     startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
   });
 
-  transaction.startChild({
+  _startChild(transaction, {
     description: 'response',
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
     startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+  });
+}
+
+/**
+ * Helper function to start child on transactions. This function will make sure that the transaction will
+ * use the start timestamp of the created child span if it is earlier than the transactions actual
+ * start timestamp.
+ */
+export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }: SpanContext): Span {
+  if (startTimestamp && transaction.startTimestamp > startTimestamp) {
+    transaction.startTimestamp = startTimestamp;
+  }
+
+  return transaction.startChild({
+    startTimestamp,
+    ...ctx,
   });
 }

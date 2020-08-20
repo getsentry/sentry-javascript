@@ -6,9 +6,7 @@ import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { Span } from '../span';
 import { SpanStatus } from '../spanstatus';
-
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { registerErrorInstrumentation } from './errors';
 import { MetricsInstrumentation } from './metrics';
 import {
   defaultRequestInstrumentionOptions,
@@ -46,24 +44,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   startTransactionOnPageLoad: boolean;
 
   /**
-   * beforeNavigate is called before a pageload/navigation transaction is created and allows for users
-   * to set custom transaction context. Defaults behaviour is to return `window.location.pathname`.
-   *
-   * If undefined is returned, a pageload/navigation transaction will not be created.
-   */
-  beforeNavigate(context: TransactionContext): TransactionContext | undefined;
-
-  /**
-   * Instrumentation that creates routing change transactions. By default creates
-   * pageload and navigation transactions.
-   */
-  routingInstrumentation<T extends TransactionType>(
-    startTransaction: (context: TransactionContext) => T | undefined,
-    startTransactionOnPageLoad?: boolean,
-    startTransactionOnLocationChange?: boolean,
-  ): void;
-
-  /**
    * The maximum duration of a transaction before it will be marked as "deadline_exceeded".
    * If you never want to mark a transaction set it to 0.
    * Time is in seconds.
@@ -80,6 +60,24 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Default: true
    */
   markBackgroundTransactions: boolean;
+
+  /**
+   * beforeNavigate is called before a pageload/navigation transaction is created and allows for users
+   * to set custom transaction context. Defaults behaviour is to return `window.location.pathname`.
+   *
+   * If undefined is returned, a pageload/navigation transaction will not be created.
+   */
+  beforeNavigate(context: TransactionContext): TransactionContext | undefined;
+
+  /**
+   * Instrumentation that creates routing change transactions. By default creates
+   * pageload and navigation transactions.
+   */
+  routingInstrumentation<T extends TransactionType>(
+    startTransaction: (context: TransactionContext) => T | undefined,
+    startTransactionOnPageLoad?: boolean,
+    startTransactionOnLocationChange?: boolean,
+  ): void;
 }
 
 /**
@@ -154,6 +152,7 @@ export class BrowserTracing implements Integration {
       );
     }
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const {
       routingInstrumentation,
       startTransactionOnLocationChange,
@@ -171,9 +170,6 @@ export class BrowserTracing implements Integration {
       startTransactionOnLocationChange,
     );
 
-    // TODO: Should this be default behaviour?
-    registerErrorInstrumentation();
-
     if (markBackgroundTransactions) {
       registerBackgroundTabDetection();
     }
@@ -188,6 +184,7 @@ export class BrowserTracing implements Integration {
       return undefined;
     }
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
 
     // if beforeNavigate returns undefined, we should not start a transaction.

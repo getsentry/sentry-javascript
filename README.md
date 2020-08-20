@@ -5,7 +5,7 @@
   <br />
 </p>
 
-[![Build Status](https://travis-ci.com/getsentry/sentry-javascript.svg?branch=master)](https://travis-ci.com/getsentry/sentry-javascript)
+![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/Build%20&%20Test/badge.svg)
 [![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
@@ -92,7 +92,5 @@ extensions for APM
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
   utility functions useful for various SDKs.
-- [`@sentry/typescript`](https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript): Shared
-  Typescript compiler and linter options.
 - [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
   packages.

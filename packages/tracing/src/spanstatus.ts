@@ -1,4 +1,5 @@
 /** The status of an Span. */
+// eslint-disable-next-line import/export
 export enum SpanStatus {
   /** The operation completed successfully. */
   Ok = 'ok',
@@ -36,7 +37,7 @@ export enum SpanStatus {
   DataLoss = 'data_loss',
 }
 
-// tslint:disable:no-unnecessary-qualifier no-namespace
+// eslint-disable-next-line @typescript-eslint/no-namespace, import/export
 export namespace SpanStatus {
   /**
    * Converts a HTTP status code into a {@link SpanStatus}.
@@ -44,7 +45,6 @@ export namespace SpanStatus {
    * @param httpStatus The HTTP response status code.
    * @returns The span status or {@link SpanStatus.UnknownError}.
    */
-  // tslint:disable-next-line:completed-docs
   export function fromHttpCode(httpStatus: number): SpanStatus {
     if (httpStatus < 400) {
       return SpanStatus.Ok;

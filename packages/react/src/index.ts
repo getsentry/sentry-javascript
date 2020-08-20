@@ -1,5 +1,10 @@
 import { addGlobalEventProcessor, SDK_VERSION } from '@sentry/browser';
 
+/**
+ * A global side effect that makes sure Sentry events that user
+ * `@sentry/react` will correctly have Sentry events associated
+ * with it.
+ */
 function createReactEventProcessor(): void {
   if (addGlobalEventProcessor) {
     addGlobalEventProcessor(event => {
@@ -26,5 +31,7 @@ export * from '@sentry/browser';
 export { Profiler, withProfiler, useProfiler } from './profiler';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
 export { createReduxEnhancer } from './redux';
+export { reactRouterV3Instrumentation } from './reactrouterv3';
+export { reactRouterV4Instrumentation, reactRouterV5Instrumentation, withSentryRouting } from './reactrouter';
 
 createReactEventProcessor();

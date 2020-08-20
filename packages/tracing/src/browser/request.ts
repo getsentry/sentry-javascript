@@ -1,7 +1,6 @@
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-
 import { getActiveTransaction } from './utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
@@ -40,9 +39,10 @@ export interface RequestInstrumentationOptions {
 }
 
 /** Data returned from fetch callback */
-interface FetchData {
+export interface FetchData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args: any[];
-  fetchData: {
+  fetchData?: {
     method: string;
     url: string;
     // span_id
@@ -59,11 +59,12 @@ interface XHRData {
       method: string;
       url: string;
       status_code: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: Record<string, any>;
     };
     __sentry_xhr_span_id__?: string;
     __sentry_own_request__: boolean;
-    setRequestHeader?: Function;
+    setRequestHeader?: (key: string, val: string) => void;
   };
   startTimestamp: number;
   endTimestamp?: number;
@@ -77,6 +78,7 @@ export const defaultRequestInstrumentionOptions: RequestInstrumentationOptions =
 
 /** Registers span creators for xhr and fetch requests  */
 export function registerRequestInstrumentation(_options?: Partial<RequestInstrumentationOptions>): void {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentionOptions,
     ..._options,
@@ -104,7 +106,7 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
   if (traceFetch) {
     addInstrumentationHandler({
       callback: (handlerData: FetchData) => {
-        fetchCallback(handlerData, shouldCreateSpan, spans);
+        _fetchCallback(handlerData, shouldCreateSpan, spans);
       },
       type: 'fetch',
     });
@@ -123,12 +125,12 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
 /**
  * Create and track fetch request spans
  */
-function fetchCallback(
+export function _fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
-  if (!shouldCreateSpan(handlerData.fetchData.url) || !handlerData.fetchData) {
+  if (!handlerData.fetchData || !shouldCreateSpan(handlerData.fetchData.url)) {
     return;
   }
 
@@ -137,7 +139,7 @@ function fetchCallback(
     if (span) {
       span.finish();
 
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[handlerData.fetchData.__span];
     }
     return;
@@ -154,18 +156,20 @@ function fetchCallback(
       op: 'http',
     });
 
+    handlerData.fetchData.__span = span.spanId;
     spans[span.spanId] = span;
 
     const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
     let headers = options.headers;
     if (isInstanceOf(request, Request)) {
       headers = (request as Request).headers;
     }
     if (headers) {
-      // tslint:disable-next-line: no-unsafe-any
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (typeof headers.append === 'function') {
-        // tslint:disable-next-line: no-unsafe-any
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         headers.append('sentry-trace', span.toTraceparent());
       } else if (Array.isArray(headers)) {
         headers = [...headers, ['sentry-trace', span.toTraceparent()]];
@@ -209,7 +213,7 @@ function xhrCallback(
       span.setHttpStatus(xhr.status_code);
       span.finish();
 
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[handlerData.xhr.__sentry_xhr_span_id__];
     }
     return;

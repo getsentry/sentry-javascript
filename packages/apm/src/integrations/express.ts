@@ -1,7 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable prefer-rest-params */
 import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
-// tslint:disable-next-line:no-implicit-dependencies
-import { Application, ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
+
+// Have to manually set types because we are using package-alias
+interface Application {
+  use(...args: any): any;
+}
+
+type ErrorRequestHandler = (...args: any) => any;
+type RequestHandler = (...args: any) => any;
+type NextFunction = (...args: any) => any;
+
+interface Response {
+  once(name: string, callback: () => void): void;
+}
 
 /**
  * Internal helper for `__sentry_transaction`
@@ -21,12 +34,12 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Express.id;
+  public static id: string = 'Express';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'Express';
+  public name: string = Express.id;
 
   /**
    * Express App instance
@@ -64,6 +77,7 @@ export class Express implements Integration {
  * // error handler
  * app.use(function (err, req, res, next) { ... })
  */
+// eslint-disable-next-line @typescript-eslint/ban-types
 function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
   const arrity = fn.length;
 
@@ -167,6 +181,7 @@ function wrapUseArgs(args: IArguments): unknown[] {
  * Patches original app.use to utilize our tracing functionality
  */
 function instrumentMiddlewares(app: Application): Application {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const originalAppUse = app.use;
   app.use = function(): any {
     return originalAppUse.apply(this, wrapUseArgs(arguments));

@@ -3,7 +3,7 @@ import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
-const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
+const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w.-]+)(?::(\d+))?\/(.+)/;
 
 /** Error message */
 const ERROR_MESSAGE = 'Invalid Dsn';
@@ -46,7 +46,6 @@ export class Dsn implements DsnComponents {
    * @param withPassword When set to true, the password will be included.
    */
   public toString(withPassword: boolean = false): string {
-    // tslint:disable-next-line:no-this-assignment
     const { host, path, pass, port, projectId, protocol, user } = this;
     return (
       `${protocol}://${user}${withPassword && pass ? `:${pass}` : ''}` +

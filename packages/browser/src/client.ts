@@ -24,6 +24,29 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   }
 
   /**
+   * Show a report dialog to the user to send feedback to a specific event.
+   *
+   * @param options Set individual options for the dialog
+   */
+  public showReportDialog(options: ReportDialogOptions = {}): void {
+    // doesn't work without a document (React Native)
+    const document = getGlobalObject<Window>().document;
+    if (!document) {
+      return;
+    }
+
+    if (!this._isEnabled()) {
+      logger.error('Trying to call showReportDialog with Sentry Client disabled');
+      return;
+    }
+
+    injectReportDialog({
+      ...options,
+      dsn: options.dsn || this.getDsn(),
+    });
+  }
+
+  /**
    * @inheritDoc
    */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
@@ -53,37 +76,5 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       integration.addSentryBreadcrumb(event);
     }
     super._sendEvent(event);
-  }
-
-  /**
-   * Show a report dialog to the user to send feedback to a specific event.
-   *
-   * @param options Set individual options for the dialog
-   */
-  public showReportDialog(options: ReportDialogOptions = {}): void {
-    // doesn't work without a document (React Native)
-    const document = getGlobalObject<Window>().document;
-    if (!document) {
-      return;
-    }
-
-    if (!this._isEnabled()) {
-      logger.error('Trying to call showReportDialog with Sentry Client is disabled');
-      return;
-    }
-
-    const dsn = options.dsn || this.getDsn();
-
-    if (!options.eventId) {
-      logger.error('Missing `eventId` option in showReportDialog call');
-      return;
-    }
-
-    if (!dsn) {
-      logger.error('Missing `Dsn` option in showReportDialog call');
-      return;
-    }
-
-    injectReportDialog(options);
   }
 }
