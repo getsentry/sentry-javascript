@@ -89,6 +89,7 @@ export class AWSLambda implements Integration {
 
       /** check timeout flag */
       if (this.timeoutWarning === true) {
+        this.awsContext.callbackWaitsForEmptyEventLoop = false;
         timeOutError(configuredTimeInMilli);
       }
     }
