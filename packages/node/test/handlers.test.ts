@@ -138,20 +138,20 @@ describe('parseRequest', () => {
   describe('parseRequest.transaction property', () => {
     test('extracts method and full route path by default from `originalUrl`', () => {
       const parsedRequest: Event = parseRequest({}, mockReq);
-      expect(parsedRequest.transaction).toEqual('POST|/some/originalUrl');
+      expect(parsedRequest.transaction).toEqual('POST /some/originalUrl');
     });
 
     test('extracts method and full route path by default from `url` if `originalUrl` is not present', () => {
       delete mockReq.originalUrl;
       const parsedRequest: Event = parseRequest({}, mockReq);
-      expect(parsedRequest.transaction).toEqual('POST|/some/url');
+      expect(parsedRequest.transaction).toEqual('POST /some/url');
     });
 
     test('fallback to method and `route.path` if previous attempts failed', () => {
       delete mockReq.originalUrl;
       delete mockReq.url;
       const parsedRequest: Event = parseRequest({}, mockReq);
-      expect(parsedRequest.transaction).toEqual('POST|/path');
+      expect(parsedRequest.transaction).toEqual('POST /path');
     });
 
     test('can extract path only instead if configured', () => {

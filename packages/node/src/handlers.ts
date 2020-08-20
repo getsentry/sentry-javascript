@@ -113,7 +113,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
       case 'methodPath':
       default: {
         const method = request.method.toUpperCase();
-        return `${method}|${routePath}`;
+        return `${method} ${routePath}`;
       }
     }
   } catch (_oO) {
