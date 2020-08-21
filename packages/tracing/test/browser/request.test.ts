@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
-import { Span, Transaction } from '../../src';
+import { Span, Transaction, SpanStatus } from '../../src';
 import { _fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 
@@ -153,6 +153,38 @@ describe('_fetchCallback()', () => {
     expect(spans).toEqual({});
     if (transaction.spanRecorder) {
       expect(transaction.spanRecorder.spans[1].endTimestamp).toBeDefined();
+    } else {
+      fail('Transaction does not have span recorder');
+    }
+  });
+
+  it('sets response status on finish', () => {
+    const shouldCreateSpan = (_: string): boolean => true;
+    const data: FetchData = {
+      args: ['/users'],
+      fetchData: {
+        method: 'GET',
+        url: '/users',
+      },
+      startTimestamp: 1595509730275,
+    };
+    const spans: Record<string, Span> = {};
+
+    // Start fetch request
+    _fetchCallback(data, shouldCreateSpan, spans);
+
+    const newData = {
+      ...data,
+      endTimestamp: data.startTimestamp + 12343234,
+      response: (() => {
+        const response = { status: 404 } as Response;
+        return response;
+      })(),
+    };
+    // End fetch request
+    _fetchCallback(newData, shouldCreateSpan, spans);
+    if (transaction.spanRecorder) {
+      expect(transaction.spanRecorder.spans[1].status).toBe(SpanStatus.fromHttpCode(404));
     } else {
       fail('Transaction does not have span recorder');
     }

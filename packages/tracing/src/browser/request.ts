@@ -48,6 +48,7 @@ export interface FetchData {
     // span_id
     __span?: string;
   };
+  response?: Response;
   startTimestamp: number;
   endTimestamp?: number;
 }
@@ -137,6 +138,10 @@ export function _fetchCallback(
   if (handlerData.endTimestamp && handlerData.fetchData.__span) {
     const span = spans[handlerData.fetchData.__span];
     if (span) {
+      const response = handlerData.response;
+      if (response) {
+        span.setHttpStatus(response.status);
+      }
       span.finish();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
