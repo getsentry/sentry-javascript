@@ -74,6 +74,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         // This handles when someone does: `throw "something awesome";`
         // We use synthesized Error here so we can extract a (rough) stack trace.
         ex = (hint && hint.syntheticException) || new Error(exception as string);
+        (ex as Error).message = exception;
       }
       mechanism.synthetic = true;
     }
