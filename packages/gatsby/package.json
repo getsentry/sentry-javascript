@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@sentry/react": "5.21.4",
-    "@sentry/types": "5.21.4"
+    "@sentry/tracing": "5.21.4"
   },
   "peerDependencies": {
     "gatsby": "*"
