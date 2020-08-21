@@ -64,7 +64,7 @@
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:tslint": "tslint --fix -t stylish -p .",
-    "test": "run-s test:jest test:express test:webpack",
+    "test": "run-s test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
     "test:express": "node test/manual/express-scope-separation/start.js",

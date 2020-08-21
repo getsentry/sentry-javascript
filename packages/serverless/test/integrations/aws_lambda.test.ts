@@ -33,7 +33,7 @@ exports.handler = ${additionalLambdaPrelude.scenario} (event, context) => {
     dsn:
       "https://e16b3f19d01b4989b118f20dbcc11f87@o388065.ingest.sentry.io/5224330",
     transport: testTransport,
-    integrations: [new AwsLambda({ context, timeoutWarning: true})],
+    integrations: [new AwsLambda({ context, timeoutWarning: ${additionalLambdaPrelude.timeoutWarning}})],
   });
 
   ${additionalLambdaPrelude.error}
@@ -55,15 +55,15 @@ exports.handler = ${additionalLambdaPrelude.scenario} (event, context) => {
   }
 
   fs.mkdirSync(packageDir);
-  fs.appendFile(packageDir + '/index.js', lambdaPrelude, function (err: any) {
+  fs.appendFile(`${packageDir}/index.js`, lambdaPrelude, (err: any) => {
     if (err) {
       callback(err);
     } else if (fs.existsSync(setupJsonFile)) {
-      fs.readFile(setupJsonFile, function (err: any, packageData: any) {
+      fs.readFile(setupJsonFile, (err: any, packageData: any) => {
         if (err) {
           callback(err);
         } else {
-          fs.appendFile(packageDir + '/package.json', packageData, function (err: any) {
+          fs.appendFile(`${packageDir}/package.json`, packageData, (err: any) => {
             if (err) {
               callback(err);
             } else {
@@ -91,7 +91,7 @@ function awsSdkFunctions(runtime: string, callback: any): void {
       ZipFile: Buffer.from(zipContents),
     },
     Description: 'lambda function for testing',
-    FunctionName: 'test-lambda-' + uuid.v4(),
+    FunctionName: `test-lambda-${uuid.v4()}`,
     Handler: 'index.handler',
     KMSKeyArn: null,
     MemorySize: 128,
@@ -142,291 +142,423 @@ function awsSdkFunctions(runtime: string, callback: any): void {
 }
 
 function awsEventParser(data: any) {
-  let eventData = Buffer.from(data.LogResult, 'base64').toString('ascii').split('\n');
-  let value = eventData[2].split('Event:');
-  let event = JSON.parse(value[1]);
+  const eventData = Buffer.from(data.LogResult, 'base64')
+    .toString('ascii')
+    .split('\n');
+  const value = eventData[2].split('Event:');
+  const event = JSON.parse(value[1]);
   return event;
 }
 
 function awsEventParserForTimeout(data: any) {
-  let eventData = Buffer.from(data.LogResult, 'base64').toString('ascii').split('\n');
-  let eventLog = eventData[1].split('Event:');
+  const eventData = Buffer.from(data.LogResult, 'base64')
+    .toString('ascii')
+    .split('\n');
+  const eventLog = eventData[1].split('Event:');
   return JSON.parse(eventLog[1]);
 }
 
 describe('AWS Lambda serverless test suit ', () => {
-  // Handled exception for with Async and Sync scenario for NodeJS10.x and NodeJS12.x
-  test('should be capture handled exception for nodejs10.x version async scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  function testAssertion(data: any, callback: any) {
+    runLambdaFunction(data, (err: any) => {
+      if (err) {
+        throw new Error(err);
+      } else {
+        awsSdkFunctions(data.runtimeVersion, (err: any, res: any) => {
+          if (err) {
+            throw new Error(err);
+          } else {
+            const event = awsEventParser(res);
+            const resPayload = JSON.parse(res.Payload);
+            expect(res.FunctionError).toBe('Unhandled');
+            expect(res.Payload).toBe(data.payload);
+            expect(resPayload.errorType).toBe(data.errorType);
+            expect(resPayload.errorMessage).toBe(data.errorMessage);
+            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
+            callback(null, true);
+          }
+        });
+      }
+    });
+  }
+  const testTimeout: number = 60000;
+  
+  // Handled exception for with Async and Sync scenario for NodeJS10.x and NodeJS12.x timeoutWarning is true and false
+  test(
+    'should be capture handled exception for nodejs10.x version async scenario with timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
     //throws a dummy error
      throw new Error("Dummy Error.");
     `,
-      scenario: 'async',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime: string = 'nodejs10.x';
+        scenario: 'async',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('Error');
-            expect(resPayload.errorMessage).toBe('Dummy Error.');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
-
-  test('should be capture handled exception for nodejs10.x version sync scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture handled exception for nodejs10.x version async scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
     //throws a dummy error
      throw new Error("Dummy Error.");
     `,
-      scenario: '',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime: string = 'nodejs10.x';
+        scenario: 'async',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('Error');
-            expect(resPayload.errorMessage).toBe('Dummy Error.');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
-
-  test('should be capture handled exception for nodejs12.x version async scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture handled exception for nodejs10.x version sync scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
     //throws a dummy error
      throw new Error("Dummy Error.");
     `,
-      scenario: 'async',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs12.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('Error');
-            expect(resPayload.errorMessage).toBe('Dummy Error.');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
+        scenario: '',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
-  test('should be capture handled exception for nodejs12.x version sync scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture handled exception for nodejs10.x version sync scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
     //throws a dummy error
      throw new Error("Dummy Error.");
     `,
-      scenario: '',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs12.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('Error');
-            expect(resPayload.errorMessage).toBe('Dummy Error.');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
+        scenario: '',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
-  // Unhandled exception for with Async and Sync scenario for NodeJS10.x and NodeJS12.x
-  test('should be capture unhandled exception for nodejs10.x version async scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture handled exception for nodejs12.x version async scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+    //throws a dummy error
+     throw new Error("Dummy Error.");
+    `,
+        scenario: 'async',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  test(
+    'should be capture handled exception for nodejs12.x version async scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+    //throws a dummy error
+     throw new Error("Dummy Error.");
+    `,
+        scenario: 'async',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  test(
+    'should be capture handled exception for nodejs12.x version sync scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+    //throws a dummy error
+     throw new Error("Dummy Error.");
+    `,
+        scenario: '',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  test(
+    'should be capture handled exception for nodejs12.x version sync scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+    //throws a dummy error
+     throw new Error("Dummy Error.");
+    `,
+        scenario: '',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"Error","errorMessage":"Dummy Error.","trace":["Error: Dummy Error.","    at Runtime.exports.handler (/var/task/index.js:26:12)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'Error',
+        errorMessage: 'Dummy Error.',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  // Unhandled exception for with Async and Sync scenario for NodeJS10.x and NodeJS12.x with timeoutWarning is true and false
+  test(
+    'should be capture unhandled exception for nodejs10.x version async scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
       //call undefined function.
       notDefinedFunction();
     `,
-      scenario: 'async',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs10.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('ReferenceError');
-            expect(resPayload.errorMessage).toBe('notDefinedFunction is not defined');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
+        scenario: 'async',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
-  test('should be capture unhandled exception for nodejs10.x version sync scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture unhandled exception for nodejs10.x version async scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
       //call undefined function.
       notDefinedFunction();
     `,
-      scenario: '',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs10.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('ReferenceError');
-            expect(resPayload.errorMessage).toBe('notDefinedFunction is not defined');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
+        scenario: 'async',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
-  test('should be capture unhandled exception for nodejs12.x version async scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture unhandled exception for nodejs10.x version sync scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
       //call undefined function.
       notDefinedFunction();
     `,
-      scenario: 'async',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs12.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('ReferenceError');
-            expect(resPayload.errorMessage).toBe('notDefinedFunction is not defined');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
+        scenario: '',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
-  test('should be capture unhandled exception for nodejs12.x version sync scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture unhandled exception for nodejs10.x version sync scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
       //call undefined function.
       notDefinedFunction();
     `,
-      scenario: '',
-    };
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs12.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParser(res);
-            let resPayload = JSON.parse(res.Payload);
-            expect(res.FunctionError).toBe('Unhandled');
-            expect(res.Payload).toBe(
-              '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
-            );
-            expect(resPayload.errorType).toBe('ReferenceError');
-            expect(resPayload.errorMessage).toBe('notDefinedFunction is not defined');
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
+        scenario: '',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs10.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  test(
+    'should be capture unhandled exception for nodejs12.x version async scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+      //call undefined function.
+      notDefinedFunction();
+    `,
+        scenario: 'async',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  test(
+    'should be capture unhandled exception for nodejs12.x version async scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+      //call undefined function.
+      notDefinedFunction();
+    `,
+        scenario: 'async',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  test(
+    'should be capture unhandled exception for nodejs12.x version sync scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+      //call undefined function.
+      notDefinedFunction();
+    `,
+        scenario: '',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
+
+  test(
+    'should be capture unhandled exception for nodejs12.x version sync scenario timeoutWarning=false',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
+      //call undefined function.
+      notDefinedFunction();
+    `,
+        scenario: '',
+        timeoutWarning: 'false',
+        runtimeVersion: 'nodejs12.x',
+        payload:
+          '{"errorType":"ReferenceError","errorMessage":"notDefinedFunction is not defined","trace":["ReferenceError: notDefinedFunction is not defined","    at Runtime.exports.handler (/var/task/index.js:26:7)","    at Runtime.handleOnce (/var/runtime/Runtime.js:66:25)"]}',
+        errorType: 'ReferenceError',
+        errorMessage: 'notDefinedFunction is not defined',
+      };
+      testAssertion(additionalLambdaPrelude, (_res: any) => {
+        done();
+      });
+    },
+    testTimeout,
+  );
 
   // Timeout error for with Async and Sync scenario for NodeJS10.x and NodeJS12.x
-  test('should be capture timeout error for nodejs10.x version async scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture timeout error for nodejs10.x version async scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
   let data = [];
   let ip_address = '192.0.2.1'; // Dummy IP which does not exist
   let url = 'http://' + ip_address + '/api/test';
@@ -448,36 +580,39 @@ describe('AWS Lambda serverless test suit ', () => {
   });
   return response;
     `,
-      scenario: 'async',
-    };
+        scenario: 'async',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs10.x',
+      };
+      runLambdaFunction(additionalLambdaPrelude, (err: any) => {
+        if (err) {
+          throw new Error(err);
+        } else {
+          awsSdkFunctions(additionalLambdaPrelude.runtimeVersion, (err: any, res: any) => {
+            if (err) {
+              throw new Error(err);
+            } else {
+              const event = awsEventParserForTimeout(res);
+              expect(event.exception.values[0].type).toBe('Error');
+              expect(event.exception.values[0].value).toBe(
+                'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
+              );
+              expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
+              expect(res.FunctionError).toBe('Unhandled');
+              done();
+            }
+          });
+        }
+      });
+    },
+    testTimeout,
+  );
 
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs10.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParserForTimeout(res);
-            expect(event.exception.values[0].type).toBe('Error');
-            expect(event.exception.values[0].value).toBe(
-              'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
-            );
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            expect(res.FunctionError).toBe('Unhandled');
-
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
-
-  test('should be capture timeout error for nodejs12.x version async scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture timeout error for nodejs10.x version async scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
   let data = [];
   let ip_address = '192.0.2.1'; // Dummy IP which does not exist
   let url = 'http://' + ip_address + '/api/test';
@@ -499,36 +634,40 @@ describe('AWS Lambda serverless test suit ', () => {
   });
   return response;
     `,
-      scenario: 'async',
-    };
+        scenario: 'async',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs10.x',
+      };
 
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs12.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParserForTimeout(res);
-            expect(event.exception.values[0].type).toBe('Error');
-            expect(event.exception.values[0].value).toBe(
-              'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
-            );
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            expect(res.FunctionError).toBe('Unhandled');
+      runLambdaFunction(additionalLambdaPrelude, (err: any) => {
+        if (err) {
+          throw new Error(err);
+        } else {
+          awsSdkFunctions(additionalLambdaPrelude.runtimeVersion, (err: any, res: any) => {
+            if (err) {
+              throw new Error(err);
+            } else {
+              const event = awsEventParserForTimeout(res);
+              expect(event.exception.values[0].type).toBe('Error');
+              expect(event.exception.values[0].value).toBe(
+                'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
+              );
+              expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
+              expect(res.FunctionError).toBe('Unhandled');
+              done();
+            }
+          });
+        }
+      });
+    },
+    testTimeout,
+  );
 
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
-
-  test('should be capture timeout error for nodejs10.x version sync scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture timeout error for nodejs12.x version sync scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
   let data = [];
   let ip_address = '192.0.2.1'; // Dummy IP which does not exist
   let url = 'http://' + ip_address + '/api/test';
@@ -540,36 +679,39 @@ describe('AWS Lambda serverless test suit ', () => {
       callback(Error(e));
     });
     `,
-      scenario: '',
-    };
+        scenario: '',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs12.x',
+      };
+      runLambdaFunction(additionalLambdaPrelude, (err: any) => {
+        if (err) {
+          throw new Error(err);
+        } else {
+          awsSdkFunctions(additionalLambdaPrelude.runtimeVersion, (err: any, res: any) => {
+            if (err) {
+              throw new Error(err);
+            } else {
+              const event = awsEventParserForTimeout(res);
+              expect(event.exception.values[0].type).toBe('Error');
+              expect(event.exception.values[0].value).toBe(
+                'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
+              );
+              expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
+              expect(res.FunctionError).toBe('Unhandled');
+              done();
+            }
+          });
+        }
+      });
+    },
+    testTimeout,
+  );
 
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs10.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParserForTimeout(res);
-            expect(event.exception.values[0].type).toBe('Error');
-            expect(event.exception.values[0].value).toBe(
-              'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
-            );
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            expect(res.FunctionError).toBe('Unhandled');
-
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
-
-  test('should be capture timeout error for nodejs12.x version sync scenario', (done) => {
-    const additionalLambdaPrelude: object = {
-      error: `
+  test(
+    'should be capture timeout error for nodejs12.x version sync scenario timeoutWarning=true',
+    done => {
+      const additionalLambdaPrelude: any = {
+        error: `
   let data = [];
   let ip_address = '192.0.2.1'; // Dummy IP which does not exist
   let url = 'http://' + ip_address + '/api/test';
@@ -581,30 +723,31 @@ describe('AWS Lambda serverless test suit ', () => {
       callback(Error(e));
     });
     `,
-      scenario: '',
-    };
-
-    runLambdaFunction(additionalLambdaPrelude, (err: any) => {
-      if (err) {
-        throw new Error(err);
-      } else {
-        let runtime = 'nodejs12.x';
-        awsSdkFunctions(runtime, (err: any, res: any) => {
-          if (err) {
-            throw new Error(err);
-          } else {
-            let event = awsEventParserForTimeout(res);
-            expect(event.exception.values[0].type).toBe('Error');
-            expect(event.exception.values[0].value).toBe(
-              'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
-            );
-            expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
-            expect(res.FunctionError).toBe('Unhandled');
-
-            done();
-          }
-        });
-      }
-    });
-  }, 60000);
+        scenario: '',
+        timeoutWarning: 'true',
+        runtimeVersion: 'nodejs12.x',
+      };
+      runLambdaFunction(additionalLambdaPrelude, (err: any) => {
+        if (err) {
+          throw new Error(err);
+        } else {
+          awsSdkFunctions(additionalLambdaPrelude.runtimeVersion, (err: any, res: any) => {
+            if (err) {
+              throw new Error(err);
+            } else {
+              const event = awsEventParserForTimeout(res);
+              expect(event.exception.values[0].type).toBe('Error');
+              expect(event.exception.values[0].value).toBe(
+                'WARNING : Function is expected to get timed out. Configured timeout duration = 3 seconds.',
+              );
+              expect(event.extra['sys.argv'][1]).toBe('/var/runtime/index.js');
+              expect(res.FunctionError).toBe('Unhandled');
+              done();
+            }
+          });
+        }
+      });
+    },
+    testTimeout,
+  );
 });
