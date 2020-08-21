@@ -39,10 +39,6 @@ type PreloadedState<S> = Required<S> extends {
     : never
   : { [K in keyof S]: S[K] extends string | number | boolean | symbol ? S[K] : PreloadedState<S[K]> };
 
-type StoreEnhancer<Ext = Record<string, unknown>, StateExt = never> = (
-  next: StoreEnhancerStoreCreator<Ext, StateExt>,
-) => StoreEnhancerStoreCreator<Ext, StateExt>;
-
 type StoreEnhancerStoreCreator<Ext = Record<string, unknown>, StateExt = never> = <
   S = any,
   A extends Action = AnyAction
@@ -84,7 +80,8 @@ const defaultOptions: SentryEnhancerOptions = {
  *
  * @param enhancerOptions Options to pass to the enhancer
  */
-function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): StoreEnhancer {
+function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): any {
+  // Note: We return an any type as to not have type conflicts.
   const options = {
     ...defaultOptions,
     ...enhancerOptions,
