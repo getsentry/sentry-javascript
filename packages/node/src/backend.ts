@@ -19,6 +19,9 @@ import { HTTPSTransport, HTTPTransport } from './transports';
  * @see NodeClient for more information.
  */
 export interface NodeOptions extends Options {
+  /** handler */
+  aws_context?: string;
+
   /** Sets an optional server name (device name) */
   serverName?: string;
 
@@ -39,9 +42,6 @@ export interface NodeOptions extends Options {
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
-
-  /** handler */
-  aws_context?: string;
 }
 
 /**
