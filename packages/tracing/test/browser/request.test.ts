@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
-import { Span, Transaction, SpanStatus } from '../../src';
+import { Span, SpanStatus, Transaction } from '../../src';
 import { _fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 
