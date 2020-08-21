@@ -9,15 +9,18 @@ module.exports = {
     '**/dist/**/*',
     '**/esm/**/*',
     '**/build/**/*',
-    '**/packages/opentracing/**/*',
     '**/packages/typescript/**/*',
-    '**/packages/raven-js/**/*',
-    '**/packages/raven/**/*',
-    '**/dangerfile.ts',
+    '**/packages/eslint-*/**/*',
   ],
   mode: 'modules',
   excludeExternals: true,
+  includeDeclarations: true,
+  includeVersion: true,
   excludeNotExported: true,
   excludePrivate: true,
+  // Turned on as @sentry/angular uses decorators
+  experimentalDecorators: true,
+  // Turned on for @sentry/react
+  jsx: 'react',
   'external-modulemap': '.*/packages/([^/]+)/.*',
 };

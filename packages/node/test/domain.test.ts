@@ -4,11 +4,12 @@ import * as domain from 'domain';
 // We need this import here to patch domain on the global object
 import * as Sentry from '../src';
 
-// tslint:disable-next-line: no-console
+// eslint-disable-next-line no-console
 console.log(Sentry.SDK_NAME);
 
 describe('domains', () => {
   test('without domain', () => {
+    // @ts-ignore property active does not exist on domain
     expect(domain.active).toBeFalsy();
     const hub = getCurrentHub();
     expect(hub).toEqual(new Hub());
@@ -43,7 +44,7 @@ describe('domains', () => {
 
     d1.run(() => {
       const hub = getCurrentHub();
-      hub.getStack().push({ client: 'process' });
+      hub.getStack().push({ client: 'process' } as any);
       expect(hub.getStack()[1]).toEqual({ client: 'process' });
       // Just in case so we don't have to worry which one finishes first
       // (although it always should be d2)
@@ -57,7 +58,7 @@ describe('domains', () => {
 
     d2.run(() => {
       const hub = getCurrentHub();
-      hub.getStack().push({ client: 'local' });
+      hub.getStack().push({ client: 'local' } as any);
       expect(hub.getStack()[1]).toEqual({ client: 'local' });
       setTimeout(() => {
         d2done = true;

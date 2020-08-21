@@ -1,9 +1,9 @@
-// tslint:disable:object-literal-sort-keys
-
 /**
  * This was originally forked from https://github.com/occ/TraceKit, but has since been
  * largely modified and is now maintained as part of Sentry JS SDK.
  */
+
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 /**
  * An object representing a single stack frame.
@@ -50,13 +50,22 @@ const gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:file|https?|blob|chrome|webpac
 const winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 const geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 const chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
+// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
+const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
 /** JSDoc */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export function computeStackTrace(ex: any): StackTrace {
-  // tslint:disable:no-unsafe-any
-
   let stack = null;
-  const popSize: number = ex && ex.framesToPop;
+  let popSize = 0;
+
+  if (ex) {
+    if (typeof ex.framesToPop === 'number') {
+      popSize = ex.framesToPop;
+    } else if (reactMinifiedRegexp.test(ex.message)) {
+      popSize = 1;
+    }
+  }
 
   try {
     // This must be tried first because Opera 10 *destroys*
@@ -88,9 +97,8 @@ export function computeStackTrace(ex: any): StackTrace {
 }
 
 /** JSDoc */
-// tslint:disable-next-line:cyclomatic-complexity
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, complexity
 function computeStackTraceFromStackProp(ex: any): StackTrace | null {
-  // tslint:disable:no-conditional-assignment
   if (!ex || !ex.stack) {
     return null;
   }
@@ -174,6 +182,7 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
 }
 
 /** JSDoc */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
   if (!ex || !ex.stacktrace) {
     return null;
@@ -183,13 +192,12 @@ function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
   // reliably in other circumstances.
   const stacktrace = ex.stacktrace;
   const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
-  const opera11Regex = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\))? in (.*):\s*$/i;
+  const opera11Regex = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\((.*)\))? in (.*):\s*$/i;
   const lines = stacktrace.split('\n');
   const stack = [];
   let parts;
 
   for (let line = 0; line < lines.length; line += 2) {
-    // tslint:disable:no-conditional-assignment
     let element = null;
     if ((parts = opera10Regex.exec(lines[line]))) {
       element = {
@@ -245,6 +253,7 @@ function popFrames(stacktrace: StackTrace, popSize: number): StackTrace {
  * https://github.com/getsentry/sentry-javascript/issues/1949
  * In this specific case we try to extract stacktrace.message.error.message
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractMessage(ex: any): string {
   const message = ex && ex.message;
   if (!message) {

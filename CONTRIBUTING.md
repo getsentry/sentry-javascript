@@ -57,4 +57,4 @@ When contributing to the codebase, please make note of the following:
 
 - Non-trivial PRs will not be accepted without tests (see above).
 - Please do not bump version numbers yourself. 
-- `raven-js` and `raven-node` are deprecated, and only bug and security fix PRs will be accepted. Any new features and improvements should be to our new SDKs (`browser` and `node`) and the packages (`core`, `hub`, `integrations`, and the like) which support them.
+- [`raven-js`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-js) and [`raven-node`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-node) are deprecated, and only bug and security fix PRs will be accepted targeting the [3.x branch](https://github.com/getsentry/sentry-javascript/tree/3.x). Any new features and improvements should be to our new SDKs (`browser` and `node`) and the packages (`core`, `hub`, `integrations`, and the like) which support them.

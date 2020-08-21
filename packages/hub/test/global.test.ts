@@ -23,8 +23,8 @@ describe('global', () => {
   test('hub extension methods receive correct hub instance', () => {
     const newestHub = new Hub(undefined, undefined, 999999);
     (global as any).__SENTRY__.hub = newestHub;
-    // tslint:disable-next-line: typedef
     const fn = jest.fn().mockImplementation(function(...args: []) {
+      // @ts-ignore typescript complains that this can be `any`
       expect(this).toBe(newestHub);
       expect(args).toEqual([1, 2, 3]);
     });

@@ -17,8 +17,8 @@ describe('Dsn', () => {
       expect(dsn.pass).toBe('xyz');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
-      expect(dsn.projectId).toBe('123');
       expect(dsn.path).toBe('');
+      expect(dsn.projectId).toBe('123');
     });
 
     test('applies partial components', () => {
@@ -33,8 +33,8 @@ describe('Dsn', () => {
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
-      expect(dsn.projectId).toBe('123');
       expect(dsn.path).toBe('');
+      expect(dsn.projectId).toBe('123');
     });
 
     test('throws for missing components', () => {
@@ -107,8 +107,8 @@ describe('Dsn', () => {
       expect(dsn.pass).toBe('xyz');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
-      expect(dsn.projectId).toBe('123');
       expect(dsn.path).toBe('');
+      expect(dsn.projectId).toBe('123');
     });
 
     test('parses a valid partial Dsn', () => {
@@ -133,6 +133,17 @@ describe('Dsn', () => {
       expect(dsn.projectId).toBe('321');
     });
 
+    test('with a query string', () => {
+      const dsn = new Dsn('https://abc@sentry.io/321?sample.rate=0.1&other=value');
+      expect(dsn.protocol).toBe('https');
+      expect(dsn.user).toBe('abc');
+      expect(dsn.pass).toBe('');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('');
+      expect(dsn.path).toBe('');
+      expect(dsn.projectId).toBe('321');
+    });
+
     test('throws when provided invalid Dsn', () => {
       expect(() => new Dsn('some@random.dsn')).toThrow(SentryError);
     });
@@ -147,6 +158,7 @@ describe('Dsn', () => {
     test('throws for invalid fields', () => {
       expect(() => new Dsn('httpx://abc@sentry.io/123')).toThrow(SentryError);
       expect(() => new Dsn('httpx://abc@sentry.io:xxx/123')).toThrow(SentryError);
+      expect(() => new Dsn('http://abc@sentry.io/abc')).toThrow(SentryError);
     });
   });
 

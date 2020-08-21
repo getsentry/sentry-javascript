@@ -1,8 +1,23 @@
 import { Breadcrumb } from './breadcrumb';
 import { EventProcessor } from './eventprocessor';
+import { Extra, Extras } from './extra';
 import { Severity } from './severity';
 import { Span } from './span';
+import { Transaction } from './transaction';
 import { User } from './user';
+
+/** JSDocs */
+export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => Scope);
+
+/** JSDocs */
+export interface ScopeContext {
+  user: User;
+  level: Severity;
+  extra: { [key: string]: any };
+  contexts: { [key: string]: any };
+  tags: { [key: string]: string };
+  fingerprint: string[];
+}
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -36,14 +51,14 @@ export interface Scope {
    * Set an object that will be merged sent as extra data with the event.
    * @param extras Extras object to merge into current context.
    */
-  setExtras(extras: { [key: string]: any }): this;
+  setExtras(extras: Extras): this;
 
   /**
    * Set key:value that will be sent as extra data with the event.
    * @param key String of extra
    * @param extra Any kind of data. This data will be normailzed.
    */
-  setExtra(key: string, extra: any): this;
+  setExtra(key: string, extra: Extra): this;
 
   /**
    * Sets the fingerprint on the scope to send with the events.
@@ -58,10 +73,9 @@ export interface Scope {
   setLevel(level: Severity): this;
 
   /**
-   * Sets the transaction on the scope for future events.
-   * @param transaction string This will be converted in a tag in Sentry
+   * Sets the transaction name on the scope for future events.
    */
-  setTransaction(transaction?: string): this;
+  setTransactionName(name?: string): this;
 
   /**
    * Sets context data with the given name.
@@ -75,6 +89,25 @@ export interface Scope {
    * @param span Span
    */
   setSpan(span?: Span): this;
+
+  /**
+   * Returns the `Span` if there is one
+   */
+  getSpan(): Span | undefined;
+
+  /**
+   * Returns the `Transaction` if there is one
+   */
+  getTransaction(): Transaction | undefined;
+
+  /**
+   * Updates the scope with provided data. Can work in three variations:
+   * - plain object containing updatable attributes
+   * - Scope instance that'll extract the attributes from
+   * - callback function that'll receive the current scope as an argument and allow for modifications
+   * @param captureContext scope modifier to be used
+   */
+  update(captureContext?: CaptureContext): this;
 
   /** Clears the current scope and resets its properties. */
   clear(): this;

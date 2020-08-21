@@ -1,9 +1,9 @@
 {
-  "name": "@sentry/typescript",
-  "version": "5.16.0-beta.1",
+  "name": "@sentry-internal/typescript",
+  "version": "5.21.1",
   "description": "Typescript configuration used at Sentry",
-  "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/typescript",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "private": false,
@@ -15,10 +15,11 @@
     "tslint-consistent-codestyle": "^1.15.1"
   },
   "peerDependencies": {
-    "tslint": "^5.11.0",
-    "typescript": "^3.2.0"
+    "tslint": "5.16.0",
+    "typescript": "3.9.7"
   },
   "scripts": {
-    "link:yarn": "yarn link"
+    "link:yarn": "yarn link",
+    "pack": "npm pack"
   }
 }

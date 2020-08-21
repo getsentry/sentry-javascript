@@ -6,8 +6,15 @@ const clientFn: any = jest.fn();
 
 describe('Hub', () => {
   afterEach(() => {
-    jest.resetAllMocks();
+    jest.restoreAllMocks();
     jest.useRealTimers();
+  });
+
+  test('call bindClient with provided client when constructing new instance', () => {
+    const testClient: any = { setupIntegrations: jest.fn() };
+    const spy = jest.spyOn(Hub.prototype, 'bindClient');
+    new Hub(testClient);
+    expect(spy).toHaveBeenCalledWith(testClient);
   });
 
   test('push process into stack', () => {
@@ -22,7 +29,7 @@ describe('Hub', () => {
 
   test("don't invoke client sync with wrong func", () => {
     const hub = new Hub(clientFn);
-    // @ts-ignore
+    // @ts-ignore we want to able to call private method
     hub._invokeClient('funca', true);
     expect(clientFn).not.toHaveBeenCalled();
   });
@@ -51,15 +58,35 @@ describe('Hub', () => {
       expect(hub.getStack()[1].client).toBe(testClient);
     });
 
-    test('bindClient', () => {
-      const testClient: any = { bla: 'a' };
-      const hub = new Hub(testClient);
-      const ndClient: any = { foo: 'bar' };
-      hub.pushScope();
-      hub.bindClient(ndClient);
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[0].client).toBe(testClient);
-      expect(hub.getStack()[1].client).toBe(ndClient);
+    describe('bindClient', () => {
+      test('should override curent client', () => {
+        const testClient: any = { setupIntegrations: jest.fn() };
+        const nextClient: any = { setupIntegrations: jest.fn() };
+        const hub = new Hub(testClient);
+        hub.bindClient(nextClient);
+        expect(hub.getStack()).toHaveLength(1);
+        expect(hub.getStack()[0].client).toBe(nextClient);
+      });
+
+      test('should bind client to the top-most layer', () => {
+        const testClient: any = { bla: 'a' };
+        const nextClient: any = { foo: 'bar' };
+        const hub = new Hub(testClient);
+        hub.pushScope();
+        hub.bindClient(nextClient);
+        expect(hub.getStack()).toHaveLength(2);
+        expect(hub.getStack()[0].client).toBe(testClient);
+        expect(hub.getStack()[1].client).toBe(nextClient);
+      });
+
+      test('should call setupIntegration method of passed client', () => {
+        const testClient: any = { setupIntegrations: jest.fn() };
+        const nextClient: any = { setupIntegrations: jest.fn() };
+        const hub = new Hub(testClient);
+        hub.bindClient(nextClient);
+        expect(testClient.setupIntegrations).toHaveBeenCalled();
+        expect(nextClient.setupIntegrations).toHaveBeenCalled();
+      });
     });
 
     test('inherit processors', () => {
@@ -136,22 +163,20 @@ describe('Hub', () => {
   });
 
   describe('configureScope', () => {
-    test('no client, should not invoke configureScope', () => {
-      expect.assertions(0);
-      const hub = new Hub();
-      hub.configureScope(_ => {
-        expect(true).toBeFalsy();
-      });
-    });
-
-    test('no client, should not invoke configureScope', () => {
-      expect.assertions(1);
+    test('should have an access to provide scope', () => {
       const localScope = new Scope();
       localScope.setExtra('a', 'b');
-      const hub = new Hub({ a: 'b' } as any, localScope);
-      hub.configureScope(confScope => {
-        expect((confScope as any)._extra).toEqual({ a: 'b' });
-      });
+      const hub = new Hub({} as any, localScope);
+      const cb = jest.fn();
+      hub.configureScope(cb);
+      expect(cb).toHaveBeenCalledWith(localScope);
+    });
+
+    test('should not invoke without client and scope', () => {
+      const hub = new Hub();
+      const cb = jest.fn();
+      hub.configureScope(cb);
+      expect(cb).not.toHaveBeenCalled();
     });
   });
 
@@ -169,6 +194,7 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureException('a');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].event_id).toBeTruthy();
     });
 
@@ -177,8 +203,11 @@ describe('Hub', () => {
       const spy = jest.spyOn(hub as any, '_invokeClient');
       const ex = new Error('foo');
       hub.captureException(ex);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].originalException).toBe(ex);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].syntheticException.message).toBe('Sentry syntheticException');
     });
   });
@@ -197,6 +226,7 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureMessage('a');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].event_id).toBeTruthy();
     });
 
@@ -204,8 +234,11 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureMessage('foo');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].originalException).toBe('foo');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].syntheticException).toBeInstanceOf(Error);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].syntheticException.message).toBe('foo');
     });
   });
@@ -230,6 +263,7 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureEvent(event);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].event_id).toBeTruthy();
     });
   });
@@ -276,6 +310,7 @@ describe('Hub', () => {
             expect(appliedEvent!.breadcrumbs![1]).toHaveProperty('timestamp');
           })
           .then(null, e => {
+            // eslint-disable-next-line no-console
             console.error(e);
           });
       });

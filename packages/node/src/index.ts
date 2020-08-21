@@ -25,7 +25,9 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   Hub,
+  makeMain,
   Scope,
+  startTransaction,
   setContext,
   setExtra,
   setExtras,
@@ -35,7 +37,7 @@ export {
   withScope,
 } from '@sentry/core';
 
-export { NodeOptions } from './backend';
+export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
@@ -61,7 +63,7 @@ const carrier = getMainCarrier();
 if (carrier.__SENTRY__) {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
   if (!carrier.__SENTRY__.extensions.domain) {
-    // @ts-ignore
+    // @ts-ignore domain is missing from extensions Type
     carrier.__SENTRY__.extensions.domain = domain;
   }
 }

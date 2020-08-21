@@ -6,7 +6,6 @@ import { LRUMap } from 'lru_map';
 import { NodeOptions } from './backend';
 import * as stacktrace from './stacktrace';
 
-// tslint:disable-next-line:no-unsafe-any
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 
@@ -36,12 +35,14 @@ const mainModule: string = `${(require.main && require.main.filename && dirname(
 /** JSDoc */
 function getModule(filename: string, base?: string): string {
   if (!base) {
-    base = mainModule; // tslint:disable-line:no-parameter-reassignment
+    // eslint-disable-next-line no-param-reassign
+    base = mainModule;
   }
 
   // It's specifically a module
   const file = basename(filename, '.js');
-  filename = dirname(filename); // tslint:disable-line:no-parameter-reassignment
+  // eslint-disable-next-line no-param-reassign
+  filename = dirname(filename);
   let n = filename.lastIndexOf('/node_modules/');
   if (n > -1) {
     // /node_modules/ is 14 chars
@@ -81,7 +82,7 @@ function readSourceFiles(filenames: string[]): PromiseLike<{ [key: string]: stri
     } = {};
 
     let count = 0;
-    // tslint:disable-next-line:prefer-for-of
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < filenames.length; i++) {
       const filename = filenames[i];
 
@@ -93,6 +94,7 @@ function readSourceFiles(filenames: string[]): PromiseLike<{ [key: string]: stri
         if (cache !== null) {
           sourceFiles[filename] = cache;
         }
+        // eslint-disable-next-line no-plusplus
         count++;
         // In any case we want to skip here then since we have a content already or we couldn't
         // read the file and don't want to try again.
@@ -109,6 +111,7 @@ function readSourceFiles(filenames: string[]): PromiseLike<{ [key: string]: stri
         // We always want to set the cache, even to null which means there was an error reading the file.
         // We do not want to try to read the file again.
         FILE_CONTENT_CACHE.set(filename, content);
+        // eslint-disable-next-line no-plusplus
         count++;
         if (count === filenames.length) {
           resolve(sourceFiles);

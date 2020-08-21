@@ -59,6 +59,7 @@ export function parse(err: Error): StackFrame[] {
         functionName = lineMatch[1];
         let methodStart = functionName.lastIndexOf('.');
         if (functionName[methodStart - 1] === '.') {
+          // eslint-disable-next-line no-plusplus
           methodStart--;
         }
         if (methodStart > 0) {

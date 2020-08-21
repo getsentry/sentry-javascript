@@ -45,7 +45,7 @@ if (IS_LOADER) {
         setTimeout(function() {
           Sentry.captureMessage("test");
         });
-        undefinedMethod(); //trigger error
+        undefinedMethod(); // trigger error
       }).then(function(summary) {
         assert.ok(summary.events[0].breadcrumbs);
         assert.lengthOf(summary.events[0].breadcrumbs, 1);

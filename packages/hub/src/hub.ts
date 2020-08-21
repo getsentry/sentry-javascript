@@ -1,15 +1,20 @@
+/* eslint-disable max-lines */
 import {
   Breadcrumb,
   BreadcrumbHint,
   Client,
   Event,
   EventHint,
+  Extra,
+  Extras,
   Hub as HubInterface,
   Integration,
   IntegrationClass,
   Severity,
   Span,
   SpanContext,
+  Transaction,
+  TransactionContext,
   User,
 } from '@sentry/types';
 import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
@@ -59,19 +64,7 @@ export class Hub implements HubInterface {
    */
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
     this._stack.push({ client, scope });
-  }
-
-  /**
-   * Internal helper function to call a method on the top client if it exists.
-   *
-   * @param method The method to call on the client.
-   * @param args Arguments to pass to the client function.
-   */
-  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
-    const top = this.getStackTop();
-    if (top && top.client && top.client[method]) {
-      (top.client as any)[method](...args, top.scope);
-    }
+    this.bindClient(client);
   }
 
   /**
@@ -151,6 +144,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
@@ -239,6 +233,7 @@ export class Hub implements HubInterface {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
       (top.client.getOptions && top.client.getOptions()) || {};
 
@@ -284,7 +279,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setExtras(extras: { [key: string]: any }): void {
+  public setExtras(extras: Extras): void {
     const top = this.getStackTop();
     if (!top.scope) {
       return;
@@ -306,7 +301,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setExtra(key: string, extra: any): void {
+  public setExtra(key: string, extra: Extra): void {
     const top = this.getStackTop();
     if (!top.scope) {
       return;
@@ -317,6 +312,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
     const top = this.getStackTop();
     if (!top.scope) {
@@ -366,8 +362,15 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
-    return this._callExtensionMethod<Span>('startSpan', spanOrSpanContext, forceNoChild);
+  public startSpan(context: SpanContext): Span {
+    return this._callExtensionMethod('startSpan', context);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startTransaction(context: TransactionContext): Transaction {
+    return this._callExtensionMethod('startTransaction', context);
   }
 
   /**
@@ -378,13 +381,28 @@ export class Hub implements HubInterface {
   }
 
   /**
+   * Internal helper function to call a method on the top client if it exists.
+   *
+   * @param method The method to call on the client.
+   * @param args Arguments to pass to the client function.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
+    const top = this.getStackTop();
+    if (top && top.client && top.client[method]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      (top.client as any)[method](...args, top.scope);
+    }
+  }
+
+  /**
    * Calls global extension method and binding current instance to the function call
    */
-  // @ts-ignore
+  // @ts-ignore Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _callExtensionMethod<T>(method: string, ...args: any[]): T {
     const carrier = getMainCarrier();
     const sentry = carrier.__SENTRY__;
-    // tslint:disable-next-line: strict-type-predicates
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
@@ -447,11 +465,12 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
     const property = 'domain';
     const carrier = getMainCarrier();
     const sentry = carrier.__SENTRY__;
-    // tslint:disable-next-line: strict-type-predicates
     if (!sentry || !sentry.extensions || !sentry.extensions[property]) {
       return getHubFromCarrier(registry);
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const domain = sentry.extensions[property] as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub

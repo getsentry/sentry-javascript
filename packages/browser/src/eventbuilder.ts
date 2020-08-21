@@ -1,4 +1,4 @@
-import { Event } from '@sentry/types';
+import { Event, EventHint, Options, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -8,12 +8,56 @@ import {
   isErrorEvent,
   isEvent,
   isPlainObject,
+  SyncPromise,
 } from '@sentry/utils';
 
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 
-/** JSDoc */
+/**
+ * Builds and Event from a Exception
+ * @hidden
+ */
+export function eventFromException(options: Options, exception: unknown, hint?: EventHint): PromiseLike<Event> {
+  const syntheticException = (hint && hint.syntheticException) || undefined;
+  const event = eventFromUnknownInput(exception, syntheticException, {
+    attachStacktrace: options.attachStacktrace,
+  });
+  addExceptionMechanism(event, {
+    handled: true,
+    type: 'generic',
+  });
+  event.level = Severity.Error;
+  if (hint && hint.event_id) {
+    event.event_id = hint.event_id;
+  }
+  return SyncPromise.resolve(event);
+}
+
+/**
+ * Builds and Event from a Message
+ * @hidden
+ */
+export function eventFromMessage(
+  options: Options,
+  message: string,
+  level: Severity = Severity.Info,
+  hint?: EventHint,
+): PromiseLike<Event> {
+  const syntheticException = (hint && hint.syntheticException) || undefined;
+  const event = eventFromString(message, syntheticException, {
+    attachStacktrace: options.attachStacktrace,
+  });
+  event.level = level;
+  if (hint && hint.event_id) {
+    event.event_id = hint.event_id;
+  }
+  return SyncPromise.resolve(event);
+}
+
+/**
+ * @hidden
+ */
 export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
@@ -27,7 +71,8 @@ export function eventFromUnknownInput(
   if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
     // If it is an ErrorEvent with `error` property, extract it to get actual Error
     const errorEvent = exception as ErrorEvent;
-    exception = errorEvent.error; // tslint:disable-line:no-parameter-reassignment
+    // eslint-disable-next-line no-param-reassign
+    exception = errorEvent.error;
     event = eventFromStacktrace(computeStackTrace(exception as Error));
     return event;
   }
@@ -53,7 +98,7 @@ export function eventFromUnknownInput(
     // If it is plain Object or Event, serialize it manually and extract options
     // This will allow us to group events based on top-level keys
     // which is much better than creating new group when any key/value change
-    const objectException = exception as {};
+    const objectException = exception as Record<string, unknown>;
     event = eventFromPlainObject(objectException, syntheticException, options.rejection);
     addExceptionMechanism(event, {
       synthetic: true,
@@ -79,8 +124,9 @@ export function eventFromUnknownInput(
   return event;
 }
 
-// this._options.attachStacktrace
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function eventFromString(
   input: string,
   syntheticException?: Error,

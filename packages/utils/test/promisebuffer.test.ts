@@ -1,7 +1,6 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import { PromiseBuffer } from '../src/promisebuffer';
 import { SyncPromise } from '../src/syncpromise';
-
-// tslint:disable:no-floating-promises
 
 describe('PromiseBuffer', () => {
   beforeEach(() => {

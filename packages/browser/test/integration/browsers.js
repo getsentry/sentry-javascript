@@ -83,15 +83,16 @@ module.exports = {
     real_mobile: true,
     browser_version: null,
   },
-  bs_ie10: {
-    base: "BrowserStack",
-    browser: "IE",
-    browser_version: "10.0",
-    os: "Windows",
-    os_version: "8",
-    device: null,
-    real_mobile: null,
-  },
+  // FIXME: Investigate why BrowserStack stopped running IE10 machine recently
+  // bs_ie10: {
+  //   base: "BrowserStack",
+  //   browser: "IE",
+  //   browser_version: "10.0",
+  //   os: "Windows",
+  //   os_version: "8",
+  //   device: null,
+  //   real_mobile: null,
+  // },
   bs_ie11: {
     base: "BrowserStack",
     browser: "IE",

@@ -3,7 +3,7 @@ import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
-const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
+const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w.-]+)(?::(\d+))?\/(.+)/;
 
 /** Error message */
 const ERROR_MESSAGE = 'Invalid Dsn';
@@ -46,7 +46,6 @@ export class Dsn implements DsnComponents {
    * @param withPassword When set to true, the password will be included.
    */
   public toString(withPassword: boolean = false): string {
-    // tslint:disable-next-line:no-this-assignment
     const { host, path, pass, port, projectId, protocol, user } = this;
     return (
       `${protocol}://${user}${withPassword && pass ? `:${pass}` : ''}` +
@@ -72,6 +71,13 @@ export class Dsn implements DsnComponents {
       projectId = split.pop() as string;
     }
 
+    if (projectId) {
+      const projectMatch = projectId.match(/^\d+/);
+      if (projectMatch) {
+        projectId = projectMatch[0];
+      }
+    }
+
     this._fromComponents({ host, pass, path, projectId, port, protocol: protocol as DsnProtocol, user });
   }
 
@@ -90,16 +96,20 @@ export class Dsn implements DsnComponents {
   private _validate(): void {
     ['protocol', 'user', 'host', 'projectId'].forEach(component => {
       if (!this[component as keyof DsnComponents]) {
-        throw new SentryError(ERROR_MESSAGE);
+        throw new SentryError(`${ERROR_MESSAGE}: ${component} missing`);
       }
     });
 
+    if (!this.projectId.match(/^\d+$/)) {
+      throw new SentryError(`${ERROR_MESSAGE}: Invalid projectId ${this.projectId}`);
+    }
+
     if (this.protocol !== 'http' && this.protocol !== 'https') {
-      throw new SentryError(ERROR_MESSAGE);
+      throw new SentryError(`${ERROR_MESSAGE}: Invalid protocol ${this.protocol}`);
     }
 
     if (this.port && isNaN(parseInt(this.port, 10))) {
-      throw new SentryError(ERROR_MESSAGE);
+      throw new SentryError(`${ERROR_MESSAGE}: Invalid port ${this.port}`);
     }
   }
 }

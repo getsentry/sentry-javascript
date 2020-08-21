@@ -13,7 +13,6 @@
     "**/dist/": true
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
-  "tslint.autoFixOnSave": true,
   "[json]": {
     "editor.formatOnType": false,
     "editor.formatOnPaste": false,

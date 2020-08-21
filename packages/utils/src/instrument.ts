@@ -1,5 +1,5 @@
-/* tslint:disable:only-arrow-functions no-unsafe-any */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
 
 import { isInstanceOf, isString } from './is';
@@ -81,7 +81,6 @@ function instrument(type: InstrumentHandlerType): void {
  * @hidden
  */
 export function addInstrumentationHandler(handler: InstrumentHandler): void {
-  // tslint:disable-next-line:strict-type-predicates
   if (!handler || typeof handler.type !== 'string' || typeof handler.callback !== 'function') {
     return;
   }
@@ -154,6 +153,7 @@ function instrumentFetch(): void {
         ...commonHandlerData,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(global, args).then(
         (response: Response) => {
           triggerHandlers('fetch', {
@@ -169,6 +169,9 @@ function instrumentFetch(): void {
             endTimestamp: Date.now(),
             error,
           });
+          // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+          //       it means the sentry.javascript SDK caught an error invoking your application code.
+          //       This is expected behavior and NOT indicative of a bug with sentry.javascript.
           throw error;
         },
       );
@@ -186,6 +189,7 @@ interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   };
 }
 
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /** Extract `method` from fetch call arguments */
 function getFetchMethod(fetchArgs: any[] = []): string {
   if ('Request' in global && isInstanceOf(fetchArgs[0], Request) && fetchArgs[0].method) {
@@ -207,6 +211,7 @@ function getFetchUrl(fetchArgs: any[] = []): string {
   }
   return String(fetchArgs[0]);
 }
+/* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
 /** JSDoc */
 function instrumentXHR(): void {
@@ -218,35 +223,22 @@ function instrumentXHR(): void {
 
   fill(xhrproto, 'open', function(originalOpen: () => void): () => void {
     return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const xhr = this;
       const url = args[1];
-      this.__sentry_xhr__ = {
+      xhr.__sentry_xhr__ = {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
         url: args[1],
       };
 
       // if Sentry key appears in URL, don't capture it as a request
-      if (isString(url) && this.__sentry_xhr__.method === 'POST' && url.match(/sentry_key/)) {
-        this.__sentry_own_request__ = true;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (isString(url) && xhr.__sentry_xhr__.method === 'POST' && url.match(/sentry_key/)) {
+        xhr.__sentry_own_request__ = true;
       }
 
-      return originalOpen.apply(this, args);
-    };
-  });
-
-  fill(xhrproto, 'send', function(originalSend: () => void): () => void {
-    return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      const xhr = this; // tslint:disable-line:no-this-assignment
-      const commonHandlerData = {
-        args,
-        startTimestamp: Date.now(),
-        xhr,
-      };
-
-      triggerHandlers('xhr', {
-        ...commonHandlerData,
-      });
-
-      xhr.addEventListener('readystatechange', function(): void {
+      const onreadystatechangeHandler = function(): void {
         if (xhr.readyState === 4) {
           try {
             // touching statusCode in some platforms throws
@@ -258,10 +250,35 @@ function instrumentXHR(): void {
             /* do nothing */
           }
           triggerHandlers('xhr', {
-            ...commonHandlerData,
+            args,
             endTimestamp: Date.now(),
+            startTimestamp: Date.now(),
+            xhr,
           });
         }
+      };
+
+      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
+        fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
+          return function(...readyStateArgs: any[]): void {
+            onreadystatechangeHandler();
+            return original.apply(xhr, readyStateArgs);
+          };
+        });
+      } else {
+        xhr.addEventListener('readystatechange', onreadystatechangeHandler);
+      }
+
+      return originalOpen.apply(xhr, args);
+    };
+  });
+
+  fill(xhrproto, 'send', function(originalSend: () => void): () => void {
+    return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      triggerHandlers('xhr', {
+        args,
+        startTimestamp: Date.now(),
+        xhr: this,
       });
 
       return originalSend.apply(this, args);
@@ -328,11 +345,14 @@ function instrumentDOM(): void {
 
   // After hooking into document bubbled up click and keypresses events, we also hook into user handled click & keypresses.
   ['EventTarget', 'Node'].forEach((target: string) => {
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const proto = (global as any)[target] && (global as any)[target].prototype;
 
+    // eslint-disable-next-line no-prototype-builtins
     if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     fill(proto, 'addEventListener', function(
       original: () => void,
@@ -391,13 +411,12 @@ function instrumentDOM(): void {
         fn: EventListenerOrEventListenerObject,
         options?: boolean | EventListenerOptions,
       ): () => void {
-        let callback = fn as WrappedFunction;
         try {
-          callback = callback && (callback.__sentry_wrapped__ || callback);
+          original.call(this, eventName, ((fn as unknown) as WrappedFunction).__sentry_wrapped__, options);
         } catch (e) {
           // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
         }
-        return original.call(this, eventName, callback, options);
+        return original.call(this, eventName, fn, options);
       };
     });
   });
@@ -417,7 +436,7 @@ let lastCapturedEvent: Event | undefined;
  * @hidden
  */
 function domEventHandler(name: string, handler: Function, debounce: boolean = false): (event: Event) => void {
-  return (event: Event) => {
+  return (event: Event): void => {
     // reset keypress timeout; e.g. triggering a 'click' after
     // a 'keypress' will reset the keypress debounce so that a new
     // set of keypresses can be recorded
@@ -455,7 +474,7 @@ function keypressEventHandler(handler: Function): (event: Event) => void {
   // TODO: if somehow user switches keypress target before
   //       debounce timeout is triggered, we will only capture
   //       a single breadcrumb from the FIRST target (acceptable?)
-  return (event: Event) => {
+  return (event: Event): void => {
     let target;
 
     try {
@@ -503,6 +522,7 @@ function instrumentError(): void {
     });
 
     if (_oldOnErrorHandler) {
+      // eslint-disable-next-line prefer-rest-params
       return _oldOnErrorHandler.apply(this, arguments);
     }
 
@@ -519,6 +539,7 @@ function instrumentUnhandledRejection(): void {
     triggerHandlers('unhandledrejection', e);
 
     if (_oldOnUnhandledRejectionHandler) {
+      // eslint-disable-next-line prefer-rest-params
       return _oldOnUnhandledRejectionHandler.apply(this, arguments);
     }
 

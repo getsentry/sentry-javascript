@@ -1,10 +1,12 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Client } from './client';
 import { Event, EventHint } from './event';
+import { Extra, Extras } from './extra';
 import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
+import { Transaction, TransactionContext } from './transaction';
 import { User } from './user';
 
 /**
@@ -137,13 +139,13 @@ export interface Hub {
    * @param key String of extra
    * @param extra Any kind of data. This data will be normalized.
    */
-  setExtra(key: string, extra: any): void;
+  setExtra(key: string, extra: Extra): void;
 
   /**
    * Set an object that will be merged sent as extra data with the event.
    * @param extras Extras object to merge into current context.
    */
-  setExtras(extras: { [key: string]: any }): void;
+  setExtras(extras: Extras): void;
 
   /**
    * Sets context data with the given name.
@@ -173,11 +175,29 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /**
-   * This functions starts a span. If there is already a `Span` on the Scope,
-   * the created Span with the SpanContext will have a reference to it and become it's child.
-   * Otherwise it'll crete a new `Span`.
+   * Starts a new `Span` and returns it. If there is a `Span` on the `Scope`,
+   * the new `Span` will be a child of the existing `Span`.
    *
-   * @param spanContext Properties with which the span should be created
+   * @param context Properties of the new `Span`.
    */
-  startSpan(spanContext?: SpanContext): Span;
+  startSpan(context: SpanContext): Span;
+
+  /**
+   * Starts a new `Transaction` and returns it. This is the entry point to manual
+   * tracing instrumentation.
+   *
+   * A tree structure can be built by adding child spans to the transaction, and
+   * child spans to other spans. To start a new child span within the transaction
+   * or any span, call the respective `.startChild()` method.
+   *
+   * Every child span must be finished before the transaction is finished,
+   * otherwise the unfinished spans are discarded.
+   *
+   * The transaction must be finished with a call to its `.finish()` method, at
+   * which point the transaction with all its finished child spans will be sent to
+   * Sentry.
+   *
+   * @param context Properties of the new `Transaction`.
+   */
+  startTransaction(context: TransactionContext): Transaction;
 }

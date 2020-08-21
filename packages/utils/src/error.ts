@@ -8,7 +8,6 @@ export class SentryError extends Error {
   public constructor(public message: string) {
     super(message);
 
-    // tslint:disable:no-unsafe-any
     this.name = new.target.prototype.constructor.name;
     setPrototypeOf(this, new.target.prototype);
   }

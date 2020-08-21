@@ -1,8 +1,7 @@
 {
   "lerna": "3.4.0",
-  "version": "5.16.0-beta.1",
+  "version": "5.21.1",
   "packages": "packages/*",
-  "ignore": "raven-*",
   "npmClient": "yarn",
   "useWorkspaces": true
 }

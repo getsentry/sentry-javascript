@@ -1,11 +1,10 @@
-import { getCurrentHub } from '@sentry/hub';
 import { Event } from '@sentry/types';
 import { timestampWithMs } from '@sentry/utils';
 
 import { API } from './api';
 
 /** A generic client request. */
-interface SentryRequest {
+export interface SentryRequest {
   body: string;
   url: string;
   // headers would contain auth & content-type headers for @sentry/node, but
@@ -17,9 +16,7 @@ interface SentryRequest {
 
 /** Creates a SentryRequest from an event. */
 export function eventToSentryRequest(event: Event, api: API): SentryRequest {
-  const client = getCurrentHub().getClient();
-  const experimentsOptions = (client && client.getOptions()._experiments) || {};
-  const useEnvelope = event.type === 'transaction' && experimentsOptions.useEnvelope;
+  const useEnvelope = event.type === 'transaction';
 
   const req: SentryRequest = {
     body: JSON.stringify(event),

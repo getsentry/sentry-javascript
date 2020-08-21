@@ -27,19 +27,38 @@ describe("wrapped built-ins", function() {
     return runInSandbox(sandbox, function() {
       var div = document.createElement("div");
       document.body.appendChild(div);
-      var click = new MouseEvent("click");
       var fooFn = function() {
         foo();
       };
       var barFn = function() {
         bar();
       };
-      div.addEventListener("click", fooFn, false);
+      div.addEventListener("click", fooFn);
       div.addEventListener("click", barFn);
       div.removeEventListener("click", barFn);
       div.dispatchEvent(new MouseEvent("click"));
     }).then(function(summary) {
       assert.lengthOf(summary.events, 1);
+    });
+  });
+
+  it("should remove the original callback if it was registered before Sentry initialized (w. original method)", function() {
+    return runInSandbox(sandbox, function() {
+      var div = document.createElement("div");
+      document.body.appendChild(div);
+      window.capturedCall = false;
+      var captureFn = function() {
+        window.capturedCall = true;
+      };
+      // Use original addEventListener to simulate non-wrapped behavior (callback is attached without __sentry_wrapped__)
+      window.originalBuiltIns.addEventListener.call(div, "click", captureFn);
+      // Then attach the same callback again, but with already wrapped method
+      div.addEventListener("click", captureFn);
+      div.removeEventListener("click", captureFn);
+      div.dispatchEvent(new MouseEvent("click"));
+    }).then(function(summary) {
+      assert.equal(summary.window.capturedCall, false);
+      delete summary.window.capturedCalls;
     });
   });
 
@@ -64,17 +83,72 @@ describe("wrapped built-ins", function() {
     });
   });
 
-  it("should capture exceptions inside requestAnimationFrame", function() {
-    // needs to be visible or requestAnimationFrame won't ever fire
-    sandbox.style.display = "block";
+  describe("requestAnimationFrame", function() {
+    it("should capture exceptions inside callback", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
 
-    return runInSandbox(sandbox, { manual: true }, function() {
-      requestAnimationFrame(function() {
-        window.finalizeManualTest();
-        foo();
+      return runInSandbox(sandbox, { manual: true }, function() {
+        requestAnimationFrame(function() {
+          window.finalizeManualTest();
+          foo();
+        });
+      }).then(function(summary) {
+        assert.match(summary.events[0].exception.values[0].value, /baz/);
       });
-    }).then(function(summary) {
-      assert.match(summary.events[0].exception.values[0].value, /baz/);
+    });
+
+    it("wrapped callback should preserve correct context - window (not-bound)", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
+      return runInSandbox(sandbox, { manual: true }, function() {
+        requestAnimationFrame(function() {
+          window.capturedCtx = this;
+          window.finalizeManualTest();
+        });
+      }).then(function(summary) {
+        assert.strictEqual(summary.window.capturedCtx, summary.window);
+        delete summary.window.capturedCtx;
+      });
+    });
+
+    it("wrapped callback should preserve correct context - class bound method", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
+      return runInSandbox(sandbox, { manual: true }, function() {
+        // TypeScript-transpiled class syntax
+        var Foo = (function() {
+          function Foo() {
+            var _this = this;
+            this.magicNumber = 42;
+            this.getThis = function() {
+              window.capturedCtx = _this;
+              window.finalizeManualTest();
+            };
+          }
+          return Foo;
+        })();
+        var foo = new Foo();
+        requestAnimationFrame(foo.getThis);
+      }).then(function(summary) {
+        assert.strictEqual(summary.window.capturedCtx.magicNumber, 42);
+        delete summary.window.capturedCtx;
+      });
+    });
+
+    it("wrapped callback should preserve correct context - `bind` bound method", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
+      return runInSandbox(sandbox, { manual: true }, function() {
+        function foo() {
+          window.capturedCtx = this;
+          window.finalizeManualTest();
+        }
+        requestAnimationFrame(foo.bind({ magicNumber: 42 }));
+      }).then(function(summary) {
+        assert.strictEqual(summary.window.capturedCtx.magicNumber, 42);
+        delete summary.window.capturedCtx;
+      });
     });
   });
 

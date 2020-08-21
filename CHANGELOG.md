@@ -3,18 +3,135 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- [apm/tracing] fix: Make sure Performance Observer takeRecords() is defined
 
-- [apm] fix: Use proper type name for op #2584
-- [core] fix: sent_at for envelope headers to use same clock #2597
-- [apm] fix: Improve bundle size by moving span status to @sentry/apm #2589
+## 5.21.1
+
+- [ember] fix: Make the package public and fix the build by bumping TypeScript to v3.9
+- [eslint] test: Don't test eslint config/plugin on Node <= v8
+
+## 5.21.0
+
+- [all] feat: Convert `sentry-javascript` to `ESLint` (#2786)
+- [internal/eslint] feat: Add `@sentry-internal/eslint-config-sdk` (#2807)
+- [internal/eslint] feat: Add `@sentry-internal/eslint-plugin-sdk` (#2807)
+- [ember] feat: Add `@sentry/ember` (#2739)
+- [angular] feat: Add `@sentry/angular` (#2787)
+- [react] feat: Add routing instrumentation for `React Router v4/v5` (#2780)
+- [gatsby] feat: support `process.env.SENTRY_RELEASE` (#2776)
+- [apm/tracing] feat: Export `addExtensionMethods` for SDKs to use (#2805)
+- [apm/tracing] ref: Remove `express` typing (#2803)
+- [node] fix: `Retry-After` header in node should be lower-case (#2779)
+
+## 5.20.1
+
+- [react] feat: Add instrumentation for React Router v3 (#2759)
+- [apm/tracing] fix: Make sure fetch requests are being timed correctly (#2772)
+- [apm/tracing] fix: Make sure pageload transactions start timestamps are correctly generated (#2773)
+- [react] ref: Use inline types to avoid redux dependency. (#2768)
+- [core] ref: Expose sentry request for electron (#2774)
+- [node] fix: Set transaction on scope in node for request (#2769)
+- [browser] fix: Make sure that DSN is always passed to report dialog (#2770)
+
+## 5.20.0
+
+- [browser] feat: Make `@sentry/browser` more treeshakeable (#2747)
+- [browser] fix: Make sure that handler exists in `LinkedErrors` integration (#2742)
+- [tracing] feat: Introduce `@sentry/tracing` (#2719)
+- [tracing] ref: Use `idleTimout` if no activities occur in idle transaction (#2752)
+- [react] feat: Export `createReduxEnhancer` to log redux actions as breadcrumbs, and attach state as an extra. (#2717)
+- [react] feat: Add `beforeCapture` option to ErrorBoundary (#2753)
+- [react] fix: Change import of `hoist-non-react-statics` (#2755)
+- [gatsby] fix: Make `@sentry/apm` optional in `@sentry/gatsby` package (#2752)
+
+## 5.19.2
+
+- [gatsby] fix: Include correct gatsby files in npm tarball (#2731)
+- [browser] fix: Correctly detach event listeners (#2737)
+- [browser] fix: Drop initial frame for production react errors (#2728)
+- [node] chore: Upgrade https-proxy-agent to v5 (#2702)
+- [types] ref: Define type for Extra(s) (#2727)
+
+## 5.19.1
+
+- [tracing] fix: APM CDN bundle expose startTransaction (#2726)
+- [browser] fix: Correctly remove all event listeners (#2725)
+- [tracing] fix: Add manual `DOMStringList` typing (#2718)
+
+## 5.19.0
+
+- [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
+- [react] feat: Expose eventId on ErrorBoundary component (#2704)
+- [node] fix: Extract transaction from nested express paths correctly (#2714)
+- [tracing] fix: Respect fetch headers (#2712) (#2713)
+- [tracing] fix: Check if performance.getEntries() exists (#2710)
+- [tracing] fix: Add manual Location typing (#2700)
+- [tracing] fix: Respect sample decision when continuing trace from header in node (#2703)
+- [tracing] fix: All options of adding fetch headers (#2712)
+- [gatsby] fix: Add gatsby SDK identifier (#2709)
+- [gatsby] fix: Package gatsby files properly (#2711)
+
+## 5.18.1
+
+- [react] feat: Update peer dependencies for `react` and `react-dom` (#2694)
+- [react] ref: Change Profiler prop names (#2699)
+
+## 5.18.0
+
+- [react] feat: Add @sentry/react package (#2631)
+- [react] feat: Add Error Boundary component (#2647)
+- [react] feat: Add useProfiler hook (#2659)
+- [core] feat: Export `makeMain` (#2665)
+- [core] fix: Call `bindClient` when creating new `Hub` to make integrations work automatically (#2665)
+- [gatsby] feat: Add @sentry/gatsby package (#2652)
+- [tracing] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
+- [tracing] ref: Deprecate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
+- [core] ref: Rename `whitelistUrls/blacklistUrls` to `allowUrls/denyUrls` (#2671)
+- [react] ref: Refactor Profiler to account for update and render (#2677)
+- [apm] feat: Add ability to get span from activity using `getActivitySpan` (#2677)
+- [apm] fix: Check if `performance.mark` exists before calling it (#2680)
+- [tracing] feat: Add `beforeNavigate` option (#2691)
+- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href`
+  (#2691)
+
+## 5.17.0
+
+- [browser] feat: Support `fetchParameters` (#2567)
+- [apm] feat: Report LCP metric on pageload transactions (#2624)
+- [core] fix: Normalize Transaction and Span consistently (#2655)
+- [core] fix: Handle DSN qs and show better error messages (#2639)
+- [browser] fix: Change XHR instrumentation order to handle `onreadystatechange` breadcrumbs correctly (#2643)
+- [apm] fix: Re-add TraceContext for all events (#2656)
+- [integrations] fix: Change Vue interface to be inline with the original types (#2634)
+- [apm] ref: Use startTransaction where appropriate (#2644)
+
+## 5.16.1
+
+- [node] fix: Requests to old `/store` endpoint need the `x-sentry-auth` header in node (#2637)
 
 ## 5.16.0
 
+_If you are a `@sentry/apm` and did manual instrumentation using `hub.startSpan` please be aware of the changes we did
+to the API. The recommended entry point for manual instrumentation now is `Sentry.startTransaction` and creating child
+Span by calling `startChild` on it. We have internal workarounds in place so the old code should still work but will be
+removed in the future. If you are only using the `Tracing` integration there is no need for action._
+
 - [core] feat: Send transactions in envelopes (#2553)
 - [core] fix: Send event timestamp (#2575)
+- [browser] feat: Allow for configuring TryCatch integration (#2601)
 - [browser] fix: Call wrapped `RequestAnimationFrame` with correct context (#2570)
 - [node] fix: Prevent reading the same source file multiple times (#2569)
 - [integrations] feat: Vue performance monitoring (#2571)
+- [apm] fix: Use proper type name for op (#2584)
+- [core] fix: sent_at for envelope headers to use same clock (#2597)
+- [apm] fix: Improve bundle size by moving span status to @sentry/apm (#2589)
+- [apm] feat: No longer discard transactions instead mark them deadline exceeded (#2588)
+- [apm] feat: Introduce `Sentry.startTransaction` and `Transaction.startChild` (#2600)
+- [apm] feat: Transactions no longer go through `beforeSend` (#2600)
+- [browser] fix: Emit Sentry Request breadcrumbs from inside the client (#2615)
+- [apm] fix: No longer debounce IdleTransaction (#2618)
+- [apm] feat: Add pageload transaction option + fixes (#2623)
+- [minimal/core] feat: Allow for explicit scope through 2nd argument to `captureException/captureMessage` (#2627)
 
 ## 5.15.5
 
@@ -166,7 +283,8 @@
 
 ## 5.9.0
 
-- [node] feat: Added `mode` option for `OnUnhandledRejection` integration that changes how we log errors and what we do with the process itself
+- [node] feat: Added `mode` option for `OnUnhandledRejection` integration that changes how we log errors and what we do
+  with the process itself
 - [browser] ref: Both global handlers now always return `true` to call default implementations (error logging)
 
 ## 5.8.0
@@ -184,7 +302,8 @@
 
 ## 5.7.0
 
-- [core] ref: Use `Promise` as the interface, but `SyncPromise` as the implementation in all the places we need `thenable` API
+- [core] ref: Use `Promise` as the interface, but `SyncPromise` as the implementation in all the places we need
+  `thenable` API
 - [browser] fix: Capture only failed `console.assert` calls
 - [browser] ref: Major `TraceKit` and `GlobalHandlers` refactor
 - [browser] ref: Remove _all_ required IE10-11 polyfills
@@ -261,7 +380,8 @@
 
 ## 5.4.0
 
-- [global] feat: Exposed new simplified scope API. `Sentry.setTag`, `Sentry.setTags`, `Sentry.setExtra`, `Sentry.setExtras`, `Sentry.setUser`, `Sentry.setContext`
+- [global] feat: Exposed new simplified scope API. `Sentry.setTag`, `Sentry.setTags`, `Sentry.setExtra`,
+  `Sentry.setExtras`, `Sentry.setUser`, `Sentry.setContext`
 
 ## 5.3.1
 

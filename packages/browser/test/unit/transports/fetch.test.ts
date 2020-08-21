@@ -18,7 +18,6 @@ let transport: Transports.BaseTransport;
 
 describe('FetchTransport', () => {
   beforeEach(() => {
-    // @ts-ignore
     fetch = stub(window, 'fetch');
     transport = new Transports.FetchTransport({ dsn: testDsn });
   });
@@ -28,7 +27,7 @@ describe('FetchTransport', () => {
   });
 
   it('inherits composeEndpointUrl() implementation', () => {
-    // tslint:disable-next-line:deprecation
+    // eslint-disable-next-line deprecation/deprecation
     expect(transport.url).equal(transportUrl);
   });
 
@@ -151,6 +150,30 @@ describe('FetchTransport', () => {
           headers: {
             Authorization: 'Basic GVzdDp0ZXN0Cg==',
           },
+          method: 'POST',
+          referrerPolicy: 'origin',
+        }),
+      ).equal(true);
+    });
+
+    it('passes in fetch parameters', async () => {
+      transport = new Transports.FetchTransport({
+        dsn: testDsn,
+        fetchParameters: {
+          credentials: 'include',
+        },
+      });
+      const response = { status: 200 };
+
+      fetch.returns(Promise.resolve(response));
+
+      const res = await transport.sendEvent(payload);
+
+      expect(res.status).equal(Status.Success);
+      expect(
+        fetch.calledWith(transportUrl, {
+          body: JSON.stringify(payload),
+          credentials: 'include',
           method: 'POST',
           referrerPolicy: 'origin',
         }),

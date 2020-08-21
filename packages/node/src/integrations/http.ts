@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration, Span } from '@sentry/types';
+import { Integration, Span, Transaction } from '@sentry/types';
 import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -11,11 +11,12 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Http.id;
+  public static id: string = 'Http';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'Http';
+  public name: string = Http.id;
 
   /**
    * @inheritDoc
@@ -78,14 +79,21 @@ function createHandlerWrapper(
         return originalHandler.apply(this, arguments);
       }
 
-      let span: Span;
-      if (tracingEnabled) {
-        span = getCurrentHub().startSpan({
-          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
-          op: 'request',
-        });
+      let span: Span | undefined;
+      let transaction: Transaction | undefined;
+
+      const scope = getCurrentHub().getScope();
+      if (scope && tracingEnabled) {
+        transaction = scope.getTransaction();
+        if (transaction) {
+          span = transaction.startChild({
+            description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
+            op: 'request',
+          });
+        }
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalHandler
         .apply(this, arguments)
         .once('response', function(this: http.IncomingMessage, res: http.ServerResponse): void {

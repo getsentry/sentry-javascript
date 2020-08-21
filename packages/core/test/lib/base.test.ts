@@ -1,5 +1,5 @@
 import { Hub, Scope } from '@sentry/hub';
-import { Event } from '@sentry/types';
+import { Event, Severity, Span } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
 import { TestBackend } from '../mocks/backend';
@@ -7,7 +7,8 @@ import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
 import { FakeTransport } from '../mocks/transport';
 
-const PUBLIC_DSN = 'https://username@domain/path';
+const PUBLIC_DSN = 'https://username@domain/123';
+// eslint-disable-next-line no-var
 declare var global: any;
 
 jest.mock('@sentry/utils', () => {
@@ -18,7 +19,7 @@ jest.mock('@sentry/utils', () => {
     uuid4(): string {
       return '42';
     },
-    getGlobalObject(): object {
+    getGlobalObject(): any {
       return {
         console: {
           log(): void {
@@ -163,9 +164,8 @@ describe('BaseClient', () => {
     });
   });
 
-  describe('captures', () => {
+  describe('captureException', () => {
     test('captures and sends exceptions', () => {
-      expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       client.captureException(new Error('test exception'));
       expect(TestBackend.instance!.event).toEqual({
@@ -182,19 +182,69 @@ describe('BaseClient', () => {
       });
     });
 
+    test('allows for providing explicit scope', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      scope.setExtra('foo', 'wat');
+      client.captureException(
+        new Error('test exception'),
+        {
+          captureContext: {
+            extra: {
+              bar: 'wat',
+            },
+          },
+        },
+        scope,
+      );
+      expect(TestBackend.instance!.event).toEqual(
+        expect.objectContaining({
+          extra: {
+            bar: 'wat',
+            foo: 'wat',
+          },
+        }),
+      );
+    });
+
+    test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      scope.setExtra('foo', 'wat');
+      client.captureException(
+        new Error('test exception'),
+        {
+          captureContext: s => {
+            s.clear();
+            s.setExtra('bar', 'wat');
+            return s;
+          },
+        },
+        scope,
+      );
+      expect(TestBackend.instance!.event).toEqual(
+        expect.objectContaining({
+          extra: {
+            bar: 'wat',
+          },
+        }),
+      );
+    });
+  });
+
+  describe('captureMessage', () => {
     test('captures and sends messages', () => {
-      expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       client.captureMessage('test message');
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
+        level: 'info',
         message: 'test message',
         timestamp: 2020,
       });
     });
 
     test('should call eventFromException if input to captureMessage is not a primitive', () => {
-      expect.assertions(2);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const spy = jest.spyOn(TestBackend.instance!, 'eventFromException');
 
@@ -208,6 +258,33 @@ describe('BaseClient', () => {
       client.captureMessage({} as any);
       client.captureMessage([] as any);
       expect(spy.mock.calls.length).toEqual(2);
+    });
+
+    test('allows for providing explicit scope', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      scope.setExtra('foo', 'wat');
+      client.captureMessage(
+        'test message',
+        Severity.Warning,
+        {
+          captureContext: {
+            extra: {
+              bar: 'wat',
+            },
+          },
+        },
+        scope,
+      );
+      expect(TestBackend.instance!.event).toEqual(
+        expect.objectContaining({
+          extra: {
+            bar: 'wat',
+            foo: 'wat',
+          },
+          level: 'warning',
+        }),
+      );
     });
   });
 
@@ -494,6 +571,54 @@ describe('BaseClient', () => {
       });
     });
 
+    test('normalization applies to Transaction and Span consistently', () => {
+      expect.assertions(1);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const transaction: Event = {
+        contexts: {
+          trace: {
+            data: { _sentry_web_vitals: { LCP: { value: 99.9 } } },
+            op: 'pageload',
+            span_id: 'a3df84a60c2e4e76',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        },
+        event_id: '972f45b826a248bba98e990878a177e1',
+        spans: [
+          ({
+            data: { _sentry_extra_metrics: { M1: { value: 1 }, M2: { value: 2 } } },
+            description: 'first-paint',
+            endTimestamp: 1591603196.637835,
+            op: 'paint',
+            parentSpanId: 'a3df84a60c2e4e76',
+            spanId: '9e15bf99fbe4bc80',
+            startTimestamp: 1591603196.637835,
+            traceId: '86f39e84263a4de99c326acab3bfe3bd',
+          } as unknown) as Span,
+          ({
+            description: 'first-contentful-paint',
+            endTimestamp: 1591603196.637835,
+            op: 'paint',
+            parentSpanId: 'a3df84a60c2e4e76',
+            spanId: 'aa554c1f506b0783',
+            startTimestamp: 1591603196.637835,
+            traceId: '86f39e84263a4de99c326acab3bfe3bd',
+          } as any) as Span,
+        ],
+        start_timestamp: 1591603196.614865,
+        timestamp: 1591603196.728485,
+        transaction: '/',
+        type: 'transaction',
+      };
+      // To be consistent, normalization could apply either to both transactions
+      // and spans, or to none. So far the decision is to skip normalization for
+      // both, such that the expected normalizedTransaction is the same as the
+      // input transaction.
+      const normalizedTransaction = JSON.parse(JSON.stringify(transaction)); // deep-copy
+      client.captureEvent(transaction);
+      expect(TestBackend.instance!.event!).toEqual(normalizedTransaction);
+    });
+
     test('calls beforeSend and uses original event without any changes', () => {
       expect.assertions(1);
       const beforeSend = jest.fn(event => event);
@@ -680,9 +805,15 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
 
       return Promise.all([
-        client.flush(1).then(() => expect(true).toEqual(true)),
-        client.flush(1).then(() => expect(true).toEqual(true)),
-        client.flush(1).then(() => expect(true).toEqual(true)),
+        client.flush(1).then(() => {
+          expect(true).toEqual(true);
+        }),
+        client.flush(1).then(() => {
+          expect(true).toEqual(true);
+        }),
+        client.flush(1).then(() => {
+          expect(true).toEqual(true);
+        }),
       ]);
     });
   });

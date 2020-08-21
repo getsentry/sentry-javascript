@@ -1,15 +1,26 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, Event, Severity, User } from '@sentry/types';
+import {
+  Breadcrumb,
+  CaptureContext,
+  Event,
+  Extra,
+  Extras,
+  Severity,
+  Transaction,
+  TransactionContext,
+  User,
+} from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
  * @param method function to call on hub.
  * @param args to pass to function.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function callOnHub<T>(method: string, ...args: any[]): T {
   const hub = getCurrentHub();
   if (hub && hub[method as keyof Hub]) {
-    // tslint:disable-next-line:no-unsafe-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (hub[method as keyof Hub] as any)(...args);
   }
   throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
@@ -21,7 +32,8 @@ function callOnHub<T>(method: string, ...args: any[]): T {
  * @param exception An exception-like object.
  * @returns The generated eventId.
  */
-export function captureException(exception: any): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+export function captureException(exception: any, captureContext?: CaptureContext): string {
   let syntheticException: Error;
   try {
     throw new Error('Sentry syntheticException');
@@ -29,6 +41,7 @@ export function captureException(exception: any): string {
     syntheticException = exception as Error;
   }
   return callOnHub('captureException', exception, {
+    captureContext,
     originalException: exception,
     syntheticException,
   });
@@ -41,16 +54,23 @@ export function captureException(exception: any): string {
  * @param level Define the level of the message.
  * @returns The generated eventId.
  */
-export function captureMessage(message: string, level?: Severity): string {
+export function captureMessage(message: string, captureContext?: CaptureContext | Severity): string {
   let syntheticException: Error;
   try {
     throw new Error(message);
   } catch (exception) {
     syntheticException = exception as Error;
   }
+
+  // This is necessary to provide explicit scopes upgrade, without changing the original
+  // arrity of the `captureMessage(message, level)` method.
+  const level = typeof captureContext === 'string' ? captureContext : undefined;
+  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
+
   return callOnHub('captureMessage', message, level, {
     originalException: message,
     syntheticException,
+    ...context,
   });
 }
 
@@ -89,6 +109,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param name of the context
  * @param context Any kind of data. This data will be normalized.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): void {
   callOnHub<void>('setContext', name, context);
 }
@@ -97,7 +118,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(extras: { [key: string]: any }): void {
+export function setExtras(extras: Extras): void {
   callOnHub<void>('setExtras', extras);
 }
 
@@ -114,8 +135,7 @@ export function setTags(tags: { [key: string]: string }): void {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-
-export function setExtra(key: string, extra: any): void {
+export function setExtra(key: string, extra: Extra): void {
   callOnHub<void>('setExtra', key, extra);
 }
 
@@ -164,6 +184,28 @@ export function withScope(callback: (scope: Scope) => void): void {
  * @param args Arguments to pass to the client/fontend.
  * @hidden
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);
+}
+
+/**
+ * Starts a new `Transaction` and returns it. This is the entry point to manual
+ * tracing instrumentation.
+ *
+ * A tree structure can be built by adding child spans to the transaction, and
+ * child spans to other spans. To start a new child span within the transaction
+ * or any span, call the respective `.startChild()` method.
+ *
+ * Every child span must be finished before the transaction is finished,
+ * otherwise the unfinished spans are discarded.
+ *
+ * The transaction must be finished with a call to its `.finish()` method, at
+ * which point the transaction with all its finished child spans will be sent to
+ * Sentry.
+ *
+ * @param context Properties of the new `Transaction`.
+ */
+export function startTransaction(context: TransactionContext): Transaction {
+  return callOnHub('startTransaction', { ...context });
 }

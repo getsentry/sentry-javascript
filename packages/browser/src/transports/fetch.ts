@@ -35,6 +35,10 @@ export class FetchTransport extends BaseTransport {
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
+    if (this.options.fetchParameters !== undefined) {
+      Object.assign(options, this.options.fetchParameters);
+    }
+
     if (this.options.headers !== undefined) {
       options.headers = this.options.headers;
     }
@@ -53,7 +57,12 @@ export class FetchTransport extends BaseTransport {
 
             if (status === Status.RateLimit) {
               const now = Date.now();
-              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, response.headers.get('Retry-After')));
+              /**
+               * "The name is case-insensitive."
+               * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
+               */
+              const retryAfterHeader = response.headers.get('Retry-After');
+              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
               logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
             }
 

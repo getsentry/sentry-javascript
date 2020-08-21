@@ -30,18 +30,6 @@ export class API {
     return this._getIngestEndpoint('store');
   }
 
-  /** Returns the envelope endpoint URL. */
-  private _getEnvelopeEndpoint(): string {
-    return this._getIngestEndpoint('envelope');
-  }
-
-  /** Returns the ingest API endpoint for target. */
-  private _getIngestEndpoint(target: 'store' | 'envelope'): string {
-    const base = this.getBaseApiEndpoint();
-    const dsn = this._dsnObject;
-    return `${base}${dsn.projectId}/${target}/`;
-  }
-
   /**
    * Returns the store endpoint URL with auth in the query string.
    *
@@ -60,18 +48,6 @@ export class API {
     return `${this._getEnvelopeEndpoint()}?${this._encodedAuth()}`;
   }
 
-  /** Returns a URL-encoded string with auth config suitable for a query string. */
-  private _encodedAuth(): string {
-    const dsn = this._dsnObject;
-    const auth = {
-      // We send only the minimum set of required information. See
-      // https://github.com/getsentry/sentry-javascript/issues/2572.
-      sentry_key: dsn.user,
-      sentry_version: SENTRY_API_VERSION,
-    };
-    return urlEncode(auth);
-  }
-
   /** Returns only the path component for the store endpoint. */
   public getStoreEndpointPath(): string {
     const dsn = this._dsnObject;
@@ -80,8 +56,7 @@ export class API {
 
   /**
    * Returns an object that can be used in request headers.
-   *
-   * @deprecated in favor of `getStoreEndpointWithUrlEncodedAuth` and `getEnvelopeEndpointWithUrlEncodedAuth`.
+   * This is needed for node and the old /store endpoint in sentry
    */
   public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
     const dsn = this._dsnObject;
@@ -100,6 +75,7 @@ export class API {
   /** Returns the url to the report dialog endpoint. */
   public getReportDialogEndpoint(
     dialogOptions: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       [key: string]: any;
       user?: { name?: string; email?: string };
     } = {},
@@ -129,5 +105,29 @@ export class API {
     }
 
     return endpoint;
+  }
+
+  /** Returns the envelope endpoint URL. */
+  private _getEnvelopeEndpoint(): string {
+    return this._getIngestEndpoint('envelope');
+  }
+
+  /** Returns the ingest API endpoint for target. */
+  private _getIngestEndpoint(target: 'store' | 'envelope'): string {
+    const base = this.getBaseApiEndpoint();
+    const dsn = this._dsnObject;
+    return `${base}${dsn.projectId}/${target}/`;
+  }
+
+  /** Returns a URL-encoded string with auth config suitable for a query string. */
+  private _encodedAuth(): string {
+    const dsn = this._dsnObject;
+    const auth = {
+      // We send only the minimum set of required information. See
+      // https://github.com/getsentry/sentry-javascript/issues/2572.
+      sentry_key: dsn.user,
+      sentry_version: SENTRY_API_VERSION,
+    };
+    return urlEncode(auth);
   }
 }

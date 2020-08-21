@@ -2,8 +2,8 @@ import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@s
 import { getGlobalObject, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
-import { BrowserClient, ReportDialogOptions } from './client';
-import { wrap as internalWrap } from './helpers';
+import { BrowserClient } from './client';
+import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
@@ -162,6 +162,7 @@ export function close(timeout?: number): PromiseLike<boolean> {
  *
  * @returns The result of wrapped function call.
  */
-export function wrap(fn: Function): any {
-  return internalWrap(fn)(); // tslint:disable-line:no-unsafe-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function wrap(fn: (...args: any) => any): any {
+  return internalWrap(fn)();
 }

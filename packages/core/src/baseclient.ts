@@ -1,5 +1,6 @@
+/* eslint-disable max-lines */
 import { Scope } from '@sentry/hub';
-import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
+import { Client, Event, EventHint, Integration, IntegrationClass, Options, Severity } from '@sentry/types';
 import {
   Dsn,
   isPrimitive,
@@ -85,21 +86,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
     this._processing = true;
 
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this._getBackend()
       .eventFromException(exception, hint)
-      .then(event => this._processEvent(event, hint, scope))
-      .then(finalEvent => {
-        // We need to check for finalEvent in case beforeSend returned null
-        eventId = finalEvent && finalEvent.event_id;
-        this._processing = false;
-      })
-      .then(null, reason => {
-        logger.error(reason);
-        this._processing = false;
+      .then(event => {
+        eventId = this.captureEvent(event, hint, scope);
       });
 
     return eventId;
@@ -110,24 +106,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-
     this._processing = true;
 
     const promisedEvent = isPrimitive(message)
       ? this._getBackend().eventFromMessage(`${message}`, level, hint)
       : this._getBackend().eventFromException(message, hint);
 
-    promisedEvent
-      .then(event => this._processEvent(event, hint, scope))
-      .then(finalEvent => {
-        // We need to check for finalEvent in case beforeSend returned null
-        eventId = finalEvent && finalEvent.event_id;
-        this._processing = false;
-      })
-      .then(null, reason => {
-        logger.error(reason);
-        this._processing = false;
-      });
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    promisedEvent.then(event => {
+      eventId = this.captureEvent(event, hint, scope);
+    });
 
     return eventId;
   }
@@ -264,58 +252,34 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A new event with more information.
    */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    const { environment, release, dist, maxValueLength = 250, normalizeDepth = 3 } = this.getOptions();
+    const { normalizeDepth = 3 } = this.getOptions();
+    const prepared: Event = {
+      ...event,
+      event_id: event.event_id || (hint && hint.event_id ? hint.event_id : uuid4()),
+      timestamp: event.timestamp || timestampWithMs(),
+    };
 
-    const prepared: Event = { ...event };
+    this._applyClientOptions(prepared);
+    this._applyIntegrationsMetadata(prepared);
 
-    if (!prepared.timestamp) {
-      prepared.timestamp = timestampWithMs();
+    // If we have scope given to us, use it as the base for further modifications.
+    // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
+    let finalScope = scope;
+    if (hint && hint.captureContext) {
+      finalScope = Scope.clone(finalScope).update(hint.captureContext);
     }
-
-    if (prepared.environment === undefined && environment !== undefined) {
-      prepared.environment = environment;
-    }
-
-    if (prepared.release === undefined && release !== undefined) {
-      prepared.release = release;
-    }
-
-    if (prepared.dist === undefined && dist !== undefined) {
-      prepared.dist = dist;
-    }
-
-    if (prepared.message) {
-      prepared.message = truncate(prepared.message, maxValueLength);
-    }
-
-    const exception = prepared.exception && prepared.exception.values && prepared.exception.values[0];
-    if (exception && exception.value) {
-      exception.value = truncate(exception.value, maxValueLength);
-    }
-
-    const request = prepared.request;
-    if (request && request.url) {
-      request.url = truncate(request.url, maxValueLength);
-    }
-
-    if (prepared.event_id === undefined) {
-      prepared.event_id = hint && hint.event_id ? hint.event_id : uuid4();
-    }
-
-    this._addIntegrations(prepared.sdk);
 
     // We prepare the result here with a resolved Event.
     let result = SyncPromise.resolve<Event | null>(prepared);
 
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
-    if (scope) {
+    if (finalScope) {
       // In case we have a hub we reassign it.
-      result = scope.applyToEvent(prepared, hint);
+      result = finalScope.applyToEvent(prepared, hint);
     }
 
     return result.then(evt => {
-      // tslint:disable-next-line:strict-type-predicates
       if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
         return this._normalizeEvent(evt, normalizeDepth);
       }
@@ -338,8 +302,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return null;
     }
 
-    // tslint:disable:no-unsafe-any
-    return {
+    const normalized = {
       ...event,
       ...(event.breadcrumbs && {
         breadcrumbs: event.breadcrumbs.map(b => ({
@@ -359,17 +322,74 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         extra: normalize(event.extra, depth),
       }),
     };
+    // event.contexts.trace stores information about a Transaction. Similarly,
+    // event.spans[] stores information about child Spans. Given that a
+    // Transaction is conceptually a Span, normalization should apply to both
+    // Transactions and Spans consistently.
+    // For now the decision is to skip normalization of Transactions and Spans,
+    // so this block overwrites the normalized event to add back the original
+    // Transaction information prior to normalization.
+    if (event.contexts && event.contexts.trace) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      normalized.contexts.trace = event.contexts.trace;
+    }
+    return normalized;
+  }
+
+  /**
+   *  Enhances event using the client configuration.
+   *  It takes care of all "static" values like environment, release and `dist`,
+   *  as well as truncating overly long values.
+   * @param event event instance to be enhanced
+   */
+  protected _applyClientOptions(event: Event): void {
+    const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
+
+    if (event.environment === undefined && environment !== undefined) {
+      event.environment = environment;
+    }
+
+    if (event.release === undefined && release !== undefined) {
+      event.release = release;
+    }
+
+    if (event.dist === undefined && dist !== undefined) {
+      event.dist = dist;
+    }
+
+    if (event.message) {
+      event.message = truncate(event.message, maxValueLength);
+    }
+
+    const exception = event.exception && event.exception.values && event.exception.values[0];
+    if (exception && exception.value) {
+      exception.value = truncate(exception.value, maxValueLength);
+    }
+
+    const request = event.request;
+    if (request && request.url) {
+      request.url = truncate(request.url, maxValueLength);
+    }
   }
 
   /**
    * This function adds all used integrations to the SDK info in the event.
    * @param sdkInfo The sdkInfo of the event that will be filled with all integrations.
    */
-  protected _addIntegrations(sdkInfo?: SdkInfo): void {
+  protected _applyIntegrationsMetadata(event: Event): void {
+    const sdkInfo = event.sdk;
     const integrationsArray = Object.keys(this._integrations);
     if (sdkInfo && integrationsArray.length > 0) {
       sdkInfo.integrations = integrationsArray;
     }
+  }
+
+  /**
+   * Tells the backend to send this event
+   * @param event The Sentry event to send
+   */
+  protected _sendEvent(event: Event): void {
+    this._getBackend().sendEvent(event);
   }
 
   /**
@@ -386,15 +406,18 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
       return SyncPromise.reject('SDK not enabled, will not send event.');
     }
 
+    const isTransaction = event.type === 'transaction';
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
-    if (typeof sampleRate === 'number' && Math.random() > sampleRate) {
+    // Sampling for transaction happens somewhere else
+    if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
       return SyncPromise.reject('This event has been sampled, will not send event.');
     }
 
@@ -408,15 +431,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
           let finalEvent: Event | null = prepared;
 
-          const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-          if (isInternalException || !beforeSend) {
-            this._getBackend().sendEvent(finalEvent);
+          const isInternalException =
+            hint && hint.data && (hint.data as { [key: string]: unknown }).__sentry__ === true;
+          // We skip beforeSend in case of transactions
+          if (isInternalException || !beforeSend || isTransaction) {
+            this._sendEvent(finalEvent);
             resolve(finalEvent);
             return;
           }
 
           const beforeSendResult = beforeSend(prepared, hint);
-          // tslint:disable-next-line:strict-type-predicates
           if (typeof beforeSendResult === 'undefined') {
             logger.error('`beforeSend` method has to return `null` or a valid event.');
           } else if (isThenable(beforeSendResult)) {
@@ -431,7 +455,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             }
 
             // From here on we are really async
-            this._getBackend().sendEvent(finalEvent);
+            this._sendEvent(finalEvent);
             resolve(finalEvent);
           }
         })
@@ -464,7 +488,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           return;
         }
         // From here on we are really async
-        this._getBackend().sendEvent(processedEvent);
+        this._sendEvent(processedEvent);
         resolve(processedEvent);
       })
       .then(null, e => {

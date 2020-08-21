@@ -1,14 +1,20 @@
+/* eslint-disable max-lines */
 import {
   Breadcrumb,
+  CaptureContext,
   Event,
   EventHint,
   EventProcessor,
+  Extra,
+  Extras,
   Scope as ScopeInterface,
+  ScopeContext,
   Severity,
   Span,
+  Transaction,
   User,
 } from '@sentry/types';
-import { getGlobalObject, isThenable, SyncPromise, timestampWithMs } from '@sentry/utils';
+import { getGlobalObject, isPlainObject, isThenable, SyncPromise, timestampWithMs } from '@sentry/utils';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -34,10 +40,12 @@ export class Scope implements ScopeInterface {
   protected _tags: { [key: string]: string } = {};
 
   /** Extra */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected _extra: { [key: string]: any } = {};
 
   /** Contexts */
-  protected _context: { [key: string]: any } = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected _contexts: { [key: string]: any } = {};
 
   /** Fingerprint */
   protected _fingerprint?: string[];
@@ -45,11 +53,32 @@ export class Scope implements ScopeInterface {
   /** Severity */
   protected _level?: Severity;
 
-  /** Transaction */
-  protected _transaction?: string;
+  /** Transaction Name */
+  protected _transactionName?: string;
 
   /** Span */
   protected _span?: Span;
+
+  /**
+   * Inherit values from the parent scope.
+   * @param scope to clone.
+   */
+  public static clone(scope?: Scope): Scope {
+    const newScope = new Scope();
+    if (scope) {
+      newScope._breadcrumbs = [...scope._breadcrumbs];
+      newScope._tags = { ...scope._tags };
+      newScope._extra = { ...scope._extra };
+      newScope._contexts = { ...scope._contexts };
+      newScope._user = scope._user;
+      newScope._level = scope._level;
+      newScope._span = scope._span;
+      newScope._transactionName = scope._transactionName;
+      newScope._fingerprint = scope._fingerprint;
+      newScope._eventProcessors = [...scope._eventProcessors];
+    }
+    return newScope;
+  }
 
   /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
@@ -65,50 +94,6 @@ export class Scope implements ScopeInterface {
   public addEventProcessor(callback: EventProcessor): this {
     this._eventProcessors.push(callback);
     return this;
-  }
-
-  /**
-   * This will be called on every set call.
-   */
-  protected _notifyScopeListeners(): void {
-    if (!this._notifyingListeners) {
-      this._notifyingListeners = true;
-      setTimeout(() => {
-        this._scopeListeners.forEach(callback => {
-          callback(this);
-        });
-        this._notifyingListeners = false;
-      });
-    }
-  }
-
-  /**
-   * This will be called after {@link applyToEvent} is finished.
-   */
-  protected _notifyEventProcessors(
-    processors: EventProcessor[],
-    event: Event | null,
-    hint?: EventHint,
-    index: number = 0,
-  ): PromiseLike<Event | null> {
-    return new SyncPromise<Event | null>((resolve, reject) => {
-      const processor = processors[index];
-      // tslint:disable-next-line:strict-type-predicates
-      if (event === null || typeof processor !== 'function') {
-        resolve(event);
-      } else {
-        const result = processor({ ...event }, hint) as Event | null;
-        if (isThenable(result)) {
-          (result as PromiseLike<Event | null>)
-            .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
-            .then(null, reject);
-        } else {
-          this._notifyEventProcessors(processors, result, hint, index + 1)
-            .then(resolve)
-            .then(null, reject);
-        }
-      }
-    });
   }
 
   /**
@@ -144,7 +129,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setExtras(extras: { [key: string]: any }): this {
+  public setExtras(extras: Extras): this {
     this._extra = {
       ...this._extra,
       ...extras,
@@ -156,7 +141,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setExtra(key: string, extra: any): this {
+  public setExtra(key: string, extra: Extra): this {
     this._extra = { ...this._extra, [key]: extra };
     this._notifyScopeListeners();
     return this;
@@ -183,20 +168,26 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setTransaction(transaction?: string): this {
-    this._transaction = transaction;
-    if (this._span) {
-      (this._span as any).transaction = transaction;
-    }
+  public setTransactionName(name?: string): this {
+    this._transactionName = name;
     this._notifyScopeListeners();
     return this;
   }
 
   /**
+   * Can be removed in major version.
+   * @deprecated in favor of {@link this.setTransactionName}
+   */
+  public setTransaction(name?: string): this {
+    return this.setTransactionName(name);
+  }
+
+  /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(key: string, context: { [key: string]: any } | null): this {
-    this._context = { ...this._context, [key]: context };
+    this._contexts = { ...this._contexts, [key]: context };
     this._notifyScopeListeners();
     return this;
   }
@@ -211,32 +202,67 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Internal getter for Span, used in Hub.
-   * @hidden
+   * @inheritDoc
    */
   public getSpan(): Span | undefined {
     return this._span;
   }
 
   /**
-   * Inherit values from the parent scope.
-   * @param scope to clone.
+   * @inheritDoc
    */
-  public static clone(scope?: Scope): Scope {
-    const newScope = new Scope();
-    if (scope) {
-      newScope._breadcrumbs = [...scope._breadcrumbs];
-      newScope._tags = { ...scope._tags };
-      newScope._extra = { ...scope._extra };
-      newScope._context = { ...scope._context };
-      newScope._user = scope._user;
-      newScope._level = scope._level;
-      newScope._span = scope._span;
-      newScope._transaction = scope._transaction;
-      newScope._fingerprint = scope._fingerprint;
-      newScope._eventProcessors = [...scope._eventProcessors];
+  public getTransaction(): Transaction | undefined {
+    const span = this.getSpan() as Span & { spanRecorder: { spans: Span[] } };
+    if (span && span.spanRecorder && span.spanRecorder.spans[0]) {
+      return span.spanRecorder.spans[0] as Transaction;
     }
-    return newScope;
+    return undefined;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public update(captureContext?: CaptureContext): this {
+    if (!captureContext) {
+      return this;
+    }
+
+    if (typeof captureContext === 'function') {
+      const updatedScope = (captureContext as <T>(scope: T) => T)(this);
+      return updatedScope instanceof Scope ? updatedScope : this;
+    }
+
+    if (captureContext instanceof Scope) {
+      this._tags = { ...this._tags, ...captureContext._tags };
+      this._extra = { ...this._extra, ...captureContext._extra };
+      this._contexts = { ...this._contexts, ...captureContext._contexts };
+      if (captureContext._user) {
+        this._user = captureContext._user;
+      }
+      if (captureContext._level) {
+        this._level = captureContext._level;
+      }
+      if (captureContext._fingerprint) {
+        this._fingerprint = captureContext._fingerprint;
+      }
+    } else if (isPlainObject(captureContext)) {
+      // eslint-disable-next-line no-param-reassign
+      captureContext = captureContext as ScopeContext;
+      this._tags = { ...this._tags, ...captureContext.tags };
+      this._extra = { ...this._extra, ...captureContext.extra };
+      this._contexts = { ...this._contexts, ...captureContext.contexts };
+      if (captureContext.user) {
+        this._user = captureContext.user;
+      }
+      if (captureContext.level) {
+        this._level = captureContext.level;
+      }
+      if (captureContext.fingerprint) {
+        this._fingerprint = captureContext.fingerprint;
+      }
+    }
+
+    return this;
   }
 
   /**
@@ -247,9 +273,9 @@ export class Scope implements ScopeInterface {
     this._tags = {};
     this._extra = {};
     this._user = {};
-    this._context = {};
+    this._contexts = {};
     this._level = undefined;
-    this._transaction = undefined;
+    this._transactionName = undefined;
     this._fingerprint = undefined;
     this._span = undefined;
     this._notifyScopeListeners();
@@ -283,6 +309,91 @@ export class Scope implements ScopeInterface {
   }
 
   /**
+   * Applies the current context and fingerprint to the event.
+   * Note that breadcrumbs will be added by the client.
+   * Also if the event has already breadcrumbs on it, we do not merge them.
+   * @param event Event
+   * @param hint May contain additional informartion about the original exception.
+   * @hidden
+   */
+  public applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null> {
+    if (this._extra && Object.keys(this._extra).length) {
+      event.extra = { ...this._extra, ...event.extra };
+    }
+    if (this._tags && Object.keys(this._tags).length) {
+      event.tags = { ...this._tags, ...event.tags };
+    }
+    if (this._user && Object.keys(this._user).length) {
+      event.user = { ...this._user, ...event.user };
+    }
+    if (this._contexts && Object.keys(this._contexts).length) {
+      event.contexts = { ...this._contexts, ...event.contexts };
+    }
+    if (this._level) {
+      event.level = this._level;
+    }
+    if (this._transactionName) {
+      event.transaction = this._transactionName;
+    }
+    // We want to set the trace context for normal events only if there isn't already
+    // a trace context on the event. There is a product feature in place where we link
+    // errors with transaction and it relys on that.
+    if (this._span) {
+      event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
+    }
+
+    this._applyFingerprint(event);
+
+    event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
+    event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
+
+    return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
+  }
+
+  /**
+   * This will be called after {@link applyToEvent} is finished.
+   */
+  protected _notifyEventProcessors(
+    processors: EventProcessor[],
+    event: Event | null,
+    hint?: EventHint,
+    index: number = 0,
+  ): PromiseLike<Event | null> {
+    return new SyncPromise<Event | null>((resolve, reject) => {
+      const processor = processors[index];
+      if (event === null || typeof processor !== 'function') {
+        resolve(event);
+      } else {
+        const result = processor({ ...event }, hint) as Event | null;
+        if (isThenable(result)) {
+          (result as PromiseLike<Event | null>)
+            .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
+            .then(null, reject);
+        } else {
+          this._notifyEventProcessors(processors, result, hint, index + 1)
+            .then(resolve)
+            .then(null, reject);
+        }
+      }
+    });
+  }
+
+  /**
+   * This will be called on every set call.
+   */
+  protected _notifyScopeListeners(): void {
+    if (!this._notifyingListeners) {
+      this._notifyingListeners = true;
+      setTimeout(() => {
+        this._scopeListeners.forEach(callback => {
+          callback(this);
+        });
+        this._notifyingListeners = false;
+      });
+    }
+  }
+
+  /**
    * Applies fingerprint from the scope to the event if there's one,
    * uses message if there's one instead or get rid of empty fingerprint
    */
@@ -303,45 +414,6 @@ export class Scope implements ScopeInterface {
     if (event.fingerprint && !event.fingerprint.length) {
       delete event.fingerprint;
     }
-  }
-
-  /**
-   * Applies the current context and fingerprint to the event.
-   * Note that breadcrumbs will be added by the client.
-   * Also if the event has already breadcrumbs on it, we do not merge them.
-   * @param event Event
-   * @param hint May contain additional informartion about the original exception.
-   * @hidden
-   */
-  public applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null> {
-    if (this._extra && Object.keys(this._extra).length) {
-      event.extra = { ...this._extra, ...event.extra };
-    }
-    if (this._tags && Object.keys(this._tags).length) {
-      event.tags = { ...this._tags, ...event.tags };
-    }
-    if (this._user && Object.keys(this._user).length) {
-      event.user = { ...this._user, ...event.user };
-    }
-    if (this._context && Object.keys(this._context).length) {
-      event.contexts = { ...this._context, ...event.contexts };
-    }
-    if (this._level) {
-      event.level = this._level;
-    }
-    if (this._transaction) {
-      event.transaction = this._transaction;
-    }
-    if (this._span) {
-      event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
-    }
-
-    this._applyFingerprint(event);
-
-    event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
-    event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
-
-    return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }
 }
 
