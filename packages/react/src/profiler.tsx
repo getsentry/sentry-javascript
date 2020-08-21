@@ -190,7 +190,7 @@ class Profiler extends React.Component<ProfilerProps> {
  * @param WrappedComponent component that is wrapped by Profiler
  * @param options the {@link ProfilerProps} you can pass into the Profiler
  */
-function withProfiler<P extends Record<string, unknown>>(
+function withProfiler<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
   // We do not want to have `updateProps` given in options, it is instead filled through the HOC.
   options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps'>>,
