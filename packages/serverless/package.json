@@ -22,14 +22,17 @@
     "@sentry/node": "5.21.0",
     "@sentry/types": "5.21.0",
     "@sentry/utils": "5.21.0",
+    "aws-sdk": "^2.733.0",
     "cookie": "0.4.1",
     "dtslint": "3.6.14",
+    "fs": "0.0.1-security",
     "https-proxy-agent": "5.0.0",
     "lint": "0.7.0",
     "lru_map": "0.4.0",
     "npm-check-updates": "7.1.0",
     "tslib": "2.0.1",
-    "unix-mem-monitor": "1.0.4"
+    "unix-mem-monitor": "1.0.4",
+    "uuid": "^8.3.0"
   },
   "devDependencies": {
     "@types/cookie": "0.4.0",
