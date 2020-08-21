@@ -176,10 +176,7 @@ describe('_fetchCallback()', () => {
     const newData = {
       ...data,
       endTimestamp: data.startTimestamp + 12343234,
-      response: (() => {
-        const response = { status: 404 } as Response;
-        return response;
-      })(),
+      response: { status: 404 } as Response,
     };
     // End fetch request
     _fetchCallback(newData, shouldCreateSpan, spans);
