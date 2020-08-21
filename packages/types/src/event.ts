@@ -6,6 +6,7 @@ import { SdkInfo } from './sdkinfo';
 import { Severity } from './severity';
 import { Span } from './span';
 import { Stacktrace } from './stacktrace';
+import { Measurements } from './transaction';
 import { User } from './user';
 
 /** JSDoc */
@@ -39,6 +40,7 @@ export interface Event {
   user?: User;
   type?: EventType;
   spans?: Span[];
+  measurements?: Measurements;
 }
 
 /** JSDoc */
