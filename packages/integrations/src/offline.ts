@@ -28,6 +28,11 @@ export class Offline implements Integration {
   public hub?: Hub;
 
   /**
+   * maximum number of events to store while offline
+   */
+  public maxStoredEvents: number;
+
+  /**
    * event cache
    */
   public offlineEventStore: LocalForage; // type imported from localforage
@@ -35,14 +40,15 @@ export class Offline implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor() {
+  public constructor(options: { maxStoredEvents?: number } = {}) {
     this.global = getGlobalObject<Window>();
+    this.maxStoredEvents = options.maxStoredEvents || 30; // set a reasonable default
     this.offlineEventStore = localforage.createInstance({
       name: 'sentry/offlineEventStore',
     });
 
     if ('addEventListener' in this.global) {
-      this.global.addEventListener('online', (): void => {
+      this.global.addEventListener('online', () => {
         this._sendEvents().catch(() => {
           logger.warn('could not send cached events');
         });
@@ -60,9 +66,11 @@ export class Offline implements Integration {
       if (this.hub && this.hub.getIntegration(Offline)) {
         // cache if we are positively offline
         if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
-          this._cacheEvent(event).catch((_error: any) => {
-            logger.warn('could not cache event while offline');
-          });
+          this._cacheEvent(event)
+            .then((_event: Event): Promise<void> => this._enforceMaxEvents())
+            .catch((_error: any): void => {
+              logger.warn('could not cache event while offline');
+            });
 
           // return null on success or failure, because being offline will still result in an error
           return null;
@@ -89,10 +97,45 @@ export class Offline implements Integration {
   }
 
   /**
+   * purge excess events if necessary
+   */
+  private async _enforceMaxEvents(): Promise<void> {
+    const events: Array<{ event: Event; cacheKey: string }> = [];
+
+    return this.offlineEventStore
+      .iterate<Event, void>((event: Event, cacheKey: string, _index: number): void => {
+        // aggregate events
+        events.push({ cacheKey, event });
+      })
+      .then(
+        (): Promise<void> =>
+          // this promise resolves when the iteration is finished
+          this._purgeEvents(
+            // purge all events past maxStoredEvents in reverse chronological order
+            events
+              .sort((a, b) => (b.event.timestamp || 0) - (a.event.timestamp || 0))
+              .slice(this.maxStoredEvents < events.length ? this.maxStoredEvents : events.length)
+              .map(event => event.cacheKey),
+          ),
+      )
+      .catch((_error: any): void => {
+        logger.warn('could not enforce max events');
+      });
+  }
+
+  /**
    * purge event from cache
    */
   private async _purgeEvent(cacheKey: string): Promise<void> {
     return this.offlineEventStore.removeItem(cacheKey);
+  }
+
+  /**
+   * purge events from cache
+   */
+  private async _purgeEvents(cacheKeys: string[]): Promise<void> {
+    // trail with .then to ensure the return type as void and not void|void[]
+    return Promise.all(cacheKeys.map(cacheKey => this._purgeEvent(cacheKey))).then();
   }
 
   /**

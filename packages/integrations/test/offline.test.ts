@@ -33,9 +33,6 @@ jest.mock('localforage', () => ({
   },
 }));
 
-// mock sentry utils
-jest.mock('@sentry/utils');
-
 let integration: Integration;
 let online: boolean;
 
@@ -80,18 +77,64 @@ describe('Offline', () => {
   describe('when app is offline', () => {
     beforeEach(() => {
       online = false;
-
-      initIntegration();
-      setupOnce();
-      processEvents();
     });
 
     it('stores events in offline store', async () => {
+      initIntegration();
+      setupOnce();
+      prepopulateEvents(1);
+      processEvents();
+
       expect(await integration.offlineEventStore.length()).toEqual(1);
+    });
+
+    it('enforces a default of 30 maxStoredEvents', done => {
+      initIntegration();
+      setupOnce();
+      prepopulateEvents(50);
+      processEvents();
+
+      setImmediate(async () => {
+        // allow background promises to finish resolving
+        expect(await integration.offlineEventStore.length()).toEqual(30);
+        done();
+      });
+    });
+
+    it('does not purge events when below the maxStoredEvents threshold', done => {
+      initIntegration();
+      setupOnce();
+      prepopulateEvents(5);
+      processEvents();
+
+      setImmediate(async () => {
+        // allow background promises to finish resolving
+        expect(await integration.offlineEventStore.length()).toEqual(5);
+        done();
+      });
+    });
+
+    describe('when maxStoredEvents is supplied', () => {
+      it('respects the configuration', done => {
+        initIntegration({ maxStoredEvents: 5 });
+        setupOnce();
+        prepopulateEvents(50);
+        processEvents();
+
+        setImmediate(async () => {
+          // allow background promises to finish resolving
+          expect(await integration.offlineEventStore.length()).toEqual(5);
+          done();
+        });
+      });
     });
 
     describe('when connectivity is restored', () => {
       it('sends stored events', async done => {
+        initIntegration();
+        setupOnce();
+        prepopulateEvents(1);
+        processEvents();
         processEventListeners();
 
         expect(await integration.offlineEventStore.length()).toEqual(0);
@@ -104,6 +147,7 @@ describe('Offline', () => {
 
 let eventListeners: any[];
 let eventProcessors: EventProcessor[];
+let events: Event[];
 
 /** JSDoc */
 function addGlobalEventProcessor(callback: () => void): void {
@@ -124,11 +168,12 @@ function getCurrentHub(): Hub {
 }
 
 /** JSDoc */
-function initIntegration(): void {
+function initIntegration(options: { maxStoredEvents?: number } = {}): void {
   eventListeners = [];
   eventProcessors = [];
+  events = [];
 
-  utils.getGlobalObject.mockImplementation(() => ({
+  utils.getGlobalObject = jest.fn(() => ({
     addEventListener: (_windowEvent, callback) => {
       eventListeners.push(callback);
     },
@@ -137,7 +182,17 @@ function initIntegration(): void {
     },
   }));
 
-  integration = new Offline();
+  integration = new Offline(options);
+}
+
+/** JSDoc */
+function prepopulateEvents(count: number = 1): void {
+  for (let i = 0; i < count; i++) {
+    events.push({
+      message: 'There was an error!',
+      timestamp: new Date().getTime(),
+    });
+  }
 }
 
 /** JSDoc */
@@ -150,8 +205,8 @@ function processEventListeners(): void {
 /** JSDoc */
 function processEvents(): void {
   eventProcessors.forEach(processor => {
-    processor({
-      message: 'There was an error!',
+    events.forEach(event => {
+      processor(event);
     });
   });
 }
