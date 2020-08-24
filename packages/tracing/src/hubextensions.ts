@@ -49,8 +49,6 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
     return transaction;
   }
 
-  logger.log('Tracing enabled');
-
   // we have to test for a pre-existsing sampling decision, in case this transaction is a child transaction and has
   // inherited its parent's decision
   if (transaction.sampled === undefined) {
@@ -59,9 +57,20 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
     const sampleRate =
       typeof options.tracesSampler === 'function' ? options.tracesSampler(sampleContext) : options.tracesSampleRate;
 
+    // since this is coming from the user, who knows what we might get
+    if (!isValidSampleRate(sampleRate)) {
+      logger.warn(`[Tracing] Discarding trace because of invalid sample rate.`);
+      transaction.sampled = false;
+      return transaction;
+    }
+
     // if the function returned 0, or if the sample rate is set to 0, it's a sign the transaction should be dropped
     if (!sampleRate) {
-      logger.log('Discarding trace because tracesSampler returned 0 or tracesSampleRate is set to 0');
+      logger.log(
+        `[Tracing] Discarding trace because ${
+          typeof options.tracesSampler === 'function' ? 'tracesSampler returned 0' : 'tracesSampleRate is set to 0'
+        }`,
+      );
       transaction.sampled = false;
       return transaction;
     }
@@ -71,7 +80,9 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
 
     // if we're not going to keep it, we're done
     if (!transaction.sampled) {
-      logger.log(`Discarding trace because it's not included in the random sample (sampling rate = ${sampleRate})`);
+      logger.log(
+        `[Tracing] Discarding trace because it's not included in the random sample (sampling rate = ${sampleRate})`,
+      );
       return transaction;
     }
   }
@@ -118,6 +129,25 @@ function getDefaultSampleContext(): SampleContext {
   }
 
   return defaultSampleContext;
+}
+
+/**
+ * Checks the given sample rate to make sure it is valid (a number between 0 and 1).
+ */
+function isValidSampleRate(rate: unknown): boolean {
+  if (!(typeof rate === 'number')) {
+    logger.warn(
+      `[Tracing] Given sample rate is invalid. Sample rate must be a number between 0 and 1. Got ${JSON.stringify(
+        rate,
+      )} of type ${JSON.stringify(typeof rate)}.`,
+    );
+    return false;
+  }
+  if (rate < 0 || rate > 1) {
+    logger.warn(`[Tracing] Given sample rate is invalid. Sample rate must be between 0 and 1. Got ${rate}.`);
+    return false;
+  }
+  return true;
 }
 
 /**
