@@ -1,8 +1,13 @@
 import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
-import { Handlers } from '@sentry/node';
 import { SampleContext, TransactionContext } from '@sentry/types';
-import { hasTracingEnabled, isInstanceOf, isNodeEnv, logger } from '@sentry/utils';
-import * as http from 'http'; // TODO - is this okay, or do we need to export the type we need from our node SDK?
+import {
+  dynamicRequire,
+  extractNodeRequestData,
+  hasTracingEnabled,
+  isInstanceOf,
+  isNodeEnv,
+  logger,
+} from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
@@ -89,15 +94,18 @@ function getDefaultSampleContext(): SampleContext {
   if (isNodeEnv()) {
     // look at koa TODO
     const domain = getActiveDomain();
+    const nodeHttpModule = dynamicRequire(module, 'http');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const requestType = nodeHttpModule.IncomingMessage;
     if (domain) {
       // TODO is the below true?
       // for all node servers that we currently support, we store the incoming request object (which is an instance of
       // http.IncomingMessage) on the domain the domain is stored as an array, so our only way to find the request is to
       // iterate through the array and compare types
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      const request = domain.members.find((member: any) => isInstanceOf(member, http.IncomingMessage));
+      const request = domain.members.find((member: any) => isInstanceOf(member, requestType));
       if (request) {
-        defaultSampleContext.request = Handlers.extractRequestData(request);
+        defaultSampleContext.request = extractNodeRequestData(request);
       }
     }
   }
