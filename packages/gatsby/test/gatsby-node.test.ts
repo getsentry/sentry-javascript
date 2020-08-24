@@ -16,7 +16,10 @@ describe('onCreateWebpackConfig', () => {
     onCreateWebpackConfig({ plugins, actions });
 
     expect(plugins.define).toHaveBeenCalledTimes(1);
-    expect(plugins.define).toHaveBeenLastCalledWith({ __SENTRY_DSN__: '""', __SENTRY_RELEASE__: '""' });
+    expect(plugins.define).toHaveBeenLastCalledWith({
+      __SENTRY_DSN__: expect.any(String),
+      __SENTRY_RELEASE__: expect.any(String),
+    });
 
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
     expect(actions.setWebpackConfig).toHaveBeenLastCalledWith({ plugins: expect.any(Array) });
