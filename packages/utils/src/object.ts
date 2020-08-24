@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ExtendedError, WrappedFunction } from '@sentry/types';
 
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive, isSyntheticEvent } from './is';
@@ -23,7 +24,6 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
 
   // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
-  // tslint:disable-next-line:strict-type-predicates
   if (typeof wrapped === 'function') {
     try {
       wrapped.prototype = wrapped.prototype || {};
@@ -50,10 +50,7 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
  */
 export function urlEncode(object: { [key: string]: any }): string {
   return Object.keys(object)
-    .map(
-      // tslint:disable-next-line:no-unsafe-any
-      key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`,
-    )
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
     .join('&');
 }
 
@@ -71,10 +68,10 @@ function getWalkSource(
   if (isError(value)) {
     const error = value as ExtendedError;
     const err: {
+      [key: string]: any;
       stack: string | undefined;
       message: string;
       name: string;
-      [key: string]: any;
     } = {
       message: error.message,
       name: error.name,
@@ -126,7 +123,6 @@ function getWalkSource(
       source.currentTarget = '<unknown>';
     }
 
-    // tslint:disable-next-line:strict-type-predicates
     if (typeof CustomEvent !== 'undefined' && isInstanceOf(value, CustomEvent)) {
       source.detail = event.detail;
     }
@@ -147,7 +143,7 @@ function getWalkSource(
 
 /** Calculates bytes size of input string */
 function utf8Length(value: string): number {
-  // tslint:disable-next-line:no-bitwise
+  // eslint-disable-next-line no-bitwise
   return ~-encodeURI(value).split(/%..|./).length;
 }
 
@@ -201,7 +197,6 @@ function serializeValue(value: any): any {
  * - serializes Error objects
  * - filter global objects
  */
-// tslint:disable-next-line:cyclomatic-complexity
 function normalizeValue<T>(value: T, key?: any): T | string {
   if (key === 'domain' && value && typeof value === 'object' && ((value as unknown) as { _events: any })._events) {
     return '[Domain]';
@@ -228,7 +223,6 @@ function normalizeValue<T>(value: T, key?: any): T | string {
     return '[SyntheticEvent]';
   }
 
-  // tslint:disable-next-line:no-tautology-expression
   if (typeof value === 'number' && value !== value) {
     return '[NaN]';
   }
@@ -252,18 +246,19 @@ function normalizeValue<T>(value: T, key?: any): T | string {
  * @param depth Optional number indicating how deep should walking be performed
  * @param memo Optional Memo class handling decycling
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function walk(key: string, value: any, depth: number = +Infinity, memo: Memo = new Memo()): any {
   // If we reach the maximum depth, serialize whatever has left
   if (depth === 0) {
     return serializeValue(value);
   }
 
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   // If value implements `toJSON` method, call it and return early
-  // tslint:disable:no-unsafe-any
   if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
     return value.toJSON();
   }
-  // tslint:enable:no-unsafe-any
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
   // If normalized value is a primitive, there are no branches left to walk, so we can just bail out, as theres no point in going down that branch any further
   const normalized = normalizeValue(value, key);
@@ -311,9 +306,9 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
  * - Takes care of Error objects serialization
  * - Optionally limit depth of final output
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function normalize(input: any, depth?: number): any {
   try {
-    // tslint:disable-next-line:no-unsafe-any
     return JSON.parse(JSON.stringify(input, (key: string, value: any) => walk(key, value, depth)));
   } catch (_oO) {
     return '**non-serializable**';
@@ -325,8 +320,8 @@ export function normalize(input: any, depth?: number): any {
  * and truncated list that will be used inside the event message.
  * eg. `Non-error exception captured with keys: foo, bar, baz`
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function extractExceptionKeysForMessage(exception: any, maxLength: number = 40): string {
-  // tslint:disable:strict-type-predicates
   const keys = Object.keys(getWalkSource(exception));
   keys.sort();
 

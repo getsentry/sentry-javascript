@@ -1,6 +1,6 @@
 {
   "name": "@sentry/tracing",
-  "version": "5.20.1",
+  "version": "5.21.4",
   "description": "Extensions for Sentry AM",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing",
@@ -16,21 +16,22 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "5.20.1",
-    "@sentry/minimal": "5.20.1",
-    "@sentry/types": "5.20.1",
-    "@sentry/utils": "5.20.1",
+    "@sentry/hub": "5.21.4",
+    "@sentry/minimal": "5.21.4",
+    "@sentry/types": "5.21.4",
+    "@sentry/utils": "5.21.4",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/browser": "5.20.1",
+    "@sentry-internal/eslint-config-sdk": "5.21.4",
+    "@sentry/browser": "5.21.4",
     "@types/express": "^4.17.1",
     "@types/jsdom": "^16.2.3",
+    "eslint": "7.6.0",
     "jest": "^24.7.1",
     "jsdom": "^16.2.2",
     "npm-run-all": "^4.1.2",
-    "prettier": "^1.17.0",
-    "prettier-check": "^2.0.0",
+    "prettier": "1.17.0",
     "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
@@ -38,8 +39,7 @@
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
-    "tslint": "5.16.0",
-    "typescript": "3.4.5"
+    "typescript": "3.9.7"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm build:bundle",
@@ -52,15 +52,15 @@
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage build esm",
     "link:yarn": "yarn link",
-    "lint": "run-s lint:prettier lint:tslint",
-    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
-    "lint:tslint": "tslint -t stylish -p .",
-    "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
-    "fix": "run-s fix:tslint fix:prettier",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:tslint": "tslint --fix -t stylish -p .",
+    "fix:eslint": "eslint . --format stylish --fix",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "pack": "npm pack"
   },
   "jest": {
     "collectCoverage": true,
@@ -82,5 +82,7 @@
       }
     }
   },
-  "sideEffects": true
+  "sideEffects": [
+    "./src/index.ts"
+  ]
 }

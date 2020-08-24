@@ -5,6 +5,7 @@ import { stub } from 'sinon';
 import { BrowserBackend } from '../../../src/backend';
 import { LinkedErrors } from '../../../src/integrations/linkederrors';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let linkedErrors: any;
 
 describe('LinkedErrors', () => {

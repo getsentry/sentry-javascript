@@ -324,7 +324,7 @@ describe('Span', () => {
     describe('hub.startSpan', () => {
       test('finish a transaction', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        // @ts-ignore
+        // @ts-ignore name does not exist on SpanContext
         const transaction = hub.startSpan({ name: 'test' });
         transaction.finish();
         expect(spy).toHaveBeenCalled();
@@ -336,7 +336,7 @@ describe('Span', () => {
 
       test('finish a transaction (deprecated way)', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        // @ts-ignore
+        // @ts-ignore name does not exist on SpanContext
         const transaction = hub.startSpan({ transaction: 'test' });
         transaction.finish();
         expect(spy).toHaveBeenCalled();

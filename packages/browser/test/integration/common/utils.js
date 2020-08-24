@@ -34,6 +34,7 @@ function supportsNativeFetch() {
         result = isNativeFunc(sandbox.contentWindow.fetch);
       }
       window.document.head.removeChild(sandbox);
+      // eslint-disable-next-line no-empty
     } catch (o_O) {}
   }
 
@@ -49,6 +50,7 @@ function supportsOnunhandledRejection() {
 }
 
 function isBelowIE11() {
+  // eslint-disable-next-line spaced-comment
   return /*@cc_on!@*/ false == !false;
 }
 

@@ -11,7 +11,9 @@ function evaluateInSandbox(sandbox, code) {
 
 function runInSandbox(sandbox, options, code) {
   if (typeof options === "function") {
+    // eslint-disable-next-line no-param-reassign
     code = options;
+    // eslint-disable-next-line no-param-reassign
     options = {};
   }
 

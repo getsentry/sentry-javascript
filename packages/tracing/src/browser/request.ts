@@ -1,7 +1,6 @@
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-
 import { getActiveTransaction } from './utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
@@ -41,6 +40,7 @@ export interface RequestInstrumentationOptions {
 
 /** Data returned from fetch callback */
 export interface FetchData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args: any[];
   fetchData?: {
     method: string;
@@ -48,6 +48,7 @@ export interface FetchData {
     // span_id
     __span?: string;
   };
+  response?: Response;
   startTimestamp: number;
   endTimestamp?: number;
 }
@@ -59,11 +60,12 @@ interface XHRData {
       method: string;
       url: string;
       status_code: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: Record<string, any>;
     };
     __sentry_xhr_span_id__?: string;
     __sentry_own_request__: boolean;
-    setRequestHeader?: Function;
+    setRequestHeader?: (key: string, val: string) => void;
   };
   startTimestamp: number;
   endTimestamp?: number;
@@ -77,6 +79,7 @@ export const defaultRequestInstrumentionOptions: RequestInstrumentationOptions =
 
 /** Registers span creators for xhr and fetch requests  */
 export function registerRequestInstrumentation(_options?: Partial<RequestInstrumentationOptions>): void {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentionOptions,
     ..._options,
@@ -135,9 +138,13 @@ export function _fetchCallback(
   if (handlerData.endTimestamp && handlerData.fetchData.__span) {
     const span = spans[handlerData.fetchData.__span];
     if (span) {
+      const response = handlerData.response;
+      if (response) {
+        span.setHttpStatus(response.status);
+      }
       span.finish();
 
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[handlerData.fetchData.__span];
     }
     return;
@@ -158,15 +165,16 @@ export function _fetchCallback(
     spans[span.spanId] = span;
 
     const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
     let headers = options.headers;
     if (isInstanceOf(request, Request)) {
       headers = (request as Request).headers;
     }
     if (headers) {
-      // tslint:disable-next-line: no-unsafe-any
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (typeof headers.append === 'function') {
-        // tslint:disable-next-line: no-unsafe-any
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         headers.append('sentry-trace', span.toTraceparent());
       } else if (Array.isArray(headers)) {
         headers = [...headers, ['sentry-trace', span.toTraceparent()]];
@@ -210,7 +218,7 @@ function xhrCallback(
       span.setHttpStatus(xhr.status_code);
       span.finish();
 
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[handlerData.xhr.__sentry_xhr_span_id__];
     }
     return;

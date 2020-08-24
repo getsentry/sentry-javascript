@@ -1,13 +1,13 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
-import { Span, Transaction } from '../../src';
+import { Span, SpanStatus, Transaction } from '../../src';
 import { _fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace NodeJS {
-    // tslint:disable-next-line: completed-docs
     interface Global {
       // Have to mock out Request because it is not defined in jest environment
       Request: Request;
@@ -17,7 +17,7 @@ declare global {
 
 beforeAll(() => {
   addExtensionMethods();
-  // @ts-ignore
+  // @ts-ignore need to override global Request
   global.Request = {};
 });
 
@@ -35,7 +35,9 @@ jest.mock('@sentry/utils', () => {
       if (type === 'xhr') {
         mockXHRCallback = jest.fn(callback);
       }
-      return mockAddInstrumentationHandler({ callback, type });
+      if (typeof mockAddInstrumentationHandler === 'function') {
+        return mockAddInstrumentationHandler({ callback, type });
+      }
     },
   };
 });
@@ -151,6 +153,35 @@ describe('_fetchCallback()', () => {
     expect(spans).toEqual({});
     if (transaction.spanRecorder) {
       expect(transaction.spanRecorder.spans[1].endTimestamp).toBeDefined();
+    } else {
+      fail('Transaction does not have span recorder');
+    }
+  });
+
+  it('sets response status on finish', () => {
+    const shouldCreateSpan = (_: string): boolean => true;
+    const data: FetchData = {
+      args: ['/users'],
+      fetchData: {
+        method: 'GET',
+        url: '/users',
+      },
+      startTimestamp: 1595509730275,
+    };
+    const spans: Record<string, Span> = {};
+
+    // Start fetch request
+    _fetchCallback(data, shouldCreateSpan, spans);
+
+    const newData = {
+      ...data,
+      endTimestamp: data.startTimestamp + 12343234,
+      response: { status: 404 } as Response,
+    };
+    // End fetch request
+    _fetchCallback(newData, shouldCreateSpan, spans);
+    if (transaction.spanRecorder) {
+      expect(transaction.spanRecorder.spans[1].status).toBe(SpanStatus.fromHttpCode(404));
     } else {
       fail('Transaction does not have span recorder');
     }

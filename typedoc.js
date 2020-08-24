@@ -10,13 +10,17 @@ module.exports = {
     '**/esm/**/*',
     '**/build/**/*',
     '**/packages/typescript/**/*',
-    '**/dangerfile.ts',
-    // TODO: Don't exclude React
-    '**/packages/react/**/*',
+    '**/packages/eslint-*/**/*',
   ],
   mode: 'modules',
   excludeExternals: true,
+  includeDeclarations: true,
+  includeVersion: true,
   excludeNotExported: true,
   excludePrivate: true,
+  // Turned on as @sentry/angular uses decorators
+  experimentalDecorators: true,
+  // Turned on for @sentry/react
+  jsx: 'react',
   'external-modulemap': '.*/packages/([^/]+)/.*',
 };

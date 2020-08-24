@@ -159,13 +159,11 @@ describe('withProfiler', () => {
 describe('useProfiler()', () => {
   describe('mount span', () => {
     it('does not get created if Profiler is disabled', () => {
-      // tslint:disable-next-line: no-void-expression
       renderHook(() => useProfiler('Example', { disabled: true }));
       expect(mockStartChild).toHaveBeenCalledTimes(0);
     });
 
     it('is created when a component is mounted', () => {
-      // tslint:disable-next-line: no-void-expression
       renderHook(() => useProfiler('Example'));
 
       expect(mockStartChild).toHaveBeenCalledTimes(1);
@@ -178,7 +176,6 @@ describe('useProfiler()', () => {
 
   describe('render span', () => {
     it('does not get created when hasRenderSpan is false', () => {
-      // tslint:disable-next-line: no-void-expression
       const component = renderHook(() => useProfiler('Example', { hasRenderSpan: false }));
       expect(mockStartChild).toHaveBeenCalledTimes(1);
       component.unmount();
@@ -186,7 +183,6 @@ describe('useProfiler()', () => {
     });
 
     it('is created by default', () => {
-      // tslint:disable-next-line: no-void-expression
       const component = renderHook(() => useProfiler('Example'));
 
       expect(mockStartChild).toHaveBeenCalledTimes(1);

@@ -6,12 +6,12 @@ async function sleep(delay: number): Promise<void> {
 }
 
 export class FakeTransport implements Transport {
-  /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(9999);
-
   public sendCalled: number = 0;
   public sentCount: number = 0;
   public delay: number = 2000;
+
+  /** A simple buffer holding all requests. */
+  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(9999);
 
   public sendEvent(_event: Event): PromiseLike<Response> {
     this.sendCalled += 1;

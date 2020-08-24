@@ -5,11 +5,12 @@ export class Transaction implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Transaction.id;
+  public static id: string = 'Transaction';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'Transaction';
+  public name: string = Transaction.id;
 
   /**
    * @inheritDoc

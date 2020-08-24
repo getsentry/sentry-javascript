@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, Severity } from '@sentry/types';
 import {
@@ -85,10 +86,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
     this._processing = true;
 
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this._getBackend()
       .eventFromException(exception, hint)
       .then(event => {
@@ -109,6 +112,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       ? this._getBackend().eventFromMessage(`${message}`, level, hint)
       : this._getBackend().eventFromException(message, hint);
 
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     promisedEvent.then(event => {
       eventId = this.captureEvent(event, hint, scope);
     });
@@ -276,7 +280,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     return result.then(evt => {
-      // tslint:disable-next-line:strict-type-predicates
       if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
         return this._normalizeEvent(evt, normalizeDepth);
       }
@@ -299,7 +302,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return null;
     }
 
-    // tslint:disable:no-unsafe-any
     const normalized = {
       ...event,
       ...(event.breadcrumbs && {
@@ -328,6 +330,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // so this block overwrites the normalized event to add back the original
     // Transaction information prior to normalization.
     if (event.contexts && event.contexts.trace) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       normalized.contexts.trace = event.contexts.trace;
     }
     return normalized;
@@ -403,6 +406,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
@@ -427,7 +431,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
           let finalEvent: Event | null = prepared;
 
-          const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
+          const isInternalException =
+            hint && hint.data && (hint.data as { [key: string]: unknown }).__sentry__ === true;
           // We skip beforeSend in case of transactions
           if (isInternalException || !beforeSend || isTransaction) {
             this._sendEvent(finalEvent);
@@ -436,7 +441,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           }
 
           const beforeSendResult = beforeSend(prepared, hint);
-          // tslint:disable-next-line:strict-type-predicates
           if (typeof beforeSendResult === 'undefined') {
             logger.error('`beforeSend` method has to return `null` or a valid event.');
           } else if (isThenable(beforeSendResult)) {

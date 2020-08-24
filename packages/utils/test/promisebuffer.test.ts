@@ -1,7 +1,6 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import { PromiseBuffer } from '../src/promisebuffer';
 import { SyncPromise } from '../src/syncpromise';
-
-// tslint:disable:no-floating-promises
 
 describe('PromiseBuffer', () => {
   beforeEach(() => {
@@ -19,11 +18,7 @@ describe('PromiseBuffer', () => {
       const q = new PromiseBuffer<void>(1);
       const p = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
       expect(q.add(p)).toEqual(p);
-      expect(
-        q.add(
-          new SyncPromise<void>(resolve => setTimeout(resolve, 1)),
-        ),
-      ).rejects.toThrowError();
+      expect(q.add(new SyncPromise<void>(resolve => setTimeout(resolve, 1)))).rejects.toThrowError();
       expect(q.length()).toBe(1);
     });
   });

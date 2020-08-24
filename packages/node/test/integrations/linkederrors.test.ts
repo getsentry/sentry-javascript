@@ -57,7 +57,7 @@ describe('LinkedErrors', () => {
           ._handler(event, {
             originalException: one,
           })
-          .then(_ => {
+          .then((_: any) => {
             expect(spy.mock.calls.length).toEqual(1);
           }),
       );

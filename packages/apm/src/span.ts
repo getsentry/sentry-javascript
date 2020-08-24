@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
@@ -69,6 +70,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: { [key: string]: any } = {};
 
   /**
@@ -123,6 +125,32 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
+   * Continues a trace from a string (usually the header).
+   * @param traceparent Traceparent string
+   */
+  public static fromTraceparent(
+    traceparent: string,
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
+  ): Span | undefined {
+    const matches = traceparent.match(TRACEPARENT_REGEXP);
+    if (matches) {
+      let sampled: boolean | undefined;
+      if (matches[3] === '1') {
+        sampled = true;
+      } else if (matches[3] === '0') {
+        sampled = false;
+      }
+      return new Span({
+        ...spanContext,
+        parentSpanId: matches[2],
+        sampled,
+        traceId: matches[1],
+      });
+    }
+    return undefined;
+  }
+
+  /**
    * @inheritDoc
    * @deprecated
    */
@@ -154,32 +182,6 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Continues a trace from a string (usually the header).
-   * @param traceparent Traceparent string
-   */
-  public static fromTraceparent(
-    traceparent: string,
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): Span | undefined {
-    const matches = traceparent.match(TRACEPARENT_REGEXP);
-    if (matches) {
-      let sampled: boolean | undefined;
-      if (matches[3] === '1') {
-        sampled = true;
-      } else if (matches[3] === '0') {
-        sampled = false;
-      }
-      return new Span({
-        ...spanContext,
-        parentSpanId: matches[2],
-        sampled,
-        traceId: matches[1],
-      });
-    }
-    return undefined;
-  }
-
-  /**
    * @inheritDoc
    */
   public setTag(key: string, value: string): this {
@@ -190,6 +192,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public setData(key: string, value: any): this {
     this.data = { ...this.data, [key]: value };
     return this;
@@ -244,6 +247,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public getTraceContext(): {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: { [key: string]: any };
     description?: string;
     op?: string;
@@ -269,6 +273,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public toJSON(): {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: { [key: string]: any };
     description?: string;
     op?: string;

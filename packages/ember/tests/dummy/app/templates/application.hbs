@@ -1,0 +1,54 @@
+
+<div class="app">
+  <div class="container">
+    <div class="box">
+      <div class="sidebar">
+        <div class="logo"></div>
+      </div>
+      <section class="content">
+        <div class="content-container border-bottom">
+          <h3>Sentry Instrumented Ember Application</h3>
+        </div>
+        <div class="content-container">
+          <TestSection 
+            @title="Throw Generic Javascript Error"
+            @buttonLabel="Break Things!"
+            @buttonFunction={{this.createError}}
+          />
+          <TestSection 
+            @title="Throw EmberError"
+            @buttonLabel="Break Things!"
+            @buttonFunction={{this.createEmberError}}
+          />
+          <TestSection 
+            @title="Caught Thrown EmberError"
+            @buttonLabel="Break Things!"
+            @buttonFunction={{this.createCaughtEmberError}}
+          />
+          <TestSection 
+            @title="Error From Fetch"
+            @buttonLabel="Break Things!"
+            @buttonFunction={{this.createFetchError}}
+          />
+          <TestSection 
+            @title="Error in AfterRender"
+            @buttonLabel="Break Things!"
+            @buttonFunction={{this.createAfterRenderError}}
+          />
+          <TestSection
+            @title="RSVP Rejection"
+            @buttonLabel="Break Things!"
+            @buttonFunction={{this.createRSVPRejection}}
+          />
+          <TestSection 
+            @title="Error inside RSVP"
+            @buttonLabel="Break Things!"
+            @buttonFunction={{this.createRSVPError}}
+          />
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+{{outlet}}

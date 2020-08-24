@@ -8,11 +8,12 @@ export class Console implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Console.id;
+  public static id: string = 'Console';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'Console';
+  public name: string = Console.id;
 
   /**
    * @inheritDoc

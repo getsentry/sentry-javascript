@@ -23,6 +23,7 @@ function throwNonError() {
 }
 
 function throwError(message) {
+  // eslint-disable-next-line no-param-reassign
   message = message || "foo";
   try {
     throw new Error(message);
@@ -45,6 +46,7 @@ function throwSameConsecutiveErrors(message) {
 }
 
 function captureMessage(message) {
+  // eslint-disable-next-line no-param-reassign
   message = message || "message";
   Sentry.captureMessage(message);
 }

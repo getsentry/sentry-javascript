@@ -13,7 +13,6 @@ describe('Hub', () => {
   test('call bindClient with provided client when constructing new instance', () => {
     const testClient: any = { setupIntegrations: jest.fn() };
     const spy = jest.spyOn(Hub.prototype, 'bindClient');
-    // tslint:disable-next-line:no-unused-expression
     new Hub(testClient);
     expect(spy).toHaveBeenCalledWith(testClient);
   });
@@ -30,7 +29,7 @@ describe('Hub', () => {
 
   test("don't invoke client sync with wrong func", () => {
     const hub = new Hub(clientFn);
-    // @ts-ignore
+    // @ts-ignore we want to able to call private method
     hub._invokeClient('funca', true);
     expect(clientFn).not.toHaveBeenCalled();
   });
@@ -195,6 +194,7 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureException('a');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].event_id).toBeTruthy();
     });
 
@@ -203,8 +203,11 @@ describe('Hub', () => {
       const spy = jest.spyOn(hub as any, '_invokeClient');
       const ex = new Error('foo');
       hub.captureException(ex);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].originalException).toBe(ex);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].syntheticException.message).toBe('Sentry syntheticException');
     });
   });
@@ -223,6 +226,7 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureMessage('a');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].event_id).toBeTruthy();
     });
 
@@ -230,8 +234,11 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureMessage('foo');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].originalException).toBe('foo');
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].syntheticException).toBeInstanceOf(Error);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][3].syntheticException.message).toBe('foo');
     });
   });
@@ -256,6 +263,7 @@ describe('Hub', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureEvent(event);
+      // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].event_id).toBeTruthy();
     });
   });
@@ -302,6 +310,7 @@ describe('Hub', () => {
             expect(appliedEvent!.breadcrumbs![1]).toHaveProperty('timestamp');
           })
           .then(null, e => {
+            // eslint-disable-next-line no-console
             console.error(e);
           });
       });
