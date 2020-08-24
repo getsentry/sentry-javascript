@@ -69,6 +69,7 @@ if (_window.Sentry && _window.Sentry.Integrations) {
 const INTEGRATIONS = {
   ...windowIntegrations,
   ...BrowserIntegrations,
+  // eslint-disable-next-line deprecation/deprecation
   Tracing: ApmIntegrations.Tracing,
 };
 
