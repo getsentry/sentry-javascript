@@ -27,17 +27,19 @@
   },
   "dependencies": {
     "@sentry/react": "5.21.4",
-    "@sentry/types": "5.21.4"
+    "@sentry/tracing": "5.21.4"
   },
   "peerDependencies": {
     "gatsby": "*"
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "5.21.4",
+    "@testing-library/react": "^10.4.9",
     "eslint": "7.6.0",
     "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
     "prettier": "1.17.0",
+    "react": "^16.13.1",
     "rimraf": "^2.6.3",
     "typescript": "3.9.7"
   },

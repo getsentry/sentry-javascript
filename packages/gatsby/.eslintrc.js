@@ -7,6 +7,7 @@ module.exports = {
   },
   parserOptions: {
     ecmaVersion: 2018,
+    jsx: true,
   },
   extends: ['@sentry-internal/sdk'],
   ignorePatterns: ['build/**', 'dist/**', 'esm/**', 'examples/**', 'scripts/**'],
