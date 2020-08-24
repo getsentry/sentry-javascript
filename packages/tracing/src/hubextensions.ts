@@ -122,7 +122,7 @@ function getDefaultSampleContext(): SampleContext {
  *
  * @see {@link Hub.startTransaction}
  */
-function startTransaction(this: Hub, context: TransactionContext, sampleContext?: SampleContext): Transaction {
+function _startTransaction(this: Hub, context: TransactionContext, sampleContext?: SampleContext): Transaction {
   const transaction = new Transaction(context, this);
   return sample(this, transaction, { ...getDefaultSampleContext(), ...sampleContext });
 }
@@ -149,7 +149,7 @@ export function _addTracingExtensions(): void {
   if (carrier.__SENTRY__) {
     carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
     if (!carrier.__SENTRY__.extensions.startTransaction) {
-      carrier.__SENTRY__.extensions.startTransaction = startTransaction;
+      carrier.__SENTRY__.extensions.startTransaction = _startTransaction;
     }
     if (!carrier.__SENTRY__.extensions.traceHeaders) {
       carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
