@@ -32,6 +32,12 @@ export class Angular implements Integration {
   private readonly _angular: any;
 
   /**
+   * ngSentry module instance
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly _module: any;
+
+  /**
    * Returns current hub.
    */
   private _getCurrentHub?: () => Hub;
@@ -43,21 +49,28 @@ export class Angular implements Integration {
   public constructor(options: { angular?: any } = {}) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     this._angular = options.angular || getGlobalObject<any>().angular;
+
+    if (!this._angular) {
+      logger.error('AngularIntegration is missing an Angular instance');
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    this._module = this._angular.module(Angular.moduleName, []);
   }
 
   /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (!this._angular) {
-      logger.error('AngularIntegration is missing an Angular instance');
+    if (!this._module) {
       return;
     }
 
     this._getCurrentHub = getCurrentHub;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    this._angular.module(Angular.moduleName, []).config([
+    this._module.config([
       '$provide',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ($provide: any): void => {
