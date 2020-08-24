@@ -5,11 +5,11 @@ import { Offline } from '../src/offline';
 
 // mock localforage methods
 jest.mock('localforage', () => ({
-  createInstance(_options: object): any {
-    let items: object[] = [];
+  createInstance(_options: { name: string }): any {
+    let items: { key: string; value: Event }[] = [];
 
     return {
-      async getItem(key: string): object {
+      async getItem(key: string): Event {
         return items.find(item => item.key === key);
       },
       async iterate(callback: () => void): void {
@@ -206,7 +206,7 @@ function processEventListeners(): void {
 function processEvents(): void {
   eventProcessors.forEach(processor => {
     events.forEach(event => {
-      processor(event);
+      processor(event) as Event | null;
     });
   });
 }
