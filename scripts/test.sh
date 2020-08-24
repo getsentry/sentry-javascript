@@ -10,13 +10,13 @@ if [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 6 ]]; then
   yarn build --ignore="@sentry/ember"
   nvm use 6
   # browser can be tested only on Node >= v8 because Karma is not supporting anything older
-  yarn test --ignore="@sentry/browser" --ignore="@sentry/integrations" --ignore="@sentry/react" --ignore="@sentry/ember" --ignore="@sentry/tracing" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry-internal/eslint-config-sdk"
+  yarn test --ignore="@sentry/browser" --ignore="@sentry/integrations" --ignore="@sentry/react" --ignore="@sentry/gatsby" --ignore="@sentry/ember" --ignore="@sentry/tracing" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry-internal/eslint-config-sdk"
 elif [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 8 ]]; then
   yarn install --ignore-engines --ignore-scripts
   # ember requires Node >= 10 to build
   yarn build --ignore="@sentry/ember"
   # tracing, ember and react work only on Node >= v10
-  yarn test --ignore="@sentry/tracing" --ignore="@sentry/react" --ignore="@sentry/ember" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry-internal/eslint-config-sdk"
+  yarn test --ignore="@sentry/tracing" --ignore="@sentry/react" --ignore="@sentry/gatsby" --ignore="@sentry/ember" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry-internal/eslint-config-sdk"
 else
   yarn install
   yarn build
