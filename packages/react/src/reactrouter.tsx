@@ -24,6 +24,7 @@ export type RouteConfig = {
 };
 
 interface RouteProps {
+  [propName: string]: any;
   location?: Location;
   component?: React.ComponentType<any> | React.ComponentType<any>;
   render?: (props: any) => React.ReactNode;

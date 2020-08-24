@@ -5,7 +5,8 @@ export type Action = 'PUSH' | 'REPLACE' | 'POP';
 export type Location = {
   pathname: string;
   action?: Action;
-} & Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} & Record<string, any>;
 
 export type ReactRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
