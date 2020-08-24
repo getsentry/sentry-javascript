@@ -94,7 +94,7 @@ jobs:
     name: BrowserStack
     needs: job_build
     runs-on: ubuntu-latest
-    if: "'refs/heads/master' == github.ref || startsWith(github.ref, 'refs/tags/')"
+    if: "github.ref == 'refs/heads/master'"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
@@ -122,6 +122,7 @@ jobs:
     name: Zeus
     needs: job_build
     runs-on: ubuntu-latest
+    if: "contains(github.ref, 'release/')"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
@@ -157,6 +158,7 @@ jobs:
     name: Artifacts Upload
     needs: job_build
     runs-on: ubuntu-latest
+    if: "contains(github.ref, 'release/')"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
