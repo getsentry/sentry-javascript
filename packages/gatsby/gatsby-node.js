@@ -1,6 +1,5 @@
-const Sentry = require('@sentry/node');
-
 const sentryRelease = JSON.stringify(
+  // Always read first as Sentry takes this as precedence
   process.env.SENTRY_RELEASE ||
     // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
     process.env.GITHUB_SHA ||
@@ -18,37 +17,6 @@ const sentryRelease = JSON.stringify(
 );
 
 const sentryDsn = JSON.stringify(process.env.SENTRY_DSN || '');
-
-exports.onPreBuild = (_, pluginParams) => {
-  if (!pluginParams || !pluginParams.trackBuild) {
-    return;
-  }
-
-  Sentry.init({
-    environment: process.env.NODE_ENV || 'development',
-    // eslint-disable-next-line no-undef
-    release: sentryRelease,
-    // eslint-disable-next-line no-undef
-    dsn: __SENTRY_DSN__,
-    ...pluginParams,
-  });
-
-  Sentry.addGlobalEventProcessor(event => {
-    event.sdk = {
-      ...event.sdk,
-      name: 'sentry.javascript.gatsby',
-      packages: [
-        ...((event.sdk && event.sdk.packages) || []),
-        {
-          name: 'npm:@sentry/gatsby',
-          version: Sentry.SDK_VERSION,
-        },
-      ],
-      version: Sentry.SDK_VERSION,
-    };
-    return event;
-  });
-};
 
 exports.onCreateWebpackConfig = ({ plugins, actions }) => {
   actions.setWebpackConfig({

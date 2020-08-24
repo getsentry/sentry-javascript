@@ -2,12 +2,18 @@ const Sentry = require('@sentry/react');
 const Tracing = require('@sentry/tracing');
 
 exports.onClientEntry = function(_, pluginParams) {
+  if (pluginParams === undefined) {
+    return;
+  }
+
   const tracesSampleRate = pluginParams.tracesSampleRate !== undefined ? pluginParams.tracesSampleRate : 0;
   const integrations = [...(pluginParams.integrations || [])];
 
-  if (tracesSampleRate && !integrations.some(ele => ele.id === 'BrowserTracing')) {
+  if (tracesSampleRate && !integrations.some(ele => ele.name === 'BrowserTracing')) {
     integrations.push(new Tracing.Integrations.BrowserTracing(pluginParams.browserTracingOptions));
   }
+
+  Tracing.addExtensionMethods();
 
   Sentry.init({
     environment: process.env.NODE_ENV || 'development',
@@ -19,8 +25,6 @@ exports.onClientEntry = function(_, pluginParams) {
     tracesSampleRate,
     integrations,
   });
-
-  Tracing.addExtensionMethods();
 
   Sentry.addGlobalEventProcessor(event => {
     event.sdk = {
