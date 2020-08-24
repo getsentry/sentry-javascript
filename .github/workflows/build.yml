@@ -21,7 +21,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ github.sha }}
       - name: Install
         run: yarn install
       - name: Build
@@ -43,7 +43,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ github.sha }}
       - uses: andresz1/size-limit-action@v1.4.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -64,7 +64,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ github.sha }}
       - run: yarn install
       - name: Run Linter
         run: yarn lint
@@ -84,7 +84,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ github.sha }}
       - run: yarn install
       - name: Unit Tests
         run: yarn test --ignore="@sentry/ember"
@@ -106,7 +106,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ github.sha }}
       - run: yarn install
       - name: Integration Tests
         env:
@@ -134,7 +134,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ github.sha }}
       - run: yarn install
       - name: Install Zeus
         run: |
@@ -170,7 +170,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ github.sha }}
       - name: Pack
         run: yarn pack:changed
       - name: Archive Artifacts
