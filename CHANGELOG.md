@@ -4,10 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.21.4
+
+- [ci] fix: Actually release correct code
+
 ## 5.21.3
 
 - [tracing] feat: Track span status for fetch requests (#2835)
-- fix: Return an any from createReduxEnhancer to avoid type conflicts (#2834)
+- [react] fix: Return an any from createReduxEnhancer to avoid type conflicts (#2834)
 - [react] fix: Make sure profiler is typed with any (#2838)
 
 ## 5.21.2
