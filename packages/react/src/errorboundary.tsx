@@ -124,7 +124,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-function withErrorBoundary<P extends Record<string, unknown>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function withErrorBoundary<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
   errorBoundaryOptions: ErrorBoundaryProps,
 ): React.FC<P> {
