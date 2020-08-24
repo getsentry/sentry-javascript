@@ -1,6 +1,8 @@
-import { getMainCarrier, Hub } from '@sentry/hub';
+import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
+import { Handlers } from '@sentry/node';
 import { SampleContext, TransactionContext } from '@sentry/types';
-import { hasTracingEnabled, logger } from '@sentry/utils';
+import { hasTracingEnabled, isInstanceOf, isNodeEnv, logger } from '@sentry/utils';
+import * as http from 'http'; // TODO - is this okay, or do we need to export the type we need from our node SDK?
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
@@ -76,13 +78,53 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
 
   return transaction;
 }
+/**
+ * Gets the correct context to pass to the tracesSampler, based on the environment (i.e., which SDK is being used)
+ *
+ * @returns A SampleContext object
+ */
+function getDefaultSampleContext(): SampleContext {
+  const defaultSampleContext: SampleContext = {};
+
+  if (isNodeEnv()) {
+    // look at koa TODO
+    const domain = getActiveDomain();
+    if (domain) {
+      // TODO is the below true?
+      // for all node servers that we currently support, we store the incoming request object (which is an instance of
+      // http.IncomingMessage) on the domain the domain is stored as an array, so our only way to find the request is to
+      // iterate through the array and compare types
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      const request = domain.members.find((member: any) => isInstanceOf(member, http.IncomingMessage));
+      if (request) {
+        defaultSampleContext.request = Handlers.extractRequestData(request);
+      }
+    }
+  }
+
+  // we must be in browser-js (or some derivative thereof)
+  else {
+    // we take a copy of the location object rather than just a reference to it in case there's a navigation in the
+    // instant between when the transaction starts and when the sampler is called
+    defaultSampleContext.location = { ...window.location };
+  }
+
+  return defaultSampleContext;
+}
 
 /**
- * {@see Hub.startTransaction}
+ * Creates a new transaction and adds a sampling decision if it doesn't yet have one.
+ *
+ * The Hub.startTransaction method delegates to this method to do its work, passing the Hub instance in as `this`.
+ * Exists as a separate function so that it can be injected into the class as an "extension method."
+ *
+ * @returns The new transaction
+ *
+ * @see {@link Hub.startTransaction}
  */
 function startTransaction(this: Hub, context: TransactionContext, sampleContext?: SampleContext): Transaction {
   const transaction = new Transaction(context, this);
-  return sample(this, transaction, sampleContext);
+  return sample(this, transaction, { ...getDefaultSampleContext(), ...sampleContext });
 }
 
 /**
@@ -96,7 +138,7 @@ export function startIdleTransaction(
   sampleContext?: SampleContext,
 ): IdleTransaction {
   const transaction = new IdleTransaction(context, hub, idleTimeout, onScope);
-  return sample(hub, transaction, sampleContext);
+  return sample(hub, transaction, { ...getDefaultSampleContext(), ...sampleContext });
 }
 
 /**
