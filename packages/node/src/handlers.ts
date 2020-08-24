@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Span } from '@sentry/apm';
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
+import { Span } from '@sentry/tracing';
 import { Event } from '@sentry/types';
 import { forget, isPlainObject, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';

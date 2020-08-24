@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
@@ -133,6 +134,9 @@ const defaultTracingOrigins = ['localhost', /^\//];
 
 /**
  * Tracing Integration
+ *
+ * @deprecated Please use the `BrowserTracing` integration from
+ * the `@sentry/tracing` package.
  */
 export class Tracing implements Integration {
   /**

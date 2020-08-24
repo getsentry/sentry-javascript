@@ -19,4 +19,6 @@
 
 ## General
 
+This package is deprecated and will be removed in the next major release. We recommend switching to using the `@sentry/tracing` package for the time being.
+
 This package contains extensions to the `@sentry/hub` to enable APM related functionality. It also provides integrations for Browser and Node that provide a good experience out of the box.

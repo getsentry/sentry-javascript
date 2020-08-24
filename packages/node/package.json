@@ -16,9 +16,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/apm": "5.21.4",
     "@sentry/core": "5.21.4",
     "@sentry/hub": "5.21.4",
+    "@sentry/tracing": "5.21.4",
     "@sentry/types": "5.21.4",
     "@sentry/utils": "5.21.4",
     "cookie": "^0.4.1",
