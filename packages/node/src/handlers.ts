@@ -204,9 +204,13 @@ export function parseRequest(
   }
 
   if (options.request) {
+    // if the option value is `true`, use the default set of keys by not passing anything to `extractNodeRequestData()`
+    const extractedRequestData = Array.isArray(options.request)
+      ? extractNodeRequestData(req, options.request)
+      : extractNodeRequestData(req);
     event.request = {
       ...event.request,
-      ...extractNodeRequestData(req),
+      ...extractedRequestData,
     };
   }
 
