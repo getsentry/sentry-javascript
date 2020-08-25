@@ -3,6 +3,7 @@ import { SampleContext, TransactionContext } from '@sentry/types';
 import {
   dynamicRequire,
   extractNodeRequestData,
+  getGlobalObject,
   hasTracingEnabled,
   isInstanceOf,
   isNodeEnv,
@@ -123,9 +124,14 @@ function getDefaultSampleContext(): SampleContext {
 
   // we must be in browser-js (or some derivative thereof)
   else {
-    // we take a copy of the location object rather than just a reference to it in case there's a navigation in the
-    // instant between when the transaction starts and when the sampler is called
-    defaultSampleContext.location = { ...window.location };
+    // we use `getGlobalObject()` rather than `window` since service workers also have a `location` property on `self`
+    const globalObject = getGlobalObject();
+
+    if ('location' in globalObject) {
+      // we take a copy of the location object rather than just a reference to it in case there's a navigation or
+      // redirect in the instant between when the transaction starts and when the sampler is called
+      defaultSampleContext.location = { ...globalObject.location };
+    }
   }
 
   return defaultSampleContext;
