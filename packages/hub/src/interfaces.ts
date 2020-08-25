@@ -1,4 +1,5 @@
 import { Client } from '@sentry/types';
+import * as domain from 'domain';
 
 import { Hub } from './hub';
 import { Scope } from './scope';
@@ -26,3 +27,5 @@ export interface Carrier {
     extensions?: { [key: string]: Function };
   };
 }
+
+export interface DomainAsCarrier extends domain.Domain, Carrier {}

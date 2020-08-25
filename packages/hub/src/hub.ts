@@ -20,7 +20,7 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
-import { Carrier, Layer } from './interfaces';
+import { Carrier, DomainAsCarrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
 /**
@@ -462,7 +462,7 @@ export function getCurrentHub(): Hub {
  *
  * @returns The domain, or undefined if there is no active domain
  */
-export function getActiveDomain(): any | undefined {
+export function getActiveDomain(): DomainAsCarrier | undefined {
   const sentry = getMainCarrier().__SENTRY__;
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any

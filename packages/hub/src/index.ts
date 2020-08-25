@@ -1,4 +1,4 @@
-export { Carrier, Layer } from './interfaces';
+export { Carrier, DomainAsCarrier, Layer } from './interfaces';
 export { addGlobalEventProcessor, Scope } from './scope';
 export {
   getActiveDomain,
