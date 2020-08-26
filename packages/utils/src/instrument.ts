@@ -4,8 +4,9 @@ import { WrappedFunction } from '@sentry/types';
 
 import { isInstanceOf, isString } from './is';
 import { logger } from './logger';
-import { getFunctionName, getGlobalObject } from './misc';
+import { getGlobalObject } from './misc';
 import { fill } from './object';
+import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();

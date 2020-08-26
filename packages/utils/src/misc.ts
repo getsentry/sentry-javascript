@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Event, Integration, Options, StackFrame, WrappedFunction } from '@sentry/types';
 
-import { isString } from './is';
-import { normalize } from './object';
+import { dynamicRequire, isNodeEnv } from './node';
 import { snipLine } from './string';
 
 /** Internal */
@@ -20,26 +19,6 @@ interface SentryGlobal {
     hub: any;
     logger: any;
   };
-}
-
-/**
- * Requires a module which is protected against bundler minification.
- *
- * @param request The module path to resolve
- */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function dynamicRequire(mod: any, request: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return mod.require(request);
-}
-
-/**
- * Checks whether we're in the Node.js or Browser environment
- *
- * @returns Answer to given question
- */
-export function isNodeEnv(): boolean {
-  return Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
 }
 
 const fallbackGlobalObject = {};
@@ -253,103 +232,6 @@ export function getLocationHref(): string {
   }
 }
 
-/**
- * Given a child DOM element, returns a query-selector statement describing that
- * and its ancestors
- * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-export function htmlTreeAsString(elem: unknown): string {
-  type SimpleNode = {
-    parentNode: SimpleNode;
-  } | null;
-
-  // try/catch both:
-  // - accessing event.target (see getsentry/raven-js#838, #768)
-  // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
-  // - can throw an exception in some circumstances.
-  try {
-    let currentElem = elem as SimpleNode;
-    const MAX_TRAVERSE_HEIGHT = 5;
-    const MAX_OUTPUT_LEN = 80;
-    const out = [];
-    let height = 0;
-    let len = 0;
-    const separator = ' > ';
-    const sepLength = separator.length;
-    let nextStr;
-
-    // eslint-disable-next-line no-plusplus
-    while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-      nextStr = _htmlElementAsString(currentElem);
-      // bail out if
-      // - nextStr is the 'html' element
-      // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
-      //   (ignore this limit if we are on the first iteration)
-      if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
-        break;
-      }
-
-      out.push(nextStr);
-
-      len += nextStr.length;
-      currentElem = currentElem.parentNode;
-    }
-
-    return out.reverse().join(separator);
-  } catch (_oO) {
-    return '<unknown>';
-  }
-}
-
-/**
- * Returns a simple, query-selector representation of a DOM element
- * e.g. [HTMLElement] => input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-function _htmlElementAsString(el: unknown): string {
-  const elem = el as {
-    tagName?: string;
-    id?: string;
-    className?: string;
-    getAttribute(key: string): string;
-  };
-
-  const out = [];
-  let className;
-  let classes;
-  let key;
-  let attr;
-  let i;
-
-  if (!elem || !elem.tagName) {
-    return '';
-  }
-
-  out.push(elem.tagName.toLowerCase());
-  if (elem.id) {
-    out.push(`#${elem.id}`);
-  }
-
-  // eslint-disable-next-line prefer-const
-  className = elem.className;
-  if (className && isString(className)) {
-    classes = className.split(/\s+/);
-    for (i = 0; i < classes.length; i++) {
-      out.push(`.${classes[i]}`);
-    }
-  }
-  const allowedAttrs = ['type', 'name', 'title', 'alt'];
-  for (i = 0; i < allowedAttrs.length; i++) {
-    key = allowedAttrs[i];
-    attr = elem.getAttribute(key);
-    if (attr) {
-      out.push(`[${key}="${attr}"]`);
-    }
-  }
-  return out.join('');
-}
-
 const INITIAL_TIME = Date.now();
 let prevNow = 0;
 
@@ -471,24 +353,6 @@ export function parseRetryAfterHeader(now: number, header?: string | number | nu
   return defaultRetryAfter;
 }
 
-const defaultFunctionName = '<anonymous>';
-
-/**
- * Safely extract function name from itself
- */
-export function getFunctionName(fn: unknown): string {
-  try {
-    if (!fn || typeof fn !== 'function') {
-      return defaultFunctionName;
-    }
-    return fn.name || defaultFunctionName;
-  } catch (e) {
-    // Just accessing custom props in some Selenium environments
-    // can cause a "Permission denied" exception (see raven-js#495).
-    return defaultFunctionName;
-  }
-}
-
 /**
  * This function adds context (pre/post/line) lines to the provided frame
  *
@@ -529,99 +393,4 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
  */
 export function hasTracingEnabled(options: Options): boolean {
   return !!options.tracesSampleRate || !!options.tracesSampler;
-}
-
-/** Default request keys that'll be used to extract data from the request */
-const DEFAULT_REQUEST_KEYS = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-
-/**
- * Normalizes data from the request object, accounting for framework differences.
- *
- * @param req The request object from which to extract data
- * @param keys An optional array of keys to include in the normalized data. Defaults to DEFAULT_REQUEST_KEYS if not
- * provided.
- * @returns An object containing normalized request data
- */
-export function extractNodeRequestData(
-  req: { [key: string]: any },
-  keys: string[] = DEFAULT_REQUEST_KEYS,
-): { [key: string]: string } {
-  // make sure we can safely use dynamicRequire below
-  if (!isNodeEnv()) {
-    throw new Error("Can't get node request data outside of a node environment");
-  }
-
-  const requestData: { [key: string]: any } = {};
-
-  // headers:
-  //   node, express: req.headers
-  //   koa: req.header
-  const headers = (req.headers || req.header || {}) as {
-    host?: string;
-    cookie?: string;
-  };
-  // method:
-  //   node, express, koa: req.method
-  const method = req.method;
-  // host:
-  //   express: req.hostname in > 4 and req.host in < 4
-  //   koa: req.host
-  //   node: req.headers.host
-  const host = req.hostname || req.host || headers.host || '<no host>';
-  // protocol:
-  //   node: <n/a>
-  //   express, koa: req.protocol
-  const protocol =
-    req.protocol === 'https' || req.secure || ((req.socket || {}) as { encrypted?: boolean }).encrypted
-      ? 'https'
-      : 'http';
-  // url (including path and query string):
-  //   node, express: req.originalUrl
-  //   koa: req.url
-  const originalUrl = (req.originalUrl || req.url) as string;
-  // absolute url
-  const absoluteUrl = `${protocol}://${host}${originalUrl}`;
-
-  keys.forEach(key => {
-    switch (key) {
-      case 'headers':
-        requestData.headers = headers;
-        break;
-      case 'method':
-        requestData.method = method;
-        break;
-      case 'url':
-        requestData.url = absoluteUrl;
-        break;
-      case 'cookies':
-        // cookies:
-        //   node, express, koa: req.headers.cookie
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.cookies = dynamicRequire(module, 'cookie').parse(headers.cookie || '');
-        break;
-      case 'query_string':
-        // query string:
-        //   node: req.url (raw)
-        //   express, koa: req.query
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.query_string = dynamicRequire(module, 'url').parse(originalUrl || '', false).query;
-        break;
-      case 'data':
-        if (method === 'GET' || method === 'HEAD') {
-          break;
-        }
-        // body data:
-        //   node, express, koa: req.body
-        if (req.body !== undefined) {
-          requestData.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
-        }
-        break;
-      default:
-        if ({}.hasOwnProperty.call(req, key)) {
-          requestData[key] = (req as { [key: string]: any })[key];
-        }
-    }
-  });
-
-  return requestData;
 }
