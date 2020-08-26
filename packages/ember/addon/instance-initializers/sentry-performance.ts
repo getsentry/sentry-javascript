@@ -27,6 +27,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   const router = appInstance.lookup('service:router');
 
   sentryConfig['integrations'] = [
+    ...(sentryConfig['integrations'] || []),
     new tracing.Integrations.BrowserTracing({
       routingInstrumentation: (startTransaction, startTransactionOnPageLoad) => {
         let activeTransaction: any;
