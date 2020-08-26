@@ -51,8 +51,8 @@ export interface Transaction extends TransactionContext, Span {
 
 /**
  * The data passed to the `tracesSampler` function, which forms the basis for whatever decisions it might make.
+ * Combination of default values (which differ per SDK/integration) and data passed to `startTransaction`.
  */
 export interface SampleContext {
-  [key: string]: string;
-  // TODO (kmclb) fill this out
+  [key: string]: any;
 }

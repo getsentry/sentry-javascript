@@ -157,5 +157,5 @@ export interface Options {
    *
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent).
    */
-  tracesSampler?(traceContext: SampleContext): number;
+  tracesSampler?(sampleContext: SampleContext): number;
 }
