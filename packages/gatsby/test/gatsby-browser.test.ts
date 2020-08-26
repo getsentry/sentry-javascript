@@ -53,7 +53,6 @@ describe('onClientEntry', () => {
       environment: process.env.NODE_ENV,
       integrations: [],
       release: (global as any).__SENTRY_RELEASE__,
-      tracesSampleRate: 0,
     });
   });
 
@@ -100,8 +99,28 @@ describe('onClientEntry', () => {
     );
   });
 
+  it('sets a tracesSampler if defined as option', () => {
+    const tracesSampler = jest.fn();
+    onClientEntry(undefined, { tracesSampler });
+    expect(sentryInit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        tracesSampler,
+      }),
+    );
+  });
+
   it('adds `BrowserTracing` integration if tracesSampleRate is defined', () => {
     onClientEntry(undefined, { tracesSampleRate: 0.5 });
+    expect(sentryInit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        integrations: [expect.objectContaining({ name: 'BrowserTracing' })],
+      }),
+    );
+  });
+
+  it('adds `BrowserTracing` integration if tracesSampler is defined', () => {
+    const tracesSampler = jest.fn();
+    onClientEntry(undefined, { tracesSampler });
     expect(sentryInit).toHaveBeenLastCalledWith(
       expect.objectContaining({
         integrations: [expect.objectContaining({ name: 'BrowserTracing' })],
