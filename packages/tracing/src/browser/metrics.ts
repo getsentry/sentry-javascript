@@ -26,7 +26,7 @@ export class MetricsInstrumentation {
   }
 
   /** Add performance related spans to a transaction */
-  public addPerformanceEntires(transaction: Transaction): void {
+  public addPerformanceEntries(transaction: Transaction): void {
     if (!global || !global.performance || !global.performance.getEntries) {
       // Gatekeeper if performance API not available
       return;
