@@ -41,7 +41,7 @@
     "prettier": "1.17.0",
     "react": "^16.13.1",
     "rimraf": "^2.6.3",
-    "typescript": "3.9.7"
+    "typescript": "3.7.5"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",

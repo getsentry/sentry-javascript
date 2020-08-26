@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "lerna run --stream --concurrency 1 --sort build",
+    "build": "node ./scripts/verify-packages-versions.js && lerna run --stream --concurrency 1 --sort build",
     "build:es5": "lerna run --stream --concurrency 1 --sort build:es5",
     "build:esm": "lerna run --stream --concurrency 1 --sort build:esm",
     "build:watch": "lerna run build:watch --stream --no-sort --concurrency 9999",
@@ -61,7 +61,7 @@
     "size-limit": "^4.5.5",
     "ts-jest": "^24.0.2",
     "typedoc": "^0.18.0",
-    "typescript": "3.9.7"
+    "typescript": "3.7.5"
   },
   "resolutions": {
     "**/agent-base": "5"

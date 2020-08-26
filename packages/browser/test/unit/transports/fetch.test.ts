@@ -18,7 +18,7 @@ let transport: Transports.BaseTransport;
 
 describe('FetchTransport', () => {
   beforeEach(() => {
-    fetch = stub(window, 'fetch');
+    fetch = (stub(window, 'fetch') as unknown) as SinonStub;
     transport = new Transports.FetchTransport({ dsn: testDsn });
   });
 
