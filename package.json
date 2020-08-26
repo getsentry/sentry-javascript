@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "lerna run --stream --concurrency 1 --sort build",
+    "build": "node ./scripts/verify-packages-versions.js && lerna run --stream --concurrency 1 --sort build",
     "build:es5": "lerna run --stream --concurrency 1 --sort build:es5",
     "build:esm": "lerna run --stream --concurrency 1 --sort build:esm",
     "build:watch": "lerna run build:watch --stream --no-sort --concurrency 9999",
