@@ -30,9 +30,9 @@ export function defaultRoutingInstrumentation<T extends TransactionType>(
         /**
          * This early return is there to account for some cases where navigation transaction
          * starts right after long running pageload. We make sure that if `from` is undefined
-         * and that a valid `startingURL` exists, we don't uncessarily create a navigation transaction.
+         * and that a valid `startingURL` exists, we don't unnecessarily create a navigation transaction.
          *
-         * This was hard to duplicate, but this behaviour stopped as soon as this fix
+         * This was hard to duplicate, but this behavior stopped as soon as this fix
          * was applied. This issue might also only be caused in certain development environments
          * where the usage of a hot module reloader is causing errors.
          */

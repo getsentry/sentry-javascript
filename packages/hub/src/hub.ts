@@ -25,8 +25,8 @@ import { Scope } from './scope';
 /**
  * API compatibility version of this hub.
  *
- * WARNING: This number should only be incresed when the global interface
- * changes a and new methods are introduced.
+ * WARNING: This number should only be increased when the global interface
+ * changes and new methods are introduced.
  *
  * @hidden
  */
@@ -457,7 +457,7 @@ export function getCurrentHub(): Hub {
 }
 
 /**
- * Try to read the hub from an active domain, fallback to the registry if one doesnt exist
+ * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
  * @returns discovered hub
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
@@ -473,12 +473,12 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const activeDomain = domain.active;
 
-    // If there no active domain, just return global hub
+    // If there's no active domain, just return global hub
     if (!activeDomain) {
       return getHubFromCarrier(registry);
     }
 
-    // If there's no hub on current domain, or its an old API, assign a new one
+    // If there's no hub on current domain, or it's an old API, assign a new one
     if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
       const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
       setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
