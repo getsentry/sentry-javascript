@@ -63,7 +63,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows for users
-   * to set custom transaction context. Defaults behaviour is to return `window.location.pathname`.
+   * to set custom transaction context. Default behavior is to return `window.location.pathname`.
    *
    * If undefined is returned, a pageload/navigation transaction will not be created.
    */

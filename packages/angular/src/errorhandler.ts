@@ -3,7 +3,7 @@ import { ErrorHandler as AngularErrorHandler, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 
 /**
- * Options used to configure the behaviour of the Angular ErrorHandler.
+ * Options used to configure the behavior of the Angular ErrorHandler.
  */
 export interface ErrorHandlerOptions {
   logErrors?: boolean;
