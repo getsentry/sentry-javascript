@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "eslint": "7.6.0",
-    "typescript": "3.9.7"
+    "typescript": "3.7.5"
   },
   "scripts": {
     "link:yarn": "yarn link",

@@ -102,7 +102,7 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      expect.assertions(5);
+      expect.assertions(6);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: Event) => {
@@ -111,6 +111,7 @@ describe('SentryNode', () => {
             expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
+            expect(event.exception!.values![0].value).toEqual('test');
             done();
             return null;
           },
@@ -122,6 +123,33 @@ describe('SentryNode', () => {
       });
       try {
         throw new Error('test');
+      } catch (e) {
+        captureException(e);
+      }
+    });
+
+    test('capture a string exception', done => {
+      expect.assertions(6);
+      getCurrentHub().bindClient(
+        new NodeClient({
+          beforeSend: (event: Event) => {
+            expect(event.tags).toEqual({ test: '1' });
+            expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
+            expect(event.exception!.values![0].value).toEqual('test string exception');
+            done();
+            return null;
+          },
+          dsn,
+        }),
+      );
+      configureScope((scope: Scope) => {
+        scope.setTag('test', '1');
+      });
+      try {
+        throw 'test string exception';
       } catch (e) {
         captureException(e);
       }
