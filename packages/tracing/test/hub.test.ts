@@ -1,7 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import * as hubModuleRaw from '@sentry/hub'; // for mocking
 import { getMainCarrier, Hub } from '@sentry/hub';
-import { NodeClient } from '@sentry/node';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { getGlobalObject, isNodeEnv, logger } from '@sentry/utils';
 import * as nodeHttpModule from 'http';
@@ -107,8 +106,12 @@ describe('Hub', () => {
           active: { members: [mockRequestObject, mockResponseObject] },
         };
 
+        // Ideally we'd use a NodeClient here, but @sentry/tracing can't depend on @sentry/node since the reverse is
+        // already true (node's request handlers start their own transactions) - even as a dev dependency. Fortunately,
+        // we're not relying on anything other than the client having a captureEvent method, which all clients do (it's
+        // in the abstract base class), so a BrowserClient will do.
         const tracesSampler = jest.fn();
-        const hub = new Hub(new NodeClient({ tracesSampler }));
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
         hub.startTransaction({ name: 'dogpark' });
 
         // post-normalization request object
