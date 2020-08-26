@@ -24,7 +24,7 @@
   "devDependencies": {
     "mocha": "^6.2.0",
     "prettier": "1.17.0",
-    "typescript": "3.9.7"
+    "typescript": "3.7.5"
   },
   "scripts": {
     "link:yarn": "yarn link",
