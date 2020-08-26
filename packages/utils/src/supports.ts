@@ -9,7 +9,6 @@ import { getGlobalObject } from './misc';
  */
 export function supportsErrorEvent(): boolean {
   try {
-    // tslint:disable:no-unused-expression
     new ErrorEvent('');
     return true;
   } catch (e) {
@@ -25,11 +24,9 @@ export function supportsErrorEvent(): boolean {
  */
 export function supportsDOMError(): boolean {
   try {
-    // It really needs 1 argument, not 0.
     // Chrome: VM89:1 Uncaught TypeError: Failed to construct 'DOMError':
     // 1 argument required, but only 0 present.
-    // @ts-ignore
-    // tslint:disable:no-unused-expression
+    // @ts-ignore It really needs 1 argument, not 0.
     new DOMError('');
     return true;
   } catch (e) {
@@ -45,7 +42,6 @@ export function supportsDOMError(): boolean {
  */
 export function supportsDOMException(): boolean {
   try {
-    // tslint:disable:no-unused-expression
     new DOMException('');
     return true;
   } catch (e) {
@@ -65,11 +61,8 @@ export function supportsFetch(): boolean {
   }
 
   try {
-    // tslint:disable-next-line:no-unused-expression
     new Headers();
-    // tslint:disable-next-line:no-unused-expression
     new Request('');
-    // tslint:disable-next-line:no-unused-expression
     new Response();
     return true;
   } catch (e) {
@@ -79,6 +72,7 @@ export function supportsFetch(): boolean {
 /**
  * isNativeFetch checks if the given function is a native implementation of fetch()
  */
+// eslint-disable-next-line @typescript-eslint/ban-types
 function isNativeFetch(func: Function): boolean {
   return func && /^function fetch\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
 }
@@ -97,7 +91,7 @@ export function supportsNativeFetch(): boolean {
   const global = getGlobalObject<Window>();
 
   // Fast path to avoid DOM I/O
-  // tslint:disable-next-line:no-unbound-method
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   if (isNativeFetch(global.fetch)) {
     return true;
   }
@@ -106,14 +100,14 @@ export function supportsNativeFetch(): boolean {
   // so create a "pure" iframe to see if that has native fetch
   let result = false;
   const doc = global.document;
-  // tslint:disable-next-line:no-unbound-method deprecation
+  // eslint-disable-next-line deprecation/deprecation
   if (doc && typeof (doc.createElement as unknown) === `function`) {
     try {
       const sandbox = doc.createElement('iframe');
       sandbox.hidden = true;
       doc.head.appendChild(sandbox);
       if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
-        // tslint:disable-next-line:no-unbound-method
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         result = isNativeFetch(sandbox.contentWindow.fetch);
       }
       doc.head.removeChild(sandbox);
@@ -132,7 +126,6 @@ export function supportsNativeFetch(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsReportingObserver(): boolean {
-  // tslint:disable-next-line: no-unsafe-any
   return 'ReportingObserver' in getGlobalObject();
 }
 
@@ -153,7 +146,6 @@ export function supportsReferrerPolicy(): boolean {
   }
 
   try {
-    // tslint:disable:no-unused-expression
     new Request('_', {
       referrerPolicy: 'origin' as ReferrerPolicy,
     });
@@ -174,9 +166,11 @@ export function supportsHistory(): boolean {
   //       a try/catch block*, will cause Chrome to output an error to console.error
   // borrowed from: https://github.com/angular/angular.js/pull/13945/files
   const global = getGlobalObject<Window>();
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chrome = (global as any).chrome;
-  // tslint:disable-next-line:no-unsafe-any
   const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   const hasHistoryApi = 'history' in global && !!global.history.pushState && !!global.history.replaceState;
 
   return !isChromePackagedApp && hasHistoryApi;

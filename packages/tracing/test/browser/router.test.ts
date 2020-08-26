@@ -1,4 +1,3 @@
-// tslint:disable-next-line: no-implicit-dependencies
 import { JSDOM } from 'jsdom';
 
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from '../../src/browser/router';
@@ -28,11 +27,11 @@ describe('defaultRoutingInstrumentation', () => {
   const startTransaction = jest.fn().mockReturnValue({ finish: mockFinish });
   beforeEach(() => {
     const dom = new JSDOM();
-    // @ts-ignore
+    // @ts-ignore need to override global document
     global.document = dom.window.document;
-    // @ts-ignore
+    // @ts-ignore need to override global document
     global.window = dom.window;
-    // @ts-ignore
+    // @ts-ignore need to override global document
     global.location = dom.window.location;
 
     startTransaction.mockClear();
@@ -40,7 +39,7 @@ describe('defaultRoutingInstrumentation', () => {
   });
 
   it('does not start transactions if global location is undefined', () => {
-    // @ts-ignore
+    // @ts-ignore need to override global document
     global.location = undefined;
     defaultRoutingInstrumentation(startTransaction);
     expect(startTransaction).toHaveBeenCalledTimes(0);

@@ -6,12 +6,12 @@ import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass {
+  public name?: string;
+
   /**
    * The reference to the current hub.
    */
   private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
-
-  public name?: string;
 
   private readonly _trimEnd?: boolean;
 
@@ -72,7 +72,7 @@ export class Transaction extends SpanClass {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      logger.warn('Discarding transaction because it was not chosen to be sampled.');
+      logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
       return undefined;
     }
 

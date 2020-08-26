@@ -3,17 +3,50 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.21.4
+
+- [ci] fix: Actually release correct code
+
+## 5.21.3
+
+- [tracing] feat: Track span status for fetch requests (#2835)
+- [react] fix: Return an any from createReduxEnhancer to avoid type conflicts (#2834)
+- [react] fix: Make sure profiler is typed with any (#2838)
+
+## 5.21.2
+
+- [tracing] fix: Normalize transaction names for express methods to match those of other SDKs (#2832)
+- [tracing] feat: Change resource span op name and add data (#2816)
+- [tracing] ref: Make sure error status is set on transactions (#2818)
+- [apm/tracing] fix: Make sure Performance Observer takeRecords() is defined (#2825)
+
+## 5.21.1
+
+- [ember] fix: Make the package public and fix the build by bumping TypeScript to v3.9 (#2811)
+- [eslint] test: Don't test eslint config/plugin on Node <= v8
+
+## 5.21.0
+
+- [all] feat: Convert `sentry-javascript` to `ESLint` (#2786)
+- [internal/eslint] feat: Add `@sentry-internal/eslint-config-sdk` (#2807)
 - [ember] feat: Add `@sentry/ember` (#2739)
+- [angular] feat: Add `@sentry/angular` (#2787)
+- [react] feat: Add routing instrumentation for `React Router v4/v5` (#2780)
+- [gatsby] feat: support `process.env.SENTRY_RELEASE` (#2776)
+- [apm/tracing] feat: Export `addExtensionMethods` for SDKs to use (#2805)
+- [apm/tracing] ref: Remove `express` typing (#2803)
+- [node] fix: `Retry-After` header in node should be lower-case (#2779)
 
 ## 5.20.1
 
-- [react] feat: Add instrumentation for React Router v3 (#2759)
+- [core] ref: Expose sentry request for electron (#2774)
+- [browser] fix: Make sure that DSN is always passed to report dialog (#2770)
 - [apm/tracing] fix: Make sure fetch requests are being timed correctly (#2772)
 - [apm/tracing] fix: Make sure pageload transactions start timestamps are correctly generated (#2773)
+- [react] feat: Add instrumentation for React Router v3 (#2759)
 - [react] ref: Use inline types to avoid redux dependency. (#2768)
-- [core] ref: Expose sentry request for electron (#2774)
 - [node] fix: Set transaction on scope in node for request (#2769)
-- [browser] fix: Make sure that DSN is always passed to report dialog (#2770)
 
 ## 5.20.0
 
@@ -36,15 +69,15 @@
 
 ## 5.19.1
 
-- [tracing] fix: APM CDN bundle expose startTransaction (#2726)
 - [browser] fix: Correctly remove all event listeners (#2725)
+- [tracing] fix: APM CDN bundle expose startTransaction (#2726)
 - [tracing] fix: Add manual `DOMStringList` typing (#2718)
 
 ## 5.19.0
 
-- [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
 - [react] feat: Expose eventId on ErrorBoundary component (#2704)
 - [node] fix: Extract transaction from nested express paths correctly (#2714)
+- [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
 - [tracing] fix: Respect fetch headers (#2712) (#2713)
 - [tracing] fix: Check if performance.getEntries() exists (#2710)
 - [tracing] fix: Add manual Location typing (#2700)
@@ -60,20 +93,21 @@
 
 ## 5.18.0
 
+- [core] ref: Rename `whitelistUrls/blacklistUrls` to `allowUrls/denyUrls` (#2671)
+- [core] feat: Export `makeMain` (#2665)
+- [core] fix: Call `bindClient` when creating new `Hub` to make integrations work automatically (#2665)
 - [react] feat: Add @sentry/react package (#2631)
 - [react] feat: Add Error Boundary component (#2647)
 - [react] feat: Add useProfiler hook (#2659)
-- [core] feat: Export `makeMain` (#2665)
-- [core] fix: Call `bindClient` when creating new `Hub` to make integrations work automatically (#2665)
-- [gatsby] feat: Add @sentry/gatsby package (#2652)
-- [tracing] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
-- [tracing] ref: Deprecate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
-- [core] ref: Rename `whitelistUrls/blacklistUrls` to `allowUrls/denyUrls` (#2671)
 - [react] ref: Refactor Profiler to account for update and render (#2677)
+- [gatsby] feat: Add @sentry/gatsby package (#2652)
 - [apm] feat: Add ability to get span from activity using `getActivitySpan` (#2677)
 - [apm] fix: Check if `performance.mark` exists before calling it (#2680)
+- [tracing] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
+- [tracing] ref: Deprecate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
 - [tracing] feat: Add `beforeNavigate` option (#2691)
-- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href` (#2691)
+- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href`
+  (#2691)
 
 ## 5.17.0
 
@@ -92,10 +126,10 @@
 
 ## 5.16.0
 
-*If you are a `@sentry/apm` and did manual instrumentation using `hub.startSpan` please be aware of the changes we did
-to the API. The recommended entry point for manual instrumentation now is `Sentry.startTransaction` and creating
-child Span by calling `startChild` on it. We have internal workarounds in place so the old code should still work
-but will be removed in the future. If you are only using the `Tracing` integration there is no need for action.*
+_If you are a `@sentry/apm` and did manual instrumentation using `hub.startSpan` please be aware of the changes we did
+to the API. The recommended entry point for manual instrumentation now is `Sentry.startTransaction` and creating child
+Span by calling `startChild` on it. We have internal workarounds in place so the old code should still work but will be
+removed in the future. If you are only using the `Tracing` integration there is no need for action._
 
 - [core] feat: Send transactions in envelopes (#2553)
 - [core] fix: Send event timestamp (#2575)
@@ -264,7 +298,8 @@ but will be removed in the future. If you are only using the `Tracing` integrati
 
 ## 5.9.0
 
-- [node] feat: Added `mode` option for `OnUnhandledRejection` integration that changes how we log errors and what we do with the process itself
+- [node] feat: Added `mode` option for `OnUnhandledRejection` integration that changes how we log errors and what we do
+  with the process itself
 - [browser] ref: Both global handlers now always return `true` to call default implementations (error logging)
 
 ## 5.8.0
@@ -282,7 +317,8 @@ but will be removed in the future. If you are only using the `Tracing` integrati
 
 ## 5.7.0
 
-- [core] ref: Use `Promise` as the interface, but `SyncPromise` as the implementation in all the places we need `thenable` API
+- [core] ref: Use `Promise` as the interface, but `SyncPromise` as the implementation in all the places we need
+  `thenable` API
 - [browser] fix: Capture only failed `console.assert` calls
 - [browser] ref: Major `TraceKit` and `GlobalHandlers` refactor
 - [browser] ref: Remove _all_ required IE10-11 polyfills
@@ -359,7 +395,8 @@ but will be removed in the future. If you are only using the `Tracing` integrati
 
 ## 5.4.0
 
-- [global] feat: Exposed new simplified scope API. `Sentry.setTag`, `Sentry.setTags`, `Sentry.setExtra`, `Sentry.setExtras`, `Sentry.setUser`, `Sentry.setContext`
+- [global] feat: Exposed new simplified scope API. `Sentry.setTag`, `Sentry.setTags`, `Sentry.setExtra`,
+  `Sentry.setExtras`, `Sentry.setUser`, `Sentry.setContext`
 
 ## 5.3.1
 

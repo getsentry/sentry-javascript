@@ -81,8 +81,8 @@ export interface Options {
   /**
    * Sample rate to determine trace sampling.
    *
-   * 0.0 = 0% chance of instrumenting
-   * 1.0 = 100% chance of instrumenting
+   * 0.0 = 0% chance of a given trace being sent (send no traces)
+   * 1.0 = 100% chance of a given trace being sent (send all traces)
    *
    * Default: 0.0
    */
@@ -104,6 +104,19 @@ export interface Options {
    * Defaults to `3`. Set to `0` to disable.
    */
   normalizeDepth?: number;
+
+  /**
+   * Controls how many milliseconds to wait before shutting down. The default is
+   * SDK-specific but typically around 2 seconds. Setting this too low can cause
+   * problems for sending events from command line applications. Setting it too
+   * high can cause the application to block for users with network connectivity
+   * problems.
+   */
+  shutdownTimeout?: number;
+
+  _experiments?: {
+    [key: string]: any;
+  };
 
   /**
    * A callback invoked during event submission, allowing to optionally modify
@@ -131,17 +144,4 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
-
-  /**
-   * Controls how many milliseconds to wait before shutting down. The default is
-   * SDK-specific but typically around 2 seconds. Setting this too low can cause
-   * problems for sending events from command line applications. Setting it too
-   * high can cause the application to block for users with network connectivity
-   * problems.
-   */
-  shutdownTimeout?: number;
-
-  _experiments?: {
-    [key: string]: any;
-  };
 }

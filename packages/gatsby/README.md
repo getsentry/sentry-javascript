@@ -24,7 +24,7 @@ Register the package as a plugin in `gastby-config.js`:
 }
 ```
 
-Options will be passed directly to `Sentry.init`. See all available options in [our docs](https://docs.sentry.io/error-reporting/configuration/?platform=javascript). The `environment` value defaults to `NODE_ENV` (or `development` if not set).
+Options will be passed directly to `Sentry.init`. See all available options in [our docs](https://docs.sentry.io/error-reporting/configuration/?platform=javascript). The `environment` value defaults to `NODE_ENV` (or `'development'` if `NODE_ENV` is not set).
 
 ## GitHub Actions
 
@@ -40,7 +40,7 @@ To automatically capture the `release` value on Vercel you will need to register
 
 ## Sentry Performance
 
-To enable Tracing support, supply the `tracesSampleRate` to the options and make sure you have installed the `@sentry/tracing` package.
+To enable Tracing support, supply the `tracesSampleRate` to the options and make sure you have installed the `@sentry/tracing` package. This will also turn on the `BrowserTracing` integration for automatic instrumentation of the browser.
 
 ```javascript
 {
@@ -51,6 +51,28 @@ To enable Tracing support, supply the `tracesSampleRate` to the options and make
       options: {
           dsn: process.env.SENTRY_DSN, // this is the default
           tracesSampleRate: 1, // this is just to test, you should lower this in production
+      }
+    },
+    // ...
+  ]
+}
+```
+
+If you want to supply options to the `BrowserTracing` integration, use the `browserTracingOptions` parameter.
+
+```javascript
+{
+  // ...
+  plugins: [
+    {
+      resolve: "@sentry/gatsby",
+      options: {
+          dsn: process.env.SENTRY_DSN, // this is the default
+          tracesSampleRate: 1, // this is just to test, you should lower this in production
+          browserTracingOptions: {
+            // disable creating spans for XHR requests
+            traceXHR: false,
+          }
       }
     },
     // ...

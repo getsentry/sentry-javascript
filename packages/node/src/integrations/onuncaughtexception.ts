@@ -10,11 +10,12 @@ export class OnUncaughtException implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = OnUncaughtException.id;
+  public static id: string = 'OnUncaughtException';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'OnUncaughtException';
+  public name: string = OnUncaughtException.id;
 
   /**
    * @inheritDoc
@@ -58,8 +59,10 @@ export class OnUncaughtException implements Integration {
       const client = getCurrentHub().getClient<NodeClient>();
 
       if (this._options.onFatalError) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         onFatalError = this._options.onFatalError;
       } else if (client && client.getOptions().onFatalError) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         onFatalError = client.getOptions().onFatalError as onFatalErrorHandlerType;
       }
 

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   Breadcrumb,
   BreadcrumbHint,
@@ -24,8 +25,8 @@ import { Scope } from './scope';
 /**
  * API compatibility version of this hub.
  *
- * WARNING: This number should only be incresed when the global interface
- * changes a and new methods are introduced.
+ * WARNING: This number should only be increased when the global interface
+ * changes and new methods are introduced.
  *
  * @hidden
  */
@@ -64,19 +65,6 @@ export class Hub implements HubInterface {
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
     this._stack.push({ client, scope });
     this.bindClient(client);
-  }
-
-  /**
-   * Internal helper function to call a method on the top client if it exists.
-   *
-   * @param method The method to call on the client.
-   * @param args Arguments to pass to the client function.
-   */
-  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
-    const top = this.getStackTop();
-    if (top && top.client && top.client[method]) {
-      (top.client as any)[method](...args, top.scope);
-    }
   }
 
   /**
@@ -156,6 +144,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
@@ -244,6 +233,7 @@ export class Hub implements HubInterface {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
       (top.client.getOptions && top.client.getOptions()) || {};
 
@@ -322,6 +312,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
     const top = this.getStackTop();
     if (!top.scope) {
@@ -390,13 +381,28 @@ export class Hub implements HubInterface {
   }
 
   /**
+   * Internal helper function to call a method on the top client if it exists.
+   *
+   * @param method The method to call on the client.
+   * @param args Arguments to pass to the client function.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
+    const top = this.getStackTop();
+    if (top && top.client && top.client[method]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      (top.client as any)[method](...args, top.scope);
+    }
+  }
+
+  /**
    * Calls global extension method and binding current instance to the function call
    */
-  // @ts-ignore
+  // @ts-ignore Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _callExtensionMethod<T>(method: string, ...args: any[]): T {
     const carrier = getMainCarrier();
     const sentry = carrier.__SENTRY__;
-    // tslint:disable-next-line: strict-type-predicates
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
@@ -451,7 +457,7 @@ export function getCurrentHub(): Hub {
 }
 
 /**
- * Try to read the hub from an active domain, fallback to the registry if one doesnt exist
+ * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
  * @returns discovered hub
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
@@ -459,19 +465,20 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
     const property = 'domain';
     const carrier = getMainCarrier();
     const sentry = carrier.__SENTRY__;
-    // tslint:disable-next-line: strict-type-predicates
     if (!sentry || !sentry.extensions || !sentry.extensions[property]) {
       return getHubFromCarrier(registry);
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const domain = sentry.extensions[property] as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const activeDomain = domain.active;
 
-    // If there no active domain, just return global hub
+    // If there's no active domain, just return global hub
     if (!activeDomain) {
       return getHubFromCarrier(registry);
     }
 
-    // If there's no hub on current domain, or its an old API, assign a new one
+    // If there's no hub on current domain, or it's an old API, assign a new one
     if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
       const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
       setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));

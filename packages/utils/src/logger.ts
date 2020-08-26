@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { consoleSandbox, getGlobalObject } from './misc';
 
 // TODO: Implement different loggers for different environments
@@ -32,7 +33,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.log(`${PREFIX}[Log]: ${args.join(' ')}`); // tslint:disable-line:no-console
+      global.console.log(`${PREFIX}[Log]: ${args.join(' ')}`);
     });
   }
 
@@ -42,7 +43,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.warn(`${PREFIX}[Warn]: ${args.join(' ')}`); // tslint:disable-line:no-console
+      global.console.warn(`${PREFIX}[Warn]: ${args.join(' ')}`);
     });
   }
 
@@ -52,7 +53,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.error(`${PREFIX}[Error]: ${args.join(' ')}`); // tslint:disable-line:no-console
+      global.console.error(`${PREFIX}[Error]: ${args.join(' ')}`);
     });
   }
 }

@@ -20,30 +20,16 @@ export class TestBackend extends BaseBackend<TestOptions> {
     TestBackend.instance = this;
   }
 
-  protected _setupTransport(): Transport {
-    if (!this._options.dsn) {
-      // We return the noop transport here in case there is no Dsn.
-      return super._setupTransport();
-    }
-
-    const transportOptions = this._options.transportOptions
-      ? this._options.transportOptions
-      : { dsn: this._options.dsn };
-
-    if (this._options.transport) {
-      return new this._options.transport(transportOptions);
-    }
-
-    return super._setupTransport();
-  }
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any): PromiseLike<Event> {
     return SyncPromise.resolve({
       exception: {
         values: [
           {
+            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
+            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },
@@ -60,7 +46,24 @@ export class TestBackend extends BaseBackend<TestOptions> {
       super.sendEvent(event);
       return;
     }
-    // tslint:disable-next-line
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     TestBackend.sendEventCalled && TestBackend.sendEventCalled(event);
+  }
+
+  protected _setupTransport(): Transport {
+    if (!this._options.dsn) {
+      // We return the noop transport here in case there is no Dsn.
+      return super._setupTransport();
+    }
+
+    const transportOptions = this._options.transportOptions
+      ? this._options.transportOptions
+      : { dsn: this._options.dsn };
+
+    if (this._options.transport) {
+      return new this._options.transport(transportOptions);
+    }
+
+    return super._setupTransport();
   }
 }

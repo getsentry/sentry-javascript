@@ -8,7 +8,6 @@ import { isRegExp, isString } from './is';
  * @returns string Encoded
  */
 export function truncate(str: string, max: number = 0): string {
-  // tslint:disable-next-line:strict-type-predicates
   if (typeof str !== 'string' || max === 0) {
     return str;
   }
@@ -23,7 +22,6 @@ export function truncate(str: string, max: number = 0): string {
  * @param max Maximum number of characters in truncated string
  * @returns string Encoded
  */
-
 export function snipLine(line: string, colno: number): string {
   let newLine = line;
   const ll = newLine.length;
@@ -31,7 +29,8 @@ export function snipLine(line: string, colno: number): string {
     return newLine;
   }
   if (colno > ll) {
-    colno = ll; // tslint:disable-line:no-parameter-reassignment
+    // eslint-disable-next-line no-param-reassign
+    colno = ll;
   }
 
   let start = Math.max(colno - 60, 0);
@@ -64,13 +63,14 @@ export function snipLine(line: string, colno: number): string {
  * @param delimiter string to be placed in-between values
  * @returns Joined values
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function safeJoin(input: any[], delimiter?: string): string {
   if (!Array.isArray(input)) {
     return '';
   }
 
   const output = [];
-  // tslint:disable-next-line:prefer-for-of
+  // eslint-disable-next-line @typescript-eslint/prefer-for-of
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
     try {

@@ -19,9 +19,6 @@ import { HTTPSTransport, HTTPTransport } from './transports';
  * @see NodeClient for more information.
  */
 export interface NodeOptions extends Options {
-  /** Callback that is executed when a fatal global error occurs. */
-  onFatalError?(error: Error): void;
-
   /** Sets an optional server name (device name) */
   serverName?: string;
 
@@ -39,6 +36,9 @@ export interface NodeOptions extends Options {
 
   /** Sets the number of context lines for each frame when loading a file. */
   frameContextLines?: number;
+
+  /** Callback that is executed when a fatal global error occurs. */
+  onFatalError?(error: Error): void;
 }
 
 /**
@@ -49,35 +49,9 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected _setupTransport(): Transport {
-    if (!this._options.dsn) {
-      // We return the noop transport here in case there is no Dsn.
-      return super._setupTransport();
-    }
-
-    const dsn = new Dsn(this._options.dsn);
-
-    const transportOptions: TransportOptions = {
-      ...this._options.transportOptions,
-      ...(this._options.httpProxy && { httpProxy: this._options.httpProxy }),
-      ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
-      ...(this._options.caCerts && { caCerts: this._options.caCerts }),
-      dsn: this._options.dsn,
-    };
-
-    if (this._options.transport) {
-      return new this._options.transport(transportOptions);
-    }
-    if (dsn.protocol === 'http') {
-      return new HTTPTransport(transportOptions);
-    }
-    return new HTTPSTransport(transportOptions);
-  }
-
-  /**
-   * @inheritDoc
-   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let ex: any = exception;
     const mechanism: Mechanism = {
       handled: true,
@@ -91,7 +65,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
         getCurrentHub().configureScope(scope => {
-          scope.setExtra('__serialized__', normalizeToSize(exception as {}));
+          scope.setExtra('__serialized__', normalizeToSize(exception as Record<string, unknown>));
         });
 
         ex = (hint && hint.syntheticException) || new Error(message);
@@ -100,6 +74,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         // This handles when someone does: `throw "something awesome";`
         // We use synthesized Error here so we can extract a (rough) stack trace.
         ex = (hint && hint.syntheticException) || new Error(exception as string);
+        (ex as Error).message = exception;
       }
       mechanism.synthetic = true;
     }
@@ -146,5 +121,33 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         resolve(event);
       }
     });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _setupTransport(): Transport {
+    if (!this._options.dsn) {
+      // We return the noop transport here in case there is no Dsn.
+      return super._setupTransport();
+    }
+
+    const dsn = new Dsn(this._options.dsn);
+
+    const transportOptions: TransportOptions = {
+      ...this._options.transportOptions,
+      ...(this._options.httpProxy && { httpProxy: this._options.httpProxy }),
+      ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
+      ...(this._options.caCerts && { caCerts: this._options.caCerts }),
+      dsn: this._options.dsn,
+    };
+
+    if (this._options.transport) {
+      return new this._options.transport(transportOptions);
+    }
+    if (dsn.protocol === 'http') {
+      return new HTTPTransport(transportOptions);
+    }
+    return new HTTPSTransport(transportOptions);
   }
 }

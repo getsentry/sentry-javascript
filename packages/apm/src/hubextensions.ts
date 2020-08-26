@@ -21,6 +21,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 
 /**
  * {@see Hub.startTransaction}
+ * @deprecated Please use the @sentry/tracing package instead
  */
 function startTransaction(this: Hub, context: TransactionContext): Transaction {
   const transaction = new Transaction(context, this);
@@ -91,6 +92,7 @@ export function addExtensionMethods(): void {
   if (carrier.__SENTRY__) {
     carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
     if (!carrier.__SENTRY__.extensions.startTransaction) {
+      // eslint-disable-next-line deprecation/deprecation
       carrier.__SENTRY__.extensions.startTransaction = startTransaction;
     }
     if (!carrier.__SENTRY__.extensions.startSpan) {

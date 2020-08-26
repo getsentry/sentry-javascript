@@ -11,11 +11,12 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Http.id;
+  public static id: string = 'Http';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'Http';
+  public name: string = Http.id;
 
   /**
    * @inheritDoc
@@ -92,6 +93,7 @@ function createHandlerWrapper(
         }
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalHandler
         .apply(this, arguments)
         .once('response', function(this: http.IncomingMessage, res: http.ServerResponse): void {

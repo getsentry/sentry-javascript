@@ -16,6 +16,7 @@ import { NodeBackend } from '../src/backend';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
+// eslint-disable-next-line no-var
 declare var global: any;
 
 describe('SentryNode', () => {
@@ -61,7 +62,7 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.Mock<(event: Event) => void>;
+    let s: jest.SpyInstance<void, Event[]>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -90,7 +91,7 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.Mock<(event: Event) => void>;
+    let s: jest.SpyInstance<void, Event[]>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -101,7 +102,7 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      expect.assertions(5);
+      expect.assertions(6);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: Event) => {
@@ -110,6 +111,7 @@ describe('SentryNode', () => {
             expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
+            expect(event.exception!.values![0].value).toEqual('test');
             done();
             return null;
           },
@@ -121,6 +123,33 @@ describe('SentryNode', () => {
       });
       try {
         throw new Error('test');
+      } catch (e) {
+        captureException(e);
+      }
+    });
+
+    test('capture a string exception', done => {
+      expect.assertions(6);
+      getCurrentHub().bindClient(
+        new NodeClient({
+          beforeSend: (event: Event) => {
+            expect(event.tags).toEqual({ test: '1' });
+            expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
+            expect(event.exception!.values![0].value).toEqual('test string exception');
+            done();
+            return null;
+          },
+          dsn,
+        }),
+      );
+      configureScope((scope: Scope) => {
+        scope.setTag('test', '1');
+      });
+      try {
+        throw 'test string exception';
       } catch (e) {
         captureException(e);
       }
@@ -227,7 +256,8 @@ describe('SentryNode', () => {
         }),
       );
       try {
-        // @ts-ignore
+        // @ts-ignore allow function declarations in strict mode
+        // eslint-disable-next-line no-inner-declarations
         function testy(): void {
           throw new Error('test');
         }

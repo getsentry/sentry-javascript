@@ -11,12 +11,12 @@ export class ExtraErrorData implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = ExtraErrorData.id;
+  public static id: string = 'ExtraErrorData';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'ExtraErrorData';
+  public name: string = ExtraErrorData.id;
 
   /**
    * @inheritDoc
@@ -88,7 +88,6 @@ export class ExtraErrorData implements Integration {
           if (isError(value)) {
             value = (value as Error).toString();
           }
-          // tslint:disable:no-unsafe-any
           extraErrorInfo[key] = value;
         }
         result = extraErrorInfo;

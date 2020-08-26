@@ -24,11 +24,12 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = InboundFilters.id;
+  public static id: string = 'InboundFilters';
+
   /**
    * @inheritDoc
    */
-  public static id: string = 'InboundFilters';
+  public name: string = InboundFilters.id;
 
   public constructor(private readonly _options: Partial<InboundFiltersOptions> = {}) {}
 
@@ -139,17 +140,20 @@ export class InboundFilters implements Integration {
 
   /** JSDoc */
   private _mergeOptions(clientOptions: Partial<InboundFiltersOptions> = {}): Partial<InboundFiltersOptions> {
-    // tslint:disable:deprecation
     return {
       allowUrls: [
+        // eslint-disable-next-line deprecation/deprecation
         ...(this._options.whitelistUrls || []),
         ...(this._options.allowUrls || []),
+        // eslint-disable-next-line deprecation/deprecation
         ...(clientOptions.whitelistUrls || []),
         ...(clientOptions.allowUrls || []),
       ],
       denyUrls: [
+        // eslint-disable-next-line deprecation/deprecation
         ...(this._options.blacklistUrls || []),
         ...(this._options.denyUrls || []),
+        // eslint-disable-next-line deprecation/deprecation
         ...(clientOptions.blacklistUrls || []),
         ...(clientOptions.denyUrls || []),
       ],

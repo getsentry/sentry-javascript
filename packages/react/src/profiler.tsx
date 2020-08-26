@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getCurrentHub, Hub } from '@sentry/browser';
 import { Integration, IntegrationClass, Span, Transaction } from '@sentry/types';
 import { timestampWithMs } from '@sentry/utils';
@@ -12,7 +13,7 @@ const TRACING_GETTER = ({
 
 let globalTracingIntegration: Integration | null = null;
 /** @deprecated remove when @sentry/apm no longer used */
-const getTracingIntegration = () => {
+const getTracingIntegration = (): Integration | null => {
   if (globalTracingIntegration) {
     return globalTracingIntegration;
   }
@@ -32,7 +33,6 @@ function pushActivity(name: string, op: string): number | null {
     return null;
   }
 
-  // tslint:disable-next-line:no-unsafe-any
   return (globalTracingIntegration as any).constructor.pushActivity(name, {
     description: `<${name}>`,
     op: `react.${op}`,
@@ -50,7 +50,6 @@ function popActivity(activity: number | null): void {
     return;
   }
 
-  // tslint:disable-next-line:no-unsafe-any
   (globalTracingIntegration as any).constructor.popActivity(activity);
 }
 
@@ -65,7 +64,6 @@ function getActivitySpan(activity: number | null): Span | undefined {
     return undefined;
   }
 
-  // tslint:disable-next-line:no-unsafe-any
   return (globalTracingIntegration as any).constructor.getActivitySpan(activity) as Span | undefined;
 }
 
@@ -80,7 +78,7 @@ export type ProfilerProps = {
   // If component updates should be displayed as spans. True by default.
   includeUpdates?: boolean;
   // props given to component being profiled.
-  updateProps: { [key: string]: any };
+  updateProps: { [key: string]: unknown };
 };
 
 /**
@@ -93,6 +91,7 @@ class Profiler extends React.Component<ProfilerProps> {
   // The span of the mount activity
   private _mountSpan: Span | undefined = undefined;
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
     includeRender: true,
@@ -108,9 +107,9 @@ class Profiler extends React.Component<ProfilerProps> {
     }
 
     // If they are using @sentry/apm, we need to push/pop activities
-    // tslint:disable-next-line: deprecation
+    // eslint-disable-next-line deprecation/deprecation
     if (getTracingIntegration()) {
-      // tslint:disable-next-line: deprecation
+      // eslint-disable-next-line deprecation/deprecation
       this._mountActivity = pushActivity(name, 'mount');
     } else {
       const activeTransaction = getActiveTransaction();
@@ -128,9 +127,9 @@ class Profiler extends React.Component<ProfilerProps> {
     if (this._mountSpan) {
       this._mountSpan.finish();
     } else {
-      // tslint:disable-next-line: deprecation
+      // eslint-disable-next-line deprecation/deprecation
       this._mountSpan = getActivitySpan(this._mountActivity);
-      // tslint:disable-next-line: deprecation
+      // eslint-disable-next-line deprecation/deprecation
       popActivity(this._mountActivity);
       this._mountActivity = null;
     }
@@ -191,7 +190,7 @@ class Profiler extends React.Component<ProfilerProps> {
  * @param WrappedComponent component that is wrapped by Profiler
  * @param options the {@link ProfilerProps} you can pass into the Profiler
  */
-function withProfiler<P extends object>(
+function withProfiler<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
   // We do not want to have `updateProps` given in options, it is instead filled through the HOC.
   options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps'>>,
@@ -248,7 +247,7 @@ function useProfiler(
       mountSpan.finish();
     }
 
-    return () => {
+    return (): void => {
       if (mountSpan && options.hasRenderSpan) {
         mountSpan.startChild({
           description: `<${name}>`,
@@ -258,6 +257,8 @@ function useProfiler(
         });
       }
     };
+    // We only want this to run once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
 

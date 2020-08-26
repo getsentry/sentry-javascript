@@ -20,10 +20,6 @@ cache:
 
 jobs:
   include:
-    - stage: Test
-      name: '@sentry/packages - build + lint + test + codecov + danger [node v12]'
-      node_js: '12'
-      script: scripts/danger.sh
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
       script: scripts/test.sh
@@ -36,22 +32,3 @@ jobs:
     - name: '@sentry/packages - build and test [node v12]'
       node_js: '12'
       script: scripts/test.sh
-    - name: '@sentry/browser - browserstack integration tests'
-      node_js: '12'
-      script: scripts/browser-integration.sh
-      if: fork = false
-    - stage: Deploy
-      name: '@sentry/packages - pack and zeus upload'
-      node_js: '12'
-      if: branch =~ ^release/
-      script: scripts/pack-and-upload.sh
-
-notifications:
-  webhooks:
-    urls:
-      - https://zeus.ci/hooks/853ee4aa-d692-11e7-8c60-0a580a28020f/public/provider/travis/webhook
-    on_success: always
-    on_failure: always
-    on_start: always
-    on_cancel: always
-    on_error: always

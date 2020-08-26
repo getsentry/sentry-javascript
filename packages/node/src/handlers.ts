@@ -1,5 +1,7 @@
-import { Span } from '@sentry/apm';
+/* eslint-disable max-lines */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
+import { Span } from '@sentry/tracing';
 import { Event } from '@sentry/types';
 import { forget, isPlainObject, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -14,7 +16,7 @@ import { flush } from './sdk';
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
 /**
- * Express compatible tracing handler.
+ * Express-compatible tracing handler.
  * @see Exposed as `Handlers.tracingHandler`
  */
 export function tracingHandler(): (
@@ -27,7 +29,7 @@ export function tracingHandler(): (
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    // TODO: At this point req.route.path we use in `extractTransaction` is not available
+    // TODO: At this point `req.route.path` (which we use in `extractTransaction`) is not available
     // but `req.path` or `req.url` should do the job as well. We could unify this here.
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = req.url;
@@ -36,8 +38,7 @@ export function tracingHandler(): (
     let parentSpanId;
     let sampled;
 
-    // If there is a trace header set, we extract the data from it and set the span on the scope
-    // to be the origin an created transaction set the parent_span_id / trace_id
+    // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
     if (req.headers && isString(req.headers['sentry-trace'])) {
       const span = Span.fromTraceparent(req.headers['sentry-trace'] as string);
       if (span) {
@@ -62,6 +63,7 @@ export function tracingHandler(): (
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     (res as any).__sentry_transaction = transaction;
 
     res.once('finish', () => {
@@ -88,7 +90,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
         stack: [
           {
             name: string;
-          },
+          }
         ];
       };
     };
@@ -110,7 +112,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
       case 'methodPath':
       default: {
         const method = request.method.toUpperCase();
-        return `${method}|${routePath}`;
+        return `${method} ${routePath}`;
       }
     }
   } catch (_oO) {
@@ -253,7 +255,7 @@ export function parseRequest(
   },
   options?: ParseRequestOptions,
 ): Event {
-  // tslint:disable-next-line:no-parameter-reassignment
+  // eslint-disable-next-line no-param-reassign
   options = {
     ip: false,
     request: true,
@@ -334,7 +336,7 @@ export function requestHandler(
     next: (error?: any) => void,
   ): void {
     if (options && options.flushTimeout && options.flushTimeout > 0) {
-      // tslint:disable-next-line: no-unbound-method
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
       res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
         flush(options.flushTimeout)
@@ -403,16 +405,19 @@ export function errorHandler(options?: {
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
       withScope(_scope => {
         // For some reason we need to set the transaction on the scope again
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;
         if (transaction && _scope.getSpan() === undefined) {
           _scope.setSpan(transaction);
         }
         const eventId = captureException(error);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (res as any).sentry = eventId;
         next(error);
       });
@@ -428,6 +433,7 @@ export function errorHandler(options?: {
  * @hidden
  */
 export function logAndExitProcess(error: Error): void {
+  // eslint-disable-next-line no-console
   console.error(error && error.stack ? error.stack : error);
 
   const client = getCurrentHub().getClient<NodeClient>();

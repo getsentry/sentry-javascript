@@ -5,6 +5,7 @@
  * Based on https://github.com/microsoft/TypeScript/blob/4cf0afe2662980ebcd8d444dbd13d8f47d06fcd5/lib/lib.dom.d.ts#L4051
  */
 interface DOMStringList {
+  [index: number]: string;
   /**
    * Returns the number of strings in strings.
    */
@@ -17,9 +18,9 @@ interface DOMStringList {
    * Returns the string with index index from strings.
    */
   item(index: number): string | null;
-  [index: number]: string;
 }
 
+// eslint-disable-next-line no-var
 declare var DOMStringList: {
   prototype: DOMStringList;
   new (): DOMStringList;
@@ -61,8 +62,6 @@ export interface Location {
    * Can be set, to navigate to the given URL.
    */
   href: string;
-  // tslint:disable-next-line: completed-docs
-  toString(): string;
   /**
    * Returns the Location object's URL's origin.
    */
@@ -100,10 +99,12 @@ export interface Location {
    */
   reload(): void;
   /** @deprecated */
-  // tslint:disable-next-line: unified-signatures completed-docs
+  // eslint-disable-next-line @typescript-eslint/unified-signatures
   reload(forcedReload: boolean): void;
   /**
    * Removes the current page from the session history and navigates to the given URL.
    */
   replace(url: string): void;
+
+  toString(): string;
 }

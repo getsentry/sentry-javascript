@@ -6,6 +6,10 @@ import { next } from '@ember/runloop';
 import { assert, warn, runInDebug } from '@ember/debug';
 import Ember from 'ember';
 
+declare module '@ember/debug' {
+  export function assert(desc: string, test: unknown): void;
+}
+
 export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
   const config = environmentConfig['@sentry/ember'];
   assert('Missing configuration', config);

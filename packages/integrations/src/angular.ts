@@ -13,11 +13,6 @@ export class Angular implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Angular.id;
-
-  /**
-   * @inheritDoc
-   */
   public static id: string = 'AngularJS';
 
   /**
@@ -26,9 +21,21 @@ export class Angular implements Integration {
   public static moduleName: string = 'ngSentry';
 
   /**
+   * @inheritDoc
+   */
+  public name: string = Angular.id;
+
+  /**
    * Angular's instance
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly _angular: any;
+
+  /**
+   * ngSentry module instance
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly _module: any;
 
   /**
    * Returns current hub.
@@ -38,38 +45,47 @@ export class Angular implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(options: { angular?: any } = {}) {
-    // tslint:disable-next-line: no-unsafe-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     this._angular = options.angular || getGlobalObject<any>().angular;
+
+    if (!this._angular) {
+      logger.error('AngularIntegration is missing an Angular instance');
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    this._module = this._angular.module(Angular.moduleName, []);
   }
 
   /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (!this._angular) {
-      logger.error('AngularIntegration is missing an Angular instance');
+    if (!this._module) {
       return;
     }
 
     this._getCurrentHub = getCurrentHub;
 
-    // tslint:disable: no-unsafe-any
-    this._angular.module(Angular.moduleName, []).config([
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    this._module.config([
       '$provide',
-      ($provide: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ($provide: any): void => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         $provide.decorator('$exceptionHandler', ['$delegate', this._$exceptionHandlerDecorator.bind(this)]);
       },
     ]);
-    // tslint:enable: no-unsafe-any
   }
 
   /**
    * Angular's exceptionHandler for Sentry integration
    */
-  // tslint:disable-next-line: no-unsafe-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _$exceptionHandlerDecorator($delegate: any): any {
-    return (exception: Error, cause?: string) => {
+    return (exception: Error, cause?: string): void => {
       const hub = this._getCurrentHub && this._getCurrentHub();
 
       if (hub && hub.getIntegration(Angular)) {
@@ -103,7 +119,6 @@ export class Angular implements Integration {
           hub.captureException(exception);
         });
       }
-      // tslint:disable-next-line: no-unsafe-any
       $delegate(exception, cause);
     };
   }

@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventProcessor, Hub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
@@ -20,17 +22,18 @@ const BROWSER_TRACING_GETTER = ({
 /** Global Vue object limited to the methods/attributes we require */
 interface VueInstance {
   config: {
-    errorHandler?(error: Error, vm?: ViewModel, info?: string): void; // tslint:disable-line:completed-docs
+    errorHandler?(error: Error, vm?: ViewModel, info?: string): void;
   };
-  mixin(hooks: { [key: string]: () => void }): void; // tslint:disable-line:completed-docs
   util?: {
-    warn(...input: any): void; // tslint:disable-line:completed-docs
+    warn(...input: any): void;
   };
+  mixin(hooks: { [key: string]: () => void }): void;
 }
 
 /** Representation of Vue component internals */
 interface ViewModel {
   [key: string]: any;
+  // eslint-disable-next-line @typescript-eslint/ban-types
   $root: object;
   $options: {
     [key: string]: any;
@@ -40,10 +43,8 @@ interface ViewModel {
     __file?: string;
     $_sentryPerfHook?: boolean;
   };
-  $once(hook: string, cb: () => void): void; // tslint:disable-line:completed-docs
+  $once(hook: string, cb: () => void): void;
 }
-
-// tslint:enable:completed-docs
 
 /** Vue Integration configuration */
 interface IntegrationOptions {
@@ -130,12 +131,12 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Vue.id;
+  public static id: string = 'Vue';
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'Vue';
+  public name: string = Vue.id;
 
   private readonly _options: IntegrationOptions;
 
@@ -152,7 +153,8 @@ export class Vue implements Integration {
    */
   public constructor(options: Partial<IntegrationOptions>) {
     this._options = {
-      Vue: getGlobalObject<any>().Vue, // tslint:disable-line:no-unsafe-any
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      Vue: getGlobalObject<any>().Vue,
       attachProps: true,
       logErrors: false,
       tracing: false,
@@ -164,6 +166,22 @@ export class Vue implements Integration {
         ...options.tracingOptions,
       },
     };
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    if (!this._options.Vue) {
+      logger.error('Vue integration is missing a Vue instance');
+      return;
+    }
+
+    this._attachErrorHandler(getCurrentHub);
+
+    if (this._options.tracing) {
+      this._startTracing(getCurrentHub);
+    }
   }
 
   /**
@@ -207,7 +225,8 @@ export class Vue implements Integration {
   }
 
   /** Keep it as attribute function, to keep correct `this` binding inside the hooks callbacks  */
-  private readonly _applyTracingHooks = (vm: ViewModel, getCurrentHub: () => Hub) => {
+  // eslint-disable-next-line @typescript-eslint/typedef
+  private readonly _applyTracingHooks = (vm: ViewModel, getCurrentHub: () => Hub): void => {
     // Don't attach twice, just in case
     if (vm.$options.$_sentryPerfHook) {
       return;
@@ -223,7 +242,7 @@ export class Vue implements Integration {
     //
     // Because of this, we start measuring inside the first event,
     // but finish it before it triggers, to skip the event emitter timing itself.
-    const rootHandler = (hook: Hook) => {
+    const rootHandler = (hook: Hook): void => {
       const now = timestampWithMs();
 
       // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
@@ -237,15 +256,13 @@ export class Vue implements Integration {
 
           // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
           // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
-          // tslint:disable-next-line: deprecation
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+          // eslint-disable-next-line deprecation/deprecation
           const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
           if (tracingIntegration) {
-            // tslint:disable-next-line:no-unsafe-any
             this._tracingActivity = (tracingIntegration as any).constructor.pushActivity('Vue Application Render');
-            // tslint:disable-next-line:no-unsafe-any
             const transaction = (tracingIntegration as any).constructor.getTransaction();
             if (transaction) {
-              // tslint:disable-next-line:no-unsafe-any
               this._rootSpan = transaction.startChild({
                 description: 'Application Render',
                 op: 'Vue',
@@ -261,11 +278,12 @@ export class Vue implements Integration {
               });
             }
           }
+          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
         });
       }
     };
 
-    const childHandler = (hook: Hook, operation: Operation) => {
+    const childHandler = (hook: Hook, operation: Operation): void => {
       // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
       const shouldTrack = Array.isArray(this._options.tracingOptions.trackComponents)
         ? this._options.tracingOptions.trackComponents.indexOf(name) > -1
@@ -333,10 +351,10 @@ export class Vue implements Integration {
       if (this._tracingActivity) {
         // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
         // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
-        // tslint:disable-next-line: deprecation
+        // eslint-disable-next-line deprecation/deprecation
         const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
         if (tracingIntegration) {
-          // tslint:disable-next-line:no-unsafe-any
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
         }
       }
@@ -354,7 +372,7 @@ export class Vue implements Integration {
 
     this._options.Vue.mixin({
       beforeCreate(this: ViewModel): void {
-        // tslint:disable-next-line: deprecation
+        // eslint-disable-next-line deprecation/deprecation
         if (getCurrentHub().getIntegration(TRACING_GETTER) || getCurrentHub().getIntegration(BROWSER_TRACING_GETTER)) {
           // `this` points to currently rendered component
           applyTracingHooks(this, getCurrentHub);
@@ -367,7 +385,8 @@ export class Vue implements Integration {
 
   /** Inject Sentry's handler into owns Vue's error handler  */
   private _attachErrorHandler(getCurrentHub: () => Hub): void {
-    const currentErrorHandler = this._options.Vue.config.errorHandler; // tslint:disable-line:no-unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const currentErrorHandler = this._options.Vue.config.errorHandler;
 
     this._options.Vue.config.errorHandler = (error: Error, vm?: ViewModel, info?: string): void => {
       const metadata: Metadata = {};
@@ -406,31 +425,14 @@ export class Vue implements Integration {
         if (this._options.Vue.util) {
           this._options.Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
         }
-        console.error(error); // tslint:disable-line:no-console
+        // eslint-disable-next-line no-console
+        console.error(error);
       }
     };
   }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (!this._options.Vue) {
-      logger.error('Vue integration is missing a Vue instance');
-      return;
-    }
-
-    this._attachErrorHandler(getCurrentHub);
-
-    if (this._options.tracing) {
-      this._startTracing(getCurrentHub);
-    }
-  }
 }
 
-// tslint:disable-next-line: completed-docs
 interface HubType extends Hub {
-  // tslint:disable-next-line: completed-docs
   getScope?(): Scope | undefined;
 }
 

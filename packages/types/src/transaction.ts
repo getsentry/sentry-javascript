@@ -1,7 +1,7 @@
 import { Span, SpanContext } from './span';
 
 /**
- * Interface holding Transaction specific properties
+ * Interface holding Transaction-specific properties
  */
 export interface TransactionContext extends SpanContext {
   name: string;
