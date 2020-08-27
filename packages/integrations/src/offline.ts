@@ -1,7 +1,6 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
-// @ts-ignore: Module '"localforage"' has no default export.
-import localforage from 'localforage';
+import * as localForage from 'localforage';
 
 /**
  * cache offline errors and send when connected
@@ -43,7 +42,7 @@ export class Offline implements Integration {
   public constructor(options: { maxStoredEvents?: number } = {}) {
     this.global = getGlobalObject<Window>();
     this.maxStoredEvents = options.maxStoredEvents || 30; // set a reasonable default
-    this.offlineEventStore = localforage.createInstance({
+    this.offlineEventStore = localForage.createInstance({
       name: 'sentry/offlineEventStore',
     });
 
@@ -68,9 +67,11 @@ export class Offline implements Integration {
         if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
           this._cacheEvent(event)
             .then((_event: Event): Promise<void> => this._enforceMaxEvents())
-            .catch((_error): void => {
-              logger.warn('could not cache event while offline');
-            });
+            .catch(
+              (_error): void => {
+                logger.warn('could not cache event while offline');
+              },
+            );
 
           // return null on success or failure, because being offline will still result in an error
           return null;
@@ -103,10 +104,12 @@ export class Offline implements Integration {
     const events: Array<{ event: Event; cacheKey: string }> = [];
 
     return this.offlineEventStore
-      .iterate<Event, void>((event: Event, cacheKey: string, _index: number): void => {
-        // aggregate events
-        events.push({ cacheKey, event });
-      })
+      .iterate<Event, void>(
+        (event: Event, cacheKey: string, _index: number): void => {
+          // aggregate events
+          events.push({ cacheKey, event });
+        },
+      )
       .then(
         (): Promise<void> =>
           // this promise resolves when the iteration is finished
@@ -118,9 +121,11 @@ export class Offline implements Integration {
               .map(event => event.cacheKey),
           ),
       )
-      .catch((_error): void => {
-        logger.warn('could not enforce max events');
-      });
+      .catch(
+        (_error): void => {
+          logger.warn('could not enforce max events');
+        },
+      );
   }
 
   /**
@@ -142,18 +147,22 @@ export class Offline implements Integration {
    * send all events
    */
   private async _sendEvents(): Promise<void> {
-    return this.offlineEventStore.iterate<Event, void>((event: Event, cacheKey: string, _index: number): void => {
-      if (this.hub) {
-        const newEventId = this.hub.captureEvent(event);
+    return this.offlineEventStore.iterate<Event, void>(
+      (event: Event, cacheKey: string, _index: number): void => {
+        if (this.hub) {
+          const newEventId = this.hub.captureEvent(event);
 
-        if (newEventId) {
-          this._purgeEvent(cacheKey).catch((_error): void => {
-            logger.warn('could not purge event from cache');
-          });
+          if (newEventId) {
+            this._purgeEvent(cacheKey).catch(
+              (_error): void => {
+                logger.warn('could not purge event from cache');
+              },
+            );
+          }
+        } else {
+          logger.warn('no hub found - could not send cached event');
         }
-      } else {
-        logger.warn('no hub found - could not send cached event');
-      }
-    });
+      },
+    );
   }
 }
