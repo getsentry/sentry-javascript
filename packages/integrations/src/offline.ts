@@ -1,7 +1,6 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
-// @ts-ignore: Module '"localforage"' has no default export.
-import localforage from 'localforage';
+import * as localForage from 'localforage';
 
 /**
  * cache offline errors and send when connected
@@ -43,7 +42,7 @@ export class Offline implements Integration {
   public constructor(options: { maxStoredEvents?: number } = {}) {
     this.global = getGlobalObject<Window>();
     this.maxStoredEvents = options.maxStoredEvents || 30; // set a reasonable default
-    this.offlineEventStore = localforage.createInstance({
+    this.offlineEventStore = localForage.createInstance({
       name: 'sentry/offlineEventStore',
     });
 
