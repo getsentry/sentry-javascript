@@ -164,7 +164,7 @@ export function stripQueryString(path: string): string {
  * @param options url that should be returned or an object containing it's parts.
  * @returns constructed url
  */
-function extractUrl(options: string | http.ClientRequestArgs): string {
+export function extractUrl(options: string | http.ClientRequestArgs): string {
   if (typeof options === 'string') {
     return stripQueryString(options);
   }
