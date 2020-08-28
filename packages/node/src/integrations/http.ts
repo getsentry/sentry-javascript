@@ -161,21 +161,21 @@ export function stripQueryString(path: string): string {
 }
 
 /**
- * Function that can combine together a url that'll be used for our breadcrumbs.
+ * Assemble a URL to be used for breadcrumbs and spans.
  *
- * @param options url that should be returned or an object containing it's parts.
- * @returns constructed url
+ * @param requestArgs URL string or object containing the component parts
+ * @returns Fully-formed URL
  */
-export function extractUrl(options: string | http.ClientRequestArgs): string {
-  if (typeof options === 'string') {
-    return stripQueryString(options);
+export function extractUrl(requestArgs: string | http.ClientRequestArgs): string {
+  if (typeof requestArgs === 'string') {
+    return stripQueryString(requestArgs);
   }
-  const protocol = options.protocol || '';
-  const hostname = options.hostname || options.host || '';
+  const protocol = requestArgs.protocol || '';
+  const hostname = requestArgs.hostname || requestArgs.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-  const port = !options.port || options.port === 80 || options.port === 443 ? '' : `:${options.port}`;
+  const port = !requestArgs.port || requestArgs.port === 80 || requestArgs.port === 443 ? '' : `:${requestArgs.port}`;
+  const path = requestArgs.path ? stripQueryString(requestArgs.path) : '/';
   return `${protocol}//${hostname}${port}${path}`;
-  const path = options.path ? stripQueryString(options.path) : '/';
 }
 
 /**
