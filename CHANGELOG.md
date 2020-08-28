@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.22.0
+
+- [browser] ref: Recognize `Capacitor` scheme as `Gecko` (#2836)
+- [node]: fix: Save `string` exception as a message for `syntheticException` (#2837)
+- [tracing] feat: Add `build` dir in npm package (#2846)
+- [tracing] fix: Fix typo in `addPerformanceEntries` method name (#2847)
+- [apm] ref: Deprecate `@sentry/apm` package (#2844)
+- [angular] fix: Allow for empty DSN/disabling with `AngularJS` integration (#2842)
+- [gatsby] ref: Make `@sentry/tracing` mandatory + add tests (#2841)
+- [integrations] feat: Add integration for offline support (#2778)
+- [utils] ref: Revert the usage of `globalThis` for `getGlobalObject` util (#2851)
+- [build] fix: Lock in `TypeScript` to `3.7.5` (#2848)
+- [build] misc: Upgrade `Prettier` to `1.19.0` (#2850)
+
 ## 5.21.4
 
 - [ci] fix: Actually release correct code
