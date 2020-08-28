@@ -38,7 +38,8 @@ function assertSentryCall(assert, callNumber, options) {
 module('Acceptance | Sentry Errors', function(hooks) {
   setupApplicationTest(hooks);
 
-  hooks.beforeEach(function() {
+  hooks.beforeEach(async function() {
+    await window._sentryPerformanceLoad;
     window._sentryTestEvents = [];
     const errorMessages = [];
     this.errorMessages = errorMessages;

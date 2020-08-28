@@ -7,7 +7,10 @@ export function initialize(appInstance: ApplicationInstance): void {
   if (config['disablePerformance']) {
     return;
   }
-  instrumentForPerformance(appInstance);
+  const performancePromise = instrumentForPerformance(appInstance);
+  if (Ember.Testing) {
+    window._sentryPerformanceLoad = performancePromise;
+  }
 }
 
 function getTransitionInformation(transition: any, router: any) {
@@ -69,8 +72,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     }),
   ];
 
-  const browserClient = new Sentry.BrowserClient(sentryConfig);
-  Sentry.getCurrentHub().bindClient(browserClient);
+  Sentry.init(sentryConfig); // Call init again to rebind client with new integration list in addition to the defaults
 }
 
 export default {

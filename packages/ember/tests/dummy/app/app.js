@@ -4,7 +4,25 @@ import loadInitializers from 'ember-load-initializers';
 import config from './config/environment';
 import { InitSentryForEmber } from '@sentry/ember';
 
-InitSentryForEmber();
+import { Transports } from '@sentry/browser';
+import Ember from 'ember';
+
+class TestFetchTransport extends Transports.FetchTransport {
+  sendEvent(event) {
+    if (Ember.testing) {
+      if (!window._sentryTestEvents) {
+        window._sentryTestEvents = [];
+      }
+      window._sentryTestEvents.push(event);
+      return Promise.resolve();
+    }
+    return super.sendEvent(event);
+  }
+}
+
+InitSentryForEmber({
+  transport: TestFetchTransport,
+});
 
 export default class App extends Application {
   modulePrefix = config.modulePrefix;
