@@ -87,7 +87,7 @@ jobs:
           key: ${{ runner.os }}-${{ github.sha }}
       - run: yarn install
       - name: Unit Tests
-        run: yarn test --ignore="@sentry/ember"
+        run: yarn test
       - uses: codecov/codecov-action@v1
 
   job_browserstack_test:
