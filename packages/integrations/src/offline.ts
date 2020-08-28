@@ -34,7 +34,7 @@ export class Offline implements Integration {
   /**
    * event cache
    */
-  public offlineEventStore: LocalForage; // type imported from localforage
+  public offlineEventStore: typeof localForage; // type imported from localforage
 
   /**
    * @inheritDoc
