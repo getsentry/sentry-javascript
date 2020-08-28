@@ -24,6 +24,8 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   const sentryConfig = config.sentry;
   const tracing = await import('@sentry/tracing');
 
+  const idleTimeout = config.transitionTimeout || 15000;
+
   const router = appInstance.lookup('service:router');
 
   sentryConfig['integrations'] = [
@@ -62,7 +64,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
           }
         });
       },
-      idleTimeout: 2000,
+      idleTimeout,
     }),
   ];
 

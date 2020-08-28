@@ -8,4 +8,5 @@ export default class Router extends EmberRouter {
 
 Router.map(function() {
   this.route('tracing');
+  this.route('slow-loading-route');
 });
