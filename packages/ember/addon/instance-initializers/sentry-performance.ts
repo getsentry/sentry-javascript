@@ -26,20 +26,21 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
 
   const idleTimeout = config.transitionTimeout || 15000;
 
-  const router = appInstance.lookup('service:router');
-
   sentryConfig['integrations'] = [
     ...(sentryConfig['integrations'] || []),
     new tracing.Integrations.BrowserTracing({
       routingInstrumentation: (startTransaction, startTransactionOnPageLoad) => {
+        const location = appInstance.lookup('router:main').location;
+        const router = appInstance.lookup('service:router');
         let activeTransaction: any;
-        if (startTransactionOnPageLoad && window.location) {
-          const routeInfo = router.recognize(window.location.pathname);
+        const url = location && location.getURL && location.getURL();
+        if (startTransactionOnPageLoad && url) {
+          const routeInfo = router.recognize(url);
           activeTransaction = startTransaction({
             name: `route:${routeInfo.name}`,
             op: 'pageload',
             tags: {
-              url: window.location.pathname,
+              url,
               toRoute: routeInfo.name,
               'routing.instrumentation': '@sentry/ember',
             },
