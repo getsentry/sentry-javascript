@@ -20,5 +20,5 @@ elif [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 8 ]]; then
 else
   yarn install
   yarn build
-  yarn test --ignore="@sentry/ember"
+  yarn test
 fi
