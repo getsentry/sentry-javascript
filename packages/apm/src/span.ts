@@ -278,9 +278,9 @@ export class Span implements SpanInterface, SpanContext {
     description?: string;
     op?: string;
     parent_span_id?: string;
-    sampled?: boolean;
     span_id: string;
     start_timestamp: number;
+    status?: string;
     tags?: { [key: string]: string };
     timestamp?: number;
     trace_id: string;
