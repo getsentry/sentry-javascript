@@ -176,16 +176,18 @@ export function extractUrl(requestArgs: string | http.ClientRequestArgs): string
   const hostname = requestArgs.hostname || requestArgs.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
   const port = !requestArgs.port || requestArgs.port === 80 || requestArgs.port === 443 ? '' : `:${requestArgs.port}`;
-  const path = requestArgs.path ? stripQueryString(requestArgs.path) : '/';
-  return `${protocol}//${hostname}${port}${path}`;
+  const path = requestArgs.path ? stripUrlPath(requestArgs.path) : '/';
+
+  // internal routes end up with too many slashes
+  return `${protocol}//${hostname}${port}${path}`.replace('///', '/');
 }
 
 /**
- * Handle various edge cases with urls in the span description. Runs just before the span closes because it relies on
+ * Handle an edge case with urls in the span description. Runs just before the span closes because it relies on
  * data from the response object.
  *
  * @param requestOptions Configuration data for the request
- * @param response Constructed request object
+ * @param response Response object
  * @param span Span representing the request
  */
 function cleanDescription(
@@ -209,14 +211,6 @@ function cleanDescription(
       // well, we tried
     }
   }
-
-  // Internal routes have neither a protocol nor a host, which can leave us with span descriptions like
-  // `///my/internal/route`.
-  if (span.description && span.description.startsWith('///')) {
-    span.description = span.description.slice(2);
-  }
-
-  // nothing to return since we've mutated the span directly
 }
 
 /**
