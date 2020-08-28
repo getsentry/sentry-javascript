@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
 import * as localForageType from 'localforage';
@@ -21,7 +22,8 @@ export class Offline implements Integration {
   /**
    * the global instance
    */
-  public global: Window;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public global: any;
 
   /**
    * the current hub instance
@@ -42,7 +44,8 @@ export class Offline implements Integration {
    * @inheritDoc
    */
   public constructor(options: { maxStoredEvents?: number } = {}) {
-    this.global = getGlobalObject<Window>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.global = getGlobalObject<any>();
     this.maxStoredEvents = options.maxStoredEvents || 30; // set a reasonable default
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     this.offlineEventStore = localForage.createInstance({
