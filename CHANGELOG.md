@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.22.2
+
+- [integrations] fix: Fix localforage typing (#2861)
+
+## 5.22.1
+
+- [integrations] fix: Add localforage typing (#2856)
+- [tracing] fix: Make sure BrowserTracing is exported in CDN correctly (#2855)
+
 ## 5.22.0
 
 - [browser] ref: Recognize `Capacitor` scheme as `Gecko` (#2836)

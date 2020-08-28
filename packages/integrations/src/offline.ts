@@ -1,8 +1,9 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, uuid4 } from '@sentry/utils';
-// @ts-ignore: Module '"localforage"' has no default export.
-import localforage from 'localforage';
+import * as localForageType from 'localforage';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const localForage = require('localforage');
 /**
  * cache offline errors and send when connected
  */
@@ -35,7 +36,7 @@ export class Offline implements Integration {
   /**
    * event cache
    */
-  public offlineEventStore: LocalForage; // type imported from localforage
+  public offlineEventStore: typeof localForageType; // type imported from localforage
 
   /**
    * @inheritDoc
@@ -43,7 +44,8 @@ export class Offline implements Integration {
   public constructor(options: { maxStoredEvents?: number } = {}) {
     this.global = getGlobalObject<Window>();
     this.maxStoredEvents = options.maxStoredEvents || 30; // set a reasonable default
-    this.offlineEventStore = localforage.createInstance({
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    this.offlineEventStore = localForage.createInstance({
       name: 'sentry/offlineEventStore',
     });
 

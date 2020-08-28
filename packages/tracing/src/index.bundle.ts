@@ -68,7 +68,7 @@ if (_window.Sentry && _window.Sentry.Integrations) {
 const INTEGRATIONS = {
   ...windowIntegrations,
   ...BrowserIntegrations,
-  ...BrowserTracing,
+  BrowserTracing,
 };
 
 export { INTEGRATIONS as Integrations };
