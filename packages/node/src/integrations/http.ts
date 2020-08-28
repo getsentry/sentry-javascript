@@ -145,6 +145,20 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
 }
 
 /**
+ * Strip the query string off of a URL or path
+ *
+ * @param path Path including possible query string
+ * @returns Path without query string
+ */
+export function stripQueryString(path: string): string {
+  if (path.includes('?')) {
+    return path.split('?')[0];
+  }
+
+  return path;
+}
+
+/**
  * Function that can combine together a url that'll be used for our breadcrumbs.
  *
  * @param options url that should be returned or an object containing it's parts.
@@ -152,14 +166,14 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
  */
 function extractUrl(options: string | http.ClientRequestArgs): string {
   if (typeof options === 'string') {
-    return options;
+    return stripQueryString(options);
   }
   const protocol = options.protocol || '';
   const hostname = options.hostname || options.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
   const port = !options.port || options.port === 80 || options.port === 443 ? '' : `:${options.port}`;
-  const path = options.path || '/';
   return `${protocol}//${hostname}${port}${path}`;
+  const path = options.path ? stripQueryString(options.path) : '/';
 }
 
 /**
