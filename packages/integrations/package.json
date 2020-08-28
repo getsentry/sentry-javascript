@@ -18,7 +18,7 @@
   "dependencies": {
     "@sentry/types": "5.22.1",
     "@sentry/utils": "5.22.1",
-    "localforage": "^1.8.1",
+    "localforage": "1.8.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
