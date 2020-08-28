@@ -102,6 +102,7 @@ function createHandlerWrapper(
           }
           if (tracingEnabled && span) {
             span.setHttpStatus(res.statusCode);
+            cleanDescription(options, this, span);
             span.finish();
           }
         })
@@ -111,6 +112,7 @@ function createHandlerWrapper(
           }
           if (tracingEnabled && span) {
             span.setHttpStatus(500);
+            cleanDescription(options, this, span);
             span.finish();
           }
         });
@@ -174,6 +176,45 @@ export function extractUrl(options: string | http.ClientRequestArgs): string {
   const port = !options.port || options.port === 80 || options.port === 443 ? '' : `:${options.port}`;
   return `${protocol}//${hostname}${port}${path}`;
   const path = options.path ? stripQueryString(options.path) : '/';
+}
+
+/**
+ * Handle various edge cases with urls in the span description. Runs just before the span closes because it relies on
+ * data from the response object.
+ *
+ * @param requestOptions Configuration data for the request
+ * @param response Constructed request object
+ * @param span Span representing the request
+ */
+function cleanDescription(
+  requestOptions: string | http.ClientRequestArgs,
+  response: http.IncomingMessage,
+  span: Span,
+): void {
+  // There are some libraries which don't pass the request protocol in the options object, so attempt to retrieve it
+  // from the response and run the URL processing again. We only do this in the presence of a (non-empty) host value,
+  // because if we're missing both, it's likely we're dealing with an internal route, in which case we don't want to be
+  // jamming a random `http:` on the front of it.
+  if (typeof requestOptions !== 'string' && !Object.keys(requestOptions).includes('protocol') && requestOptions.host) {
+    // Neither http.IncomingMessage nor any of its ancestors have an `agent` property in their type definitions, and
+    // http.Agent doesn't have a `protocol` property in its type definition. Nonetheless, at least one request library
+    // (superagent) arranges things that way, so might as well give it a shot.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      requestOptions.protocol = (response as any).agent.protocol;
+      span.description = extractUrl(requestOptions);
+    } catch (error) {
+      // well, we tried
+    }
+  }
+
+  // Internal routes have neither a protocol nor a host, which can leave us with span descriptions like
+  // `///my/internal/route`.
+  if (span.description && span.description.startsWith('///')) {
+    span.description = span.description.slice(2);
+  }
+
+  // nothing to return since we've mutated the span directly
 }
 
 /**
