@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.22.2
+
+- [integrations] fix: Fix localforage typing (#2861)
+
 ## 5.22.1
 
 - [integrations] fix: Add localforage typing (#2856)
