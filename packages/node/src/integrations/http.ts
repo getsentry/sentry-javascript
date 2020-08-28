@@ -147,17 +147,19 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
 }
 
 /**
- * Strip the query string off of a URL or path
+ * Strip the query string and fragment off of a given URL or path (if present)
  *
- * @param path Path including possible query string
- * @returns Path without query string
+ * @param urlPath Path including possible query string and/or fragment
+ * @returns Path without query string or fragment
  */
-export function stripQueryString(path: string): string {
-  if (path.includes('?')) {
-    return path.split('?')[0];
+export function stripUrlPath(urlPath: string): string {
+  if (urlPath.includes('?') || urlPath.includes('#')) {
+    // in theory, the fragment should always come after the query string, but you never know, so make the # a ? so the
+    // split will always happen if either is there
+    return urlPath.replace('#', '?').split('?')[0];
   }
 
-  return path;
+  return urlPath;
 }
 
 /**
@@ -168,7 +170,7 @@ export function stripQueryString(path: string): string {
  */
 export function extractUrl(requestArgs: string | http.ClientRequestArgs): string {
   if (typeof requestArgs === 'string') {
-    return stripQueryString(requestArgs);
+    return stripUrlPath(requestArgs);
   }
   const protocol = requestArgs.protocol || '';
   const hostname = requestArgs.hostname || requestArgs.host || '';

@@ -11,7 +11,7 @@ import * as os from 'os';
 import * as url from 'url';
 
 import { NodeClient } from './client';
-import { stripQueryString } from './integrations/http';
+import { stripUrlPath } from './integrations/http';
 import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
@@ -33,7 +33,7 @@ export function tracingHandler(): (
     // TODO: At this point `req.route.path` (which we use in `extractTransaction`) is not available
     // but `req.path` or `req.url` should do the job as well. We could unify this here.
     const reqMethod = (req.method || '').toUpperCase();
-    const reqUrl = req.url && stripQueryString(req.url);
+    const reqUrl = req.url && stripUrlPath(req.url);
 
     let traceId;
     let parentSpanId;
