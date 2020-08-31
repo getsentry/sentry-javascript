@@ -17,6 +17,7 @@
   "types": "dist/index.d.ts",
   "dependencies": {
     "@sentry/angular": "^5.22.2",
+    "@sentry/browser": "^5.22.3",
     "@sentry/types": "5.22.2",
     "@sentry/utils": "5.22.2",
     "aws-sdk": "^2.741.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "5.22.2",
+    "@types/uuid": "^8.3.0",
     "chai": "^4.1.2",
     "eslint": "7.6.0",
     "jest": "^24.7.1",

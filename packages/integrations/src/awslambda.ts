@@ -1,6 +1,28 @@
 import * as Sentry from '@sentry/browser';
 import { EventProcessor, Hub, Integration, Scope } from '@sentry/types';
 
+interface AWSLambdaContext {
+  getRemainingTimeInMillis: () => number;
+  callbackWaitsForEmptyEventLoop: boolean;
+  awsRequestId: string;
+  functionName: string;
+  functionVersion: string;
+  invokedFunctionArn: string;
+  logGroupName: string;
+  logStreamName: string;
+}
+
+interface Module {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  exports: any;
+  id: string;
+  filename: string;
+  loaded: boolean;
+  parent: Module | null;
+  children: Module[];
+  path: string;
+  paths: string[];
+}
 /**
  * NodeJS integration
  *
@@ -22,16 +44,7 @@ export class AWSLambda implements Integration {
   /**
    * context.
    */
-  private _awsContext: {
-    getRemainingTimeInMillis: () => number;
-    callbackWaitsForEmptyEventLoop: boolean;
-    awsRequestId: string;
-    functionName: string;
-    functionVersion: string;
-    invokedFunctionArn: string;
-    logGroupName: string;
-    logStreamName: string;
-  };
+  private _awsContext!: AWSLambdaContext;
 
   /**
    * timeout flag.
@@ -47,8 +60,11 @@ export class AWSLambda implements Integration {
    */
   private _flushTime?: number;
 
-  public constructor(options: { context?: any; timeoutWarning?: boolean; flushTime?: number } = {}) {
-    this._awsContext = options.context;
+  public constructor(options: { context?: AWSLambdaContext; timeoutWarning?: boolean; flushTime?: number } = {}) {
+    if (options.context) {
+      this._awsContext = options.context;
+    }
+
     this._timeoutWarning = options.timeoutWarning;
     this._flushTime = options.flushTime;
   }
@@ -57,7 +73,7 @@ export class AWSLambda implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const lambdaBootstrap: any = require.main;
+    const lambdaBootstrap: Module | undefined = require.main;
 
     /** configured time to timeout error and calculate execution time */
     const configuredTimeInMilliseconds = this._awsContext.getRemainingTimeInMillis();
@@ -65,12 +81,13 @@ export class AWSLambda implements Integration {
     if (!this._awsContext && !lambdaBootstrap) {
       return;
     }
-    const processEnv: any = process.env;
+
     /** rapid runtime instance */
-    const rapidRuntime = lambdaBootstrap.children[0].exports;
+    const rapidRuntime = lambdaBootstrap?.children[0].exports;
 
     /** handler that is invoked in case of unhandled and handled exception */
-    const originalPostInvocationError = rapidRuntime.prototype.postInvocationError;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const originalPostInvocationError = rapidRuntime?.prototype?.postInvocationError;
 
     const hub = getCurrentHub && getCurrentHub();
 
@@ -111,10 +128,10 @@ export class AWSLambda implements Integration {
      */
     const cloudwatchUrl = (): string => {
       /**
-       * processEnv.AWS_REGION -  this parameters given the AWS region
-       * processEnv.AWS_LAMBDA_FUNCTION_NAME - this parameter provides the AWS Lambda Function name
+       * process.env.AWS_REGION -  this parameters given the AWS region
+       * process.env.AWS_LAMBDA_FUNCTION_NAME - this parameter provides the AWS Lambda Function name
        */
-      return `https://${processEnv.AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${processEnv.AWS_REGION}#logsV2:log-groups/log-group/$252Faws$252Flambda$252F${processEnv.AWS_LAMBDA_FUNCTION_NAME}`;
+      return `https://${process.env.AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${process.env.AWS_REGION}#logsV2:log-groups/log-group/$252Faws$252Flambda$252F${process.env.AWS_LAMBDA_FUNCTION_NAME}`;
     };
 
     /**
@@ -140,7 +157,7 @@ export class AWSLambda implements Integration {
       scope.setTag('runtime', `node${global.process.version}`);
       scope.setTag('transaction', this._awsContext.functionName);
       scope.setTag('runtime.name', 'node');
-      scope.setTag('server_name', processEnv._AWS_XRAY_DAEMON_ADDRESS);
+      scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || '');
       scope.setTag('url', `awslambda:///${this._awsContext.functionName}`);
     };
 
@@ -163,6 +180,7 @@ export class AWSLambda implements Integration {
       });
     };
 
+    const flushTime = this._flushTime;
     // timeout warning buffer for timeout error
     const timeoutWarningBuffer: number = 1500;
 
@@ -192,7 +210,7 @@ export class AWSLambda implements Integration {
 
           /** capturing the exception and re-directing it to the Sentry Dashboard */
           hub.captureException(error);
-          Sentry.flush(this._flushTime);
+          void Sentry.flush(flushTime);
         }, configuredTime);
       };
 
@@ -206,6 +224,7 @@ export class AWSLambda implements Integration {
      * @param id  - holds event id value
      * @param callback  - callback function
      */
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     rapidRuntime.prototype.postInvocationError = async function(
       error: Error,
       id: string,
@@ -218,12 +237,13 @@ export class AWSLambda implements Integration {
 
       /** capturing the exception and re-directing it to the Sentry Dashboard */
       hub.captureException(error);
-      await Sentry.flush(this.flushTime);
+      await Sentry.flush(flushTime);
 
       /**
        * Here, we make sure the error has been captured by Sentry Dashboard
        * and then re-raised the exception
        */
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       originalPostInvocationError.call(this, error, id, callback);
     };
   }
