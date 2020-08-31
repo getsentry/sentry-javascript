@@ -153,13 +153,7 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
  * @returns Path without query string or fragment
  */
 export function stripUrlPath(urlPath: string): string {
-  if (urlPath.includes('?') || urlPath.includes('#')) {
-    // in theory, the fragment should always come after the query string, but you never know, so make the # a ? so the
-    // split will always happen if either is there
-    return urlPath.replace('#', '?').split('?')[0];
-  }
-
-  return urlPath;
+  return urlPath.split(/[?#]/, 1)[0];
 }
 
 /**
