@@ -63,7 +63,7 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
   }
 
   // This is necessary to provide explicit scopes upgrade, without changing the original
-  // arrity of the `captureMessage(message, level)` method.
+  // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
 
