@@ -465,8 +465,7 @@ export function getCurrentHub(): Hub {
 export function getActiveDomain(): DomainAsCarrier | undefined {
   const sentry = getMainCarrier().__SENTRY__;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  return sentry && sentry.extensions && sentry.extensions.domain && (sentry.extensions.domain as any).active;
+  return sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
 }
 
 /**
