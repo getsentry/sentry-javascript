@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
 import * as hubModuleRaw from '@sentry/hub'; // for mocking
 import { getMainCarrier, Hub } from '@sentry/hub';
@@ -15,7 +16,7 @@ import { addExtensionMethods } from '../src/hubextensions';
 // (This doesn't affect the utils module because it uses `export * from './myModule' syntax rather than `export
 // {<individually named methods>} from './myModule'` syntax in its index.ts. Only *named* exports seem to trigger the
 // problem.)
-const hubModule = { ...hubModuleRaw}
+const hubModule = { ...hubModuleRaw };
 
 addExtensionMethods();
 
@@ -36,7 +37,6 @@ describe('Hub', () => {
   });
 
   describe('getTransaction()', () => {
-
     it('should find a transaction which has been set on the scope', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -44,21 +44,19 @@ describe('Hub', () => {
         scope.setSpan(transaction);
       });
 
-      expect(hub.getScope()?.getTransaction()).toBe(transaction)
-
+      expect(hub.getScope()?.getTransaction()).toBe(transaction);
     });
 
     it("should not find an open transaction if it's not on the scope", () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       hub.startTransaction({ name: 'dogpark' });
 
-      expect(hub.getScope()?.getTransaction()).toBeUndefined()
+      expect(hub.getScope()?.getTransaction()).toBeUndefined();
     });
   }); // end describe('getTransaction()')
 
   describe('transaction sampling', () => {
     describe('options', () => {
-
       it("should call tracesSampler if it's defined", () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
@@ -74,11 +72,9 @@ describe('Hub', () => {
 
         expect(tracesSampler).toHaveBeenCalled();
       });
-
     }); // end describe('options')
 
     describe('default sample context', () => {
-
       it('should extract request data for default sampling context when in node', () => {
         // make sure we look like we're in node
         (isNodeEnv as jest.Mock).mockReturnValue(true);
@@ -115,15 +111,17 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark' });
 
         // post-normalization request object
-        expect(tracesSampler).toHaveBeenCalledWith(expect.objectContaining({
-          request: {
-            headers: { ears: 'furry', nose: 'wet', tongue: 'panting', cookie: 'favorite=zukes' },
-            method: 'wagging',
-            url: 'http://the.dog.park/by/the/trees/?chase=me&please=thankyou',
-            cookies: { favorite: 'zukes' },
-            query_string: 'chase=me&please=thankyou',
-          },
-        }));
+        expect(tracesSampler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            request: {
+              headers: { ears: 'furry', nose: 'wet', tongue: 'panting', cookie: 'favorite=zukes' },
+              method: 'wagging',
+              url: 'http://the.dog.park/by/the/trees/?chase=me&please=thankyou',
+              cookies: { favorite: 'zukes' },
+              query_string: 'chase=me&please=thankyou',
+            },
+          }),
+        );
       });
 
       it('should extract window.location/self.location for default sampling context when in browser/service worker', () => {
@@ -153,7 +151,6 @@ describe('Hub', () => {
     }); // end describe('defaultSampleContext')
 
     describe('while sampling', () => {
-
       it('should not sample transactions when tracing is disabled', () => {
         // neither tracesSampleRate nor tracesSampler is defined -> tracing disabled
         const hub = new Hub(new BrowserClient({}));
@@ -176,51 +173,51 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(true);
       });
 
-    it("should reject tracesSampleRates which aren't numbers", () => {
-      const hub = new Hub(new BrowserClient({ tracesSampleRate: 'dogs!' as any }));
-      hub.startTransaction({ name: 'dogpark' });
+      it("should reject tracesSampleRates which aren't numbers", () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 'dogs!' as any }));
+        hub.startTransaction({ name: 'dogpark' });
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a number'));
-    });
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a number'));
+      });
 
-    it('should reject tracesSampleRates less than 0', () => {
-      const hub = new Hub(new BrowserClient({ tracesSampleRate: -26 }));
-      hub.startTransaction({ name: 'dogpark' });
+      it('should reject tracesSampleRates less than 0', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: -26 }));
+        hub.startTransaction({ name: 'dogpark' });
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
-    });
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
+      });
 
-    it('should reject tracesSampleRates greater than 1', () => {
-      const hub = new Hub(new BrowserClient({ tracesSampleRate: 26 }));
-      hub.startTransaction({ name: 'dogpark' });
+      it('should reject tracesSampleRates greater than 1', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 26 }));
+        hub.startTransaction({ name: 'dogpark' });
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
-    });
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
+      });
 
-    it("should reject tracesSampler return values which aren't numbers", () => {
-      const tracesSampler = jest.fn().mockReturnValue("dogs!")
-      const hub = new Hub(new BrowserClient({ tracesSampler }));
-      hub.startTransaction({ name: 'dogpark' });
+      it("should reject tracesSampler return values which aren't numbers", () => {
+        const tracesSampler = jest.fn().mockReturnValue('dogs!');
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        hub.startTransaction({ name: 'dogpark' });
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a number'));
-    });
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a number'));
+      });
 
-    it('should reject tracesSampler return values less than 0', () => {
-      const tracesSampler = jest.fn().mockReturnValue(-12)
-      const hub = new Hub(new BrowserClient({ tracesSampler }));
-      hub.startTransaction({ name: 'dogpark' });
+      it('should reject tracesSampler return values less than 0', () => {
+        const tracesSampler = jest.fn().mockReturnValue(-12);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        hub.startTransaction({ name: 'dogpark' });
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
-    });
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
+      });
 
-    it('should reject tracesSampler return values greater than 1', () => {
-      const tracesSampler = jest.fn().mockReturnValue(31)
-      const hub = new Hub(new BrowserClient({ tracesSampler }));
-      hub.startTransaction({ name: 'dogpark' });
+      it('should reject tracesSampler return values greater than 1', () => {
+        const tracesSampler = jest.fn().mockReturnValue(31);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        hub.startTransaction({ name: 'dogpark' });
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
-    });
-  }); // end describe('while sampling')
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
+      });
+    }); // end describe('while sampling')
 
     it('should propagate sampling decision to child spans', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
@@ -231,18 +228,18 @@ describe('Hub', () => {
     });
 
     it('should drop transactions with sampled = false', () => {
-      const client = new BrowserClient({ tracesSampleRate: 0 })
-      jest.spyOn(client, 'captureEvent')
+      const client = new BrowserClient({ tracesSampleRate: 0 });
+      jest.spyOn(client, 'captureEvent');
 
       const hub = new Hub(client);
       const transaction = hub.startTransaction({ name: 'dogpark' });
 
-      jest.spyOn(transaction, 'finish')
-      transaction.finish()
+      jest.spyOn(transaction, 'finish');
+      transaction.finish();
 
       expect(transaction.sampled).toBe(false);
       expect(transaction.finish).toReturnWith(undefined);
-      expect(client.captureEvent).not.toBeCalled()
+      expect(client.captureEvent).not.toBeCalled();
     });
   }); // end describe('transaction sampling')
 }); // end describe('Hub')
