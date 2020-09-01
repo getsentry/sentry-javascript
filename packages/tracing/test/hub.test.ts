@@ -53,7 +53,7 @@ describe('Hub', () => {
 
       expect(hub.getScope()?.getTransaction()).toBeUndefined();
     });
-  }); // end describe('getTransaction()')
+  });
 
   describe('transaction sampling', () => {
     describe('options', () => {
@@ -72,7 +72,7 @@ describe('Hub', () => {
 
         expect(tracesSampler).toHaveBeenCalled();
       });
-    }); // end describe('options')
+    });
 
     describe('default sample context', () => {
       it('should extract request data for default sampling context when in node', () => {
@@ -148,7 +148,7 @@ describe('Hub', () => {
 
         expect(tracesSampler).toHaveBeenCalledWith(expect.objectContaining({ location: dogParkLocation }));
       });
-    }); // end describe('defaultSampleContext')
+    });
 
     describe('while sampling', () => {
       it('should not sample transactions when tracing is disabled', () => {
@@ -217,7 +217,7 @@ describe('Hub', () => {
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
       });
-    }); // end describe('while sampling')
+    });
 
     it('should propagate sampling decision to child spans', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
@@ -241,5 +241,5 @@ describe('Hub', () => {
       expect(transaction.finish).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
     });
-  }); // end describe('transaction sampling')
-}); // end describe('Hub')
+  });
+});
