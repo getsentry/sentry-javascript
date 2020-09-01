@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/browser';
 import { EventProcessor, Hub, Integration, Scope } from '@sentry/types';
 
 interface AWSLambdaContext {
@@ -60,13 +59,13 @@ export class AWSLambda implements Integration {
    */
   private _flushTime?: number;
 
-  public constructor(options: { context?: AWSLambdaContext; timeoutWarning?: boolean; flushTime?: number } = {}) {
+  public constructor(options: { context?: AWSLambdaContext; timeoutWarning?: boolean; flushTimeout?: number } = {}) {
     if (options.context) {
       this._awsContext = options.context;
     }
 
     this._timeoutWarning = options.timeoutWarning;
-    this._flushTime = options.flushTime;
+    this._flushTime = options.flushTimeout;
   }
 
   /**
@@ -75,21 +74,27 @@ export class AWSLambda implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     const lambdaBootstrap: Module | undefined = require.main;
 
-    /** configured time to timeout error and calculate execution time */
-    const configuredTimeInMilliseconds = this._awsContext.getRemainingTimeInMillis();
-
     if (!this._awsContext && !lambdaBootstrap) {
       return;
     }
+    /** configured time to timeout error and calculate execution time */
+    const configuredTimeInMilliseconds =
+      this._awsContext.getRemainingTimeInMillis && this._awsContext.getRemainingTimeInMillis();
 
     /** rapid runtime instance */
-    const rapidRuntime = lambdaBootstrap?.children[0].exports;
+    // const rapidRuntime = lambdaBootstrap?.children[0].exports;
+    let rapidRuntime;
+    try {
+      rapidRuntime = lambdaBootstrap?.children[0].exports;
+    } catch (err) {
+      rapidRuntime = {};
+    }
 
     /** handler that is invoked in case of unhandled and handled exception */
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const originalPostInvocationError = rapidRuntime?.prototype?.postInvocationError;
 
-    const hub = getCurrentHub && getCurrentHub();
+    const hub = getCurrentHub();
 
     /**
      * This function sets Additional Runtime Data which are displayed in Sentry Dashboard
@@ -113,7 +118,7 @@ export class AWSLambda implements Integration {
       const remainingTimeInMillisecond: number = this._awsContext.getRemainingTimeInMillis();
       const executionTime: number = configuredTimeInMilliseconds - remainingTimeInMillisecond;
 
-      scope.setExtra('lambda', {
+      scope.setContext('lambda', {
         aws_request_id: this._awsContext.awsRequestId,
         function_name: this._awsContext.functionName,
         function_version: this._awsContext.functionVersion,
@@ -140,7 +145,7 @@ export class AWSLambda implements Integration {
      * @hidden
      */
     const setCloudwatchLogsData = (scope: Scope): void => {
-      scope.setExtra('cloudwatch logs', {
+      scope.setContext('cloudwatch logs', {
         log_group: this._awsContext.logGroupName,
         log_stream: this._awsContext.logStreamName,
         url: cloudwatchUrl(),
@@ -161,59 +166,49 @@ export class AWSLambda implements Integration {
       scope.setTag('url', `awslambda:///${this._awsContext.functionName}`);
     };
 
-    /**
-     * setting parameters in scope which will be displayed as additional data in Sentry dashboard
-     * @hidden
-     */
-    const setParameters = (): void => {
-      // setting parameters in scope which will be displayed as additional data in Sentry dashboard
-      hub.configureScope((scope: Scope) => {
-        setTags(scope);
-        // runtime
-        setAdditionalRuntimeData(scope);
-        // setting the lambda parameters
-        setAdditionalLambdaParameters(scope);
-        // setting the cloudwatch logs parameter
-        setCloudwatchLogsData(scope);
-        // setting the sys.argv parameter
-        scope.setExtra('sys.argv', process.argv);
-      });
-    };
-
     const flushTime = this._flushTime;
     // timeout warning buffer for timeout error
     const timeoutWarningBuffer: number = 1500;
 
-    /** check timeout flag and checking if configured Time In Milliseconds is greater than timeout Warning Buffer */
-    if (this._timeoutWarning === true && configuredTimeInMilliseconds > timeoutWarningBuffer) {
-      const configuredTimeInSec = Math.floor(configuredTimeInMilliseconds / 1000);
-      const configuredTimeInMilli = configuredTimeInSec * 1000;
+    const configuredTimeInSec = Math.floor(configuredTimeInMilliseconds / 1000);
+    const configuredTimeInMilli = configuredTimeInSec * 1000;
 
-      /**
-       * This function is invoked when there is timeout error
-       * Here, we make sure the error has been captured by Sentry Dashboard
-       * and then re-raise the exception
-       * @param configuredTime  - configured time in seconds
-       * @hidden
-       */
-      const timeOutError = (configuredTime: number): void => {
-        setTimeout(() => {
-          /**
-           * setting parameters in scope which will be displayed as additional data in Sentry dashboard
-           */
-          setParameters();
+    /**
+     * This function is invoked when there is timeout error
+     * Here, we make sure the error has been captured by Sentry Dashboard
+     * and then re-raise the exception
+     * @param configuredTime  - configured time in seconds
+     * @hidden
+     */
+    const timeOutError = (configuredTime: number): void => {
+      setTimeout(() => {
+        const error = new Error(
+          `WARNING : Function is expected to get timed out. Configured timeout duration = ${configuredTimeInSec +
+            1} seconds.`,
+        );
 
-          const error = new Error(
-            `WARNING : Function is expected to get timed out. Configured timeout duration = ${configuredTimeInSec +
-              1} seconds.`,
-          );
-
+        // setting parameters in scope which will be displayed as additional data in Sentry dashboard
+        hub.withScope((scope: Scope) => {
+          setTags(scope);
+          // runtime
+          setAdditionalRuntimeData(scope);
+          // setting the lambda parameters
+          setAdditionalLambdaParameters(scope);
+          // setting the cloudwatch logs parameter
+          setCloudwatchLogsData(scope);
+          // setting the sys.argv parameter
+          scope.setExtra('sys.argv', process.argv);
           /** capturing the exception and re-directing it to the Sentry Dashboard */
           hub.captureException(error);
-          void Sentry.flush(flushTime);
-        }, configuredTime);
-      };
+        });
 
+        /** capturing the exception and re-directing it to the Sentry Dashboard */
+        void hub.getClient()?.flush(flushTime);
+      }, configuredTime);
+    };
+
+    /** check timeout flag and checking if configured Time In Milliseconds is greater than timeout Warning Buffer */
+    if (this._timeoutWarning === true && configuredTimeInMilliseconds > timeoutWarningBuffer) {
       this._awsContext.callbackWaitsForEmptyEventLoop = false;
       timeOutError(configuredTimeInMilli);
     }
@@ -230,14 +225,24 @@ export class AWSLambda implements Integration {
       id: string,
       callback: () => void,
     ): Promise<void> {
-      /**
-       * setting parameters in scope which will be displayed as additional data in Sentry dashboard
-       */
-      setParameters();
+      // setting parameters in scope which will be displayed as additional data in Sentry dashboard
+      hub.withScope((scope: Scope) => {
+        setTags(scope);
+        // runtime
+        setAdditionalRuntimeData(scope);
+        // setting the lambda parameters
+        setAdditionalLambdaParameters(scope);
+        // setting the cloudwatch logs parameter
+        setCloudwatchLogsData(scope);
+        // setting the sys.argv parameter
+        scope.setExtra('sys.argv', process.argv);
+        /** capturing the exception and re-directing it to the Sentry Dashboard */
+        hub.captureException(error);
+      });
 
       /** capturing the exception and re-directing it to the Sentry Dashboard */
-      hub.captureException(error);
-      await Sentry.flush(flushTime);
+      // hub.captureException(error);
+      await hub.getClient()?.flush(flushTime);
 
       /**
        * Here, we make sure the error has been captured by Sentry Dashboard

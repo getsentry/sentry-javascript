@@ -16,15 +16,11 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/angular": "^5.22.2",
     "@sentry/browser": "^5.22.3",
     "@sentry/types": "5.22.2",
     "@sentry/utils": "5.22.2",
-    "aws-sdk": "^2.741.0",
-    "fs": "0.0.1-security",
     "localforage": "1.8.1",
-    "tslib": "^1.9.3",
-    "uuid": "^8.3.0"
+    "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "5.22.2",
@@ -38,7 +34,7 @@
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.3",
-    "rollup-plugin-terser": "^7.0.0",
+    "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
     "typescript": "3.7.5"
   },
