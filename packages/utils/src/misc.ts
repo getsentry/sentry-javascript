@@ -510,3 +510,13 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
     .slice(Math.min(sourceLine + 1, maxLines), sourceLine + 1 + linesOfContext)
     .map((line: string) => snipLine(line, 0));
 }
+
+/**
+ * Strip the query string and fragment off of a given URL or path (if present)
+ *
+ * @param urlPath Full URL or path, including possible query string and/or fragment
+ * @returns URL or path without query string or fragment
+ */
+export function stripUrlPath(urlPath: string): string {
+  return urlPath.split(/[?#]/, 1)[0];
+}

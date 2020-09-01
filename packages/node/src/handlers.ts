@@ -3,7 +3,7 @@
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { Span } from '@sentry/tracing';
 import { Event } from '@sentry/types';
-import { forget, isPlainObject, isString, logger, normalize } from '@sentry/utils';
+import { forget, isPlainObject, isString, logger, normalize, stripUrlPath } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -11,7 +11,6 @@ import * as os from 'os';
 import * as url from 'url';
 
 import { NodeClient } from './client';
-import { stripUrlPath } from './integrations/http';
 import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;

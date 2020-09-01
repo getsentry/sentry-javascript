@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span, Transaction } from '@sentry/types';
-import { fill, parseSemver } from '@sentry/utils';
+import { fill, parseSemver, stripUrlPath } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
@@ -144,16 +144,6 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
       response: res,
     },
   );
-}
-
-/**
- * Strip the query string and fragment off of a given URL or path (if present)
- *
- * @param urlPath Path including possible query string and/or fragment
- * @returns Path without query string or fragment
- */
-export function stripUrlPath(urlPath: string): string {
-  return urlPath.split(/[?#]/, 1)[0];
 }
 
 /**
