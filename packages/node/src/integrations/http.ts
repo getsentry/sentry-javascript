@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span, Transaction } from '@sentry/types';
-import { fill, parseSemver, stripUrlPath } from '@sentry/utils';
+import { fill, parseSemver, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
@@ -154,13 +154,13 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
  */
 export function extractUrl(requestArgs: string | http.ClientRequestArgs): string {
   if (typeof requestArgs === 'string') {
-    return stripUrlPath(requestArgs);
+    return stripUrlQueryAndFragment(requestArgs);
   }
   const protocol = requestArgs.protocol || '';
   const hostname = requestArgs.hostname || requestArgs.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
   const port = !requestArgs.port || requestArgs.port === 80 || requestArgs.port === 443 ? '' : `:${requestArgs.port}`;
-  const path = requestArgs.path ? stripUrlPath(requestArgs.path) : '/';
+  const path = requestArgs.path ? stripUrlQueryAndFragment(requestArgs.path) : '/';
 
   // internal routes end up with too many slashes
   return `${protocol}//${hostname}${port}${path}`.replace('///', '/');
