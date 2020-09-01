@@ -1,22 +1,11 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
-import * as hubModuleRaw from '@sentry/hub'; // for mocking
 import { getMainCarrier, Hub } from '@sentry/hub';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { getGlobalObject, isNodeEnv, logger } from '@sentry/utils';
 import * as nodeHttpModule from 'http';
 
 import { addExtensionMethods } from '../src/hubextensions';
-
-// Do this once so that we'll be able to spy on hub methods later. If this isn't done, it results in "TypeError: Cannot
-// set property <methodYouWantToSpyOn> of #<Object> which has only a getter." This just converts the module object
-// (which has no setters) to a regular object (with regular properties which can be gotten or set). See
-// https://stackoverflow.com/a/53307822/.
-
-// (This doesn't affect the utils module because it uses `export * from './myModule' syntax rather than `export
-// {<individually named methods>} from './myModule'` syntax in its index.ts. Only *named* exports seem to trigger the
-// problem.)
-const hubModule = { ...hubModuleRaw };
 
 addExtensionMethods();
 
@@ -25,10 +14,6 @@ describe('Hub', () => {
     jest.spyOn(logger, 'warn');
     jest.spyOn(logger, 'log');
     jest.spyOn(utilsModule, 'isNodeEnv');
-
-    // NB: Upon refactoring, this spy was no longer needed. Leaving it in as an excuse to leave in the note above, so
-    // that it can save future folks the headache.
-    jest.spyOn(hubModule, 'getActiveDomain');
   });
 
   afterEach(() => {
