@@ -140,7 +140,7 @@ describe('Hub', () => {
           search: '?chase=me&please=thankyou',
         };
 
-        getGlobalObject().location = dogParkLocation as any;
+        getGlobalObject<Window>().location = dogParkLocation as any;
 
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
