@@ -518,5 +518,6 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
  * @returns URL or path without query string or fragment
  */
 export function stripUrlQueryAndFragment(urlPath: string): string {
-  return urlPath.split(/[?#]/, 1)[0];
+  // eslint-disable-next-line no-useless-escape
+  return urlPath.split(/[\?#]/, 1)[0];
 }
