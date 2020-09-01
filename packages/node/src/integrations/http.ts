@@ -190,7 +190,7 @@ function cleanDescription(
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       requestOptions.protocol = (response as any).agent.protocol;
-      span.description = extractUrl(requestOptions);
+      span.description = `${requestOptions.method || 'GET'} ${extractUrl(requestOptions)}`;
     } catch (error) {
       // well, we tried
     }
