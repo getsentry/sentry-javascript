@@ -4,7 +4,6 @@ import {
   dynamicRequire,
   extractNodeRequestData,
   getGlobalObject,
-  hasTracingEnabled,
   isInstanceOf,
   isNodeEnv,
   logger,
@@ -13,6 +12,7 @@ import {
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
+import { hasTracingEnabled } from './utils';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {

@@ -14,3 +14,5 @@ export { SpanStatus } from './spanstatus';
 addExtensionMethods();
 
 export { addExtensionMethods };
+
+export * from './utils';
