@@ -1,6 +1,9 @@
 import ApplicationInstance from '@ember/application/instance';
+import Ember from 'ember';
+import { scheduleOnce } from '@ember/runloop';
 import environmentConfig from 'ember-get-config';
 import Sentry from '@sentry/ember';
+import { Integration } from '@sentry/types';
 
 export function initialize(appInstance: ApplicationInstance): void {
   const config = environmentConfig['@sentry/ember'];
@@ -8,8 +11,8 @@ export function initialize(appInstance: ApplicationInstance): void {
     return;
   }
   const performancePromise = instrumentForPerformance(appInstance);
-  if (Ember.Testing) {
-    window._sentryPerformanceLoad = performancePromise;
+  if (Ember.testing) {
+    (<any>window)._sentryPerformanceLoad = performancePromise;
   }
 }
 
@@ -27,15 +30,18 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   const sentryConfig = config.sentry;
   const tracing = await import('@sentry/tracing');
 
-  const idleTimeout = config.transitionTimeout || 15000;
+  const idleTimeout = config.transitionTimeout || 5000;
+
+  const existingIntegrations = (sentryConfig['integrations'] || []) as Integration[];
 
   sentryConfig['integrations'] = [
-    ...(sentryConfig['integrations'] || []),
+    ...existingIntegrations,
     new tracing.Integrations.BrowserTracing({
       routingInstrumentation: (startTransaction, startTransactionOnPageLoad) => {
         const location = appInstance.lookup('router:main').location;
         const router = appInstance.lookup('service:router');
         let activeTransaction: any;
+        let transitionSpan: any;
         const url = location && location.getURL && location.getURL();
         if (startTransactionOnPageLoad && url) {
           const routeInfo = router.recognize(url);
@@ -61,11 +67,33 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
               'routing.instrumentation': '@sentry/ember',
             },
           });
+          transitionSpan = activeTransaction.startChild({
+            op: 'ember.transition',
+            description: `route:${fromRoute} -> route:${toRoute}`,
+          });
         });
-        router.on('routeDidChange', () => {
-          if (activeTransaction) {
+        router.on('routeDidChange', (transition: any) => {
+          const { toRoute } = getTransitionInformation(transition, router);
+          let renderSpan: any;
+          if (!transitionSpan || !activeTransaction) {
+            return;
+          }
+          transitionSpan.finish();
+
+          function startRenderSpan() {
+            renderSpan = activeTransaction.startChild({
+              op: 'ember.runloop.render',
+              description: `Post transition render for route:${toRoute}`,
+            });
+          }
+
+          function finishRenderSpan() {
+            renderSpan.finish();
             activeTransaction.finish();
           }
+
+          scheduleOnce('routerTransitions', null, startRenderSpan);
+          scheduleOnce('afterRender', null, finishRenderSpan);
         });
       },
       idleTimeout,
