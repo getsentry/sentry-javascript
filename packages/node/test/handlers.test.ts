@@ -1,7 +1,14 @@
-import { Runtime } from '@sentry/types';
+import * as sentryCore from '@sentry/core';
+import { Hub } from '@sentry/hub';
+import * as sentryHub from '@sentry/hub';
+import { SpanStatus, Transaction } from '@sentry/tracing';
+import { Runtime, Transaction as TransactionType } from '@sentry/types';
+import * as http from 'http';
+import * as net from 'net';
 
 import { Event, Request, User } from '../src';
-import { parseRequest } from '../src/handlers';
+import { NodeClient } from '../src/client';
+import { parseRequest, tracingHandler } from '../src/handlers';
 
 describe('parseRequest', () => {
   let mockReq: { [key: string]: any };
@@ -164,4 +171,133 @@ describe('parseRequest', () => {
       expect(parsedRequest.transaction).toEqual('routeHandler');
     });
   });
-});
+}); // end describe('parseRequest()')
+
+describe('tracingHandler', () => {
+  const urlString = 'http://dogs.are.great:1231/yay/';
+  const queryString = '?furry=yes&funny=very';
+  const fragment = '#adoptnotbuy';
+
+  const sentryTracingMiddleware = tracingHandler();
+
+  let req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
+
+  function createNoOpSpy() {
+    const noop = { noop: () => undefined }; // this is wrapped in an object so jest can spy on it
+    return jest.spyOn(noop, 'noop') as any;
+  }
+
+  beforeEach(() => {
+    req = new http.IncomingMessage(new net.Socket());
+    req.url = `${urlString}`;
+    req.method = 'GET';
+    res = new http.ServerResponse(req);
+    next = createNoOpSpy();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('creates a transaction when handling a request', () => {
+    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+
+    sentryTracingMiddleware(req, res, next);
+
+    expect(startTransaction).toHaveBeenCalled();
+  });
+
+  it("pulls parent's data from tracing header on the request", () => {
+    req.headers = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = (res as any).__sentry_transaction;
+
+    expect(transaction.traceId).toEqual('12312012123120121231201212312012');
+    expect(transaction.parentSpanId).toEqual('1121201211212012');
+    expect(transaction.sampled).toEqual(false);
+  });
+
+  it('puts its transaction on the scope', () => {
+    const hub = new Hub(new NodeClient({ tracesSampleRate: 1.0 }));
+    // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
+    // `@sentry/hub`, and mocking breaks the link between the two
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = sentryCore
+      .getCurrentHub()
+      .getScope()
+      ?.getTransaction();
+
+    expect(transaction).toBeDefined();
+    expect(transaction).toEqual(expect.objectContaining({ name: `GET ${urlString}`, op: 'http.server' }));
+  });
+
+  it('puts its transaction on the response object', () => {
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = (res as any).__sentry_transaction;
+
+    expect(transaction).toBeDefined();
+    expect(transaction).toEqual(expect.objectContaining({ name: `GET ${urlString}`, op: 'http.server' }));
+  });
+
+  it('pulls status code from the response', async () => {
+    const transaction = new Transaction({ name: 'mockTransaction' });
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    const finishTransaction = jest.spyOn(transaction, 'finish');
+
+    sentryTracingMiddleware(req, res, next);
+    res.statusCode = 200;
+    res.emit('finish');
+
+    expect(finishTransaction).toHaveBeenCalled();
+    expect(transaction.status).toBe(SpanStatus.Ok);
+    expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
+  });
+
+  it('strips query string from request path', () => {
+    req.url = `${urlString}${queryString}`;
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = (res as any).__sentry_transaction;
+
+    expect(transaction?.name).toBe(`GET ${urlString}`);
+  });
+
+  it('strips fragment from request path', () => {
+    req.url = `${urlString}${fragment}`;
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = (res as any).__sentry_transaction;
+
+    expect(transaction?.name).toBe(`GET ${urlString}`);
+  });
+
+  it('strips query string and fragment from request path', () => {
+    req.url = `${urlString}${queryString}${fragment}`;
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = (res as any).__sentry_transaction;
+
+    expect(transaction?.name).toBe(`GET ${urlString}`);
+  });
+
+  it('closes the transaction when request processing is done', () => {
+    const transaction = new Transaction({ name: 'mockTransaction' });
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    const finishTransaction = jest.spyOn(transaction, 'finish');
+
+    sentryTracingMiddleware(req, res, next);
+    res.emit('finish');
+
+    expect(finishTransaction).toHaveBeenCalled();
+  });
+}); // end describe('tracingHandler')

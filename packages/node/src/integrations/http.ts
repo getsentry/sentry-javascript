@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span, Transaction } from '@sentry/types';
-import { fill, parseSemver } from '@sentry/utils';
+import { fill, parseSemver, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
@@ -102,6 +102,7 @@ function createHandlerWrapper(
           }
           if (tracingEnabled && span) {
             span.setHttpStatus(res.statusCode);
+            cleanDescription(options, this, span);
             span.finish();
           }
         })
@@ -111,6 +112,7 @@ function createHandlerWrapper(
           }
           if (tracingEnabled && span) {
             span.setHttpStatus(500);
+            cleanDescription(options, this, span);
             span.finish();
           }
         });
@@ -145,21 +147,54 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
 }
 
 /**
- * Function that can combine together a url that'll be used for our breadcrumbs.
+ * Assemble a URL to be used for breadcrumbs and spans.
  *
- * @param options url that should be returned or an object containing it's parts.
- * @returns constructed url
+ * @param requestArgs URL string or object containing the component parts
+ * @returns Fully-formed URL
  */
-function extractUrl(options: string | http.ClientRequestArgs): string {
-  if (typeof options === 'string') {
-    return options;
+export function extractUrl(requestArgs: string | http.ClientRequestArgs): string {
+  if (typeof requestArgs === 'string') {
+    return stripUrlQueryAndFragment(requestArgs);
   }
-  const protocol = options.protocol || '';
-  const hostname = options.hostname || options.host || '';
+  const protocol = requestArgs.protocol || '';
+  const hostname = requestArgs.hostname || requestArgs.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-  const port = !options.port || options.port === 80 || options.port === 443 ? '' : `:${options.port}`;
-  const path = options.path || '/';
-  return `${protocol}//${hostname}${port}${path}`;
+  const port = !requestArgs.port || requestArgs.port === 80 || requestArgs.port === 443 ? '' : `:${requestArgs.port}`;
+  const path = requestArgs.path ? stripUrlQueryAndFragment(requestArgs.path) : '/';
+
+  // internal routes end up with too many slashes
+  return `${protocol}//${hostname}${port}${path}`.replace('///', '/');
+}
+
+/**
+ * Handle an edge case with urls in the span description. Runs just before the span closes because it relies on
+ * data from the response object.
+ *
+ * @param requestOptions Configuration data for the request
+ * @param response Response object
+ * @param span Span representing the request
+ */
+function cleanDescription(
+  requestOptions: string | http.ClientRequestArgs,
+  response: http.IncomingMessage,
+  span: Span,
+): void {
+  // There are some libraries which don't pass the request protocol in the options object, so attempt to retrieve it
+  // from the response and run the URL processing again. We only do this in the presence of a (non-empty) host value,
+  // because if we're missing both, it's likely we're dealing with an internal route, in which case we don't want to be
+  // jamming a random `http:` on the front of it.
+  if (typeof requestOptions !== 'string' && !Object.keys(requestOptions).includes('protocol') && requestOptions.host) {
+    // Neither http.IncomingMessage nor any of its ancestors have an `agent` property in their type definitions, and
+    // http.Agent doesn't have a `protocol` property in its type definition. Nonetheless, at least one request library
+    // (superagent) arranges things that way, so might as well give it a shot.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      requestOptions.protocol = (response as any).agent.protocol;
+      span.description = `${requestOptions.method || 'GET'} ${extractUrl(requestOptions)}`;
+    } catch (error) {
+      // well, we tried
+    }
+  }
 }
 
 /**
