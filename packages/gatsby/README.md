@@ -40,7 +40,7 @@ To automatically capture the `release` value on Vercel you will need to register
 
 ## Sentry Performance
 
-To enable Tracing support, supply either `tracesSampleRate` or `tracesSampler` to the options and make sure you have installed the `@sentry/tracing` package. This will also turn on the `BrowserTracing` integration for automatic instrumentation of the browser.
+To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the options and make sure you have installed the `@sentry/tracing` package. This will also turn on the `BrowserTracing` integration for automatic instrumentation of pageloads and navigations.
 
 ```javascript
 {
@@ -49,11 +49,31 @@ To enable Tracing support, supply either `tracesSampleRate` or `tracesSampler` t
     {
       resolve: "@sentry/gatsby",
       options: {
-          dsn: process.env.SENTRY_DSN, // this is the default
+        dsn: process.env.SENTRY_DSN, // this is the default
 
-          // A rate of 1 means all traces will be sent, so it's good for testing.
-          // In production, you'll likely want to either choose a lower rate or use `tracesSampler` instead.
-          tracesSampleRate: 1,
+        // A rate of 1 means all traces will be sent, so it's good for testing.
+        // In production, you'll likely want to either choose a lower rate or use `tracesSampler` instead (see below).
+        tracesSampleRate: 1,
+
+        // Alternatively:
+        tracesSampler: sampleContext => {
+          // Examine provided context data (along with anything in the global namespace) to decide the sample rate
+          // for this transaction.
+          // Can return 0 to drop the transaction entirely.
+
+          if ("...") {
+            return 0.5 // These are important - take a big sample
+          }
+          else if ("...") {
+            return 0.01 // These are less important or happen much more frequently - only take 1% of them
+          }
+          else if ("...") {
+            return 0 // These aren't something worth tracking - drop all transactions like this
+          }
+          else {
+            return 0.1 // Default sample rate
+          }
+        }
       }
     },
     // ...
@@ -71,7 +91,7 @@ If you want to supply options to the `BrowserTracing` integration, use the `brow
       resolve: "@sentry/gatsby",
       options: {
           dsn: process.env.SENTRY_DSN, // this is the default
-          tracesSampleRate: 1, // this is just to test, you should lower this in production
+          tracesSampleRate: 1, // or tracesSampler (see above)
           browserTracingOptions: {
             // disable creating spans for XHR requests
             traceXHR: false,
