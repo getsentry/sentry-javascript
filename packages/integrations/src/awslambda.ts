@@ -43,7 +43,7 @@ export class AWSLambda implements Integration {
   /**
    * context.
    */
-  private _awsContext!: AWSLambdaContext;
+  private _awsContext: AWSLambdaContext = {} as AWSLambdaContext;
 
   /**
    * timeout flag.
@@ -57,15 +57,18 @@ export class AWSLambda implements Integration {
   /**
    * flush time in milliseconds to set time for flush.
    */
-  private _flushTime?: number;
+  private _flushTimeout?: number = 2000;
 
   public constructor(options: { context?: AWSLambdaContext; timeoutWarning?: boolean; flushTimeout?: number } = {}) {
     if (options.context) {
       this._awsContext = options.context;
     }
-
-    this._timeoutWarning = options.timeoutWarning;
-    this._flushTime = options.flushTimeout;
+    if (options.timeoutWarning) {
+      this._timeoutWarning = options.timeoutWarning;
+    }
+    if (options.flushTimeout) {
+      this._flushTimeout = options.flushTimeout;
+    }
   }
 
   /**
@@ -74,7 +77,7 @@ export class AWSLambda implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     const lambdaBootstrap: Module | undefined = require.main;
 
-    if (!this._awsContext && !lambdaBootstrap) {
+    if (!this._awsContext.awsRequestId || !lambdaBootstrap) {
       return;
     }
     /** configured time to timeout error and calculate execution time */
@@ -82,17 +85,16 @@ export class AWSLambda implements Integration {
       this._awsContext.getRemainingTimeInMillis && this._awsContext.getRemainingTimeInMillis();
 
     /** rapid runtime instance */
-    // const rapidRuntime = lambdaBootstrap?.children[0].exports;
     let rapidRuntime;
-    try {
-      rapidRuntime = lambdaBootstrap?.children[0].exports;
-    } catch (err) {
-      rapidRuntime = {};
+    let originalPostInvocationError = function(): void {
+      return;
+    };
+    if (lambdaBootstrap.children && lambdaBootstrap.children.length) {
+      rapidRuntime = lambdaBootstrap.children[0].exports;
+      /** handler that is invoked in case of unhandled and handled exception */
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      originalPostInvocationError = rapidRuntime.prototype.postInvocationError;
     }
-
-    /** handler that is invoked in case of unhandled and handled exception */
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const originalPostInvocationError = rapidRuntime?.prototype?.postInvocationError;
 
     const hub = getCurrentHub();
 
@@ -115,7 +117,8 @@ export class AWSLambda implements Integration {
      * @hidden
      */
     const setAdditionalLambdaParameters = (scope: Scope): void => {
-      const remainingTimeInMillisecond: number = this._awsContext.getRemainingTimeInMillis();
+      const remainingTimeInMillisecond: number =
+        this._awsContext.getRemainingTimeInMillis && this._awsContext.getRemainingTimeInMillis();
       const executionTime: number = configuredTimeInMilliseconds - remainingTimeInMillisecond;
 
       scope.setContext('lambda', {
@@ -124,20 +127,16 @@ export class AWSLambda implements Integration {
         function_version: this._awsContext.functionVersion,
         invoked_function_arn: this._awsContext.invokedFunctionArn,
         execution_duration_in_millis: executionTime,
-        remaining_time_in_millis: this._awsContext.getRemainingTimeInMillis(),
+        remaining_time_in_millis: remainingTimeInMillisecond,
       });
     };
 
     /**
-     * This function use to generate cloud watch url
+     * This variable use to generate cloud watch url
+     * process.env.AWS_REGION -  this parameters given the AWS region
+     * process.env.AWS_LAMBDA_FUNCTION_NAME - this parameter provides the AWS Lambda Function name
      */
-    const cloudwatchUrl = (): string => {
-      /**
-       * process.env.AWS_REGION -  this parameters given the AWS region
-       * process.env.AWS_LAMBDA_FUNCTION_NAME - this parameter provides the AWS Lambda Function name
-       */
-      return `https://${process.env.AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${process.env.AWS_REGION}#logsV2:log-groups/log-group/$252Faws$252Flambda$252F${process.env.AWS_LAMBDA_FUNCTION_NAME}`;
-    };
+    const cloudwatchUrl: string = `https://${process.env.AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${process.env.AWS_REGION}#logsV2:log-groups/log-group/$252Faws$252Flambda$252F${process.env.AWS_LAMBDA_FUNCTION_NAME}`;
 
     /**
      * This function sets Cloud Watch Logs data which are displayed in Sentry Dashboard
@@ -148,7 +147,7 @@ export class AWSLambda implements Integration {
       scope.setContext('cloudwatch logs', {
         log_group: this._awsContext.logGroupName,
         log_stream: this._awsContext.logStreamName,
-        url: cloudwatchUrl(),
+        url: cloudwatchUrl,
       });
     };
 
@@ -157,7 +156,6 @@ export class AWSLambda implements Integration {
      * @param scope  - holds additional event information
      * @hidden
      */
-
     const setTags = (scope: Scope): void => {
       scope.setTag('runtime', `node${global.process.version}`);
       scope.setTag('transaction', this._awsContext.functionName);
@@ -166,21 +164,17 @@ export class AWSLambda implements Integration {
       scope.setTag('url', `awslambda:///${this._awsContext.functionName}`);
     };
 
-    const flushTime = this._flushTime;
+    const flushTimeout = this._flushTimeout;
+
     // timeout warning buffer for timeout error
     const timeoutWarningBuffer: number = 1500;
-
     const configuredTimeInSec = Math.floor(configuredTimeInMilliseconds / 1000);
     const configuredTimeInMilli = configuredTimeInSec * 1000;
 
-    /**
-     * This function is invoked when there is timeout error
-     * Here, we make sure the error has been captured by Sentry Dashboard
-     * and then re-raise the exception
-     * @param configuredTime  - configured time in seconds
-     * @hidden
-     */
-    const timeOutError = (configuredTime: number): void => {
+    /** check timeout flag and checking if configured Time In Milliseconds is greater than timeout Warning Buffer */
+    if (this._timeoutWarning === true && configuredTimeInMilliseconds > timeoutWarningBuffer) {
+      this._awsContext.callbackWaitsForEmptyEventLoop = false;
+
       setTimeout(() => {
         const error = new Error(
           `WARNING : Function is expected to get timed out. Configured timeout duration = ${configuredTimeInSec +
@@ -201,16 +195,8 @@ export class AWSLambda implements Integration {
           /** capturing the exception and re-directing it to the Sentry Dashboard */
           hub.captureException(error);
         });
-
-        /** capturing the exception and re-directing it to the Sentry Dashboard */
-        void hub.getClient()?.flush(flushTime);
-      }, configuredTime);
-    };
-
-    /** check timeout flag and checking if configured Time In Milliseconds is greater than timeout Warning Buffer */
-    if (this._timeoutWarning === true && configuredTimeInMilliseconds > timeoutWarningBuffer) {
-      this._awsContext.callbackWaitsForEmptyEventLoop = false;
-      timeOutError(configuredTimeInMilli);
+      }, configuredTimeInMilli);
+      void hub.getClient()?.flush(flushTimeout);
     }
 
     /**
@@ -241,8 +227,10 @@ export class AWSLambda implements Integration {
       });
 
       /** capturing the exception and re-directing it to the Sentry Dashboard */
-      // hub.captureException(error);
-      await hub.getClient()?.flush(flushTime);
+      const client = hub.getClient();
+      if (client) {
+        await client.flush(flushTimeout);
+      }
 
       /**
        * Here, we make sure the error has been captured by Sentry Dashboard

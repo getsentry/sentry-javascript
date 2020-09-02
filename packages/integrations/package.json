@@ -16,15 +16,13 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/browser": "^5.22.3",
     "@sentry/types": "5.22.2",
     "@sentry/utils": "5.22.2",
     "localforage": "1.8.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "5.22.2",
-    "@types/uuid": "^8.3.0",
+    "@sentry-internal/eslint-config-sdk": "5.22.3",
     "chai": "^4.1.2",
     "eslint": "7.6.0",
     "jest": "^24.7.1",
