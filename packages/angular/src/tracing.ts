@@ -2,7 +2,7 @@ import { AfterViewInit, Directive, Injectable, Input, OnInit } from '@angular/co
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
-import { logger, timestampWithMs } from '@sentry/utils';
+import { logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
 import { Observable } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
@@ -61,11 +61,12 @@ export class TraceService {
       }
 
       const navigationEvent = event as NavigationStart;
+      const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
       let activeTransaction = getActiveTransaction();
 
       if (!activeTransaction && stashedStartTransactionOnLocationChange) {
         activeTransaction = stashedStartTransaction({
-          name: navigationEvent.url,
+          name: strippedUrl,
           op: 'navigation',
         });
       }
@@ -76,7 +77,7 @@ export class TraceService {
           op: `angular.routing`,
           tags: {
             'routing.instrumentation': '@sentry/angular',
-            url: navigationEvent.url,
+            url: strippedUrl,
             ...(navigationEvent.navigationTrigger && {
               navigationTrigger: navigationEvent.navigationTrigger,
             }),
