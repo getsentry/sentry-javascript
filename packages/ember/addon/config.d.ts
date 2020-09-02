@@ -5,6 +5,7 @@ declare module 'ember-get-config' {
     transitionTimeout: number;
     ignoreEmberOnErrorWarning: boolean;
     disablePerformance: boolean;
+    disablePostTransitionRender: boolean;
   };
   const config: {
     '@sentry/ember': EmberSentryConfig;

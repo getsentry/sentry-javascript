@@ -26,6 +26,7 @@ function getTransitionInformation(transition: any, router: any) {
 }
 
 export function _instrumentEmberRouter(routerService: any, routerMain: any, config: typeof environmentConfig['@sentry/ember'], startTransaction: Function, startTransactionOnPageLoad?: boolean) {
+  const { disablePostTransitionRender } = config;
   const location = routerMain.location;
   let activeTransaction: any;
   let transitionSpan: any;
@@ -73,6 +74,10 @@ export function _instrumentEmberRouter(routerService: any, routerMain: any, conf
       return;
     }
     transitionSpan.finish();
+
+    if (disablePostTransitionRender) {
+      activeTransaction.finish();
+    }
 
     function startRenderSpan() {
       renderSpan = activeTransaction.startChild({

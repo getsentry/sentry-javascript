@@ -5,7 +5,7 @@ import Ember from 'ember';
 import sinon from 'sinon';
 import { _instrumentEmberRouter } from '@sentry/ember/instance-initializers/sentry-performance';
 import { startTransaction } from '@sentry/browser';
-import { SLOW_TRANSITION_WAIT } from '../constants';
+import { SLOW_TRANSITION_WAIT } from '../dummy/constants';
 
 function getTestSentryTransactions() {
   return window._sentryTestEvents.filter(event => event['type'] === 'transaction');
