@@ -79,16 +79,6 @@ export interface Options {
   /** A global sample rate to apply to all events (0 - 1). */
   sampleRate?: number;
 
-  /**
-   * Sample rate to determine trace sampling.
-   *
-   * 0.0 = 0% chance of a given trace being sent (send no traces)
-   * 1.0 = 100% chance of a given trace being sent (send all traces)
-   *
-   * Can be omitted without disabling tracing if `tracesSampler` is defined. If neither is defined, tracing is disabled.
-   */
-  tracesSampleRate?: number;
-
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
 
@@ -120,6 +110,29 @@ export interface Options {
   };
 
   /**
+   * Sample rate to determine trace sampling.
+   *
+   * 0.0 = 0% chance of a given trace being sent (send no traces) 1.0 = 100% chance of a given trace being sent (send
+   * all traces)
+   *
+   * Tracing is enabled if either this or `tracesSampler` is defined. If both are defined, `tracesSampleRate` is
+   * ignored.
+   */
+  tracesSampleRate?: number;
+
+  /**
+   * Function to compute tracing sample rate dynamically and filter unwanted traces.
+   *
+   * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
+   * ignored.
+   *
+   * Will automatically be passed a context object of default and optional custom data. See {@link Hub.startTransaction}.
+   *
+   * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent).
+   */
+  tracesSampler?(sampleContext: SampleContext): number;
+
+  /**
    * A callback invoked during event submission, allowing to optionally modify
    * the event before it is sent to Sentry.
    *
@@ -145,17 +158,4 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
-
-  /**
-   * Function to compute tracing sample rate dynamically and filter unwanted traces.
-   *
-   * Can be defined in place of `tracesSampleRate`. If neither is defined, tracing is disabled.
-   *
-   * `startTransaction` or `startIdleTransaction` accept a `sampleContext` argument, which is then passed to this
-   * function, meant to provide information on which to make a sampling decision. Additional information may be included
-   * automatically, depending on the SDK and any included integrations.
-   *
-   * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent).
-   */
-  tracesSampler?(sampleContext: SampleContext): number;
 }
