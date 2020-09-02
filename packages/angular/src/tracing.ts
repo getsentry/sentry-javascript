@@ -73,7 +73,7 @@ export class TraceService {
 
       if (activeTransaction) {
         this._routingSpan = activeTransaction.startChild({
-          description: `${strippedUrl}`,
+          description: `${navigationEvent.url}`,
           op: `angular.routing`,
           tags: {
             'routing.instrumentation': '@sentry/angular',
