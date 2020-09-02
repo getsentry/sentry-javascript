@@ -3,7 +3,7 @@
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { Span } from '@sentry/tracing';
 import { Event } from '@sentry/types';
-import { forget, isPlainObject, isString, logger, normalize } from '@sentry/utils';
+import { forget, isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -32,7 +32,7 @@ export function tracingHandler(): (
     // TODO: At this point `req.route.path` (which we use in `extractTransaction`) is not available
     // but `req.path` or `req.url` should do the job as well. We could unify this here.
     const reqMethod = (req.method || '').toUpperCase();
-    const reqUrl = req.url;
+    const reqUrl = req.url && stripUrlQueryAndFragment(req.url);
 
     let traceId;
     let parentSpanId;
