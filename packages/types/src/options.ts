@@ -105,6 +105,9 @@ export interface Options {
    */
   shutdownTimeout?: number;
 
+  /**
+   * Options which are in beta, or otherwise not guaranteed to be stable.
+   */
   _experiments?: {
     [key: string]: any;
   };

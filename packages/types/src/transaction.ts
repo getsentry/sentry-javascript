@@ -65,12 +65,12 @@ export interface CustomSampleContext {
 export interface SampleContext extends CustomSampleContext {
   /**
    * Object representing the URL of the current page or worker script. Passed by default in a browser or service worker
-   * context
+   * context.
    */
   location?: Location | WorkerLocation;
 
   /**
-   * Object representing the incoming request to a node server. Passed by default in a node server context.
+   * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.
    */
   request?: ExtractedNodeRequestData;
 }

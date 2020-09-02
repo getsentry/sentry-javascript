@@ -157,12 +157,14 @@ export function consoleSandbox(callback: () => any): any {
     return callback();
   }
 
-  const originalConsole = global.console as ExtensibleConsole;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const originalConsole = (global as any).console as ExtensibleConsole;
   const wrappedLevels: { [key: string]: any } = {};
 
   // Restore all wrapped console methods
   levels.forEach(level => {
-    if (level in global.console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
       wrappedLevels[level] = originalConsole[level] as WrappedFunction;
       originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
     }
