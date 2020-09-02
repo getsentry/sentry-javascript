@@ -188,10 +188,9 @@ export function startIdleTransaction(
   context: TransactionContext,
   idleTimeout?: number,
   onScope?: boolean,
-  sampleContext?: SampleContext,
 ): IdleTransaction {
   const transaction = new IdleTransaction(context, hub, idleTimeout, onScope);
-  return sample(hub, transaction, { ...getDefaultSampleContext(), ...sampleContext });
+  return sample(hub, transaction, getDefaultSampleContext());
 }
 
 /**
