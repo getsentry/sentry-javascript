@@ -30,10 +30,10 @@
     "pack": "npm pack"
   },
   "dependencies": {
-    "@sentry/browser": "5.32.3",
-    "@sentry/tracing": "5.32.3",
-    "@sentry/types": "5.32.3",
-    "@sentry/utils": "5.32.3",
+    "@sentry/browser": "5.22.3",
+    "@sentry/tracing": "5.22.3",
+    "@sentry/types": "5.22.3",
+    "@sentry/utils": "5.22.3",
     "ember-auto-import": "^1.6.0",
     "ember-cli-babel": "^7.20.5",
     "ember-cli-htmlbars": "^5.1.2",
