@@ -25,6 +25,72 @@ function getTransitionInformation(transition: any, router: any) {
   };
 }
 
+export function _instrumentEmberRouter(routerService: any, routerMain: any, config: typeof environmentConfig['@sentry/ember'], startTransaction: Function, startTransactionOnPageLoad?: boolean) {
+  const location = routerMain.location;
+  let activeTransaction: any;
+  let transitionSpan: any;
+
+  const url = location && location.getURL && location.getURL();
+
+  if (Ember.testing) {
+    routerService._sentryInstrumented = true;
+  }
+
+  if (startTransactionOnPageLoad && url) {
+    const routeInfo = routerService.recognize(url);
+    activeTransaction = startTransaction({
+      name: `route:${routeInfo.name}`,
+      op: 'pageload',
+      tags: {
+        url,
+        toRoute: routeInfo.name,
+        'routing.instrumentation': '@sentry/ember',
+      },
+    });
+  }
+
+  routerService.on('routeWillChange', (transition: any) => {
+    const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
+    activeTransaction = startTransaction({
+      name: `route:${toRoute}`,
+      op: 'navigation',
+      tags: {
+        fromRoute,
+        toRoute,
+        'routing.instrumentation': '@sentry/ember',
+      },
+    });
+    transitionSpan = activeTransaction.startChild({
+      op: 'ember.transition',
+      description: `route:${fromRoute} -> route:${toRoute}`,
+    });
+  });
+
+  routerService.on('routeDidChange', (transition: any) => {
+    const { toRoute } = getTransitionInformation(transition, routerService);
+    let renderSpan: any;
+    if (!transitionSpan || !activeTransaction) {
+      return;
+    }
+    transitionSpan.finish();
+
+    function startRenderSpan() {
+      renderSpan = activeTransaction.startChild({
+        op: 'ember.runloop.render',
+        description: `Post transition render for route:${toRoute}`,
+      });
+    }
+
+    function finishRenderSpan() {
+      renderSpan.finish();
+      activeTransaction.finish();
+    }
+
+    scheduleOnce('routerTransitions', null, startRenderSpan);
+    scheduleOnce('afterRender', null, finishRenderSpan);
+  });
+}
+
 export async function instrumentForPerformance(appInstance: ApplicationInstance) {
   const config = environmentConfig['@sentry/ember'];
   const sentryConfig = config.sentry;
@@ -38,63 +104,9 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     ...existingIntegrations,
     new tracing.Integrations.BrowserTracing({
       routingInstrumentation: (startTransaction, startTransactionOnPageLoad) => {
-        const location = appInstance.lookup('router:main').location;
-        const router = appInstance.lookup('service:router');
-        let activeTransaction: any;
-        let transitionSpan: any;
-        const url = location && location.getURL && location.getURL();
-        if (startTransactionOnPageLoad && url) {
-          const routeInfo = router.recognize(url);
-          activeTransaction = startTransaction({
-            name: `route:${routeInfo.name}`,
-            op: 'pageload',
-            tags: {
-              url,
-              toRoute: routeInfo.name,
-              'routing.instrumentation': '@sentry/ember',
-            },
-          });
-        }
-
-        router.on('routeWillChange', (transition: any) => {
-          const { fromRoute, toRoute } = getTransitionInformation(transition, router);
-          activeTransaction = startTransaction({
-            name: `route:${toRoute}`,
-            op: 'navigation',
-            tags: {
-              fromRoute,
-              toRoute,
-              'routing.instrumentation': '@sentry/ember',
-            },
-          });
-          transitionSpan = activeTransaction.startChild({
-            op: 'ember.transition',
-            description: `route:${fromRoute} -> route:${toRoute}`,
-          });
-        });
-        router.on('routeDidChange', (transition: any) => {
-          const { toRoute } = getTransitionInformation(transition, router);
-          let renderSpan: any;
-          if (!transitionSpan || !activeTransaction) {
-            return;
-          }
-          transitionSpan.finish();
-
-          function startRenderSpan() {
-            renderSpan = activeTransaction.startChild({
-              op: 'ember.runloop.render',
-              description: `Post transition render for route:${toRoute}`,
-            });
-          }
-
-          function finishRenderSpan() {
-            renderSpan.finish();
-            activeTransaction.finish();
-          }
-
-          scheduleOnce('routerTransitions', null, startRenderSpan);
-          scheduleOnce('afterRender', null, finishRenderSpan);
-        });
+        const routerMain = appInstance.lookup('router:main');
+        const routerService = appInstance.lookup('service:router');
+        _instrumentEmberRouter(routerService, routerMain, config, startTransaction, startTransactionOnPageLoad)
       },
       idleTimeout,
     }),
