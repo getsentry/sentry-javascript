@@ -82,7 +82,7 @@ export function _instrumentEmberRouter(routerService: any, routerMain: any, conf
     function startRenderSpan() {
       renderSpan = activeTransaction.startChild({
         op: 'ember.runloop.render',
-        description: `Post transition render for route:${toRoute}`,
+        description: `post-transition render route:${toRoute}`,
       });
     }
 
