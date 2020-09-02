@@ -100,7 +100,14 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
     return urlMap[url];
   };
 
-  const shouldCreateSpan = shouldCreateSpanForRequest || defaultShouldCreateSpan;
+  // We want that our users don't have to re-implement shouldCreateSpanForRequest themselves
+  // That's why we filter out already unwanted Spans from tracingOrigins
+  let shouldCreateSpan = defaultShouldCreateSpan;
+  if (typeof shouldCreateSpanForRequest === 'function') {
+    shouldCreateSpan = (url: string) => {
+      return defaultShouldCreateSpan(url) && shouldCreateSpanForRequest(url);
+    };
+  }
 
   const spans: Record<string, Span> = {};
 
