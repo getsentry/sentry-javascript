@@ -1,5 +1,5 @@
 import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
-import { CustomSampleContext, DefaultSampleContext, SampleContext, TransactionContext } from '@sentry/types';
+import { CustomSampleContext, SampleContext, TransactionContext } from '@sentry/types';
 import {
   dynamicRequire,
   extractNodeRequestData,
@@ -100,8 +100,8 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
  *
  * @returns The default sample context
  */
-function getDefaultSampleContext(): DefaultSampleContext {
-  const defaultSampleContext: DefaultSampleContext = {};
+function getDefaultSampleContext(): SampleContext {
+  const defaultSampleContext: SampleContext = {};
 
   if (isNodeEnv()) {
     const domain = getActiveDomain();

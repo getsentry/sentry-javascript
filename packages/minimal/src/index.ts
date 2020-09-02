@@ -207,7 +207,7 @@ export function _callOnClient(method: string, ...args: any[]): void {
  *
  * @param context Properties of the new `Transaction`.
  * @param customSampleContext Information given to the transaction sampling function (along with context-dependent
- * default values)
+ * default values). See {@link Options.tracesSampler}.
  */
 export function startTransaction(context: TransactionContext, customSampleContext?: CustomSampleContext): Transaction {
   return callOnHub('startTransaction', { ...context }, customSampleContext);

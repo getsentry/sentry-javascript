@@ -126,7 +126,8 @@ export interface Options {
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
    * ignored.
    *
-   * Will automatically be passed a context object of default and optional custom data. See {@link Hub.startTransaction}.
+   * Will automatically be passed a context object of default and optional custom data. See
+   * {@link Transaction.sampleContext} and {@link Hub.startTransaction}.
    *
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent).
    */

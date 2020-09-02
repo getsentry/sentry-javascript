@@ -199,7 +199,7 @@ export interface Hub {
    *
    * @param context Properties of the new `Transaction`.
    * @param customSampleContext Information given to the transaction sampling function (along with context-dependent
-   * default values)
+   * default values). See {@link Options.tracesSampler}.
    */
   startTransaction(context: TransactionContext, customSampleContext?: CustomSampleContext): Transaction;
 }

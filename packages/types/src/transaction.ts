@@ -51,17 +51,6 @@ export interface Transaction extends TransactionContext, Span {
 }
 
 /**
- * The context passed to the tracesSampler function by default.
- */
-export interface DefaultSampleContext {
-  /** Object representing the URL of the current page or woker script. Passed in a browser or service worker context */
-  location?: Location | WorkerLocation;
-
-  /** Object representing the incoming request to a node server. Passed when in a node server context. */
-  request?: ExtractedNodeRequestData;
-}
-
-/**
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
  */
 export interface CustomSampleContext {
@@ -69,7 +58,19 @@ export interface CustomSampleContext {
 }
 
 /**
- * The data passed to the `tracesSampler` function, which forms the basis for whatever decisions it might make.
- * Combination of default values (which differ per SDK/integration) and data passed to `startTransaction`.
+ * Data passed to the `tracesSampler` function, which forms the basis for whatever decisions it might make.
+ *
+ * Adds default data to data provided by the user. See {@link Hub.startTransaction}
  */
-export type SampleContext = DefaultSampleContext & CustomSampleContext;
+export interface SampleContext extends CustomSampleContext {
+  /**
+   * Object representing the URL of the current page or worker script. Passed by default in a browser or service worker
+   * context
+   */
+  location?: Location | WorkerLocation;
+
+  /**
+   * Object representing the incoming request to a node server. Passed by default in a node server context.
+   */
+  request?: ExtractedNodeRequestData;
+}
