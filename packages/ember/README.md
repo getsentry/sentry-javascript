@@ -62,6 +62,34 @@ Aside from configuration passed from this addon into `@sentry/browser` via the `
     sentry: ... // See sentry-javascript configuration https://docs.sentry.io/error-reporting/configuration/?platform=javascript
   };
 ```
+#### Disabling Performance
+
+`@sentry/ember` captures performance by default, if you would like to disable the automatic performance instrumentation, you can add the following to your `config/environment.js`:
+
+```javascript
+  ENV['@sentry/ember'] = {
+    disablePerformance: true, // Will disable automatic instrumentation of performance. Manual instrumentation will still be sent.
+    sentry: ... // See sentry-javascript configuration https://docs.sentry.io/error-reporting/configuration/?platform=javascript
+  };
+```
+
+### Performance
+#### Routes
+If you would like to capture `beforeModel`, `model`, `afterModel` and `setupController` times for one of your routes,
+you can import `instrumentRoutePerformance` and wrap your route with it.
+
+```javascript
+import Route from '@ember/routing/route';
+import { instrumentRoutePerformance } from '@sentry/ember';
+
+export default instrumentRoutePerformance(
+  class MyRoute extends Route {
+    model() {
+      //...
+    }
+  }
+);
+```
 
 ### Supported Versions
 

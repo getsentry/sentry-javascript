@@ -3,7 +3,6 @@ import { addGlobalEventProcessor, SDK_VERSION, BrowserOptions } from '@sentry/br
 import environmentConfig from 'ember-get-config';
 
 import { next } from '@ember/runloop';
-import Route from '@ember/routing/route';
 import { assert, warn, runInDebug } from '@ember/debug';
 import Ember from 'ember';
 
@@ -52,7 +51,7 @@ const instrumentFunction = async (op: string, description: string, fn: Function,
   return result;
 };
 
-export const InstrumentRoutePerformance = (BaseRoute: typeof Route) => {
+export const instrumentRoutePerformance = (BaseRoute: any) => {
   return class InstrumentedRoute extends BaseRoute {
     beforeModel(...args: any[]) {
       return instrumentFunction('ember.route.beforeModel', (<any>this).fullRouteName, super.beforeModel, args);
