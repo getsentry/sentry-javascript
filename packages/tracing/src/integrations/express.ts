@@ -78,9 +78,9 @@ export class Express implements Integration {
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
 function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
-  const arrity = fn.length;
+  const arity = fn.length;
 
-  switch (arrity) {
+  switch (arity) {
     case 2: {
       return function(this: NodeJS.Global, _req: Request, res: Response & SentryTracingResponse): any {
         const transaction = res.__sentry_transaction;
@@ -145,7 +145,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
       };
     }
     default: {
-      throw new Error(`Express middleware takes 2-4 arguments. Got: ${arrity}`);
+      throw new Error(`Express middleware takes 2-4 arguments. Got: ${arity}`);
     }
   }
 }
