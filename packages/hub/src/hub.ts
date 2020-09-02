@@ -3,6 +3,7 @@ import {
   Breadcrumb,
   BreadcrumbHint,
   Client,
+  CustomSampleContext,
   Event,
   EventHint,
   Extra,
@@ -10,7 +11,6 @@ import {
   Hub as HubInterface,
   Integration,
   IntegrationClass,
-  SampleContext,
   Severity,
   Span,
   SpanContext,
@@ -370,8 +370,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startTransaction(context: TransactionContext, sampleContext?: SampleContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context, sampleContext);
+  public startTransaction(context: TransactionContext, customSampleContext?: CustomSampleContext): Transaction {
+    return this._callExtensionMethod('startTransaction', context, customSampleContext);
   }
 
   /**

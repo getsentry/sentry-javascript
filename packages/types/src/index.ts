@@ -10,6 +10,7 @@ export { Hub } from './hub';
 export { Integration, IntegrationClass } from './integration';
 export { LogLevel } from './loglevel';
 export { Mechanism } from './mechanism';
+export { ExtractedNodeRequestData, WorkerLocation } from './misc';
 export { Options } from './options';
 export { Package } from './package';
 export { Request } from './request';
@@ -22,7 +23,13 @@ export { Span, SpanContext } from './span';
 export { StackFrame } from './stackframe';
 export { Stacktrace } from './stacktrace';
 export { Status } from './status';
-export { SampleContext, Transaction, TransactionContext } from './transaction';
+export {
+  CustomSampleContext,
+  DefaultSampleContext,
+  SampleContext,
+  Transaction,
+  TransactionContext,
+} from './transaction';
 export { Thread } from './thread';
 export { Transport, TransportOptions, TransportClass } from './transport';
 export { User } from './user';

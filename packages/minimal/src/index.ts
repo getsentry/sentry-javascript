@@ -2,10 +2,10 @@ import { getCurrentHub, Hub, Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   CaptureContext,
+  CustomSampleContext,
   Event,
   Extra,
   Extras,
-  SampleContext,
   Severity,
   Transaction,
   TransactionContext,
@@ -206,8 +206,9 @@ export function _callOnClient(method: string, ...args: any[]): void {
  * Sentry.
  *
  * @param context Properties of the new `Transaction`.
- * @param sampleContext Information given to the transaction sampling function
+ * @param customSampleContext Information given to the transaction sampling function (along with context-dependent
+ * default values)
  */
-export function startTransaction(context: TransactionContext, sampleContext?: SampleContext): Transaction {
-  return callOnHub('startTransaction', { ...context }, sampleContext);
+export function startTransaction(context: TransactionContext, customSampleContext?: CustomSampleContext): Transaction {
+  return callOnHub('startTransaction', { ...context }, customSampleContext);
 }

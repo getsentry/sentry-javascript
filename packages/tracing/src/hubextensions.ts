@@ -1,5 +1,5 @@
 import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
-import { SampleContext, TransactionContext } from '@sentry/types';
+import { CustomSampleContext, DefaultSampleContext, SampleContext, TransactionContext } from '@sentry/types';
 import {
   dynamicRequire,
   extractNodeRequestData,
@@ -98,10 +98,10 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
 /**
  * Gets the correct context to pass to the tracesSampler, based on the environment (i.e., which SDK is being used)
  *
- * @returns A SampleContext object
+ * @returns The default sample context
  */
-function getDefaultSampleContext(): SampleContext {
-  const defaultSampleContext: SampleContext = {};
+function getDefaultSampleContext(): DefaultSampleContext {
+  const defaultSampleContext: DefaultSampleContext = {};
 
   if (isNodeEnv()) {
     const domain = getActiveDomain();
@@ -171,9 +171,13 @@ function isValidSampleRate(rate: unknown): boolean {
  *
  * @see {@link Hub.startTransaction}
  */
-function _startTransaction(this: Hub, context: TransactionContext, sampleContext?: SampleContext): Transaction {
+function _startTransaction(
+  this: Hub,
+  context: TransactionContext,
+  customSampleContext?: CustomSampleContext,
+): Transaction {
   const transaction = new Transaction(context, this);
-  return sample(this, transaction, { ...getDefaultSampleContext(), ...sampleContext });
+  return sample(this, transaction, { ...getDefaultSampleContext(), ...customSampleContext });
 }
 
 /**

@@ -1,3 +1,4 @@
+import { ExtractedNodeRequestData, WorkerLocation } from './misc';
 import { Span, SpanContext } from './span';
 
 /**
@@ -50,9 +51,25 @@ export interface Transaction extends TransactionContext, Span {
 }
 
 /**
+ * The context passed to the tracesSampler function by default.
+ */
+export interface DefaultSampleContext {
+  /** Object representing the URL of the current page or woker script. Passed in a browser or service worker context */
+  location?: Location | WorkerLocation;
+
+  /** Object representing the incoming request to a node server. Passed when in a node server context. */
+  request?: ExtractedNodeRequestData;
+}
+
+/**
+ * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
+ */
+export interface CustomSampleContext {
+  [key: string]: any;
+}
+
+/**
  * The data passed to the `tracesSampler` function, which forms the basis for whatever decisions it might make.
  * Combination of default values (which differ per SDK/integration) and data passed to `startTransaction`.
  */
-export interface SampleContext {
-  [key: string]: any;
-}
+export type SampleContext = DefaultSampleContext & CustomSampleContext;

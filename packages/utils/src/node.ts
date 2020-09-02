@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { ExtractedNodeRequestData } from '@sentry/types';
+
 import { isString } from './is';
 import { normalize } from './object';
 
@@ -36,7 +38,7 @@ const DEFAULT_REQUEST_KEYS = ['cookies', 'data', 'headers', 'method', 'query_str
 export function extractNodeRequestData(
   req: { [key: string]: any },
   keys: string[] = DEFAULT_REQUEST_KEYS,
-): { [key: string]: string } {
+): ExtractedNodeRequestData {
   // make sure we can safely use dynamicRequire below
   if (!isNodeEnv()) {
     throw new Error("Can't get node request data outside of a node environment");
