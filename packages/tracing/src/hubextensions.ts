@@ -153,8 +153,6 @@ function getDefaultSampleContext<T extends Transaction>(transaction: T): SampleC
     const globalObject = getGlobalObject<WindowOrWorkerGlobalScope>();
 
     if ('location' in globalObject) {
-      // we take a copy of the location object rather than just a reference to it in case there's a navigation or
-      // redirect in the instant between when the transaction starts and when the sampler is called
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       defaultSampleContext.location = { ...(globalObject as any).location };
     }
