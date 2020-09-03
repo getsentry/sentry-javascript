@@ -73,4 +73,9 @@ export interface SampleContext extends CustomSampleContext {
    * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.
    */
   request?: ExtractedNodeRequestData;
+
+  /**
+   * Sampling decision from the parent transaction, if any.
+   */
+  parentSampled?: boolean;
 }

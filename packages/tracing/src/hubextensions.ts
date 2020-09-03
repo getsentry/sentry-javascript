@@ -100,8 +100,13 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
  *
  * @returns The default sample context
  */
-function getDefaultSampleContext(): SampleContext {
+function getDefaultSampleContext<T extends Transaction>(transaction: T): SampleContext {
   const defaultSampleContext: SampleContext = {};
+
+  // include parent's sampling decision, if there is one
+  if (transaction.parentSpanId && transaction.sampled !== undefined) {
+    defaultSampleContext.parentSampled = transaction.sampled;
+  }
 
   if (isNodeEnv()) {
     const domain = getActiveDomain();
@@ -177,7 +182,7 @@ function _startTransaction(
   customSampleContext?: CustomSampleContext,
 ): Transaction {
   const transaction = new Transaction(context, this);
-  return sample(this, transaction, { ...getDefaultSampleContext(), ...customSampleContext });
+  return sample(this, transaction, { ...getDefaultSampleContext(transaction), ...customSampleContext });
 }
 
 /**
@@ -190,7 +195,7 @@ export function startIdleTransaction(
   onScope?: boolean,
 ): IdleTransaction {
   const transaction = new IdleTransaction(context, hub, idleTimeout, onScope);
-  return sample(hub, transaction, getDefaultSampleContext());
+  return sample(hub, transaction, getDefaultSampleContext(transaction));
 }
 
 /**
