@@ -3,7 +3,7 @@ import {
   Breadcrumb,
   BreadcrumbHint,
   Client,
-  CustomSampleContext,
+  CustomSamplingContext,
   Event,
   EventHint,
   Extra,
@@ -370,8 +370,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startTransaction(context: TransactionContext, customSampleContext?: CustomSampleContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context, customSampleContext);
+  public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
+    return this._callExtensionMethod('startTransaction', context, customSamplingContext);
   }
 
   /**

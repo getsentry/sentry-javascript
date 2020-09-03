@@ -56,7 +56,7 @@ To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the op
         tracesSampleRate: 1,
 
         // Alternatively:
-        tracesSampler: sampleContext => {
+        tracesSampler: samplingContext => {
           // Examine provided context data (along with anything in the global namespace) to decide the sample rate
           // for this transaction.
           // Can return 0 to drop the transaction entirely.

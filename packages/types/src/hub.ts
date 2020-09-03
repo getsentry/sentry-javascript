@@ -6,7 +6,7 @@ import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
-import { CustomSampleContext, Transaction, TransactionContext } from './transaction';
+import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import { User } from './user';
 
 /**
@@ -194,10 +194,10 @@ export interface Hub {
    * finished child spans will be sent to Sentry.
    *
    * @param context Properties of the new `Transaction`.
-   * @param customSampleContext Information given to the transaction sampling function (along with context-dependent
+   * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
    * default values). See {@link Options.tracesSampler}.
    *
    * @returns The transaction which was just started
    */
-  startTransaction(context: TransactionContext, customSampleContext?: CustomSampleContext): Transaction;
+  startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction;
 }

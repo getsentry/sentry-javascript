@@ -23,7 +23,7 @@ export { Span, SpanContext } from './span';
 export { StackFrame } from './stackframe';
 export { Stacktrace } from './stacktrace';
 export { Status } from './status';
-export { CustomSampleContext, SampleContext, Transaction, TransactionContext } from './transaction';
+export { CustomSamplingContext, SamplingContext, Transaction, TransactionContext } from './transaction';
 export { Thread } from './thread';
 export { Transport, TransportOptions, TransportClass } from './transport';
 export { User } from './user';

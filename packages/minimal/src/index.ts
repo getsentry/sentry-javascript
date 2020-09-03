@@ -2,7 +2,7 @@ import { getCurrentHub, Hub, Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   CaptureContext,
-  CustomSampleContext,
+  CustomSamplingContext,
   Event,
   Extra,
   Extras,
@@ -202,11 +202,14 @@ export function _callOnClient(method: string, ...args: any[]): void {
  * finished child spans will be sent to Sentry.
  *
  * @param context Properties of the new `Transaction`.
- * @param customSampleContext Information given to the transaction sampling function (along with context-dependent
+ * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
  * default values). See {@link Options.tracesSampler}.
  *
  * @returns The transaction which was just started
  */
-export function startTransaction(context: TransactionContext, customSampleContext?: CustomSampleContext): Transaction {
-  return callOnHub('startTransaction', { ...context }, customSampleContext);
+export function startTransaction(
+  context: TransactionContext,
+  customSamplingContext?: CustomSamplingContext,
+): Transaction {
+  return callOnHub('startTransaction', { ...context }, customSamplingContext);
 }

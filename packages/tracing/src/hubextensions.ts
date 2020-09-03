@@ -1,5 +1,5 @@
 import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
-import { CustomSampleContext, SampleContext, TransactionContext } from '@sentry/types';
+import { CustomSamplingContext, SamplingContext, TransactionContext } from '@sentry/types';
 import {
   dynamicRequire,
   extractNodeRequestData,
@@ -48,11 +48,11 @@ function _inheritOrUseGivenRate(parentSampled: boolean | undefined, givenRate: u
  *
  * @param hub: The hub off of which to read config options
  * @param transaction: The transaction needing a sampling decision
- * @param sampleContext: Default and user-provided data which may be used to help make the decision
+ * @param samplingContext: Default and user-provided data which may be used to help make the decision
  *
  * @returns The given transaction with its `sampled` value set
  */
-function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: SampleContext = {}): T {
+function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext: SamplingContext = {}): T {
   const client = hub.getClient();
   const options = (client && client.getOptions()) || {};
 
@@ -66,8 +66,8 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
   // work; prefer the hook if so
   const sampleRate =
     typeof options.tracesSampler === 'function'
-      ? options.tracesSampler(sampleContext)
-      : _inheritOrUseGivenRate(sampleContext.parentSampled, options.tracesSampleRate);
+      ? options.tracesSampler(samplingContext)
+      : _inheritOrUseGivenRate(samplingContext.parentSampled, options.tracesSampleRate);
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
@@ -116,12 +116,12 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
  *
  * @returns The default sample context
  */
-function getDefaultSampleContext<T extends Transaction>(transaction: T): SampleContext {
-  const defaultSampleContext: SampleContext = {};
+function getDefaultSamplingContext<T extends Transaction>(transaction: T): SamplingContext {
+  const defaultSamplingContext: SamplingContext = {};
 
   // include parent's sampling decision, if there is one
   if (transaction.parentSpanId && transaction.sampled !== undefined) {
-    defaultSampleContext.parentSampled = transaction.sampled;
+    defaultSamplingContext.parentSampled = transaction.sampled;
   }
 
   if (isNodeEnv()) {
@@ -142,7 +142,7 @@ function getDefaultSampleContext<T extends Transaction>(transaction: T): SampleC
       const request = domain.members.find((member: any) => isInstanceOf(member, requestType));
 
       if (request) {
-        defaultSampleContext.request = extractNodeRequestData(request);
+        defaultSamplingContext.request = extractNodeRequestData(request);
       }
     }
   }
@@ -154,11 +154,11 @@ function getDefaultSampleContext<T extends Transaction>(transaction: T): SampleC
 
     if ('location' in globalObject) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      defaultSampleContext.location = { ...(globalObject as any).location };
+      defaultSamplingContext.location = { ...(globalObject as any).location };
     }
   }
 
-  return defaultSampleContext;
+  return defaultSamplingContext;
 }
 
 /**
@@ -197,10 +197,10 @@ function isValidSampleRate(rate: unknown): boolean {
 function _startTransaction(
   this: Hub,
   context: TransactionContext,
-  customSampleContext?: CustomSampleContext,
+  customSamplingContext?: CustomSamplingContext,
 ): Transaction {
   const transaction = new Transaction(context, this);
-  return sample(this, transaction, { ...getDefaultSampleContext(transaction), ...customSampleContext });
+  return sample(this, transaction, { ...getDefaultSamplingContext(transaction), ...customSamplingContext });
 }
 
 /**
@@ -213,7 +213,7 @@ export function startIdleTransaction(
   onScope?: boolean,
 ): IdleTransaction {
   const transaction = new IdleTransaction(context, hub, idleTimeout, onScope);
-  return sample(hub, transaction, getDefaultSampleContext(transaction));
+  return sample(hub, transaction, getDefaultSamplingContext(transaction));
 }
 
 /**

@@ -53,7 +53,7 @@ export interface Transaction extends TransactionContext, Span {
 /**
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
  */
-export interface CustomSampleContext {
+export interface CustomSamplingContext {
   [key: string]: any;
 }
 
@@ -62,7 +62,7 @@ export interface CustomSampleContext {
  *
  * Adds default data to data provided by the user. See {@link Hub.startTransaction}
  */
-export interface SampleContext extends CustomSampleContext {
+export interface SamplingContext extends CustomSamplingContext {
   /**
    * Object representing the URL of the current page or worker script. Passed by default in a browser or service worker
    * context.
