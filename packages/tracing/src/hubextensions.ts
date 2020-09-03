@@ -29,16 +29,28 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * Use sample rate along with a random number generator to make a sampling decision, which all child spans and child
- * transactions inherit.
+ * Implements sampling inheritance and falls back to user-provided static rate if no parent decision is available.
  *
- * Sample rate is set in SDK config, either as a constant (`tracesSampleRate`) or a function to compute the rate
- * (`tracesSampler`).
+ * @param parentSampled: The parent transaction's sampling decision, if any.
+ * @param givenRate: The rate to use if no parental decision is available.
+ *
+ * @returns The parent's sampling decision (if one exists), or the provided static rate
+ */
+function _inheritOrUseGivenRate(parentSampled: boolean | undefined, givenRate: unknown): boolean | unknown {
+  return parentSampled !== undefined ? parentSampled : givenRate;
+}
+
+/**
+ * Makes a sampling decision for the given transaction and stores it on the transaction.
  *
  * Called every time a transaction is created. Only transactions which emerge with a `sampled` value of `true` will be
  * sent to Sentry.
  *
- * Mutates the given Transaction object and then returns the mutated object.
+ * @param hub: The hub off of which to read config options
+ * @param transaction: The transaction needing a sampling decision
+ * @param sampleContext: Default and user-provided data which may be used to help make the decision
+ *
+ * @returns The given transaction with its `sampled` value set
  */
 function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: SampleContext = {}): T {
   const client = hub.getClient();
@@ -50,42 +62,46 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, sampleContext: 
     return transaction;
   }
 
-  // we have to test for a pre-existsing sampling decision, in case this transaction is a child transaction and has
-  // inherited its parent's decision
-  if (transaction.sampled === undefined) {
-    // we would have bailed at the beginning if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of
-    // these should work; prefer the hook if so
-    const sampleRate =
-      typeof options.tracesSampler === 'function' ? options.tracesSampler(sampleContext) : options.tracesSampleRate;
+  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
+  // work; prefer the hook if so
+  const sampleRate =
+    typeof options.tracesSampler === 'function'
+      ? options.tracesSampler(sampleContext)
+      : _inheritOrUseGivenRate(sampleContext.parentSampled, options.tracesSampleRate);
 
-    // since this is coming from the user, who knows what we might get
-    if (!isValidSampleRate(sampleRate)) {
-      logger.warn(`[Tracing] Discarding trace because of invalid sample rate.`);
-      transaction.sampled = false;
-      return transaction;
-    }
+  // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
+  // only valid values are booleans or numbers between 0 and 1.)
+  if (!isValidSampleRate(sampleRate)) {
+    logger.warn(`[Tracing] Discarding transaction because of invalid sample rate.`);
+    transaction.sampled = false;
+    return transaction;
+  }
 
-    // if the function returned 0, or if the sample rate is set to 0, it's a sign the transaction should be dropped
-    if (!sampleRate) {
-      logger.log(
-        `[Tracing] Discarding trace because ${
-          typeof options.tracesSampler === 'function' ? 'tracesSampler returned 0' : 'tracesSampleRate is set to 0'
-        }`,
-      );
-      transaction.sampled = false;
-      return transaction;
-    }
+  // if the function returned 0 (or false), or if `tracesSampleRate` is 0, it's a sign the transaction should be dropped
+  if (!sampleRate) {
+    logger.log(
+      `[Tracing] Discarding transaction because ${
+        typeof options.tracesSampler === 'function'
+          ? 'tracesSampler returned 0 or false'
+          : 'tracesSampleRate is set to 0'
+      }`,
+    );
+    transaction.sampled = false;
+    return transaction;
+  }
 
-    // now we roll the dice (Math.random is inclusive of 0, but not of 1, so strict < is safe here)
-    transaction.sampled = Math.random() < sampleRate;
+  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
+  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  transaction.sampled = Math.random() < (sampleRate as number | boolean);
 
-    // if we're not going to keep it, we're done
-    if (!transaction.sampled) {
-      logger.log(
-        `[Tracing] Discarding trace because it's not included in the random sample (sampling rate = ${sampleRate})`,
-      );
-      return transaction;
-    }
+  // if we're not going to keep it, we're done
+  if (!transaction.sampled) {
+    logger.log(
+      `[Tracing] Discarding transaction because it's not included in the random sample (sampling rate = ${Number(
+        sampleRate,
+      )})`,
+    );
+    return transaction;
   }
 
   // at this point we know we're keeping the transaction, whether because of an inherited decision or because it got
@@ -148,17 +164,19 @@ function getDefaultSampleContext<T extends Transaction>(transaction: T): SampleC
 }
 
 /**
- * Checks the given sample rate to make sure it is valid (a number between 0 and 1).
+ * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
  */
 function isValidSampleRate(rate: unknown): boolean {
-  if (!(typeof rate === 'number')) {
+  if (!(typeof rate === 'number' || typeof rate === 'boolean')) {
     logger.warn(
-      `[Tracing] Given sample rate is invalid. Sample rate must be a number between 0 and 1. Got ${JSON.stringify(
+      `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
         rate,
       )} of type ${JSON.stringify(typeof rate)}.`,
     );
     return false;
   }
+
+  // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
     logger.warn(`[Tracing] Given sample rate is invalid. Sample rate must be between 0 and 1. Got ${rate}.`);
     return false;

@@ -41,7 +41,7 @@ describe('Hub', () => {
   });
 
   describe('transaction sampling', () => {
-    describe('options', () => {
+    describe('tracesSampleRate and tracesSampler options', () => {
       it("should call tracesSampler if it's defined", () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
@@ -52,10 +52,19 @@ describe('Hub', () => {
 
       it('should prefer tracesSampler to tracesSampleRate', () => {
         const tracesSampler = jest.fn();
-        const hub = new Hub(new BrowserClient({ tracesSampleRate: 1, tracesSampler: tracesSampler }));
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 1, tracesSampler }));
         hub.startTransaction({ name: 'dogpark' });
 
         expect(tracesSampler).toHaveBeenCalled();
+      });
+
+      it('tolerates tracesSampler returning a boolean', () => {
+        const tracesSampler = jest.fn().mockReturnValue(true);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(true);
       });
     });
 
@@ -133,9 +142,25 @@ describe('Hub', () => {
 
         expect(tracesSampler).toHaveBeenCalledWith(expect.objectContaining({ location: dogParkLocation }));
       });
+
+      it("should add parent's sampling decision to default sample context", () => {
+        const tracesSampler = jest.fn();
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const parentSamplingDecsion = false;
+
+        hub.startTransaction({
+          name: 'dogpark',
+          parentSpanId: '12312012',
+          sampled: parentSamplingDecsion,
+        });
+
+        expect(tracesSampler).toHaveBeenLastCalledWith(
+          expect.objectContaining({ parentSampled: parentSamplingDecsion }),
+        );
+      });
     });
 
-    describe('while sampling', () => {
+    describe('sample()', () => {
       it('should not sample transactions when tracing is disabled', () => {
         // neither tracesSampleRate nor tracesSampler is defined -> tracing disabled
         const hub = new Hub(new BrowserClient({}));
@@ -157,14 +182,17 @@ describe('Hub', () => {
 
         expect(transaction.sampled).toBe(true);
       });
+    });
 
-      it("should reject tracesSampleRates which aren't numbers", () => {
+    describe('isValidSampleRate()', () => {
+      it("should reject tracesSampleRates which aren't numbers or booleans", () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 'dogs!' as any }));
         hub.startTransaction({ name: 'dogpark' });
 
-        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a number'));
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
       });
 
+      // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampleRates less than 0', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: -26 }));
         hub.startTransaction({ name: 'dogpark' });
@@ -172,6 +200,7 @@ describe('Hub', () => {
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
       });
 
+      // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampleRates greater than 1', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 26 }));
         hub.startTransaction({ name: 'dogpark' });
@@ -179,14 +208,15 @@ describe('Hub', () => {
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
       });
 
-      it("should reject tracesSampler return values which aren't numbers", () => {
+      it("should reject tracesSampler return values which aren't numbers or booleans", () => {
         const tracesSampler = jest.fn().mockReturnValue('dogs!');
         const hub = new Hub(new BrowserClient({ tracesSampler }));
         hub.startTransaction({ name: 'dogpark' });
 
-        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a number'));
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
       });
 
+      // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampler return values less than 0', () => {
         const tracesSampler = jest.fn().mockReturnValue(-12);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
@@ -195,6 +225,7 @@ describe('Hub', () => {
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
       });
 
+      // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampler return values greater than 1', () => {
         const tracesSampler = jest.fn().mockReturnValue(31);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
@@ -202,14 +233,6 @@ describe('Hub', () => {
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
       });
-    });
-
-    it('should propagate sampling decision to child spans', () => {
-      const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
-      const transaction = hub.startTransaction({ name: 'dogpark' });
-      const child = transaction.startChild({ op: 'test' });
-
-      expect(child.sampled).toBe(false);
     });
 
     it('should drop transactions with sampled = false', () => {
@@ -225,6 +248,56 @@ describe('Hub', () => {
       expect(transaction.sampled).toBe(false);
       expect(transaction.finish).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
+    });
+
+    describe('sampling inheritance', () => {
+      it('should propagate sampling decision to child spans', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: Math.random() }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+        const child = transaction.startChild({ op: 'test' });
+
+        expect(child.sampled).toBe(transaction.sampled);
+      });
+
+      it('should propagate sampling decision to child transactions in XHR header', () => {
+        // TODO this doesn't currently happen, but it should
+      });
+
+      it('should propagate sampling decision to child transactions in fetch header', () => {
+        // TODO this doesn't currently happen, but it should
+      });
+
+      it("should inherit parent's sampling decision when creating a new transaction if tracesSampler is undefined", () => {
+        // tracesSampleRate = 1 means every transaction should end up with sampled = true, so make parent's decision the
+        // opposite to prove that inheritance takes precedence over tracesSampleRate
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+        const parentSamplingDecsion = false;
+
+        const transaction = hub.startTransaction({
+          name: 'dogpark',
+          parentSpanId: '12312012',
+          sampled: parentSamplingDecsion,
+        });
+
+        expect(transaction.sampled).toBe(parentSamplingDecsion);
+      });
+
+      it("should ignore parent's sampling decision when tracesSampler is defined", () => {
+        // this tracesSampler causes every transaction to end up with sampled = true, so make parent's decision the
+        // opposite to prove that tracesSampler takes precedence over inheritance
+        const tracesSampler = () => true;
+        const parentSamplingDecsion = false;
+
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+
+        const transaction = hub.startTransaction({
+          name: 'dogpark',
+          parentSpanId: '12312012',
+          sampled: parentSamplingDecsion,
+        });
+
+        expect(transaction.sampled).not.toBe(parentSamplingDecsion);
+      });
     });
   });
 });

@@ -132,9 +132,10 @@ export interface Options {
    * Will automatically be passed a context object of default and optional custom data. See
    * {@link Transaction.sampleContext} and {@link Hub.startTransaction}.
    *
-   * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent).
+   * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent). Returning `true` is
+   * equivalent to returning 1 and returning `false` is equivalent to returning 0.
    */
-  tracesSampler?(sampleContext: SampleContext): number;
+  tracesSampler?(sampleContext: SampleContext): number | boolean;
 
   /**
    * A callback invoked during event submission, allowing to optionally modify
