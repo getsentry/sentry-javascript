@@ -192,6 +192,13 @@ describe('Hub', () => {
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
       });
 
+      it('should reject tracesSampleRates which are NaN', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 'dogs!' as any }));
+        hub.startTransaction({ name: 'dogpark' });
+
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
+      });
+
       // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampleRates less than 0', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: -26 }));
@@ -210,6 +217,14 @@ describe('Hub', () => {
 
       it("should reject tracesSampler return values which aren't numbers or booleans", () => {
         const tracesSampler = jest.fn().mockReturnValue('dogs!');
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        hub.startTransaction({ name: 'dogpark' });
+
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
+      });
+
+      it('should reject tracesSampler return values which are NaN', () => {
+        const tracesSampler = jest.fn().mockReturnValue(NaN);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
         hub.startTransaction({ name: 'dogpark' });
 
@@ -260,11 +275,11 @@ describe('Hub', () => {
       });
 
       it('should propagate sampling decision to child transactions in XHR header', () => {
-        // TODO this doesn't currently happen, but it should
+        // TODO fix this and write the test
       });
 
       it('should propagate sampling decision to child transactions in fetch header', () => {
-        // TODO this doesn't currently happen, but it should
+        // TODO fix this and write the test
       });
 
       it("should inherit parent's sampling decision when creating a new transaction if tracesSampler is undefined", () => {

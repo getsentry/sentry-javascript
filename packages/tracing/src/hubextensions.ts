@@ -167,7 +167,9 @@ function getDefaultSampleContext<T extends Transaction>(transaction: T): SampleC
  * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
  */
 function isValidSampleRate(rate: unknown): boolean {
-  if (!(typeof rate === 'number' || typeof rate === 'boolean')) {
+  // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (isNaN(rate as any) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
     logger.warn(
       `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
         rate,
