@@ -51,30 +51,44 @@ export class AWSLambda implements Integration {
   private _timeoutWarning?: boolean = false;
 
   /**
-   * @inheritDoc
-   */
-
-  /**
    * flush time in milliseconds to set time for flush.
    */
-  private _flushTimeout?: number = 2000;
+  private _flushTimeout: number = 2000;
 
-  public constructor(options: { context?: AWSLambdaContext; timeoutWarning?: boolean; flushTimeout?: number } = {}) {
-    if (options.context) {
-      this._awsContext = options.context;
-    }
-    if (options.timeoutWarning) {
-      this._timeoutWarning = options.timeoutWarning;
-    }
-    if (options.flushTimeout) {
-      this._flushTimeout = options.flushTimeout;
-    }
+  /**
+   *  Assign Hub
+   */
+  private _hub: Hub = {} as Hub;
+
+  public constructor() {
+    // empty constructor
   }
 
   /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    this._hub = getCurrentHub();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public providedContext(
+    context: AWSLambdaContext,
+    timeoutWarning: boolean = false,
+    flushTimeout: number = 2000,
+  ): void {
+    if (context) {
+      this._awsContext = context;
+    }
+    if (flushTimeout) {
+      this._flushTimeout = flushTimeout;
+    }
+    if (timeoutWarning) {
+      this._timeoutWarning = timeoutWarning;
+    }
+    const flushTime = this._flushTimeout;
     const lambdaBootstrap: Module | undefined = require.main;
 
     if (!this._awsContext.awsRequestId || !lambdaBootstrap) {
@@ -96,7 +110,7 @@ export class AWSLambda implements Integration {
       originalPostInvocationError = rapidRuntime.prototype.postInvocationError;
     }
 
-    const hub = getCurrentHub();
+    const hub = this._hub;
 
     /**
      * This function sets Additional Runtime Data which are displayed in Sentry Dashboard
@@ -104,10 +118,9 @@ export class AWSLambda implements Integration {
      * @hidden
      */
     const setAdditionalRuntimeData = (scope: Scope): void => {
-      scope.setContext('Runtime', {
-        Name: 'node',
-        // global.process.version return the version of node
-        Version: global.process.version,
+      scope.setContext('runtime', {
+        name: 'node',
+        version: global.process.version,
       });
     };
 
@@ -144,7 +157,7 @@ export class AWSLambda implements Integration {
      * @hidden
      */
     const setCloudwatchLogsData = (scope: Scope): void => {
-      scope.setContext('cloudwatch logs', {
+      scope.setContext('cloudwatch.logs', {
         log_group: this._awsContext.logGroupName,
         log_stream: this._awsContext.logStreamName,
         url: cloudwatchUrl,
@@ -162,9 +175,9 @@ export class AWSLambda implements Integration {
       scope.setTag('runtime.name', 'node');
       scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || '');
       scope.setTag('url', `awslambda:///${this._awsContext.functionName}`);
+      scope.setTag('handled', 'no');
+      scope.setTag('mechanism', 'awslambda');
     };
-
-    const flushTimeout = this._flushTimeout;
 
     // timeout warning buffer for timeout error
     const timeoutWarningBuffer: number = 1500;
@@ -196,7 +209,7 @@ export class AWSLambda implements Integration {
           hub.captureException(error);
         });
       }, configuredTimeInMilli);
-      void hub.getClient()?.flush(flushTimeout);
+      void hub.getClient()?.flush(flushTime);
     }
 
     /**
@@ -229,15 +242,16 @@ export class AWSLambda implements Integration {
       /** capturing the exception and re-directing it to the Sentry Dashboard */
       const client = hub.getClient();
       if (client) {
-        await client.flush(flushTimeout);
+        await client.flush(flushTime);
       }
 
       /**
        * Here, we make sure the error has been captured by Sentry Dashboard
        * and then re-raised the exception
        */
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       originalPostInvocationError.call(this, error, id, callback);
     };
   }
 }
+
+export const AWSLambdaIntegration = new AWSLambda();
