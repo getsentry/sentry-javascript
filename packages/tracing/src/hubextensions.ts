@@ -29,15 +29,15 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * Uses existing sampling decision if available; falls back to user-provided static rate.
+ * Implements sampling inheritance and falls back to user-provided static rate if no parent decision is available.
  *
- * @param existingDecision: The transaction's existing sampling decision, if any (likely inherited).
+ * @param parentSampled: The parent transaction's sampling decision, if any.
  * @param givenRate: The rate to use if no parental decision is available.
  *
- * @returns The existing sampling decision (if one exists), or the provided static rate
+ * @returns The parent's sampling decision (if one exists), or the provided static rate
  */
-function _useExistingDecisionOrGivenRate(existingDecision: boolean | undefined, givenRate: unknown): boolean | unknown {
-  return existingDecision !== undefined ? existingDecision : givenRate;
+function _inheritOrUseGivenRate(parentSampled: boolean | undefined, givenRate: unknown): boolean | unknown {
+  return parentSampled !== undefined ? parentSampled : givenRate;
 }
 
 /**
@@ -67,7 +67,7 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
   const sampleRate =
     typeof options.tracesSampler === 'function'
       ? options.tracesSampler(samplingContext)
-      : _useExistingDecisionOrGivenRate(samplingContext.transactionContext.sampled, options.tracesSampleRate);
+      : _inheritOrUseGivenRate(samplingContext.parentSampled, options.tracesSampleRate);
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
@@ -117,7 +117,9 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
  * @returns The default sample context
  */
 function getDefaultSamplingContext(transactionContext: TransactionContext): SamplingContext {
-  const defaultSamplingContext: SamplingContext = { transactionContext };
+  // promote parent sampling decision (if any) for easy access
+  const { parentSampled } = transactionContext;
+  const defaultSamplingContext: SamplingContext = { transactionContext, parentSampled };
 
   if (isNodeEnv()) {
     const domain = getActiveDomain();

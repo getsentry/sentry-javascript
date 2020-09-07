@@ -149,12 +149,28 @@ describe('Hub', () => {
         const transactionContext = {
           name: 'dogpark',
           parentSpanId: '12312012',
-          sampled: true,
+          parentSampled: true,
         };
 
         hub.startTransaction(transactionContext);
 
         expect(tracesSampler).toHaveBeenLastCalledWith(expect.objectContaining({ transactionContext }));
+      });
+
+      it("should add parent's sampling decision to default sample context", () => {
+        const tracesSampler = jest.fn();
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const parentSamplingDecsion = false;
+
+        hub.startTransaction({
+          name: 'dogpark',
+          parentSpanId: '12312012',
+          parentSampled: parentSamplingDecsion,
+        });
+
+        expect(tracesSampler).toHaveBeenLastCalledWith(
+          expect.objectContaining({ parentSampled: parentSamplingDecsion }),
+        );
       });
     });
 
@@ -289,7 +305,7 @@ describe('Hub', () => {
         const transaction = hub.startTransaction({
           name: 'dogpark',
           parentSpanId: '12312012',
-          sampled: parentSamplingDecsion,
+          parentSampled: parentSamplingDecsion,
         });
 
         expect(transaction.sampled).toBe(parentSamplingDecsion);
@@ -306,7 +322,7 @@ describe('Hub', () => {
         const transaction = hub.startTransaction({
           name: 'dogpark',
           parentSpanId: '12312012',
-          sampled: parentSamplingDecsion,
+          parentSampled: parentSamplingDecsion,
         });
 
         expect(transaction.sampled).not.toBe(parentSamplingDecsion);
