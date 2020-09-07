@@ -22,33 +22,69 @@ describe('extractUrl()', () => {
     expect(extractUrl(urlParts)).toBe('http://dogs.are.great:1231/yay/');
   });
 
-  it('strips query string from url string', () => {
+  it("by default doesn't strip query string from url string", () => {
     const urlWithQueryString = `${urlString}${queryString}`;
-    expect(extractUrl(urlWithQueryString)).toBe(urlString);
+    expect(extractUrl(urlWithQueryString)).toBe(urlWithQueryString);
   });
 
-  it('strips query string from path in http.RequestOptions object', () => {
+  it("by default doesn't strip query string from path in http.RequestOptions object", () => {
     const urlPartsWithQueryString = { ...urlParts, path: `${urlParts.path}${queryString}` };
-    expect(extractUrl(urlPartsWithQueryString)).toBe(urlString);
+    const urlWithQueryString = `${urlString}${queryString}`;
+
+    expect(extractUrl(urlPartsWithQueryString)).toBe(urlWithQueryString);
   });
 
-  it('strips fragment from url string', () => {
+  it("by default doesn't strip fragment from url string", () => {
     const urlWithFragment = `${urlString}${fragment}`;
-    expect(extractUrl(urlWithFragment)).toBe(urlString);
+    expect(extractUrl(urlWithFragment)).toBe(urlWithFragment);
   });
 
-  it('strips fragment from path in http.RequestOptions object', () => {
+  it("by default doesn't strip fragment from path in http.RequestOptions object", () => {
     const urlPartsWithFragment = { ...urlParts, path: `${urlParts.path}${fragment}` };
-    expect(extractUrl(urlPartsWithFragment)).toBe(urlString);
+    const urlWithFragment = `${urlString}${fragment}`;
+
+    expect(extractUrl(urlPartsWithFragment)).toBe(urlWithFragment);
   });
 
-  it('strips query string and fragment from url string', () => {
+  it("by default doesn't strip query string and fragment from url string", () => {
     const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
-    expect(extractUrl(urlWithQueryStringAndFragment)).toBe(urlString);
+    expect(extractUrl(urlWithQueryStringAndFragment)).toBe(urlWithQueryStringAndFragment);
   });
 
-  it('strips query string and fragment from path in http.RequestOptions object', () => {
+  it("by default doesn't strip query string and fragment from path in http.RequestOptions object", () => {
     const urlPartsWithQueryStringAndFragment = { ...urlParts, path: `${urlParts.path}${queryString}${fragment}` };
-    expect(extractUrl(urlPartsWithQueryStringAndFragment)).toBe(urlString);
+    const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
+
+    expect(extractUrl(urlPartsWithQueryStringAndFragment)).toBe(urlWithQueryStringAndFragment);
+  });
+
+  it('strips query string from url string when asked', () => {
+    const urlWithQueryString = `${urlString}${queryString}`;
+    expect(extractUrl(urlWithQueryString, true)).toBe(urlString);
+  });
+
+  it('strips query string from path in http.RequestOptions object when asked', () => {
+    const urlPartsWithQueryString = { ...urlParts, path: `${urlParts.path}${queryString}` };
+    expect(extractUrl(urlPartsWithQueryString, true)).toBe(urlString);
+  });
+
+  it('strips fragment from url string when asked', () => {
+    const urlWithFragment = `${urlString}${fragment}`;
+    expect(extractUrl(urlWithFragment, true)).toBe(urlString);
+  });
+
+  it('strips fragment from path in http.RequestOptions object when asked', () => {
+    const urlPartsWithFragment = { ...urlParts, path: `${urlParts.path}${fragment}` };
+    expect(extractUrl(urlPartsWithFragment, true)).toBe(urlString);
+  });
+
+  it('strips query string and fragment from url string when asked', () => {
+    const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
+    expect(extractUrl(urlWithQueryStringAndFragment, true)).toBe(urlString);
+  });
+
+  it('strips query string and fragment from path in http.RequestOptions object when asked', () => {
+    const urlPartsWithQueryStringAndFragment = { ...urlParts, path: `${urlParts.path}${queryString}${fragment}` };
+    expect(extractUrl(urlPartsWithQueryStringAndFragment, true)).toBe(urlString);
   });
 }); // end describe('extractUrl()')

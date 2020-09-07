@@ -158,18 +158,21 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
 /**
  * Assemble a URL to be used for breadcrumbs and spans.
  *
- * @param requestArgs URL string or object containing the component parts
+ * @param url URL string or object containing the component parts
+ * @param strip Whether or not to strip querystring and fragment. Defaults to false.
+ *
  * @returns Fully-formed URL
  */
-export function extractUrl(requestArgs: string | http.ClientRequestArgs): string {
-  if (typeof requestArgs === 'string') {
-    return stripUrlQueryAndFragment(requestArgs);
+export function extractUrl(url: string | http.ClientRequestArgs, strip: boolean = false): string {
+  if (typeof url === 'string') {
+    return strip ? stripUrlQueryAndFragment(url) : url;
   }
-  const protocol = requestArgs.protocol || '';
-  const hostname = requestArgs.hostname || requestArgs.host || '';
+
+  const protocol = url.protocol || '';
+  const hostname = url.hostname || url.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-  const port = !requestArgs.port || requestArgs.port === 80 || requestArgs.port === 443 ? '' : `:${requestArgs.port}`;
-  const path = requestArgs.path ? stripUrlQueryAndFragment(requestArgs.path) : '/';
+  const port = !url.port || url.port === 80 || url.port === 443 ? '' : `:${url.port}`;
+  const path = url.path ? (strip ? stripUrlQueryAndFragment(url.path) : url.path) : '/';
 
   // internal routes end up with too many slashes
   return `${protocol}//${hostname}${port}${path}`.replace('///', '/');
