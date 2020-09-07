@@ -4,8 +4,8 @@ import { logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
-import { Span } from '../span';
 import { SpanStatus } from '../spanstatus';
+import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
@@ -213,21 +213,16 @@ export class BrowserTracing implements Integration {
 
 /**
  * Gets transaction context from a sentry-trace meta.
+ *
+ * @returns Transaction context data from the header or undefined if there's no header or the header is malformed
  */
-function getHeaderContext(): Partial<TransactionContext> {
+function getHeaderContext(): Partial<TransactionContext> | undefined {
   const header = getMetaContent('sentry-trace');
   if (header) {
-    const span = Span.fromTraceparent(header);
-    if (span) {
-      return {
-        parentSpanId: span.parentSpanId,
-        sampled: span.sampled,
-        traceId: span.traceId,
-      };
-    }
+    return extractTraceparentData(header);
   }
 
-  return {};
+  return undefined;
 }
 
 /** Returns the value of a meta tag */

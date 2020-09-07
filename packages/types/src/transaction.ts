@@ -5,7 +5,11 @@ import { Span, SpanContext } from './span';
  * Interface holding Transaction-specific properties
  */
 export interface TransactionContext extends SpanContext {
+  /**
+   * Human-readable identifier for the transaction
+   */
   name: string;
+
   /**
    * If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
    * the duration of the transaction. This is useful to discard extra time in the transaction that is not
@@ -19,6 +23,11 @@ export interface TransactionContext extends SpanContext {
    */
   parentSampled?: boolean;
 }
+
+/**
+ * Data pulled from a `sentry-trace` header
+ */
+export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId' | 'parentSampled'>;
 
 /**
  * Transaction "Class", inherits Span only has `setName`

@@ -55,7 +55,7 @@ import { getGlobalObject } from '@sentry/utils';
 import { BrowserTracing } from './browser';
 import { addExtensionMethods } from './hubextensions';
 
-export { Span, TRACEPARENT_REGEXP } from './span';
+export { Span } from './span';
 
 let windowIntegrations = {};
 

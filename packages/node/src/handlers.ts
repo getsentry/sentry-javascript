@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { Span } from '@sentry/tracing';
+import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event } from '@sentry/types';
 import {
   extractNodeRequestData,
@@ -40,26 +40,16 @@ export function tracingHandler(): (
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = req.url && stripUrlQueryAndFragment(req.url);
 
-    let traceId;
-    let parentSpanId;
-    let sampled;
-
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
+    let traceparentData;
     if (req.headers && isString(req.headers['sentry-trace'])) {
-      const span = Span.fromTraceparent(req.headers['sentry-trace'] as string);
-      if (span) {
-        traceId = span.traceId;
-        parentSpanId = span.parentSpanId;
-        sampled = span.sampled;
-      }
+      traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
     }
 
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,
       op: 'http.server',
-      parentSpanId,
-      sampled,
-      traceId,
+      ...traceparentData,
     });
 
     // We put the transaction on the scope so users can attach children to it

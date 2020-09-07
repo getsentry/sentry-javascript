@@ -5,7 +5,7 @@ import * as ApmIntegrations from './integrations';
 const Integrations = { ...ApmIntegrations, BrowserTracing };
 
 export { Integrations };
-export { Span, TRACEPARENT_REGEXP } from './span';
+export { Span } from './span';
 export { Transaction } from './transaction';
 
 export { SpanStatus } from './spanstatus';
