@@ -143,20 +143,18 @@ describe('Hub', () => {
         expect(tracesSampler).toHaveBeenCalledWith(expect.objectContaining({ location: dogParkLocation }));
       });
 
-      it("should add parent's sampling decision to default sample context", () => {
+      it('should add transaction context data to default sample context', () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
-        const parentSamplingDecsion = false;
-
-        hub.startTransaction({
+        const transactionContext = {
           name: 'dogpark',
           parentSpanId: '12312012',
-          sampled: parentSamplingDecsion,
-        });
+          sampled: true,
+        };
 
-        expect(tracesSampler).toHaveBeenLastCalledWith(
-          expect.objectContaining({ parentSampled: parentSamplingDecsion }),
-        );
+        hub.startTransaction(transactionContext);
+
+        expect(tracesSampler).toHaveBeenLastCalledWith(expect.objectContaining({ transactionContext }));
       });
     });
 

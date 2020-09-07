@@ -29,15 +29,15 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * Implements sampling inheritance and falls back to user-provided static rate if no parent decision is available.
+ * Uses existing sampling decision if available; falls back to user-provided static rate.
  *
- * @param parentSampled: The parent transaction's sampling decision, if any.
+ * @param existingDecision: The transaction's existing sampling decision, if any (likely inherited).
  * @param givenRate: The rate to use if no parental decision is available.
  *
- * @returns The parent's sampling decision (if one exists), or the provided static rate
+ * @returns The existing sampling decision (if one exists), or the provided static rate
  */
-function _inheritOrUseGivenRate(parentSampled: boolean | undefined, givenRate: unknown): boolean | unknown {
-  return parentSampled !== undefined ? parentSampled : givenRate;
+function _useExistingDecisionOrGivenRate(existingDecision: boolean | undefined, givenRate: unknown): boolean | unknown {
+  return existingDecision !== undefined ? existingDecision : givenRate;
 }
 
 /**
@@ -52,7 +52,7 @@ function _inheritOrUseGivenRate(parentSampled: boolean | undefined, givenRate: u
  *
  * @returns The given transaction with its `sampled` value set
  */
-function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext: SamplingContext = {}): T {
+function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext: SamplingContext): T {
   const client = hub.getClient();
   const options = (client && client.getOptions()) || {};
 
@@ -67,7 +67,7 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
   const sampleRate =
     typeof options.tracesSampler === 'function'
       ? options.tracesSampler(samplingContext)
-      : _inheritOrUseGivenRate(samplingContext.parentSampled, options.tracesSampleRate);
+      : _useExistingDecisionOrGivenRate(samplingContext.transactionContext.sampled, options.tracesSampleRate);
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
@@ -116,13 +116,8 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
  *
  * @returns The default sample context
  */
-function getDefaultSamplingContext<T extends Transaction>(transaction: T): SamplingContext {
-  const defaultSamplingContext: SamplingContext = {};
-
-  // include parent's sampling decision, if there is one
-  if (transaction.parentSpanId && transaction.sampled !== undefined) {
-    defaultSamplingContext.parentSampled = transaction.sampled;
-  }
+function getDefaultSamplingContext(transactionContext: TransactionContext): SamplingContext {
+  const defaultSamplingContext: SamplingContext = { transactionContext };
 
   if (isNodeEnv()) {
     const domain = getActiveDomain();
@@ -196,11 +191,14 @@ function isValidSampleRate(rate: unknown): boolean {
  */
 function _startTransaction(
   this: Hub,
-  context: TransactionContext,
+  transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const transaction = new Transaction(context, this);
-  return sample(this, transaction, { ...getDefaultSamplingContext(transaction), ...customSamplingContext });
+  const transaction = new Transaction(transactionContext, this);
+  return sample(this, transaction, {
+    ...getDefaultSamplingContext(transactionContext),
+    ...customSamplingContext,
+  });
 }
 
 /**
@@ -208,12 +206,12 @@ function _startTransaction(
  */
 export function startIdleTransaction(
   hub: Hub,
-  context: TransactionContext,
+  transactionContext: TransactionContext,
   idleTimeout?: number,
   onScope?: boolean,
 ): IdleTransaction {
-  const transaction = new IdleTransaction(context, hub, idleTimeout, onScope);
-  return sample(hub, transaction, getDefaultSamplingContext(transaction));
+  const transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
+  return sample(hub, transaction, getDefaultSamplingContext(transactionContext));
 }
 
 /**
