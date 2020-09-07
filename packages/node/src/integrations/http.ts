@@ -45,36 +45,48 @@ export class Http implements Integration {
       return;
     }
 
-    const handlerWrapper = createHandlerWrapper(this._breadcrumbs, this._tracing);
+    const wrappedHandlerMaker = _createWrappedHandlerMaker(this._breadcrumbs, this._tracing);
 
     const httpModule = require('http');
-    fill(httpModule, 'get', handlerWrapper);
-    fill(httpModule, 'request', handlerWrapper);
+    fill(httpModule, 'get', wrappedHandlerMaker);
+    fill(httpModule, 'request', wrappedHandlerMaker);
 
     // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
     // If we do, we'd get double breadcrumbs and double spans for `https` calls.
     // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
     if (NODE_VERSION.major && NODE_VERSION.major > 8) {
       const httpsModule = require('https');
-      fill(httpsModule, 'get', handlerWrapper);
-      fill(httpsModule, 'request', handlerWrapper);
+      fill(httpsModule, 'get', wrappedHandlerMaker);
+      fill(httpsModule, 'request', wrappedHandlerMaker);
     }
   }
 }
 
+type OriginalHandler = () => http.ClientRequest;
+type WrappedHandler = (options: string | http.ClientRequestArgs) => http.ClientRequest;
+type WrappedHandlerMaker = (originalHandler: OriginalHandler) => WrappedHandler;
+
 /**
- * Wrapper function for internal `request` and `get` calls within `http` and `https` modules
+ * Function which creates a function which creates wrapped versions of internal `request` and `get` calls within `http`
+ * and `https` modules. (NB: Not a typo - this is a creator^2!)
+ *
+ * @param breadcrumbsEnabled Whether or not to record outgoing requests as breadcrumbs
+ * @param tracingEnabled Whether or not to record outgoing requests as tracing spans
+ *
+ * @returns A function which accepts the exiting handler and returns a wrapped handler
  */
-function createHandlerWrapper(
+function _createWrappedHandlerMaker(
   breadcrumbsEnabled: boolean,
   tracingEnabled: boolean,
-): (originalHandler: () => http.ClientRequest) => (options: string | http.ClientRequestArgs) => http.ClientRequest {
-  return function handlerWrapper(
-    originalHandler: () => http.ClientRequest,
-  ): (options: string | http.ClientRequestArgs) => http.ClientRequest {
-    return function(this: typeof http | typeof https, options: string | http.ClientRequestArgs): http.ClientRequest {
+): WrappedHandlerMaker {
+  return function wrappedHandlerMaker(originalHandler: OriginalHandler): WrappedHandler {
+    return function wrappedHandler(
+      this: typeof http | typeof https,
+      options: string | http.ClientRequestArgs,
+    ): http.ClientRequest {
       const requestUrl = extractUrl(options);
 
+      // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original handler
       if (isSentryRequest(requestUrl)) {
         return originalHandler.apply(this, arguments);
       }
