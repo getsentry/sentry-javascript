@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = function (environment) {
+module.exports = function(environment) {
   let ENV = {
     modulePrefix: 'dummy',
     environment,
@@ -25,6 +25,7 @@ module.exports = function (environment) {
 
   ENV['@sentry/ember'] = {
     sentry: {
+      tracesSampleRate: 1,
       dsn: process.env.SENTRY_DSN,
     },
     ignoreEmberOnErrorWarning: true,

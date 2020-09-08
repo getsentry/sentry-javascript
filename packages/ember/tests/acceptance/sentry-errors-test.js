@@ -10,12 +10,16 @@ const defaultAssertOptions = {
   errorBodyContains: [],
 };
 
-function assertSentryEventCount(assert, count) {
-  assert.equal(window._sentryTestEvents.length, count, 'Check correct number of Sentry events were sent');
+function getTestSentryErrors() {
+  return window._sentryTestEvents.filter(event => event['type'] !== 'transaction');
+}
+
+function assertSentryErrorCount(assert, count) {
+  assert.equal(getTestSentryErrors().length, count, 'Check correct number of Sentry events were sent');
 }
 
 function assertSentryCall(assert, callNumber, options) {
-  const sentryTestEvents = window._sentryTestEvents;
+  const sentryTestEvents = getTestSentryErrors();
   const assertOptions = Object.assign({}, defaultAssertOptions, options);
 
   const event = sentryTestEvents[callNumber];
@@ -26,15 +30,16 @@ function assertSentryCall(assert, callNumber, options) {
    */
   assert.ok(assertOptions.errorBodyContains.length, 'Must pass strings to check against error body');
   const errorBody = JSON.stringify(event);
-  assertOptions.errorBodyContains.forEach((bodyContent) => {
+  assertOptions.errorBodyContains.forEach(bodyContent => {
     assert.ok(errorBody.includes(bodyContent), `Checking that error body includes ${bodyContent}`);
   });
 }
 
-module('Acceptance | Sentry Errors', function (hooks) {
+module('Acceptance | Sentry Errors', function(hooks) {
   setupApplicationTest(hooks);
 
-  hooks.beforeEach(function () {
+  hooks.beforeEach(async function() {
+    await window._sentryPerformanceLoad;
     window._sentryTestEvents = [];
     const errorMessages = [];
     this.errorMessages = errorMessages;
@@ -49,12 +54,12 @@ module('Acceptance | Sentry Errors', function (hooks) {
      */
     this.qunitOnUnhandledRejection = sinon.stub(QUnit, 'onUnhandledRejection');
 
-    QUnit.onError = function ({ message }) {
+    QUnit.onError = function({ message }) {
       errorMessages.push(message.split('Error: ')[1]);
       return true;
     };
 
-    Ember.onerror = function (...args) {
+    Ember.onerror = function(...args) {
       const [error] = args;
       errorMessages.push(error.message);
       throw error;
@@ -65,7 +70,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
      * Will collect errors when run via testem in cli
      */
 
-    window.onerror = function (error, ...args) {
+    window.onerror = function(error, ...args) {
       errorMessages.push(error.split('Error: ')[1]);
       if (this._windowOnError) {
         return this._windowOnError(error, ...args);
@@ -73,42 +78,42 @@ module('Acceptance | Sentry Errors', function (hooks) {
     };
   });
 
-  hooks.afterEach(function () {
+  hooks.afterEach(function() {
     this.fetchStub.restore();
     this.qunitOnUnhandledRejection.restore();
     window.onerror = this._windowOnError;
   });
 
-  test('Check "Throw Generic Javascript Error"', async function (assert) {
+  test('Check "Throw Generic Javascript Error"', async function(assert) {
     await visit('/');
     const button = find('[data-test-button="Throw Generic Javascript Error"]');
 
     await click(button);
 
-    assertSentryEventCount(assert, 1);
+    assertSentryErrorCount(assert, 1);
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "Throw EmberError"', async function (assert) {
+  test('Check "Throw EmberError"', async function(assert) {
     await visit('/');
     const button = find('[data-test-button="Throw EmberError"]');
 
     await click(button);
 
-    assertSentryEventCount(assert, 1);
+    assertSentryErrorCount(assert, 1);
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "Caught Thrown EmberError"', async function (assert) {
+  test('Check "Caught Thrown EmberError"', async function(assert) {
     await visit('/');
     const button = find('[data-test-button="Caught Thrown EmberError"]');
 
     await click(button);
 
-    assertSentryEventCount(assert, 0);
+    assertSentryErrorCount(assert, 0);
   });
 
-  test('Check "Error From Fetch"', async function (assert) {
+  test('Check "Error From Fetch"', async function(assert) {
     this.fetchStub.onFirstCall().callsFake((...args) => {
       return this.fetchStub.callsThrough(args);
     });
@@ -120,41 +125,41 @@ module('Acceptance | Sentry Errors', function (hooks) {
     const done = assert.async();
 
     run.next(() => {
-      assertSentryEventCount(assert, 1);
+      assertSentryErrorCount(assert, 1);
       assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
       done();
     });
   });
 
-  test('Check "Error in AfterRender"', async function (assert) {
+  test('Check "Error in AfterRender"', async function(assert) {
     await visit('/');
     const button = find('[data-test-button="Error in AfterRender"]');
 
     await click(button);
 
-    assertSentryEventCount(assert, 1);
+    assertSentryErrorCount(assert, 1);
     assert.ok(this.qunitOnUnhandledRejection.calledOnce, 'Uncaught rejection should only be called once');
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "RSVP Rejection"', async function (assert) {
+  test('Check "RSVP Rejection"', async function(assert) {
     await visit('/');
     const button = find('[data-test-button="RSVP Rejection"]');
 
     await click(button);
 
-    assertSentryEventCount(assert, 1);
+    assertSentryErrorCount(assert, 1);
     assert.ok(this.qunitOnUnhandledRejection.calledOnce, 'Uncaught rejection should only be called once');
     assertSentryCall(assert, 0, { errorBodyContains: [this.qunitOnUnhandledRejection.getCall(0).args[0]] });
   });
 
-  test('Check "Error inside RSVP"', async function (assert) {
+  test('Check "Error inside RSVP"', async function(assert) {
     await visit('/');
     const button = find('[data-test-button="Error inside RSVP"]');
 
     await click(button);
 
-    assertSentryEventCount(assert, 1);
+    assertSentryErrorCount(assert, 1);
     assert.ok(this.qunitOnUnhandledRejection.calledOnce, 'Uncaught rejection should only be called once');
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });

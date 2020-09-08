@@ -37,6 +37,40 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
   });
 }
 
+const getCurrentTransaction = () => {
+  return Sentry.getCurrentHub()
+    ?.getScope()
+    ?.getTransaction();
+};
+
+const instrumentFunction = async (op: string, description: string, fn: Function, args: any) => {
+  const currentTransaction = getCurrentTransaction();
+  const span = currentTransaction?.startChild({ op, description });
+  const result = await fn(...args);
+  span?.finish();
+  return result;
+};
+
+export const instrumentRoutePerformance = (BaseRoute: any) => {
+  return class InstrumentedRoute extends BaseRoute {
+    beforeModel(...args: any[]) {
+      return instrumentFunction('ember.route.beforeModel', (<any>this).fullRouteName, super.beforeModel, args);
+    }
+
+    async model(...args: any[]) {
+      return instrumentFunction('ember.route.model', (<any>this).fullRouteName, super.model, args);
+    }
+
+    async afterModel(...args: any[]) {
+      return instrumentFunction('ember.route.afterModel', (<any>this).fullRouteName, super.afterModel, args);
+    }
+
+    async setupController(...args: any[]) {
+      return instrumentFunction('ember.route.setupController', (<any>this).fullRouteName, super.setupController, args);
+    }
+  };
+};
+
 function createEmberEventProcessor(): void {
   if (addGlobalEventProcessor) {
     addGlobalEventProcessor(event => {

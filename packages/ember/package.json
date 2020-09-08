@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@sentry/browser": "5.22.3",
+    "@sentry/tracing": "5.22.3",
     "@sentry/types": "5.22.3",
     "@sentry/utils": "5.22.3",
     "ember-auto-import": "^1.6.0",
@@ -69,6 +70,7 @@
     "ember-template-lint": "^2.9.1",
     "ember-test-selectors": "^4.1.0",
     "ember-try": "^1.4.0",
+    "ember-window-mock": "^0.7.1",
     "eslint": "7.6.0",
     "eslint-plugin-ember": "^8.6.0",
     "eslint-plugin-node": "^11.1.0",
