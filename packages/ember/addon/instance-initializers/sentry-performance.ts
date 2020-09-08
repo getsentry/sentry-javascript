@@ -2,7 +2,7 @@ import ApplicationInstance from '@ember/application/instance';
 import Ember from 'ember';
 import { scheduleOnce } from '@ember/runloop';
 import environmentConfig from 'ember-get-config';
-import Sentry from '@sentry/ember';
+import Sentry from '@sentry/browser';
 import { Integration } from '@sentry/types';
 
 export function initialize(appInstance: ApplicationInstance): void {
@@ -25,7 +25,13 @@ function getTransitionInformation(transition: any, router: any) {
   };
 }
 
-export function _instrumentEmberRouter(routerService: any, routerMain: any, config: typeof environmentConfig['@sentry/ember'], startTransaction: Function, startTransactionOnPageLoad?: boolean) {
+export function _instrumentEmberRouter(
+  routerService: any,
+  routerMain: any,
+  config: typeof environmentConfig['@sentry/ember'],
+  startTransaction: Function,
+  startTransactionOnPageLoad?: boolean,
+) {
   const { disablePostTransitionRender } = config;
   const location = routerMain.location;
   let activeTransaction: any;
@@ -111,7 +117,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
       routingInstrumentation: (startTransaction, startTransactionOnPageLoad) => {
         const routerMain = appInstance.lookup('router:main');
         const routerService = appInstance.lookup('service:router');
-        _instrumentEmberRouter(routerService, routerMain, config, startTransaction, startTransactionOnPageLoad)
+        _instrumentEmberRouter(routerService, routerMain, config, startTransaction, startTransactionOnPageLoad);
       },
       idleTimeout,
     }),

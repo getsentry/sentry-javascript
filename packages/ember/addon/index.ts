@@ -39,9 +39,9 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
 
 const getCurrentTransaction = () => {
   return Sentry.getCurrentHub()
-  ?.getScope()
-  ?.getTransaction();
-}
+    ?.getScope()
+    ?.getTransaction();
+};
 
 const instrumentFunction = async (op: string, description: string, fn: Function, args: any) => {
   const currentTransaction = getCurrentTransaction();
@@ -92,5 +92,4 @@ function createEmberEventProcessor(): void {
   }
 }
 
-export default Sentry;
 export * from '@sentry/browser';
