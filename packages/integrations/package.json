@@ -18,6 +18,7 @@
   "dependencies": {
     "@sentry/types": "5.22.3",
     "@sentry/utils": "5.22.3",
+    "fs": "0.0.1-security",
     "localforage": "1.8.1",
     "tslib": "^1.9.3"
   },
