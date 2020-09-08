@@ -89,7 +89,10 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
   // regexp everytime we create a request.
   const urlMap: Record<string, boolean> = {};
 
-  const defaultShouldCreateSpan = (url: string): boolean => {
+  // Regardlesss of whether or not the user has provided a shouldCreateSpanForRequest option, we always want to narrow
+  // it down to just recording requests to the domains in `tracingOrigins`. (We also never want to record requests to
+  // Sentry.)
+  const baseShouldCreateSpan = (url: string): boolean => {
     if (urlMap[url]) {
       return urlMap[url];
     }
@@ -100,12 +103,12 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
     return urlMap[url];
   };
 
-  // We want that our users don't have to re-implement shouldCreateSpanForRequest themselves
-  // That's why we filter out already unwanted Spans from tracingOrigins
-  let shouldCreateSpan = defaultShouldCreateSpan;
+  let shouldCreateSpan = baseShouldCreateSpan;
+
+  // if the user has defined a shouldCreateSpanForRequest, use it to further narrow down which requests are recorded
   if (typeof shouldCreateSpanForRequest === 'function') {
     shouldCreateSpan = (url: string) => {
-      return defaultShouldCreateSpan(url) && shouldCreateSpanForRequest(url);
+      return baseShouldCreateSpan(url) && shouldCreateSpanForRequest(url);
     };
   }
 

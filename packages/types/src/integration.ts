@@ -20,7 +20,7 @@ export interface Integration {
 
   /**
    * Sets the integration up only once.
-   * This takes no options on purpose, options should be passed in the constructor
+   * This intentionally takes no options. Options should be passed in the constructor.
    */
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
 }
