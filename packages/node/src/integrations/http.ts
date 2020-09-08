@@ -75,10 +75,7 @@ type WrappedHandlerMaker = (originalHandler: OriginalHandler) => WrappedHandler;
  *
  * @returns A function which accepts the exiting handler and returns a wrapped handler
  */
-function _createWrappedHandlerMaker(
-  breadcrumbsEnabled: boolean,
-  tracingEnabled: boolean,
-): WrappedHandlerMaker {
+function _createWrappedHandlerMaker(breadcrumbsEnabled: boolean, tracingEnabled: boolean): WrappedHandlerMaker {
   return function wrappedHandlerMaker(originalHandler: OriginalHandler): WrappedHandler {
     return function wrappedHandler(
       this: typeof http | typeof https,
