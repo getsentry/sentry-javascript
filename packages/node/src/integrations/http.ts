@@ -19,21 +19,29 @@ export class Http implements Integration {
   public name: string = Http.id;
 
   /**
-   * @inheritDoc
+   * Whether or not to record outgoing requests as breadcrumbs
    */
   private readonly _breadcrumbs: boolean;
 
   /**
-   * @inheritDoc
+   * Whether or not to record outgoing requests as tracing spans
    */
   private readonly _tracing: boolean;
 
   /**
+   * Hook allowing filering of request spans
+   */
+  private readonly _shouldCreateSpan?: (url: string) => boolean;
+
+  /**
    * @inheritDoc
    */
-  public constructor(options: { breadcrumbs?: boolean; tracing?: boolean } = {}) {
+  public constructor(
+    options: { breadcrumbs?: boolean; tracing?: boolean; shouldCreateSpanForRequest?: (url: string) => boolean } = {},
+  ) {
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
     this._tracing = typeof options.tracing === 'undefined' ? false : options.tracing;
+    this._shouldCreateSpan = options.shouldCreateSpanForRequest;
   }
 
   /**
@@ -45,7 +53,7 @@ export class Http implements Integration {
       return;
     }
 
-    const wrappedHandlerMaker = _createWrappedHandlerMaker(this._breadcrumbs, this._tracing);
+    const wrappedHandlerMaker = _createWrappedHandlerMaker(this._breadcrumbs, this._tracing, this._shouldCreateSpan);
 
     const httpModule = require('http');
     fill(httpModule, 'get', wrappedHandlerMaker);
@@ -72,10 +80,15 @@ type WrappedHandlerMaker = (originalHandler: OriginalHandler) => WrappedHandler;
  *
  * @param breadcrumbsEnabled Whether or not to record outgoing requests as breadcrumbs
  * @param tracingEnabled Whether or not to record outgoing requests as tracing spans
+ * @param shouldCreateSpan Optional hook for controling which rquests get recorded as spans
  *
  * @returns A function which accepts the exiting handler and returns a wrapped handler
  */
-function _createWrappedHandlerMaker(breadcrumbsEnabled: boolean, tracingEnabled: boolean): WrappedHandlerMaker {
+function _createWrappedHandlerMaker(
+  breadcrumbsEnabled: boolean,
+  tracingEnabled: boolean,
+  shouldCreateSpan?: (url: string) => boolean,
+): WrappedHandlerMaker {
   return function wrappedHandlerMaker(originalHandler: OriginalHandler): WrappedHandler {
     return function wrappedHandler(
       this: typeof http | typeof https,
@@ -88,13 +101,27 @@ function _createWrappedHandlerMaker(breadcrumbsEnabled: boolean, tracingEnabled:
         return originalHandler.apply(this, arguments);
       }
 
+      // apply user-provided filter (if any) and cache result for next time
+      const spanDecisionCache: { [key: string]: boolean } = {};
+      const shouldStartSpan = (url: string): boolean => {
+        const cached = spanDecisionCache[url];
+        if (cached) {
+          return cached;
+        }
+
+        const spanDecision = typeof shouldCreateSpan === 'function' ? shouldCreateSpan(url) : true;
+        spanDecisionCache[url] = spanDecision;
+
+        return spanDecision;
+      };
+
       let span: Span | undefined;
       let transaction: Transaction | undefined;
 
       const scope = getCurrentHub().getScope();
       if (scope && tracingEnabled) {
         transaction = scope.getTransaction();
-        if (transaction) {
+        if (transaction && shouldStartSpan(requestUrl)) {
           span = transaction.startChild({
             description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
             op: 'request',
