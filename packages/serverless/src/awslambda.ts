@@ -89,37 +89,32 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
  * @param e exception to be captured
  * @param options WrapperOptions
  */
-function captureExceptionAsync(e: any, context: Context, options: Partial<WrapperOptions>): Promise<void> {
+function captureExceptionAsync(e: unknown, context: Context, options: Partial<WrapperOptions>): Promise<boolean> {
   withScope(scope => {
     addServerlessEventProcessor(scope);
     enhanceScopeWithEnvironmentData(scope, context);
     captureException(e);
   });
-
-  return flush(options.flushTimeout).then(() => {
-    if (options.rethrowAfterCapture) {
-      throw e;
-    }
-  });
+  return flush(options.flushTimeout);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const wrapHandler = <TEvent = any, TResult = any>(
   handler: Handler,
-  options: Partial<WrapperOptions> = {},
+  handlerOptions: Partial<WrapperOptions> = {},
 ): Handler => {
-  const opts = {
+  const options = {
     flushTimeout: 2000,
     rethrowAfterCapture: true,
     callbackWaitsForEmptyEventLoop: false,
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
-    ...options,
+    ...handlerOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
 
   return (event: TEvent, context: Context, callback: Callback<TResult>) => {
-    context.callbackWaitsForEmptyEventLoop = opts.callbackWaitsForEmptyEventLoop;
+    context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
     // In seconds. You cannot go any more granular than this in AWS Lambda.
     const configuredTimeout = Math.ceil(context.getRemainingTimeInMillis() / 1000);
@@ -133,8 +128,8 @@ export const wrapHandler = <TEvent = any, TResult = any>(
 
     // When `callbackWaitsForEmptyEventLoop` is set to false, which it should when using `captureTimeoutWarning`,
     // we don't have a guarantee that this message will be delivered. Because of that, we don't flush it.
-    if (opts.captureTimeoutWarning) {
-      const timeoutWarningDelay = context.getRemainingTimeInMillis() - opts.timeoutWarningLimit;
+    if (options.captureTimeoutWarning) {
+      const timeoutWarningDelay = context.getRemainingTimeInMillis() - options.timeoutWarningLimit;
 
       timeoutWarningTimer = setTimeout(() => {
         withScope(scope => {
@@ -149,22 +144,39 @@ export const wrapHandler = <TEvent = any, TResult = any>(
     try {
       const callbackWrapper: Callback<TResult> = (...args) => {
         clearTimeout(timeoutWarningTimer);
-        return callback(...args);
+
+        if (args[0] === null || args[0] === undefined) {
+          return callback(...args);
+        } else {
+          return captureExceptionAsync(args[0], context, options).then(
+            () => callback(...args),
+            () => callback(...args),
+          );
+        }
       };
+
       let handlerRv = handler(event, context, callbackWrapper);
 
       if (isPromise(handlerRv)) {
         handlerRv = handlerRv as Promise<TResult>;
         return handlerRv.catch(e => {
           clearTimeout(timeoutWarningTimer);
-          return captureExceptionAsync(e, context, opts);
+          return captureExceptionAsync(e, context, options).then(() => {
+            if (options.rethrowAfterCapture) {
+              throw e;
+            }
+          });
         });
       } else {
         return handlerRv;
       }
     } catch (e) {
       clearTimeout(timeoutWarningTimer);
-      return captureExceptionAsync(e, context, opts);
+      return captureExceptionAsync(e, context, options).then(() => {
+        if (options.rethrowAfterCapture) {
+          throw e;
+        }
+      });
     }
   };
 };
