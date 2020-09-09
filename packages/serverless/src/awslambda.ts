@@ -1,4 +1,5 @@
 import { captureException, captureMessage, flush, Scope, SDK_VERSION, Severity, withScope } from '@sentry/node';
+import { addExceptionMechanism } from '@sentry/utils';
 import { Callback, Context, Handler } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
@@ -15,7 +16,8 @@ interface WrapperOptions {
 }
 
 /**
- * Add event processor that will override SDK details to point to the serverless SDK instead of Node.
+ * Add event processor that will override SDK details to point to the serverless SDK instead of Node,
+ * as well as set correct mechanism type, which should be set to `handled: false`.
  * We do it like this, so that we don't introduce any side-effects in this module, which makes it tree-shakeable.
  * @param scope Scope that processor should be added to
  */
@@ -33,6 +35,10 @@ function addServerlessEventProcessor(scope: Scope): void {
       ],
       version: SDK_VERSION,
     };
+
+    addExceptionMechanism(event, {
+      handled: false,
+    });
 
     return event;
   });
