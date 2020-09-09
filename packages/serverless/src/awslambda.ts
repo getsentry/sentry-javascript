@@ -5,6 +5,9 @@ import { addExceptionMechanism } from '@sentry/utils';
 import { Callback, Context, Handler } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
+import { types } from 'util';
+
+const { isPromise } = types;
 
 // https://www.npmjs.com/package/aws-lambda-consumer
 type SyncHandler<T extends Handler> = (
@@ -178,11 +181,17 @@ export const wrapHandler = <TEvent = any, TResult = any>(
       const isSyncHandler = handler.length === 3;
       const handlerRv = isSyncHandler
         ? await new Promise((resolve, reject) => {
-            (handler as SyncHandler<Handler<TEvent, TResult>>)(
+            const rv = (handler as SyncHandler<Handler<TEvent, TResult>>)(
               event,
               context,
               callbackWrapper(callback, resolve, reject),
             );
+
+            // This should never happen, but still can if someone writes a handler as
+            // `async (event, context, callback) => {}`
+            if (isPromise(rv)) {
+              ((rv as unknown) as Promise<TResult>).then(resolve, reject);
+            }
           })
         : await (handler as AsyncHandler<Handler<TEvent, TResult>>)(event, context);
       clearTimeout(timeoutWarningTimer);
