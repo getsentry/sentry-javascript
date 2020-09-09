@@ -47,8 +47,8 @@
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:eslint": "eslint . --format stylish --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch --passWithNoTests",
     "pack": "npm pack"
   },
   "sideEffects": false

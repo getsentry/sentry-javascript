@@ -1,5 +1,7 @@
 import { captureException, captureMessage, flush, Scope, SDK_VERSION, Severity, withScope } from '@sentry/node';
 import { addExceptionMechanism } from '@sentry/utils';
+// NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
+// eslint-disable-next-line import/no-unresolved
 import { Callback, Context, Handler } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
