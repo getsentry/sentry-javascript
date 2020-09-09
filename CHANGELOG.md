@@ -3,7 +3,14 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.23.0
+
+- [serverless] feat: Introduce `@sentry/serverless` with `AWSLambda` support (#2886)
 - [ember] feat: Add performance instrumentation for routes (#2784)
+- [node] ref: Remove query strings from transaction and span names (#2857)
+- [angular] ref: Strip query and fragment from Angular tracing URLs (#2874)
+- [tracing] ref: Simplify `shouldCreateSpanForRequest` (#2867)
 
 ## 5.22.3
 
