@@ -26,7 +26,7 @@ interface WrapperOptions {
   rethrowAfterCapture: boolean;
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
-  timeoutWarning: number;
+  timeoutWarningLimit: number;
 }
 
 /**
@@ -117,7 +117,7 @@ export const wrapHandler = <TEvent = any, TResult = any>(
   handler: Handler,
   handlerOptions: Partial<WrapperOptions> = {},
 ): Handler => {
-  const options = {
+  const options: WrapperOptions = {
     flushTimeout: 2000,
     rethrowAfterCapture: true,
     callbackWaitsForEmptyEventLoop: false,
