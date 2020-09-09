@@ -32,6 +32,7 @@
     "packages/minimal",
     "packages/node",
     "packages/react",
+    "packages/serverless",
     "packages/tracing",
     "packages/types",
     "packages/typescript",
