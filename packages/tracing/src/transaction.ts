@@ -68,6 +68,7 @@ export class Transaction extends SpanClass {
       this.name = '<unlabeled transaction>';
     }
 
+    // just sets the end timestamp
     super.finish(endTimestamp);
 
     if (this.sampled !== true) {

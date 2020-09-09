@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Event, Integration, StackFrame, WrappedFunction } from '@sentry/types';
 
-import { isString } from './is';
+import { dynamicRequire, isNodeEnv } from './node';
 import { snipLine } from './string';
 
 /** Internal */
@@ -19,26 +19,6 @@ interface SentryGlobal {
     hub: any;
     logger: any;
   };
-}
-
-/**
- * Requires a module which is protected against bundler minification.
- *
- * @param request The module path to resolve
- */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function dynamicRequire(mod: any, request: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return mod.require(request);
-}
-
-/**
- * Checks whether we're in the Node.js or Browser environment
- *
- * @returns Answer to given question
- */
-export function isNodeEnv(): boolean {
-  return Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
 }
 
 const fallbackGlobalObject = {};
@@ -177,12 +157,14 @@ export function consoleSandbox(callback: () => any): any {
     return callback();
   }
 
-  const originalConsole = global.console as ExtensibleConsole;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const originalConsole = (global as any).console as ExtensibleConsole;
   const wrappedLevels: { [key: string]: any } = {};
 
   // Restore all wrapped console methods
   levels.forEach(level => {
-    if (level in global.console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
       wrappedLevels[level] = originalConsole[level] as WrappedFunction;
       originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
     }
@@ -250,103 +232,6 @@ export function getLocationHref(): string {
   } catch (oO) {
     return '';
   }
-}
-
-/**
- * Given a child DOM element, returns a query-selector statement describing that
- * and its ancestors
- * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-export function htmlTreeAsString(elem: unknown): string {
-  type SimpleNode = {
-    parentNode: SimpleNode;
-  } | null;
-
-  // try/catch both:
-  // - accessing event.target (see getsentry/raven-js#838, #768)
-  // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
-  // - can throw an exception in some circumstances.
-  try {
-    let currentElem = elem as SimpleNode;
-    const MAX_TRAVERSE_HEIGHT = 5;
-    const MAX_OUTPUT_LEN = 80;
-    const out = [];
-    let height = 0;
-    let len = 0;
-    const separator = ' > ';
-    const sepLength = separator.length;
-    let nextStr;
-
-    // eslint-disable-next-line no-plusplus
-    while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-      nextStr = _htmlElementAsString(currentElem);
-      // bail out if
-      // - nextStr is the 'html' element
-      // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
-      //   (ignore this limit if we are on the first iteration)
-      if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
-        break;
-      }
-
-      out.push(nextStr);
-
-      len += nextStr.length;
-      currentElem = currentElem.parentNode;
-    }
-
-    return out.reverse().join(separator);
-  } catch (_oO) {
-    return '<unknown>';
-  }
-}
-
-/**
- * Returns a simple, query-selector representation of a DOM element
- * e.g. [HTMLElement] => input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-function _htmlElementAsString(el: unknown): string {
-  const elem = el as {
-    tagName?: string;
-    id?: string;
-    className?: string;
-    getAttribute(key: string): string;
-  };
-
-  const out = [];
-  let className;
-  let classes;
-  let key;
-  let attr;
-  let i;
-
-  if (!elem || !elem.tagName) {
-    return '';
-  }
-
-  out.push(elem.tagName.toLowerCase());
-  if (elem.id) {
-    out.push(`#${elem.id}`);
-  }
-
-  // eslint-disable-next-line prefer-const
-  className = elem.className;
-  if (className && isString(className)) {
-    classes = className.split(/\s+/);
-    for (i = 0; i < classes.length; i++) {
-      out.push(`.${classes[i]}`);
-    }
-  }
-  const allowedAttrs = ['type', 'name', 'title', 'alt'];
-  for (i = 0; i < allowedAttrs.length; i++) {
-    key = allowedAttrs[i];
-    attr = elem.getAttribute(key);
-    if (attr) {
-      out.push(`[${key}="${attr}"]`);
-    }
-  }
-  return out.join('');
 }
 
 const INITIAL_TIME = Date.now();
@@ -468,24 +353,6 @@ export function parseRetryAfterHeader(now: number, header?: string | number | nu
   }
 
   return defaultRetryAfter;
-}
-
-const defaultFunctionName = '<anonymous>';
-
-/**
- * Safely extract function name from itself
- */
-export function getFunctionName(fn: unknown): string {
-  try {
-    if (!fn || typeof fn !== 'function') {
-      return defaultFunctionName;
-    }
-    return fn.name || defaultFunctionName;
-  } catch (e) {
-    // Just accessing custom props in some Selenium environments
-    // can cause a "Permission denied" exception (see raven-js#495).
-    return defaultFunctionName;
-  }
 }
 
 /**

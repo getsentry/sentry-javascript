@@ -6,10 +6,9 @@ exports.onClientEntry = function(_, pluginParams) {
     return;
   }
 
-  const tracesSampleRate = pluginParams.tracesSampleRate !== undefined ? pluginParams.tracesSampleRate : 0;
   const integrations = [...(pluginParams.integrations || [])];
 
-  if (tracesSampleRate && !integrations.some(ele => ele.name === 'BrowserTracing')) {
+  if (Tracing.hasTracingEnabled(pluginParams) && !integrations.some(ele => ele.name === 'BrowserTracing')) {
     integrations.push(new Tracing.Integrations.BrowserTracing(pluginParams.browserTracingOptions));
   }
 
@@ -22,7 +21,6 @@ exports.onClientEntry = function(_, pluginParams) {
     // eslint-disable-next-line no-undef
     dsn: __SENTRY_DSN__,
     ...pluginParams,
-    tracesSampleRate,
     integrations,
   });
 

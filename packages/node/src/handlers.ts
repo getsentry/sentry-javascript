@@ -1,10 +1,16 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { Span } from '@sentry/tracing';
+import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event } from '@sentry/types';
-import { forget, isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
-import * as cookie from 'cookie';
+import {
+  extractNodeRequestData,
+  forget,
+  isPlainObject,
+  isString,
+  logger,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import * as os from 'os';
@@ -34,26 +40,16 @@ export function tracingHandler(): (
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = req.url && stripUrlQueryAndFragment(req.url);
 
-    let traceId;
-    let parentSpanId;
-    let sampled;
-
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
+    let traceparentData;
     if (req.headers && isString(req.headers['sentry-trace'])) {
-      const span = Span.fromTraceparent(req.headers['sentry-trace'] as string);
-      if (span) {
-        traceId = span.traceId;
-        parentSpanId = span.parentSpanId;
-        sampled = span.sampled;
-      }
+      traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
     }
 
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,
       op: 'http.server',
-      parentSpanId,
-      sampled,
-      traceId,
+      ...traceparentData,
     });
 
     // We put the transaction on the scope so users can attach children to it
@@ -118,85 +114,6 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
   } catch (_oO) {
     return undefined;
   }
-}
-
-/** Default request keys that'll be used to extract data from the request */
-const DEFAULT_REQUEST_KEYS = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-
-/** JSDoc */
-function extractRequestData(req: { [key: string]: any }, keys: boolean | string[]): { [key: string]: string } {
-  const request: { [key: string]: any } = {};
-  const attributes = Array.isArray(keys) ? keys : DEFAULT_REQUEST_KEYS;
-
-  // headers:
-  //   node, express: req.headers
-  //   koa: req.header
-  const headers = (req.headers || req.header || {}) as {
-    host?: string;
-    cookie?: string;
-  };
-  // method:
-  //   node, express, koa: req.method
-  const method = req.method;
-  // host:
-  //   express: req.hostname in > 4 and req.host in < 4
-  //   koa: req.host
-  //   node: req.headers.host
-  const host = req.hostname || req.host || headers.host || '<no host>';
-  // protocol:
-  //   node: <n/a>
-  //   express, koa: req.protocol
-  const protocol =
-    req.protocol === 'https' || req.secure || ((req.socket || {}) as { encrypted?: boolean }).encrypted
-      ? 'https'
-      : 'http';
-  // url (including path and query string):
-  //   node, express: req.originalUrl
-  //   koa: req.url
-  const originalUrl = (req.originalUrl || req.url) as string;
-  // absolute url
-  const absoluteUrl = `${protocol}://${host}${originalUrl}`;
-
-  attributes.forEach(key => {
-    switch (key) {
-      case 'headers':
-        request.headers = headers;
-        break;
-      case 'method':
-        request.method = method;
-        break;
-      case 'url':
-        request.url = absoluteUrl;
-        break;
-      case 'cookies':
-        // cookies:
-        //   node, express, koa: req.headers.cookie
-        request.cookies = cookie.parse(headers.cookie || '');
-        break;
-      case 'query_string':
-        // query string:
-        //   node: req.url (raw)
-        //   express, koa: req.query
-        request.query_string = url.parse(originalUrl || '', false).query;
-        break;
-      case 'data':
-        if (method === 'GET' || method === 'HEAD') {
-          break;
-        }
-        // body data:
-        //   node, express, koa: req.body
-        if (req.body !== undefined) {
-          request.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
-        }
-        break;
-      default:
-        if ({}.hasOwnProperty.call(req, key)) {
-          request[key] = (req as { [key: string]: any })[key];
-        }
-    }
-  });
-
-  return request;
 }
 
 /** Default user keys that'll be used to extract data from the request */
@@ -277,9 +194,13 @@ export function parseRequest(
   }
 
   if (options.request) {
+    // if the option value is `true`, use the default set of keys by not passing anything to `extractNodeRequestData()`
+    const extractedRequestData = Array.isArray(options.request)
+      ? extractNodeRequestData(req, options.request)
+      : extractNodeRequestData(req);
     event.request = {
       ...event.request,
-      ...extractRequestData(req, options.request),
+      ...extractedRequestData,
     };
   }
 

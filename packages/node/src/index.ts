@@ -57,13 +57,10 @@ const INTEGRATIONS = {
 
 export { INTEGRATIONS as Integrations, Transports, Handlers };
 
-// We need to patch domain on the global __SENTRY__ object to make it work for node
-// if we don't do this, browser bundlers will have troubles resolving require('domain')
+// We need to patch domain on the global __SENTRY__ object to make it work for node in cross-platform packages like
+// @sentry/hub. If we don't do this, browser bundlers will have troubles resolving `require('domain')`.
 const carrier = getMainCarrier();
 if (carrier.__SENTRY__) {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
-  if (!carrier.__SENTRY__.extensions.domain) {
-    // @ts-ignore domain is missing from extensions Type
-    carrier.__SENTRY__.extensions.domain = domain;
-  }
+  carrier.__SENTRY__.extensions.domain = carrier.__SENTRY__.extensions.domain || domain;
 }

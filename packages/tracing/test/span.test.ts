@@ -100,42 +100,6 @@ describe('Span', () => {
     });
   });
 
-  describe('fromTraceparent', () => {
-    test('no sample', () => {
-      const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb') as any;
-
-      expect(from.parentSpanId).toEqual('bbbbbbbbbbbbbbbb');
-      expect(from.traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-      expect(from.spanId).not.toEqual('bbbbbbbbbbbbbbbb');
-      expect(from.sampled).toBeUndefined();
-    });
-    test('sample true', () => {
-      const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-1') as any;
-      expect(from.sampled).toBeTruthy();
-    });
-
-    test('sample false', () => {
-      const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-0') as any;
-      expect(from.sampled).toBeFalsy();
-    });
-
-    test('just sample rate', () => {
-      const from = Span.fromTraceparent('0') as any;
-      expect(from.traceId).toHaveLength(32);
-      expect(from.spanId).toHaveLength(16);
-      expect(from.sampled).toBeFalsy();
-
-      const from2 = Span.fromTraceparent('1') as any;
-      expect(from2.traceId).toHaveLength(32);
-      expect(from2.spanId).toHaveLength(16);
-      expect(from2.sampled).toBeTruthy();
-    });
-
-    test('invalid', () => {
-      expect(Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
-    });
-  });
-
   describe('toJSON', () => {
     test('simple', () => {
       const span = JSON.parse(

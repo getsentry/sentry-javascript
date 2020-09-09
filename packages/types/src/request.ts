@@ -1,4 +1,6 @@
-/** JSDoc */
+/**
+ * Request data included in an event as sent to Sentry
+ */
 export interface Request {
   url?: string;
   method?: string;

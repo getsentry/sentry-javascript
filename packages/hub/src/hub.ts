@@ -3,6 +3,7 @@ import {
   Breadcrumb,
   BreadcrumbHint,
   Client,
+  CustomSamplingContext,
   Event,
   EventHint,
   Extra,
@@ -19,7 +20,7 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
-import { Carrier, Layer } from './interfaces';
+import { Carrier, DomainAsCarrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
 /**
@@ -369,8 +370,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startTransaction(context: TransactionContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context);
+  public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
+    return this._callExtensionMethod('startTransaction', context, customSamplingContext);
   }
 
   /**
@@ -457,21 +458,23 @@ export function getCurrentHub(): Hub {
 }
 
 /**
+ * Returns the active domain, if one exists
+ *
+ * @returns The domain, or undefined if there is no active domain
+ */
+export function getActiveDomain(): DomainAsCarrier | undefined {
+  const sentry = getMainCarrier().__SENTRY__;
+
+  return sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
+}
+
+/**
  * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
  * @returns discovered hub
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    const property = 'domain';
-    const carrier = getMainCarrier();
-    const sentry = carrier.__SENTRY__;
-    if (!sentry || !sentry.extensions || !sentry.extensions[property]) {
-      return getHubFromCarrier(registry);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const domain = sentry.extensions[property] as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const activeDomain = domain.active;
+    const activeDomain = getActiveDomain();
 
     // If there's no active domain, just return global hub
     if (!activeDomain) {

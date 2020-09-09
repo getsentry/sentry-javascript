@@ -4,14 +4,6 @@ import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
 
-export const TRACEPARENT_REGEXP = new RegExp(
-  '^[ \\t]*' + // whitespace
-  '([0-9a-f]{32})?' + // trace_id
-  '-?([0-9a-f]{16})?' + // span_id
-  '-?([01])?' + // sampled
-    '[ \\t]*$', // whitespace
-);
-
 /**
  * Keeps track of finished spans for a given transaction
  * @internal
@@ -151,32 +143,6 @@ export class Span implements SpanInterface, SpanContext {
     if (spanContext.endTimestamp) {
       this.endTimestamp = spanContext.endTimestamp;
     }
-  }
-
-  /**
-   * Continues a trace from a string (usually the header).
-   * @param traceparent Traceparent string
-   */
-  public static fromTraceparent(
-    traceparent: string,
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): Span | undefined {
-    const matches = traceparent.match(TRACEPARENT_REGEXP);
-    if (matches) {
-      let sampled: boolean | undefined;
-      if (matches[3] === '1') {
-        sampled = true;
-      } else if (matches[3] === '0') {
-        sampled = false;
-      }
-      return new Span({
-        ...spanContext,
-        parentSpanId: matches[2],
-        sampled,
-        traceId: matches[1],
-      });
-    }
-    return undefined;
   }
 
   /**

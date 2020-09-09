@@ -2,6 +2,7 @@ import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { LogLevel } from './loglevel';
+import { SamplingContext } from './transaction';
 import { Transport, TransportClass, TransportOptions } from './transport';
 
 /** Base configuration options for every SDK. */
@@ -78,16 +79,6 @@ export interface Options {
   /** A global sample rate to apply to all events (0 - 1). */
   sampleRate?: number;
 
-  /**
-   * Sample rate to determine trace sampling.
-   *
-   * 0.0 = 0% chance of a given trace being sent (send no traces)
-   * 1.0 = 100% chance of a given trace being sent (send all traces)
-   *
-   * Default: 0.0
-   */
-  tracesSampleRate?: number;
-
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
 
@@ -114,9 +105,37 @@ export interface Options {
    */
   shutdownTimeout?: number;
 
+  /**
+   * Options which are in beta, or otherwise not guaranteed to be stable.
+   */
   _experiments?: {
     [key: string]: any;
   };
+
+  /**
+   * Sample rate to determine trace sampling.
+   *
+   * 0.0 = 0% chance of a given trace being sent (send no traces) 1.0 = 100% chance of a given trace being sent (send
+   * all traces)
+   *
+   * Tracing is enabled if either this or `tracesSampler` is defined. If both are defined, `tracesSampleRate` is
+   * ignored.
+   */
+  tracesSampleRate?: number;
+
+  /**
+   * Function to compute tracing sample rate dynamically and filter unwanted traces.
+   *
+   * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
+   * ignored.
+   *
+   * Will automatically be passed a context object of default and optional custom data. See
+   * {@link Transaction.samplingContext} and {@link Hub.startTransaction}.
+   *
+   * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent). Returning `true` is
+   * equivalent to returning 1 and returning `false` is equivalent to returning 0.
+   */
+  tracesSampler?(samplingContext: SamplingContext): number | boolean;
 
   /**
    * A callback invoked during event submission, allowing to optionally modify
