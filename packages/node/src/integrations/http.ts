@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span, Transaction } from '@sentry/types';
-import { fill, parseSemver, stripUrlQueryAndFragment } from '@sentry/utils';
+import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
@@ -159,20 +159,17 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
  * Assemble a URL to be used for breadcrumbs and spans.
  *
  * @param url URL string or object containing the component parts
- * @param strip Whether or not to strip querystring and fragment. Defaults to false.
- *
  * @returns Fully-formed URL
  */
-export function extractUrl(url: string | http.ClientRequestArgs, strip: boolean = false): string {
+export function extractUrl(url: string | http.ClientRequestArgs): string {
   if (typeof url === 'string') {
-    return strip ? stripUrlQueryAndFragment(url) : url;
+    return url;
   }
-
   const protocol = url.protocol || '';
   const hostname = url.hostname || url.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
   const port = !url.port || url.port === 80 || url.port === 443 ? '' : `:${url.port}`;
-  const path = url.path ? (strip ? stripUrlQueryAndFragment(url.path) : url.path) : '/';
+  const path = url.path ? url.path : '/';
 
   // internal routes end up with too many slashes
   return `${protocol}//${hostname}${port}${path}`.replace('///', '/');
