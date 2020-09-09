@@ -9,7 +9,7 @@
 
 ## Links
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [Official SDK Docs](https://docs.sentry.io/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## General
@@ -19,7 +19,7 @@ methods available in `@sentry/node` can be imported from `@sentry/serverless`.
 
 Currently supported environment:
 
-- AWS Lambda
+*AWS Lambda*
 
 To use this SDK, call `Sentry.init(options)` at the very beginning of your JavaScript file.
 
