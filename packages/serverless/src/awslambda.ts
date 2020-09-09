@@ -26,6 +26,7 @@ function addServerlessEventProcessor(scope: Scope): void {
     event.sdk = {
       ...event.sdk,
       name: 'sentry.javascript.serverless',
+      integrations: [...((event.sdk && event.sdk.integrations) || []), 'AWSLambda'],
       packages: [
         ...((event.sdk && event.sdk.packages) || []),
         {
