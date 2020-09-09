@@ -68,7 +68,11 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
   scope.setContext('aws.cloudwatch.logs', {
     log_group: context.logGroupName,
     log_stream: context.logStreamName,
-    url: `https://${process.env.AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${process.env.AWS_REGION}#logsV2:log-groups/log-group/$252Faws$252Flambda$252F${process.env.AWS_LAMBDA_FUNCTION_NAME}`,
+    url: `https://console.aws.amazon.com/cloudwatch/home?region=${
+      process.env.AWS_REGION
+    }#logsV2:log-groups/log-group/${encodeURIComponent(context.logGroupName)}/log-events/${encodeURIComponent(
+      context.logStreamName,
+    )}`,
   });
 }
 
