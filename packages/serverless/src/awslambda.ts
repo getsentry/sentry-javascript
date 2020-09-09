@@ -3,9 +3,18 @@ import { addExceptionMechanism } from '@sentry/utils';
 import { Callback, Context, Handler } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
-import { types } from 'util';
 
-const { isPromise } = types;
+// https://www.npmjs.com/package/aws-lambda-consumer
+type SyncHandler<T extends Handler> = (
+  event: Parameters<T>[0],
+  context: Parameters<T>[1],
+  callback: Parameters<T>[2],
+) => void;
+
+export type AsyncHandler<T extends Handler> = (
+  event: Parameters<T>[0],
+  context: Parameters<T>[1],
+) => Promise<NonNullable<Parameters<Parameters<T>[2]>[1]>>;
 
 interface WrapperOptions {
   flushTimeout: number;
@@ -113,7 +122,7 @@ export const wrapHandler = <TEvent = any, TResult = any>(
   };
   let timeoutWarningTimer: NodeJS.Timeout;
 
-  return (event: TEvent, context: Context, callback: Callback<TResult>) => {
+  return async (event: TEvent, context: Context, callback: Callback<TResult>) => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
     // In seconds. You cannot go any more granular than this in AWS Lambda.
@@ -141,42 +150,47 @@ export const wrapHandler = <TEvent = any, TResult = any>(
       }, timeoutWarningDelay);
     }
 
-    try {
-      const callbackWrapper: Callback<TResult> = (...args) => {
+    const callbackWrapper = <TResult>(
+      callback: Callback<TResult>,
+      resolve: (value?: unknown) => void,
+      reject: (reason?: unknown) => void,
+    ): Callback<TResult> => {
+      return (...args) => {
         clearTimeout(timeoutWarningTimer);
-
         if (args[0] === null || args[0] === undefined) {
-          return callback(...args);
+          resolve(callback(...args));
         } else {
-          return captureExceptionAsync(args[0], context, options).then(
-            () => callback(...args),
-            () => callback(...args),
+          captureExceptionAsync(args[0], context, options).then(
+            () => reject(callback(...args)),
+            () => reject(callback(...args)),
           );
         }
       };
+    };
 
-      let handlerRv = handler(event, context, callbackWrapper);
-
-      if (isPromise(handlerRv)) {
-        handlerRv = handlerRv as Promise<TResult>;
-        return handlerRv.catch(e => {
-          clearTimeout(timeoutWarningTimer);
-          return captureExceptionAsync(e, context, options).then(() => {
-            if (options.rethrowAfterCapture) {
-              throw e;
-            }
-          });
-        });
-      } else {
-        return handlerRv;
-      }
+    try {
+      // AWSLambda is like Express. It makes a distinction about handlers based on it's last argument
+      // async (event) => async handler
+      // async (event, context) => async handler
+      // (event, context, callback) => sync handler
+      const isSyncHandler = handler.length === 3;
+      const handlerRv = isSyncHandler
+        ? await new Promise((resolve, reject) => {
+            (handler as SyncHandler<Handler<TEvent, TResult>>)(
+              event,
+              context,
+              callbackWrapper(callback, resolve, reject),
+            );
+          })
+        : await (handler as AsyncHandler<Handler<TEvent, TResult>>)(event, context);
+      clearTimeout(timeoutWarningTimer);
+      return handlerRv;
     } catch (e) {
       clearTimeout(timeoutWarningTimer);
-      return captureExceptionAsync(e, context, options).then(() => {
-        if (options.rethrowAfterCapture) {
-          throw e;
-        }
-      });
+      await captureExceptionAsync(e, context, options);
+      if (options.rethrowAfterCapture) {
+        throw e;
+      }
     }
   };
 };
