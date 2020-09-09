@@ -1,10 +1,9 @@
 {
   "extends": "../../tsconfig.json",
+  "include": ["src/**/*"],
   "compilerOptions": {
-    "esModuleInterop": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "jsx": "react"
-  },
-  "include": ["src/**/*"]
+    "target": "ES2018"
+  }
 }

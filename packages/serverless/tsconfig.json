@@ -4,6 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node"]
+    "types": ["node"],
+    "target": "ES2018"
   }
 }

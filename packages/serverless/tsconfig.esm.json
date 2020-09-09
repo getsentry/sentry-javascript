@@ -1,10 +1,9 @@
 {
   "extends": "../../tsconfig.esm.json",
+  "include": ["src/**/*"],
   "compilerOptions": {
-    "esModuleInterop": true,
     "baseUrl": ".",
     "outDir": "esm",
-    "jsx": "react"
-  },
-  "include": ["src/**/*"]
+    "target": "ES2018"
+  }
 }
