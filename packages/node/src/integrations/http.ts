@@ -101,6 +101,9 @@ function _createWrappedHandlerMaker(
         return originalHandler.apply(this, arguments);
       }
 
+      // TODO(kmclb): The cache below mirrors the one on the browser side, but in a node context it may actually break
+      // things, so figure that out and consider removing it
+
       // apply user-provided filter (if any) and cache result for next time
       const spanDecisionCache: { [key: string]: boolean } = {};
       const shouldStartSpan = (url: string): boolean => {
