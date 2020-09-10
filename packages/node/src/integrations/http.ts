@@ -234,7 +234,8 @@ function cleanDescription(
 }
 
 /**
- * Checks whether given url points to Sentry server
+ * Checks whether given url points to a Sentry server by comparing it with the host in the DSN.
+ *
  * @param url url to verify
  */
 function isSentryRequest(url: string): boolean {
