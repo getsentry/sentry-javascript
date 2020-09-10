@@ -51,6 +51,13 @@ export class Offline implements Integration {
     this.offlineEventStore = localForage.createInstance({
       name: 'sentry/offlineEventStore',
     });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    this.hub = getCurrentHub();
 
     if ('addEventListener' in this.global) {
       this.global.addEventListener('online', () => {
@@ -59,13 +66,6 @@ export class Offline implements Integration {
         });
       });
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this.hub = getCurrentHub();
 
     addGlobalEventProcessor((event: Event) => {
       if (this.hub && this.hub.getIntegration(Offline)) {
