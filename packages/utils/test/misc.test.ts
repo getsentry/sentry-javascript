@@ -1,6 +1,12 @@
 import { StackFrame } from '@sentry/types';
 
-import { addContextToFrame, getEventDescription, getGlobalObject, parseRetryAfterHeader } from '../src/misc';
+import {
+  addContextToFrame,
+  getEventDescription,
+  getGlobalObject,
+  parseRetryAfterHeader,
+  stripUrlQueryAndFragment,
+} from '../src/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {
@@ -208,5 +214,26 @@ describe('addContextToFrame', () => {
     expect(frame.pre_context).toEqual(['10: j', '11: k', '12: l', '13: m', '14: n']);
     expect(frame.context_line).toEqual('14: n');
     expect(frame.post_context).toEqual([]);
+  });
+});
+
+describe('stripQueryStringAndFragment', () => {
+  const urlString = 'http://dogs.are.great:1231/yay/';
+  const queryString = '?furry=yes&funny=very';
+  const fragment = '#adoptnotbuy';
+
+  it('strips query string from url', () => {
+    const urlWithQueryString = `${urlString}${queryString}`;
+    expect(stripUrlQueryAndFragment(urlWithQueryString)).toBe(urlString);
+  });
+
+  it('strips fragment from url', () => {
+    const urlWithFragment = `${urlString}${fragment}`;
+    expect(stripUrlQueryAndFragment(urlWithFragment)).toBe(urlString);
+  });
+
+  it('strips query string and fragment from url', () => {
+    const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
+    expect(stripUrlQueryAndFragment(urlWithQueryStringAndFragment)).toBe(urlString);
   });
 });
