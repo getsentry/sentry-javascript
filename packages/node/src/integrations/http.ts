@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span, Transaction } from '@sentry/types';
-import { fill, parseSemver, stripUrlQueryAndFragment } from '@sentry/utils';
+import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
@@ -158,18 +158,18 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
 /**
  * Assemble a URL to be used for breadcrumbs and spans.
  *
- * @param requestArgs URL string or object containing the component parts
+ * @param url URL string or object containing the component parts
  * @returns Fully-formed URL
  */
-export function extractUrl(requestArgs: string | http.ClientRequestArgs): string {
-  if (typeof requestArgs === 'string') {
-    return stripUrlQueryAndFragment(requestArgs);
+export function extractUrl(url: string | http.ClientRequestArgs): string {
+  if (typeof url === 'string') {
+    return url;
   }
-  const protocol = requestArgs.protocol || '';
-  const hostname = requestArgs.hostname || requestArgs.host || '';
+  const protocol = url.protocol || '';
+  const hostname = url.hostname || url.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-  const port = !requestArgs.port || requestArgs.port === 80 || requestArgs.port === 443 ? '' : `:${requestArgs.port}`;
-  const path = requestArgs.path ? stripUrlQueryAndFragment(requestArgs.path) : '/';
+  const port = !url.port || url.port === 80 || url.port === 443 ? '' : `:${url.port}`;
+  const path = url.path ? url.path : '/';
 
   // internal routes end up with too many slashes
   return `${protocol}//${hostname}${port}${path}`.replace('///', '/');
