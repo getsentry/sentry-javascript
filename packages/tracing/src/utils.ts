@@ -41,3 +41,6 @@ export function extractTraceparentData(traceparent: string): TraceparentData | u
   }
   return undefined;
 }
+
+// so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
+export { stripUrlQueryAndFragment } from '@sentry/utils';
