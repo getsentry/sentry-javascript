@@ -21,6 +21,6 @@ module.exports = [
     name: '@sentry/browser + @sentry/tracing - CDN Bundle (gzipped)',
     path: 'packages/tracing/build/bundle.tracing.min.js',
     gzip: true,
-    limit: '23 KB',
+    limit: '25 KB',
   },
 ];
