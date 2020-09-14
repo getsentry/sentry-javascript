@@ -313,7 +313,7 @@ export class Vue implements Integration {
       }
     };
 
-    // Each compomnent has it's own scope, so all activities are only related to one of them
+    // Each component has it's own scope, so all activities are only related to one of them
     this._options.tracingOptions.hooks.forEach(operation => {
       // Retrieve corresponding hooks from Vue lifecycle.
       // eg. mount => ['beforeMount', 'mounted']
