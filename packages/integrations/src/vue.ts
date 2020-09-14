@@ -151,7 +151,9 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: Partial<IntegrationOptions>) {
+  public constructor(
+    options: Partial<Omit<IntegrationOptions, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }>,
+  ) {
     this._options = {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Vue: getGlobalObject<any>().Vue,
