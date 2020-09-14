@@ -4,8 +4,8 @@ import * as React from 'react';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
-export type FallbackRender = (fallback: {
-  error: Error | null;
+export type FallbackRender = (errorData: {
+  error: Error;
   componentStack: string | null;
   eventId: string | null;
   resetError(): void;
