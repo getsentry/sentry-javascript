@@ -1,6 +1,6 @@
+import { Event } from '@sentry/types';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
-import { Event } from '@sentry/types';
 import { Callback, Handler } from 'aws-lambda';
 
 import * as Sentry from '../src';
@@ -309,7 +309,7 @@ describe('AWSLambda', () => {
       },
     };
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce((cb) => cb(eventWithSomeData));
+    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
     await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     expect(eventWithSomeData).toEqual({
       exception: {
@@ -344,7 +344,7 @@ describe('AWSLambda', () => {
       },
     };
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce((cb) => cb(eventWithoutAnyData));
+    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
     await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     expect(eventWithoutAnyData).toEqual({
       exception: {
