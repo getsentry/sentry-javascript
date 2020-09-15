@@ -2,7 +2,7 @@ import { test, module } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { find, click, visit } from '@ember/test-helpers';
 import { run } from '@ember/runloop';
-import { setupSentryTest } from '../helpers/setup-sentry-test';
+import { setupSentryTest } from '../helpers/setup-sentry';
 
 const defaultAssertOptions = {
   method: 'POST',

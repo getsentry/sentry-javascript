@@ -1,7 +1,7 @@
 import { test, module } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { find, click, visit } from '@ember/test-helpers';
-import { setupSentryTest } from '../helpers/setup-sentry-test';
+import { setupSentryTest } from '../helpers/setup-sentry';
 
 const SLOW_TRANSITION_WAIT = 3000;
 
