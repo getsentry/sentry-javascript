@@ -74,14 +74,8 @@ describe('AWSLambda', () => {
       const wrappedHandlerWithRethrow = wrapHandler(handler, { rethrowAfterCapture: true });
       const wrappedHandlerWithoutRethrow = wrapHandler(handler, { rethrowAfterCapture: false });
 
-      try {
-        await wrappedHandlerWithRethrow(fakeEvent, fakeContext, fakeCallback);
-      } catch (e) {
-        expect(e).toBe(error);
-        expect(Sentry.flush).toBeCalledTimes(1);
-      }
-
-      await wrappedHandlerWithoutRethrow(fakeEvent, fakeContext, fakeCallback);
+      await expect(wrappedHandlerWithRethrow(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(error);
+      await expect(wrappedHandlerWithoutRethrow(fakeEvent, fakeContext, fakeCallback)).resolves.not.toThrow();
       expect(Sentry.flush).toBeCalledTimes(2);
     });
 
@@ -315,7 +309,7 @@ describe('AWSLambda', () => {
       },
     };
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
+    Sentry.fakeScope.addEventProcessor.mockImplementationOnce((cb) => cb(eventWithSomeData));
     await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     expect(eventWithSomeData).toEqual({
       exception: {
@@ -350,7 +344,7 @@ describe('AWSLambda', () => {
       },
     };
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
+    Sentry.fakeScope.addEventProcessor.mockImplementationOnce((cb) => cb(eventWithoutAnyData));
     await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     expect(eventWithoutAnyData).toEqual({
       exception: {
