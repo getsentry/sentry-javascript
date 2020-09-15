@@ -22,13 +22,14 @@ export class UserAgent implements Integration {
   public setupOnce(): void {
     addGlobalEventProcessor((event: Event) => {
       if (getCurrentHub().getIntegration(UserAgent)) {
-        if (!global.navigator || !global.location) {
+        if (!global.navigator || !global.location || !global.document) {
           return event;
         }
 
         const request = event.request || {};
         request.url = request.url || global.location.href;
         request.headers = request.headers || {};
+        request.headers['Referer'] = global.document.referrer;
         request.headers['User-Agent'] = global.navigator.userAgent;
 
         return {
