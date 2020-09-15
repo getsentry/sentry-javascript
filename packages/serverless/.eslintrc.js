@@ -16,6 +16,15 @@ module.exports = {
         project: './tsconfig.json',
       },
     },
+    {
+      files: ['test/**'],
+      rules: {
+        'no-empty': 'off',
+        '@typescript-eslint/no-empty-function': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
+      },
+    },
   ],
   rules: {
     '@typescript-eslint/no-var-requires': 'off',

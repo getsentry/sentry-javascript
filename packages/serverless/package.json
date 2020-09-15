@@ -20,13 +20,14 @@
     "@sentry/node": "5.23.0",
     "@sentry/types": "5.23.0",
     "@sentry/utils": "5.23.0",
-    "@types/aws-lambda": "^8.10.62",
-    "@types/node": "^14.6.4",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "5.23.0",
+    "@types/aws-lambda": "^8.10.62",
+    "@types/node": "^14.6.4",
     "eslint": "7.6.0",
+    "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
     "prettier": "1.19.0",
     "rimraf": "^2.6.3",
@@ -51,5 +52,25 @@
     "test:watch": "jest --watch --passWithNoTests",
     "pack": "npm pack"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "jest": {
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "./tsconfig.json",
+        "diagnostics": false
+      }
+    }
+  }
 }
