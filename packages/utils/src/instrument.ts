@@ -180,6 +180,8 @@ function instrumentFetch(): void {
   });
 }
 
+type XHRSendInput = null | Blob | BufferSource | FormData | URLSearchParams | string;
+
 /** JSDoc */
 interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   [key: string]: any;
@@ -187,6 +189,7 @@ interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
     method?: string;
     url?: string;
     status_code?: number;
+    body?: XHRSendInput;
   };
 }
 
@@ -220,6 +223,9 @@ function instrumentXHR(): void {
     return;
   }
 
+  // Poor man implementation of ES6 `Map` by tracking and keeping in sync key and value separately.
+  const requestKeys: XMLHttpRequest[] = [];
+  const requestValues: Array<any>[] = [];
   const xhrproto = XMLHttpRequest.prototype;
 
   fill(xhrproto, 'open', function(originalOpen: () => void): () => void {
@@ -250,6 +256,21 @@ function instrumentXHR(): void {
           } catch (e) {
             /* do nothing */
           }
+
+          try {
+            const requestPos = requestKeys.indexOf(xhr);
+            if (requestPos !== -1) {
+              // Make sure to pop both, key and value to keep it in sync.
+              requestKeys.splice(requestPos);
+              const args = requestValues.splice(requestPos)[0];
+              if (xhr.__sentry_xhr__ && args[0] !== undefined) {
+                xhr.__sentry_xhr__.body = args[0] as XHRSendInput;
+              }
+            }
+          } catch (e) {
+            /* do nothing */
+          }
+
           triggerHandlers('xhr', {
             args,
             endTimestamp: Date.now(),
@@ -276,6 +297,9 @@ function instrumentXHR(): void {
 
   fill(xhrproto, 'send', function(originalSend: () => void): () => void {
     return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      requestKeys.push(this);
+      requestValues.push(args);
+
       triggerHandlers('xhr', {
         args,
         startTimestamp: Date.now(),

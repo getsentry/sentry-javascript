@@ -220,6 +220,7 @@ export class Breadcrumbs implements Integration {
         },
         {
           xhr: handlerData.xhr,
+          ...(handlerData.xhr.__sentry_xhr__.body && { input: handlerData.xhr.__sentry_xhr__.body }),
         },
       );
 
