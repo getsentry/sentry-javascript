@@ -5,7 +5,7 @@ import { logger } from '@sentry/utils';
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
-import { extractTraceparentData } from '../utils';
+import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
@@ -14,7 +14,6 @@ import {
   RequestInstrumentationOptions,
 } from './request';
 import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
-import { secToMs } from './utils';
 
 export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
 
