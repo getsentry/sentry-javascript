@@ -82,8 +82,8 @@ Besides the high-level SDKs, this repository contains shared packages, helpers a
 development. If you're thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
 below:
 
-- [`@sentry/apm`](https://github.com/getsentry/sentry-javascript/tree/master/packages/apm): Provides Integrations and
-extensions for APM
+- [`@sentry/tracing`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing): Provides Integrations and
+extensions for Perfromance Monitoring / Tracing
 - [`@sentry/hub`](https://github.com/getsentry/sentry-javascript/tree/master/packages/hub): Global state management of
   SDKs
 - [`@sentry/minimal`](https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal): Minimal SDK for

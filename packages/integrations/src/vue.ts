@@ -151,7 +151,9 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: Partial<IntegrationOptions>) {
+  public constructor(
+    options: Partial<Omit<IntegrationOptions, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }>,
+  ) {
     this._options = {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Vue: getGlobalObject<any>().Vue,
@@ -313,7 +315,7 @@ export class Vue implements Integration {
       }
     };
 
-    // Each compomnent has it's own scope, so all activities are only related to one of them
+    // Each component has it's own scope, so all activities are only related to one of them
     this._options.tracingOptions.hooks.forEach(operation => {
       // Retrieve corresponding hooks from Vue lifecycle.
       // eg. mount => ['beforeMount', 'mounted']
