@@ -80,6 +80,7 @@ describe("breadcrumbs", function() {
         assert.equal(summary.breadcrumbs[0].type, "http");
         assert.equal(summary.breadcrumbs[0].category, "xhr");
         assert.equal(summary.breadcrumbs[0].data.method, "GET");
+        assert.isUndefined(summary.breadcrumbs[0].data.input);
         // To make sure that we are not providing this key for non-post requests
         assert.equal(summary.breadcrumbHints[0].input, undefined);
       });
@@ -109,6 +110,7 @@ describe("breadcrumbs", function() {
         assert.equal(summary.breadcrumbs[0].type, "http");
         assert.equal(summary.breadcrumbs[0].category, "xhr");
         assert.equal(summary.breadcrumbs[0].data.method, "POST");
+        assert.isUndefined(summary.breadcrumbs[0].data.input);
         assert.equal(summary.breadcrumbHints[0].input, '{"foo":"bar"}');
       });
     }
