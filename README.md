@@ -83,7 +83,7 @@ development. If you're thinking about contributing to or creating a JavaScript-b
 below:
 
 - [`@sentry/tracing`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing): Provides Integrations and
-extensions for Perfromance Monitoring / Tracing
+extensions for Performance Monitoring / Tracing
 - [`@sentry/hub`](https://github.com/getsentry/sentry-javascript/tree/master/packages/hub): Global state management of
   SDKs
 - [`@sentry/minimal`](https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal): Minimal SDK for
