@@ -259,7 +259,7 @@ export class MetricsInstrumentation {
         entryList.getEntries().forEach(entry => updateFID(entry as PerformanceEventTiming, po));
       });
 
-      // Observe entries of type `largest-contentful-paint`, including buffered entries,
+      // Observe entries of type `first-input`, including buffered entries,
       // i.e. entries that occurred before calling `observe()` below.
       po.observe({
         buffered: true,
