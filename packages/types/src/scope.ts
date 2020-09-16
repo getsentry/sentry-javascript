@@ -14,7 +14,7 @@ export interface ScopeContext {
   user: User;
   level: Severity;
   extra: { [key: string]: any };
-  contexts: { [key: string]: any };
+  contexts: { [key: string]: Record<any, any> };
   tags: { [key: string]: string };
   fingerprint: string[];
 }
