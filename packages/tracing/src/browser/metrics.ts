@@ -19,7 +19,6 @@ const global = getGlobalObject<Window>();
 export class MetricsInstrumentation {
   private _lcp: Record<string, any> = {};
   private _measurements: Measurements = {};
-  private _enableMeasurements: boolean = true;
 
   private _performanceCursor: number = 0;
 
@@ -32,14 +31,6 @@ export class MetricsInstrumentation {
       this._trackLCP();
       this._trackFID();
     }
-  }
-
-  /**
-   * Enable or disable attachment of measurements to transactions.
-   * @hidden
-   */
-  public enableMeasurements(enable: boolean): void {
-    this._enableMeasurements = enable;
   }
 
   /** Add performance related spans to a transaction */
@@ -145,7 +136,7 @@ export class MetricsInstrumentation {
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
     // Measurements are only available for pageload transactions
-    if (transaction.op === 'pageload' && this._enableMeasurements) {
+    if (transaction.op === 'pageload') {
       transaction.setMeasurements(this._measurements);
     }
   }

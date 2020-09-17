@@ -21,14 +21,6 @@ export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   /**
-   * Flag to attach measurements to transactions.
-   *
-   * Default: true
-   * @hidden
-   */
-  enableMeasurements: boolean;
-
-  /**
    * The time to wait in ms until the transaction will be finished. The transaction will use the end timestamp of
    * the last finished span as the endtime for the transaction.
    * Time is in ms.
@@ -103,7 +95,6 @@ export class BrowserTracing implements Integration {
 
   /** Browser Tracing integration options */
   public options: BrowserTracingOptions = {
-    enableMeasurements: true,
     beforeNavigate: defaultBeforeNavigate,
     idleTimeout: DEFAULT_IDLE_TIMEOUT,
     markBackgroundTransactions: true,
@@ -144,8 +135,6 @@ export class BrowserTracing implements Integration {
       ..._options,
       tracingOrigins,
     };
-
-    this._metrics.enableMeasurements(this.options.enableMeasurements);
   }
 
   /**
