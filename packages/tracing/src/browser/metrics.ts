@@ -258,7 +258,7 @@ export class MetricsInstrumentation {
 
           const timeOrigin = msToSec(performance.timeOrigin);
           const startTime = msToSec(entry.startTime as number);
-          this._measurements['mark.fid_start'] = { value: timeOrigin + startTime };
+          this._measurements['mark.fid'] = { value: timeOrigin + startTime };
 
           // Disconnect the observer.
           po.disconnect();
