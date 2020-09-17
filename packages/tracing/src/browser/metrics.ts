@@ -199,7 +199,6 @@ export class MetricsInstrumentation {
       // i.e. entries that occurred before calling `observe()` below.
       po.observe({
         buffered: true,
-        // @ts-ignore type does not exist on obj
         type: 'largest-contentful-paint',
       });
 
@@ -263,7 +262,6 @@ export class MetricsInstrumentation {
       // i.e. entries that occurred before calling `observe()` below.
       po.observe({
         buffered: true,
-        // @ts-ignore type does not exist on obj
         type: 'first-input',
       });
     } catch (e) {
