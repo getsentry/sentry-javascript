@@ -42,7 +42,7 @@ export function getGlobalObject<T>(): T & SentryGlobal {
  * Determines if running in react native
  */
 export function isReactNative(): boolean {
-  return navigator?.product === 'ReactNative';
+  return getGlobalObject<Window>().navigator?.product === 'ReactNative';
 }
 
 /**
