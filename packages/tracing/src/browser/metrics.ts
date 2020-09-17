@@ -135,7 +135,10 @@ export class MetricsInstrumentation {
 
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
-    transaction.setMeasurements(this._measurements);
+    // Measurements are only available for pageload transactions
+    if (transaction.op === 'pageload') {
+      transaction.setMeasurements(this._measurements);
+    }
   }
 
   private _forceLCP: () => void = () => {
