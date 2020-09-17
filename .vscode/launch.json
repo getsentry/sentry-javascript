@@ -4,22 +4,52 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    // @sentry/tracing - run a specific test file in watch mode
+    // must have file in currently active tab when hitting the play button
+    {
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/tracing",
+      "name": "Debug @sentry/tracing tests - just open file",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": [
+        "--watch",
+        "--runInBand",
+        "--config",
+        "${workspaceFolder}/packages/tracing/package.json",
+        "--coverage",
+        "false", // coverage messes up the source maps
+        "${relativeFile}" // remove this to run all package tests
+      ],
+      "disableOptimisticBPs": true,
+      "sourceMaps": true,
+      "smartStep": true,
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
+      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
+    },
+
+    // @sentry/node - run a specific test file in watch mode
+    // must have file in currently active tab when hitting the play button
     {
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/packages/node",
-      "name": "Debug @sentry/node",
-      "preLaunchTask": "",
-      "program": "${workspaceRoot}/node_modules/.bin/jest",
+      "name": "Debug @sentry/node tests - just open file",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
-        "--config",
-        "${workspaceRoot}/packages/node/package.json",
+        "--watch",
         "--runInBand",
-        "${relativeFile}"
+        "--config",
+        "${workspaceFolder}/packages/node/package.json",
+        "--coverage",
+        "false", // coverage messes up the source maps
+        "${relativeFile}" // remove this to run all package tests
       ],
+      "disableOptimisticBPs": true,
       "sourceMaps": true,
       "smartStep": true,
-      "outFiles": ["${workspaceRoot}/packages/node/dist"]
-    }
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
+      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
+    },
   ]
 }
