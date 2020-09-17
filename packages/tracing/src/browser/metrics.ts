@@ -42,7 +42,6 @@ export class MetricsInstrumentation {
     this._enableMeasurements = enable;
   }
 
-
   /** Add performance related spans to a transaction */
   public addPerformanceEntries(transaction: Transaction): void {
     if (!global || !global.performance || !global.performance.getEntries) {
