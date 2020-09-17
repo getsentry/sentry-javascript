@@ -11,8 +11,8 @@ import {
 } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
-import { getActiveTransaction, secToMs } from '../../src/browser/utils';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
+import { getActiveTransaction, secToMs } from '../../src/utils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
 

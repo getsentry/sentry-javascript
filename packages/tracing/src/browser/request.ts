@@ -1,7 +1,7 @@
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-import { getActiveTransaction } from './utils';
+import { getActiveTransaction } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
 
