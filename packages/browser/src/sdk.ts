@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getGlobalObject, SyncPromise } from '@sentry/utils';
+import { getGlobalObject, logger, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
@@ -84,7 +84,15 @@ export function init(options: BrowserOptions = {}): void {
       options.release = window.SENTRY_RELEASE.id;
     }
   }
+  if (options.autoSessionTracking === undefined) {
+    options.autoSessionTracking = false;
+  }
+
   initAndBind(BrowserClient, options);
+
+  if (options.autoSessionTracking) {
+    startSessionTracking();
+  }
 }
 
 /**
@@ -165,4 +173,55 @@ export function close(timeout?: number): PromiseLike<boolean> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrap(fn: (...args: any) => any): any {
   return internalWrap(fn)();
+}
+
+/**
+ * Enable automatic Session Tracking for the initial page load.
+ */
+function startSessionTracking(): void {
+  const window = getGlobalObject<Window>();
+  const hub = getCurrentHub();
+  let fcpResolved = false;
+  let loadResolved = false;
+  const possiblyEndSession = (): void => {
+    if (fcpResolved && loadResolved) {
+      hub.endSession();
+    }
+  };
+
+  hub.startSession();
+
+  window.addEventListener('load', () => {
+    loadResolved = true;
+    possiblyEndSession();
+  });
+
+  try {
+    let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
+    document.addEventListener(
+      'visibilitychange',
+      event => {
+        firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
+      },
+      { once: true },
+    );
+
+    const po = new PerformanceObserver((entryList, po) => {
+      entryList.getEntries().forEach(entry => {
+        if (entry.name === 'first-contentful-paint' && entry.startTime < firstHiddenTime) {
+          po.disconnect();
+          fcpResolved = true;
+          possiblyEndSession();
+        }
+      });
+    });
+
+    po.observe({
+      type: 'paint',
+      buffered: true,
+    });
+  } catch (e) {
+    fcpResolved = true;
+    possiblyEndSession();
+  }
 }

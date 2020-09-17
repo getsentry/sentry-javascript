@@ -1,5 +1,5 @@
-import { eventToSentryRequest } from '@sentry/core';
-import { Event, Response } from '@sentry/types';
+import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
+import { Event, Response, SentryRequest, Session } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
@@ -10,17 +10,28 @@ export class XHRTransport extends BaseTransport {
    * @inheritDoc
    */
   public sendEvent(event: Event): PromiseLike<Response> {
-    const eventType = event.type || 'event';
+    return this._sendRequest(eventToSentryRequest(event, this._api), event);
+  }
 
-    if (this._isRateLimited(eventType)) {
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): PromiseLike<Response> {
+    return this._sendRequest(sessionToSentryRequest(session, this._api), session);
+  }
+
+  /**
+   * @param sentryRequest Prepared SentryRequest to be delivered
+   * @param event original payload used to create SentryRequest
+   */
+  private _sendRequest(sentryRequest: SentryRequest, event: Event | Session): PromiseLike<Response> {
+    if (this._isRateLimited(sentryRequest.type)) {
       return Promise.reject({
         event,
-        reason: `Transport locked till ${this._disabledUntil(eventType)} due to too many requests.`,
+        reason: `Transport locked till ${this._disabledUntil(sentryRequest.type)} due to too many requests.`,
         status: 429,
       });
     }
-
-    const sentryReq = eventToSentryRequest(event, this._api);
 
     return this._buffer.add(
       new SyncPromise<Response>((resolve, reject) => {
@@ -32,17 +43,17 @@ export class XHRTransport extends BaseTransport {
               'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
               'retry-after': request.getResponseHeader('Retry-After'),
             };
-            this._handleResponse({ eventType, response: request, headers, resolve, reject });
+            this._handleResponse({ requestType: sentryRequest.type, response: request, headers, resolve, reject });
           }
         };
 
-        request.open('POST', sentryReq.url);
+        request.open('POST', sentryRequest.url);
         for (const header in this.options.headers) {
           if (this.options.headers.hasOwnProperty(header)) {
             request.setRequestHeader(header, this.options.headers[header]);
           }
         }
-        request.send(sentryReq.body);
+        request.send(sentryRequest.body);
       }),
     );
   }

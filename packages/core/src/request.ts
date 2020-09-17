@@ -1,16 +1,22 @@
-import { Event } from '@sentry/types';
+import { Event, SentryRequest, Session } from '@sentry/types';
+import { timestampWithMs } from '@sentry/utils';
 
 import { API } from './api';
 
-/** A generic client request. */
-export interface SentryRequest {
-  body: string;
-  url: string;
-  // headers would contain auth & content-type headers for @sentry/node, but
-  // since @sentry/browser avoids custom headers to prevent CORS preflight
-  // requests, we can use the same approach for @sentry/browser and @sentry/node
-  // for simplicity -- no headers involved.
-  // headers: { [key: string]: string };
+/** Creates a SentryRequest from an event. */
+export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
+  const envelopeHeaders = JSON.stringify({
+    sent_at: new Date(timestampWithMs() * 1000).toISOString(),
+  });
+  const itemHeaders = JSON.stringify({
+    type: 'session',
+  });
+
+  return {
+    body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(session)}`,
+    type: 'session',
+    url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
+  };
 }
 
 /** Creates a SentryRequest from an event. */
@@ -19,6 +25,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
 
   const req: SentryRequest = {
     body: JSON.stringify(event),
+    type: event.type || 'event',
     url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
   };
 

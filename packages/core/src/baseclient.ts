@@ -1,6 +1,15 @@
 /* eslint-disable max-lines */
-import { Scope } from '@sentry/hub';
-import { Client, Event, EventHint, Integration, IntegrationClass, Options, Severity } from '@sentry/types';
+import { Scope, Session } from '@sentry/hub';
+import {
+  Client,
+  Event,
+  EventHint,
+  Integration,
+  IntegrationClass,
+  Options,
+  SessionStatus,
+  Severity,
+} from '@sentry/types';
 import {
   dateTimestampInSeconds,
   Dsn,
@@ -144,6 +153,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
+  public captureSession(session: Session): void {
+    if (!session.release) {
+      logger.warn('Discarded session because of missing release');
+    } else {
+      this._sendSession(session);
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
   public getDsn(): Dsn | undefined {
     return this._dsn;
   }
@@ -197,6 +217,49 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
       return null;
     }
+  }
+
+  /** Updates existing session based on the provided event */
+  protected _updateSessionFromEvent(session: Session, event: Event): void {
+    let crashed = false;
+    let errored = false;
+    let userAgent;
+    const exceptions = event.exception && event.exception.values;
+
+    if (exceptions) {
+      errored = true;
+
+      for (const ex of exceptions) {
+        const mechanism = ex.mechanism;
+        if (mechanism && mechanism.handled === false) {
+          crashed = true;
+          break;
+        }
+      }
+    }
+
+    const user = event.user;
+    if (!session.userAgent) {
+      const headers = event.request ? event.request.headers : {};
+      for (const key in headers) {
+        if (key.toLowerCase() === 'user-agent') {
+          userAgent = headers[key];
+          break;
+        }
+      }
+    }
+
+    session.update({
+      ...(crashed && { status: SessionStatus.Crashed }),
+      user,
+      userAgent,
+      errors: session.errors + Number(errored || crashed),
+    });
+  }
+
+  /** Deliver captured session to Sentry */
+  protected _sendSession(session: Session): void {
+    this._getBackend().sendSession(session);
   }
 
   /** Waits for the client to be done with processing. */
@@ -434,7 +497,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           const isInternalException =
             hint && hint.data && (hint.data as { [key: string]: unknown }).__sentry__ === true;
           // We skip beforeSend in case of transactions
+
           if (isInternalException || !beforeSend || isTransaction) {
+            if (!isTransaction) {
+              const session = scope && scope.getSession();
+              if (session) {
+                this._updateSessionFromEvent(session, finalEvent);
+              }
+            }
+
             this._sendEvent(finalEvent);
             resolve(finalEvent);
             return;
@@ -452,6 +523,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
               logger.log('`beforeSend` returned `null`, will not send event.');
               resolve(null);
               return;
+            }
+
+            const session = scope && scope.getSession();
+            if (session) {
+              this._updateSessionFromEvent(session, finalEvent);
             }
 
             // From here on we are really async
