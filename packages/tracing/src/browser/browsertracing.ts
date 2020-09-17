@@ -23,7 +23,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   /**
    * Flag to attach measurements to transactions.
    *
-   * Default: false
+   * Default: true
    * @hidden
    */
   enableMeasurements: boolean;
@@ -103,7 +103,7 @@ export class BrowserTracing implements Integration {
 
   /** Browser Tracing integration options */
   public options: BrowserTracingOptions = {
-    enableMeasurements: false,
+    enableMeasurements: true,
     beforeNavigate: defaultBeforeNavigate,
     idleTimeout: DEFAULT_IDLE_TIMEOUT,
     markBackgroundTransactions: true,

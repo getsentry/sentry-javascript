@@ -76,7 +76,7 @@ describe('BrowserTracing', () => {
     const browserTracing = createBrowserTracing();
 
     expect(browserTracing.options).toEqual({
-      enableMeasurements: false,
+      enableMeasurements: true,
       beforeNavigate: expect.any(Function),
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       markBackgroundTransactions: true,

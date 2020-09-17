@@ -19,7 +19,7 @@ const global = getGlobalObject<Window>();
 export class MetricsInstrumentation {
   private _lcp: Record<string, any> = {};
   private _measurements: Measurements = {};
-  private _enableMeasurements: boolean = false;
+  private _enableMeasurements: boolean = true;
 
   private _performanceCursor: number = 0;
 
