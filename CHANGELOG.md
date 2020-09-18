@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.24.1
+
+- [types] fix: Remove Location type to avoid dom lib dependency (#2922)
+
 ## 5.24.0
 
 - [angular] fix: Make sure that message exist before returning it in angular error handler (#2903)
