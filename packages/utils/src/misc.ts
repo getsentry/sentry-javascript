@@ -271,14 +271,19 @@ const performanceFallback: CrossPlatformPerformance = {
  * Performance wrapper for react native as performance.now() has been found to start off with an unusual offset.
  */
 function getReactNativePerformanceWrapper(): CrossPlatformPerformance {
-  const INITIAL_OFFSET = performance.now();
+  // Performance only available >= RN 0.63
+  const { performance } = getGlobalObject<Window>();
+  if (performance && typeof performance.now === 'function') {
+    const INITIAL_OFFSET = performance.now();
 
-  return {
-    now(): number {
-      return performance.now() - INITIAL_OFFSET;
-    },
-    timeOrigin: INITIAL_TIME,
-  };
+    return {
+      now(): number {
+        return performance.now() - INITIAL_OFFSET;
+      },
+      timeOrigin: INITIAL_TIME,
+    };
+  }
+  return performanceFallback;
 }
 
 export const crossPlatformPerformance: CrossPlatformPerformance = ((): CrossPlatformPerformance => {
