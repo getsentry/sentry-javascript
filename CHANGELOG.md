@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.24.0
+
+- [angular] fix: Make sure that message exist before returning it in angular error handler (#2903)
+- [integrations] feat: Add referrer to data collected by UserAgent integration (#2912)
+- [core] fix: Make sure that body is not exposed in the breadcrumb by default (#2911)
+- [core] feat: Give access to XHR requests body in breadcrumb hint (#2904)
+- [core] fix: Add a wrapper around performance for React Native (#2915)
+- [integrations] fix: Make Vue tracing options optional (#2897)
+- [integrations] ref: Remove unnecessary eventID check in offline integration (#2890)
+- [tracing] feat: Add hook for trace sampling function to SDK options (#2820)
+
 ## 5.23.0
 
 - [serverless] feat: Introduce `@sentry/serverless` with `AWSLambda` support (#2886)
