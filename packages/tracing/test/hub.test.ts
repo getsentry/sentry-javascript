@@ -283,7 +283,7 @@ describe('Hub', () => {
       it('should propagate sampling decision to child spans', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: Math.random() }));
         const transaction = hub.startTransaction({ name: 'dogpark' });
-        const child = transaction.startChild({ op: 'test' });
+        const child = transaction.startChild({ op: 'ball.chase' });
 
         expect(child.sampled).toBe(transaction.sampled);
       });
