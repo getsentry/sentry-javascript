@@ -106,9 +106,9 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
 
   // at this point we know we're keeping the transaction, whether because of an inherited decision or because it got
   // lucky with the dice roll
-  const experimentsOptions = options._experiments || {};
-  transaction.initSpanRecorder(experimentsOptions.maxSpans as number);
+  transaction.initSpanRecorder(options._experiments?.maxSpans as number);
 
+  logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
   return transaction;
 }
 /**
@@ -186,6 +186,10 @@ function isValidSampleRate(rate: unknown): boolean {
  *
  * The Hub.startTransaction method delegates to this method to do its work, passing the Hub instance in as `this`.
  * Exists as a separate function so that it can be injected into the class as an "extension method."
+ *
+ * @param this: The Hub starting the transaction
+ * @param transactionContext: Data used to configure the transaction
+ * @param CustomSamplingContext: Optional data to be provided to the `tracesSampler` function (if any)
  *
  * @returns The new transaction
  *

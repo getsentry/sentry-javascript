@@ -96,7 +96,7 @@ export interface Scope {
   getSpan(): Span | undefined;
 
   /**
-   * Returns the `Transaction` if there is one
+   * Returns the `Transaction` attached to the scope (if there is one)
    */
   getTransaction(): Transaction | undefined;
 

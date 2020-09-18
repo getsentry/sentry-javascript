@@ -79,6 +79,17 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   ): void;
 }
 
+const DEFAULT_BROWSER_TRACING_OPTIONS = {
+  beforeNavigate: defaultBeforeNavigate,
+  idleTimeout: DEFAULT_IDLE_TIMEOUT,
+  markBackgroundTransactions: true,
+  maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
+  routingInstrumentation: defaultRoutingInstrumentation,
+  startTransactionOnLocationChange: true,
+  startTransactionOnPageLoad: true,
+  ...defaultRequestInstrumentionOptions,
+};
+
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
  * actions as transactions, and captures requests, metrics and errors as spans.
@@ -93,16 +104,7 @@ export class BrowserTracing implements Integration {
   public static id: string = 'BrowserTracing';
 
   /** Browser Tracing integration options */
-  public options: BrowserTracingOptions = {
-    beforeNavigate: defaultBeforeNavigate,
-    idleTimeout: DEFAULT_IDLE_TIMEOUT,
-    markBackgroundTransactions: true,
-    maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
-    routingInstrumentation: defaultRoutingInstrumentation,
-    startTransactionOnLocationChange: true,
-    startTransactionOnPageLoad: true,
-    ...defaultRequestInstrumentionOptions,
-  };
+  public options: BrowserTracingOptions;
 
   /**
    * @inheritDoc
@@ -130,7 +132,7 @@ export class BrowserTracing implements Integration {
     }
 
     this.options = {
-      ...this.options,
+      ...DEFAULT_BROWSER_TRACING_OPTIONS,
       ..._options,
       tracingOrigins,
     };
@@ -179,7 +181,7 @@ export class BrowserTracing implements Integration {
   /** Create routing idle transaction. */
   private _createRouteTransaction(context: TransactionContext): TransactionType | undefined {
     if (!this._getCurrentHub) {
-      logger.warn(`[Tracing] Did not create ${context.op} idleTransaction due to invalid _getCurrentHub`);
+      logger.warn(`[Tracing] Did not create ${context.op} transaction because _getCurrentHub is invalid.`);
       return undefined;
     }
 

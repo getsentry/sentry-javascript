@@ -1,11 +1,10 @@
 import { Transaction as TransactionType, TransactionContext } from '@sentry/types';
 import { addInstrumentationHandler, getGlobalObject, logger } from '@sentry/utils';
 
-// type StartTransaction
 const global = getGlobalObject<Window>();
 
 /**
- * Creates a default router based on
+ * Default function implementing pageload and navigation transactions
  */
 export function defaultRoutingInstrumentation<T extends TransactionType>(
   startTransaction: (context: TransactionContext) => T | undefined,
@@ -28,24 +27,24 @@ export function defaultRoutingInstrumentation<T extends TransactionType>(
     addInstrumentationHandler({
       callback: ({ to, from }: { to: string; from?: string }) => {
         /**
-         * This early return is there to account for some cases where navigation transaction
-         * starts right after long running pageload. We make sure that if `from` is undefined
-         * and that a valid `startingURL` exists, we don't unnecessarily create a navigation transaction.
+         * This early return is there to account for some cases where a navigation transaction starts right after
+         * long-running pageload. We make sure that if `from` is undefined and a valid `startingURL` exists, we don't
+         * create an uneccessary navigation transaction.
          *
-         * This was hard to duplicate, but this behavior stopped as soon as this fix
-         * was applied. This issue might also only be caused in certain development environments
-         * where the usage of a hot module reloader is causing errors.
+         * This was hard to duplicate, but this behavior stopped as soon as this fix was applied. This issue might also
+         * only be caused in certain development environments where the usage of a hot module reloader is causing
+         * errors.
          */
         if (from === undefined && startingUrl && startingUrl.indexOf(to) !== -1) {
           startingUrl = undefined;
           return;
         }
+
         if (from !== to) {
           startingUrl = undefined;
           if (activeTransaction) {
-            logger.log(`[Tracing] finishing current idleTransaction with op: ${activeTransaction.op}`);
-            // We want to finish all current ongoing idle transactions as we
-            // are navigating to a new page.
+            logger.log(`[Tracing] Finishing current transaction with op: ${activeTransaction.op}`);
+            // If there's an open transaction on the scope, we need to finish it before creating an new one.
             activeTransaction.finish();
           }
           activeTransaction = startTransaction({ name: global.location.pathname, op: 'navigation' });
