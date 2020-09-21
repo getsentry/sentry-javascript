@@ -89,7 +89,7 @@ class MyRoute extends Route {
   }
 }
 
-export default instrumentRoutePerformance(SlowLoadingRoute);
+export default instrumentRoutePerformance(MyRoute);
 ```
 
 #### Runloop
