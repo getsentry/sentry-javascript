@@ -267,7 +267,9 @@ function _instrumentInitialLoad(config: typeof environmentConfig['@sentry/ember'
   const startName = '@sentry/ember:initial-load-start';
   const endName = '@sentry/ember:initial-load-end';
 
-  const HAS_PERFORMANCE = window.performance && window.performance.clearMarks && window.performance.clearMeasures
+  const { performance } = window;
+  const HAS_PERFORMANCE = performance && performance.clearMarks && performance.clearMeasures;
+
   if (!HAS_PERFORMANCE) {
     return;
   }
@@ -275,6 +277,13 @@ function _instrumentInitialLoad(config: typeof environmentConfig['@sentry/ember'
   if (config.disableInitialLoadInstrumentation) {
     performance.clearMarks(startName);
     performance.clearMarks(endName);
+    return;
+  }
+
+  // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
+  const HAS_PERFORMANCE_TIMING =
+    performance.measure && performance.getEntriesByName && performance.timeOrigin !== undefined;
+  if (!HAS_PERFORMANCE_TIMING) {
     return;
   }
   const measureName = '@sentry/ember:initial-load';
