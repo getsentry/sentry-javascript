@@ -266,6 +266,12 @@ function _instrumentComponents(config: typeof environmentConfig['@sentry/ember']
 function _instrumentInitialLoad(config: typeof environmentConfig['@sentry/ember']) {
   const startName = '@sentry/ember:initial-load-start';
   const endName = '@sentry/ember:initial-load-end';
+
+  const HAS_PERFORMANCE = window.performance && window.performance.clearMarks && window.performance.clearMeasures
+  if (!HAS_PERFORMANCE) {
+    return;
+  }
+
   if (config.disableInitialLoadInstrumentation) {
     performance.clearMarks(startName);
     performance.clearMarks(endName);
