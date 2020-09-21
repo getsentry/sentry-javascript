@@ -4,8 +4,14 @@ declare module 'ember-get-config' {
     sentry: BrowserOptions;
     transitionTimeout: number;
     ignoreEmberOnErrorWarning: boolean;
+    disableInstrumentComponents: boolean;
     disablePerformance: boolean;
     disablePostTransitionRender: boolean;
+    disableRunloopPerformance: boolean;
+    disableInitialLoadInstrumentation: boolean;
+    enableComponentDefinitions: boolean;
+    minimumRunloopQueueDuration: number;
+    minimumComponentRenderDuration: number;
   };
   const config: {
     '@sentry/ember': EmberSentryConfig;

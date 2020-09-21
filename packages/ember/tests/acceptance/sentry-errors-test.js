@@ -2,8 +2,7 @@ import { test, module } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { find, click, visit } from '@ember/test-helpers';
 import { run } from '@ember/runloop';
-import Ember from 'ember';
-import sinon from 'sinon';
+import { setupSentryTest } from '../helpers/setup-sentry';
 
 const defaultAssertOptions = {
   method: 'POST',
@@ -37,52 +36,7 @@ function assertSentryCall(assert, callNumber, options) {
 
 module('Acceptance | Sentry Errors', function(hooks) {
   setupApplicationTest(hooks);
-
-  hooks.beforeEach(async function() {
-    await window._sentryPerformanceLoad;
-    window._sentryTestEvents = [];
-    const errorMessages = [];
-    this.errorMessages = errorMessages;
-
-    /**
-     * Stub out fetch function to assert on Sentry calls.
-     */
-    this.fetchStub = sinon.stub(window, 'fetch');
-
-    /**
-     * Stops global test suite failures from unhandled rejections and allows assertion on them
-     */
-    this.qunitOnUnhandledRejection = sinon.stub(QUnit, 'onUnhandledRejection');
-
-    QUnit.onError = function({ message }) {
-      errorMessages.push(message.split('Error: ')[1]);
-      return true;
-    };
-
-    Ember.onerror = function(...args) {
-      const [error] = args;
-      errorMessages.push(error.message);
-      throw error;
-    };
-
-    this._windowOnError = window.onerror;
-    /**
-     * Will collect errors when run via testem in cli
-     */
-
-    window.onerror = function(error, ...args) {
-      errorMessages.push(error.split('Error: ')[1]);
-      if (this._windowOnError) {
-        return this._windowOnError(error, ...args);
-      }
-    };
-  });
-
-  hooks.afterEach(function() {
-    this.fetchStub.restore();
-    this.qunitOnUnhandledRejection.restore();
-    window.onerror = this._windowOnError;
-  });
+  setupSentryTest(hooks);
 
   test('Check "Throw Generic Javascript Error"', async function(assert) {
     await visit('/');

@@ -1,10 +1,10 @@
 import Route from '@ember/routing/route';
-import timeout from '../helpers/utils';
+import timeout from '../../helpers/utils';
 import { instrumentRoutePerformance } from '@sentry/ember';
 
 const SLOW_TRANSITION_WAIT = 1500;
 
-class SlowDefaultLoadingRoute extends Route {
+class SlowLoadingRoute extends Route {
   beforeModel() {
     return timeout(SLOW_TRANSITION_WAIT / 3);
   }
@@ -22,4 +22,4 @@ class SlowDefaultLoadingRoute extends Route {
   }
 }
 
-export default instrumentRoutePerformance(SlowDefaultLoadingRoute);
+export default instrumentRoutePerformance(SlowLoadingRoute);

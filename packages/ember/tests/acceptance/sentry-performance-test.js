@@ -1,10 +1,7 @@
 import { test, module } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { find, click, visit } from '@ember/test-helpers';
-import Ember from 'ember';
-import sinon from 'sinon';
-import { _instrumentEmberRouter } from '@sentry/ember/instance-initializers/sentry-performance';
-import { startTransaction } from '@sentry/browser';
+import { setupSentryTest } from '../helpers/setup-sentry';
 
 const SLOW_TRANSITION_WAIT = 3000;
 
@@ -18,80 +15,50 @@ function assertSentryTransactionCount(assert, count) {
 
 function assertSentryCall(assert, callNumber, options) {
   const sentryTestEvents = getTestSentryTransactions();
-
   const event = sentryTestEvents[callNumber];
-  assert.equal(event.spans.length, options.spanCount);
+
+  assert.ok(options.spanCount || options.spans, 'Must add spanCount or spans to assertion');
+  if (options.spanCount) {
+    assert.equal(event.spans.length, options.spanCount);
+  }
+  if (options.spans) {
+    assert.deepEqual(
+      event.spans.map(s => `${s.op} | ${s.description}`),
+      options.spans,
+      `Has correct spans`,
+    );
+  }
+
   assert.equal(event.transaction, options.transaction);
   assert.equal(event.tags.fromRoute, options.tags.fromRoute);
   assert.equal(event.tags.toRoute, options.tags.toRoute);
 
   if (options.durationCheck) {
     const duration = (event.timestamp - event.start_timestamp) * 1000;
-    assert.ok(options.durationCheck(duration), `duration (${duration}ms) didn't pass duration check`);
+    assert.ok(options.durationCheck(duration), `duration (${duration}ms) passes duration check`);
   }
 }
 
 module('Acceptance | Sentry Transactions', function(hooks) {
   setupApplicationTest(hooks);
-
-  hooks.beforeEach(async function() {
-    await window._sentryPerformanceLoad;
-    window._sentryTestEvents = [];
-    const errorMessages = [];
-    this.errorMessages = errorMessages;
-
-    const routerMain = this.owner.lookup('router:main');
-    const routerService = this.owner.lookup('service:router');
-
-    if (!routerService._sentryInstrumented) {
-      _instrumentEmberRouter(routerService, routerMain, {}, startTransaction);
-    }
-
-    /**
-     * Stub out fetch function to assert on Sentry calls.
-     */
-    this.fetchStub = sinon.stub(window, 'fetch');
-
-    /**
-     * Stops global test suite failures from unhandled rejections and allows assertion on them
-     */
-    this.qunitOnUnhandledRejection = sinon.stub(QUnit, 'onUnhandledRejection');
-
-    QUnit.onError = function({ message }) {
-      errorMessages.push(message.split('Error: ')[1]);
-      return true;
-    };
-
-    Ember.onerror = function(...args) {
-      const [error] = args;
-      errorMessages.push(error.message);
-      throw error;
-    };
-
-    this._windowOnError = window.onerror;
-
-    /**
-     * Will collect errors when run via testem in cli
-     */
-    window.onerror = function(error, ...args) {
-      errorMessages.push(error.split('Error: ')[1]);
-      if (this._windowOnError) {
-        return this._windowOnError(error, ...args);
-      }
-    };
-  });
-
-  hooks.afterEach(function() {
-    this.fetchStub.restore();
-    this.qunitOnUnhandledRejection.restore();
-    window.onerror = this._windowOnError;
-  });
+  setupSentryTest(hooks);
 
   test('Test transaction', async function(assert) {
     await visit('/tracing');
+
     assertSentryTransactionCount(assert, 1);
     assertSentryCall(assert, 0, {
-      spanCount: 2,
+      spans: [
+        'ember.transition | route:undefined -> route:tracing',
+        'ember.component.render | component:link-to',
+        'ember.component.render | component:link-to',
+        'ember.component.render | component:test-section',
+        'ember.runloop.actions | undefined',
+        'ember.runloop.routerTransitions | undefined',
+        'ember.runloop.render | undefined',
+        'ember.runloop.afterRender | undefined',
+        'ember.runloop.destroy | undefined',
+      ],
       transaction: 'route:tracing',
       tags: {
         fromRoute: undefined,
@@ -108,12 +75,60 @@ module('Acceptance | Sentry Transactions', function(hooks) {
 
     assertSentryTransactionCount(assert, 2);
     assertSentryCall(assert, 1, {
-      spanCount: 2,
-      transaction: 'route:slow-loading-route',
+      spans: [
+        'ember.transition | route:tracing -> route:slow-loading-route.index',
+        'ember.component.render | component:link-to',
+        'ember.component.render | component:link-to',
+        'ember.route.beforeModel | slow-loading-route',
+        'ember.runloop.actions | undefined',
+        'ember.runloop.routerTransitions | undefined',
+        'ember.runloop.render | undefined',
+        'ember.runloop.afterRender | undefined',
+        'ember.runloop.destroy | undefined',
+        'ember.route.model | slow-loading-route',
+        'ember.runloop.actions | undefined',
+        'ember.runloop.routerTransitions | undefined',
+        'ember.runloop.render | undefined',
+        'ember.runloop.afterRender | undefined',
+        'ember.runloop.destroy | undefined',
+        'ember.route.afterModel | slow-loading-route',
+        'ember.runloop.actions | undefined',
+        'ember.runloop.routerTransitions | undefined',
+        'ember.component.render | component:link-to',
+        'ember.component.render | component:link-to',
+        'ember.runloop.render | undefined',
+        'ember.runloop.afterRender | undefined',
+        'ember.runloop.destroy | undefined',
+        'ember.route.beforeModel | slow-loading-route.index',
+        'ember.runloop.actions | undefined',
+        'ember.runloop.routerTransitions | undefined',
+        'ember.runloop.render | undefined',
+        'ember.runloop.afterRender | undefined',
+        'ember.runloop.destroy | undefined',
+        'ember.route.model | slow-loading-route.index',
+        'ember.runloop.actions | undefined',
+        'ember.runloop.routerTransitions | undefined',
+        'ember.runloop.render | undefined',
+        'ember.runloop.afterRender | undefined',
+        'ember.runloop.destroy | undefined',
+        'ember.route.afterModel | slow-loading-route.index',
+        'ember.runloop.actions | undefined',
+        'ember.route.setupController | slow-loading-route',
+        'ember.route.setupController | slow-loading-route.index',
+        'ember.runloop.routerTransitions | undefined',
+        'ember.component.render | component:link-to',
+        'ember.component.render | component:link-to',
+        'ember.component.render | component:slow-loading-list',
+        'ember.component.render | component:slow-loading-list',
+        'ember.runloop.render | undefined',
+        'ember.runloop.afterRender | undefined',
+        'ember.runloop.destroy | undefined',
+      ],
+      transaction: 'route:slow-loading-route.index',
       durationCheck: duration => duration > SLOW_TRANSITION_WAIT,
       tags: {
         fromRoute: 'tracing',
-        toRoute: 'slow-loading-route',
+        toRoute: 'slow-loading-route.index',
       },
     });
   });

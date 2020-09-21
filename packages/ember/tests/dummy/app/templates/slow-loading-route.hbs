@@ -3,4 +3,9 @@
   Go Back
 </button>
 
-<SlowLoadingList @items={{1000}} />
+<div class="list-grid">
+  <SlowLoadingList @items={{1000}} />
+  <div>
+    {{outlet}}
+  </div>
+</div>
