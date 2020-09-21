@@ -339,7 +339,7 @@ Sentry.init({
 
 ### Attaching Stacktraces
 
-> 'stacktrace' was renamed to 'attackStacktrace'. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#attach-stacktrace)
+> 'stacktrace' was renamed to 'attachStacktrace'. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#attach-stacktrace)
 
 _Old_:
 

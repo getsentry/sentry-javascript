@@ -39,6 +39,13 @@ export function getGlobalObject<T>(): T & SentryGlobal {
 }
 
 /**
+ * Determines if running in react native
+ */
+export function isReactNative(): boolean {
+  return getGlobalObject<Window>().navigator?.product === 'ReactNative';
+}
+
+/**
  * Extended Window interface that allows for Crypto API usage in IE browsers
  */
 interface MsCryptoWindow extends Window {
@@ -260,7 +267,31 @@ const performanceFallback: CrossPlatformPerformance = {
   timeOrigin: INITIAL_TIME,
 };
 
+/**
+ * Performance wrapper for react native as performance.now() has been found to start off with an unusual offset.
+ */
+function getReactNativePerformanceWrapper(): CrossPlatformPerformance {
+  // Performance only available >= RN 0.63
+  const { performance } = getGlobalObject<Window>();
+  if (performance && typeof performance.now === 'function') {
+    const INITIAL_OFFSET = performance.now();
+
+    return {
+      now(): number {
+        return performance.now() - INITIAL_OFFSET;
+      },
+      timeOrigin: INITIAL_TIME,
+    };
+  }
+  return performanceFallback;
+}
+
 export const crossPlatformPerformance: CrossPlatformPerformance = ((): CrossPlatformPerformance => {
+  // React Native's performance.now() starts with a gigantic offset, so we need to wrap it.
+  if (isReactNative()) {
+    return getReactNativePerformanceWrapper();
+  }
+
   if (isNodeEnv()) {
     try {
       const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: CrossPlatformPerformance };

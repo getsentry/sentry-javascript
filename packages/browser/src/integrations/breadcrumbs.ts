@@ -11,19 +11,6 @@ import {
   safeJoin,
 } from '@sentry/utils';
 
-/**
- * @hidden
- */
-export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  __sentry_xhr__?: {
-    method?: string;
-    url?: string;
-    status_code?: number;
-  };
-}
-
 /** JSDoc */
 interface BreadcrumbsOptions {
   console: boolean;
@@ -212,14 +199,21 @@ export class Breadcrumbs implements Integration {
         return;
       }
 
+      const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
+
       getCurrentHub().addBreadcrumb(
         {
           category: 'xhr',
-          data: handlerData.xhr.__sentry_xhr__,
+          data: {
+            method,
+            url,
+            status_code,
+          },
           type: 'http',
         },
         {
           xhr: handlerData.xhr,
+          input: body,
         },
       );
 

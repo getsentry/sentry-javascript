@@ -109,7 +109,7 @@ class SentryErrorHandler implements AngularErrorHandler {
       }
 
       // ... or an`ErrorEvent`, which can provide us with the message but no stack...
-      if (error.error instanceof ErrorEvent) {
+      if (error.error instanceof ErrorEvent && error.error.message) {
         return error.error.message;
       }
 

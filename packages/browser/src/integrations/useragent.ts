@@ -22,19 +22,24 @@ export class UserAgent implements Integration {
   public setupOnce(): void {
     addGlobalEventProcessor((event: Event) => {
       if (getCurrentHub().getIntegration(UserAgent)) {
-        if (!global.navigator || !global.location) {
+        // if none of the information we want exists, don't bother
+        if (!global.navigator && !global.location && !global.document) {
           return event;
         }
 
-        const request = event.request || {};
-        request.url = request.url || global.location.href;
-        request.headers = request.headers || {};
-        request.headers['User-Agent'] = global.navigator.userAgent;
+        // grab as much info as exists and add it to the event
+        const url = event.request?.url || global.location?.href;
+        const { referrer } = global.document || {};
+        const { userAgent } = global.navigator || {};
 
-        return {
-          ...event,
-          request,
+        const headers = {
+          ...event.request?.headers,
+          ...(referrer && { Referer: referrer }),
+          ...(userAgent && { 'User-Agent': userAgent }),
         };
+        const request = { ...(url && { url }), headers };
+
+        return { ...event, request };
       }
       return event;
     });

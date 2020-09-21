@@ -1,4 +1,5 @@
-import { Options, TraceparentData } from '@sentry/types';
+import { getCurrentHub, Hub } from '@sentry/hub';
+import { Options, TraceparentData, Transaction } from '@sentry/types';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
@@ -40,6 +41,27 @@ export function extractTraceparentData(traceparent: string): TraceparentData | u
     };
   }
   return undefined;
+}
+
+/** Grabs active transaction off scope, if any */
+export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
+  return hub?.getScope()?.getTransaction() as T | undefined;
+}
+
+/**
+ * Converts from milliseconds to seconds
+ * @param time time in ms
+ */
+export function msToSec(time: number): number {
+  return time / 1000;
+}
+
+/**
+ * Converts from seconds to milliseconds
+ * @param time time in seconds
+ */
+export function secToMs(time: number): number {
+  return time * 1000;
 }
 
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils

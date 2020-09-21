@@ -11,8 +11,8 @@ import {
 } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
-import { getActiveTransaction, secToMs } from '../../src/browser/utils';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
+import { getActiveTransaction, secToMs } from '../../src/utils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
 
@@ -133,7 +133,7 @@ describe('BrowserTracing', () => {
         expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
       });
 
-      it('warns and uses default tracing origins if array not given', () => {
+      it('warns and uses default tracing origins if empty array given', () => {
         const inst = createBrowserTracing(true, {
           routingInstrumentation: customRoutingInstrumentation,
           tracingOrigins: [],
@@ -189,10 +189,10 @@ describe('BrowserTracing', () => {
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
 
-      it('can be a custom value', () => {
+      it('can override default context values', () => {
         const mockBeforeNavigation = jest.fn(ctx => ({
           ...ctx,
-          op: 'something-else',
+          op: 'not-pageload',
         }));
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
@@ -200,7 +200,7 @@ describe('BrowserTracing', () => {
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction).toBeDefined();
-        expect(transaction.op).toBe('something-else');
+        expect(transaction.op).toBe('not-pageload');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -308,7 +308,7 @@ describe('BrowserTracing', () => {
         mockChangeHistory = () => undefined;
       });
 
-      it('it is not created automatically', () => {
+      it('it is not created automatically at startup', () => {
         createBrowserTracing(true);
         jest.runAllTimers();
 
