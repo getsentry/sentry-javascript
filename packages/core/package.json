@@ -50,6 +50,9 @@
     "test:watch": "jest --watch",
     "pack": "npm pack"
   },
+  "volta": {
+    "extends": "../../package.json"
+  },
   "jest": {
     "collectCoverage": true,
     "transform": {

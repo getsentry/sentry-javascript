@@ -21,5 +21,8 @@
   "scripts": {
     "link:yarn": "yarn link",
     "pack": "npm pack"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

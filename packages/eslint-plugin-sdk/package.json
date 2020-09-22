@@ -32,5 +32,8 @@
     "fix": "prettier --write \"{src,test}/**/*.js\"",
     "test": "mocha test --recursive",
     "pack": "npm pack"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

@@ -52,6 +52,9 @@
     "test:watch": "jest --watch --passWithNoTests",
     "pack": "npm pack"
   },
+  "volta": {
+    "extends": "../../package.json"
+  },
   "sideEffects": false,
   "jest": {
     "collectCoverage": true,
