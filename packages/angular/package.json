@@ -50,5 +50,8 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "pack": "npm pack"
   },
+  "volta": {
+    "extends": "../../package.json"
+  },
   "sideEffects": false
 }

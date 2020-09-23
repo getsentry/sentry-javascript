@@ -84,5 +84,8 @@
     "version": "node ../../scripts/versionbump.js src/version.ts",
     "pack": "npm pack"
   },
+  "volta": {
+    "extends": "../../package.json"
+  },
   "sideEffects": false
 }
