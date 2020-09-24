@@ -15,6 +15,7 @@ interface PerformanceEventTiming extends PerformanceEntry {
 }
 
 const global = getGlobalObject<Window>();
+
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
   private _firstHiddenTime: number = 0;
