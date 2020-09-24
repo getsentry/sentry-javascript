@@ -239,14 +239,10 @@ export class MetricsInstrumentation {
         // page is loaded in a background tab.
         if (entry.startTime < firstHiddenTime) {
           const fidValue = entry.processingStart - entry.startTime;
-
-          logger.log('[Measurements] Adding FID (First Input Delay)');
-
-          // Report the FID value to an analytics endpoint.
-          this._measurements['fid'] = { value: fidValue };
-
           const timeOrigin = msToSec(performance.timeOrigin);
           const startTime = msToSec(entry.startTime as number);
+          logger.log('[Measurements] Adding FID (First Input Delay)');
+          this._measurements['fid'] = { value: fidValue };
           this._measurements['mark.fid'] = { value: timeOrigin + startTime };
 
           po.disconnect();
