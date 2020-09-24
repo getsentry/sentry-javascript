@@ -44,12 +44,6 @@ export class MetricsInstrumentation {
 
     logger.log('[Tracing] Adding & adjusting spans using Performance API');
 
-    // TODO(fixme): depending on the 'op' directly is brittle.
-    if (transaction.op === 'pageload') {
-      // Force any pending records to be dispatched.
-      this._forceLCP();
-    }
-
     const timeOrigin = msToSec(performance.timeOrigin);
     let entryScriptSrc: string | undefined;
 
@@ -138,11 +132,6 @@ export class MetricsInstrumentation {
       transaction.setMeasurements(this._measurements);
     }
   }
-
-  private _forceLCP: () => void = () => {
-    /* No-op, replaced later if LCP API is available. */
-    return;
-  };
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
   private _trackLCP(): void {
