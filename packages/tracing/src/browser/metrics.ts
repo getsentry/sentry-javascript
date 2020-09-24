@@ -97,7 +97,7 @@ export class MetricsInstrumentation {
             // capture web vitals
 
             if (entry.name === 'first-paint') {
-              logger.log('[Measurements] Adding FP (First Paint)');
+              logger.log('[Measurements] FP');
               this._measurements['fp'] = { value: entry.startTime };
               this._measurements['mark.fp'] = { value: startTimestamp };
             }
