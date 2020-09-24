@@ -106,7 +106,7 @@ export class Transaction extends SpanClass {
       tags: this.tags,
       timestamp: this.endTimestamp,
       transaction: this.name,
-      type: 'transaction'
+      type: 'transaction',
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;

@@ -17,7 +17,6 @@ interface PerformanceEventTiming extends PerformanceEntry {
 const global = getGlobalObject<Window>();
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
-
   private _firstHiddenTime: number = 0;
 
   private _measurements: Measurements = {};
@@ -165,7 +164,6 @@ export class MetricsInstrumentation {
     // support, since some browsers throw when using the new `type` option.
     // https://bugs.webkit.org/show_bug.cgi?id=209216
     try {
-
       if (!PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint')) {
         return;
       }
@@ -218,7 +216,6 @@ export class MetricsInstrumentation {
     // support, since some browsers throw when using the new `type` option.
     // https://bugs.webkit.org/show_bug.cgi?id=209216
     try {
-
       if (!PerformanceObserver.supportedEntryTypes.includes('first-input')) {
         return;
       }
