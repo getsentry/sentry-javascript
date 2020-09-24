@@ -103,7 +103,7 @@ export class MetricsInstrumentation {
             }
 
             if (entry.name === 'first-contentful-paint') {
-              logger.log('[Measurements] Adding FCP (First Contentful Paint)');
+              logger.log('[Measurements] Adding FCP');
               this._measurements['fcp'] = { value: entry.startTime };
               this._measurements['mark.fcp'] = { value: startTimestamp };
             }
@@ -185,7 +185,7 @@ export class MetricsInstrumentation {
 
           const timeOrigin = msToSec(performance.timeOrigin);
           const startTime = msToSec(entry.startTime as number);
-          logger.log('[Measurements] Adding LCP (Largest Contentful Paint)');
+          logger.log('[Measurements] Adding LCP');
           this._measurements['lcp'] = { value: entry.startTime };
           this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
         }
@@ -241,7 +241,7 @@ export class MetricsInstrumentation {
           const fidValue = entry.processingStart - entry.startTime;
           const timeOrigin = msToSec(performance.timeOrigin);
           const startTime = msToSec(entry.startTime as number);
-          logger.log('[Measurements] Adding FID (First Input Delay)');
+          logger.log('[Measurements] Adding FID');
           this._measurements['fid'] = { value: fidValue };
           this._measurements['mark.fid'] = { value: timeOrigin + startTime };
 
