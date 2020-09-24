@@ -166,6 +166,10 @@ export class MetricsInstrumentation {
     // https://bugs.webkit.org/show_bug.cgi?id=209216
     try {
 
+      if (!PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint')) {
+        return;
+      }
+
       const updateLCP = (entry: PerformanceEntry): void => {
         // Only include an LCP entry if the page wasn't hidden prior to
         // the entry being dispatched. This typically happens when a page is
@@ -214,6 +218,10 @@ export class MetricsInstrumentation {
     // support, since some browsers throw when using the new `type` option.
     // https://bugs.webkit.org/show_bug.cgi?id=209216
     try {
+
+      if (!PerformanceObserver.supportedEntryTypes.includes('first-input')) {
+        return;
+      }
 
       const updateFID = (entry: PerformanceEventTiming, po: PerformanceObserver): void => {
         // Only report FID if the page wasn't hidden prior to
