@@ -183,12 +183,10 @@ export class MetricsInstrumentation {
             value: entry.startTime,
           };
 
-          logger.log('[Measurements] Adding LCP (Largest Contentful Paint)');
-
-          this._measurements['lcp'] = { value: entry.startTime };
-
           const timeOrigin = msToSec(performance.timeOrigin);
           const startTime = msToSec(entry.startTime as number);
+          logger.log('[Measurements] Adding LCP (Largest Contentful Paint)');
+          this._measurements['lcp'] = { value: entry.startTime };
           this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
         }
       };
