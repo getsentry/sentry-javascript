@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-import {onHidden} from './onHidden.js';
+import { onHidden } from './onHidden';
 
+let firstHiddenTime: number;
 
-let firstHiddenTime: number
+type HiddenType = {
+  readonly timeStamp: number;
+};
 
-export const getFirstHidden = () => {
+export const getFirstHidden = (): HiddenType => {
   if (firstHiddenTime === undefined) {
     // If the document is hidden when this code runs, assume it was hidden
     // since navigation start. This isn't a perfect heuristic, but it's the
@@ -28,12 +31,12 @@ export const getFirstHidden = () => {
     firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
 
     // Update the time if/when the document becomes hidden.
-    onHidden(({timeStamp}) => firstHiddenTime = timeStamp, true);
+    onHidden(({ timeStamp }) => (firstHiddenTime = timeStamp), true);
   }
 
   return {
     get timeStamp() {
       return firstHiddenTime;
-    }
-  }
+    },
+  };
 };

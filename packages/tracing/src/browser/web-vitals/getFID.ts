@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import {bindReporter} from './lib/bindReporter';
-import {getFirstHidden} from './lib/getFirstHidden';
-import {initMetric} from './lib/initMetric';
-import {observe, PerformanceEntryHandler} from './lib/observe';
-import {onHidden} from './lib/onHidden';
-import {ReportHandler} from './types';
-
+import { bindReporter } from './lib/bindReporter';
+import { getFirstHidden } from './lib/getFirstHidden';
+import { initMetric } from './lib/initMetric';
+import { observe, PerformanceEntryHandler } from './lib/observe';
+import { onHidden } from './lib/onHidden';
+import { ReportHandler } from './types';
 
 interface FIDPolyfillCallback {
   (value: number, event: Event): void;
@@ -72,14 +71,16 @@ export const getFID = (onReport: ReportHandler): void => {
         if (event.timeStamp < firstHidden.timeStamp) {
           metric.value = value;
           metric.isFinal = true;
-          metric.entries = [{
-            entryType: 'first-input',
-            name: event.type,
-            target: event.target,
-            cancelable: event.cancelable,
-            startTime: event.timeStamp,
-            processingStart: event.timeStamp + value,
-          } as PerformanceEventTiming];
+          metric.entries = [
+            {
+              entryType: 'first-input',
+              name: event.type,
+              target: event.target,
+              cancelable: event.cancelable,
+              startTime: event.timeStamp,
+              processingStart: event.timeStamp + value,
+            } as PerformanceEventTiming,
+          ];
           report();
         }
       });

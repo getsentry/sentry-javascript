@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import {bindReporter} from './lib/bindReporter';
-import {getFirstHidden} from './lib/getFirstHidden';
-import {initMetric} from './lib/initMetric';
-import {observe, PerformanceEntryHandler} from './lib/observe';
-import {onHidden} from './lib/onHidden';
-import {whenInput} from './lib/whenInput';
-import {ReportHandler} from './types';
-
+import { bindReporter } from './lib/bindReporter';
+import { getFirstHidden } from './lib/getFirstHidden';
+import { initMetric } from './lib/initMetric';
+import { observe, PerformanceEntryHandler } from './lib/observe';
+import { onHidden } from './lib/onHidden';
+import { whenInput } from './lib/whenInput';
+import { ReportHandler } from './types';
 
 export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void => {
   const metric = initMetric('LCP');
@@ -57,7 +56,7 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void 
         metric.isFinal = true;
         report();
       }
-    }
+    };
 
     void whenInput().then(onFinal);
     onHidden(onFinal, true);

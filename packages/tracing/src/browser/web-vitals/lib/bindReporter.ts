@@ -14,24 +14,21 @@
  * limitations under the License.
  */
 
-import {Metric, ReportHandler} from '../types';
-
+import { Metric, ReportHandler } from '../types';
 
 export const bindReporter = (
   callback: ReportHandler,
   metric: Metric,
   po: PerformanceObserver | undefined,
   observeAllUpdates?: boolean,
-) => {
+): (() => void) => {
   let prevValue: number;
   return () => {
     if (po && metric.isFinal) {
       po.disconnect();
     }
     if (metric.value >= 0) {
-      if (observeAllUpdates ||
-          metric.isFinal ||
-          document.visibilityState === 'hidden') {
+      if (observeAllUpdates || metric.isFinal || document.visibilityState === 'hidden') {
         metric.delta = metric.value - (prevValue || 0);
 
         // Report the metric if there's a non-zero delta, if the metric is
@@ -44,5 +41,5 @@ export const bindReporter = (
         }
       }
     }
-  }
-}
+  };
+};

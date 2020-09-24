@@ -6,8 +6,8 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
-import { getFID } from "./web-vitals/getFID";
-import { getLCP } from "./web-vitals/getLCP";
+import { getFID } from './web-vitals/getFID';
+import { getLCP } from './web-vitals/getLCP';
 
 const global = getGlobalObject<Window>();
 
@@ -128,7 +128,7 @@ export class MetricsInstrumentation {
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
   private _trackLCP(): void {
-    getLCP((metric) => {
+    getLCP(metric => {
       const entry = metric.entries.pop();
 
       if (!entry) {
@@ -145,7 +145,7 @@ export class MetricsInstrumentation {
 
   /** Starts tracking the First Input Delay on the current page. */
   private _trackFID(): void {
-    getFID((metric) => {
+    getFID(metric => {
       const entry = metric.entries.pop();
 
       if (!entry) {

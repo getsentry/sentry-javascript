@@ -18,8 +18,8 @@ let inputPromise: Promise<Event>;
 
 export const whenInput = (): Promise<Event> => {
   if (!inputPromise) {
-    inputPromise = new Promise((r) => {
-      return ['scroll', 'keydown', 'pointerdown'].map((type) => {
+    inputPromise = new Promise(r => {
+      return ['scroll', 'keydown', 'pointerdown'].map(type => {
         addEventListener(type, r, {
           once: true,
           passive: true,

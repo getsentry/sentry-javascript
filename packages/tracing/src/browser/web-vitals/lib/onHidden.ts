@@ -14,37 +14,40 @@
  * limitations under the License.
  */
 
-
 export interface OnHiddenCallback {
   // TODO(philipwalton): add `isPersisted` if needed for bfcache.
-  ({timeStamp, isUnloading}: {timeStamp: number; isUnloading: boolean}): void;
+  ({ timeStamp, isUnloading }: { timeStamp: number; isUnloading: boolean }): void;
 }
 
 let isUnloading = false;
 let listenersAdded = false;
 
-const onPageHide = (event: PageTransitionEvent) => {
+const onPageHide = (event: PageTransitionEvent): void => {
   isUnloading = !event.persisted;
 };
 
-const addListeners = () => {
+const addListeners = (): void => {
   addEventListener('pagehide', onPageHide);
 
   // `beforeunload` is needed to fix this bug:
   // https://bugs.chromium.org/p/chromium/issues/detail?id=987409
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   addEventListener('beforeunload', () => {});
-}
+};
 
-export const onHidden = (cb: OnHiddenCallback, once = false) => {
+export const onHidden = (cb: OnHiddenCallback, once = false): void => {
   if (!listenersAdded) {
     addListeners();
     listenersAdded = true;
   }
 
-  addEventListener('visibilitychange', ({timeStamp}) => {
-    if (document.visibilityState === 'hidden') {
-      cb({timeStamp, isUnloading});
-    }
-  }, {capture: true, once});
+  addEventListener(
+    'visibilitychange',
+    ({ timeStamp }) => {
+      if (document.visibilityState === 'hidden') {
+        cb({ timeStamp, isUnloading });
+      }
+    },
+    { capture: true, once },
+  );
 };

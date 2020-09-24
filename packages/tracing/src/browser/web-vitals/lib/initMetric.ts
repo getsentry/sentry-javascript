@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import {Metric} from '../types.js';
-import {generateUniqueID} from './generateUniqueID.js';
-
+import { Metric } from '../types';
+import { generateUniqueID } from './generateUniqueID';
 
 export const initMetric = (name: Metric['name'], value = -1): Metric => {
   return {
@@ -25,6 +24,6 @@ export const initMetric = (name: Metric['name'], value = -1): Metric => {
     delta: 0,
     entries: [],
     id: generateUniqueID(),
-    isFinal: false
+    isFinal: false,
   };
 };

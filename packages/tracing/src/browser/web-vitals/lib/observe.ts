@@ -26,16 +26,12 @@ export interface PerformanceEntryHandler {
  * This function also feature-detects entry support and wraps the logic in a
  * try/catch to avoid errors in unsupporting browsers.
  */
-export const observe = (
-    type: string,
-    callback: PerformanceEntryHandler,
-): PerformanceObserver | undefined => {
+export const observe = (type: string, callback: PerformanceEntryHandler): PerformanceObserver | undefined => {
   try {
     if (PerformanceObserver.supportedEntryTypes.includes(type)) {
-      const po: PerformanceObserver =
-          new PerformanceObserver((l) => l.getEntries().map(callback));
+      const po: PerformanceObserver = new PerformanceObserver(l => l.getEntries().map(callback));
 
-      po.observe({type, buffered: true});
+      po.observe({ type, buffered: true });
       return po;
     }
   } catch (e) {
