@@ -23,13 +23,13 @@ import {whenInput} from './lib/whenInput';
 import {ReportHandler} from './types';
 
 
-export const getLCP = (onReport: ReportHandler, reportAllChanges = false) => {
+export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void => {
   const metric = initMetric('LCP');
   const firstHidden = getFirstHidden();
 
   let report: ReturnType<typeof bindReporter>;
 
-  const entryHandler = (entry: PerformanceEntry) => {
+  const entryHandler = (entry: PerformanceEntry): void => {
     // The startTime attribute returns the value of the renderTime if it is not 0,
     // and the value of the loadTime otherwise.
     const value = entry.startTime;
@@ -51,7 +51,7 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges = false) => {
   if (po) {
     report = bindReporter(onReport, metric, po, reportAllChanges);
 
-    const onFinal = () => {
+    const onFinal = (): void => {
       if (!metric.isFinal) {
         po.takeRecords().map(entryHandler as PerformanceEntryHandler);
         metric.isFinal = true;
@@ -59,7 +59,7 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges = false) => {
       }
     }
 
-    whenInput().then(onFinal);
+    void whenInput().then(onFinal);
     onHidden(onFinal, true);
   }
 };

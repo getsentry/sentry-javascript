@@ -16,7 +16,7 @@
 
 let inputPromise: Promise<Event>;
 
-export const whenInput = () => {
+export const whenInput = (): Promise<Event> => {
   if (!inputPromise) {
     inputPromise = new Promise((r) => {
       return ['scroll', 'keydown', 'pointerdown'].map((type) => {
