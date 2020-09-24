@@ -18,6 +18,7 @@ const global = getGlobalObject<Window>();
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
   private _firstHiddenTime: number = 0;
+  private _lcpFinal: boolean = false;
 
   private _measurements: Measurements = {};
 
@@ -184,6 +185,8 @@ export class MetricsInstrumentation {
           this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
 
           // TODO: when measurements has matured, include entry.id and entry.size
+        } else {
+          this._lcpFinal = true;
         }
       };
 
@@ -204,6 +207,25 @@ export class MetricsInstrumentation {
           po.takeRecords().forEach(updateLCP);
         }
       };
+
+      document.addEventListener(
+        'visibilitychange',
+        () => {
+
+          if (this._lcpFinal) {
+            return;
+          }
+
+          if (document.visibilityState === 'hidden') {
+            if (po.takeRecords) {
+              po.takeRecords().forEach(updateLCP);
+              this._lcpFinal = true;
+            }
+          }
+
+        },
+        { capture: true, once: true },
+      );
     } catch (e) {
       // Do nothing if the browser doesn't support this API.
     }
