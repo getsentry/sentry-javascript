@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "5.23.0",
+  "version": "5.24.2",
   "description": "Offical Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -26,14 +26,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/react": "5.23.0",
-    "@sentry/tracing": "5.23.0"
+    "@sentry/react": "5.24.2",
+    "@sentry/tracing": "5.24.2"
   },
   "peerDependencies": {
     "gatsby": "*"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "5.23.0",
+    "@sentry-internal/eslint-config-sdk": "5.24.2",
     "@testing-library/react": "^10.4.9",
     "eslint": "7.6.0",
     "jest": "^24.7.1",
@@ -61,6 +61,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "pack": "npm pack"
+  },
+  "volta": {
+    "extends": "../../package.json"
   },
   "jest": {
     "collectCoverage": true,

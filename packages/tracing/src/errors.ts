@@ -1,7 +1,7 @@
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 
-import { getActiveTransaction } from './browser/utils';
 import { SpanStatus } from './spanstatus';
+import { getActiveTransaction } from './utils';
 
 /**
  * Configures global error listeners

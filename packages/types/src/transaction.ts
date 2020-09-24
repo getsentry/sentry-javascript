@@ -91,7 +91,7 @@ export interface SamplingContext extends CustomSamplingContext {
    * Object representing the URL of the current page or worker script. Passed by default in a browser or service worker
    * context.
    */
-  location?: Location | WorkerLocation;
+  location?: WorkerLocation;
 
   /**
    * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.

@@ -62,6 +62,7 @@ Aside from configuration passed from this addon into `@sentry/browser` via the `
     sentry: ... // See sentry-javascript configuration https://docs.sentry.io/error-reporting/configuration/?platform=javascript
   };
 ```
+
 #### Disabling Performance
 
 `@sentry/ember` captures performance by default, if you would like to disable the automatic performance instrumentation, you can add the following to your `config/environment.js`:
@@ -82,13 +83,53 @@ you can import `instrumentRoutePerformance` and wrap your route with it.
 import Route from '@ember/routing/route';
 import { instrumentRoutePerformance } from '@sentry/ember';
 
-export default instrumentRoutePerformance(
-  class MyRoute extends Route {
-    model() {
-      //...
-    }
+class MyRoute extends Route {
+  model() {
+    //...
   }
-);
+}
+
+export default instrumentRoutePerformance(MyRoute);
+```
+
+#### Runloop
+The runloop queue durations are instrumented by default, as long as they are longer than a threshold (by default 5ms).
+This helps (via the render queue) capturing the entire render in case component render times aren't fully instrumented,
+such as when using glimmer components.
+
+If you would like to change the runloop queue threshold, add the following to your config:
+```javascript
+  ENV['@sentry/ember'] = {
+    minimumRunloopQueueDuration: 0, // All runloop queue durations will be added as spans.
+  };
+```
+
+#### Components
+Non-glimmer component render times will automatically get captured. 
+
+If you would like to disable component render being instrumented, add the following to your config:
+```javascript
+  ENV['@sentry/ember'] = {
+    disableInstrumentComponents: true, // Will disable automatic instrumentation for components.
+  };
+```
+
+Additionally, components whose render time is below a threshold (by default 2ms) will not be included as spans.
+If you would like to change this threshold, add the following to your config:
+```javascript
+  ENV['@sentry/ember'] = {
+    minimumComponentRenderDuration: 0, // All (non-glimmer) component render durations will be added as spans.
+  };
+```
+
+#### Glimmer components
+Currently glimmer component render durations can only be captured indirectly via the runloop instrumentation. You can
+optionally enable a setting to show component definitions (which will indicate which components are being rendered) be
+adding the following to your config:
+```javascript
+  ENV['@sentry/ember'] = {
+    enableComponentDefinition: true, // All component definitions will be added as spans.
+  };
 ```
 
 ### Supported Versions

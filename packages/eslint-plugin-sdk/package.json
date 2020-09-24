@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/eslint-plugin-sdk",
-  "version": "5.23.0",
+  "version": "5.24.2",
   "description": "Official Sentry SDK eslint plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-plugin-sdk",
@@ -32,5 +32,8 @@
     "fix": "prettier --write \"{src,test}/**/*.js\"",
     "test": "mocha test --recursive",
     "pack": "npm pack"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

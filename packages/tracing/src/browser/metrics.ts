@@ -5,7 +5,7 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { Span } from '../span';
 import { Transaction } from '../transaction';
-import { msToSec } from './utils';
+import { msToSec } from '../utils';
 
 // https://wicg.github.io/event-timing/#sec-performance-event-timing
 interface PerformanceEventTiming extends PerformanceEntry {
