@@ -9,13 +9,6 @@ import { msToSec } from '../utils';
 import { getFID } from "./web-vitals/getFID";
 import { getLCP } from "./web-vitals/getLCP";
 
-// https://wicg.github.io/event-timing/#sec-performance-event-timing
-interface PerformanceEventTiming extends PerformanceEntry {
-  processingStart: DOMHighResTimeStamp;
-  cancelable?: boolean;
-  target?: Element;
-}
-
 const global = getGlobalObject<Window>();
 
 /** Class tracking metrics  */
