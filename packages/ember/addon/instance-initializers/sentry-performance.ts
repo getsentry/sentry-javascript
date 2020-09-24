@@ -58,6 +58,11 @@ export function _instrumentEmberRouter(
         'routing.instrumentation': '@sentry/ember',
       },
     });
+
+    transitionSpan = activeTransaction.startChild({
+      op: 'ember.transition',
+      description: `route:undefined -> route:${routeInfo.name}`,
+    });
   }
 
   const finishActiveTransaction = function(_: any, nextInstance: any) {
