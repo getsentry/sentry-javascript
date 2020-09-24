@@ -6,6 +6,8 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
+import { getFID } from "./web-vitals/getFID";
+import { getLCP } from "./web-vitals/getLCP";
 
 // https://wicg.github.io/event-timing/#sec-performance-event-timing
 interface PerformanceEventTiming extends PerformanceEntry {
@@ -18,9 +20,6 @@ const global = getGlobalObject<Window>();
 
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
-  private _firstHiddenTime: number = 0;
-  private _lcpFinal: boolean = false;
-
   private _measurements: Measurements = {};
 
   private _performanceCursor: number = 0;
@@ -30,20 +29,6 @@ export class MetricsInstrumentation {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
-
-      // Keep track of whether (and when) the page was first hidden, see:
-      // https://github.com/w3c/page-visibility/issues/29
-      // NOTE: ideally this check would be performed in the document <head>
-      // to avoid cases where the visibility state changes before this code runs.
-      this._firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
-
-      document.addEventListener(
-        'visibilitychange',
-        event => {
-          this._firstHiddenTime = Math.min(this._firstHiddenTime, event.timeStamp);
-        },
-        { capture: true, once: true },
-      );
 
       this._trackLCP();
       this._trackFID();
@@ -161,73 +146,19 @@ export class MetricsInstrumentation {
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
   private _trackLCP(): void {
-    // Based on reference implementation from https://web.dev/lcp/#measure-lcp-in-javascript.
-    // Use a try/catch instead of feature detecting `largest-contentful-paint`
-    // support, since some browsers throw when using the new `type` option.
-    // https://bugs.webkit.org/show_bug.cgi?id=209216
-    try {
-      if (!PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint')) {
+    getLCP((metric) => {
+      const entry = metric.entries.pop();
+
+      if (!entry) {
         return;
       }
 
-      const updateLCP = (entry: PerformanceEntry): void => {
-        // Only include an LCP entry if the page wasn't hidden prior to
-        // the entry being dispatched. This typically happens when a page is
-        // loaded in a background tab.
-        if (entry.startTime < this._firstHiddenTime) {
-          // NOTE: the `startTime` value is a getter that returns the entry's
-          // `renderTime` value, if available, or its `loadTime` value otherwise.
-          // The `renderTime` value may not be available if the element is an image
-          // that's loaded cross-origin without the `Timing-Allow-Origin` header.
-          const timeOrigin = msToSec(performance.timeOrigin);
-          const startTime = msToSec(entry.startTime as number);
-          logger.log('[Measurements] Adding LCP');
-          this._measurements['lcp'] = { value: entry.startTime };
-          this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
-
-          // TODO: when measurements has matured, include entry.id and entry.size
-        } else {
-          this._lcpFinal = true;
-        }
-      };
-
-      // Create a PerformanceObserver that calls `updateLCP` for each entry.
-      const po = new PerformanceObserver(entryList => {
-        entryList.getEntries().forEach(updateLCP);
-      });
-
-      // Observe entries of type `largest-contentful-paint`, including buffered entries,
-      // i.e. entries that occurred before calling `observe()` below.
-      po.observe({
-        buffered: true,
-        type: 'largest-contentful-paint',
-      });
-
-      this._forceLCP = () => {
-        if (po.takeRecords) {
-          po.takeRecords().forEach(updateLCP);
-        }
-      };
-
-      document.addEventListener(
-        'visibilitychange',
-        () => {
-
-          if (!this._lcpFinal && document.visibilityState === 'hidden') {
-            if (po.takeRecords) {
-              po.takeRecords().forEach(updateLCP);
-              this._lcpFinal = true;
-            }
-          }
-
-          po.disconnect();
-
-        },
-        { capture: true, once: true },
-      );
-    } catch (e) {
-      // Do nothing if the browser doesn't support this API.
-    }
+      const timeOrigin = msToSec(performance.timeOrigin);
+      const startTime = msToSec(entry.startTime as number);
+      logger.log('[Measurements] Adding LCP');
+      this._measurements['lcp'] = { value: metric.value };
+      this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
+    });
   }
 
   /** Starts tracking the First Input Delay on the current page. */
