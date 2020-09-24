@@ -17,7 +17,6 @@ interface PerformanceEventTiming extends PerformanceEntry {
 const global = getGlobalObject<Window>();
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
-  private _lcp: Record<string, any> = {};
   private _measurements: Measurements = {};
 
   private _performanceCursor: number = 0;
@@ -46,10 +45,6 @@ export class MetricsInstrumentation {
     if (transaction.op === 'pageload') {
       // Force any pending records to be dispatched.
       this._forceLCP();
-      if (this._lcp) {
-        // Set the last observed LCP score.
-        transaction.setData('_sentry_web_vitals', { LCP: this._lcp });
-      }
     }
 
     const timeOrigin = msToSec(performance.timeOrigin);
@@ -175,19 +170,13 @@ export class MetricsInstrumentation {
           // `renderTime` value, if available, or its `loadTime` value otherwise.
           // The `renderTime` value may not be available if the element is an image
           // that's loaded cross-origin without the `Timing-Allow-Origin` header.
-          this._lcp = {
-            // @ts-ignore can't access id on entry
-            ...(entry.id && { elementId: entry.id }),
-            // @ts-ignore can't access id on entry
-            ...(entry.size && { elementSize: entry.size }),
-            value: entry.startTime,
-          };
-
           const timeOrigin = msToSec(performance.timeOrigin);
           const startTime = msToSec(entry.startTime as number);
           logger.log('[Measurements] Adding LCP');
           this._measurements['lcp'] = { value: entry.startTime };
           this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
+
+          // TODO: when measurements has matured, include entry.id and entry.size
         }
       };
 
