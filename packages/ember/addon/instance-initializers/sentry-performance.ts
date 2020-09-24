@@ -7,6 +7,7 @@ import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
 import { timestampWithMs } from '@sentry/utils';
+import { macroCondition, isTesting } from '@embroider/macros';
 
 export function initialize(appInstance: ApplicationInstance): void {
   const config = environmentConfig['@sentry/ember'];
@@ -14,7 +15,7 @@ export function initialize(appInstance: ApplicationInstance): void {
     return;
   }
   const performancePromise = instrumentForPerformance(appInstance);
-  if (Ember.testing) {
+  if (macroCondition(isTesting())) {
     (<any>window)._sentryPerformanceLoad = performancePromise;
   }
 }
@@ -42,7 +43,7 @@ export function _instrumentEmberRouter(
 
   const url = location && location.getURL && location.getURL();
 
-  if (Ember.testing) {
+  if (macroCondition(isTesting())) {
     routerService._sentryInstrumented = true;
     routerService._startTransaction = startTransaction;
   }
@@ -329,7 +330,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     }),
   ];
 
-  if (Ember.testing && Sentry.getCurrentHub()?.getIntegration(tracing.Integrations.BrowserTracing)) {
+  if (isTesting() && Sentry.getCurrentHub()?.getIntegration(tracing.Integrations.BrowserTracing)) {
     // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
     return;
   }
