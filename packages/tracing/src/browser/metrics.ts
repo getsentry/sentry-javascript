@@ -213,16 +213,14 @@ export class MetricsInstrumentation {
         'visibilitychange',
         () => {
 
-          if (this._lcpFinal) {
-            return;
-          }
-
-          if (document.visibilityState === 'hidden') {
+          if (!this._lcpFinal && document.visibilityState === 'hidden') {
             if (po.takeRecords) {
               po.takeRecords().forEach(updateLCP);
               this._lcpFinal = true;
             }
           }
+
+          po.disconnect();
 
         },
         { capture: true, once: true },
