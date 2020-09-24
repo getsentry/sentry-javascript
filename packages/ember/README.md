@@ -74,6 +74,8 @@ Aside from configuration passed from this addon into `@sentry/browser` via the `
   };
 ```
 
+Note that you have to provide `ENV['@sentry/ember'].sentry.tracesSampleRate` (see [documentation](https://docs.sentry.io/platforms/javascript/#monitor-performance)) for any performance data to be captured.
+
 ### Performance
 #### Routes
 If you would like to capture `beforeModel`, `model`, `afterModel` and `setupController` times for one of your routes,
@@ -105,7 +107,7 @@ If you would like to change the runloop queue threshold, add the following to yo
 ```
 
 #### Components
-Non-glimmer component render times will automatically get captured. 
+Non-glimmer component render times will automatically get captured.
 
 If you would like to disable component render being instrumented, add the following to your config:
 ```javascript
