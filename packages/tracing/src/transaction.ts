@@ -97,16 +97,7 @@ export class Transaction extends SpanClass {
       }).endTimestamp;
     }
 
-    const extra: Partial<Event> = {};
-
-    const hasMeasurements = Object.keys(this._measurements).length > 0;
-
-    if (hasMeasurements) {
-      logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(this._measurements, undefined, 2));
-      extra.measurements = this._measurements;
-    }
-
-    return this._hub.captureEvent({
+    const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
       },
@@ -115,8 +106,16 @@ export class Transaction extends SpanClass {
       tags: this.tags,
       timestamp: this.endTimestamp,
       transaction: this.name,
-      type: 'transaction',
-      ...extra,
-    });
+      type: 'transaction'
+    };
+
+    const hasMeasurements = Object.keys(this._measurements).length > 0;
+
+    if (hasMeasurements) {
+      logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(this._measurements, undefined, 2));
+      transaction.measurements = this._measurements;
+    }
+
+    return this._hub.captureEvent(transaction);
   }
 }
