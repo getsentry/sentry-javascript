@@ -17,6 +17,9 @@ interface PerformanceEventTiming extends PerformanceEntry {
 const global = getGlobalObject<Window>();
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
+
+  private _firstHiddenTime: number = 0;
+
   private _measurements: Measurements = {};
 
   private _performanceCursor: number = 0;
@@ -26,6 +29,20 @@ export class MetricsInstrumentation {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
+
+      // Keep track of whether (and when) the page was first hidden, see:
+      // https://github.com/w3c/page-visibility/issues/29
+      // NOTE: ideally this check would be performed in the document <head>
+      // to avoid cases where the visibility state changes before this code runs.
+      this._firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
+
+      document.addEventListener(
+        'visibilitychange',
+        event => {
+          this._firstHiddenTime = Math.min(this._firstHiddenTime, event.timeStamp);
+        },
+        { capture: true, once: true },
+      );
 
       this._trackLCP();
       this._trackFID();
@@ -148,24 +165,12 @@ export class MetricsInstrumentation {
     // support, since some browsers throw when using the new `type` option.
     // https://bugs.webkit.org/show_bug.cgi?id=209216
     try {
-      // Keep track of whether (and when) the page was first hidden, see:
-      // https://github.com/w3c/page-visibility/issues/29
-      // NOTE: ideally this check would be performed in the document <head>
-      // to avoid cases where the visibility state changes before this code runs.
-      let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
-      document.addEventListener(
-        'visibilitychange',
-        event => {
-          firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
-        },
-        { once: true },
-      );
 
       const updateLCP = (entry: PerformanceEntry): void => {
         // Only include an LCP entry if the page wasn't hidden prior to
         // the entry being dispatched. This typically happens when a page is
         // loaded in a background tab.
-        if (entry.startTime < firstHiddenTime) {
+        if (entry.startTime < this._firstHiddenTime) {
           // NOTE: the `startTime` value is a getter that returns the entry's
           // `renderTime` value, if available, or its `loadTime` value otherwise.
           // The `renderTime` value may not be available if the element is an image
@@ -209,24 +214,12 @@ export class MetricsInstrumentation {
     // support, since some browsers throw when using the new `type` option.
     // https://bugs.webkit.org/show_bug.cgi?id=209216
     try {
-      // Keep track of whether (and when) the page was first hidden, see:
-      // https://github.com/w3c/page-visibility/issues/29
-      // NOTE: ideally this check would be performed in the document <head>
-      // to avoid cases where the visibility state changes before this code runs.
-      let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
-      document.addEventListener(
-        'visibilitychange',
-        event => {
-          firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
-        },
-        { once: true },
-      );
 
       const updateFID = (entry: PerformanceEventTiming, po: PerformanceObserver): void => {
         // Only report FID if the page wasn't hidden prior to
         // the entry being dispatched. This typically happens when a
         // page is loaded in a background tab.
-        if (entry.startTime < firstHiddenTime) {
+        if (entry.startTime < this._firstHiddenTime) {
           const fidValue = entry.processingStart - entry.startTime;
           const timeOrigin = msToSec(performance.timeOrigin);
           const startTime = msToSec(entry.startTime as number);
