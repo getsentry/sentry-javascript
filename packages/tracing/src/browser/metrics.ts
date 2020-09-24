@@ -255,8 +255,9 @@ export class MetricsInstrumentation {
           this._measurements['fid'] = { value: fidValue };
           this._measurements['mark.fid'] = { value: timeOrigin + startTime };
 
-          po.disconnect();
         }
+
+        po.disconnect();
       };
 
       // Create a PerformanceObserver that calls `updateFID` for each entry.
