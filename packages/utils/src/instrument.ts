@@ -25,7 +25,10 @@ type InstrumentHandlerType =
   | 'xhr'
   | 'error'
   | 'unhandledrejection';
-type InstrumentHandlerCallback = (data: any) => void;
+export type InstrumentHandlerCallbackFunction = (...args: any[]) => void;
+interface InstrumentHandlerCallback extends InstrumentHandlerCallbackFunction {
+  id?: string;
+}
 
 /**
  * Instrument native APIs to call handlers that can be used to create breadcrumbs, APM spans etc.
@@ -81,13 +84,23 @@ function instrument(type: InstrumentHandlerType): void {
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addInstrumentationHandler(handler: InstrumentHandler): void {
-  if (!handler || typeof handler.type !== 'string' || typeof handler.callback !== 'function') {
+export function addInstrumentationHandler(newHandler: InstrumentHandler): void {
+  if (!newHandler || typeof newHandler.type !== 'string' || typeof newHandler.callback !== 'function') {
     return;
   }
-  handlers[handler.type] = handlers[handler.type] || [];
-  (handlers[handler.type] as InstrumentHandlerCallback[]).push(handler.callback);
-  instrument(handler.type);
+
+  const handlersForType = (handlers[newHandler.type] = handlers[newHandler.type] || []);
+
+  // we don't want to add the same handler twice
+  if (handlersForType.some(handler => handler.id && handler.id === newHandler.callback.id)) {
+    return;
+  }
+
+  // these will be trigered when the wrapped API is called
+  handlersForType.push(newHandler.callback);
+
+  // wrap the native API (if not already wrapped)
+  instrument(newHandler.type);
 }
 
 /** JSDoc */
