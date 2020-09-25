@@ -27,11 +27,11 @@ Then add the following config to `config/environment.js`
 ```javascript
   ENV['@sentry/ember'] = {
     sentry: {
-      dsn: '__DSN__' // replace __DSN__ with your DSN
+      dsn: '__DSN__' // replace __DSN__ with your DSN,
+      tracesSampleRate: 1.0, // Be sure to lower this for your production environment
     }
   };
 ```
-
 ### Usage
 
 To use this SDK, call `InitSentryForEmber` before the application is initialized, in `app.js`. This will load Sentry config from `environment.js` for you.
@@ -74,7 +74,6 @@ Aside from configuration passed from this addon into `@sentry/browser` via the `
   };
 ```
 
-Note that you have to provide `ENV['@sentry/ember'].sentry.tracesSampleRate` (see [documentation](https://docs.sentry.io/platforms/javascript/#monitor-performance)) for any performance data to be captured.
 
 ### Performance
 #### Routes
