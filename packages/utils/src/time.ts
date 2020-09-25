@@ -28,7 +28,7 @@ const performanceFallback: CrossPlatformPerformance = {
   timeOrigin: INITIAL_TIME,
 };
 
-export const crossPlatformPerformance: CrossPlatformPerformance = ((): CrossPlatformPerformance => {
+const crossPlatformPerformance: CrossPlatformPerformance = ((): CrossPlatformPerformance => {
   // React Native's performance.now() starts with a gigantic offset, so we need to wrap it.
   if (isReactNative()) {
     return getReactNativePerformanceWrapper();
@@ -74,7 +74,7 @@ export function timestampWithMs(): number {
 /**
  * Determines if running in react native
  */
-export function isReactNative(): boolean {
+function isReactNative(): boolean {
   return getGlobalObject<Window>().navigator?.product === 'ReactNative';
 }
 
