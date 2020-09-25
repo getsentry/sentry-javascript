@@ -18,7 +18,7 @@ import {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
+import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
 import { Carrier, DomainAsCarrier, Layer } from './interfaces';
 import { Scope } from './scope';
@@ -242,7 +242,7 @@ export class Hub implements HubInterface {
       return;
     }
 
-    const timestamp = timestampWithMs();
+    const timestamp = dateTimestampInSeconds();
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
     const finalBreadcrumb = beforeBreadcrumb
       ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)

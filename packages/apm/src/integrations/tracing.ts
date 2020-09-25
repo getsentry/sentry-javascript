@@ -4,6 +4,7 @@ import { Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
   addInstrumentationHandler,
+  browserPerformanceTimeOrigin,
   getGlobalObject,
   isInstanceOf,
   isMatchingPattern,
@@ -570,7 +571,7 @@ export class Tracing implements Integration {
    * @param transactionSpan The transaction span
    */
   private static _addPerformanceEntries(transactionSpan: SpanClass): void {
-    if (!global.performance || !global.performance.getEntries) {
+    if (!global.performance || !global.performance.getEntries || !browserPerformanceTimeOrigin) {
       // Gatekeeper if performance API not available
       return;
     }
@@ -587,7 +588,7 @@ export class Tracing implements Integration {
       }
     }
 
-    const timeOrigin = Tracing._msToSec(performance.timeOrigin);
+    const timeOrigin = Tracing._msToSec(browserPerformanceTimeOrigin);
 
     // eslint-disable-next-line jsdoc/require-jsdoc
     function addPerformanceNavigationTiming(parent: Span, entry: { [key: string]: number }, event: string): void {
