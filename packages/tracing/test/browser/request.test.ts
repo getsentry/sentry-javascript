@@ -2,7 +2,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
 import { Span, SpanStatus, Transaction } from '../../src';
-import { _fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
+import { fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 
 declare global {
@@ -96,7 +96,7 @@ describe('_fetchCallback()', () => {
     };
     const spans = {};
 
-    _fetchCallback(data, shouldCreateSpan, spans);
+    fetchCallback(data, shouldCreateSpan, spans);
     expect(spans).toEqual({});
   });
 
@@ -108,7 +108,7 @@ describe('_fetchCallback()', () => {
     };
     const spans = {};
 
-    _fetchCallback(data, shouldCreateSpan, spans);
+    fetchCallback(data, shouldCreateSpan, spans);
     expect(spans).toEqual({});
   });
 
@@ -125,7 +125,7 @@ describe('_fetchCallback()', () => {
     const spans: Record<string, Span> = {};
 
     // Start fetch request
-    _fetchCallback(data, shouldCreateSpan, spans);
+    fetchCallback(data, shouldCreateSpan, spans);
     const spanKey = Object.keys(spans)[0];
 
     const fetchSpan = spans[spanKey];
@@ -149,7 +149,7 @@ describe('_fetchCallback()', () => {
     };
 
     // End fetch request
-    _fetchCallback(newData, shouldCreateSpan, spans);
+    fetchCallback(newData, shouldCreateSpan, spans);
     expect(spans).toEqual({});
     if (transaction.spanRecorder) {
       expect(transaction.spanRecorder.spans[1].endTimestamp).toBeDefined();
@@ -171,7 +171,7 @@ describe('_fetchCallback()', () => {
     const spans: Record<string, Span> = {};
 
     // Start fetch request
-    _fetchCallback(data, shouldCreateSpan, spans);
+    fetchCallback(data, shouldCreateSpan, spans);
 
     const newData = {
       ...data,
@@ -179,7 +179,7 @@ describe('_fetchCallback()', () => {
       response: { status: 404 } as Response,
     };
     // End fetch request
-    _fetchCallback(newData, shouldCreateSpan, spans);
+    fetchCallback(newData, shouldCreateSpan, spans);
     if (transaction.spanRecorder) {
       expect(transaction.spanRecorder.spans[1].status).toBe(SpanStatus.fromHttpCode(404));
     } else {
