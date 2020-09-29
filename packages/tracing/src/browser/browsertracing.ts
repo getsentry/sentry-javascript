@@ -13,7 +13,7 @@ import {
   registerRequestInstrumentation,
   RequestInstrumentationOptions,
 } from './request';
-import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
+import { defaultRoutingInstrumentation } from './router';
 
 export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
 
@@ -66,7 +66,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * If undefined is returned, a pageload/navigation transaction will not be created.
    */
-  beforeNavigate(context: TransactionContext): TransactionContext | undefined;
+  beforeNavigate?(context: TransactionContext): TransactionContext | undefined;
 
   /**
    * Instrumentation that creates routing change transactions. By default creates
@@ -80,7 +80,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS = {
-  beforeNavigate: defaultBeforeNavigate,
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
   markBackgroundTransactions: true,
   maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
@@ -189,20 +188,21 @@ export class BrowserTracing implements Integration {
     const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
 
     // if beforeNavigate returns undefined, we should not start a transaction.
-    const ctx = beforeNavigate({
+    const expandedContext = {
       ...context,
       ...getHeaderContext(),
       trimEnd: true,
-    });
+    };
+    const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
 
-    if (ctx === undefined) {
+    if (modifiedContext === undefined) {
       logger.log(`[Tracing] Did not create ${context.op} idleTransaction due to beforeNavigate`);
       return undefined;
     }
 
     const hub = this._getCurrentHub();
-    logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope`);
-    const idleTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
+    logger.log(`[Tracing] starting ${modifiedContext.op} idleTransaction on scope`);
+    const idleTransaction = startIdleTransaction(hub, modifiedContext, idleTimeout, true);
     idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {
       this._metrics.addPerformanceEntries(transaction);
       adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);

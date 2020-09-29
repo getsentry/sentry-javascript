@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
 
-import { defaultBeforeNavigate, defaultRoutingInstrumentation } from '../../src/browser/router';
+import { defaultRoutingInstrumentation } from '../../src/browser/router';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
 let addInstrumentationHandlerType: string = '';
@@ -13,13 +13,6 @@ jest.mock('@sentry/utils', () => {
       mockChangeHistory = callback;
     },
   };
-});
-
-describe('defaultBeforeNavigate()', () => {
-  it('returns a context', () => {
-    const ctx = { name: 'testing', status: 'ok' };
-    expect(defaultBeforeNavigate(ctx)).toBe(ctx);
-  });
 });
 
 describe('defaultRoutingInstrumentation', () => {
