@@ -156,14 +156,14 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(false);
       });
 
-      it('should not sample transactions when tracesSampleRate is 0', () => {
+      it('should set sampled = false if tracesSampleRate is 0', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(transaction.sampled).toBe(false);
       });
 
-      it('should sample transactions when tracesSampleRate is 1', () => {
+      it('should set sampled = true if tracesSampleRate is 1', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 

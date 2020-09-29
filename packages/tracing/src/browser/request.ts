@@ -41,7 +41,7 @@ export interface RequestInstrumentationOptions {
 /** Data returned from fetch callback */
 export interface FetchData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: any[];
+  args: any[]; // the arguments passed to the fetch call itself
   fetchData?: {
     method: string;
     url: string;
@@ -217,6 +217,7 @@ function xhrCallback(
     return;
   }
 
+  // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
     const span = spans[handlerData.xhr.__sentry_xhr_span_id__];
     if (span) {
@@ -231,6 +232,7 @@ function xhrCallback(
     return;
   }
 
+  // if not, create a new span to track it
   const activeTransaction = getActiveTransaction();
   if (activeTransaction) {
     const span = activeTransaction.startChild({
