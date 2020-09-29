@@ -48,7 +48,11 @@ export interface FetchData {
     // span_id
     __span?: string;
   };
-  response?: Response;
+
+  // TODO (kmclb) Once type fix goes through, turn this back into a Response
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  response?: any;
+
   startTimestamp: number;
   endTimestamp?: number;
 }
@@ -147,6 +151,8 @@ export function fetchCallback(
     if (span) {
       const response = handlerData.response;
       if (response) {
+        // TODO (kmclb) remove this once types PR goes through
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(response.status);
       }
       span.finish();
