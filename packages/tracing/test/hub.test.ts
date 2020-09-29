@@ -197,6 +197,24 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(true);
       });
 
+      it('should not try to override positive sampling decision provided in transaction context', () => {
+        // so that the decision otherwise would be false
+        const tracesSampler = jest.fn().mockReturnValue(0);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark', sampled: true });
+
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it('should not try to override negative sampling decision provided in transaction context', () => {
+        // so that the decision otherwise would be true
+        const tracesSampler = jest.fn().mockReturnValue(1);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
+
+        expect(transaction.sampled).toBe(false);
+      });
+
       it('should prefer tracesSampler to tracesSampleRate', () => {
         // make the two options do opposite things to prove precedence
         const tracesSampler = jest.fn().mockReturnValue(true);
