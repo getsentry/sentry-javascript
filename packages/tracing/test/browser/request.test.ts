@@ -3,8 +3,15 @@ import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
 import { Span, SpanStatus, Transaction } from '../../src';
-import { fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
+import {
+  fetchCallback,
+  FetchData,
+  registerRequestInstrumentation,
+  xhrCallback,
+  XHRData,
+} from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
+import * as tracingUtils from '../../src/utils';
 
 beforeAll(() => {
   addExtensionMethods();
@@ -14,6 +21,7 @@ beforeAll(() => {
 });
 
 const addInstrumentationHandler = jest.spyOn(utils, 'addInstrumentationHandler');
+const setRequestHeader = jest.fn();
 
 describe('registerRequestInstrumentation', () => {
   beforeEach(() => {
@@ -55,6 +63,21 @@ describe('callbacks', () => {
     args: ['http://dogs.are.great/', {}],
     fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
     startTimestamp: 1356996072000,
+  };
+  const xhrHandlerData: XHRData = {
+    xhr: {
+      __sentry_xhr__: {
+        method: 'GET',
+        url: 'http://dogs.are.great/',
+        status_code: 200,
+        data: {},
+      },
+      __sentry_xhr_span_id__: '1231201211212012',
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      // setRequestHeader: XMLHttpRequest.prototype.setRequestHeader,
+      setRequestHeader,
+    },
+    startTimestamp: 1353501072000,
   };
   const endTimestamp = 1356996072000;
 
@@ -140,6 +163,78 @@ describe('callbacks', () => {
 
     it('adds sentry-trace header to fetch requests', () => {
       // TODO
+    });
+  });
+
+  describe('xhrCallback()', () => {
+    it('does not create span if shouldCreateSpan returns false', () => {
+      const spans = {};
+
+      xhrCallback(xhrHandlerData, neverCreateSpan, spans);
+
+      expect(spans).toEqual({});
+    });
+
+    it('adds sentry-trace header to XHR requests', () => {
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
+
+      expect(setRequestHeader).toHaveBeenCalledWith(
+        'sentry-trace',
+        expect.stringMatching(tracingUtils.TRACEPARENT_REGEXP),
+      );
+    });
+
+    it('creates and finishes XHR span on active transaction', () => {
+      const spans = {};
+
+      // triggered by request being sent
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+
+      const newSpan = transaction.spanRecorder?.spans[1];
+
+      expect(newSpan).toBeDefined();
+      expect(newSpan).toBeInstanceOf(Span);
+      expect(newSpan!.data).toEqual({
+        method: 'GET',
+        type: 'xhr',
+        url: 'http://dogs.are.great/',
+      });
+      expect(newSpan!.description).toBe('GET http://dogs.are.great/');
+      expect(newSpan!.op).toBe('http');
+      expect(xhrHandlerData.xhr!.__sentry_xhr_span_id__).toBeDefined();
+      expect(xhrHandlerData.xhr!.__sentry_xhr_span_id__).toEqual(newSpan?.spanId);
+
+      const postRequestXHRHandlerData = {
+        ...xhrHandlerData,
+        endTimestamp,
+      };
+
+      // triggered by response coming back
+      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
+
+      expect(newSpan!.endTimestamp).toBeDefined();
+    });
+
+    it('sets response status on finish', () => {
+      const spans = {};
+
+      // triggered by request being sent
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+
+      const newSpan = transaction.spanRecorder?.spans[1];
+
+      expect(newSpan).toBeDefined();
+
+      const postRequestXHRHandlerData = {
+        ...xhrHandlerData,
+        endTimestamp,
+      };
+      postRequestXHRHandlerData.xhr!.__sentry_xhr__!.status_code = 404;
+
+      // triggered by response coming back
+      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
+
+      expect(newSpan!.status).toBe(SpanStatus.fromHttpCode(404));
     });
   });
 });

@@ -64,8 +64,8 @@ export interface XHRData {
       data: Record<string, any>;
     };
     __sentry_xhr_span_id__?: string;
-    __sentry_own_request__: boolean;
     setRequestHeader?: (key: string, val: string) => void;
+    __sentry_own_request__?: boolean;
   };
   startTimestamp: number;
   endTimestamp?: number;
