@@ -41,33 +41,6 @@ describe('Hub', () => {
   });
 
   describe('transaction sampling', () => {
-    describe('tracesSampleRate and tracesSampler options', () => {
-      it("should call tracesSampler if it's defined", () => {
-        const tracesSampler = jest.fn();
-        const hub = new Hub(new BrowserClient({ tracesSampler }));
-        hub.startTransaction({ name: 'dogpark' });
-
-        expect(tracesSampler).toHaveBeenCalled();
-      });
-
-      it('should prefer tracesSampler to tracesSampleRate', () => {
-        const tracesSampler = jest.fn();
-        const hub = new Hub(new BrowserClient({ tracesSampleRate: 1, tracesSampler }));
-        hub.startTransaction({ name: 'dogpark' });
-
-        expect(tracesSampler).toHaveBeenCalled();
-      });
-
-      it('tolerates tracesSampler returning a boolean', () => {
-        const tracesSampler = jest.fn().mockReturnValue(true);
-        const hub = new Hub(new BrowserClient({ tracesSampler }));
-        const transaction = hub.startTransaction({ name: 'dogpark' });
-
-        expect(tracesSampler).toHaveBeenCalled();
-        expect(transaction.sampled).toBe(true);
-      });
-    });
-
     describe('default sample context', () => {
       it('should extract request data for default sampling context when in node', () => {
         // make sure we look like we're in node
@@ -194,6 +167,33 @@ describe('Hub', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it("should call tracesSampler if it's defined", () => {
+        const tracesSampler = jest.fn();
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+      });
+
+      it('should prefer tracesSampler to tracesSampleRate', () => {
+        // make the two options do opposite things to prove precedence
+        const tracesSampler = jest.fn().mockReturnValue(true);
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 0, tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it('should tolerate tracesSampler returning a boolean', () => {
+        const tracesSampler = jest.fn().mockReturnValue(true);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
         expect(transaction.sampled).toBe(true);
       });
     });
