@@ -1,79 +1,63 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
+import * as utils from '@sentry/utils';
 
 import { Span, SpanStatus, Transaction } from '../../src';
 import { fetchCallback, FetchData, registerRequestInstrumentation } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace NodeJS {
-    interface Global {
-      // Have to mock out Request because it is not defined in jest environment
-      Request: Request;
-    }
-  }
-}
-
 beforeAll(() => {
   addExtensionMethods();
-  // @ts-ignore need to override global Request
+  // @ts-ignore need to override global Request because it's not in the jest environment (even with an
+  // `@jest-environment jsdom` directive, for some reason)
   global.Request = {};
 });
 
-const mockAddInstrumentationHandler = jest.fn();
-let mockFetchCallback = jest.fn();
-let mockXHRCallback = jest.fn();
-jest.mock('@sentry/utils', () => {
-  const actual = jest.requireActual('@sentry/utils');
-  return {
-    ...actual,
-    addInstrumentationHandler: ({ callback, type }: any) => {
-      if (type === 'fetch') {
-        mockFetchCallback = jest.fn(callback);
-      }
-      if (type === 'xhr') {
-        mockXHRCallback = jest.fn(callback);
-      }
-      if (typeof mockAddInstrumentationHandler === 'function') {
-        return mockAddInstrumentationHandler({ callback, type });
-      }
-    },
-  };
-});
+const addInstrumentationHandler = jest.spyOn(utils, 'addInstrumentationHandler');
 
 describe('registerRequestInstrumentation', () => {
   beforeEach(() => {
-    mockFetchCallback.mockReset();
-    mockXHRCallback.mockReset();
-    mockAddInstrumentationHandler.mockReset();
+    jest.clearAllMocks();
   });
 
-  it('tracks fetch and xhr requests', () => {
+  it('instruments fetch and xhr requests', () => {
     registerRequestInstrumentation();
-    expect(mockAddInstrumentationHandler).toHaveBeenCalledTimes(2);
-    // fetch
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(1, { callback: expect.any(Function), type: 'fetch' });
-    // xhr
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(2, { callback: expect.any(Function), type: 'xhr' });
+
+    expect(addInstrumentationHandler).toHaveBeenCalledWith({
+      callback: expect.any(Function),
+      type: 'fetch',
+    });
+    expect(addInstrumentationHandler).toHaveBeenCalledWith({
+      callback: expect.any(Function),
+      type: 'xhr',
+    });
   });
 
-  it('does not add fetch requests spans if traceFetch is false', () => {
+  it('does not instrument fetch requests if traceFetch is false', () => {
     registerRequestInstrumentation({ traceFetch: false });
-    expect(mockAddInstrumentationHandler).toHaveBeenCalledTimes(1);
-    expect(mockFetchCallback()).toBe(undefined);
+
+    expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'fetch' });
   });
 
-  it('does not add xhr requests spans if traceXHR is false', () => {
+  it('does not instrument xhr requests if traceXHR is false', () => {
     registerRequestInstrumentation({ traceXHR: false });
-    expect(mockAddInstrumentationHandler).toHaveBeenCalledTimes(1);
-    expect(mockXHRCallback()).toBe(undefined);
+
+    expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'xhr' });
   });
 });
 
-describe('_fetchCallback()', () => {
+describe('callbacks', () => {
   let hub: Hub;
   let transaction: Transaction;
+  const alwaysCreateSpan = jest.fn().mockReturnValue(true);
+  const neverCreateSpan = jest.fn().mockReturnValue(false);
+  const fetchHandlerData: FetchData = {
+    args: ['http://dogs.are.great/', {}],
+    fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
+    startTimestamp: 1356996072000,
+  };
+  const endTimestamp = 1356996072000;
+
   beforeAll(() => {
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
     makeMain(hub);
@@ -84,106 +68,78 @@ describe('_fetchCallback()', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
   });
 
-  it('does not create span if it should not be created', () => {
-    const shouldCreateSpan = (url: string): boolean => url === '/organizations';
-    const data: FetchData = {
-      args: ['/users'],
-      fetchData: {
-        method: 'GET',
-        url: '/users',
-      },
-      startTimestamp: 1595509730275,
-    };
-    const spans = {};
+  describe('fetchCallback()', () => {
+    it('does not create span if shouldCreateSpan returns false', () => {
+      const spans = {};
 
-    fetchCallback(data, shouldCreateSpan, spans);
-    expect(spans).toEqual({});
-  });
+      fetchCallback(fetchHandlerData, neverCreateSpan, spans);
 
-  it('does not create span if there is no fetch data', () => {
-    const shouldCreateSpan = (_: string): boolean => true;
-    const data: FetchData = {
-      args: [],
-      startTimestamp: 1595509730275,
-    };
-    const spans = {};
-
-    fetchCallback(data, shouldCreateSpan, spans);
-    expect(spans).toEqual({});
-  });
-
-  it('creates and finishes fetch span on active transaction', () => {
-    const shouldCreateSpan = (_: string): boolean => true;
-    const data: FetchData = {
-      args: ['/users'],
-      fetchData: {
-        method: 'GET',
-        url: '/users',
-      },
-      startTimestamp: 1595509730275,
-    };
-    const spans: Record<string, Span> = {};
-
-    // Start fetch request
-    fetchCallback(data, shouldCreateSpan, spans);
-    const spanKey = Object.keys(spans)[0];
-
-    const fetchSpan = spans[spanKey];
-    expect(fetchSpan).toBeInstanceOf(Span);
-    expect(fetchSpan.data).toEqual({
-      method: 'GET',
-      type: 'fetch',
-      url: '/users',
+      expect(spans).toEqual({});
     });
-    expect(fetchSpan.description).toBe('GET /users');
-    expect(fetchSpan.op).toBe('http');
-    if (data.fetchData) {
-      expect(data.fetchData.__span).toBeDefined();
-    } else {
-      fail('Fetch data does not exist');
-    }
 
-    const newData = {
-      ...data,
-      endTimestamp: data.startTimestamp + 12343234,
-    };
+    it('does not create span if there is no fetch data in handler data', () => {
+      const noFetchData = { args: fetchHandlerData.args, startTimestamp: fetchHandlerData.startTimestamp };
+      const spans = {};
 
-    // End fetch request
-    fetchCallback(newData, shouldCreateSpan, spans);
-    expect(spans).toEqual({});
-    if (transaction.spanRecorder) {
-      expect(transaction.spanRecorder.spans[1].endTimestamp).toBeDefined();
-    } else {
-      fail('Transaction does not have span recorder');
-    }
-  });
+      fetchCallback(noFetchData, alwaysCreateSpan, spans);
+      expect(spans).toEqual({});
+    });
 
-  it('sets response status on finish', () => {
-    const shouldCreateSpan = (_: string): boolean => true;
-    const data: FetchData = {
-      args: ['/users'],
-      fetchData: {
+
+    it('creates and finishes fetch span on active transaction', () => {
+      const spans = {};
+
+      // triggered by request being sent
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+
+      const newSpan = transaction.spanRecorder?.spans[1];
+
+      expect(newSpan).toBeDefined();
+      expect(newSpan).toBeInstanceOf(Span);
+      expect(newSpan!.data).toEqual({
         method: 'GET',
-        url: '/users',
-      },
-      startTimestamp: 1595509730275,
-    };
-    const spans: Record<string, Span> = {};
+        type: 'fetch',
+        url: 'http://dogs.are.great/',
+      });
+      expect(newSpan!.description).toBe('GET http://dogs.are.great/');
+      expect(newSpan!.op).toBe('http');
+      expect(fetchHandlerData.fetchData?.__span).toBeDefined();
 
-    // Start fetch request
-    fetchCallback(data, shouldCreateSpan, spans);
+      const postRequestFetchHandlerData = {
+        ...fetchHandlerData,
+        endTimestamp,
+      };
 
-    const newData = {
-      ...data,
-      endTimestamp: data.startTimestamp + 12343234,
-      response: { status: 404 } as Response,
-    };
-    // End fetch request
-    fetchCallback(newData, shouldCreateSpan, spans);
-    if (transaction.spanRecorder) {
-      expect(transaction.spanRecorder.spans[1].status).toBe(SpanStatus.fromHttpCode(404));
-    } else {
-      fail('Transaction does not have span recorder');
-    }
+      // triggered by response coming back
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
+
+      expect(newSpan!.endTimestamp).toBeDefined();
+    });
+
+    it('sets response status on finish', () => {
+      const spans: Record<string, Span> = {};
+
+      // triggered by request being sent
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+
+      const newSpan = transaction.spanRecorder?.spans[1];
+
+      expect(newSpan).toBeDefined();
+
+      const postRequestFetchHandlerData = {
+        ...fetchHandlerData,
+        endTimestamp,
+        response: { status: 404 } as Response,
+      };
+
+      // triggered by response coming back
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
+
+      expect(newSpan!.status).toBe(SpanStatus.fromHttpCode(404));
+    });
+
+    it('adds sentry-trace header to fetch requests', () => {
+      // TODO
+    });
   });
 });
