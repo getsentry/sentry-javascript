@@ -221,8 +221,6 @@ export function xhrCallback(
   if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
     const span = spans[handlerData.xhr.__sentry_xhr_span_id__];
     if (span) {
-      span.setData('url', xhr.url);
-      span.setData('method', xhr.method);
       span.setHttpStatus(xhr.status_code);
       span.finish();
 
@@ -239,6 +237,8 @@ export function xhrCallback(
       data: {
         ...xhr.data,
         type: 'xhr',
+        method: xhr.method,
+        url: xhr.url,
       },
       description: `${xhr.method} ${xhr.url}`,
       op: 'http',
