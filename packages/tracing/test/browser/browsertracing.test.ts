@@ -11,6 +11,7 @@ import {
 } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
+import * as hubExtensions from '../../src/hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 import { getActiveTransaction, secToMs } from '../../src/utils';
 
@@ -209,12 +210,26 @@ describe('BrowserTracing', () => {
       const name = 'sentry-trace';
       const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
       document.head.innerHTML = `<meta name="${name}" content="${content}">`;
-      createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
+      const startIdleTransaction = jest.spyOn(hubExtensions, 'startIdleTransaction');
 
-      expect(transaction.traceId).toBe('126de09502ae4e0fb26c6967190756a4');
-      expect(transaction.parentSpanId).toBe('b6e54397b12a2a0f');
-      expect(transaction.sampled).toBe(true);
+      createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+
+      // we match on the calls themselves (rather than calling .toHaveBeenCalledWith()) because that method requires all
+      // of the arguments be supplied, when we really only care about the transaction context which gets passed
+      expect(startIdleTransaction.mock.calls).toEqual(
+        // all calls
+        expect.arrayContaining([
+          // all arguments
+          expect.arrayContaining([
+            // one of the arguments
+            expect.objectContaining({
+              traceId: '126de09502ae4e0fb26c6967190756a4',
+              parentSpanId: 'b6e54397b12a2a0f',
+              parentSampled: true,
+            }),
+          ]),
+        ]),
+      );
     });
 
     describe('idleTimeout', () => {
@@ -342,20 +357,24 @@ describe('BrowserTracing', () => {
   });
 });
 
-describe('getMeta', () => {
-  it('returns a found meta tag contents', () => {
-    const name = 'sentry-trace';
-    const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
-    document.head.innerHTML = `<meta name="${name}" content="${content}">`;
+  describe('sentry-trace <meta> element', () => {
+    describe('getMetaContent', () => {
+      it('finds the specified tag and extracts the value', () => {
+        const name = 'sentry-trace';
+        const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
+        document.head.innerHTML = `<meta name="${name}" content="${content}">`;
 
-    const meta = getMetaContent(name);
-    expect(meta).toBe(content);
-  });
+        const metaTagValue = getMetaContent(name);
+        expect(metaTagValue).toBe(content);
+      });
 
-  it('only returns meta tags queried for', () => {
-    document.head.innerHTML = `<meta name="not-test">`;
+      it("doesn't return meta tags other than the one specified", () => {
+        document.head.innerHTML = `<meta name="cat-cafe">`;
 
-    const meta = getMetaContent('test');
-    expect(meta).toBe(null);
+        const metaTagValue = getMetaContent('dogpark');
+        expect(metaTagValue).toBe(null);
+      });
+
+    });
   });
 });
