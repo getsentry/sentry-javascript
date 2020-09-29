@@ -357,24 +357,33 @@ describe('BrowserTracing', () => {
   });
 });
 
-  describe('sentry-trace <meta> element', () => {
-    describe('getMetaContent', () => {
-      it('finds the specified tag and extracts the value', () => {
-        const name = 'sentry-trace';
-        const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
-        document.head.innerHTML = `<meta name="${name}" content="${content}">`;
+describe('sentry-trace <meta> element', () => {
+  describe('getMetaContent', () => {
+    it('finds the specified tag and extracts the value', () => {
+      const name = 'sentry-trace';
+      const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
+      document.head.innerHTML = `<meta name="${name}" content="${content}">`;
 
-        const metaTagValue = getMetaContent(name);
-        expect(metaTagValue).toBe(content);
-      });
+      const metaTagValue = getMetaContent(name);
+      expect(metaTagValue).toBe(content);
+    });
 
-      it("doesn't return meta tags other than the one specified", () => {
-        document.head.innerHTML = `<meta name="cat-cafe">`;
+    it("doesn't return meta tags other than the one specified", () => {
+      document.head.innerHTML = `<meta name="cat-cafe">`;
 
-        const metaTagValue = getMetaContent('dogpark');
-        expect(metaTagValue).toBe(null);
-      });
+      const metaTagValue = getMetaContent('dogpark');
+      expect(metaTagValue).toBe(null);
+    });
 
+    it('can pick the correct tag out of multiple options', () => {
+      const name = 'sentry-trace';
+      const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
+      const sentryTraceMeta = `<meta name="${name}" content="${content}">`;
+      const otherMeta = `<meta name="cat-cafe">`;
+      document.head.innerHTML = `${sentryTraceMeta} ${otherMeta}`;
+
+      const metaTagValue = getMetaContent(name);
+      expect(metaTagValue).toBe(content);
     });
   });
 });
