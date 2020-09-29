@@ -20,6 +20,7 @@ beforeAll(() => {
   global.Request = {};
 });
 
+const hasTracingEnabled = jest.spyOn(tracingUtils, 'hasTracingEnabled');
 const addInstrumentationHandler = jest.spyOn(utils, 'addInstrumentationHandler');
 const setRequestHeader = jest.fn();
 
@@ -108,6 +109,30 @@ describe('callbacks', () => {
       expect(spans).toEqual({});
     });
 
+    it('does not add fetch request spans if tracing is disabled', () => {
+      hasTracingEnabled.mockReturnValueOnce(false);
+      const spans = {};
+
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+      expect(spans).toEqual({});
+    });
+
+    it('does not add fetch request headers if tracing is disabled', () => {
+      hasTracingEnabled.mockReturnValueOnce(false);
+
+      // make a local copy so the global one doesn't get mutated
+      const handlerData: FetchData = {
+        args: ['http://dogs.are.great/', {}],
+        fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
+        startTimestamp: 1353501072000,
+      };
+
+      fetchCallback(handlerData, alwaysCreateSpan, {});
+
+      const headers = (handlerData.args[1].headers as Record<string, string>) || {};
+      expect(headers['sentry-trace']).not.toBeDefined();
+    });
+
     it('creates and finishes fetch span on active transaction', () => {
       const spans = {};
 
@@ -172,6 +197,22 @@ describe('callbacks', () => {
       xhrCallback(xhrHandlerData, neverCreateSpan, spans);
 
       expect(spans).toEqual({});
+    });
+
+    it('does not add xhr request spans if tracing is disabled', () => {
+      hasTracingEnabled.mockReturnValueOnce(false);
+      const spans = {};
+
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+      expect(spans).toEqual({});
+    });
+
+    it('does not add xhr request headers if tracing is disabled', () => {
+      hasTracingEnabled.mockReturnValueOnce(false);
+
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
+
+      expect(setRequestHeader).not.toHaveBeenCalled();
     });
 
     it('adds sentry-trace header to XHR requests', () => {
