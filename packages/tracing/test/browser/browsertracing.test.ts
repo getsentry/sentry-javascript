@@ -177,14 +177,14 @@ describe('BrowserTracing', () => {
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
 
-      it('does not create a transaction if it returns undefined', () => {
+      it('creates a transaction with sampled = false if it returns undefined', () => {
         const mockBeforeNavigation = jest.fn().mockReturnValue(undefined);
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: customRoutingInstrumentation,
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        expect(transaction).not.toBeDefined();
+        expect(transaction.sampled).toBe(false);
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
