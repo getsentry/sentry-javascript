@@ -54,7 +54,7 @@ export interface FetchData {
 }
 
 /** Data returned from XHR request */
-interface XHRData {
+export interface XHRData {
   xhr?: {
     __sentry_xhr__?: {
       method: string;
@@ -198,7 +198,7 @@ export function fetchCallback(
 /**
  * Create and track xhr request spans
  */
-function xhrCallback(
+export function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
