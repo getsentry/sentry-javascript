@@ -40,7 +40,7 @@ export class Scope implements ScopeInterface {
   protected _tags: { [key: string]: string } = {};
 
   /** Extra */
-  protected _extra: { [key: string]: unknown } = {};
+  protected _extra: Extras = {};
 
   /** Contexts */
   protected _contexts: { [key: string]: Record<string, unknown> } = {};

@@ -13,8 +13,8 @@ export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => 
 export interface ScopeContext {
   user: User;
   level: Severity;
-  extra: { [key: string]: any };
-  contexts: { [key: string]: Record<any, any> };
+  extra: Extras;
+  contexts: { [key: string]: Record<string, unknown> };
   tags: { [key: string]: string };
   fingerprint: string[];
 }
@@ -82,7 +82,7 @@ export interface Scope {
    * @param name of the context
    * @param context Any kind of data. This data will be normailzed.
    */
-  setContext(name: string, context: { [key: string]: any } | null): this;
+  setContext(name: string, context: Record<string, unknown> | null): this;
 
   /**
    * Sets the Span on the scope.
