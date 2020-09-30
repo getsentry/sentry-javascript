@@ -1,8 +1,18 @@
-import { captureException, captureMessage, flush, Scope, SDK_VERSION, Severity, withScope } from '@sentry/node';
+import {
+  captureException,
+  captureMessage,
+  flush,
+  getCurrentHub,
+  Scope,
+  SDK_VERSION,
+  Severity,
+  startTransaction,
+  withScope,
+} from '@sentry/node';
 import { addExceptionMechanism } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
-import { Callback, Context, Handler } from 'aws-lambda';
+import { Context, Handler } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
@@ -21,7 +31,7 @@ export type AsyncHandler<T extends Handler> = (
   context: Parameters<T>[1],
 ) => Promise<NonNullable<Parameters<Parameters<T>[2]>[1]>>;
 
-interface WrapperOptions {
+export interface WrapperOptions {
   flushTimeout: number;
   rethrowAfterCapture: boolean;
   callbackWaitsForEmptyEventLoop: boolean;
@@ -98,36 +108,66 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
 }
 
 /**
- * Capture, flush the result down the network stream and await the response.
+ * Capture exception with a a context.
  *
  * @param e exception to be captured
- * @param options WrapperOptions
+ * @param context Context
  */
-function captureExceptionAsync(e: unknown, context: Context, options: Partial<WrapperOptions>): Promise<boolean> {
+function captureExceptionWithContext(e: unknown, context: Context): void {
   withScope(scope => {
     addServerlessEventProcessor(scope);
     enhanceScopeWithEnvironmentData(scope, context);
     captureException(e);
   });
-  return flush(options.flushTimeout);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const wrapHandler = <TEvent = any, TResult = any>(
-  handler: Handler,
-  handlerOptions: Partial<WrapperOptions> = {},
-): Handler => {
+/**
+ * Wraps a lambda handler adding it error capture and tracing capabilities.
+ *
+ * @param handler Handler
+ * @param options Options
+ * @returns Handler
+ */
+export function wrapHandler<TEvent, TResult>(
+  handler: Handler<TEvent, TResult>,
+  wrapOptions: Partial<WrapperOptions> = {},
+): Handler<TEvent, TResult | undefined> {
   const options: WrapperOptions = {
     flushTimeout: 2000,
     rethrowAfterCapture: true,
     callbackWaitsForEmptyEventLoop: false,
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
-    ...handlerOptions,
+    ...wrapOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
 
-  return async (event: TEvent, context: Context, callback: Callback<TResult>) => {
+  // AWSLambda is like Express. It makes a distinction about handlers based on it's last argument
+  // async (event) => async handler
+  // async (event, context) => async handler
+  // (event, context, callback) => sync handler
+  // Nevertheless whatever option is chosen by user, we convert it to async handler.
+  const asyncHandler: AsyncHandler<typeof handler> =
+    handler.length > 2
+      ? (event, context) =>
+          new Promise((resolve, reject) => {
+            const rv = (handler as SyncHandler<typeof handler>)(event, context, (error, result) => {
+              if (error === null || error === undefined) {
+                resolve(result!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+              } else {
+                reject(error);
+              }
+            }) as unknown;
+
+            // This should never happen, but still can if someone writes a handler as
+            // `async (event, context, callback) => {}`
+            if (isPromise(rv)) {
+              (rv as Promise<NonNullable<TResult>>).then(resolve, reject);
+            }
+          })
+      : (handler as AsyncHandler<typeof handler>);
+
+  return async (event, context) => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
     // In seconds. You cannot go any more granular than this in AWS Lambda.
@@ -155,50 +195,28 @@ export const wrapHandler = <TEvent = any, TResult = any>(
       }, timeoutWarningDelay);
     }
 
-    const callbackWrapper = <TResult>(
-      callback: Callback<TResult>,
-      resolve: (value?: unknown) => void,
-      reject: (reason?: unknown) => void,
-    ): Callback<TResult> => {
-      return (...args) => {
-        clearTimeout(timeoutWarningTimer);
-        if (args[0] === null || args[0] === undefined) {
-          resolve(callback(...args));
-        } else {
-          captureExceptionAsync(args[0], context, options).finally(() => reject(callback(...args)));
-        }
-      };
-    };
+    const transaction = startTransaction({
+      name: context.functionName,
+      op: 'awslambda.handler',
+    });
+    // We put the transaction on the scope so users can attach children to it
+    getCurrentHub().configureScope(scope => {
+      scope.setSpan(transaction);
+    });
 
+    let rv: TResult | undefined;
     try {
-      // AWSLambda is like Express. It makes a distinction about handlers based on it's last argument
-      // async (event) => async handler
-      // async (event, context) => async handler
-      // (event, context, callback) => sync handler
-      const isSyncHandler = handler.length === 3;
-      const handlerRv = isSyncHandler
-        ? await new Promise((resolve, reject) => {
-            const rv = (handler as SyncHandler<Handler<TEvent, TResult>>)(
-              event,
-              context,
-              callbackWrapper(callback, resolve, reject),
-            );
-
-            // This should never happen, but still can if someone writes a handler as
-            // `async (event, context, callback) => {}`
-            if (isPromise(rv)) {
-              ((rv as unknown) as Promise<TResult>).then(resolve, reject);
-            }
-          })
-        : await (handler as AsyncHandler<Handler<TEvent, TResult>>)(event, context);
-      clearTimeout(timeoutWarningTimer);
-      return handlerRv;
+      rv = await asyncHandler(event, context);
     } catch (e) {
-      clearTimeout(timeoutWarningTimer);
-      await captureExceptionAsync(e, context, options);
+      captureExceptionWithContext(e, context);
       if (options.rethrowAfterCapture) {
         throw e;
       }
+    } finally {
+      clearTimeout(timeoutWarningTimer);
+      transaction.finish();
+      await flush(options.flushTimeout);
     }
+    return rv;
   };
-};
+}
