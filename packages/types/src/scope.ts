@@ -1,4 +1,5 @@
 import { Breadcrumb } from './breadcrumb';
+import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
 import { Severity } from './severity';
@@ -14,7 +15,7 @@ export interface ScopeContext {
   user: User;
   level: Severity;
   extra: Extras;
-  contexts: { [key: string]: Record<string, unknown> };
+  contexts: Contexts;
   tags: { [key: string]: string };
   fingerprint: string[];
 }
@@ -82,7 +83,7 @@ export interface Scope {
    * @param name of the context
    * @param context Any kind of data. This data will be normailzed.
    */
-  setContext(name: string, context: Record<string, unknown> | null): this;
+  setContext(name: string, context: Context | null): this;
 
   /**
    * Sets the Span on the scope.

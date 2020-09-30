@@ -853,7 +853,7 @@ export class Tracing implements Integration {
         Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} since it maxed out maxTransactionDuration`);
         if (event.contexts && event.contexts.trace) {
           event.contexts.trace = {
-            ...event.contexts.trace,
+            ...(typeof event.contexts.trace === 'object' && event.contexts.trace),
             status: SpanStatus.DeadlineExceeded,
           };
           event.tags = {

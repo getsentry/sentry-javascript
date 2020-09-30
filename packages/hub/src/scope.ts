@@ -2,6 +2,8 @@
 import {
   Breadcrumb,
   CaptureContext,
+  Context,
+  Contexts,
   Event,
   EventHint,
   EventProcessor,
@@ -43,7 +45,7 @@ export class Scope implements ScopeInterface {
   protected _extra: Extras = {};
 
   /** Contexts */
-  protected _contexts: { [key: string]: Record<string, unknown> } = {};
+  protected _contexts: Contexts = {};
 
   /** Fingerprint */
   protected _fingerprint?: string[];
@@ -183,7 +185,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setContext(key: string, context: Record<string, unknown> | null): this {
+  public setContext(key: string, context: Context | null): this {
     if (context === null) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this._contexts[key];
