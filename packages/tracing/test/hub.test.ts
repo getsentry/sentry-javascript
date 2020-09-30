@@ -9,6 +9,7 @@ import { addExtensionMethods } from '../src/hubextensions';
 
 addExtensionMethods();
 
+const mathRandom = jest.spyOn(Math, 'random');
 describe('Hub', () => {
   beforeEach(() => {
     jest.spyOn(logger, 'warn');
@@ -41,33 +42,6 @@ describe('Hub', () => {
   });
 
   describe('transaction sampling', () => {
-    describe('tracesSampleRate and tracesSampler options', () => {
-      it("should call tracesSampler if it's defined", () => {
-        const tracesSampler = jest.fn();
-        const hub = new Hub(new BrowserClient({ tracesSampler }));
-        hub.startTransaction({ name: 'dogpark' });
-
-        expect(tracesSampler).toHaveBeenCalled();
-      });
-
-      it('should prefer tracesSampler to tracesSampleRate', () => {
-        const tracesSampler = jest.fn();
-        const hub = new Hub(new BrowserClient({ tracesSampleRate: 1, tracesSampler }));
-        hub.startTransaction({ name: 'dogpark' });
-
-        expect(tracesSampler).toHaveBeenCalled();
-      });
-
-      it('tolerates tracesSampler returning a boolean', () => {
-        const tracesSampler = jest.fn().mockReturnValue(true);
-        const hub = new Hub(new BrowserClient({ tracesSampler }));
-        const transaction = hub.startTransaction({ name: 'dogpark' });
-
-        expect(tracesSampler).toHaveBeenCalled();
-        expect(transaction.sampled).toBe(true);
-      });
-    });
-
     describe('default sample context', () => {
       it('should extract request data for default sampling context when in node', () => {
         // make sure we look like we're in node
@@ -183,17 +157,62 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(false);
       });
 
-      it('should not sample transactions when tracesSampleRate is 0', () => {
+      it('should set sampled = false if tracesSampleRate is 0', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(transaction.sampled).toBe(false);
       });
 
-      it('should sample transactions when tracesSampleRate is 1', () => {
+      it('should set sampled = true if tracesSampleRate is 1', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it("should call tracesSampler if it's defined", () => {
+        const tracesSampler = jest.fn();
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+      });
+
+      it('should set sampled = false if tracesSampler returns 0', () => {
+        const tracesSampler = jest.fn().mockReturnValue(0);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(false);
+      });
+
+      it('should set sampled = true if tracesSampler returns 1', () => {
+        const tracesSampler = jest.fn().mockReturnValue(1);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it('should prefer tracesSampler to tracesSampleRate', () => {
+        // make the two options do opposite things to prove precedence
+        const tracesSampler = jest.fn().mockReturnValue(true);
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 0, tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it('should tolerate tracesSampler returning a boolean', () => {
+        const tracesSampler = jest.fn().mockReturnValue(true);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
         expect(transaction.sampled).toBe(true);
       });
     });
@@ -296,7 +315,24 @@ describe('Hub', () => {
         // TODO fix this and write the test
       });
 
-      it("should inherit parent's sampling decision when creating a new transaction if tracesSampler is undefined", () => {
+      it("should inherit parent's positive sampling decision if tracesSampler is undefined", () => {
+        // we know that without inheritance  we'll get sampled = false (since our "random" number won't be below the
+        // sample rate), so make parent's decision the opposite to prove that inheritance takes precedence over
+        // tracesSampleRate
+        mathRandom.mockReturnValueOnce(1);
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.5 }));
+        const parentSamplingDecsion = true;
+
+        const transaction = hub.startTransaction({
+          name: 'dogpark',
+          parentSpanId: '12312012',
+          parentSampled: parentSamplingDecsion,
+        });
+
+        expect(transaction.sampled).toBe(parentSamplingDecsion);
+      });
+
+      it("should inherit parent's negative sampling decision if tracesSampler is undefined", () => {
         // tracesSampleRate = 1 means every transaction should end up with sampled = true, so make parent's decision the
         // opposite to prove that inheritance takes precedence over tracesSampleRate
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
@@ -311,11 +347,28 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(parentSamplingDecsion);
       });
 
-      it("should ignore parent's sampling decision when tracesSampler is defined", () => {
+      it("should ignore parent's positive sampling decision when tracesSampler is defined", () => {
         // this tracesSampler causes every transaction to end up with sampled = true, so make parent's decision the
         // opposite to prove that tracesSampler takes precedence over inheritance
         const tracesSampler = () => true;
         const parentSamplingDecsion = false;
+
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+
+        const transaction = hub.startTransaction({
+          name: 'dogpark',
+          parentSpanId: '12312012',
+          parentSampled: parentSamplingDecsion,
+        });
+
+        expect(transaction.sampled).not.toBe(parentSamplingDecsion);
+      });
+
+      it("should ignore parent's negative sampling decision when tracesSampler is defined", () => {
+        // this tracesSampler causes every transaction to end up with sampled = false, so make parent's decision the
+        // opposite to prove that tracesSampler takes precedence over inheritance
+        const tracesSampler = () => false;
+        const parentSamplingDecsion = true;
 
         const hub = new Hub(new BrowserClient({ tracesSampler }));
 
