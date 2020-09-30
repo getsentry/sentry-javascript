@@ -214,21 +214,15 @@ describe('BrowserTracing', () => {
 
       createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
 
-      // we match on the calls themselves (rather than calling .toHaveBeenCalledWith()) because that method requires all
-      // of the arguments be supplied, when we really only care about the transaction context which gets passed
-      expect(startIdleTransaction.mock.calls).toEqual(
-        // all calls
-        expect.arrayContaining([
-          // all arguments
-          expect.arrayContaining([
-            // one of the arguments
-            expect.objectContaining({
-              traceId: '126de09502ae4e0fb26c6967190756a4',
-              parentSpanId: 'b6e54397b12a2a0f',
-              parentSampled: true,
-            }),
-          ]),
-        ]),
+      expect(startIdleTransaction).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          traceId: '126de09502ae4e0fb26c6967190756a4',
+          parentSpanId: 'b6e54397b12a2a0f',
+          parentSampled: true,
+        }),
+        expect.any(Number),
+        expect.any(Boolean),
       );
     });
 

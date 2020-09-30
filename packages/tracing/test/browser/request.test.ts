@@ -57,8 +57,8 @@ describe('registerRequestInstrumentation', () => {
 describe('callbacks', () => {
   let hub: Hub;
   let transaction: Transaction;
-  const alwaysCreateSpan = jest.fn().mockReturnValue(true);
-  const neverCreateSpan = jest.fn().mockReturnValue(false);
+  const alwaysCreateSpan = () => true;
+  const neverCreateSpan = () => false;
   const fetchHandlerData: FetchData = {
     args: ['http://dogs.are.great/', {}],
     fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
@@ -191,7 +191,6 @@ describe('callbacks', () => {
 
       const newSpan = transaction.spanRecorder?.spans[1];
 
-      expect(newSpan).toBeDefined();
       expect(newSpan).toBeInstanceOf(Span);
       expect(newSpan!.data).toEqual({
         method: 'GET',

@@ -49,7 +49,7 @@ export interface FetchData {
     __span?: string;
   };
 
-  // TODO (kmclb) Once type fix goes through, turn this back into a Response
+  // TODO Should this be unknown instead? If we vendor types, make it a Response
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   response?: any;
 
