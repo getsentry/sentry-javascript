@@ -385,6 +385,5 @@ describe('BrowserTracing', () => {
         expect(metaTagValue).toBe(content);
       });
     });
-
   });
 });

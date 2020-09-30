@@ -108,7 +108,6 @@ describe('callbacks', () => {
       expect(spans).toEqual({});
     });
 
-
     it('creates and finishes fetch span on active transaction', () => {
       const spans = {};
 
