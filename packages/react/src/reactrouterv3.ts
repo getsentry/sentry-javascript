@@ -105,7 +105,8 @@ function normalizeTransactionName(
         return callback(name);
       }
 
-      return callback(routePath);
+      name = routePath;
+      return callback(name);
     },
   );
 }
