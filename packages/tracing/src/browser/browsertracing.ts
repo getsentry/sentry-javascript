@@ -64,8 +64,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
    * context data, or drop the transaction entirely (by setting `sampled = false` in the context).
    *
-   * Note: For legacy reasons, transactions can also be dropped by returning `undefined`, though that option may
-   * disappear in the future.
+   * Note: For legacy reasons, transactions can also be dropped by returning `undefined`.
    *
    * @param context: The context data which will be passed to `startTransaction` by default
    *
@@ -201,9 +200,8 @@ export class BrowserTracing implements Integration {
     };
     const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
 
-    // TODO (kmclb): for backwards compatibility reasons, beforeNavigate can return undefined to "drop" the transaction
-    // (prevent it from being sent to Sentry). This can be removed in V6, after which time modifiedContext and
-    // finalContext will be one and the same.
+    // For backwards compatibility reasons, beforeNavigate can return undefined to "drop" the transaction (prevent it
+    // from being sent to Sentry).
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     if (finalContext.sampled === false) {
