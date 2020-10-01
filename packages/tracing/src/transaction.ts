@@ -1,11 +1,11 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { TransactionContext } from '@sentry/types';
+import { Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
 import { isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
-export class Transaction extends SpanClass {
+export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
 
   /**
