@@ -6,7 +6,7 @@ import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass {
-  public name?: string;
+  public name: string;
 
   /**
    * The reference to the current hub.
@@ -29,9 +29,7 @@ export class Transaction extends SpanClass {
       this._hub = hub as Hub;
     }
 
-    if (transactionContext.name) {
-      this.name = transactionContext.name;
-    }
+    this.name = transactionContext.name ? transactionContext.name : '';
 
     this._trimEnd = transactionContext.trimEnd;
   }
