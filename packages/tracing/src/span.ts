@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Span as SpanInterface, SpanContext } from '@sentry/types';
+import { Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
@@ -98,6 +98,11 @@ export class Span implements SpanInterface, SpanContext {
    * List of spans that were finalized
    */
   public spanRecorder?: SpanRecorder;
+
+  /**
+   * @inheritDoc
+   */
+  public transaction?: Transaction;
 
   /**
    * You should never call the constructor manually, always use `hub.startSpan()`.
