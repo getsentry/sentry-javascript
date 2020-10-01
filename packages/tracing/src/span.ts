@@ -37,7 +37,7 @@ export class SpanRecorder {
 /**
  * Span contains all data about a span
  */
-export class Span implements SpanInterface, SpanContext {
+export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
