@@ -81,7 +81,7 @@ export interface Scope {
   /**
    * Sets context data with the given name.
    * @param name of the context
-   * @param context Any kind of data. This data will be normailzed.
+   * @param context an object containing context data. This data will be normailzed. Pass `null` to unset the context.
    */
   setContext(name: string, context: Context | null): this;
 
