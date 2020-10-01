@@ -166,19 +166,21 @@ export class Span implements SpanInterface, SpanContext {
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span {
-    const span = new Span({
+    const childSpan = new Span({
       ...spanContext,
       parentSpanId: this.spanId,
       sampled: this.sampled,
       traceId: this.traceId,
     });
 
-    span.spanRecorder = this.spanRecorder;
-    if (span.spanRecorder) {
-      span.spanRecorder.add(span);
+    childSpan.spanRecorder = this.spanRecorder;
+    if (childSpan.spanRecorder) {
+      childSpan.spanRecorder.add(childSpan);
     }
 
-    return span;
+    childSpan.transaction = this.transaction;
+
+    return childSpan;
   }
 
   /**
