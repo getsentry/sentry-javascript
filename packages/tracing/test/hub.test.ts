@@ -1,15 +1,24 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
 import { getMainCarrier, Hub } from '@sentry/hub';
+import * as hubModule from '@sentry/hub';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { getGlobalObject, isNodeEnv, logger } from '@sentry/utils';
 import * as nodeHttpModule from 'http';
 
+import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
+import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
+import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName } from './testutils';
 
 addExtensionMethods();
 
 const mathRandom = jest.spyOn(Math, 'random');
+
+// we have to add things into the real global object (rather than mocking the return value of getGlobalObject) because
+// there are modules which call getGlobalObject as they load, which is seemingly too early for jest to intervene
+addDOMPropertiesToGlobal(['XMLHttpRequest', 'Event', 'location', 'document']);
+
 describe('Hub', () => {
   beforeEach(() => {
     jest.spyOn(logger, 'warn');
@@ -23,9 +32,23 @@ describe('Hub', () => {
   });
 
   describe('getTransaction()', () => {
-    it('should find a transaction which has been set on the scope', () => {
+    it('should find a transaction which has been set on the scope if sampled = true', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction({ name: 'dogpark' });
+      transaction.sampled = true;
+
+      hub.configureScope(scope => {
+        scope.setSpan(transaction);
+      });
+
+      expect(hub.getScope()?.getTransaction()).toBe(transaction);
+    });
+
+    // TODO add this back in once getTransaction() returns sampled = false transactions, too
+    it.skip('should find a transaction which has been set on the scope if sampled = false', () => {
+      const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+      const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
+
       hub.configureScope(scope => {
         scope.setSpan(transaction);
       });
@@ -197,6 +220,24 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(true);
       });
 
+      it('should not try to override positive sampling decision provided in transaction context', () => {
+        // so that the decision otherwise would be false
+        const tracesSampler = jest.fn().mockReturnValue(0);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark', sampled: true });
+
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it('should not try to override negative sampling decision provided in transaction context', () => {
+        // so that the decision otherwise would be true
+        const tracesSampler = jest.fn().mockReturnValue(1);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
+
+        expect(transaction.sampled).toBe(false);
+      });
+
       it('should prefer tracesSampler to tracesSampleRate', () => {
         // make the two options do opposite things to prove precedence
         const tracesSampler = jest.fn().mockReturnValue(true);
@@ -307,12 +348,85 @@ describe('Hub', () => {
         expect(child.sampled).toBe(transaction.sampled);
       });
 
-      it('should propagate sampling decision to child transactions in XHR header', () => {
-        // TODO fix this and write the test
+      it('should propagate positive sampling decision to child transactions in XHR header', () => {
+        const hub = new Hub(
+          new BrowserClient({
+            dsn: 'https://1231@dogs.are.great/1121',
+            tracesSampleRate: 1,
+            integrations: [new BrowserTracing()],
+          }),
+        );
+        jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
+
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+        hub.configureScope(scope => {
+          scope.setSpan(transaction);
+        });
+
+        const request = new XMLHttpRequest();
+        request.open('GET', '/chase-partners');
+
+        // mock a response having been received successfully (we have to do it in this roundabout way because readyState
+        // is readonly and changing it doesn't trigger a readystatechange event)
+        Object.defineProperty(request, 'readyState', { value: 4 });
+        request.dispatchEvent(new Event('readystatechange'));
+
+        // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
+        // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
+        // value
+        const headers = (request as any)[getSymbolObjectKeyByName(request, 'impl') as symbol].flag.requestHeaders;
+
+        // check that sentry-trace header is added to request
+        expect(headers).toEqual(expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }));
+
+        // check that sampling decision is passed down correctly
+        expect(transaction.sampled).toBe(true);
+        expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(true);
       });
 
-      it('should propagate sampling decision to child transactions in fetch header', () => {
-        // TODO fix this and write the test
+      // TODO add this back in once getTransaction() returns sampled = false transactions, too
+      it.skip('should propagate negative sampling decision to child transactions in XHR header', () => {
+        const hub = new Hub(
+          new BrowserClient({
+            dsn: 'https://1231@dogs.are.great/1121',
+            tracesSampleRate: 1,
+            integrations: [new BrowserTracing()],
+          }),
+        );
+        jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
+
+        const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
+        hub.configureScope(scope => {
+          scope.setSpan(transaction);
+        });
+
+        const request = new XMLHttpRequest();
+        request.open('GET', '/chase-partners');
+
+        // mock a response having been received successfully (we have to do it in this roundabout way because readyState
+        // is readonly and changing it doesn't trigger a readystatechange event)
+        Object.defineProperty(request, 'readyState', { value: 4 });
+        request.dispatchEvent(new Event('readystatechange'));
+
+        // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
+        // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
+        // value
+        const headers = (request as any)[getSymbolObjectKeyByName(request, 'impl') as symbol].flag.requestHeaders;
+
+        // check that sentry-trace header is added to request
+        expect(headers).toEqual(expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }));
+
+        // check that sampling decision is passed down correctly
+        expect(transaction.sampled).toBe(false);
+        expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(false);
+      });
+
+      it('should propagate positive sampling decision to child transactions in fetch header', () => {
+        // TODO
+      });
+
+      it('should propagate negative sampling decision to child transactions in fetch header', () => {
+        // TODO
       });
 
       it("should inherit parent's positive sampling decision if tracesSampler is undefined", () => {

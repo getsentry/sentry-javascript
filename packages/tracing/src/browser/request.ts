@@ -1,7 +1,8 @@
+import { getCurrentHub } from '@sentry/hub';
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-import { getActiveTransaction } from '../utils';
+import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
 
@@ -142,7 +143,13 @@ export function fetchCallback(
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
-  if (!handlerData.fetchData || !shouldCreateSpan(handlerData.fetchData.url)) {
+  const currentClientOptions = getCurrentHub()
+    .getClient()
+    ?.getOptions();
+  if (
+    !(currentClientOptions && hasTracingEnabled(currentClientOptions)) ||
+    !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))
+  ) {
     return;
   }
 
@@ -209,19 +216,18 @@ export function xhrCallback(
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
-  if (!handlerData || !handlerData.xhr || !handlerData.xhr.__sentry_xhr__) {
+  const currentClientOptions = getCurrentHub()
+    .getClient()
+    ?.getOptions();
+  if (
+    !(currentClientOptions && hasTracingEnabled(currentClientOptions)) ||
+    !(handlerData.xhr && handlerData.xhr.__sentry_xhr__ && shouldCreateSpan(handlerData.xhr.__sentry_xhr__.url)) ||
+    handlerData.xhr.__sentry_own_request__
+  ) {
     return;
   }
 
   const xhr = handlerData.xhr.__sentry_xhr__;
-  if (!shouldCreateSpan(xhr.url)) {
-    return;
-  }
-
-  // We only capture complete, non-sentry requests
-  if (handlerData.xhr.__sentry_own_request__) {
-    return;
-  }
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
