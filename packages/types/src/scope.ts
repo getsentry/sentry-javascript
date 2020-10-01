@@ -57,7 +57,7 @@ export interface Scope {
   /**
    * Set key:value that will be sent as extra data with the event.
    * @param key String of extra
-   * @param extra Any kind of data. This data will be normailzed.
+   * @param extra Any kind of data. This data will be normalized.
    */
   setExtra(key: string, extra: Extra): this;
 
@@ -81,7 +81,7 @@ export interface Scope {
   /**
    * Sets context data with the given name.
    * @param name of the context
-   * @param context an object containing context data. This data will be normailzed. Pass `null` to unset the context.
+   * @param context an object containing context data. This data will be normalized. Pass `null` to unset the context.
    */
   setContext(name: string, context: Context | null): this;
 
