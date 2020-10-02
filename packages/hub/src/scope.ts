@@ -217,10 +217,20 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public getTransaction(): Transaction | undefined {
-    const span = this.getSpan() as Span & { spanRecorder: { spans: Span[] } };
-    if (span && span.spanRecorder && span.spanRecorder.spans[0]) {
+    // often, this span will be a transaction, but it's not guaranteed to be
+    const span = this.getSpan() as undefined | (Span & { spanRecorder: { spans: Span[] } });
+
+    // try it the new way first
+    if (span?.transaction) {
+      return span?.transaction;
+    }
+
+    // fallback to the old way (known bug: this only finds transactions with sampled = true)
+    if (span?.spanRecorder?.spans[0]) {
       return span.spanRecorder.spans[0] as Transaction;
     }
+
+    // neither way found a transaction
     return undefined;
   }
 
