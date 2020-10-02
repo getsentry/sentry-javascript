@@ -2,6 +2,8 @@
 import {
   Breadcrumb,
   CaptureContext,
+  Context,
+  Contexts,
   Event,
   EventHint,
   EventProcessor,
@@ -40,12 +42,10 @@ export class Scope implements ScopeInterface {
   protected _tags: { [key: string]: string } = {};
 
   /** Extra */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected _extra: { [key: string]: any } = {};
+  protected _extra: Extras = {};
 
   /** Contexts */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected _contexts: { [key: string]: any } = {};
+  protected _contexts: Contexts = {};
 
   /** Fingerprint */
   protected _fingerprint?: string[];
@@ -185,9 +185,14 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setContext(key: string, context: { [key: string]: any } | null): this {
-    this._contexts = { ...this._contexts, [key]: context };
+  public setContext(key: string, context: Context | null): this {
+    if (context === null) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this._contexts[key];
+    } else {
+      this._contexts = { ...this._contexts, [key]: context };
+    }
+
     this._notifyScopeListeners();
     return this;
   }

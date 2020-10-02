@@ -13,7 +13,7 @@ import {
   registerRequestInstrumentation,
   RequestInstrumentationOptions,
 } from './request';
-import { defaultBeforeNavigate, defaultRoutingInstrumentation } from './router';
+import { defaultRoutingInstrumentation } from './router';
 
 export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
 
@@ -61,12 +61,16 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   markBackgroundTransactions: boolean;
 
   /**
-   * beforeNavigate is called before a pageload/navigation transaction is created and allows for users
-   * to set custom transaction context. Default behavior is to return `window.location.pathname`.
+   * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
+   * context data, or drop the transaction entirely (by setting `sampled = false` in the context).
    *
-   * If undefined is returned, a pageload/navigation transaction will not be created.
+   * Note: For legacy reasons, transactions can also be dropped by returning `undefined`.
+   *
+   * @param context: The context data which will be passed to `startTransaction` by default
+   *
+   * @returns A (potentially) modified context object, with `sampled = false` if the transaction should be dropped.
    */
-  beforeNavigate(context: TransactionContext): TransactionContext | undefined;
+  beforeNavigate?(context: TransactionContext): TransactionContext | undefined;
 
   /**
    * Instrumentation that creates routing change transactions. By default creates
@@ -80,7 +84,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS = {
-  beforeNavigate: defaultBeforeNavigate,
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
   markBackgroundTransactions: true,
   maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
@@ -188,21 +191,26 @@ export class BrowserTracing implements Integration {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
 
-    // if beforeNavigate returns undefined, we should not start a transaction.
-    const ctx = beforeNavigate({
-      ...context,
-      ...getHeaderContext(),
-      trimEnd: true,
-    });
+    const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
 
-    if (ctx === undefined) {
-      logger.log(`[Tracing] Did not create ${context.op} idleTransaction due to beforeNavigate`);
-      return undefined;
+    const expandedContext = {
+      ...context,
+      ...parentContextFromHeader,
+      trimEnd: true,
+    };
+    const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
+
+    // For backwards compatibility reasons, beforeNavigate can return undefined to "drop" the transaction (prevent it
+    // from being sent to Sentry).
+    const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
+
+    if (finalContext.sampled === false) {
+      logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
 
     const hub = this._getCurrentHub();
-    logger.log(`[Tracing] starting ${ctx.op} idleTransaction on scope`);
-    const idleTransaction = startIdleTransaction(hub, ctx, idleTimeout, true);
+    const idleTransaction = startIdleTransaction(hub, finalContext, idleTimeout, true);
+    logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
     idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {
       this._metrics.addPerformanceEntries(transaction);
       adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);
@@ -217,7 +225,7 @@ export class BrowserTracing implements Integration {
  *
  * @returns Transaction context data from the header or undefined if there's no header or the header is malformed
  */
-function getHeaderContext(): Partial<TransactionContext> | undefined {
+export function getHeaderContext(): Partial<TransactionContext> | undefined {
   const header = getMetaContent('sentry-trace');
   if (header) {
     return extractTraceparentData(header);

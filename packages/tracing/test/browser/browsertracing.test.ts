@@ -7,10 +7,12 @@ import {
   BrowserTracing,
   BrowserTracingOptions,
   DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
+  getHeaderContext,
   getMetaContent,
 } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
+import * as hubExtensions from '../../src/hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 import { getActiveTransaction, secToMs } from '../../src/utils';
 
@@ -76,7 +78,6 @@ describe('BrowserTracing', () => {
     const browserTracing = createBrowserTracing();
 
     expect(browserTracing.options).toEqual({
-      beforeNavigate: expect.any(Function),
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       markBackgroundTransactions: true,
       maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
@@ -177,14 +178,15 @@ describe('BrowserTracing', () => {
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
 
-      it('does not create a transaction if it returns undefined', () => {
+      // TODO add this back in once getTransaction() returns sampled = false transactions, too
+      it.skip('creates a transaction with sampled = false if it returns undefined', () => {
         const mockBeforeNavigation = jest.fn().mockReturnValue(undefined);
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: customRoutingInstrumentation,
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        expect(transaction).not.toBeDefined();
+        expect(transaction.sampled).toBe(false);
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -210,12 +212,20 @@ describe('BrowserTracing', () => {
       const name = 'sentry-trace';
       const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
       document.head.innerHTML = `<meta name="${name}" content="${content}">`;
-      createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
+      const startIdleTransaction = jest.spyOn(hubExtensions, 'startIdleTransaction');
 
-      expect(transaction.traceId).toBe('126de09502ae4e0fb26c6967190756a4');
-      expect(transaction.parentSpanId).toBe('b6e54397b12a2a0f');
-      expect(transaction.sampled).toBe(true);
+      createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+
+      expect(startIdleTransaction).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          traceId: '126de09502ae4e0fb26c6967190756a4',
+          parentSpanId: 'b6e54397b12a2a0f',
+          parentSampled: true,
+        }),
+        expect.any(Number),
+        expect.any(Boolean),
+      );
     });
 
     describe('idleTimeout', () => {
@@ -341,22 +351,97 @@ describe('BrowserTracing', () => {
       });
     });
   });
-});
 
-describe('getMeta', () => {
-  it('returns a found meta tag contents', () => {
-    const name = 'sentry-trace';
-    const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
-    document.head.innerHTML = `<meta name="${name}" content="${content}">`;
+  describe('sentry-trace <meta> element', () => {
+    describe('getMetaContent', () => {
+      it('finds the specified tag and extracts the value', () => {
+        const name = 'sentry-trace';
+        const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
+        document.head.innerHTML = `<meta name="${name}" content="${content}">`;
 
-    const meta = getMetaContent(name);
-    expect(meta).toBe(content);
-  });
+        const metaTagValue = getMetaContent(name);
+        expect(metaTagValue).toBe(content);
+      });
 
-  it('only returns meta tags queried for', () => {
-    document.head.innerHTML = `<meta name="not-test">`;
+      it("doesn't return meta tags other than the one specified", () => {
+        document.head.innerHTML = `<meta name="cat-cafe">`;
 
-    const meta = getMetaContent('test');
-    expect(meta).toBe(null);
+        const metaTagValue = getMetaContent('dogpark');
+        expect(metaTagValue).toBe(null);
+      });
+
+      it('can pick the correct tag out of multiple options', () => {
+        const name = 'sentry-trace';
+        const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
+        const sentryTraceMeta = `<meta name="${name}" content="${content}">`;
+        const otherMeta = `<meta name="cat-cafe">`;
+        document.head.innerHTML = `${sentryTraceMeta} ${otherMeta}`;
+
+        const metaTagValue = getMetaContent(name);
+        expect(metaTagValue).toBe(content);
+      });
+    });
+
+    describe('getHeaderContext', () => {
+      it('correctly parses a valid sentry-trace meta header', () => {
+        document.head.innerHTML = `<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">`;
+
+        const headerContext = getHeaderContext();
+
+        expect(headerContext).toBeDefined();
+        expect(headerContext!.traceId).toEqual('12312012123120121231201212312012');
+        expect(headerContext!.parentSpanId).toEqual('1121201211212012');
+        expect(headerContext!.parentSampled).toEqual(false);
+      });
+
+      it('returns undefined if the header is malformed', () => {
+        document.head.innerHTML = `<meta name="sentry-trace" content="12312012-112120121-0">`;
+
+        const headerContext = getHeaderContext();
+
+        expect(headerContext).toBeUndefined();
+      });
+
+      it("returns undefined if the header isn't there", () => {
+        document.head.innerHTML = `<meta name="dogs" content="12312012123120121231201212312012-1121201211212012-0">`;
+
+        const headerContext = getHeaderContext();
+
+        expect(headerContext).toBeUndefined();
+      });
+    });
+
+    describe('using the data', () => {
+      // TODO add this back in once getTransaction() returns sampled = false transactions, too
+      it.skip('uses the data for pageload transactions', () => {
+        // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
+        document.head.innerHTML = `<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">`;
+
+        // pageload transactions are created as part of the BrowserTracing integration's initialization
+        createBrowserTracing(true);
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+
+        expect(transaction).toBeDefined();
+        expect(transaction.op).toBe('pageload');
+        expect(transaction.traceId).toEqual('12312012123120121231201212312012');
+        expect(transaction.parentSpanId).toEqual('1121201211212012');
+        expect(transaction.sampled).toBe(false);
+      });
+
+      it('ignores the data for navigation transactions', () => {
+        mockChangeHistory = () => undefined;
+        document.head.innerHTML = `<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">`;
+
+        createBrowserTracing(true);
+
+        mockChangeHistory({ to: 'here', from: 'there' });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+
+        expect(transaction).toBeDefined();
+        expect(transaction.op).toBe('navigation');
+        expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
+        expect(transaction.parentSpanId).toBeUndefined();
+      });
+    });
   });
 });
