@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Span as SpanInterface, SpanContext } from '@sentry/types';
+import { Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
@@ -100,6 +100,11 @@ export class Span implements SpanInterface {
   public spanRecorder?: SpanRecorder;
 
   /**
+   * @inheritDoc
+   */
+  public transaction?: Transaction;
+
+  /**
    * You should never call the constructor manually, always use `hub.startSpan()`.
    * @internal
    * @hideconstructor
@@ -161,19 +166,21 @@ export class Span implements SpanInterface {
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span {
-    const span = new Span({
+    const childSpan = new Span({
       ...spanContext,
       parentSpanId: this.spanId,
       sampled: this.sampled,
       traceId: this.traceId,
     });
 
-    span.spanRecorder = this.spanRecorder;
-    if (span.spanRecorder) {
-      span.spanRecorder.add(span);
+    childSpan.spanRecorder = this.spanRecorder;
+    if (childSpan.spanRecorder) {
+      childSpan.spanRecorder.add(childSpan);
     }
 
-    return span;
+    childSpan.transaction = this.transaction;
+
+    return childSpan;
   }
 
   /**
