@@ -35,7 +35,8 @@
     "packages/tracing",
     "packages/types",
     "packages/typescript",
-    "packages/utils"
+    "packages/utils",
+    "packages/vue"
   ],
   "devDependencies": {
     "@google-cloud/storage": "^2.5.0",

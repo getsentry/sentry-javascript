@@ -47,6 +47,8 @@ export class Angular implements Integration {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(options: { angular?: any } = {}) {
+    logger.warn('You are still using the Angular integration, consider moving to @sentry/angular');
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     this._angular = options.angular || getGlobalObject<any>().angular;
 

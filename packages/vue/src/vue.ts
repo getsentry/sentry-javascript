@@ -154,7 +154,6 @@ export class Vue implements Integration {
   public constructor(
     options: Partial<Omit<IntegrationOptions, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }>,
   ) {
-    logger.warn('You are still using the Angular integration, consider moving to @sentry/angular');
     this._options = {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Vue: getGlobalObject<any>().Vue,
