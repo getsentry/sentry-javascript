@@ -44,8 +44,7 @@ describe('Hub', () => {
       expect(hub.getScope()?.getTransaction()).toBe(transaction);
     });
 
-    // TODO add this back in once getTransaction() returns sampled = false transactions, too
-    it.skip('should find a transaction which has been set on the scope if sampled = false', () => {
+    it('should find a transaction which has been set on the scope if sampled = false', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
 
@@ -384,8 +383,7 @@ describe('Hub', () => {
         expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(true);
       });
 
-      // TODO add this back in once getTransaction() returns sampled = false transactions, too
-      it.skip('should propagate negative sampling decision to child transactions in XHR header', () => {
+      it('should propagate negative sampling decision to child transactions in XHR header', () => {
         const hub = new Hub(
           new BrowserClient({
             dsn: 'https://1231@dogs.are.great/1121',

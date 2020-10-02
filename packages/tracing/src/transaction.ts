@@ -32,6 +32,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this.name = transactionContext.name ? transactionContext.name : '';
 
     this._trimEnd = transactionContext.trimEnd;
+
+    // this is because transactions are also spans, and spans have a transaction pointer
+    this.transaction = this;
   }
 
   /**

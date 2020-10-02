@@ -178,8 +178,7 @@ describe('BrowserTracing', () => {
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
 
-      // TODO add this back in once getTransaction() returns sampled = false transactions, too
-      it.skip('creates a transaction with sampled = false if it returns undefined', () => {
+      it('creates a transaction with sampled = false if beforeNavigate returns undefined', () => {
         const mockBeforeNavigation = jest.fn().mockReturnValue(undefined);
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
@@ -412,8 +411,7 @@ describe('BrowserTracing', () => {
     });
 
     describe('using the data', () => {
-      // TODO add this back in once getTransaction() returns sampled = false transactions, too
-      it.skip('uses the data for pageload transactions', () => {
+      it('uses the data for pageload transactions', () => {
         // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
         document.head.innerHTML = `<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">`;
 
