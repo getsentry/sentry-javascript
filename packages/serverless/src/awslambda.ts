@@ -9,6 +9,8 @@ import {
   startTransaction,
   withScope,
 } from '@sentry/node';
+import * as Sentry from '@sentry/node';
+import { Integration } from '@sentry/types';
 import { addExceptionMechanism } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
@@ -16,6 +18,10 @@ import { Context, Handler } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
+
+import { AWSServices } from './awsservices';
+
+export * from '@sentry/node';
 
 const { isPromise } = types;
 
@@ -37,6 +43,18 @@ export interface WrapperOptions {
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
   timeoutWarningLimit: number;
+}
+
+export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices()];
+
+/**
+ * @see {@link Sentry.init}
+ */
+export function init(options: Sentry.NodeOptions = {}): void {
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = defaultIntegrations;
+  }
+  return Sentry.init(options);
 }
 
 /**
