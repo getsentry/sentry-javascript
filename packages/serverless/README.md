@@ -21,12 +21,12 @@ Currently supported environment:
 
 *AWS Lambda*
 
-To use this SDK, call `Sentry.init(options)` at the very beginning of your JavaScript file.
+To use this SDK, call `Sentry.AWSLambda.init(options)` at the very beginning of your JavaScript file.
 
 ```javascript
 import * as Sentry from '@sentry/serverless';
 
-Sentry.init({
+Sentry.AWSLambda.init({
   dsn: '__DSN__',
   // ...
 });
@@ -39,5 +39,16 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event, context) => {
 // sync
 exports.handler = Sentry.AWSLambda.wrapHandler((event, context, callback) => {
   throw new Error('oh, hello there!');
+});
+```
+
+If you also want to trace performance of all the incoming requests and also outgoing AWS service requests, just set the `tracesSampleRate` option. 
+
+```javascript
+import * as Sentry from '@sentry/serverless';
+
+Sentry.AWSLambda.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
 });
 ```
