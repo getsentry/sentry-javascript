@@ -141,7 +141,7 @@ function extractUserData(
 /**
  * Options deciding what parts of the request to use when enhancing an event
  */
-interface ParseRequestOptions {
+export interface ParseRequestOptions {
   ip?: boolean;
   request?: boolean | string[];
   serverName?: boolean;

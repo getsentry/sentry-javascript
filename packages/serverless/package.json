@@ -23,6 +23,7 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@google-cloud/functions-framework": "^1.7.1",
     "@sentry-internal/eslint-config-sdk": "5.25.0",
     "@types/aws-lambda": "^8.10.62",
     "@types/node": "^14.6.4",

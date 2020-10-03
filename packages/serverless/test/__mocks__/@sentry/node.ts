@@ -1,3 +1,5 @@
+const origSentry = jest.requireActual('@sentry/node');
+export const Handlers = origSentry.Handlers; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
 export const SDK_VERSION = '6.6.6';
 export const Severity = {
   Warning: 'warning',
@@ -16,6 +18,7 @@ export const fakeScope = {
 };
 export const fakeTransaction = {
   finish: jest.fn(),
+  setHttpStatus: jest.fn(),
 };
 export const getCurrentHub = jest.fn(() => fakeHub);
 export const startTransaction = jest.fn(_ => fakeTransaction);
@@ -25,6 +28,7 @@ export const withScope = jest.fn(cb => cb(fakeScope));
 export const flush = jest.fn(() => Promise.resolve());
 
 export const resetMocks = (): void => {
+  fakeTransaction.setHttpStatus.mockClear();
   fakeTransaction.finish.mockClear();
   fakeParentScope.setSpan.mockClear();
   fakeHub.configureScope.mockClear();
