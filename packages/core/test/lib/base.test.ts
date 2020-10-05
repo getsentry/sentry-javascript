@@ -43,6 +43,9 @@ jest.mock('@sentry/utils', () => {
     timestampWithMs(): number {
       return 2020;
     },
+    dateTimestampInSeconds(): number {
+      return 2020;
+    },
   };
 });
 

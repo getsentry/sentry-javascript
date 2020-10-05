@@ -54,8 +54,3 @@ export function defaultRoutingInstrumentation<T extends TransactionType>(
     });
   }
 }
-
-/** default implementation of Browser Tracing before navigate */
-export function defaultBeforeNavigate(context: TransactionContext): TransactionContext | undefined {
-  return context;
-}

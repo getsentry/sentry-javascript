@@ -2,13 +2,13 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, Severity } from '@sentry/types';
 import {
+  dateTimestampInSeconds,
   Dsn,
   isPrimitive,
   isThenable,
   logger,
   normalize,
   SyncPromise,
-  timestampWithMs,
   truncate,
   uuid4,
 } from '@sentry/utils';
@@ -256,7 +256,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const prepared: Event = {
       ...event,
       event_id: event.event_id || (hint && hint.event_id ? hint.event_id : uuid4()),
-      timestamp: event.timestamp || timestampWithMs(),
+      timestamp: event.timestamp || dateTimestampInSeconds(),
     };
 
     this._applyClientOptions(prepared);

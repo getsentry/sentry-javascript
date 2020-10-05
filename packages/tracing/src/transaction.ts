@@ -1,12 +1,12 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Event, Measurements, TransactionContext } from '@sentry/types';
+import { Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
 import { isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
-export class Transaction extends SpanClass {
-  public name?: string;
+export class Transaction extends SpanClass implements TransactionInterface {
+  public name: string;
   private _measurements: Measurements = {};
 
   /**
@@ -30,11 +30,12 @@ export class Transaction extends SpanClass {
       this._hub = hub as Hub;
     }
 
-    if (transactionContext.name) {
-      this.name = transactionContext.name;
-    }
+    this.name = transactionContext.name ? transactionContext.name : '';
 
     this._trimEnd = transactionContext.trimEnd;
+
+    // this is because transactions are also spans, and spans have a transaction pointer
+    this.transaction = this;
   }
 
   /**

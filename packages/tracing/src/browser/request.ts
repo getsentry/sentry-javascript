@@ -1,7 +1,8 @@
+import { getCurrentHub } from '@sentry/hub';
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-import { getActiveTransaction } from '../utils';
+import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
 
@@ -41,20 +42,24 @@ export interface RequestInstrumentationOptions {
 /** Data returned from fetch callback */
 export interface FetchData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: any[];
+  args: any[]; // the arguments passed to the fetch call itself
   fetchData?: {
     method: string;
     url: string;
     // span_id
     __span?: string;
   };
-  response?: Response;
+
+  // TODO Should this be unknown instead? If we vendor types, make it a Response
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  response?: any;
+
   startTimestamp: number;
   endTimestamp?: number;
 }
 
 /** Data returned from XHR request */
-interface XHRData {
+export interface XHRData {
   xhr?: {
     __sentry_xhr__?: {
       method: string;
@@ -64,8 +69,8 @@ interface XHRData {
       data: Record<string, any>;
     };
     __sentry_xhr_span_id__?: string;
-    __sentry_own_request__: boolean;
     setRequestHeader?: (key: string, val: string) => void;
+    __sentry_own_request__?: boolean;
   };
   startTimestamp: number;
   endTimestamp?: number;
@@ -114,7 +119,7 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
   if (traceFetch) {
     addInstrumentationHandler({
       callback: (handlerData: FetchData) => {
-        _fetchCallback(handlerData, shouldCreateSpan, spans);
+        fetchCallback(handlerData, shouldCreateSpan, spans);
       },
       type: 'fetch',
     });
@@ -133,12 +138,18 @@ export function registerRequestInstrumentation(_options?: Partial<RequestInstrum
 /**
  * Create and track fetch request spans
  */
-export function _fetchCallback(
+export function fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
-  if (!handlerData.fetchData || !shouldCreateSpan(handlerData.fetchData.url)) {
+  const currentClientOptions = getCurrentHub()
+    .getClient()
+    ?.getOptions();
+  if (
+    !(currentClientOptions && hasTracingEnabled(currentClientOptions)) ||
+    !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))
+  ) {
     return;
   }
 
@@ -147,6 +158,8 @@ export function _fetchCallback(
     if (span) {
       const response = handlerData.response;
       if (response) {
+        // TODO (kmclb) remove this once types PR goes through
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(response.status);
       }
       span.finish();
@@ -198,30 +211,28 @@ export function _fetchCallback(
 /**
  * Create and track xhr request spans
  */
-function xhrCallback(
+export function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
-  if (!handlerData || !handlerData.xhr || !handlerData.xhr.__sentry_xhr__) {
+  const currentClientOptions = getCurrentHub()
+    .getClient()
+    ?.getOptions();
+  if (
+    !(currentClientOptions && hasTracingEnabled(currentClientOptions)) ||
+    !(handlerData.xhr && handlerData.xhr.__sentry_xhr__ && shouldCreateSpan(handlerData.xhr.__sentry_xhr__.url)) ||
+    handlerData.xhr.__sentry_own_request__
+  ) {
     return;
   }
 
   const xhr = handlerData.xhr.__sentry_xhr__;
-  if (!shouldCreateSpan(xhr.url)) {
-    return;
-  }
 
-  // We only capture complete, non-sentry requests
-  if (handlerData.xhr.__sentry_own_request__) {
-    return;
-  }
-
+  // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
     const span = spans[handlerData.xhr.__sentry_xhr_span_id__];
     if (span) {
-      span.setData('url', xhr.url);
-      span.setData('method', xhr.method);
       span.setHttpStatus(xhr.status_code);
       span.finish();
 
@@ -231,12 +242,15 @@ function xhrCallback(
     return;
   }
 
+  // if not, create a new span to track it
   const activeTransaction = getActiveTransaction();
   if (activeTransaction) {
     const span = activeTransaction.startChild({
       data: {
         ...xhr.data,
         type: 'xhr',
+        method: xhr.method,
+        url: xhr.url,
       },
       description: `${xhr.method} ${xhr.url}`,
       op: 'http',

@@ -44,14 +44,15 @@ export function reactRouterV3Instrumentation(
 
     // Have to use global.location because history.location might not be defined.
     if (startTransactionOnPageLoad && global && global.location) {
-      prevName = normalizeTransactionName(routes, (global.location as unknown) as Location, match);
-
-      activeTransaction = startTransaction({
-        name: prevName,
-        op: 'pageload',
-        tags: {
-          'routing.instrumentation': 'react-router-v3',
-        },
+      normalizeTransactionName(routes, (global.location as unknown) as Location, match, (localName: string) => {
+        prevName = localName;
+        activeTransaction = startTransaction({
+          name: prevName,
+          op: 'pageload',
+          tags: {
+            'routing.instrumentation': 'react-router-v3',
+          },
+        });
       });
     }
 
@@ -65,11 +66,13 @@ export function reactRouterV3Instrumentation(
           if (prevName) {
             tags.from = prevName;
           }
-          prevName = normalizeTransactionName(routes, location, match);
-          activeTransaction = startTransaction({
-            name: prevName,
-            op: 'navigation',
-            tags,
+          normalizeTransactionName(routes, location, match, (localName: string) => {
+            prevName = localName;
+            activeTransaction = startTransaction({
+              name: prevName,
+              op: 'navigation',
+              tags,
+            });
           });
         }
       });
@@ -80,7 +83,12 @@ export function reactRouterV3Instrumentation(
 /**
  * Normalize transaction names using `Router.match`
  */
-function normalizeTransactionName(appRoutes: Route[], location: Location, match: Match): string {
+function normalizeTransactionName(
+  appRoutes: Route[],
+  location: Location,
+  match: Match,
+  callback: (pathname: string) => void,
+): void {
   let name = location.pathname;
   match(
     {
@@ -89,19 +97,18 @@ function normalizeTransactionName(appRoutes: Route[], location: Location, match:
     },
     (error, _redirectLocation, renderProps) => {
       if (error || !renderProps) {
-        return name;
+        return callback(name);
       }
 
       const routePath = getRouteStringFromRoutes(renderProps.routes || []);
       if (routePath.length === 0 || routePath === '/*') {
-        return name;
+        return callback(name);
       }
 
       name = routePath;
-      return name;
+      return callback(name);
     },
   );
-  return name;
 }
 
 /**

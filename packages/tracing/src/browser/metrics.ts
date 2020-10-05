@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Measurements, SpanContext } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getGlobalObject, logger } from '@sentry/utils';
 
 import { Span } from '../span';
 import { Transaction } from '../transaction';
@@ -30,14 +30,14 @@ export class MetricsInstrumentation {
 
   /** Add performance related spans to a transaction */
   public addPerformanceEntries(transaction: Transaction): void {
-    if (!global || !global.performance || !global.performance.getEntries) {
+    if (!global || !global.performance || !global.performance.getEntries || !browserPerformanceTimeOrigin) {
       // Gatekeeper if performance API not available
       return;
     }
 
     logger.log('[Tracing] Adding & adjusting spans using Performance API');
 
-    const timeOrigin = msToSec(performance.timeOrigin);
+    const timeOrigin = msToSec(browserPerformanceTimeOrigin);
     let entryScriptSrc: string | undefined;
 
     if (global.document) {

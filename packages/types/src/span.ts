@@ -1,3 +1,5 @@
+import { Transaction } from './transaction';
+
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
@@ -83,6 +85,11 @@ export interface Span extends SpanContext {
    * @inheritDoc
    */
   data: { [key: string]: any };
+
+  /**
+   * The transaction containing this span
+   */
+  transaction?: Transaction;
 
   /**
    * Sets the finish timestamp on the current span.
