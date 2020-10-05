@@ -27,11 +27,11 @@ Then add the following config to `config/environment.js`
 ```javascript
   ENV['@sentry/ember'] = {
     sentry: {
-      dsn: '__DSN__' // replace __DSN__ with your DSN
+      dsn: '__DSN__' // replace __DSN__ with your DSN,
+      tracesSampleRate: 1.0, // Be sure to lower this for your production environment
     }
   };
 ```
-
 ### Usage
 
 To use this SDK, call `InitSentryForEmber` before the application is initialized, in `app.js`. This will load Sentry config from `environment.js` for you.
@@ -74,6 +74,7 @@ Aside from configuration passed from this addon into `@sentry/browser` via the `
   };
 ```
 
+
 ### Performance
 #### Routes
 If you would like to capture `beforeModel`, `model`, `afterModel` and `setupController` times for one of your routes,
@@ -105,7 +106,7 @@ If you would like to change the runloop queue threshold, add the following to yo
 ```
 
 #### Components
-Non-glimmer component render times will automatically get captured. 
+Non-glimmer component render times will automatically get captured.
 
 If you would like to disable component render being instrumented, add the following to your config:
 ```javascript
