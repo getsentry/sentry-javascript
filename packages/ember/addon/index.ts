@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/browser';
 import { addGlobalEventProcessor, SDK_VERSION, BrowserOptions } from '@sentry/browser';
 import environmentConfig from 'ember-get-config';
-
+import { macroCondition, isDevelopingApp } from '@embroider/macros';
 import { next } from '@ember/runloop';
-import { assert, warn, runInDebug } from '@ember/debug';
+import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
 import { timestampWithMs } from '@sentry/utils';
 
@@ -22,7 +22,7 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
 
   Sentry.init(initConfig);
 
-  runInDebug(() => {
+  if (macroCondition(isDevelopingApp())) {
     if (config.ignoreEmberOnErrorWarning) {
       return;
     }
@@ -35,7 +35,7 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
         },
       );
     });
-  });
+  }
 }
 
 export const getActiveTransaction = () => {
