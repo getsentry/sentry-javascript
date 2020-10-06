@@ -31,6 +31,7 @@
     "pack": "npm pack"
   },
   "dependencies": {
+    "@embroider/macros": ">=0.25.0",
     "@sentry/browser": "5.25.0",
     "@sentry/tracing": "5.25.0",
     "@sentry/types": "5.25.0",
