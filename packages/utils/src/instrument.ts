@@ -141,7 +141,7 @@ function instrumentFetch(): void {
 
   fill(global, 'fetch', function(originalFetch: () => void): () => void {
     return function(...args: any[]): void {
-      const commonHandlerData = {
+      const handlerData = {
         args,
         fetchData: {
           method: getFetchMethod(args),
@@ -151,14 +151,14 @@ function instrumentFetch(): void {
       };
 
       triggerHandlers('fetch', {
-        ...commonHandlerData,
+        ...handlerData,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(global, args).then(
         (response: Response) => {
           triggerHandlers('fetch', {
-            ...commonHandlerData,
+            ...handlerData,
             endTimestamp: Date.now(),
             response,
           });
@@ -166,7 +166,7 @@ function instrumentFetch(): void {
         },
         (error: Error) => {
           triggerHandlers('fetch', {
-            ...commonHandlerData,
+            ...handlerData,
             endTimestamp: Date.now(),
             error,
           });
@@ -223,7 +223,7 @@ function instrumentXHR(): void {
     return;
   }
 
-  // Poor man implementation of ES6 `Map` by tracking and keeping in sync key and value separately.
+  // Poor man's implementation of ES6 `Map`, tracking and keeping in sync key and value separately.
   const requestKeys: XMLHttpRequest[] = [];
   const requestValues: Array<any>[] = [];
   const xhrproto = XMLHttpRequest.prototype;
@@ -260,7 +260,7 @@ function instrumentXHR(): void {
           try {
             const requestPos = requestKeys.indexOf(xhr);
             if (requestPos !== -1) {
-              // Make sure to pop both, key and value to keep it in sync.
+              // Make sure to pop both key and value to keep it in sync.
               requestKeys.splice(requestPos);
               const args = requestValues.splice(requestPos)[0];
               if (xhr.__sentry_xhr__ && args[0] !== undefined) {

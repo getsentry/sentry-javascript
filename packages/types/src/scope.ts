@@ -1,4 +1,5 @@
 import { Breadcrumb } from './breadcrumb';
+import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
 import { Severity } from './severity';
@@ -13,8 +14,8 @@ export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => 
 export interface ScopeContext {
   user: User;
   level: Severity;
-  extra: { [key: string]: any };
-  contexts: { [key: string]: any };
+  extra: Extras;
+  contexts: Contexts;
   tags: { [key: string]: string };
   fingerprint: string[];
 }
@@ -56,7 +57,7 @@ export interface Scope {
   /**
    * Set key:value that will be sent as extra data with the event.
    * @param key String of extra
-   * @param extra Any kind of data. This data will be normailzed.
+   * @param extra Any kind of data. This data will be normalized.
    */
   setExtra(key: string, extra: Extra): this;
 
@@ -80,9 +81,9 @@ export interface Scope {
   /**
    * Sets context data with the given name.
    * @param name of the context
-   * @param context Any kind of data. This data will be normailzed.
+   * @param context an object containing context data. This data will be normalized. Pass `null` to unset the context.
    */
-  setContext(name: string, context: { [key: string]: any } | null): this;
+  setContext(name: string, context: Context | null): this;
 
   /**
    * Sets the Span on the scope.

@@ -62,6 +62,11 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
     return transaction;
   }
 
+  // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
+  if (transaction.sampled !== undefined) {
+    return transaction;
+  }
+
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
   // work; prefer the hook if so
   const sampleRate =
@@ -184,8 +189,9 @@ function isValidSampleRate(rate: unknown): boolean {
 /**
  * Creates a new transaction and adds a sampling decision if it doesn't yet have one.
  *
- * The Hub.startTransaction method delegates to this method to do its work, passing the Hub instance in as `this`.
- * Exists as a separate function so that it can be injected into the class as an "extension method."
+ * The Hub.startTransaction method delegates to this method to do its work, passing the Hub instance in as `this`, as if
+ * it had been called on the hub directly. Exists as a separate function so that it can be injected into the class as an
+ * "extension method."
  *
  * @param this: The Hub starting the transaction
  * @param transactionContext: Data used to configure the transaction

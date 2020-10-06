@@ -5,6 +5,18 @@
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [ember] feat: Add more render instrumentation (#2902)
 
+## 5.25.0
+
+- [tracing] fix: Expose `startTransaction` in CDN bundle (#2938)
+- [tracing] fix: Allow unsampled transactions to be findable by `getTransaction()` (#2952)
+- [tracing] fix: Reimplement timestamp computation (#2947)
+- [tracing] ref: Clean up sampling decision inheritance (#2921) (#2944)
+- [react] fix: Makes `normalizeTransactionName` take a callback function in router-v3 (#2946)
+- [ember] feat: Add more render instrumentation to @sentry/ember (#2902)
+- [types] ref: Use correct types for `event.context` and allow for context removal (#2910)
+- [types] ref: Make name required on transaction class (#2949)
+- [build] feat: Update to use extends w. Volta (#2930)
+
 ## 5.24.2
 
 - [utils] fix: Check that performance is available before calling it in RN (#2924)
@@ -161,8 +173,7 @@
 - [tracing] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
 - [tracing] ref: Deprecate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
 - [tracing] feat: Add `beforeNavigate` option (#2691)
-- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href`
-  (#2691)
+- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href` (#2691)
 
 ## 5.17.0
 

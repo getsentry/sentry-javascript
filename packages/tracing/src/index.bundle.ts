@@ -30,6 +30,7 @@ export {
   setTag,
   setTags,
   setUser,
+  startTransaction,
   Transports,
   withScope,
 } from '@sentry/browser';
