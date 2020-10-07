@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
+import { Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
 import { isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
@@ -7,6 +7,7 @@ import { Span as SpanClass, SpanRecorder } from './span';
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
+  private _measurements: Measurements = {};
 
   /**
    * The reference to the current hub.
@@ -56,6 +57,14 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * Set observed measurements for this transaction.
+   * @hidden
+   */
+  public setMeasurements(measurements: Measurements): void {
+    this._measurements = { ...measurements };
+  }
+
+  /**
    * @inheritDoc
    */
   public finish(endTimestamp?: number): string | undefined {
@@ -89,7 +98,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-    return this._hub.captureEvent({
+    const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
       },
@@ -99,6 +108,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
-    });
+    };
+
+    const hasMeasurements = Object.keys(this._measurements).length > 0;
+
+    if (hasMeasurements) {
+      logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(this._measurements, undefined, 2));
+      transaction.measurements = this._measurements;
+    }
+
+    return this._hub.captureEvent(transaction);
   }
 }

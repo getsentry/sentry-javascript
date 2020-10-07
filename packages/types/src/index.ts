@@ -26,6 +26,7 @@ export { Stacktrace } from './stacktrace';
 export { Status } from './status';
 export {
   CustomSamplingContext,
+  Measurements,
   SamplingContext,
   TraceparentData,
   Transaction,

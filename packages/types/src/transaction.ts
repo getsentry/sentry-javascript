@@ -98,3 +98,5 @@ export interface SamplingContext extends CustomSamplingContext {
    */
   request?: ExtractedNodeRequestData;
 }
+
+export type Measurements = Record<string, { value: number }>;
