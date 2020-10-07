@@ -50,7 +50,7 @@ const MAX_BREADCRUMBS = 100;
  */
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
-  private readonly _stack: Layer[] = [];
+  private readonly _stack: Layer[] = [{}];
 
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
@@ -64,7 +64,7 @@ export class Hub implements HubInterface {
    * @param version number, higher number means higher priority.
    */
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
-    this._stack.push({ client, scope });
+    this.getStackTop().scope = scope;
     this.bindClient(client);
   }
 
@@ -91,9 +91,7 @@ export class Hub implements HubInterface {
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
-    const stack = this.getStack();
-    const parentScope = stack.length > 0 ? stack[stack.length - 1].scope : undefined;
-    const scope = Scope.clone(parentScope);
+    const scope = Scope.clone(this.getScope());
     this.getStack().push({
       client: this.getClient(),
       scope,
@@ -105,7 +103,8 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public popScope(): boolean {
-    return this.getStack().pop() !== undefined;
+    if (this.getStack().length <= 1) return false;
+    return !!this.getStack().pop();
   }
 
   /**
@@ -228,19 +227,15 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
-    const top = this.getStackTop();
+    const { scope, client } = this.getStackTop();
 
-    if (!top.scope || !top.client) {
-      return;
-    }
+    if (!scope || !client) return;
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
-      (top.client.getOptions && top.client.getOptions()) || {};
+      (client.getOptions && client.getOptions()) || {};
 
-    if (maxBreadcrumbs <= 0) {
-      return;
-    }
+    if (maxBreadcrumbs <= 0) return;
 
     const timestamp = dateTimestampInSeconds();
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
@@ -248,66 +243,49 @@ export class Hub implements HubInterface {
       ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
       : mergedBreadcrumb;
 
-    if (finalBreadcrumb === null) {
-      return;
-    }
+    if (finalBreadcrumb === null) return;
 
-    top.scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
   }
 
   /**
    * @inheritDoc
    */
   public setUser(user: User | null): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-    top.scope.setUser(user);
+    const scope = this.getScope();
+    if (scope) scope.setUser(user);
   }
 
   /**
    * @inheritDoc
    */
   public setTags(tags: { [key: string]: string }): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-    top.scope.setTags(tags);
+    const scope = this.getScope();
+    if (scope) scope.setTags(tags);
   }
 
   /**
    * @inheritDoc
    */
   public setExtras(extras: Extras): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-    top.scope.setExtras(extras);
+    const scope = this.getScope();
+    if (scope) scope.setExtras(extras);
   }
 
   /**
    * @inheritDoc
    */
   public setTag(key: string, value: string): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-    top.scope.setTag(key, value);
+    const scope = this.getScope();
+    if (scope) scope.setTag(key, value);
   }
 
   /**
    * @inheritDoc
    */
   public setExtra(key: string, extra: Extra): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-    top.scope.setExtra(key, extra);
+    const scope = this.getScope();
+    if (scope) scope.setExtra(key, extra);
   }
 
   /**
@@ -315,20 +293,17 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-    top.scope.setContext(name, context);
+    const scope = this.getScope();
+    if (scope) scope.setContext(name, context);
   }
 
   /**
    * @inheritDoc
    */
   public configureScope(callback: (scope: Scope) => void): void {
-    const top = this.getStackTop();
-    if (top.scope && top.client) {
-      callback(top.scope);
+    const { scope, client } = this.getStackTop();
+    if (scope && client) {
+      callback(scope);
     }
   }
 
@@ -349,9 +324,7 @@ export class Hub implements HubInterface {
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     const client = this.getClient();
-    if (!client) {
-      return null;
-    }
+    if (!client) return null;
     try {
       return client.getIntegration(integration);
     } catch (_oO) {
@@ -389,10 +362,10 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
-    const top = this.getStackTop();
-    if (top && top.client && top.client[method]) {
+    const { scope, client } = this.getStackTop();
+    if (client && client[method]) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      (top.client as any)[method](...args, top.scope);
+      (client as any)[method](...args, scope);
     }
   }
 
@@ -500,10 +473,7 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
  * @param carrier object
  */
 function hasHubOnCarrier(carrier: Carrier): boolean {
-  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
-    return true;
-  }
-  return false;
+  return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub);
 }
 
 /**
@@ -513,9 +483,7 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
-    return carrier.__SENTRY__.hub;
-  }
+  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) return carrier.__SENTRY__.hub;
   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
   carrier.__SENTRY__.hub = new Hub();
   return carrier.__SENTRY__.hub;
@@ -527,9 +495,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  * @param hub Hub
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
-  if (!carrier) {
-    return false;
-  }
+  if (!carrier) return false;
   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
   carrier.__SENTRY__.hub = hub;
   return true;
