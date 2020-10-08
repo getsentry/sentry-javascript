@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import {initMetric} from './lib/initMetric';
-import {ReportHandler} from './types';
-
+import { initMetric } from './lib/initMetric';
+import { ReportHandler } from './types';
 
 interface NavigationEntryShim {
   // From `PerformanceNavigationTimingEntry`.
@@ -46,25 +45,25 @@ interface NavigationEntryShim {
 }
 
 type PerformanceTimingKeys =
-    'connectEnd' |
-    'connectStart' |
-    'domComplete' |
-    'domContentLoadedEventEnd' |
-    'domContentLoadedEventStart' |
-    'domInteractive' |
-    'domainLookupEnd' |
-    'domainLookupStart' |
-    'fetchStart' |
-    'loadEventEnd' |
-    'loadEventStart' |
-    'redirectEnd' |
-    'redirectStart' |
-    'requestStart' |
-    'responseEnd' |
-    'responseStart' |
-    'secureConnectionStart' |
-    'unloadEventEnd' |
-    'unloadEventStart';
+  | 'connectEnd'
+  | 'connectStart'
+  | 'domComplete'
+  | 'domContentLoadedEventEnd'
+  | 'domContentLoadedEventStart'
+  | 'domInteractive'
+  | 'domainLookupEnd'
+  | 'domainLookupStart'
+  | 'fetchStart'
+  | 'loadEventEnd'
+  | 'loadEventStart'
+  | 'redirectEnd'
+  | 'redirectStart'
+  | 'requestStart'
+  | 'responseEnd'
+  | 'responseStart'
+  | 'secureConnectionStart'
+  | 'unloadEventEnd'
+  | 'unloadEventStart';
 
 const afterLoad = (callback: () => void): void => {
   if (document.readyState === 'complete') {
@@ -74,7 +73,7 @@ const afterLoad = (callback: () => void): void => {
     // Use `pageshow` so the callback runs after `loadEventEnd`.
     addEventListener('pageshow', callback);
   }
-}
+};
 
 const getNavigationEntryFromPerformanceTiming = (): PerformanceNavigationTiming => {
   // Really annoying that TypeScript errors when using `PerformanceTiming`.
@@ -91,7 +90,9 @@ const getNavigationEntryFromPerformanceTiming = (): PerformanceNavigationTiming 
   for (const key in timing) {
     if (key !== 'navigationStart' && key !== 'toJSON') {
       navigationEntry[key as PerformanceTimingKeys] = Math.max(
-          timing[key as PerformanceTimingKeys] - timing.navigationStart, 0);
+        timing[key as PerformanceTimingKeys] - timing.navigationStart,
+        0,
+      );
     }
   }
   return navigationEntry as PerformanceNavigationTiming;
@@ -103,11 +104,10 @@ export const getTTFB = (onReport: ReportHandler): void => {
   afterLoad(() => {
     try {
       // Use the NavigationTiming L2 entry if available.
-      const navigationEntry = performance.getEntriesByType('navigation')[0] ||
-          getNavigationEntryFromPerformanceTiming();
+      const navigationEntry =
+        performance.getEntriesByType('navigation')[0] || getNavigationEntryFromPerformanceTiming();
 
-      metric.value = metric.delta =
-          (navigationEntry as PerformanceNavigationTiming).responseStart;
+      metric.value = metric.delta = (navigationEntry as PerformanceNavigationTiming).responseStart;
 
       metric.entries = [navigationEntry];
       metric.isFinal = true;

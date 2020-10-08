@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-import {bindReporter} from './lib/bindReporter';
-import {initMetric} from './lib/initMetric';
-import {observe, PerformanceEntryHandler} from './lib/observe';
-import {onHidden} from './lib/onHidden';
-import {ReportHandler} from './types';
-
+import { bindReporter } from './lib/bindReporter';
+import { initMetric } from './lib/initMetric';
+import { observe, PerformanceEntryHandler } from './lib/observe';
+import { onHidden } from './lib/onHidden';
+import { ReportHandler } from './types';
 
 // https://wicg.github.io/layout-instability/#sec-layout-shift
 interface LayoutShift extends PerformanceEntry {
@@ -45,7 +44,7 @@ export const getCLS = (onReport: ReportHandler, reportAllChanges = false): void 
   if (po) {
     report = bindReporter(onReport, metric, po, reportAllChanges);
 
-    onHidden(({isUnloading}) => {
+    onHidden(({ isUnloading }) => {
       po.takeRecords().map(entryHandler as PerformanceEntryHandler);
 
       if (isUnloading) {
