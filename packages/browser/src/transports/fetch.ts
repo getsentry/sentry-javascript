@@ -1,6 +1,6 @@
 import { eventToSentryRequest } from '@sentry/core';
 import { Event, Response, Status } from '@sentry/types';
-import { getGlobalObject, logger, parseRetryAfterHeader, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
+import { getGlobalObject, logger, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
@@ -8,17 +8,16 @@ const global = getGlobalObject<Window>();
 
 /** `fetch` based transport */
 export class FetchTransport extends BaseTransport {
-  /** Locks transport after receiving 429 response */
-  private _disabledUntil: Date = new Date(Date.now());
-
   /**
    * @inheritDoc
    */
   public sendEvent(event: Event): PromiseLike<Response> {
-    if (new Date(Date.now()) < this._disabledUntil) {
+    const eventType = event.type || 'event';
+
+    if (this._isRateLimited(eventType)) {
       return Promise.reject({
         event,
-        reason: `Transport locked till ${this._disabledUntil} due to too many requests.`,
+        reason: `Transport locked till ${this._disabledUntil(eventType)} due to too many requests.`,
         status: 429,
       });
     }
@@ -50,20 +49,24 @@ export class FetchTransport extends BaseTransport {
           .then(response => {
             const status = Status.fromHttpCode(response.status);
 
-            if (status === Status.Success) {
-              resolve({ status });
-              return;
-            }
-
-            if (status === Status.RateLimit) {
-              const now = Date.now();
+            // Request with 200 that contain `x-sentry-retry-limits` should still handle that header.
+            if (status === Status.Success || status === Status.RateLimit) {
               /**
                * "The name is case-insensitive."
                * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
                */
-              const retryAfterHeader = response.headers.get('Retry-After');
-              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
-              logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
+              const limited = this._handleRateLimit({
+                'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+                'retry-after': response.headers.get('Retry-After'),
+              });
+              if (limited) {
+                logger.warn(`Too many requests, backing off till: ${this._disabledUntil(eventType)}`);
+              }
+            }
+
+            if (status === Status.Success) {
+              resolve({ status });
+              return;
             }
 
             reject(response);
