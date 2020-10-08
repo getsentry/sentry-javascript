@@ -15,8 +15,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "peerDependencies": {
+    "@angular/common: "^10.0.3"
+  },
   "dependencies": {
-    "@angular/common": "^10.0.3",
     "@angular/core": "^10.0.3",
     "@angular/router": "^10.0.3",
     "@sentry/browser": "5.25.0",
