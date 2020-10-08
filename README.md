@@ -54,7 +54,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
   same as for `raven-js` we still support and release bug fixes for the SDK but all new features will be implemented in
   `@sentry/node` which is the successor.
 
-## Installation and Usage
+## Simple Installation and Usage
 
 To install a SDK, simply add the high-level package, for example:
 
