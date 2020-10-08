@@ -6,6 +6,7 @@ import { browserPerformanceTimeOrigin, getGlobalObject, logger } from '@sentry/u
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
+import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP } from './web-vitals/getLCP';
 
@@ -23,6 +24,7 @@ export class MetricsInstrumentation {
         global.performance.mark('sentry-tracing-init');
       }
 
+      this._trackCLS();
       this._trackLCP();
       this._trackFID();
     }
@@ -124,6 +126,20 @@ export class MetricsInstrumentation {
     if (transaction.op === 'pageload') {
       transaction.setMeasurements(this._measurements);
     }
+  }
+
+  /** Starts tracking the Cumulative Layout Shift on the current page. */
+  private _trackCLS(): void {
+    getCLS(metric => {
+      const entry = metric.entries.pop();
+
+      if (!entry) {
+        return;
+      }
+
+      logger.log('[Measurements] Adding CLS');
+      this._measurements['cls'] = { value: metric.value };
+    });
   }
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
