@@ -38,7 +38,7 @@ const fakeCallback: Callback = (err, result) => {
   if (err === null || err === undefined) {
     return result;
   }
-  return err;
+  return undefined;
 };
 
 describe('AWSLambda', () => {
@@ -157,7 +157,7 @@ describe('AWSLambda', () => {
     });
 
     test('unsuccessful execution', async () => {
-      expect.assertions(2);
+      expect.assertions(3);
 
       const error = new Error('sorry');
       const handler: Handler = (_event, _context, callback) => {
@@ -169,6 +169,7 @@ describe('AWSLambda', () => {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
         expect(Sentry.captureException).toBeCalledWith(error);
+        expect(Sentry.captureException).toBeCalledTimes(1);
         expect(Sentry.flush).toBeCalledWith(2000);
       }
     });
