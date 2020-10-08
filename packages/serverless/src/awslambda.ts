@@ -165,7 +165,8 @@ export const wrapHandler = <TEvent = any, TResult = any>(
         if (args[0] === null || args[0] === undefined) {
           resolve(callback(...args));
         } else {
-          captureExceptionAsync(args[0], context, options).finally(() => reject(callback(...args)));
+          callback(...args);
+          reject(args[0]);
         }
       };
     };
