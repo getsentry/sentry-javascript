@@ -16,7 +16,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common: "^10.0.3"
+    "@angular/common": "^10.0.3"
   },
   "dependencies": {
     "@angular/core": "^10.0.3",
