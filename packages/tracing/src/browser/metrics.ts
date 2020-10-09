@@ -11,12 +11,23 @@ import { getFID } from './web-vitals/getFID';
 import { getLCP } from './web-vitals/getLCP';
 import { getTTFB } from './web-vitals/getTTFB';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
+import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
 const global = getGlobalObject<Window>();
+
+type FooNavigator = Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory;
+
+type BrowserContext = {
+  effectiveConnectionType?: string;
+  deviceMemory?: number;
+  // number of CPUs
+  hardwareConcurrency?: number;
+};
 
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
   private _measurements: Measurements = {};
+  private _browserContext: BrowserContext = {};
 
   private _performanceCursor: number = 0;
 
@@ -30,6 +41,7 @@ export class MetricsInstrumentation {
       this._trackLCP();
       this._trackFID();
       this._trackTTFB();
+      this._trackNavigator();
     }
   }
 
@@ -131,6 +143,8 @@ export class MetricsInstrumentation {
 
     // Measurements are only available for pageload transactions
     if (transaction.op === 'pageload') {
+      this._trackNavigator();
+      transaction.setContexts({ browser: this._browserContext });
       transaction.setMeasurements(this._measurements);
     }
   }
@@ -147,6 +161,38 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding CLS');
       this._measurements['cls'] = { value: metric.value };
     });
+  }
+
+  /**
+   * Capture the information of the user agent.
+   */
+  private _trackNavigator(): void {
+    const navigator = window.navigator as null | FooNavigator;
+
+    // track network connectivity
+
+    const connection = navigator?.connection;
+    if (connection) {
+      if (connection.effectiveType) {
+        this._browserContext.effectiveConnectionType = connection.effectiveType;
+      }
+
+      if (typeof connection.rtt === 'number') {
+        this._measurements['connection.rtt'] = { value: connection.rtt };
+      }
+
+      if (typeof connection.downlink === 'number') {
+        this._measurements['connection.downlink'] = { value: connection.downlink };
+      }
+    }
+
+    if (typeof navigator?.deviceMemory === 'number') {
+      this._browserContext.deviceMemory = navigator.deviceMemory;
+    }
+
+    if (typeof navigator?.hardwareConcurrency === 'number') {
+      this._browserContext.hardwareConcurrency = navigator.hardwareConcurrency;
+    }
   }
 
   /** Starts tracking the Largest Contentful Paint on the current page. */

@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
+import { Contexts, Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
 import { isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
@@ -8,6 +8,7 @@ import { Span as SpanClass, SpanRecorder } from './span';
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
   private _measurements: Measurements = {};
+  private _contexts: Contexts = {};
 
   /**
    * The reference to the current hub.
@@ -65,6 +66,13 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   *
+   */
+  public setContexts(contexts: Contexts): void {
+    this._contexts = contexts;
+  }
+
+  /**
    * @inheritDoc
    */
   public finish(endTimestamp?: number): string | undefined {
@@ -100,6 +108,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     const transaction: Event = {
       contexts: {
+        ...this._contexts,
         trace: this.getTraceContext(),
       },
       spans: finishedSpans,
