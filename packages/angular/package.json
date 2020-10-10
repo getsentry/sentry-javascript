@@ -17,10 +17,10 @@
   },
   "peerDependencies": {
     "@angular/common": "^10.0.3"
+    "@angular/core": "^10.0.3",
+    "@angular/router": "^10.0.3"
   },
   "dependencies": {
-    "@angular/core": "^10.0.3",
-    "@angular/router": "^10.0.3",
     "@sentry/browser": "5.25.0",
     "@sentry/types": "5.25.0",
     "@sentry/utils": "5.25.0",
@@ -28,6 +28,9 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@angular/common": "^10.0.3"
+    "@angular/core": "^10.0.3",
+    "@angular/router": "^10.0.3",
     "@sentry-internal/eslint-config-sdk": "5.25.0",
     "eslint": "7.6.0",
     "npm-run-all": "^4.1.2",
