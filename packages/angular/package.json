@@ -16,7 +16,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": "^10.0.3"
+    "@angular/common": "^10.0.3",
     "@angular/core": "^10.0.3",
     "@angular/router": "^10.0.3"
   },
@@ -28,7 +28,7 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@angular/common": "^10.0.3"
+    "@angular/common": "^10.0.3",
     "@angular/core": "^10.0.3",
     "@angular/router": "^10.0.3",
     "@sentry-internal/eslint-config-sdk": "5.25.0",
