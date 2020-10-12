@@ -1,22 +1,21 @@
 import { eventToSentryRequest } from '@sentry/core';
-import { Event, Response, Status } from '@sentry/types';
-import { logger, parseRetryAfterHeader, SyncPromise } from '@sentry/utils';
+import { Event, Response } from '@sentry/types';
+import { SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
 /** `XHR` based transport */
 export class XHRTransport extends BaseTransport {
-  /** Locks transport after receiving 429 response */
-  private _disabledUntil: Date = new Date(Date.now());
-
   /**
    * @inheritDoc
    */
   public sendEvent(event: Event): PromiseLike<Response> {
-    if (new Date(Date.now()) < this._disabledUntil) {
+    const eventType = event.type || 'event';
+
+    if (this._isRateLimited(eventType)) {
       return Promise.reject({
         event,
-        reason: `Transport locked till ${this._disabledUntil} due to too many requests.`,
+        reason: `Transport locked till ${this._disabledUntil(eventType)} due to too many requests.`,
         status: 429,
       });
     }
@@ -28,29 +27,13 @@ export class XHRTransport extends BaseTransport {
         const request = new XMLHttpRequest();
 
         request.onreadystatechange = (): void => {
-          if (request.readyState !== 4) {
-            return;
+          if (request.readyState === 4) {
+            const headers = {
+              'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
+              'retry-after': request.getResponseHeader('Retry-After'),
+            };
+            this._handleResponse({ eventType, response: request, headers, resolve, reject });
           }
-
-          const status = Status.fromHttpCode(request.status);
-
-          if (status === Status.Success) {
-            resolve({ status });
-            return;
-          }
-
-          if (status === Status.RateLimit) {
-            const now = Date.now();
-            /**
-             * "The search for the header name is case-insensitive."
-             * https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/getResponseHeader
-             */
-            const retryAfterHeader = request.getResponseHeader('Retry-After');
-            this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
-            logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
-          }
-
-          reject(request);
         };
 
         request.open('POST', sentryReq.url);
