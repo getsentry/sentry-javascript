@@ -191,7 +191,7 @@ export class MetricsInstrumentation {
       this._measurements['ttfb'] = { value: metric.value };
 
       // Capture the time spent making the request and receiving the first byte of the response
-      const requestTime = metric.value - (metric.entries[0] as PerformanceNavigationTiming).requestStart;
+      const requestTime = metric.value - ((metric.entries[0] ?? entry) as PerformanceNavigationTiming).requestStart;
       this._measurements['ttfb.requestTime'] = { value: requestTime };
     });
   }
