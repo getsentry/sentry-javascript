@@ -110,6 +110,7 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(server.requests.length).equal(1);
         }
 
         try {
@@ -118,12 +119,14 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(server.requests.length).equal(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(2);
 
         dateStub.restore();
       });
@@ -166,10 +169,12 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(server.requests.length).equal(1);
         }
 
         const transactionRes = await transport.sendEvent(transactionPayload);
         expect(transactionRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(2);
 
         try {
           await transport.sendEvent(eventPayload);
@@ -177,12 +182,14 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(server.requests.length).equal(2);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(3);
 
         dateStub.restore();
       });
@@ -232,6 +239,7 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(server.requests.length).equal(1);
         }
 
         try {
@@ -240,6 +248,7 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(server.requests.length).equal(1);
         }
 
         try {
@@ -248,6 +257,7 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(server.requests.length).equal(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
@@ -255,9 +265,11 @@ describe('XHRTransport', () => {
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
         expect(transactionRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(3);
 
         dateStub.restore();
       });
@@ -303,6 +315,7 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(server.requests.length).equal(1);
         }
 
         try {
@@ -311,6 +324,7 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(server.requests.length).equal(1);
         }
 
         try {
@@ -319,6 +333,7 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(server.requests.length).equal(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
@@ -326,9 +341,11 @@ describe('XHRTransport', () => {
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
         expect(transactionRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(3);
 
         dateStub.restore();
       });
@@ -360,6 +377,7 @@ describe('XHRTransport', () => {
 
         let eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(1);
 
         try {
           await transport.sendEvent(eventPayload);
@@ -367,12 +385,14 @@ describe('XHRTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(server.requests.length).equal(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(server.requests.length).equal(2);
 
         dateStub.restore();
       });

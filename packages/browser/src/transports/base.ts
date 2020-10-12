@@ -1,6 +1,9 @@
 import { API } from '@sentry/core';
-import { Event, Response, Transport, TransportOptions } from '@sentry/types';
-import { parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
+import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+
+const rlHeaderKey = 'x-sentry-rate-limits';
+const raHeaderKey = 'retry-after';
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
@@ -39,6 +42,46 @@ export abstract class BaseTransport implements Transport {
   }
 
   /**
+   * Handle Sentry repsonse for promise-based transports.
+   */
+  protected _handleResponse({
+    eventType,
+    response,
+    resolve,
+    reject,
+  }: {
+    eventType: string;
+    response: globalThis.Response | XMLHttpRequest;
+    resolve: (value?: Response | PromiseLike<Response> | null | undefined) => void;
+    reject: (reason?: unknown) => void;
+  }): void {
+    const status = Status.fromHttpCode(response.status);
+    const headers =
+      response instanceof XMLHttpRequest
+        ? {
+            [rlHeaderKey]: response.getResponseHeader(rlHeaderKey),
+            [raHeaderKey]: response.getResponseHeader(raHeaderKey),
+          }
+        : {
+            [rlHeaderKey]: response.headers.get(rlHeaderKey),
+            [raHeaderKey]: response.headers.get(raHeaderKey),
+          };
+    /**
+     * "The name is case-insensitive."
+     * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
+     */
+    const limited = this._handleRateLimit(headers);
+    if (limited) logger.warn(`Too many requests, backing off till: ${this._disabledUntil(eventType)}`);
+
+    if (status === Status.Success) {
+      resolve({ status });
+      return;
+    }
+
+    reject(response);
+  }
+
+  /**
    * Gets the time that given category is disabled until for rate limiting
    */
   protected _disabledUntil(category: string): Date {
@@ -48,8 +91,8 @@ export abstract class BaseTransport implements Transport {
   /**
    * Checks if a category is rate limited
    */
-  protected _isRateLimited(category: string, now = new Date()): boolean {
-    return this._disabledUntil(category) > now;
+  protected _isRateLimited(category: string): boolean {
+    return this._disabledUntil(category) > new Date(Date.now());
   }
 
   /**
@@ -57,8 +100,8 @@ export abstract class BaseTransport implements Transport {
    */
   protected _handleRateLimit(headers: Record<string, string | null>): boolean {
     const now = Date.now();
-    const rlHeader = headers['x-sentry-rate-limits'];
-    const raHeader = headers['retry-after'];
+    const rlHeader = headers[rlHeaderKey];
+    const raHeader = headers[raHeaderKey];
 
     if (rlHeader) {
       for (const limit of rlHeader.trim().split(',')) {

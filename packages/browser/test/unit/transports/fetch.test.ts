@@ -166,6 +166,7 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(fetch.calledOnce).equal(true);
         }
 
         try {
@@ -174,12 +175,14 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(fetch.calledOnce).equal(true);
         }
 
         fetch.returns(Promise.resolve({ status: 200, headers: new Headers() }));
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(fetch.calledTwice).equal(true);
 
         dateStub.restore();
       });
@@ -223,12 +226,14 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(fetch.calledOnce).equal(true);
         }
 
         fetch.returns(Promise.resolve({ status: 200, headers: new Headers() }));
 
         const transactionRes = await transport.sendEvent(transactionPayload);
         expect(transactionRes.status).equal(Status.Success);
+        expect(fetch.calledTwice).equal(true);
 
         try {
           await transport.sendEvent(eventPayload);
@@ -236,10 +241,12 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(fetch.calledTwice).equal(true);
         }
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(fetch.calledThrice).equal(true);
 
         dateStub.restore();
       });
@@ -286,6 +293,7 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(fetch.calledOnce).equal(true);
         }
 
         try {
@@ -294,6 +302,7 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(fetch.calledOnce).equal(true);
         }
 
         try {
@@ -302,15 +311,18 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(fetch.calledOnce).equal(true);
         }
 
         fetch.returns(Promise.resolve({ status: 200, headers: new Headers() }));
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(fetch.calledTwice).equal(true);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
         expect(transactionRes.status).equal(Status.Success);
+        expect(fetch.calledThrice).equal(true);
 
         dateStub.restore();
       });
@@ -357,6 +369,7 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(undefined);
+          expect(fetch.calledOnce).equal(true);
         }
 
         try {
@@ -365,6 +378,7 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(fetch.calledOnce).equal(true);
         }
 
         try {
@@ -373,15 +387,18 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(fetch.calledOnce).equal(true);
         }
 
         fetch.returns(Promise.resolve({ status: 200, headers: new Headers() }));
 
         const eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(fetch.calledTwice).equal(true);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
         expect(transactionRes.status).equal(Status.Success);
+        expect(fetch.calledThrice).equal(true);
 
         dateStub.restore();
       });
@@ -415,6 +432,7 @@ describe('FetchTransport', () => {
 
         let eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(fetch.calledOnce).equal(true);
 
         try {
           await transport.sendEvent(eventPayload);
@@ -422,12 +440,14 @@ describe('FetchTransport', () => {
         } catch (res) {
           expect(res.status).equal(429);
           expect(res.reason).equal(`Transport locked till ${new Date(afterLimit)} due to too many requests.`);
+          expect(fetch.calledOnce).equal(true);
         }
 
         fetch.returns(Promise.resolve({ status: 200, headers: new Headers() }));
 
         eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).equal(Status.Success);
+        expect(fetch.calledTwice).equal(true);
 
         dateStub.restore();
       });

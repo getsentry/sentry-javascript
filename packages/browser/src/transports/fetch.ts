@@ -1,6 +1,6 @@
 import { eventToSentryRequest } from '@sentry/core';
-import { Event, Response, Status } from '@sentry/types';
-import { getGlobalObject, logger, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
+import { Event, Response } from '@sentry/types';
+import { getGlobalObject, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
@@ -23,7 +23,6 @@ export class FetchTransport extends BaseTransport {
     }
 
     const sentryReq = eventToSentryRequest(event, this._api);
-
     const options: RequestInit = {
       body: sentryReq.body,
       method: 'POST',
@@ -33,11 +32,9 @@ export class FetchTransport extends BaseTransport {
       // REF: https://github.com/getsentry/raven-js/issues/1233
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
-
     if (this.options.fetchParameters !== undefined) {
       Object.assign(options, this.options.fetchParameters);
     }
-
     if (this.options.headers !== undefined) {
       options.headers = this.options.headers;
     }
@@ -46,31 +43,7 @@ export class FetchTransport extends BaseTransport {
       new SyncPromise<Response>((resolve, reject) => {
         global
           .fetch(sentryReq.url, options)
-          .then(response => {
-            const status = Status.fromHttpCode(response.status);
-
-            // Request with 200 that contain `x-sentry-retry-limits` should still handle that header.
-            if (status === Status.Success || status === Status.RateLimit) {
-              /**
-               * "The name is case-insensitive."
-               * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-               */
-              const limited = this._handleRateLimit({
-                'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-                'retry-after': response.headers.get('Retry-After'),
-              });
-              if (limited) {
-                logger.warn(`Too many requests, backing off till: ${this._disabledUntil(eventType)}`);
-              }
-            }
-
-            if (status === Status.Success) {
-              resolve({ status });
-              return;
-            }
-
-            reject(response);
-          })
+          .then(response => this._handleResponse({ response, eventType, resolve, reject }))
           .catch(reject);
       }),
     );
