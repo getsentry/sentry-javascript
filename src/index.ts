@@ -33,6 +33,21 @@ export default class SentryRRWeb {
     this.checkoutEveryNms = checkoutEveryNms || 5 * 60 * 1000;
     this.checkoutEveryNth = checkoutEveryNth;
     this.maskAllInputs = maskAllInputs;
+
+    this.events = [];
+
+    rrweb.record({
+      checkoutEveryNms: this.checkoutEveryNms,
+      checkoutEveryNth: this.checkoutEveryNth,
+      maskAllInputs: this.maskAllInputs,
+      emit: (event: RRWebEvent, isCheckout?: boolean) => {
+        if (isCheckout) {
+          this.events = [event];
+        } else {
+          this.events.push(event);
+        }
+      },
+    });
   }
 
   public attachmentUrlFromDsn(dsn: Dsn, eventId: string) {
@@ -43,26 +58,12 @@ export default class SentryRRWeb {
   }
 
   public setupOnce() {
-    rrweb.record({
-      checkoutEveryNms: this.checkoutEveryNms,
-      checkoutEveryNth: this.checkoutEveryNth,
-      maskAllInputs: this.maskAllInputs,
-      emit(event: RRWebEvent, isCheckout?: boolean) {
-        const self = Sentry.getCurrentHub().getIntegration(SentryRRWeb);
-        if (isCheckout) {
-          self.events = [event];
-        } else {
-          self.events.push(event);
-        }
-      },
-    });
-
     Sentry.addGlobalEventProcessor((event: Event) => {
       const self = Sentry.getCurrentHub().getIntegration(SentryRRWeb);
       if (!self) return;
       try {
         // short circuit if theres no events to replay
-        if (!self.events.length) return;
+        if (!this.events.length) return;
         const client = Sentry.getCurrentHub().getClient();
         const endpoint = self.attachmentUrlFromDsn(
           client.getDsn(),
