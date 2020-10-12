@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-# 5.26.0
+## 5.26.0
 
 - [serverless] feat: Implement error handling and tracing for `Google Cloud Functions` (#2945)
 - [serverless] feat: Enable tracing for `AWSLambda` (#2945)
