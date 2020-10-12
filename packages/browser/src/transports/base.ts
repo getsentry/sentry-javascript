@@ -2,9 +2,6 @@ import { API } from '@sentry/core';
 import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 
-const rlHeaderKey = 'x-sentry-rate-limits';
-const raHeaderKey = 'retry-after';
-
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /**
@@ -47,25 +44,17 @@ export abstract class BaseTransport implements Transport {
   protected _handleResponse({
     eventType,
     response,
+    headers,
     resolve,
     reject,
   }: {
     eventType: string;
     response: globalThis.Response | XMLHttpRequest;
+    headers: Record<string, string | null>;
     resolve: (value?: Response | PromiseLike<Response> | null | undefined) => void;
     reject: (reason?: unknown) => void;
   }): void {
     const status = Status.fromHttpCode(response.status);
-    const headers =
-      response instanceof XMLHttpRequest
-        ? {
-            [rlHeaderKey]: response.getResponseHeader(rlHeaderKey),
-            [raHeaderKey]: response.getResponseHeader(raHeaderKey),
-          }
-        : {
-            [rlHeaderKey]: response.headers.get(rlHeaderKey),
-            [raHeaderKey]: response.headers.get(raHeaderKey),
-          };
     /**
      * "The name is case-insensitive."
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
@@ -100,8 +89,8 @@ export abstract class BaseTransport implements Transport {
    */
   protected _handleRateLimit(headers: Record<string, string | null>): boolean {
     const now = Date.now();
-    const rlHeader = headers[rlHeaderKey];
-    const raHeader = headers[raHeaderKey];
+    const rlHeader = headers['x-sentry-rate-limits'];
+    const raHeader = headers['retry-after'];
 
     if (rlHeader) {
       for (const limit of rlHeader.trim().split(',')) {

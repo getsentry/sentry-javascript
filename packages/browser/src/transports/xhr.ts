@@ -28,7 +28,11 @@ export class XHRTransport extends BaseTransport {
 
         request.onreadystatechange = (): void => {
           if (request.readyState === 4) {
-            this._handleResponse({ response: request, eventType, resolve, reject });
+            const headers = {
+              'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
+              'retry-after': request.getResponseHeader('Retry-After'),
+            };
+            this._handleResponse({ eventType, response: request, headers, resolve, reject });
           }
         };
 
