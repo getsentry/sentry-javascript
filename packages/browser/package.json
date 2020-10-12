@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "5.25.0",
+  "version": "5.26.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -16,13 +16,13 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "5.25.0",
-    "@sentry/types": "5.25.0",
-    "@sentry/utils": "5.25.0",
+    "@sentry/core": "5.26.0",
+    "@sentry/types": "5.26.0",
+    "@sentry/utils": "5.26.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "5.25.0",
+    "@sentry-internal/eslint-config-sdk": "5.26.0",
     "@types/eslint": "^7.2.0",
     "@types/md5": "2.1.33",
     "btoa": "^1.2.1",
