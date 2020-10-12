@@ -15,7 +15,7 @@ export abstract class BaseTransport implements Transport {
   /** A simple buffer holding all requests. */
   protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
-  /** Locks transport after receiving 429 response */
+  /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
 
   public constructor(public options: TransportOptions) {
@@ -46,16 +46,14 @@ export abstract class BaseTransport implements Transport {
   }
 
   /**
-   * Checks if a category is ratelimited
+   * Checks if a category is rate limited
    */
-  protected _isRateLimited(category: string): boolean {
-    // We use `new Date(Date.now())` instead of just `new Date()` despite them being the same thing,
-    // as it's easier to mock `now` method on `Date` instance instead of whole `Date` object in tests.
-    return this._disabledUntil(category) > new Date(Date.now());
+  protected _isRateLimited(category: string, now = new Date()): boolean {
+    return this._disabledUntil(category) > now;
   }
 
   /**
-   * Sets internal _rateLimits from incoming headers
+   * Sets internal _rateLimits from incoming headers. Returns true if headers contains a non-empty rate limiting header.
    */
   protected _handleRateLimit(headers: Record<string, string | null>): boolean {
     const now = Date.now();
