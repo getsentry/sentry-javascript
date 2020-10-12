@@ -3,7 +3,19 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+# 5.26.0
+
+- [serverless] feat: Implement error handling and tracing for `Google Cloud Functions` (#2945)
+- [serverless] feat: Enable tracing for `AWSLambda` (#2945)
+- [serverless] feat: Add `AWSResources` integration (#2945)
+- [browser] feat: Implement `X-Sentry-Rate-Limits` handling for transports (#2962)
+- [tracing] feat: Add measurements support and web vitals (#2909)
+- [tracing] feat: Add web vitals: CLS and TTFB (#2964)
+- [angular] ref: Make `@angular/common` a peerDependency instead of dependency (#2961)
 - [ember] feat: Add more render instrumentation (#2902)
+- [ember] ref: Use `@embroider/macros` instead of `runInDebug` (#2873)
+- [hub] ref: Do not allow for popping last layer and unify getter methods (#2955)
 
 ## 5.25.0
 
