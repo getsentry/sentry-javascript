@@ -6,8 +6,10 @@ import { browserPerformanceTimeOrigin, getGlobalObject, logger } from '@sentry/u
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
+import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP } from './web-vitals/getLCP';
+import { getTTFB } from './web-vitals/getTTFB';
 
 const global = getGlobalObject<Window>();
 
@@ -23,8 +25,10 @@ export class MetricsInstrumentation {
         global.performance.mark('sentry-tracing-init');
       }
 
+      this._trackCLS();
       this._trackLCP();
       this._trackFID();
+      this._trackTTFB();
     }
   }
 
@@ -126,6 +130,20 @@ export class MetricsInstrumentation {
     }
   }
 
+  /** Starts tracking the Cumulative Layout Shift on the current page. */
+  private _trackCLS(): void {
+    getCLS(metric => {
+      const entry = metric.entries.pop();
+
+      if (!entry) {
+        return;
+      }
+
+      logger.log('[Measurements] Adding CLS');
+      this._measurements['cls'] = { value: metric.value };
+    });
+  }
+
   /** Starts tracking the Largest Contentful Paint on the current page. */
   private _trackLCP(): void {
     getLCP(metric => {
@@ -157,6 +175,24 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding FID');
       this._measurements['fid'] = { value: metric.value };
       this._measurements['mark.fid'] = { value: timeOrigin + startTime };
+    });
+  }
+
+  /** Starts tracking the Time to First Byte on the current page. */
+  private _trackTTFB(): void {
+    getTTFB(metric => {
+      const entry = metric.entries.pop();
+
+      if (!entry) {
+        return;
+      }
+
+      logger.log('[Measurements] Adding TTFB');
+      this._measurements['ttfb'] = { value: metric.value };
+
+      // Capture the time spent making the request and receiving the first byte of the response
+      const requestTime = metric.value - ((metric.entries[0] ?? entry) as PerformanceNavigationTiming).requestStart;
+      this._measurements['ttfb.requestTime'] = { value: requestTime };
     });
   }
 }
