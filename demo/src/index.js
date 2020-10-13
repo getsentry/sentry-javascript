@@ -7,9 +7,10 @@ import * as Sentry from '@sentry/browser';
 import SentryRRWeb from '@sentry/rrweb';
 
 Sentry.init({
-  dsn: 'https://375821616abb4d8c94f43726ed08e27f@ingest.sentry.io/2273529',
+  dsn:
+    'https://375821616abb4d8c94f43726ed08e27f@o19635.ingest.sentry.io/2273529',
   environment: 'demo',
-  integrations: [new SentryRRWeb()]
+  integrations: [new SentryRRWeb()],
 });
 
 ReactDOM.render(<App />, document.getElementById('root'));
