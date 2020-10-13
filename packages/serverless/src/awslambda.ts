@@ -126,20 +126,6 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
 }
 
 /**
- * Capture exception with a a context.
- *
- * @param e exception to be captured
- * @param context Context
- */
-function captureExceptionWithContext(e: unknown, context: Context): void {
-  withScope(scope => {
-    addServerlessEventProcessor(scope);
-    enhanceScopeWithEnvironmentData(scope, context);
-    captureException(e);
-  });
-}
-
-/**
  * Wraps a lambda handler adding it error capture and tracing capabilities.
  *
  * @param handler Handler
@@ -205,8 +191,6 @@ export function wrapHandler<TEvent, TResult>(
 
       timeoutWarningTimer = setTimeout(() => {
         withScope(scope => {
-          addServerlessEventProcessor(scope);
-          enhanceScopeWithEnvironmentData(scope, context);
           scope.setTag('timeout', humanReadableTimeout);
           captureMessage(`Possible function timeout: ${context.functionName}`, Severity.Warning);
         });
@@ -217,22 +201,25 @@ export function wrapHandler<TEvent, TResult>(
       name: context.functionName,
       op: 'awslambda.handler',
     });
-    // We put the transaction on the scope so users can attach children to it
-    getCurrentHub().configureScope(scope => {
-      scope.setSpan(transaction);
-    });
 
+    const hub = getCurrentHub();
+    const scope = hub.pushScope();
     let rv: TResult | undefined;
     try {
+      addServerlessEventProcessor(scope);
+      enhanceScopeWithEnvironmentData(scope, context);
+      // We put the transaction on the scope so users can attach children to it
+      scope.setSpan(transaction);
       rv = await asyncHandler(event, context);
     } catch (e) {
-      captureExceptionWithContext(e, context);
+      captureException(e);
       if (options.rethrowAfterCapture) {
         throw e;
       }
     } finally {
       clearTimeout(timeoutWarningTimer);
       transaction.finish();
+      hub.popScope();
       await flush(options.flushTimeout);
     }
     return rv;
