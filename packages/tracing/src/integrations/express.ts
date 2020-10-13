@@ -89,6 +89,7 @@ export class Express implements Integration {
       return;
     }
     instrumentMiddlewares(this._app);
+    routeMiddlewares(this._app, this._methods);
   }
 }
 
@@ -217,5 +218,21 @@ function instrumentMiddlewares(app: Application): Application {
     // eslint-disable-next-line prefer-rest-params
     return originalAppUse.apply(this, wrapUseArgs(arguments));
   };
+  return app;
+}
+
+/**
+ * Patches original app.METHOD to utilize our tracing functionality
+ */
+function routeMiddlewares(app: Application, methods: Method[] = []): Application {
+  methods.forEach(function(method: Method) {
+    const originalAppCallback = app[method];
+
+    app[method] = function(): any {
+      // eslint-disable-next-line prefer-rest-params
+      return originalAppCallback.apply(this, wrapUseArgs(arguments));
+    };
+  });
+
   return app;
 }
