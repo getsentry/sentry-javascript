@@ -3,8 +3,34 @@ import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 // Have to manually set types because we are using package-alias
-interface Application {
-  use(...args: any): any;
+type Method =
+  | 'all'
+  | 'get'
+  | 'post'
+  | 'put'
+  | 'delete'
+  | 'patch'
+  | 'options'
+  | 'head'
+  | 'checkout'
+  | 'copy'
+  | 'lock'
+  | 'merge'
+  | 'mkactivity'
+  | 'mkcol'
+  | 'move'
+  | 'm-search'
+  | 'notify'
+  | 'purge'
+  | 'report'
+  | 'search'
+  | 'subscribe'
+  | 'trace'
+  | 'unlock'
+  | 'unsubscribe';
+
+type Application = {
+  [method in (Method | 'use')]: (...args: any) => any;
 }
 
 type ErrorRequestHandler = (...args: any) => any;
