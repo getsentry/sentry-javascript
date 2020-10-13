@@ -70,12 +70,14 @@ export class Express implements Integration {
    * Express App instance
    */
   private readonly _app?: Application;
+  private readonly _methods?: Method[];
 
   /**
    * @inheritDoc
    */
-  public constructor(options: { app?: Application } = {}) {
+  public constructor(options: { app?: Application, methods?: Method[] } = {}) {
     this._app = options.app;
+    this._methods = options.methods;
   }
 
   /**
