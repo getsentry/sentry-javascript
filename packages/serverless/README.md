@@ -19,7 +19,7 @@ methods available in `@sentry/node` can be imported from `@sentry/serverless`.
 
 Currently supported environment:
 
-*AWS Lambda*
+### AWS Lambda
 
 To use this SDK, call `Sentry.AWSLambda.init(options)` at the very beginning of your JavaScript file.
 
@@ -50,5 +50,37 @@ import * as Sentry from '@sentry/serverless';
 Sentry.AWSLambda.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
+});
+```
+
+### Google Cloud Functions
+
+To use this SDK, call `Sentry.GCPFunction.init(options)` at the very beginning of your JavaScript file.
+
+```javascript
+import * as Sentry from '@sentry/serverless';
+
+Sentry.GCPFunction.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  // ...
+});
+
+// For HTTP Functions:
+
+exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
+  throw new Error('oh, hello there!');
+});
+
+// For Background Functions:
+
+exports.helloEvents = Sentry.GCPFunction.wrapEventFunction((data, context, callback) => {
+  throw new Error('oh, hello there!');
+});
+
+// For CloudEvents:
+
+exports.helloEvents = Sentry.GCPFunction.wrapCloudEventFunction((context, callback) => {
+  throw new Error('oh, hello there!');
 });
 ```
