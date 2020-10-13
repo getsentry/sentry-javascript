@@ -30,8 +30,8 @@ type Method =
   | 'unsubscribe';
 
 type Application = {
-  [method in (Method | 'use')]: (...args: any) => any;
-}
+  [method in Method | 'use']: (...args: any) => any;
+};
 
 type ErrorRequestHandler = (...args: any) => any;
 type RequestHandler = (...args: any) => any;
@@ -75,7 +75,7 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: { app?: Application, methods?: Method[] } = {}) {
+  public constructor(options: { app?: Application; methods?: Method[] } = {}) {
     this._app = options.app;
     this._methods = options.methods;
   }
