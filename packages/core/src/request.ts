@@ -1,12 +1,11 @@
 import { Event, SentryRequest, Session } from '@sentry/types';
-import { timestampWithMs } from '@sentry/utils';
 
 import { API } from './api';
 
 /** Creates a SentryRequest from an event. */
 export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
   const envelopeHeaders = JSON.stringify({
-    sent_at: new Date(timestampWithMs() * 1000).toISOString(),
+    sent_at: new Date().toISOString(),
   });
   const itemHeaders = JSON.stringify({
     type: 'session',

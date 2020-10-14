@@ -101,7 +101,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendSession(session: Session): void {
     if (!this._transport.sendSession) {
-      logger.warn('sendSession not implemented for a transport used');
+      logger.warn("Dropping session because custom transport doesn't implement sendSession");
       return;
     }
 

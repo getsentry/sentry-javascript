@@ -190,7 +190,6 @@ export class BrowserTracing implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
-    const hub = this._getCurrentHub();
     const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
 
     const expandedContext = {
@@ -208,6 +207,7 @@ export class BrowserTracing implements Integration {
       logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
 
+    const hub = this._getCurrentHub();
     const idleTransaction = startIdleTransaction(hub, finalContext, idleTimeout, true);
     logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
     idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {

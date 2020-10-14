@@ -22,12 +22,13 @@ export class XHRTransport extends BaseTransport {
 
   /**
    * @param sentryRequest Prepared SentryRequest to be delivered
-   * @param event original payload used to create SentryRequest
+   * @param originalPayload Original payload used to create SentryRequest
    */
-  private _sendRequest(sentryRequest: SentryRequest, event: Event | Session): PromiseLike<Response> {
+  private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
     if (this._isRateLimited(sentryRequest.type)) {
       return Promise.reject({
-        event,
+        event: originalPayload,
+        type: sentryRequest.type,
         reason: `Transport locked till ${this._disabledUntil(sentryRequest.type)} due to too many requests.`,
         status: 429,
       });

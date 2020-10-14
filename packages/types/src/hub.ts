@@ -208,7 +208,7 @@ export interface Hub {
    * To finish a `session`, it has to be passed directly to `client.captureSession`, which is done automatically
    * when using `hub.endSession()` for the session currently stored on the scope.
    *
-   * When there's already an existing session on the scope, it'll be autmatically ended.
+   * When there's already an existing session on the scope, it'll be automatically ended.
    *
    * @param context Optional properties of the new `Session`.
    *

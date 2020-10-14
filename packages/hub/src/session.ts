@@ -80,9 +80,6 @@ export class Session implements SessionInterface {
       this.update({ status });
     } else if (this.status === SessionStatus.Ok) {
       this.update({ status: SessionStatus.Exited });
-    } else {
-      // Calling `update` alone updates session.timestamp to the current time and session.duration.
-      this.update();
     }
   }
 

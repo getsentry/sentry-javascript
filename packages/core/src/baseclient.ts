@@ -494,16 +494,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
           let finalEvent: Event | null = prepared;
 
-          const isInternalException =
-            hint && hint.data && (hint.data as { [key: string]: unknown }).__sentry__ === true;
-          // We skip beforeSend in case of transactions
+          const isInternalException = hint && hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+          const shouldSkipBeforeSend = isInternalException || isTransaction || !beforeSend;
+          const session = scope && scope.getSession();
 
-          if (isInternalException || !beforeSend || isTransaction) {
-            if (!isTransaction) {
-              const session = scope && scope.getSession();
-              if (session) {
-                this._updateSessionFromEvent(session, finalEvent);
-              }
+          if (shouldSkipBeforeSend) {
+            // If this is a generic error event and we have a session available, update it.
+            if (!isTransaction && session) {
+              this._updateSessionFromEvent(session, finalEvent);
             }
 
             this._sendEvent(finalEvent);
@@ -525,7 +523,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
               return;
             }
 
-            const session = scope && scope.getSession();
             if (session) {
               this._updateSessionFromEvent(session, finalEvent);
             }
