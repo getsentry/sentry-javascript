@@ -1,5 +1,5 @@
 import { API } from '@sentry/core';
-import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
+import { Event, Response, SentryRequestType, Status, Transport, TransportOptions } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 
 /** Base Transport class implementation */
@@ -42,13 +42,13 @@ export abstract class BaseTransport implements Transport {
    * Handle Sentry repsonse for promise-based transports.
    */
   protected _handleResponse({
-    eventType,
+    requestType,
     response,
     headers,
     resolve,
     reject,
   }: {
-    eventType: string;
+    requestType: SentryRequestType;
     response: globalThis.Response | XMLHttpRequest;
     headers: Record<string, string | null>;
     resolve: (value?: Response | PromiseLike<Response> | null | undefined) => void;
@@ -60,7 +60,7 @@ export abstract class BaseTransport implements Transport {
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
      */
     const limited = this._handleRateLimit(headers);
-    if (limited) logger.warn(`Too many requests, backing off till: ${this._disabledUntil(eventType)}`);
+    if (limited) logger.warn(`Too many requests, backing off till: ${this._disabledUntil(requestType)}`);
 
     if (status === Status.Success) {
       resolve({ status });

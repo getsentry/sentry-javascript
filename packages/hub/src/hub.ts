@@ -11,6 +11,7 @@ import {
   Hub as HubInterface,
   Integration,
   IntegrationClass,
+  SessionContext,
   Severity,
   Span,
   SpanContext,
@@ -22,6 +23,7 @@ import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, log
 
 import { Carrier, DomainAsCarrier, Layer } from './interfaces';
 import { Scope } from './scope';
+import { Session } from './session';
 
 /**
  * API compatibility version of this hub.
@@ -352,6 +354,44 @@ export class Hub implements HubInterface {
    */
   public traceHeaders(): { [key: string]: string } {
     return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startSession(context?: SessionContext): Session {
+    // End existing session if there's one
+    this.endSession();
+
+    const { scope, client } = this.getStackTop();
+    const { release, environment } = (client && client.getOptions()) || {};
+    const session = new Session({
+      release,
+      environment,
+      ...(scope && { user: scope.getUser() }),
+      ...context,
+    });
+    if (scope) {
+      scope.setSession(session);
+    }
+    return session;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public endSession(): void {
+    const { scope, client } = this.getStackTop();
+    if (!scope) return;
+
+    const session = scope.getSession();
+    if (session) {
+      session.close();
+      if (client && client.captureSession) {
+        client.captureSession(session);
+      }
+      scope.setSession();
+    }
   }
 
   /**

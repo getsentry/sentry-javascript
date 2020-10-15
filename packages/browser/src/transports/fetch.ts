@@ -1,5 +1,5 @@
-import { eventToSentryRequest } from '@sentry/core';
-import { Event, Response } from '@sentry/types';
+import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
+import { Event, Response, SentryRequest, Session } from '@sentry/types';
 import { getGlobalObject, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
@@ -12,19 +12,32 @@ export class FetchTransport extends BaseTransport {
    * @inheritDoc
    */
   public sendEvent(event: Event): PromiseLike<Response> {
-    const eventType = event.type || 'event';
+    return this._sendRequest(eventToSentryRequest(event, this._api), event);
+  }
 
-    if (this._isRateLimited(eventType)) {
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): PromiseLike<Response> {
+    return this._sendRequest(sessionToSentryRequest(session, this._api), session);
+  }
+
+  /**
+   * @param sentryRequest Prepared SentryRequest to be delivered
+   * @param originalPayload Original payload used to create SentryRequest
+   */
+  private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
+    if (this._isRateLimited(sentryRequest.type)) {
       return Promise.reject({
-        event,
-        reason: `Transport locked till ${this._disabledUntil(eventType)} due to too many requests.`,
+        event: originalPayload,
+        type: sentryRequest.type,
+        reason: `Transport locked till ${this._disabledUntil(sentryRequest.type)} due to too many requests.`,
         status: 429,
       });
     }
 
-    const sentryReq = eventToSentryRequest(event, this._api);
     const options: RequestInit = {
-      body: sentryReq.body,
+      body: sentryRequest.body,
       method: 'POST',
       // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default
       // https://caniuse.com/#feat=referrer-policy
@@ -42,13 +55,13 @@ export class FetchTransport extends BaseTransport {
     return this._buffer.add(
       new SyncPromise<Response>((resolve, reject) => {
         global
-          .fetch(sentryReq.url, options)
+          .fetch(sentryRequest.url, options)
           .then(response => {
             const headers = {
               'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
               'retry-after': response.headers.get('Retry-After'),
             };
-            this._handleResponse({ eventType, response, headers, resolve, reject });
+            this._handleResponse({ requestType: sentryRequest.type, response, headers, resolve, reject });
           })
           .catch(reject);
       }),
