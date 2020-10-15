@@ -190,6 +190,7 @@ export class BrowserTracing implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
+
     const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
 
     const expandedContext = {

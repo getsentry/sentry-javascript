@@ -48,7 +48,6 @@ export class Session implements SessionInterface {
     if (typeof context.started === 'number') {
       this.started = context.started;
     }
-    // I'm not sure why we even allow to set that, while having `started` and `timestamp` already. — Kamil
     if (typeof context.duration === 'number') {
       this.duration = context.duration;
     } else {
@@ -75,11 +74,13 @@ export class Session implements SessionInterface {
   }
 
   /** JSDoc */
-  close(status?: SessionStatus): void {
+  close(status?: Exclude<SessionStatus, SessionStatus.Ok>): void {
     if (status) {
       this.update({ status });
     } else if (this.status === SessionStatus.Ok) {
       this.update({ status: SessionStatus.Exited });
+    } else {
+      this.update();
     }
   }
 

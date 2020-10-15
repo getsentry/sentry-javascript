@@ -17,6 +17,7 @@ import {
   isThenable,
   logger,
   normalize,
+  SentryError,
   SyncPromise,
   truncate,
   uuid4,
@@ -138,8 +139,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     this._processEvent(event, hint, scope)
       .then(finalEvent => {
-        // We need to check for finalEvent in case beforeSend returned null
-        eventId = finalEvent && finalEvent.event_id;
+        eventId = finalEvent.event_id;
         this._processing = false;
       })
       .then(null, reason => {
@@ -484,88 +484,55 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return SyncPromise.reject('This event has been sampled, will not send event.');
     }
 
-    return new SyncPromise((resolve, reject) => {
-      this._prepareEvent(event, scope, hint)
-        .then(prepared => {
-          if (prepared === null) {
-            reject('An event processor returned null, will not send event.');
-            return;
+    return this._prepareEvent(event, scope, hint)
+      .then(prepared => {
+        if (prepared === null) {
+          throw new SentryError('An event processor returned null, will not send event.');
+        }
+
+        const isInternalException = hint && hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+        if (isInternalException || isTransaction || !beforeSend) {
+          return prepared;
+        }
+
+        const beforeSendResult = beforeSend(prepared, hint);
+        if (typeof beforeSendResult === 'undefined') {
+          logger.error('`beforeSend` method has to return `null` or a valid event.');
+        } else if (isThenable(beforeSendResult)) {
+          return (beforeSendResult as PromiseLike<Event | null>).then(
+            event => event,
+            e => {
+              throw new SentryError(`beforeSend rejected with ${e}`);
+            },
+          );
+        }
+        return beforeSendResult;
+      })
+      .then(
+        processedEvent => {
+          if (processedEvent === null) {
+            throw new SentryError('`beforeSend` returned `null`, will not send event.');
           }
 
-          let finalEvent: Event | null = prepared;
-
-          const isInternalException = hint && hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-          const shouldSkipBeforeSend = isInternalException || isTransaction || !beforeSend;
           const session = scope && scope.getSession();
-
-          if (shouldSkipBeforeSend) {
-            // If this is a generic error event and we have a session available, update it.
-            if (!isTransaction && session) {
-              this._updateSessionFromEvent(session, finalEvent);
-            }
-
-            this._sendEvent(finalEvent);
-            resolve(finalEvent);
-            return;
+          if (!isTransaction && session) {
+            this._updateSessionFromEvent(session, processedEvent);
           }
 
-          const beforeSendResult = beforeSend(prepared, hint);
-          if (typeof beforeSendResult === 'undefined') {
-            logger.error('`beforeSend` method has to return `null` or a valid event.');
-          } else if (isThenable(beforeSendResult)) {
-            this._handleAsyncBeforeSend(beforeSendResult as PromiseLike<Event | null>, resolve, reject);
-          } else {
-            finalEvent = beforeSendResult as Event | null;
-
-            if (finalEvent === null) {
-              logger.log('`beforeSend` returned `null`, will not send event.');
-              resolve(null);
-              return;
-            }
-
-            if (session) {
-              this._updateSessionFromEvent(session, finalEvent);
-            }
-
-            // From here on we are really async
-            this._sendEvent(finalEvent);
-            resolve(finalEvent);
-          }
-        })
-        .then(null, reason => {
+          this._sendEvent(processedEvent);
+          return processedEvent;
+        },
+        reason => {
           this.captureException(reason, {
             data: {
               __sentry__: true,
             },
             originalException: reason as Error,
           });
-          reject(
+          throw new SentryError(
             `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
           );
-        });
-    });
-  }
-
-  /**
-   * Resolves before send Promise and calls resolve/reject on parent SyncPromise.
-   */
-  private _handleAsyncBeforeSend(
-    beforeSend: PromiseLike<Event | null>,
-    resolve: (event: Event) => void,
-    reject: (reason: string) => void,
-  ): void {
-    beforeSend
-      .then(processedEvent => {
-        if (processedEvent === null) {
-          reject('`beforeSend` returned `null`, will not send event.');
-          return;
-        }
-        // From here on we are really async
-        this._sendEvent(processedEvent);
-        resolve(processedEvent);
-      })
-      .then(null, e => {
-        reject(`beforeSend rejected with ${e}`);
-      });
+        },
+      );
   }
 }
