@@ -1,4 +1,5 @@
 import {
+  addGlobalEventProcessor,
   captureException,
   captureMessage,
   flush,
@@ -58,6 +59,27 @@ export function init(options: Sentry.NodeOptions = {}): void {
 }
 
 /**
+ * Add SDK info
+ */
+addGlobalEventProcessor(event => {
+  event.sdk = {
+    ...event.sdk,
+    name: 'sentry.javascript.serverless',
+    integrations: [...((event.sdk && event.sdk.integrations) || []), 'AWSLambda'],
+    packages: [
+      ...((event.sdk && event.sdk.packages) || []),
+      {
+        name: 'npm:@sentry/serverless',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
+
+  return event;
+});
+
+/**
  * Add event processor that will override SDK details to point to the serverless SDK instead of Node,
  * as well as set correct mechanism type, which should be set to `handled: false`.
  * We do it like this, so that we don't introduce any side-effects in this module, which makes it tree-shakeable.
@@ -65,20 +87,6 @@ export function init(options: Sentry.NodeOptions = {}): void {
  */
 function addServerlessEventProcessor(scope: Scope): void {
   scope.addEventProcessor(event => {
-    event.sdk = {
-      ...event.sdk,
-      name: 'sentry.javascript.serverless',
-      integrations: [...((event.sdk && event.sdk.integrations) || []), 'AWSLambda'],
-      packages: [
-        ...((event.sdk && event.sdk.packages) || []),
-        {
-          name: 'npm:@sentry/serverless',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
-
     addExceptionMechanism(event, {
       handled: false,
     });
