@@ -473,7 +473,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
-      return SyncPromise.reject('SDK not enabled, will not send event.');
+      return SyncPromise.reject(new SentryError('SDK not enabled, will not send event.'));
     }
 
     const isTransaction = event.type === 'transaction';
@@ -481,7 +481,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      return SyncPromise.reject('This event has been sampled, will not send event.');
+      return SyncPromise.reject(new SentryError('This event has been sampled, will not send event.'));
     }
 
     return this._prepareEvent(event, scope, hint)
