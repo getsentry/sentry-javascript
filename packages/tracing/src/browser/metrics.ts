@@ -39,7 +39,6 @@ export class MetricsInstrumentation {
       this._trackLCP();
       this._trackFID();
       this._trackTTFB();
-      this._trackNavigator();
     }
   }
 
