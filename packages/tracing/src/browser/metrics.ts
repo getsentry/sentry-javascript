@@ -177,6 +177,11 @@ export class MetricsInstrumentation {
     if (connection) {
       if (connection.effectiveType) {
         this._browserContext.effectiveConnectionType = connection.effectiveType;
+        transaction.setTag('effectiveConnectionType', connection.effectiveType);
+      }
+
+      if (connection.type) {
+        transaction.setTag('connectionType', connection.type);
       }
 
       if (isMeasurementValue(connection.rtt)) {
