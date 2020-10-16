@@ -138,9 +138,10 @@ export class MetricsInstrumentation {
 
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
+    this._trackNavigator(transaction);
+
     // Measurements are only available for pageload transactions
     if (transaction.op === 'pageload') {
-      this._trackNavigator();
       transaction.setContexts({ browser: this._browserContext });
       transaction.setMeasurements(this._measurements);
     }
@@ -163,7 +164,7 @@ export class MetricsInstrumentation {
   /**
    * Capture the information of the user agent.
    */
-  private _trackNavigator(): void {
+  private _trackNavigator(transaction: Transaction): void {
     const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
 
     if(!navigator) {
