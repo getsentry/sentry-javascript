@@ -179,23 +179,23 @@ export class MetricsInstrumentation {
         this._browserContext.effectiveConnectionType = connection.effectiveType;
       }
 
-      if (typeof connection.rtt === 'number') {
+      if (isMeasurementValue(connection.rtt)) {
         this._measurements['connection.rtt'] = { value: connection.rtt };
         transaction.setTag('connection.rtt', String(connection.rtt));
       }
 
-      if (typeof connection.downlink === 'number') {
+      if (isMeasurementValue(connection.downlink)) {
         this._measurements['connection.downlink'] = { value: connection.downlink };
         transaction.setTag('connection.downlink', String(connection.downlink));
       }
     }
 
-    if (typeof navigator?.deviceMemory === 'number') {
+    if (isMeasurementValue(navigator.deviceMemory)) {
       this._browserContext.deviceMemory = navigator.deviceMemory;
       transaction.setTag('deviceMemory', String(navigator.deviceMemory));
     }
 
-    if (typeof navigator?.hardwareConcurrency === 'number') {
+    if (isMeasurementValue(navigator.hardwareConcurrency)) {
       this._browserContext.hardwareConcurrency = navigator.hardwareConcurrency;
       transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
     }
@@ -383,4 +383,8 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
     startTimestamp,
     ...ctx,
   });
+}
+
+function isMeasurementValue(measurement: any): measurement is number {
+  return typeof measurement === 'number' && isFinite(measurement);
 }
