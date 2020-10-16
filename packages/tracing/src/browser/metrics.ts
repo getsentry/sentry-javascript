@@ -181,19 +181,23 @@ export class MetricsInstrumentation {
 
       if (typeof connection.rtt === 'number') {
         this._measurements['connection.rtt'] = { value: connection.rtt };
+        transaction.setTag('connection.rtt', String(connection.rtt));
       }
 
       if (typeof connection.downlink === 'number') {
         this._measurements['connection.downlink'] = { value: connection.downlink };
+        transaction.setTag('connection.downlink', String(connection.downlink));
       }
     }
 
     if (typeof navigator?.deviceMemory === 'number') {
       this._browserContext.deviceMemory = navigator.deviceMemory;
+      transaction.setTag('deviceMemory', String(navigator.deviceMemory));
     }
 
     if (typeof navigator?.hardwareConcurrency === 'number') {
       this._browserContext.hardwareConcurrency = navigator.hardwareConcurrency;
+      transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
     }
   }
 
