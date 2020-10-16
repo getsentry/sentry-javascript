@@ -165,11 +165,15 @@ export class MetricsInstrumentation {
    * Capture the information of the user agent.
    */
   private _trackNavigator(): void {
-    const navigator = window.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
+    const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
+
+    if(!navigator) {
+      return;
+    }
 
     // track network connectivity
 
-    const connection = navigator?.connection;
+    const connection = navigator.connection;
     if (connection) {
       if (connection.effectiveType) {
         this._browserContext.effectiveConnectionType = connection.effectiveType;
