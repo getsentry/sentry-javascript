@@ -15,17 +15,9 @@ import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals
 
 const global = getGlobalObject<Window>();
 
-type BrowserContext = {
-  effectiveConnectionType?: string;
-  deviceMemory?: number;
-  // number of CPUs
-  hardwareConcurrency?: number;
-};
-
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
   private _measurements: Measurements = {};
-  private _browserContext: BrowserContext = {};
 
   private _performanceCursor: number = 0;
 
@@ -142,7 +134,6 @@ export class MetricsInstrumentation {
 
     // Measurements are only available for pageload transactions
     if (transaction.op === 'pageload') {
-      transaction.setContexts({ browser: this._browserContext });
       transaction.setMeasurements(this._measurements);
     }
   }
@@ -176,7 +167,6 @@ export class MetricsInstrumentation {
     const connection = navigator.connection;
     if (connection) {
       if (connection.effectiveType) {
-        this._browserContext.effectiveConnectionType = connection.effectiveType;
         transaction.setTag('effectiveConnectionType', connection.effectiveType);
       }
 
@@ -196,12 +186,10 @@ export class MetricsInstrumentation {
     }
 
     if (isMeasurementValue(navigator.deviceMemory)) {
-      this._browserContext.deviceMemory = navigator.deviceMemory;
       transaction.setTag('deviceMemory', String(navigator.deviceMemory));
     }
 
     if (isMeasurementValue(navigator.hardwareConcurrency)) {
-      this._browserContext.hardwareConcurrency = navigator.hardwareConcurrency;
       transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
     }
   }
