@@ -176,12 +176,10 @@ export class MetricsInstrumentation {
 
       if (isMeasurementValue(connection.rtt)) {
         this._measurements['connection.rtt'] = { value: connection.rtt };
-        transaction.setTag('connection.rtt', String(connection.rtt));
       }
 
       if (isMeasurementValue(connection.downlink)) {
         this._measurements['connection.downlink'] = { value: connection.downlink };
-        transaction.setTag('connection.downlink', String(connection.downlink));
       }
     }
 
