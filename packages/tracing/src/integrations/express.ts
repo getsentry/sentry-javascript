@@ -209,30 +209,31 @@ function wrapUseArgs(args: IArguments): unknown[] {
 }
 
 /**
- * Patches original app.use to utilize our tracing functionality
+ * Patches original App to utilize our tracing functionality
  */
-function instrumentMiddlewares(app: Application): Application {
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  const originalAppUse = app.use;
-  app.use = function(): any {
+function patchMiddleware(app: Application, method: Method | 'use'): Application {
+  const originalAppCallback = app[method];
+
+  app[method] = function(): any {
     // eslint-disable-next-line prefer-rest-params
-    return originalAppUse.apply(this, wrapUseArgs(arguments));
+    return originalAppCallback.apply(this, wrapUseArgs(arguments));
   };
+
   return app;
 }
 
 /**
- * Patches original app.METHOD to utilize our tracing functionality
+ * Patches original app.use
  */
-function routeMiddlewares(app: Application, methods: Method[] = []): Application {
+function instrumentMiddlewares(app: Application): void {
+  patchMiddleware(app, 'use');
+}
+
+/**
+ * Patches original app.METHOD
+ */
+function routeMiddlewares(app: Application, methods: Method[] = []): void {
   methods.forEach(function(method: Method) {
-    const originalAppCallback = app[method];
-
-    app[method] = function(): any {
-      // eslint-disable-next-line prefer-rest-params
-      return originalAppCallback.apply(this, wrapUseArgs(arguments));
-    };
+    patchMiddleware(app, method);
   });
-
-  return app;
 }
