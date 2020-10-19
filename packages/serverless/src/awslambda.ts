@@ -4,14 +4,12 @@ import {
   flush,
   getCurrentHub,
   Scope,
-  SDK_VERSION,
   Severity,
   startTransaction,
   withScope,
 } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { Integration } from '@sentry/types';
-import { addExceptionMechanism } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -20,6 +18,7 @@ import { performance } from 'perf_hooks';
 import { types } from 'util';
 
 import { AWSServices } from './awsservices';
+import { serverlessEventProcessor } from './utils';
 
 export * from '@sentry/node';
 
@@ -54,37 +53,8 @@ export function init(options: Sentry.NodeOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
-  return Sentry.init(options);
-}
-
-/**
- * Add event processor that will override SDK details to point to the serverless SDK instead of Node,
- * as well as set correct mechanism type, which should be set to `handled: false`.
- * We do it like this, so that we don't introduce any side-effects in this module, which makes it tree-shakeable.
- * @param scope Scope that processor should be added to
- */
-function addServerlessEventProcessor(scope: Scope): void {
-  scope.addEventProcessor(event => {
-    event.sdk = {
-      ...event.sdk,
-      name: 'sentry.javascript.serverless',
-      integrations: [...((event.sdk && event.sdk.integrations) || []), 'AWSLambda'],
-      packages: [
-        ...((event.sdk && event.sdk.packages) || []),
-        {
-          name: 'npm:@sentry/serverless',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
-
-    addExceptionMechanism(event, {
-      handled: false,
-    });
-
-    return event;
-  });
+  Sentry.init(options);
+  Sentry.addGlobalEventProcessor(serverlessEventProcessor('AWSLambda'));
 }
 
 /**
@@ -206,7 +176,6 @@ export function wrapHandler<TEvent, TResult>(
     const scope = hub.pushScope();
     let rv: TResult | undefined;
     try {
-      addServerlessEventProcessor(scope);
       enhanceScopeWithEnvironmentData(scope, context);
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);

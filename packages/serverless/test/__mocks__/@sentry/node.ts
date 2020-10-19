@@ -27,6 +27,8 @@ export const fakeTransaction = {
   setHttpStatus: jest.fn(),
   startChild: jest.fn(() => fakeSpan),
 };
+export const init = jest.fn();
+export const addGlobalEventProcessor = jest.fn();
 export const getCurrentHub = jest.fn(() => fakeHub);
 export const startTransaction = jest.fn(_ => fakeTransaction);
 export const captureException = jest.fn();
@@ -51,6 +53,8 @@ export const resetMocks = (): void => {
   fakeScope.setSpan.mockClear();
   fakeScope.getTransaction.mockClear();
 
+  init.mockClear();
+  addGlobalEventProcessor.mockClear();
   getCurrentHub.mockClear();
   startTransaction.mockClear();
   captureException.mockClear();

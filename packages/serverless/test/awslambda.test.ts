@@ -340,88 +340,88 @@ describe('AWSLambda', () => {
     });
   });
 
-  test('enhance event with SDK info and correct mechanism value', async () => {
-    expect.assertions(2);
+  describe('init()', () => {
+    test('enhance event with SDK info and correct mechanism value', async () => {
+      expect.assertions(1);
 
-    const error = new Error('wat');
-    const handler = () => {
-      throw error;
-    };
-    const wrappedHandler = wrapHandler(handler, { rethrowAfterCapture: false });
-
-    const eventWithSomeData = {
-      exception: {
-        values: [{}],
-      },
-      sdk: {
-        integrations: ['SomeIntegration'],
-        packages: [
-          {
-            name: 'some:@random/package',
-            version: '1337',
-          },
-        ],
-      },
-    };
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
-    await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-    expect(eventWithSomeData).toEqual({
-      exception: {
-        values: [
-          {
-            mechanism: {
-              handled: false,
+      const eventWithSomeData = {
+        exception: {
+          values: [{}],
+        },
+        sdk: {
+          integrations: ['SomeIntegration'],
+          packages: [
+            {
+              name: 'some:@random/package',
+              version: '1337',
             },
-          },
-        ],
-      },
-      sdk: {
-        name: 'sentry.javascript.serverless',
-        integrations: ['SomeIntegration', 'AWSLambda'],
-        packages: [
-          {
-            name: 'some:@random/package',
-            version: '1337',
-          },
-          {
-            name: 'npm:@sentry/serverless',
-            version: '6.6.6',
-          },
-        ],
-        version: '6.6.6',
-      },
+          ],
+        },
+      };
+      // @ts-ignore see "Why @ts-ignore" note
+      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
+      Sentry.AWSLambda.init({ defaultIntegrations: [] });
+      expect(eventWithSomeData).toEqual({
+        exception: {
+          values: [
+            {
+              mechanism: {
+                handled: false,
+              },
+            },
+          ],
+        },
+        sdk: {
+          name: 'sentry.javascript.serverless',
+          integrations: ['SomeIntegration', 'AWSLambda'],
+          packages: [
+            {
+              name: 'some:@random/package',
+              version: '1337',
+            },
+            {
+              name: 'npm:@sentry/serverless',
+              version: '6.6.6',
+            },
+          ],
+          version: '6.6.6',
+        },
+      });
     });
 
-    const eventWithoutAnyData: Event = {
-      exception: {
-        values: [{}],
-      },
-    };
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
-    await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-    expect(eventWithoutAnyData).toEqual({
-      exception: {
-        values: [
-          {
-            mechanism: {
-              handled: false,
+    test('populates missing SDK info and mechanism', async () => {
+      expect.assertions(1);
+
+      const eventWithoutAnyData: Event = {
+        exception: {
+          values: [{}],
+        },
+      };
+      // @ts-ignore see "Why @ts-ignore" note
+      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
+      Sentry.AWSLambda.init({ defaultIntegrations: [] });
+      expect(eventWithoutAnyData).toEqual({
+        exception: {
+          values: [
+            {
+              mechanism: {
+                handled: false,
+              },
             },
-          },
-        ],
-      },
-      sdk: {
-        name: 'sentry.javascript.serverless',
-        integrations: ['AWSLambda'],
-        packages: [
-          {
-            name: 'npm:@sentry/serverless',
-            version: '6.6.6',
-          },
-        ],
-        version: '6.6.6',
-      },
+          ],
+        },
+        sdk: {
+          name: 'sentry.javascript.serverless',
+          integrations: ['AWSLambda'],
+          packages: [
+            {
+              name: 'npm:@sentry/serverless',
+              version: '6.6.6',
+            },
+          ],
+          version: '6.6.6',
+        },
+      });
     });
   });
 });
