@@ -75,8 +75,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
 
-  /** Is the client still processing a call? */
-  protected _processing: boolean = false;
+  /** Number of call being processed */
+  protected _processing: number = 0;
 
   /**
    * Initializes this client instance.
@@ -99,14 +99,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this._processing = true;
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._getBackend()
-      .eventFromException(exception, hint)
-      .then(event => {
-        eventId = this.captureEvent(event, hint, scope);
-      });
+    this._process(
+      this._getBackend()
+        .eventFromException(exception, hint)
+        .then(event => this._captureEvent(event, hint, scope))
+        .then(result => {
+          eventId = result;
+        }),
+    );
 
     return eventId;
   }
@@ -116,16 +117,18 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this._processing = true;
 
     const promisedEvent = isPrimitive(message)
       ? this._getBackend().eventFromMessage(`${message}`, level, hint)
       : this._getBackend().eventFromException(message, hint);
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    promisedEvent.then(event => {
-      eventId = this.captureEvent(event, hint, scope);
-    });
+    this._process(
+      promisedEvent
+        .then(event => this._captureEvent(event, hint, scope))
+        .then(result => {
+          eventId = result;
+        }),
+    );
 
     return eventId;
   }
@@ -135,17 +138,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this._processing = true;
 
-    this._processEvent(event, hint, scope)
-      .then(finalEvent => {
-        eventId = finalEvent.event_id;
-        this._processing = false;
-      })
-      .then(null, reason => {
-        logger.error(reason);
-        this._processing = false;
-      });
+    this._process(
+      this._captureEvent(event, hint, scope).then(result => {
+        eventId = result;
+      }),
+    );
 
     return eventId;
   }
@@ -179,12 +177,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public flush(timeout?: number): PromiseLike<boolean> {
-    return this._isClientProcessing(timeout).then(status => {
-      clearInterval(status.interval);
+    return this._isClientProcessing(timeout).then(ready => {
       return this._getBackend()
         .getTransport()
         .close(timeout)
-        .then(transportFlushed => status.ready && transportFlushed);
+        .then(transportFlushed => ready && transportFlushed);
     });
   }
 
@@ -263,30 +260,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Waits for the client to be done with processing. */
-  protected _isClientProcessing(timeout?: number): PromiseLike<{ ready: boolean; interval: number }> {
-    return new SyncPromise<{ ready: boolean; interval: number }>(resolve => {
+  protected _isClientProcessing(timeout?: number): PromiseLike<boolean> {
+    return new SyncPromise(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
 
-      let interval = 0;
-      clearInterval(interval);
-
-      interval = (setInterval(() => {
-        if (!this._processing) {
-          resolve({
-            interval,
-            ready: true,
-          });
+      const interval = setInterval(() => {
+        if (this._processing == 0) {
+          clearInterval(interval);
+          resolve(true);
         } else {
           ticked += tick;
           if (timeout && ticked >= timeout) {
-            resolve({
-              interval,
-              ready: false,
-            });
+            clearInterval(interval);
+            resolve(false);
           }
         }
-      }, tick) as unknown) as number;
+      }, tick);
     });
   }
 
@@ -456,6 +446,24 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
+   * Processes the event and logs an error in case of rejection
+   * @param event
+   * @param hint
+   * @param scope
+   */
+  protected _captureEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<string | undefined> {
+    return this._processEvent(event, hint, scope).then(
+      finalEvent => {
+        return finalEvent.event_id;
+      },
+      reason => {
+        logger.error(reason);
+        return undefined;
+      },
+    );
+  }
+
+  /**
    * Processes an event (either error or message) and sends it to Sentry.
    *
    * This also adds breadcrumbs and context information to the event. However,
@@ -534,5 +542,22 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           );
         },
       );
+  }
+
+  /**
+   * Occupies the client with processing and event
+   */
+  protected _process<T>(promise: PromiseLike<T>): void {
+    this._processing += 1;
+    promise.then(
+      value => {
+        this._processing -= 1;
+        return value;
+      },
+      reason => {
+        this._processing -= 1;
+        return reason;
+      },
+    );
   }
 }
