@@ -10,6 +10,7 @@ import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP } from './web-vitals/getLCP';
 import { getTTFB } from './web-vitals/getTTFB';
+import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
 
 const global = getGlobalObject<Window>();
 
@@ -85,13 +86,17 @@ export class MetricsInstrumentation {
 
             // capture web vitals
 
-            if (entry.name === 'first-paint') {
+            const firstHidden = getFirstHidden();
+            // Only report if the page wasn't hidden prior to the web vital.
+            const shouldRecord = entry.startTime < firstHidden.timeStamp;
+
+            if (entry.name === 'first-paint' && shouldRecord) {
               logger.log('[Measurements] Adding FP');
               this._measurements['fp'] = { value: entry.startTime };
               this._measurements['mark.fp'] = { value: startTimestamp };
             }
 
-            if (entry.name === 'first-contentful-paint') {
+            if (entry.name === 'first-contentful-paint' && shouldRecord) {
               logger.log('[Measurements] Adding FCP');
               this._measurements['fcp'] = { value: entry.startTime };
               this._measurements['mark.fcp'] = { value: startTimestamp };

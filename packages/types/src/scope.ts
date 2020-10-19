@@ -2,6 +2,7 @@ import { Breadcrumb } from './breadcrumb';
 import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
+import { Session } from './session';
 import { Severity } from './severity';
 import { Span } from './span';
 import { Transaction } from './transaction';
@@ -34,6 +35,11 @@ export interface Scope {
    * @param user User context object to be set in the current context. Pass `null` to unset the user.
    */
   setUser(user: User | null): this;
+
+  /**
+   * Returns the `User` if there is one
+   */
+  getUser(): User | undefined;
 
   /**
    * Set an object that will be merged sent as tags data with the event.
@@ -100,6 +106,16 @@ export interface Scope {
    * Returns the `Transaction` attached to the scope (if there is one)
    */
   getTransaction(): Transaction | undefined;
+
+  /**
+   * Sets the `Session` on the scope
+   */
+  setSession(session?: Session): this;
+
+  /**
+   * Returns the `Session` if there is one
+   */
+  getSession(): Session | undefined;
 
   /**
    * Updates the scope with provided data. Can work in three variations:

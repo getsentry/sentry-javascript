@@ -1,6 +1,14 @@
-/**
- * Request data included in an event as sent to Sentry
- */
+/** Possible SentryRequest types that can be used to make a distinction between Sentry features */
+export type SentryRequestType = 'event' | 'transaction' | 'session';
+
+/** A generic client request. */
+export interface SentryRequest {
+  body: string;
+  type: SentryRequestType;
+  url: string;
+}
+
+/** Request data included in an event as sent to Sentry */
 export interface Request {
   url?: string;
   method?: string;

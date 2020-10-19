@@ -18,6 +18,8 @@ import {
 } from '@sentry/types';
 import { dateTimestampInSeconds, getGlobalObject, isPlainObject, isThenable, SyncPromise } from '@sentry/utils';
 
+import { Session } from './session';
+
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
@@ -59,6 +61,9 @@ export class Scope implements ScopeInterface {
   /** Span */
   protected _span?: Span;
 
+  /** Session */
+  protected _session?: Session;
+
   /**
    * Inherit values from the parent scope.
    * @param scope to clone.
@@ -73,6 +78,7 @@ export class Scope implements ScopeInterface {
       newScope._user = scope._user;
       newScope._level = scope._level;
       newScope._span = scope._span;
+      newScope._session = scope._session;
       newScope._transactionName = scope._transactionName;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
@@ -101,8 +107,18 @@ export class Scope implements ScopeInterface {
    */
   public setUser(user: User | null): this {
     this._user = user || {};
+    if (this._session) {
+      this._session.update({ user });
+    }
     this._notifyScopeListeners();
     return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getUser(): User | undefined {
+    return this._user;
   }
 
   /**
@@ -237,6 +253,26 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public setSession(session?: Session): this {
+    if (!session) {
+      delete this._session;
+    } else {
+      this._session = session;
+    }
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getSession(): Session | undefined {
+    return this._session;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public update(captureContext?: CaptureContext): this {
     if (!captureContext) {
       return this;
@@ -293,6 +329,7 @@ export class Scope implements ScopeInterface {
     this._transactionName = undefined;
     this._fingerprint = undefined;
     this._span = undefined;
+    this._session = undefined;
     this._notifyScopeListeners();
     return this;
   }
