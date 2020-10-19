@@ -3,9 +3,35 @@ import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 // Have to manually set types because we are using package-alias
-interface Application {
-  use(...args: any): any;
-}
+type Method =
+  | 'all'
+  | 'get'
+  | 'post'
+  | 'put'
+  | 'delete'
+  | 'patch'
+  | 'options'
+  | 'head'
+  | 'checkout'
+  | 'copy'
+  | 'lock'
+  | 'merge'
+  | 'mkactivity'
+  | 'mkcol'
+  | 'move'
+  | 'm-search'
+  | 'notify'
+  | 'purge'
+  | 'report'
+  | 'search'
+  | 'subscribe'
+  | 'trace'
+  | 'unlock'
+  | 'unsubscribe';
+
+type Application = {
+  [method in Method | 'use']: (...args: any) => any;
+};
 
 type ErrorRequestHandler = (...args: any) => any;
 type RequestHandler = (...args: any) => any;
@@ -44,12 +70,14 @@ export class Express implements Integration {
    * Express App instance
    */
   private readonly _app?: Application;
+  private readonly _methods?: Method[];
 
   /**
    * @inheritDoc
    */
-  public constructor(options: { app?: Application } = {}) {
+  public constructor(options: { app?: Application; methods?: Method[] } = {}) {
     this._app = options.app;
+    this._methods = options.methods;
   }
 
   /**
@@ -61,6 +89,7 @@ export class Express implements Integration {
       return;
     }
     instrumentMiddlewares(this._app);
+    routeMiddlewares(this._app, this._methods);
   }
 }
 
@@ -180,14 +209,31 @@ function wrapUseArgs(args: IArguments): unknown[] {
 }
 
 /**
- * Patches original app.use to utilize our tracing functionality
+ * Patches original App to utilize our tracing functionality
  */
-function instrumentMiddlewares(app: Application): Application {
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  const originalAppUse = app.use;
-  app.use = function(): any {
+function patchMiddleware(app: Application, method: Method | 'use'): Application {
+  const originalAppCallback = app[method];
+
+  app[method] = function(): any {
     // eslint-disable-next-line prefer-rest-params
-    return originalAppUse.apply(this, wrapUseArgs(arguments));
+    return originalAppCallback.apply(this, wrapUseArgs(arguments));
   };
+
   return app;
+}
+
+/**
+ * Patches original app.use
+ */
+function instrumentMiddlewares(app: Application): void {
+  patchMiddleware(app, 'use');
+}
+
+/**
+ * Patches original app.METHOD
+ */
+function routeMiddlewares(app: Application, methods: Method[] = []): void {
+  methods.forEach(function(method: Method) {
+    patchMiddleware(app, method);
+  });
 }
