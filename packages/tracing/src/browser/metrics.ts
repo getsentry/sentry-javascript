@@ -376,6 +376,9 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
   });
 }
 
-function isMeasurementValue(measurement: any): measurement is number {
-  return typeof measurement === 'number' && isFinite(measurement);
+/**
+ * Checks if a given value is a valid measurement value.
+ */
+function isMeasurementValue(value: any): value is number {
+  return typeof value === 'number' && isFinite(value);
 }
