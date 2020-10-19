@@ -158,7 +158,7 @@ export class MetricsInstrumentation {
   private _trackNavigator(transaction: Transaction): void {
     const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
 
-    if(!navigator) {
+    if (!navigator) {
       return;
     }
 
