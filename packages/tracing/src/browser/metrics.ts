@@ -11,6 +11,7 @@ import { getFID } from './web-vitals/getFID';
 import { getLCP } from './web-vitals/getLCP';
 import { getTTFB } from './web-vitals/getTTFB';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
+import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
 const global = getGlobalObject<Window>();
 
@@ -129,6 +130,8 @@ export class MetricsInstrumentation {
 
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
+    this._trackNavigator(transaction);
+
     // Measurements are only available for pageload transactions
     if (transaction.op === 'pageload') {
       transaction.setMeasurements(this._measurements);
@@ -147,6 +150,46 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding CLS');
       this._measurements['cls'] = { value: metric.value };
     });
+  }
+
+  /**
+   * Capture the information of the user agent.
+   */
+  private _trackNavigator(transaction: Transaction): void {
+    const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
+
+    if (!navigator) {
+      return;
+    }
+
+    // track network connectivity
+
+    const connection = navigator.connection;
+    if (connection) {
+      if (connection.effectiveType) {
+        transaction.setTag('effectiveConnectionType', connection.effectiveType);
+      }
+
+      if (connection.type) {
+        transaction.setTag('connectionType', connection.type);
+      }
+
+      if (isMeasurementValue(connection.rtt)) {
+        this._measurements['connection.rtt'] = { value: connection.rtt as number };
+      }
+
+      if (isMeasurementValue(connection.downlink)) {
+        this._measurements['connection.downlink'] = { value: connection.downlink as number };
+      }
+    }
+
+    if (isMeasurementValue(navigator.deviceMemory)) {
+      transaction.setTag('deviceMemory', String(navigator.deviceMemory));
+    }
+
+    if (isMeasurementValue(navigator.hardwareConcurrency)) {
+      transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
+    }
   }
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
@@ -331,4 +374,11 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
     startTimestamp,
     ...ctx,
   });
+}
+
+/**
+ * Checks if a given value is a valid measurement value.
+ */
+function isMeasurementValue(value: any): boolean {
+  return typeof value === 'number' && isFinite(value);
 }
