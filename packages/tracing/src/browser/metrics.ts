@@ -203,7 +203,7 @@ function addNavigationSpans(transaction: Transaction, entry: Record<string, any>
   addPerformanceNavigationTiming(transaction, entry, 'domContentLoadedEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'loadEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'connect', timeOrigin);
-  addPerformanceNavigationTiming(transaction, entry, 'secureConnect', timeOrigin, 'connectEnd');
+  addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'connectEnd');
   addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin);
   addRequest(transaction, entry, timeOrigin);
 }
