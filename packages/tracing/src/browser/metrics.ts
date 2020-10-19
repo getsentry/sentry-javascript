@@ -175,11 +175,11 @@ export class MetricsInstrumentation {
       }
 
       if (isMeasurementValue(connection.rtt)) {
-        this._measurements['connection.rtt'] = { value: connection.rtt };
+        this._measurements['connection.rtt'] = { value: connection.rtt as number };
       }
 
       if (isMeasurementValue(connection.downlink)) {
-        this._measurements['connection.downlink'] = { value: connection.downlink };
+        this._measurements['connection.downlink'] = { value: connection.downlink as number };
       }
     }
 
@@ -379,6 +379,6 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
 /**
  * Checks if a given value is a valid measurement value.
  */
-function isMeasurementValue(value: any): value is number {
+function isMeasurementValue(value: any): boolean {
   return typeof value === 'number' && isFinite(value);
 }
