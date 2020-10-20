@@ -1,6 +1,6 @@
 import { Hub, Scope } from '@sentry/hub';
 import { Event, Severity, Span } from '@sentry/types';
-import { SentryError, SyncPromise } from '@sentry/utils';
+import { logger, SentryError } from '@sentry/utils';
 
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
@@ -53,6 +53,10 @@ describe('BaseClient', () => {
   beforeEach(() => {
     TestBackend.sendEventCalled = undefined;
     TestBackend.instance = undefined;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('constructor() / getDsn()', () => {
@@ -639,11 +643,30 @@ describe('BaseClient', () => {
     });
 
     test('calls beforeSend and discards the event', () => {
-      expect.assertions(1);
+      expect.assertions(3);
       const beforeSend = jest.fn(() => null);
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const captureExceptionSpy = jest.spyOn(client, 'captureException');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
       client.captureEvent({ message: 'hello' });
       expect(TestBackend.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toBeCalled();
+      expect(loggerErrorSpy).toBeCalledWith(new SentryError('`beforeSend` returned `null`, will not send event.'));
+    });
+
+    test('calls beforeSend and log info about invalid return value', () => {
+      expect.assertions(3);
+      const beforeSend = jest.fn(() => undefined);
+      // @ts-ignore we need to test regular-js behavior
+      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const captureExceptionSpy = jest.spyOn(client, 'captureException');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      client.captureEvent({ message: 'hello' });
+      expect(TestBackend.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toBeCalled();
+      expect(loggerErrorSpy).toBeCalledWith(
+        new SentryError('`beforeSend` method has to return `null` or a valid event.'),
+      );
     });
 
     test('calls async beforeSend and uses original event without any changes', done => {
@@ -717,6 +740,44 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
       expect(TestBackend.instance!.event!.message).toBe('hello');
       expect((TestBackend.instance!.event! as any).data).toBe('someRandomThing');
+    });
+
+    test('eventProcessor can drop the even when it returns null', () => {
+      expect.assertions(3);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const captureExceptionSpy = jest.spyOn(client, 'captureException');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const scope = new Scope();
+      scope.addEventProcessor(() => null);
+      client.captureEvent({ message: 'hello' }, {}, scope);
+      expect(TestBackend.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toBeCalled();
+      expect(loggerErrorSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    });
+
+    test('eventProcessor sends an event and logs when it crashes', () => {
+      expect.assertions(3);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const captureExceptionSpy = jest.spyOn(client, 'captureException');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const scope = new Scope();
+      const exception = new Error('sorry');
+      scope.addEventProcessor(() => {
+        throw exception;
+      });
+      client.captureEvent({ message: 'hello' }, {}, scope);
+      expect(TestBackend.instance!.event!.exception!.values![0]).toStrictEqual({ type: 'Error', value: 'sorry' });
+      expect(captureExceptionSpy).toBeCalledWith(exception, {
+        data: {
+          __sentry__: true,
+        },
+        originalException: exception,
+      });
+      expect(loggerErrorSpy).toBeCalledWith(
+        new SentryError(
+          `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
+        ),
+      );
     });
   });
 

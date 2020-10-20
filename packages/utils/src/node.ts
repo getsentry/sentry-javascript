@@ -71,7 +71,7 @@ export function extractNodeRequestData(
   // url (including path and query string):
   //   node, express: req.originalUrl
   //   koa: req.url
-  const originalUrl = (req.originalUrl || req.url) as string;
+  const originalUrl = (req.originalUrl || req.url || '') as string;
   // absolute url
   const absoluteUrl = `${protocol}://${host}${originalUrl}`;
 
@@ -89,8 +89,9 @@ export function extractNodeRequestData(
       case 'cookies':
         // cookies:
         //   node, express, koa: req.headers.cookie
+        //   vercel, sails.js, express (w/ cookie middleware): req.cookies
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.cookies = dynamicRequire(module, 'cookie').parse(headers.cookie || '');
+        requestData.cookies = req.cookies || dynamicRequire(module, 'cookie').parse(headers.cookie || '');
         break;
       case 'query_string':
         // query string:

@@ -28,12 +28,10 @@ describe('GCPFunction', () => {
     return new Promise((resolve, _reject) => {
       const d = domain.create();
       const req = {
-        method: 'GET',
-        host: 'hostname',
-        cookies: {},
-        query: {},
-        url: '/path',
-        headers: {},
+        method: 'POST',
+        url: '/path?q=query',
+        headers: { host: 'hostname', 'content-type': 'application/json' },
+        body: { foo: 'bar' },
       } as Request;
       const res = { end: resolve } as Response;
       d.on('error', () => res.end());
@@ -106,9 +104,9 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapHttpFunction(handler);
       await handleHttp(wrappedHandler);
-      expect(Sentry.startTransaction).toBeCalledWith({ name: 'GET /path', op: 'gcp.function.http' });
+      expect(Sentry.startTransaction).toBeCalledWith({ name: 'POST /path', op: 'gcp.function.http' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.setHttpStatus).toBeCalledWith(200);
       // @ts-ignore see "Why @ts-ignore" note
@@ -125,14 +123,34 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapHttpFunction(handler);
       await handleHttp(wrappedHandler);
-      expect(Sentry.startTransaction).toBeCalledWith({ name: 'GET /path', op: 'gcp.function.http' });
+      expect(Sentry.startTransaction).toBeCalledWith({ name: 'POST /path', op: 'gcp.function.http' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
     });
+  });
+
+  test('wrapHttpFunction request data', async () => {
+    expect.assertions(7);
+
+    const handler: HttpFunction = (_req, res) => {
+      res.end();
+    };
+    const wrappedHandler = wrapHttpFunction(handler);
+    const event: Event = {};
+    // @ts-ignore see "Why @ts-ignore" note
+    Sentry.fakeScope.addEventProcessor.mockImplementation(cb => cb(event));
+    await handleHttp(wrappedHandler);
+    expect(event.transaction).toEqual('POST /path');
+    expect(event.contexts?.runtime).toEqual({ name: 'node', version: expect.anything() });
+    expect(event.request?.method).toEqual('POST');
+    expect(event.request?.url).toEqual('http://hostname/path?q=query');
+    expect(event.request?.query_string).toEqual('q=query');
+    expect(event.request?.headers).toEqual({ host: 'hostname', 'content-type': 'application/json' });
+    expect(event.request?.data).toEqual('{"foo":"bar"}');
   });
 
   describe('wrapEventFunction() without callback', () => {
@@ -146,7 +164,7 @@ describe('GCPFunction', () => {
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -163,7 +181,7 @@ describe('GCPFunction', () => {
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -182,7 +200,7 @@ describe('GCPFunction', () => {
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -199,7 +217,7 @@ describe('GCPFunction', () => {
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -217,8 +235,25 @@ describe('GCPFunction', () => {
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
+    });
+  });
+
+  test('wrapEventFunction scope data', async () => {
+    expect.assertions(3);
+
+    const handler: EventFunction = (_data, _context) => 42;
+    const wrappedHandler = wrapEventFunction(handler);
+    await handleEvent(wrappedHandler);
+    // @ts-ignore see "Why @ts-ignore" note
+    expect(Sentry.fakeScope.setContext).toBeCalledWith('runtime', { name: 'node', version: expect.anything() });
+    // @ts-ignore see "Why @ts-ignore" note
+    expect(Sentry.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
+    // @ts-ignore see "Why @ts-ignore" note
+    expect(Sentry.fakeScope.setContext).toBeCalledWith('gcp.function.context', {
+      eventType: 'event.type',
+      resource: 'some.resource',
     });
   });
 
@@ -233,7 +268,7 @@ describe('GCPFunction', () => {
       await expect(handleCloudEvent(wrappedHandler)).resolves.toBe(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.cloud_event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -250,7 +285,7 @@ describe('GCPFunction', () => {
       await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.cloud_event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -269,7 +304,7 @@ describe('GCPFunction', () => {
       await expect(handleCloudEvent(wrappedHandler)).resolves.toBe(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.cloud_event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -286,7 +321,7 @@ describe('GCPFunction', () => {
       await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.cloud_event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -304,93 +339,107 @@ describe('GCPFunction', () => {
       await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.cloud_event' });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
     });
   });
 
-  test('enhance event with SDK info and correct mechanism value', async () => {
-    expect.assertions(2);
+  test('wrapCloudEventFunction scope data', async () => {
+    expect.assertions(3);
 
-    const error = new Error('wat');
-    const handler: HttpFunction = () => {
-      throw error;
-    };
-    const wrappedHandler = wrapHttpFunction(handler);
-
-    const eventWithSomeData = {
-      exception: {
-        values: [{}],
-      },
-      sdk: {
-        integrations: ['SomeIntegration'],
-        packages: [
-          {
-            name: 'some:@random/package',
-            version: '1337',
-          },
-        ],
-      },
-    };
+    const handler: CloudEventFunction = _context => 42;
+    const wrappedHandler = wrapCloudEventFunction(handler);
+    await handleCloudEvent(wrappedHandler);
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
-    await handleHttp(wrappedHandler);
-    expect(eventWithSomeData).toEqual({
-      exception: {
-        values: [
-          {
-            mechanism: {
-              handled: false,
+    expect(Sentry.fakeScope.setContext).toBeCalledWith('runtime', { name: 'node', version: expect.anything() });
+    // @ts-ignore see "Why @ts-ignore" note
+    expect(Sentry.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
+    // @ts-ignore see "Why @ts-ignore" note
+    expect(Sentry.fakeScope.setContext).toBeCalledWith('gcp.function.context', { type: 'event.type' });
+  });
+
+  describe('init()', () => {
+    test('enhance event with SDK info and correct mechanism value', async () => {
+      expect.assertions(1);
+
+      const eventWithSomeData = {
+        exception: {
+          values: [{}],
+        },
+        sdk: {
+          integrations: ['SomeIntegration'],
+          packages: [
+            {
+              name: 'some:@random/package',
+              version: '1337',
             },
-          },
-        ],
-      },
-      sdk: {
-        name: 'sentry.javascript.serverless',
-        integrations: ['SomeIntegration', 'GCPFunction'],
-        packages: [
-          {
-            name: 'some:@random/package',
-            version: '1337',
-          },
-          {
-            name: 'npm:@sentry/serverless',
-            version: '6.6.6',
-          },
-        ],
-        version: '6.6.6',
-      },
+          ],
+        },
+      };
+      // @ts-ignore see "Why @ts-ignore" note
+      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
+      Sentry.AWSLambda.init({ defaultIntegrations: [] });
+      expect(eventWithSomeData).toEqual({
+        exception: {
+          values: [
+            {
+              mechanism: {
+                handled: false,
+              },
+            },
+          ],
+        },
+        sdk: {
+          name: 'sentry.javascript.serverless',
+          integrations: ['SomeIntegration', 'AWSLambda'],
+          packages: [
+            {
+              name: 'some:@random/package',
+              version: '1337',
+            },
+            {
+              name: 'npm:@sentry/serverless',
+              version: '6.6.6',
+            },
+          ],
+          version: '6.6.6',
+        },
+      });
     });
 
-    const eventWithoutAnyData: Event = {
-      exception: {
-        values: [{}],
-      },
-    };
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
-    await handleHttp(wrappedHandler);
-    expect(eventWithoutAnyData).toEqual({
-      exception: {
-        values: [
-          {
-            mechanism: {
-              handled: false,
+    test('populates missing SDK info and mechanism', async () => {
+      expect.assertions(1);
+
+      const eventWithoutAnyData: Event = {
+        exception: {
+          values: [{}],
+        },
+      };
+      // @ts-ignore see "Why @ts-ignore" note
+      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
+      Sentry.AWSLambda.init({ defaultIntegrations: [] });
+      expect(eventWithoutAnyData).toEqual({
+        exception: {
+          values: [
+            {
+              mechanism: {
+                handled: false,
+              },
             },
-          },
-        ],
-      },
-      sdk: {
-        name: 'sentry.javascript.serverless',
-        integrations: ['GCPFunction'],
-        packages: [
-          {
-            name: 'npm:@sentry/serverless',
-            version: '6.6.6',
-          },
-        ],
-        version: '6.6.6',
-      },
+          ],
+        },
+        sdk: {
+          name: 'sentry.javascript.serverless',
+          integrations: ['AWSLambda'],
+          packages: [
+            {
+              name: 'npm:@sentry/serverless',
+              version: '6.6.6',
+            },
+          ],
+          version: '6.6.6',
+        },
+      });
     });
   });
 });
