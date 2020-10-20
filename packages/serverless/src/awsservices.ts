@@ -50,7 +50,7 @@ export class AWSServices implements Integration {
             if (transaction) {
               span = transaction.startChild({
                 description: describe(this, operation, params),
-                op: 'request',
+                op: 'aws.request',
               });
             }
           });

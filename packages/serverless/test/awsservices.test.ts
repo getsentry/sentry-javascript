@@ -33,7 +33,10 @@ describe('AWSServices', () => {
       const data = await s3.getObject({ Bucket: 'foo', Key: 'bar' }).promise();
       expect(data.Body?.toString('utf-8')).toEqual('contents');
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({ op: 'request', description: 'aws.s3.getObject foo' });
+      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+        op: 'aws.request',
+        description: 'aws.s3.getObject foo',
+      });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeSpan.finish).toBeCalled();
     });
@@ -49,7 +52,10 @@ describe('AWSServices', () => {
         done();
       });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({ op: 'request', description: 'aws.s3.getObject foo' });
+      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+        op: 'aws.request',
+        description: 'aws.s3.getObject foo',
+      });
     });
   });
 
@@ -63,7 +69,10 @@ describe('AWSServices', () => {
       const data = await lambda.invoke({ FunctionName: 'foo' }).promise();
       expect(data.Payload?.toString('utf-8')).toEqual('reply');
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({ op: 'request', description: 'aws.lambda.invoke foo' });
+      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+        op: 'aws.request',
+        description: 'aws.lambda.invoke foo',
+      });
     });
   });
 });
