@@ -3,7 +3,6 @@ import { Integration } from '@sentry/types';
 
 import { GoogleCloudGrpc } from '../google-cloud-grpc';
 import { GoogleCloudHttp } from '../google-cloud-http';
-
 import { serverlessEventProcessor } from '../utils';
 
 export * from './http';

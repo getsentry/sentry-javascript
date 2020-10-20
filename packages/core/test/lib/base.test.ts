@@ -1,6 +1,6 @@
 import { Hub, Scope } from '@sentry/hub';
 import { Event, Severity, Span } from '@sentry/types';
-import { logger, SentryError } from '@sentry/utils';
+import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
@@ -856,7 +856,7 @@ describe('BaseClient', () => {
       const spy = jest.spyOn(TestBackend.instance!, 'eventFromMessage');
       spy.mockImplementationOnce(
         (message, level) =>
-          new SyncPromise((resolve, _reject) => {
+          new SyncPromise(resolve => {
             setTimeout(() => resolve({ message, level }), 150);
           }),
       );
