@@ -497,7 +497,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
         const beforeSendResult = beforeSend(prepared, hint);
         if (typeof beforeSendResult === 'undefined') {
-          logger.error('`beforeSend` method has to return `null` or a valid event.');
+          throw new SentryError('`beforeSend` method has to return `null` or a valid event.');
         } else if (isThenable(beforeSendResult)) {
           return (beforeSendResult as PromiseLike<Event | null>).then(
             event => event,
@@ -508,31 +508,33 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
         return beforeSendResult;
       })
-      .then(
-        processedEvent => {
-          if (processedEvent === null) {
-            throw new SentryError('`beforeSend` returned `null`, will not send event.');
-          }
+      .then(processedEvent => {
+        if (processedEvent === null) {
+          throw new SentryError('`beforeSend` returned `null`, will not send event.');
+        }
 
-          const session = scope && scope.getSession();
-          if (!isTransaction && session) {
-            this._updateSessionFromEvent(session, processedEvent);
-          }
+        const session = scope && scope.getSession();
+        if (!isTransaction && session) {
+          this._updateSessionFromEvent(session, processedEvent);
+        }
 
-          this._sendEvent(processedEvent);
-          return processedEvent;
-        },
-        reason => {
-          this.captureException(reason, {
-            data: {
-              __sentry__: true,
-            },
-            originalException: reason as Error,
-          });
-          throw new SentryError(
-            `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
-          );
-        },
-      );
+        this._sendEvent(processedEvent);
+        return processedEvent;
+      })
+      .then(null, reason => {
+        if (reason instanceof SentryError) {
+          throw reason;
+        }
+
+        this.captureException(reason, {
+          data: {
+            __sentry__: true,
+          },
+          originalException: reason as Error,
+        });
+        throw new SentryError(
+          `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
+        );
+      });
   }
 }
