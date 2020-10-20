@@ -41,6 +41,36 @@ const fakeCallback: Callback = (err, result) => {
   return err;
 };
 
+function expectScopeSettings() {
+  // @ts-ignore see "Why @ts-ignore" note
+  expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+  // @ts-ignore see "Why @ts-ignore" note
+  expect(Sentry.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
+  // @ts-ignore see "Why @ts-ignore" note
+  expect(Sentry.fakeScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
+  // @ts-ignore see "Why @ts-ignore" note
+  expect(Sentry.fakeScope.setContext).toBeCalledWith('runtime', { name: 'node', version: expect.anything() });
+  // @ts-ignore see "Why @ts-ignore" note
+  expect(Sentry.fakeScope.setContext).toBeCalledWith(
+    'aws.lambda',
+    expect.objectContaining({
+      aws_request_id: 'awsRequestId',
+      function_name: 'functionName',
+      function_version: 'functionVersion',
+      invoked_function_arn: 'invokedFunctionArn',
+      remaining_time_in_millis: 100,
+    }),
+  );
+  // @ts-ignore see "Why @ts-ignore" note
+  expect(Sentry.fakeScope.setContext).toBeCalledWith(
+    'aws.cloudwatch.logs',
+    expect.objectContaining({
+      log_group: 'logGroupName',
+      log_stream: 'logStreamName',
+    }),
+  );
+}
+
 describe('AWSLambda', () => {
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note
@@ -140,7 +170,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on sync handler', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
+      expect.assertions(10);
 
       const handler: Handler = (_event, _context, callback) => {
         callback(null, 42);
@@ -149,15 +179,14 @@ describe('AWSLambda', () => {
       const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       expect(rv).toStrictEqual(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
-      // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expectScopeSettings();
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
     });
 
     test('unsuccessful execution', async () => {
-      expect.assertions(5);
+      expect.assertions(10);
 
       const error = new Error('sorry');
       const handler: Handler = (_event, _context, callback) => {
@@ -169,8 +198,7 @@ describe('AWSLambda', () => {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
-        // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+        expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
         // @ts-ignore see "Why @ts-ignore" note
         expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -191,7 +219,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(5);
+      expect.assertions(10);
 
       const error = new Error('wat');
       const handler: Handler = (_event, _context, _callback) => {
@@ -203,8 +231,7 @@ describe('AWSLambda', () => {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
-        // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+        expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(e);
         // @ts-ignore see "Why @ts-ignore" note
         expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -215,7 +242,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
+      expect.assertions(10);
 
       const handler: Handler = async (_event, _context) => {
         return 42;
@@ -224,8 +251,7 @@ describe('AWSLambda', () => {
       const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       expect(rv).toStrictEqual(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
-      // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expectScopeSettings();
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -243,7 +269,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(5);
+      expect.assertions(10);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context) => {
@@ -255,8 +281,7 @@ describe('AWSLambda', () => {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
-        // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+        expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
         // @ts-ignore see "Why @ts-ignore" note
         expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -267,7 +292,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler with a callback method (aka incorrect usage)', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
+      expect.assertions(10);
 
       const handler: Handler = async (_event, _context, _callback) => {
         return 42;
@@ -276,8 +301,7 @@ describe('AWSLambda', () => {
       const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       expect(rv).toStrictEqual(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
-      // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expectScopeSettings();
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -295,7 +319,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(5);
+      expect.assertions(10);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context, _callback) => {
@@ -307,8 +331,7 @@ describe('AWSLambda', () => {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
-        // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeParentScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+        expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
         // @ts-ignore see "Why @ts-ignore" note
         expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -317,88 +340,88 @@ describe('AWSLambda', () => {
     });
   });
 
-  test('enhance event with SDK info and correct mechanism value', async () => {
-    expect.assertions(2);
+  describe('init()', () => {
+    test('enhance event with SDK info and correct mechanism value', async () => {
+      expect.assertions(1);
 
-    const error = new Error('wat');
-    const handler = () => {
-      throw error;
-    };
-    const wrappedHandler = wrapHandler(handler, { rethrowAfterCapture: false });
-
-    const eventWithSomeData = {
-      exception: {
-        values: [{}],
-      },
-      sdk: {
-        integrations: ['SomeIntegration'],
-        packages: [
-          {
-            name: 'some:@random/package',
-            version: '1337',
-          },
-        ],
-      },
-    };
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
-    await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-    expect(eventWithSomeData).toEqual({
-      exception: {
-        values: [
-          {
-            mechanism: {
-              handled: false,
+      const eventWithSomeData = {
+        exception: {
+          values: [{}],
+        },
+        sdk: {
+          integrations: ['SomeIntegration'],
+          packages: [
+            {
+              name: 'some:@random/package',
+              version: '1337',
             },
-          },
-        ],
-      },
-      sdk: {
-        name: 'sentry.javascript.serverless',
-        integrations: ['SomeIntegration', 'AWSLambda'],
-        packages: [
-          {
-            name: 'some:@random/package',
-            version: '1337',
-          },
-          {
-            name: 'npm:@sentry/serverless',
-            version: '6.6.6',
-          },
-        ],
-        version: '6.6.6',
-      },
+          ],
+        },
+      };
+      // @ts-ignore see "Why @ts-ignore" note
+      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
+      Sentry.AWSLambda.init({ defaultIntegrations: [] });
+      expect(eventWithSomeData).toEqual({
+        exception: {
+          values: [
+            {
+              mechanism: {
+                handled: false,
+              },
+            },
+          ],
+        },
+        sdk: {
+          name: 'sentry.javascript.serverless',
+          integrations: ['SomeIntegration', 'AWSLambda'],
+          packages: [
+            {
+              name: 'some:@random/package',
+              version: '1337',
+            },
+            {
+              name: 'npm:@sentry/serverless',
+              version: '6.6.6',
+            },
+          ],
+          version: '6.6.6',
+        },
+      });
     });
 
-    const eventWithoutAnyData: Event = {
-      exception: {
-        values: [{}],
-      },
-    };
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
-    await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-    expect(eventWithoutAnyData).toEqual({
-      exception: {
-        values: [
-          {
-            mechanism: {
-              handled: false,
+    test('populates missing SDK info and mechanism', async () => {
+      expect.assertions(1);
+
+      const eventWithoutAnyData: Event = {
+        exception: {
+          values: [{}],
+        },
+      };
+      // @ts-ignore see "Why @ts-ignore" note
+      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
+      Sentry.AWSLambda.init({ defaultIntegrations: [] });
+      expect(eventWithoutAnyData).toEqual({
+        exception: {
+          values: [
+            {
+              mechanism: {
+                handled: false,
+              },
             },
-          },
-        ],
-      },
-      sdk: {
-        name: 'sentry.javascript.serverless',
-        integrations: ['AWSLambda'],
-        packages: [
-          {
-            name: 'npm:@sentry/serverless',
-            version: '6.6.6',
-          },
-        ],
-        version: '6.6.6',
-      },
+          ],
+        },
+        sdk: {
+          name: 'sentry.javascript.serverless',
+          integrations: ['AWSLambda'],
+          packages: [
+            {
+              name: 'npm:@sentry/serverless',
+              version: '6.6.6',
+            },
+          ],
+          version: '6.6.6',
+        },
+      });
     });
   });
 });

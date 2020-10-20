@@ -1,10 +1,10 @@
 // '@google-cloud/functions-framework/build/src/functions' import is expected to be type-only so it's erased in the final .js file.
 // When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
 import { EventFunction, EventFunctionWithCallback } from '@google-cloud/functions-framework/build/src/functions';
-import { flush, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
-import { captureEventError, getActiveDomain, WrapperOptions } from './general';
+import { configureScopeWithContext, getActiveDomain, WrapperOptions } from './general';
 
 export type EventFunctionWrapperOptions = WrapperOptions;
 
@@ -29,20 +29,22 @@ export function wrapEventFunction(
       op: 'gcp.function.event',
     });
 
-    // We put the transaction on the scope so users can attach children to it
+    // getCurrentHub() is expected to use current active domain as a carrier
+    // since functions-framework creates a domain for each incoming request.
+    // So adding of event processors every time should not lead to memory bloat.
     getCurrentHub().configureScope(scope => {
+      configureScopeWithContext(scope, context);
+      // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
     });
 
     const activeDomain = getActiveDomain();
 
-    activeDomain.on('error', err => {
-      captureEventError(err, context);
-    });
+    activeDomain.on('error', captureException);
 
     const newCallback = activeDomain.bind((...args: unknown[]) => {
       if (args[0] !== null && args[0] !== undefined) {
-        captureEventError(args[0], context);
+        captureException(args[0]);
       }
       transaction.finish();
 
