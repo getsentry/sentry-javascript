@@ -843,6 +843,37 @@ describe('BaseClient', () => {
       expect(transportInstance.sendCalled).toEqual(1);
     });
 
+    test('flush with some events being processed async', async () => {
+      jest.useRealTimers();
+      expect.assertions(5);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        enableSend: true,
+        transport: FakeTransport,
+      });
+
+      const delay = 300;
+      const spy = jest.spyOn(TestBackend.instance!, 'eventFromMessage');
+      spy.mockImplementationOnce(
+        (message, level) =>
+          new SyncPromise((resolve, _reject) => {
+            setTimeout(() => resolve({ message, level }), 150);
+          }),
+      );
+      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      transportInstance.delay = delay;
+
+      client.captureMessage('test async');
+      client.captureMessage('test non-async');
+      expect(transportInstance).toBeInstanceOf(FakeTransport);
+      expect(transportInstance.sendCalled).toEqual(1);
+      expect(transportInstance.sentCount).toEqual(0);
+      await client.flush(delay);
+      expect(transportInstance.sentCount).toEqual(2);
+      expect(transportInstance.sendCalled).toEqual(2);
+      spy.mockRestore();
+    });
+
     test('close', async () => {
       jest.useRealTimers();
       expect.assertions(2);
