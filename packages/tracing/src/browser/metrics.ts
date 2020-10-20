@@ -248,6 +248,7 @@ export class MetricsInstrumentation {
 /** Instrument navigation entries */
 function addNavigationSpans(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
   addPerformanceNavigationTiming(transaction, entry, 'unloadEvent', timeOrigin);
+  addPerformanceNavigationTiming(transaction, entry, 'redirect', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'domContentLoadedEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'loadEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'connect', timeOrigin);
