@@ -252,6 +252,7 @@ function addNavigationSpans(transaction: Transaction, entry: Record<string, any>
   addPerformanceNavigationTiming(transaction, entry, 'domContentLoadedEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'loadEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'connect', timeOrigin);
+  addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'connectEnd');
   addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin);
   addRequest(transaction, entry, timeOrigin);
 }
@@ -330,8 +331,9 @@ function addPerformanceNavigationTiming(
   entry: Record<string, any>,
   event: string,
   timeOrigin: number,
+  eventEnd?: string,
 ): void {
-  const end = entry[`${event}End`] as number | undefined;
+  const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
   const start = entry[`${event}Start`] as number | undefined;
   if (!start || !end) {
     return;
