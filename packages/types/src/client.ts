@@ -3,6 +3,7 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { Options } from './options';
 import { Scope } from './scope';
+import { Session } from './session';
 import { Severity } from './severity';
 
 /**
@@ -45,6 +46,12 @@ export interface Client<O extends Options = Options> {
    * @returns The event id
    */
   captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined;
+
+  /** Captures a session
+   *
+   * @param session Session to be delivered
+   */
+  captureSession?(session: Session): void;
 
   /** Returns the current Dsn. */
   getDsn(): Dsn | undefined;

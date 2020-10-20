@@ -10,6 +10,8 @@ import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP } from './web-vitals/getLCP';
 import { getTTFB } from './web-vitals/getTTFB';
+import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
+import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
 const global = getGlobalObject<Window>();
 
@@ -85,13 +87,17 @@ export class MetricsInstrumentation {
 
             // capture web vitals
 
-            if (entry.name === 'first-paint') {
+            const firstHidden = getFirstHidden();
+            // Only report if the page wasn't hidden prior to the web vital.
+            const shouldRecord = entry.startTime < firstHidden.timeStamp;
+
+            if (entry.name === 'first-paint' && shouldRecord) {
               logger.log('[Measurements] Adding FP');
               this._measurements['fp'] = { value: entry.startTime };
               this._measurements['mark.fp'] = { value: startTimestamp };
             }
 
-            if (entry.name === 'first-contentful-paint') {
+            if (entry.name === 'first-contentful-paint' && shouldRecord) {
               logger.log('[Measurements] Adding FCP');
               this._measurements['fcp'] = { value: entry.startTime };
               this._measurements['mark.fcp'] = { value: startTimestamp };
@@ -124,6 +130,8 @@ export class MetricsInstrumentation {
 
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
+    this._trackNavigator(transaction);
+
     // Measurements are only available for pageload transactions
     if (transaction.op === 'pageload') {
       transaction.setMeasurements(this._measurements);
@@ -142,6 +150,46 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding CLS');
       this._measurements['cls'] = { value: metric.value };
     });
+  }
+
+  /**
+   * Capture the information of the user agent.
+   */
+  private _trackNavigator(transaction: Transaction): void {
+    const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
+
+    if (!navigator) {
+      return;
+    }
+
+    // track network connectivity
+
+    const connection = navigator.connection;
+    if (connection) {
+      if (connection.effectiveType) {
+        transaction.setTag('effectiveConnectionType', connection.effectiveType);
+      }
+
+      if (connection.type) {
+        transaction.setTag('connectionType', connection.type);
+      }
+
+      if (isMeasurementValue(connection.rtt)) {
+        this._measurements['connection.rtt'] = { value: connection.rtt as number };
+      }
+
+      if (isMeasurementValue(connection.downlink)) {
+        this._measurements['connection.downlink'] = { value: connection.downlink as number };
+      }
+    }
+
+    if (isMeasurementValue(navigator.deviceMemory)) {
+      transaction.setTag('deviceMemory', String(navigator.deviceMemory));
+    }
+
+    if (isMeasurementValue(navigator.hardwareConcurrency)) {
+      transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
+    }
   }
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
@@ -200,9 +248,11 @@ export class MetricsInstrumentation {
 /** Instrument navigation entries */
 function addNavigationSpans(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
   addPerformanceNavigationTiming(transaction, entry, 'unloadEvent', timeOrigin);
+  addPerformanceNavigationTiming(transaction, entry, 'redirect', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'domContentLoadedEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'loadEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'connect', timeOrigin);
+  addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'connectEnd');
   addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin);
   addRequest(transaction, entry, timeOrigin);
 }
@@ -281,8 +331,9 @@ function addPerformanceNavigationTiming(
   entry: Record<string, any>,
   event: string,
   timeOrigin: number,
+  eventEnd?: string,
 ): void {
-  const end = entry[`${event}End`] as number | undefined;
+  const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
   const start = entry[`${event}Start`] as number | undefined;
   if (!start || !end) {
     return;
@@ -326,4 +377,11 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
     startTimestamp,
     ...ctx,
   });
+}
+
+/**
+ * Checks if a given value is a valid measurement value.
+ */
+function isMeasurementValue(value: any): boolean {
+  return typeof value === 'number' && isFinite(value);
 }

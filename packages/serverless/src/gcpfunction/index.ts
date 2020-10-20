@@ -4,6 +4,8 @@ import { Integration } from '@sentry/types';
 import { GoogleCloudGrpc } from '../google-cloud-grpc';
 import { GoogleCloudHttp } from '../google-cloud-http';
 
+import { serverlessEventProcessor } from '../utils';
+
 export * from './http';
 export * from './events';
 export * from './cloud_events';
@@ -21,5 +23,6 @@ export function init(options: Sentry.NodeOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
-  return Sentry.init(options);
+  Sentry.init(options);
+  Sentry.addGlobalEventProcessor(serverlessEventProcessor('GCPFunction'));
 }

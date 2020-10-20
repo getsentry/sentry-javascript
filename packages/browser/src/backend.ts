@@ -29,6 +29,12 @@ export interface BrowserOptions extends Options {
 
   /** @deprecated use {@link Options.denyUrls} instead. */
   blacklistUrls?: Array<string | RegExp>;
+
+  /**
+   * A flag enabling Sessions Tracking feature.
+   * By default Sessions Tracking is disabled.
+   */
+  autoSessionTracking?: boolean;
 }
 
 /**

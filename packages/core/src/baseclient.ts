@@ -1,6 +1,15 @@
 /* eslint-disable max-lines */
-import { Scope } from '@sentry/hub';
-import { Client, Event, EventHint, Integration, IntegrationClass, Options, Severity } from '@sentry/types';
+import { Scope, Session } from '@sentry/hub';
+import {
+  Client,
+  Event,
+  EventHint,
+  Integration,
+  IntegrationClass,
+  Options,
+  SessionStatus,
+  Severity,
+} from '@sentry/types';
 import {
   dateTimestampInSeconds,
   Dsn,
@@ -8,6 +17,7 @@ import {
   isThenable,
   logger,
   normalize,
+  SentryError,
   SyncPromise,
   truncate,
   uuid4,
@@ -65,8 +75,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
 
-  /** Is the client still processing a call? */
-  protected _processing: boolean = false;
+  /** Number of call being processed */
+  protected _processing: number = 0;
 
   /**
    * Initializes this client instance.
@@ -89,14 +99,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this._processing = true;
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._getBackend()
-      .eventFromException(exception, hint)
-      .then(event => {
-        eventId = this.captureEvent(event, hint, scope);
-      });
+    this._process(
+      this._getBackend()
+        .eventFromException(exception, hint)
+        .then(event => this._captureEvent(event, hint, scope))
+        .then(result => {
+          eventId = result;
+        }),
+    );
 
     return eventId;
   }
@@ -106,16 +117,18 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this._processing = true;
 
     const promisedEvent = isPrimitive(message)
       ? this._getBackend().eventFromMessage(`${message}`, level, hint)
       : this._getBackend().eventFromException(message, hint);
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    promisedEvent.then(event => {
-      eventId = this.captureEvent(event, hint, scope);
-    });
+    this._process(
+      promisedEvent
+        .then(event => this._captureEvent(event, hint, scope))
+        .then(result => {
+          eventId = result;
+        }),
+    );
 
     return eventId;
   }
@@ -125,20 +138,25 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this._processing = true;
 
-    this._processEvent(event, hint, scope)
-      .then(finalEvent => {
-        // We need to check for finalEvent in case beforeSend returned null
-        eventId = finalEvent && finalEvent.event_id;
-        this._processing = false;
-      })
-      .then(null, reason => {
-        logger.error(reason);
-        this._processing = false;
-      });
+    this._process(
+      this._captureEvent(event, hint, scope).then(result => {
+        eventId = result;
+      }),
+    );
 
     return eventId;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public captureSession(session: Session): void {
+    if (!session.release) {
+      logger.warn('Discarded session because of missing release');
+    } else {
+      this._sendSession(session);
+    }
   }
 
   /**
@@ -159,12 +177,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public flush(timeout?: number): PromiseLike<boolean> {
-    return this._isClientProcessing(timeout).then(status => {
-      clearInterval(status.interval);
+    return this._isClientProcessing(timeout).then(ready => {
       return this._getBackend()
         .getTransport()
         .close(timeout)
-        .then(transportFlushed => status.ready && transportFlushed);
+        .then(transportFlushed => ready && transportFlushed);
     });
   }
 
@@ -199,31 +216,67 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
   }
 
+  /** Updates existing session based on the provided event */
+  protected _updateSessionFromEvent(session: Session, event: Event): void {
+    let crashed = false;
+    let errored = false;
+    let userAgent;
+    const exceptions = event.exception && event.exception.values;
+
+    if (exceptions) {
+      errored = true;
+
+      for (const ex of exceptions) {
+        const mechanism = ex.mechanism;
+        if (mechanism && mechanism.handled === false) {
+          crashed = true;
+          break;
+        }
+      }
+    }
+
+    const user = event.user;
+    if (!session.userAgent) {
+      const headers = event.request ? event.request.headers : {};
+      for (const key in headers) {
+        if (key.toLowerCase() === 'user-agent') {
+          userAgent = headers[key];
+          break;
+        }
+      }
+    }
+
+    session.update({
+      ...(crashed && { status: SessionStatus.Crashed }),
+      user,
+      userAgent,
+      errors: session.errors + Number(errored || crashed),
+    });
+  }
+
+  /** Deliver captured session to Sentry */
+  protected _sendSession(session: Session): void {
+    this._getBackend().sendSession(session);
+  }
+
   /** Waits for the client to be done with processing. */
-  protected _isClientProcessing(timeout?: number): PromiseLike<{ ready: boolean; interval: number }> {
-    return new SyncPromise<{ ready: boolean; interval: number }>(resolve => {
+  protected _isClientProcessing(timeout?: number): PromiseLike<boolean> {
+    return new SyncPromise(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
 
-      let interval = 0;
-      clearInterval(interval);
-
-      interval = (setInterval(() => {
-        if (!this._processing) {
-          resolve({
-            interval,
-            ready: true,
-          });
+      const interval = setInterval(() => {
+        if (this._processing == 0) {
+          clearInterval(interval);
+          resolve(true);
         } else {
           ticked += tick;
           if (timeout && ticked >= timeout) {
-            resolve({
-              interval,
-              ready: false,
-            });
+            clearInterval(interval);
+            resolve(false);
           }
         }
-      }, tick) as unknown) as number;
+      }, tick);
     });
   }
 
@@ -393,6 +446,24 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
+   * Processes the event and logs an error in case of rejection
+   * @param event
+   * @param hint
+   * @param scope
+   */
+  protected _captureEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<string | undefined> {
+    return this._processEvent(event, hint, scope).then(
+      finalEvent => {
+        return finalEvent.event_id;
+      },
+      reason => {
+        logger.error(reason);
+        return undefined;
+      },
+    );
+  }
+
+  /**
    * Processes an event (either error or message) and sends it to Sentry.
    *
    * This also adds breadcrumbs and context information to the event. However,
@@ -410,7 +481,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
-      return SyncPromise.reject('SDK not enabled, will not send event.');
+      return SyncPromise.reject(new SentryError('SDK not enabled, will not send event.'));
     }
 
     const isTransaction = event.type === 'transaction';
@@ -418,81 +489,77 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      return SyncPromise.reject('This event has been sampled, will not send event.');
+      return SyncPromise.reject(new SentryError('This event has been sampled, will not send event.'));
     }
 
-    return new SyncPromise((resolve, reject) => {
-      this._prepareEvent(event, scope, hint)
-        .then(prepared => {
-          if (prepared === null) {
-            reject('An event processor returned null, will not send event.');
-            return;
-          }
+    return this._prepareEvent(event, scope, hint)
+      .then(prepared => {
+        if (prepared === null) {
+          throw new SentryError('An event processor returned null, will not send event.');
+        }
 
-          let finalEvent: Event | null = prepared;
+        const isInternalException = hint && hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+        if (isInternalException || isTransaction || !beforeSend) {
+          return prepared;
+        }
 
-          const isInternalException =
-            hint && hint.data && (hint.data as { [key: string]: unknown }).__sentry__ === true;
-          // We skip beforeSend in case of transactions
-          if (isInternalException || !beforeSend || isTransaction) {
-            this._sendEvent(finalEvent);
-            resolve(finalEvent);
-            return;
-          }
-
-          const beforeSendResult = beforeSend(prepared, hint);
-          if (typeof beforeSendResult === 'undefined') {
-            logger.error('`beforeSend` method has to return `null` or a valid event.');
-          } else if (isThenable(beforeSendResult)) {
-            this._handleAsyncBeforeSend(beforeSendResult as PromiseLike<Event | null>, resolve, reject);
-          } else {
-            finalEvent = beforeSendResult as Event | null;
-
-            if (finalEvent === null) {
-              logger.log('`beforeSend` returned `null`, will not send event.');
-              resolve(null);
-              return;
-            }
-
-            // From here on we are really async
-            this._sendEvent(finalEvent);
-            resolve(finalEvent);
-          }
-        })
-        .then(null, reason => {
-          this.captureException(reason, {
-            data: {
-              __sentry__: true,
+        const beforeSendResult = beforeSend(prepared, hint);
+        if (typeof beforeSendResult === 'undefined') {
+          throw new SentryError('`beforeSend` method has to return `null` or a valid event.');
+        } else if (isThenable(beforeSendResult)) {
+          return (beforeSendResult as PromiseLike<Event | null>).then(
+            event => event,
+            e => {
+              throw new SentryError(`beforeSend rejected with ${e}`);
             },
-            originalException: reason as Error,
-          });
-          reject(
-            `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
           );
+        }
+        return beforeSendResult;
+      })
+      .then(processedEvent => {
+        if (processedEvent === null) {
+          throw new SentryError('`beforeSend` returned `null`, will not send event.');
+        }
+
+        const session = scope && scope.getSession();
+        if (!isTransaction && session) {
+          this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        this._sendEvent(processedEvent);
+        return processedEvent;
+      })
+      .then(null, reason => {
+        if (reason instanceof SentryError) {
+          throw reason;
+        }
+
+        this.captureException(reason, {
+          data: {
+            __sentry__: true,
+          },
+          originalException: reason as Error,
         });
-    });
+        throw new SentryError(
+          `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
+        );
+      });
   }
 
   /**
-   * Resolves before send Promise and calls resolve/reject on parent SyncPromise.
+   * Occupies the client with processing and event
    */
-  private _handleAsyncBeforeSend(
-    beforeSend: PromiseLike<Event | null>,
-    resolve: (event: Event) => void,
-    reject: (reason: string) => void,
-  ): void {
-    beforeSend
-      .then(processedEvent => {
-        if (processedEvent === null) {
-          reject('`beforeSend` returned `null`, will not send event.');
-          return;
-        }
-        // From here on we are really async
-        this._sendEvent(processedEvent);
-        resolve(processedEvent);
-      })
-      .then(null, e => {
-        reject(`beforeSend rejected with ${e}`);
-      });
+  protected _process<T>(promise: PromiseLike<T>): void {
+    this._processing += 1;
+    promise.then(
+      value => {
+        this._processing -= 1;
+        return value;
+      },
+      reason => {
+        this._processing -= 1;
+        return reason;
+      },
+    );
   }
 }
