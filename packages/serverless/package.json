@@ -1,6 +1,6 @@
 {
   "name": "@sentry/serverless",
-  "version": "5.26.0",
+  "version": "5.27.0",
   "description": "Offical Sentry SDK for various serverless solutions",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
@@ -16,18 +16,18 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/minimal": "5.26.0",
-    "@sentry/node": "5.26.0",
-    "@sentry/types": "5.26.0",
-    "@sentry/utils": "5.26.0",
+    "@sentry/minimal": "5.27.0",
+    "@sentry/node": "5.27.0",
+    "@sentry/types": "5.27.0",
+    "@sentry/utils": "5.27.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@google-cloud/common": "^3.4.1",
-    "@google-cloud/pubsub": "^2.5.0",
     "@google-cloud/bigquery": "^5.3.0",
+    "@google-cloud/common": "^3.4.1",
     "@google-cloud/functions-framework": "^1.7.1",
-    "@sentry-internal/eslint-config-sdk": "5.26.0",
+    "@google-cloud/pubsub": "^2.5.0",
+    "@sentry-internal/eslint-config-sdk": "5.27.0",
     "@types/aws-lambda": "^8.10.62",
     "@types/node": "^14.6.4",
     "aws-sdk": "^2.765.0",
