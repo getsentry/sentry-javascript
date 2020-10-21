@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.27.0
+
+- [browser] feat: Sessions Health Tracking (#2973)
+- [core] fix: Correct `processing` flag in `BaseClient` (#2983)
+- [node] feat: use `req.cookies` if available instead of parsing (#2985)
+- [core] ref: Use SentryError for `prepareEvent` rejections (#2973)
+- [core] ref: Errors handling in `prepareEvent` pipeline (#2987)
+- [serverless] feat: Implement tracing of Google Cloud Requests (#2981)
+- [serverless] ref: Set global event processor and pass scope data for transactions (#2975)
+- [tracing] feat: Add secure connect navigation timing (#2980)
+- [tracing] feat: Capture time spent redirecting before loading the current page (#2986)
+- [tracing] feat: Capture browser navigator information (#2966)
+- [tracing] feat: Express router methods tracing (#2972)
+- [tracing] ref: Only report FCP or FP if the page wasn't hidden prior to their instrumentation (#2979)
+
 ## 5.26.0
 
 - [serverless] feat: Implement error handling and tracing for `Google Cloud Functions` (#2945)
