@@ -14,7 +14,7 @@ export interface SpanContext {
 
   /**
    * Completion status of the Span.
-   * See: {@sentry/apm SpanStatus} for possible values
+   * See: {@sentry/tracing SpanStatus} for possible values
    */
   status?: string;
 
@@ -113,7 +113,7 @@ export interface Span extends SpanContext {
 
   /**
    * Sets the status attribute on the current span
-   * See: {@sentry/apm SpanStatus} for possible values
+   * See: {@sentry/tracing SpanStatus} for possible values
    * @param status http code used to set the status
    */
   setStatus(status: string): this;
