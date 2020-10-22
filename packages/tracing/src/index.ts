@@ -1,8 +1,8 @@
 import { BrowserTracing } from './browser';
 import { addExtensionMethods } from './hubextensions';
-import * as ApmIntegrations from './integrations';
+import * as TracingIntegrations from './integrations';
 
-const Integrations = { ...ApmIntegrations, BrowserTracing };
+const Integrations = { ...TracingIntegrations, BrowserTracing };
 
 export { Integrations };
 export { Span } from './span';

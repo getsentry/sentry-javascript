@@ -20,7 +20,6 @@
   },
   "workspaces": [
     "packages/angular",
-    "packages/apm",
     "packages/browser",
     "packages/core",
     "packages/ember",
