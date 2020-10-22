@@ -287,7 +287,7 @@ export class Scope implements ScopeInterface {
       this._tags = { ...this._tags, ...captureContext._tags };
       this._extra = { ...this._extra, ...captureContext._extra };
       this._contexts = { ...this._contexts, ...captureContext._contexts };
-      if (captureContext._user) {
+      if (captureContext._user && Object.keys(captureContext._user).length) {
         this._user = captureContext._user;
       }
       if (captureContext._level) {
