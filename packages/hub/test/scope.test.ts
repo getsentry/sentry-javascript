@@ -399,6 +399,26 @@ describe('Scope', () => {
       expect(updatedScope._fingerprint).toEqual(['bar']);
     });
 
+    test('given an empty instance of Scope, it should preserve all the original scope data', () => {
+      const updatedScope = scope.update(new Scope()) as any;
+
+      expect(updatedScope._tags).toEqual({
+        bar: '2',
+        foo: '1',
+      });
+      expect(updatedScope._extra).toEqual({
+        bar: '2',
+        foo: '1',
+      });
+      expect(updatedScope._contexts).toEqual({
+        bar: { id: '2' },
+        foo: { id: '1' },
+      });
+      expect(updatedScope._user).toEqual({ id: '1337' });
+      expect(updatedScope._level).toEqual(Severity.Info);
+      expect(updatedScope._fingerprint).toEqual(['foo']);
+    });
+
     test('given a plain object, it should merge two together, with the passed object having priority', () => {
       const localAttributes = {
         contexts: { bar: { id: '3' }, baz: { id: '4' } },
