@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.27.1
+
+- [hub] fix: Preserve original user data for explicitly updated scopes (#2991)
+- [ember] fix: prevent unexpected errors on transition (#2988)
+
 ## 5.27.0
 
 - [browser] feat: Sessions Health Tracking (#2973)
