@@ -1,14 +1,14 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Measurements, SpanContext } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getGlobalObject, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, logger } from '@sentry/utils';
 
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
-import { getCLS } from './web-vitals/getCLS';
+import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
-import { getLCP } from './web-vitals/getLCP';
+import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
 import { getTTFB } from './web-vitals/getTTFB';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
@@ -20,6 +20,8 @@ export class MetricsInstrumentation {
   private _measurements: Measurements = {};
 
   private _performanceCursor: number = 0;
+  private _lcpEntry: LargestContentfulPaint | undefined;
+  private _clsEntry: LayoutShift | undefined;
 
   public constructor() {
     if (global && global.performance) {
@@ -135,6 +137,24 @@ export class MetricsInstrumentation {
     // Measurements are only available for pageload transactions
     if (transaction.op === 'pageload') {
       transaction.setMeasurements(this._measurements);
+
+      if (this._lcpEntry) {
+        logger.log('[Measurements] Adding LCP Data');
+        transaction.setTag('measurements.lcp.url', this._lcpEntry.url);
+        transaction.setData('measurements.lcp', {
+          size: this._lcpEntry.size,
+          id: this._lcpEntry.id,
+          url: this._lcpEntry.url,
+          element: this._lcpEntry.element ? htmlTreeAsString(this._lcpEntry.element) : undefined,
+        });
+      }
+
+      if (this._clsEntry) {
+        logger.log('[Measurements] Adding CLS Data');
+        transaction.setData('measurements.cls', {
+          sources: this._clsEntry.sources.map(source => htmlTreeAsString(source.node)),
+        });
+      }
     }
   }
 
@@ -149,6 +169,7 @@ export class MetricsInstrumentation {
 
       logger.log('[Measurements] Adding CLS');
       this._measurements['cls'] = { value: metric.value };
+      this._clsEntry = entry as LayoutShift;
     });
   }
 
@@ -206,6 +227,7 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding LCP');
       this._measurements['lcp'] = { value: metric.value };
       this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
+      this._lcpEntry = entry as LargestContentfulPaint;
     });
   }
 

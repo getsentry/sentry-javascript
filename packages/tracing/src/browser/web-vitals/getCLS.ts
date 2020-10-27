@@ -21,9 +21,18 @@ import { onHidden } from './lib/onHidden';
 import { ReportHandler } from './types';
 
 // https://wicg.github.io/layout-instability/#sec-layout-shift
-interface LayoutShift extends PerformanceEntry {
+export interface LayoutShift extends PerformanceEntry {
   value: number;
   hadRecentInput: boolean;
+  lastInputTime: DOMHighResTimeStamp;
+  sources: Array<LayoutShiftAttribution>;
+  toJSON(): Record<string, unknown>;
+}
+
+export interface LayoutShiftAttribution {
+  node?: Node;
+  previousRect: DOMRectReadOnly;
+  currentRect: DOMRectReadOnly;
 }
 
 export const getCLS = (onReport: ReportHandler, reportAllChanges = false): void => {
