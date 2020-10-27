@@ -242,14 +242,16 @@ export function parseRequest(
   return event;
 }
 
+export type RequestHandlerOptions = ParseRequestOptions & {
+  flushTimeout?: number;
+};
+
 /**
  * Express compatible request handler.
  * @see Exposed as `Handlers.requestHandler`
  */
 export function requestHandler(
-  options?: ParseRequestOptions & {
-    flushTimeout?: number;
-  },
+  options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
