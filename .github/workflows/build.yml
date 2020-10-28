@@ -180,6 +180,5 @@ jobs:
           path: |
             ${{ github.workspace }}/packages/browser/build/**
             ${{ github.workspace }}/packages/integrations/build/**
-            ${{ github.workspace }}/packages/apm/build/**
             ${{ github.workspace }}/packages/tracing/build/**
             ${{ github.workspace }}/packages/**/*.tgz

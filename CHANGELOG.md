@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.27.2
+
+- [apm] ref: Delete sentry/apm package (#2990)
+- [types] fix: make requestHandler options an own type (#2995)
+- [core] fix: Use 'production' as default value for environment key (#3013)
+
 ## 5.27.1
 
 - [hub] fix: Preserve original user data for explicitly updated scopes (#2991)
