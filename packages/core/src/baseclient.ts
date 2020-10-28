@@ -396,10 +396,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param event event instance to be enhanced
    */
   protected _applyClientOptions(event: Event): void {
-    const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
+    const options = this.getOptions();
+    const { environment, release, dist, maxValueLength = 250 } = options;
 
-    if (event.environment === undefined && environment !== undefined) {
-      event.environment = environment;
+    if (!('environment' in event)) {
+      event.environment = 'environment' in options ? environment : 'production';
     }
 
     if (event.release === undefined && release !== undefined) {
