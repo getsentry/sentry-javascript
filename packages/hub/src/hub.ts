@@ -384,7 +384,7 @@ export class Hub implements HubInterface {
     const { scope, client } = this.getStackTop();
     if (!scope) return;
 
-    const session = scope.getSession();
+    const session = scope.getSession && scope.getSession();
     if (session) {
       session.close();
       if (client && client.captureSession) {
