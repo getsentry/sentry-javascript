@@ -47,13 +47,13 @@ type StoreEnhancerStoreCreator<Ext = Record<string, unknown>, StateExt = never> 
   preloadedState?: PreloadedState<S>,
 ) => Store<ExtendState<S, StateExt>, A, StateExt, Ext> & Ext;
 
-export interface SentryEnhancerOptions {
+export interface SentryEnhancerOptions<S = any> {
   /**
    * Transforms the state before attaching it to an event.
    * Use this to remove any private data before sending it to Sentry.
    * Return null to not attach the state.
    */
-  stateTransformer<S>(state: S | undefined): (S & any) | null;
+  stateTransformer(state: S | undefined): (S & any) | null;
   /**
    * Transforms the action before sending it as a breadcrumb.
    * Use this to remove any private data before sending it to Sentry.
@@ -63,7 +63,7 @@ export interface SentryEnhancerOptions {
   /**
    * Called on every state update, configure the Sentry Scope with the redux state.
    */
-  configureScopeWithState?<S>(scope: Scope, state: S): void;
+  configureScopeWithState?(scope: Scope, state: S): void;
 }
 
 const ACTION_BREADCRUMB_CATEGORY = 'redux.action';
