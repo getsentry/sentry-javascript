@@ -90,34 +90,6 @@ jobs:
         run: yarn test
       - uses: codecov/codecov-action@v1
 
-  job_browserstack_test:
-    name: BrowserStack
-    needs: job_build
-    runs-on: ubuntu-latest
-    if: "github.ref == 'refs/heads/master'"
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ github.sha }}
-      - run: yarn install
-      - name: Integration Tests
-        env:
-          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-        run: |
-          cd packages/browser
-          yarn test:integration:checkbrowsers
-          yarn test:integration
-          yarn test:package
-
   job_zeus:
     name: Zeus
     needs: job_build
@@ -182,3 +154,31 @@ jobs:
             ${{ github.workspace }}/packages/integrations/build/**
             ${{ github.workspace }}/packages/tracing/build/**
             ${{ github.workspace }}/packages/**/*.tgz
+
+  job_browserstack_test:
+    name: BrowserStack
+    needs: job_build
+    runs-on: ubuntu-latest
+    if: "github.ref == 'refs/heads/master'"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+          key: ${{ runner.os }}-${{ github.sha }}
+      - run: yarn install
+      - name: Integration Tests
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          cd packages/browser
+          yarn test:integration:checkbrowsers
+          yarn test:integration
+          yarn test:package
