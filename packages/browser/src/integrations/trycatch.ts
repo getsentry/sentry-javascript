@@ -230,12 +230,15 @@ export class TryCatch implements Integration {
          * then we have to detach both of them. Otherwise, if we'd detach only wrapped one, it'd be impossible
          * to get rid of the initial handler and it'd stick there forever.
          */
+        const callback = (fn as unknown) as WrappedFunction;
         try {
-          original.call(this, eventName, ((fn as unknown) as WrappedFunction).__sentry_wrapped__, options);
+          if (callback && callback.__sentry_wrapped__) {
+            original.call(this, eventName, callback.__sentry_wrapped__, options);
+          }
         } catch (e) {
           // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
         }
-        return original.call(this, eventName, fn, options);
+        return original.call(this, eventName, callback, options);
       };
     });
   }
