@@ -522,7 +522,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
-        const session = scope && scope.getSession();
+        const session = scope && scope.getSession && scope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
