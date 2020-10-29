@@ -47,7 +47,7 @@ type StoreEnhancerStoreCreator<Ext = Record<string, unknown>, StateExt = never> 
   preloadedState?: PreloadedState<S>,
 ) => Store<ExtendState<S, StateExt>, A, StateExt, Ext> & Ext;
 
-export interface SentryEnhancerOptions<S> {
+export interface SentryEnhancerOptions<S = any> {
   /**
    * Transforms the state before attaching it to an event.
    * Use this to remove any private data before sending it to Sentry.
