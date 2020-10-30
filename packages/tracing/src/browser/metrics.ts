@@ -166,7 +166,7 @@ export class MetricsInstrumentation {
         _startChild(transaction, {
           description: 'first input delay',
           endTimestamp: this._measurements['mark.fid'].value + msToSec(this._measurements['fid'].value),
-          op: 'web vitals',
+          op: 'web.vitals',
           startTimestamp: this._measurements['mark.fid'].value,
         });
       }
