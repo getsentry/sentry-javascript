@@ -203,7 +203,7 @@ export class TryCatch implements Integration {
     });
 
     fill(proto, 'removeEventListener', function(
-      original: () => void,
+      originalRemoveEventListener: () => void,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): (this: any, eventName: string, fn: EventListenerObject, options?: boolean | EventListenerOptions) => () => void {
       return function(
@@ -230,12 +230,16 @@ export class TryCatch implements Integration {
          * then we have to detach both of them. Otherwise, if we'd detach only wrapped one, it'd be impossible
          * to get rid of the initial handler and it'd stick there forever.
          */
+        const wrappedEventHandler = (fn as unknown) as WrappedFunction;
         try {
-          original.call(this, eventName, ((fn as unknown) as WrappedFunction).__sentry_wrapped__, options);
+          const originalEventHandler = wrappedEventHandler?.__sentry_wrapped__;
+          if (originalEventHandler) {
+            originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
+          }
         } catch (e) {
           // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
         }
-        return original.call(this, eventName, fn, options);
+        return originalRemoveEventListener.call(this, eventName, wrappedEventHandler, options);
       };
     });
   }
