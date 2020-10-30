@@ -160,6 +160,17 @@ export class MetricsInstrumentation {
         this._measurements[name] = { value: normalizedValue };
       });
 
+      if (this._measurements['mark.fid'] && this._measurements['fid']) {
+        // create span for FID
+
+        _startChild(transaction, {
+          description: 'first input delay',
+          endTimestamp: this._measurements['mark.fid'].value + msToSec(this._measurements['fid'].value),
+          op: 'web vitals',
+          startTimestamp: this._measurements['mark.fid'].value,
+        });
+      }
+
       transaction.setMeasurements(this._measurements);
     }
   }
