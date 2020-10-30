@@ -139,9 +139,13 @@ export class MetricsInstrumentation {
       const timeOrigin = msToSec(performance.timeOrigin);
 
       ['fcp', 'fp', 'lcp', 'ttfb'].forEach(name => {
-        if (!this._measurements[name]) {
+        if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
           return;
         }
+
+        // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
+        // Unfortunately, timeOrigin is not captured within the transaction span data, so these web vitals will need
+        // to be adjusted to be relative to transaction.startTimestamp.
 
         const oldValue = this._measurements[name].value;
         const measurementTimestamp = timeOrigin + msToSec(oldValue);
