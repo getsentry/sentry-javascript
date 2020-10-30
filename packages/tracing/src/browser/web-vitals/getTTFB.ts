@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
+import { getGlobalObject } from '@sentry/utils';
+
 import { initMetric } from './lib/initMetric';
 import { ReportHandler } from './types';
+
+const global = getGlobalObject<Window>();
 
 interface NavigationEntryShim {
   // From `PerformanceNavigationTimingEntry`.
@@ -80,7 +84,7 @@ const getNavigationEntryFromPerformanceTiming = (): PerformanceNavigationTiming 
   // Note: browsers that do not support navigation entries will fall back to using performance.timing
   // (with the timestamps converted from epoch time to DOMHighResTimeStamp).
   // eslint-disable-next-line deprecation/deprecation
-  const timing = performance.timing;
+  const timing = global.performance.timing;
 
   const navigationEntry: NavigationEntryShim = {
     entryType: 'navigation',
@@ -105,7 +109,7 @@ export const getTTFB = (onReport: ReportHandler): void => {
     try {
       // Use the NavigationTiming L2 entry if available.
       const navigationEntry =
-        performance.getEntriesByType('navigation')[0] || getNavigationEntryFromPerformanceTiming();
+        global.performance.getEntriesByType('navigation')[0] || getNavigationEntryFromPerformanceTiming();
 
       metric.value = metric.delta = (navigationEntry as PerformanceNavigationTiming).responseStart;
 
