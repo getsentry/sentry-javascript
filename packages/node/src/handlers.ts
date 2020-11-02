@@ -63,8 +63,11 @@ export function tracingHandler(): (
     (res as any).__sentry_transaction = transaction;
 
     res.once('finish', () => {
-      transaction.setHttpStatus(res.statusCode);
-      transaction.finish();
+      // We schedule the immediate execution of the `finish` to let all the spans being closed first.
+      setImmediate(() => {
+        transaction.setHttpStatus(res.statusCode);
+        transaction.finish();
+      });
     });
 
     next();
