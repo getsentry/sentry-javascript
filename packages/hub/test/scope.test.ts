@@ -297,6 +297,38 @@ describe('Scope', () => {
     });
   });
 
+  test('applyToEvent transaction name tag when transaction on scope', async () => {
+    expect.assertions(1);
+    const scope = new Scope();
+    const transaction = {
+      fake: 'span',
+      getTraceContext: () => ({ a: 'b' }),
+      name: 'fake transaction',
+    } as any;
+    transaction.transaction = transaction; // because this is a transaction, its transaction pointer points to itself
+    scope.setSpan(transaction);
+    const event: Event = {};
+    return scope.applyToEvent(event).then(processedEvent => {
+      expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
+    });
+  });
+
+  test('applyToEvent transaction name tag when span on scope', async () => {
+    expect.assertions(1);
+    const scope = new Scope();
+    const transaction = { name: 'fake transaction' };
+    const span = {
+      fake: 'span',
+      getTraceContext: () => ({ a: 'b' }),
+      transaction,
+    } as any;
+    scope.setSpan(span);
+    const event: Event = {};
+    return scope.applyToEvent(event).then(processedEvent => {
+      expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
+    });
+  });
+
   test('clear', () => {
     const scope = new Scope();
     scope.setExtra('a', 2);
