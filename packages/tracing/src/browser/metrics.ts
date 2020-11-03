@@ -134,6 +134,43 @@ export class MetricsInstrumentation {
 
     // Measurements are only available for pageload transactions
     if (transaction.op === 'pageload') {
+      // normalize applicable web vital values to be relative to transaction.startTimestamp
+
+      const timeOrigin = msToSec(performance.timeOrigin);
+
+      ['fcp', 'fp', 'lcp', 'ttfb'].forEach(name => {
+        if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
+          return;
+        }
+
+        // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
+        // Unfortunately, timeOrigin is not captured within the transaction span data, so these web vitals will need
+        // to be adjusted to be relative to transaction.startTimestamp.
+
+        const oldValue = this._measurements[name].value;
+        const measurementTimestamp = timeOrigin + msToSec(oldValue);
+        // normalizedValue should be in milliseconds
+        const normalizedValue = (measurementTimestamp - transaction.startTimestamp) * 1000;
+
+        const delta = normalizedValue - oldValue;
+        logger.log(
+          `[Measurements] Normalized ${name} from ${this._measurements[name].value} to ${normalizedValue} (${delta})`,
+        );
+
+        this._measurements[name].value = normalizedValue;
+      });
+
+      if (this._measurements['mark.fid'] && this._measurements['fid']) {
+        // create span for FID
+
+        _startChild(transaction, {
+          description: 'first input delay',
+          endTimestamp: this._measurements['mark.fid'].value + msToSec(this._measurements['fid'].value),
+          op: 'web.vitals',
+          startTimestamp: this._measurements['mark.fid'].value,
+        });
+      }
+
       transaction.setMeasurements(this._measurements);
     }
   }
@@ -253,6 +290,7 @@ function addNavigationSpans(transaction: Transaction, entry: Record<string, any>
   addPerformanceNavigationTiming(transaction, entry, 'loadEvent', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'connect', timeOrigin);
   addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'connectEnd');
+  addPerformanceNavigationTiming(transaction, entry, 'fetch', timeOrigin, 'domainLookupStart');
   addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin);
   addRequest(transaction, entry, timeOrigin);
 }
