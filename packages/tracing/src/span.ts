@@ -105,7 +105,8 @@ export class Span implements SpanInterface {
   public transaction?: Transaction;
 
   /**
-   * You should never call the constructor manually, always use `hub.startSpan()`.
+   * You should never call the constructor manually, always use `Sentry.startTransaction()`
+   * or call `startChild()` on an existing span.
    * @internal
    * @hideconstructor
    * @hidden
