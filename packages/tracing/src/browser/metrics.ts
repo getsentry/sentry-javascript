@@ -157,7 +157,7 @@ export class MetricsInstrumentation {
           `[Measurements] Normalized ${name} from ${this._measurements[name].value} to ${normalizedValue} (${delta})`,
         );
 
-        this._measurements[name] = { value: normalizedValue };
+        this._measurements[name].value = normalizedValue;
       });
 
       if (this._measurements['mark.fid'] && this._measurements['fid']) {
