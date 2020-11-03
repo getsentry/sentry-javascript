@@ -392,6 +392,10 @@ export class Scope implements ScopeInterface {
     // errors with transaction and it relys on that.
     if (this._span) {
       event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
+      const transactionName = this._span.transaction?.name;
+      if (transactionName) {
+        event.tags = { transaction: transactionName, ...event.tags };
+      }
     }
 
     this._applyFingerprint(event);
