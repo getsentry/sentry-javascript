@@ -27,46 +27,58 @@ export class AWSServices implements Integration {
    */
   public name: string = AWSServices.id;
 
+  private readonly _optional: boolean;
+
+  public constructor(options: { optional?: boolean } = {}) {
+    this._optional = options.optional || false;
+  }
+
   /**
    * @inheritDoc
    */
   public setupOnce(): void {
-    const awsModule = require('aws-sdk/global') as typeof AWS;
-    fill(
-      awsModule.Service.prototype,
-      'makeRequest',
-      <TService extends AWSService, TResult>(
-        orig: MakeRequestFunction<GenericParams, TResult>,
-      ): MakeRequestFunction<GenericParams, TResult> =>
-        function(this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
-          let transaction: Transaction | undefined;
-          let span: Span | undefined;
-          const scope = getCurrentHub().getScope();
-          if (scope) {
-            transaction = scope.getTransaction();
-          }
-          const req = orig.call(this, operation, params);
-          req.on('afterBuild', () => {
-            if (transaction) {
-              span = transaction.startChild({
-                description: describe(this, operation, params),
-                op: 'aws.request',
-              });
-            }
-          });
-          req.on('complete', () => {
-            if (span) {
-              span.finish();
-            }
-          });
-
-          if (callback) {
-            req.send(callback);
-          }
-          return req;
-        },
-    );
+    try {
+      const awsModule = require('aws-sdk/global') as typeof AWS;
+      fill(awsModule.Service.prototype, 'makeRequest', wrapMakeRequest);
+    } catch (e) {
+      if (!this._optional) {
+        throw e;
+      }
+    }
   }
+}
+
+/** */
+function wrapMakeRequest<TService extends AWSService, TResult>(
+  orig: MakeRequestFunction<GenericParams, TResult>,
+): MakeRequestFunction<GenericParams, TResult> {
+  return function(this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
+    let transaction: Transaction | undefined;
+    let span: Span | undefined;
+    const scope = getCurrentHub().getScope();
+    if (scope) {
+      transaction = scope.getTransaction();
+    }
+    const req = orig.call(this, operation, params);
+    req.on('afterBuild', () => {
+      if (transaction) {
+        span = transaction.startChild({
+          description: describe(this, operation, params),
+          op: 'aws.request',
+        });
+      }
+    });
+    req.on('complete', () => {
+      if (span) {
+        span.finish();
+      }
+    });
+
+    if (callback) {
+      req.send(callback);
+    }
+    return req;
+  };
 }
 
 /** Describes an operation on generic AWS service */

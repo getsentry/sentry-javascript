@@ -44,7 +44,7 @@ export interface WrapperOptions {
   timeoutWarningLimit: number;
 }
 
-export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices()];
+export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
 
 /**
  * @see {@link Sentry.init}
