@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/node';
 import { Integration } from '@sentry/types';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
-import { Context, Handler } from 'aws-lambda';
+import { Callback, Context, Handler } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
@@ -35,6 +35,11 @@ export type AsyncHandler<T extends Handler> = (
   event: Parameters<T>[0],
   context: Parameters<T>[1],
 ) => Promise<NonNullable<Parameters<Parameters<T>[2]>[1]>>;
+
+export interface WrappedHandler<TEvent, TResult> {
+  (event: TEvent, context: Context): Promise<TResult | undefined>;
+  (event: TEvent, context: Context, callback: Callback<TResult>): void;
+}
 
 export interface WrapperOptions {
   flushTimeout: number;
@@ -105,7 +110,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
 export function wrapHandler<TEvent, TResult>(
   handler: Handler<TEvent, TResult>,
   wrapOptions: Partial<WrapperOptions> = {},
-): Handler<TEvent, TResult | undefined> {
+): WrappedHandler<TEvent, TResult> {
   const options: WrapperOptions = {
     flushTimeout: 2000,
     rethrowAfterCapture: true,
@@ -141,8 +146,20 @@ export function wrapHandler<TEvent, TResult>(
           })
       : (handler as AsyncHandler<typeof handler>);
 
-  return async (event, context) => {
+  const asyncWrapper = async (
+    event: TEvent,
+    context: Context,
+    callback?: Callback<TResult>,
+  ): Promise<TResult | undefined> => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
+
+    let _callback: Callback<TResult> | undefined;
+    if (callback) {
+      _callback = (...args) => {
+        _callback = undefined;
+        callback(...args);
+      };
+    }
 
     // In seconds. You cannot go any more granular than this in AWS Lambda.
     const configuredTimeout = Math.ceil(context.getRemainingTimeInMillis() / 1000);
@@ -175,6 +192,7 @@ export function wrapHandler<TEvent, TResult>(
     const hub = getCurrentHub();
     const scope = hub.pushScope();
     let rv: TResult | undefined;
+    let error: any | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
       enhanceScopeWithEnvironmentData(scope, context);
       // We put the transaction on the scope so users can attach children to it
@@ -182,15 +200,32 @@ export function wrapHandler<TEvent, TResult>(
       rv = await asyncHandler(event, context);
     } catch (e) {
       captureException(e);
+      error = e;
       if (options.rethrowAfterCapture) {
         throw e;
       }
     } finally {
       clearTimeout(timeoutWarningTimer);
       transaction.finish();
-      hub.popScope();
       await flush(options.flushTimeout);
+      if (_callback) {
+        _callback(error, rv);
+      }
+      hub.popScope();
     }
     return rv;
   };
+
+  const wrapper = (
+    event: TEvent,
+    context: Context,
+    callback?: Callback<TResult>,
+  ): void | Promise<TResult | undefined> => {
+    const promise = asyncWrapper(event, context, callback);
+    if (callback) {
+      return;
+    }
+    return promise;
+  };
+  return wrapper as WrappedHandler<TEvent, TResult>;
 }

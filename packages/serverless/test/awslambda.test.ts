@@ -1,7 +1,7 @@
 import { Event } from '@sentry/types';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
-import { Callback, Handler } from 'aws-lambda';
+import { Handler } from 'aws-lambda';
 
 import * as Sentry from '../src';
 
@@ -34,13 +34,6 @@ const fakeContext = {
   succeed: () => {},
   ytho: 'o_O',
 };
-const fakeCallback: Callback = (err, result) => {
-  if (err === null || err === undefined) {
-    return result;
-  }
-  return err;
-};
-
 function expectScopeSettings() {
   // @ts-ignore see "Why @ts-ignore" note
   expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
@@ -84,7 +77,7 @@ describe('AWSLambda', () => {
       const handler = () => {};
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
 
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      await wrappedHandler(fakeEvent, fakeContext);
       expect(Sentry.flush).toBeCalledWith(1337);
     });
 
@@ -98,8 +91,8 @@ describe('AWSLambda', () => {
       const wrappedHandlerWithRethrow = wrapHandler(handler, { rethrowAfterCapture: true });
       const wrappedHandlerWithoutRethrow = wrapHandler(handler, { rethrowAfterCapture: false });
 
-      await expect(wrappedHandlerWithRethrow(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(error);
-      await expect(wrappedHandlerWithoutRethrow(fakeEvent, fakeContext, fakeCallback)).resolves.not.toThrow();
+      await expect(wrappedHandlerWithRethrow(fakeEvent, fakeContext)).rejects.toThrow(error);
+      await expect(wrappedHandlerWithoutRethrow(fakeEvent, fakeContext)).resolves.not.toThrow();
       expect(Sentry.flush).toBeCalledTimes(2);
     });
 
@@ -112,7 +105,7 @@ describe('AWSLambda', () => {
         }, DEFAULT_EXECUTION_TIME);
       };
       const wrappedHandler = wrapHandler(handler);
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      await wrappedHandler(fakeEvent, fakeContext);
 
       expect(Sentry.captureMessage).toBeCalled();
       // @ts-ignore see "Why @ts-ignore" note
@@ -130,7 +123,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, {
         captureTimeoutWarning: false,
       });
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      await wrappedHandler(fakeEvent, fakeContext);
 
       expect(Sentry.withScope).not.toBeCalled();
       expect(Sentry.captureMessage).not.toBeCalled();
@@ -153,14 +146,10 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, {
         timeoutWarningLimit: 99950, // 99.95s (which triggers warning after 50ms of our configured 100s below)
       });
-      await wrappedHandler(
-        fakeEvent,
-        {
-          ...fakeContext,
-          getRemainingTimeInMillis: () => 100000, // 100s - using such a high value to test human-readable format in one of the assertions
-        },
-        fakeCallback,
-      );
+      await wrappedHandler(fakeEvent, {
+        ...fakeContext,
+        getRemainingTimeInMillis: () => 100000, // 100s - using such a high value to test human-readable format in one of the assertions
+      });
 
       expect(Sentry.captureMessage).toBeCalled();
       // @ts-ignore see "Why @ts-ignore" note
@@ -176,7 +165,7 @@ describe('AWSLambda', () => {
         callback(null, 42);
       };
       const wrappedHandler = wrapHandler(handler);
-      const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      const rv = await wrappedHandler(fakeEvent, fakeContext);
       expect(rv).toStrictEqual(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
       expectScopeSettings();
@@ -185,8 +174,27 @@ describe('AWSLambda', () => {
       expect(Sentry.flush).toBeCalledWith(2000);
     });
 
+    test('successful execution when invoking with callback', done => {
+      expect.assertions(11);
+
+      const handler: Handler = (_event, _context, callback) => {
+        callback(null, 42);
+      };
+      const wrappedHandler = wrapHandler(handler);
+      wrappedHandler(fakeEvent, fakeContext, (err, result) => {
+        expect(err).toBeFalsy();
+        expect(result).toEqual(42);
+        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
+        expectScopeSettings();
+        // @ts-ignore see "Why @ts-ignore" note
+        expect(Sentry.fakeTransaction.finish).toBeCalled();
+        expect(Sentry.flush).toBeCalledWith(2000);
+        done();
+      });
+    });
+
     test('unsuccessful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(11);
 
       const error = new Error('sorry');
       const handler: Handler = (_event, _context, callback) => {
@@ -195,8 +203,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
 
       try {
-        await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+        await wrappedHandler(fakeEvent, fakeContext);
       } catch (e) {
+        expect(e).toEqual(error);
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
@@ -204,6 +213,28 @@ describe('AWSLambda', () => {
         expect(Sentry.fakeTransaction.finish).toBeCalled();
         expect(Sentry.flush).toBeCalledWith(2000);
       }
+    });
+
+    test('unsuccessful execution when invoking with callback', done => {
+      expect.assertions(12);
+
+      const error = new Error('sorry');
+      const handler: Handler = (_event, _context, callback) => {
+        callback(error);
+      };
+      const wrappedHandler = wrapHandler(handler);
+
+      wrappedHandler(fakeEvent, fakeContext, (err, result) => {
+        expect(err).toEqual(error);
+        expect(result).toBeFalsy();
+        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
+        expectScopeSettings();
+        expect(Sentry.captureException).toBeCalledWith(error);
+        // @ts-ignore see "Why @ts-ignore" note
+        expect(Sentry.fakeTransaction.finish).toBeCalled();
+        expect(Sentry.flush).toBeCalledWith(2000);
+        done();
+      });
     });
 
     test('event and context are correctly passed along', async () => {
@@ -215,11 +246,11 @@ describe('AWSLambda', () => {
         callback(undefined, { its: 'fine' });
       };
       const wrappedHandler = wrapHandler(handler);
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      await wrappedHandler(fakeEvent, fakeContext);
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(11);
 
       const error = new Error('wat');
       const handler: Handler = (_event, _context, _callback) => {
@@ -228,8 +259,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
 
       try {
-        await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+        await wrappedHandler(fakeEvent, fakeContext);
       } catch (e) {
+        expect(e).toEqual(error);
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(e);
@@ -237,6 +269,28 @@ describe('AWSLambda', () => {
         expect(Sentry.fakeTransaction.finish).toBeCalled();
         expect(Sentry.flush).toBeCalled();
       }
+    });
+
+    test('capture error when invoking with callback', done => {
+      expect.assertions(12);
+
+      const error = new Error('wat');
+      const handler: Handler = (_event, _context, _callback) => {
+        throw error;
+      };
+      const wrappedHandler = wrapHandler(handler);
+
+      wrappedHandler(fakeEvent, fakeContext, (err, result) => {
+        expect(err).toEqual(error);
+        expect(result).toBeFalsy();
+        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
+        expectScopeSettings();
+        expect(Sentry.captureException).toBeCalledWith(err);
+        // @ts-ignore see "Why @ts-ignore" note
+        expect(Sentry.fakeTransaction.finish).toBeCalled();
+        expect(Sentry.flush).toBeCalled();
+        done();
+      });
     });
   });
 
@@ -248,13 +302,32 @@ describe('AWSLambda', () => {
         return 42;
       };
       const wrappedHandler = wrapHandler(handler);
-      const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      const rv = await wrappedHandler(fakeEvent, fakeContext);
       expect(rv).toStrictEqual(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
       expectScopeSettings();
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
+    });
+
+    test('successful execution when invoking with callback', done => {
+      expect.assertions(11);
+
+      const handler: Handler = async (_event, _context) => {
+        return 42;
+      };
+      const wrappedHandler = wrapHandler(handler);
+      wrappedHandler(fakeEvent, fakeContext, (err, result) => {
+        expect(err).toBeFalsy();
+        expect(result).toStrictEqual(42);
+        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
+        expectScopeSettings();
+        // @ts-ignore see "Why @ts-ignore" note
+        expect(Sentry.fakeTransaction.finish).toBeCalled();
+        expect(Sentry.flush).toBeCalled();
+        done();
+      });
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -265,11 +338,11 @@ describe('AWSLambda', () => {
         expect(context).toHaveProperty('ytho');
       };
       const wrappedHandler = wrapHandler(handler);
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      await wrappedHandler(fakeEvent, fakeContext);
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(11);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context) => {
@@ -278,8 +351,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
 
       try {
-        await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+        await wrappedHandler(fakeEvent, fakeContext);
       } catch (e) {
+        expect(e).toEqual(error);
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
@@ -287,6 +361,28 @@ describe('AWSLambda', () => {
         expect(Sentry.fakeTransaction.finish).toBeCalled();
         expect(Sentry.flush).toBeCalled();
       }
+    });
+
+    test('capture error when invoking with callback', done => {
+      expect.assertions(12);
+
+      const error = new Error('wat');
+      const handler: Handler = async (_event, _context) => {
+        throw error;
+      };
+      const wrappedHandler = wrapHandler(handler);
+
+      wrappedHandler(fakeEvent, fakeContext, (err, result) => {
+        expect(err).toEqual(error);
+        expect(result).toBeFalsy();
+        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
+        expectScopeSettings();
+        expect(Sentry.captureException).toBeCalledWith(error);
+        // @ts-ignore see "Why @ts-ignore" note
+        expect(Sentry.fakeTransaction.finish).toBeCalled();
+        expect(Sentry.flush).toBeCalled();
+        done();
+      });
     });
   });
 
@@ -298,7 +394,7 @@ describe('AWSLambda', () => {
         return 42;
       };
       const wrappedHandler = wrapHandler(handler);
-      const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      const rv = await wrappedHandler(fakeEvent, fakeContext);
       expect(rv).toStrictEqual(42);
       expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
       expectScopeSettings();
@@ -315,11 +411,11 @@ describe('AWSLambda', () => {
         expect(context).toHaveProperty('ytho');
       };
       const wrappedHandler = wrapHandler(handler);
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      await wrappedHandler(fakeEvent, fakeContext);
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(11);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context, _callback) => {
@@ -328,8 +424,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
 
       try {
-        await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+        await wrappedHandler(fakeEvent, fakeContext);
       } catch (e) {
+        expect(e).toEqual(error);
         expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
@@ -337,6 +434,28 @@ describe('AWSLambda', () => {
         expect(Sentry.fakeTransaction.finish).toBeCalled();
         expect(Sentry.flush).toBeCalled();
       }
+    });
+
+    test('capture error when invoking with callback', done => {
+      expect.assertions(12);
+
+      const error = new Error('wat');
+      const handler: Handler = async (_event, _context, _callback) => {
+        throw error;
+      };
+      const wrappedHandler = wrapHandler(handler);
+
+      wrappedHandler(fakeEvent, fakeContext, (err, result) => {
+        expect(err).toEqual(error);
+        expect(result).toBeFalsy();
+        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
+        expectScopeSettings();
+        expect(Sentry.captureException).toBeCalledWith(error);
+        // @ts-ignore see "Why @ts-ignore" note
+        expect(Sentry.fakeTransaction.finish).toBeCalled();
+        expect(Sentry.flush).toBeCalled();
+        done();
+      });
     });
   });
 
