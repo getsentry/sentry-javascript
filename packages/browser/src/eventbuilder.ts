@@ -78,7 +78,7 @@ export function eventFromUnknownInput(
   }
   if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
     // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
-    // then we just extract the name and message, as they don't provide anything else
+    // then we just extract the name, code, and message, as they don't provide anything else
     // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
     // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
     const domException = exception as DOMException;
@@ -87,6 +87,10 @@ export function eventFromUnknownInput(
 
     event = eventFromString(message, syntheticException, options);
     addExceptionTypeValue(event, message);
+    if ('code' in domException) {
+      event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` }
+    }
+
     return event;
   }
   if (isError(exception as Error)) {
