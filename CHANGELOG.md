@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.27.3
+
+- [hub] fix: Make sure that `getSession` exists before calling it (#3017)
+- [browser] feat: Add `DOMException.code` as tag if it exists (#3018)
+- [browser] fix: Call `removeEventListener` twice only when necessary (#3016)
+- [tracing] fix: Schedule the execution of the finish to let all the spans being closed first (#3022)
+- [tracing] fix: Adjust some web vitals to be relative to fetchStart and some other improvements (#3019)
+- [tracing] fix: Add transaction name as tag on error events (#3024)
+
 ## 5.27.2
 
 - [apm] ref: Delete sentry/apm package (#2990)

@@ -88,7 +88,7 @@ export function eventFromUnknownInput(
     event = eventFromString(message, syntheticException, options);
     addExceptionTypeValue(event, message);
     if ('code' in domException) {
-      event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` }
+      event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` };
     }
 
     return event;
