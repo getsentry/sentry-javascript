@@ -247,7 +247,7 @@ describe('tracingHandler', () => {
     expect(transaction).toEqual(expect.objectContaining({ name: `GET ${urlString}`, op: 'http.server' }));
   });
 
-  it('pulls status code from the response', async () => {
+  it('pulls status code from the response', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
     const finishTransaction = jest.spyOn(transaction, 'finish');
@@ -256,9 +256,12 @@ describe('tracingHandler', () => {
     res.statusCode = 200;
     res.emit('finish');
 
-    expect(finishTransaction).toHaveBeenCalled();
-    expect(transaction.status).toBe(SpanStatus.Ok);
-    expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
+    setImmediate(() => {
+      expect(finishTransaction).toHaveBeenCalled();
+      expect(transaction.status).toBe(SpanStatus.Ok);
+      expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
+      done();
+    });
   });
 
   it('strips query string from request path', () => {
@@ -291,7 +294,7 @@ describe('tracingHandler', () => {
     expect(transaction?.name).toBe(`GET ${urlString}`);
   });
 
-  it('closes the transaction when request processing is done', () => {
+  it('closes the transaction when request processing is done', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
     const finishTransaction = jest.spyOn(transaction, 'finish');
@@ -299,6 +302,34 @@ describe('tracingHandler', () => {
     sentryTracingMiddleware(req, res, next);
     res.emit('finish');
 
-    expect(finishTransaction).toHaveBeenCalled();
+    setImmediate(() => {
+      expect(finishTransaction).toHaveBeenCalled();
+      done();
+    });
+  });
+
+  it('lets all spans being finished before calling `finish` itself, despite being registered to `res.finish` event first', done => {
+    const transaction = new Transaction({ name: 'mockTransaction' });
+    transaction.initSpanRecorder();
+    const span = transaction.startChild({
+      description: 'reallyCoolHandler',
+      op: 'middleware',
+    });
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    const finishSpan = jest.spyOn(span, 'finish');
+    const finishTransaction = jest.spyOn(transaction, 'finish');
+
+    sentryTracingMiddleware(req, res, next);
+    res.once('finish', () => {
+      span.finish();
+    });
+    res.emit('finish');
+
+    setImmediate(() => {
+      expect(finishSpan).toHaveBeenCalled();
+      expect(finishTransaction).toHaveBeenCalled();
+      expect(span.endTimestamp).toBeLessThan(transaction.endTimestamp!);
+      done();
+    });
   });
 }); // end describe('tracingHandler')
