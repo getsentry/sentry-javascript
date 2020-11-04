@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/node';
 import { Integration } from '@sentry/types';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
-import { Context, Handler } from 'aws-lambda';
+import { Callback, Context } from 'aws-lambda';
 import { hostname } from 'os';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
@@ -25,16 +25,8 @@ export * from '@sentry/node';
 const { isPromise } = types;
 
 // https://www.npmjs.com/package/aws-lambda-consumer
-type SyncHandler<T extends Handler> = (
-  event: Parameters<T>[0],
-  context: Parameters<T>[1],
-  callback: Parameters<T>[2],
-) => void;
-
-export type AsyncHandler<T extends Handler> = (
-  event: Parameters<T>[0],
-  context: Parameters<T>[1],
-) => Promise<NonNullable<Parameters<Parameters<T>[2]>[1]>>;
+export type SyncHandler<TEvent, TResult> = (event: TEvent, context: Context, callback: Callback<TResult>) => void;
+export type AsyncHandler<TEvent, TResult> = (event: TEvent, context: Context) => Promise<TResult>;
 
 export interface WrapperOptions {
   flushTimeout: number;
@@ -103,9 +95,9 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
  * @returns Handler
  */
 export function wrapHandler<TEvent, TResult>(
-  handler: Handler<TEvent, TResult>,
+  handler: AsyncHandler<TEvent, TResult> | SyncHandler<TEvent, TResult>,
   wrapOptions: Partial<WrapperOptions> = {},
-): Handler<TEvent, TResult | undefined> {
+): AsyncHandler<TEvent, TResult | undefined> {
   const options: WrapperOptions = {
     flushTimeout: 2000,
     rethrowAfterCapture: true,
@@ -121,11 +113,11 @@ export function wrapHandler<TEvent, TResult>(
   // async (event, context) => async handler
   // (event, context, callback) => sync handler
   // Nevertheless whatever option is chosen by user, we convert it to async handler.
-  const asyncHandler: AsyncHandler<typeof handler> =
+  const asyncHandler: AsyncHandler<TEvent, TResult> =
     handler.length > 2
       ? (event, context) =>
           new Promise((resolve, reject) => {
-            const rv = (handler as SyncHandler<typeof handler>)(event, context, (error, result) => {
+            const rv = (handler as SyncHandler<TEvent, TResult>)(event, context, (error, result) => {
               if (error === null || error === undefined) {
                 resolve(result!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
               } else {
@@ -139,7 +131,7 @@ export function wrapHandler<TEvent, TResult>(
               (rv as Promise<NonNullable<TResult>>).then(resolve, reject);
             }
           })
-      : (handler as AsyncHandler<typeof handler>);
+      : (handler as AsyncHandler<TEvent, TResult>);
 
   return async (event, context) => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
