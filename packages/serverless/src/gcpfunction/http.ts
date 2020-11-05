@@ -1,20 +1,14 @@
-// '@google-cloud/functions-framework/build/src/functions' import is expected to be type-only so it's erased in the final .js file.
-// When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
-import { HttpFunction } from '@google-cloud/functions-framework/build/src/functions';
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
-import { getActiveDomain, WrapperOptions } from './general';
+import { domainify, getActiveDomain, proxyFunction } from './../utils';
+import { HttpFunction, WrapperOptions } from './general';
 
-type Request = Parameters<HttpFunction>[0];
-type Response = Parameters<HttpFunction>[1];
 type ParseRequestOptions = Handlers.ParseRequestOptions;
 
 export interface HttpFunctionWrapperOptions extends WrapperOptions {
   parseRequestOptions: ParseRequestOptions;
 }
-
-export { Request, Response };
 
 const { parseRequest } = Handlers;
 
@@ -29,6 +23,22 @@ export function wrapHttpFunction(
   fn: HttpFunction,
   wrapOptions: Partial<HttpFunctionWrapperOptions> = {},
 ): HttpFunction {
+  const wrap = (f: HttpFunction): HttpFunction => domainify(_wrapHttpFunction(f, wrapOptions));
+
+  let overrides: Record<PropertyKey, unknown> | undefined;
+
+  // Functions emulator from firebase-tools has a hack-ish workaround that saves the actual function
+  // passed to `onRequest(...)` and in fact runs it so we need to wrap it too.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const emulatorFunc = (fn as any).__emulator_func as HttpFunction | undefined;
+  if (emulatorFunc) {
+    overrides = { __emulator_func: proxyFunction(emulatorFunc, wrap) };
+  }
+  return proxyFunction(fn, wrap, overrides);
+}
+
+/** */
+function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWrapperOptions> = {}): HttpFunction {
   const options: HttpFunctionWrapperOptions = {
     flushTimeout: 2000,
     parseRequestOptions: {},
@@ -36,7 +46,7 @@ export function wrapHttpFunction(
   };
   return (req, res) => {
     const reqMethod = (req.method || '').toUpperCase();
-    const reqUrl = req.url && stripUrlQueryAndFragment(req.url);
+    const reqUrl = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
 
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,
@@ -59,7 +69,8 @@ export function wrapHttpFunction(
 
     // functions-framework creates a domain for each incoming request so we take advantage of this fact and add an error handler.
     // BTW this is the only way to catch any exception occured during request lifecycle.
-    getActiveDomain().on('error', err => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    getActiveDomain()!.on('error', err => {
       captureException(err);
     });
 

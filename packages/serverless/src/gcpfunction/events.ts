@@ -1,10 +1,8 @@
-// '@google-cloud/functions-framework/build/src/functions' import is expected to be type-only so it's erased in the final .js file.
-// When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
-import { EventFunction, EventFunctionWithCallback } from '@google-cloud/functions-framework/build/src/functions';
 import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
-import { configureScopeWithContext, getActiveDomain, WrapperOptions } from './general';
+import { domainify, getActiveDomain, proxyFunction } from '../utils';
+import { configureScopeWithContext, EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
 
 export type EventFunctionWrapperOptions = WrapperOptions;
 
@@ -16,6 +14,14 @@ export type EventFunctionWrapperOptions = WrapperOptions;
  * @returns Event handler
  */
 export function wrapEventFunction(
+  fn: EventFunction | EventFunctionWithCallback,
+  wrapOptions: Partial<EventFunctionWrapperOptions> = {},
+): EventFunctionWithCallback {
+  return proxyFunction(fn, f => domainify(_wrapEventFunction(f, wrapOptions)));
+}
+
+/** */
+function _wrapEventFunction(
   fn: EventFunction | EventFunctionWithCallback,
   wrapOptions: Partial<EventFunctionWrapperOptions> = {},
 ): EventFunctionWithCallback {
@@ -38,7 +44,7 @@ export function wrapEventFunction(
       scope.setSpan(transaction);
     });
 
-    const activeDomain = getActiveDomain();
+    const activeDomain = getActiveDomain()!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 
     activeDomain.on('error', captureException);
 
