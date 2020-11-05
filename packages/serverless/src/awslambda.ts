@@ -62,7 +62,7 @@ export function init(options: Sentry.NodeOptions = {}): void {
  *
  * @param scope Scope that should be enhanced
  * @param context AWS Lambda context that will be used to extract some part of the data
- * @param startTime performance.now() when warpHandler was invoked
+ * @param startTime performance.now() when wrapHandler was invoked
  */
 function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTime: number): void {
   scope.setTransactionName(context.functionName);
