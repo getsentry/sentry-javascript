@@ -23,6 +23,7 @@ import { serverlessEventProcessor } from './utils';
 export * from '@sentry/node';
 
 const { isPromise } = types;
+const START_TIME = performance.now();
 
 // https://www.npmjs.com/package/aws-lambda-consumer
 type SyncHandler<T extends Handler> = (
@@ -79,7 +80,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
     function_name: context.functionName,
     function_version: context.functionVersion,
     invoked_function_arn: context.invokedFunctionArn,
-    execution_duration_in_millis: performance.now(),
+    execution_duration_in_millis: performance.now() - START_TIME,
     remaining_time_in_millis: context.getRemainingTimeInMillis(),
     'sys.argv': process.argv,
   });
