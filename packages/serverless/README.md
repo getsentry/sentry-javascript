@@ -53,6 +53,19 @@ Sentry.AWSLambda.init({
 });
 ```
 
+#### Integrate Sentry using internal extension
+
+Another and much simpler way to integrate Sentry to your AWS Lambda function is to add an official layer.
+
+1. Choose Layers -> Add Layer.
+2. Specify an ARN: `arn:aws:lambda:us-west-1:TODO:layer:TODO:VERSION`.
+3. *(optional)* Go to Environment variables and add:
+   - `NODE_OPTIONS`: `-r @sentry/serverless/dist/auto`.
+   - `SENTRY_DSN`: `your dsn`.
+   - `SENTRY_TRACES_SAMPLE_RATE`: `1.0` if you want to enable tracing.
+
+*NOTE*: Optional step 3 automatically enables the `@sentry/serverless` so you should remove `Sentry.init()` and `Sentry.AWSLambda.wrapHandler()` you had before in your function code.
+
 ### Google Cloud Functions
 
 To use this SDK, call `Sentry.GCPFunction.init(options)` at the very beginning of your JavaScript file.

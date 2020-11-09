@@ -85,6 +85,13 @@ export function init(options: NodeOptions = {}): void {
     options.dsn = process.env.SENTRY_DSN;
   }
 
+  if (options.tracesSampleRate === undefined && process.env.SENTRY_TRACES_SAMPLE_RATE) {
+    const tracesSampleRate = parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE);
+    if (isFinite(tracesSampleRate)) {
+      options.tracesSampleRate = tracesSampleRate;
+    }
+  }
+
   if (options.release === undefined) {
     const global = getGlobalObject<Window>();
     // Prefer env var over global
