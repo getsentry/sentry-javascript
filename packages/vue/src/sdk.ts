@@ -177,7 +177,6 @@ export class VueHelper {
    */
   public constructor(options: VueOptions) {
     this._options = options;
-
     this._attachErrorHandler();
 
     // TODO: Use other check to determine if tracing is enabled
@@ -341,9 +340,12 @@ export class VueHelper {
   /** Inject configured tracing hooks into Vue's component lifecycles */
   private _startTracing(): void {
     const applyTracingHooks = this._applyTracingHooks;
-
+    const appliedTracingHooks = setTimeout(() => {
+      logger.warn("Didn't apply tracing hooks, make sure you call Sentry.init before initialzing Vue!");
+    }, 500);
     this._options.Vue.mixin({
       beforeCreate(this: ViewModel): void {
+        clearTimeout(appliedTracingHooks);
         applyTracingHooks(this);
       },
     });
