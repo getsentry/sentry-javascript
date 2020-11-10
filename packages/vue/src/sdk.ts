@@ -1,11 +1,14 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserClient, BrowserOptions, defaultIntegrations } from '@sentry/browser';
+import { BrowserClient, BrowserOptions, defaultIntegrations, getCurrentHub } from '@sentry/browser';
 import { initAndBind } from '@sentry/core';
-import { Hub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { Hub, Scope, Span, Transaction } from '@sentry/types';
+import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
 export interface VueOptions extends BrowserOptions {
+  /** Vue instance to be used inside the integration */
+  Vue: VueInstance;
+
   /**
    * When set to `false`, Sentry will suppress reporting of all props data
    * from your Vue components for privacy concerns.
@@ -32,14 +35,10 @@ export interface VueOptions extends BrowserOptions {
    * Based on https://vuejs.org/v2/api/#Options-Lifecycle-Hooks
    */
   hooks?: Operation[];
-}
 
-/**
- * Used to extract BrowserTracing integration from @sentry/tracing
- */
-const BROWSER_TRACING_GETTER = ({
-  id: 'BrowserTracing',
-} as any) as IntegrationClass<Integration>;
+  /** {@link TracingOptions} */
+  tracingOptions: TracingOptions;
+}
 
 /** Global Vue object limited to the methods/attributes we require */
 interface VueInstance {
@@ -104,10 +103,30 @@ const COMPONENT_NAME_REGEXP = /(?:^|[-_/])(\w)/g;
 const ROOT_COMPONENT_NAME = 'root';
 const ANONYMOUS_COMPONENT_NAME = 'anonymous component';
 
+/** Vue specific configuration for Tracing Integration  */
+interface TracingOptions {
+  /**
+   * Decides whether to track components by hooking into its lifecycle methods.
+   * Can be either set to `boolean` to enable/disable tracking for all of them.
+   * Or to an array of specific component names (case-sensitive).
+   */
+  trackComponents: boolean | string[];
+  /** How long to wait until the tracked root activity is marked as finished and sent of to Sentry */
+  timeout: number;
+  /**
+   * List of hooks to keep track of during component lifecycle.
+   * Available hooks: 'activate' | 'create' | 'destroy' | 'mount' | 'update'
+   * Based on https://vuejs.org/v2/api/#Options-Lifecycle-Hooks
+   */
+  hooks: Operation[];
+}
+
 /**
  * Inits the Vue SDK
  */
-export function init(options: VueOptions = {}): void {
+export function init(
+  options: Partial<Omit<VueOptions, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }> = {},
+): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
@@ -118,5 +137,277 @@ export function init(options: VueOptions = {}): void {
       options.release = window.SENTRY_RELEASE.id;
     }
   }
-  initAndBind(BrowserClient, options);
+
+  const finalOptions = {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    Vue: getGlobalObject<any>().Vue as VueInstance,
+    attachProps: true,
+    logErrors: false,
+    tracing: false,
+    ...options,
+    tracingOptions: {
+      hooks: ['mount', 'update'],
+      timeout: 2000,
+      trackComponents: false,
+      ...options.tracingOptions,
+    },
+  } as VueOptions;
+
+  initAndBind(BrowserClient, finalOptions);
+  const client = getCurrentHub().getClient();
+  if (client) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    client.__vueHelper = new VueHelper(finalOptions);
+  }
+}
+
+/** JSDoc */
+export class VueHelper {
+  /**
+   * Cache holding already processed component names
+   */
+  private readonly _componentsCache: { [key: string]: string } = {};
+  private _rootSpan?: Span;
+  private _rootSpanTimer?: ReturnType<typeof setTimeout>;
+  private _options: VueOptions;
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(options: VueOptions) {
+    this._options = options;
+
+    this._attachErrorHandler();
+
+    // TODO: Use other check to determine if tracing is enabled
+    if (this._options.tracesSampleRate) {
+      this._startTracing();
+    }
+  }
+
+  /**
+   * Extract component name from the ViewModel
+   */
+  private _getComponentName(vm: ViewModel): string {
+    // Such level of granularity is most likely not necessary, but better safe than sorry. — Kamil
+    if (!vm) {
+      return ANONYMOUS_COMPONENT_NAME;
+    }
+
+    if (vm.$root === vm) {
+      return ROOT_COMPONENT_NAME;
+    }
+
+    if (!vm.$options) {
+      return ANONYMOUS_COMPONENT_NAME;
+    }
+
+    if (vm.$options.name) {
+      return vm.$options.name;
+    }
+
+    if (vm.$options._componentTag) {
+      return vm.$options._componentTag;
+    }
+
+    // injected by vue-loader
+    if (vm.$options.__file) {
+      const unifiedFile = vm.$options.__file.replace(/^[a-zA-Z]:/, '').replace(/\\/g, '/');
+      const filename = basename(unifiedFile, '.vue');
+      return (
+        this._componentsCache[filename] ||
+        (this._componentsCache[filename] = filename.replace(COMPONENT_NAME_REGEXP, (_, c: string) =>
+          c ? c.toUpperCase() : '',
+        ))
+      );
+    }
+
+    return ANONYMOUS_COMPONENT_NAME;
+  }
+
+  /** Keep it as attribute function, to keep correct `this` binding inside the hooks callbacks  */
+  // eslint-disable-next-line @typescript-eslint/typedef
+  private readonly _applyTracingHooks = (vm: ViewModel): void => {
+    // Don't attach twice, just in case
+    if (vm.$options.$_sentryPerfHook) {
+      return;
+    }
+    vm.$options.$_sentryPerfHook = true;
+
+    const name = this._getComponentName(vm);
+    const rootMount = name === ROOT_COMPONENT_NAME;
+    const spans: { [key: string]: Span } = {};
+
+    // Render hook starts after once event is emitted,
+    // but it ends before the second event of the same type.
+    //
+    // Because of this, we start measuring inside the first event,
+    // but finish it before it triggers, to skip the event emitter timing itself.
+    const rootHandler = (hook: Hook): void => {
+      const now = timestampWithMs();
+
+      // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
+      // However, on the second call (after), it'll be already in place.
+      if (this._rootSpan) {
+        this._finishRootSpan(now);
+      } else {
+        vm.$once(`hook:${hook}`, () => {
+          // Create an activity on the first event call. There'll be no second call, as rootSpan will be in place,
+          // thus new event handler won't be attached.
+          const activeTransaction = getActiveTransaction(getCurrentHub());
+          if (activeTransaction) {
+            this._rootSpan = activeTransaction.startChild({
+              description: 'Application Render',
+              op: 'Vue',
+            });
+          }
+        });
+      }
+    };
+
+    const childHandler = (hook: Hook, operation: Operation): void => {
+      // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
+      const shouldTrack = Array.isArray(this._options.tracingOptions.trackComponents)
+        ? this._options.tracingOptions.trackComponents.indexOf(name) > -1
+        : this._options.tracingOptions.trackComponents;
+
+      if (!this._rootSpan || !shouldTrack) {
+        return;
+      }
+
+      const now = timestampWithMs();
+      const span = spans[operation];
+
+      // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
+      // However, on the second call (after), it'll be already in place.
+      if (span) {
+        span.finish();
+        this._finishRootSpan(now);
+      } else {
+        vm.$once(`hook:${hook}`, () => {
+          if (this._rootSpan) {
+            spans[operation] = this._rootSpan.startChild({
+              description: `Vue <${name}>`,
+              op: operation,
+            });
+          }
+        });
+      }
+    };
+
+    // Each component has it's own scope, so all activities are only related to one of them
+    this._options.tracingOptions.hooks.forEach(operation => {
+      // Retrieve corresponding hooks from Vue lifecycle.
+      // eg. mount => ['beforeMount', 'mounted']
+      const internalHooks = HOOKS[operation];
+
+      if (!internalHooks) {
+        logger.warn(`Unknown hook: ${operation}`);
+        return;
+      }
+
+      internalHooks.forEach(internalHook => {
+        const handler = rootMount
+          ? rootHandler.bind(this, internalHook)
+          : childHandler.bind(this, internalHook, operation);
+        const currentValue = vm.$options[internalHook];
+
+        if (Array.isArray(currentValue)) {
+          vm.$options[internalHook] = [handler, ...currentValue];
+        } else if (typeof currentValue === 'function') {
+          vm.$options[internalHook] = [handler, currentValue];
+        } else {
+          vm.$options[internalHook] = [handler];
+        }
+      });
+    });
+  };
+
+  /** Finish top-level span and activity with a debounce configured using `timeout` option */
+  private _finishRootSpan(timestamp: number): void {
+    if (this._rootSpanTimer) {
+      clearTimeout(this._rootSpanTimer);
+    }
+
+    this._rootSpanTimer = setTimeout(() => {
+      // We should always finish the span, only should pop activity if using @sentry/apm
+      if (this._rootSpan) {
+        this._rootSpan.finish(timestamp);
+      }
+    }, this._options.tracingOptions.timeout);
+  }
+
+  /** Inject configured tracing hooks into Vue's component lifecycles */
+  private _startTracing(): void {
+    const applyTracingHooks = this._applyTracingHooks;
+
+    this._options.Vue.mixin({
+      beforeCreate(this: ViewModel): void {
+        applyTracingHooks(this);
+      },
+    });
+  }
+
+  /** Inject Sentry's handler into owns Vue's error handler  */
+  private _attachErrorHandler(): void {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const currentErrorHandler = this._options.Vue.config.errorHandler;
+
+    this._options.Vue.config.errorHandler = (error: Error, vm?: ViewModel, info?: string): void => {
+      const metadata: Metadata = {};
+
+      if (vm) {
+        try {
+          metadata.componentName = this._getComponentName(vm);
+
+          if (this._options.attachProps) {
+            metadata.propsData = vm.$options.propsData;
+          }
+        } catch (_oO) {
+          logger.warn('Unable to extract metadata from Vue component.');
+        }
+      }
+
+      if (info) {
+        metadata.lifecycleHook = info;
+      }
+
+      // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
+      setTimeout(() => {
+        getCurrentHub().withScope(scope => {
+          scope.setContext('vue', metadata);
+          getCurrentHub().captureException(error);
+        });
+      });
+
+      if (typeof currentErrorHandler === 'function') {
+        currentErrorHandler.call(this._options.Vue, error, vm, info);
+      }
+
+      if (this._options.logErrors) {
+        if (this._options.Vue.util) {
+          this._options.Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
+        }
+        // eslint-disable-next-line no-console
+        console.error(error);
+      }
+    };
+  }
+}
+
+interface HubType extends Hub {
+  getScope?(): Scope | undefined;
+}
+
+/** Grabs active transaction off scope */
+export function getActiveTransaction<T extends Transaction>(hub: HubType): T | undefined {
+  if (hub && hub.getScope) {
+    const scope = hub.getScope() as Scope;
+    if (scope) {
+      return scope.getTransaction() as T | undefined;
+    }
+  }
+
+  return undefined;
 }
