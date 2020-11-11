@@ -111,8 +111,9 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
 
   switch (arity) {
     case 2: {
-      return function(this: NodeJS.Global, _req: Request, res: Response & SentryTracingResponse): any {
+      return function(this: NodeJS.Global, req: Request, res: Response & SentryTracingResponse): any {
         const transaction = res.__sentry_transaction;
+        addExpressReqToTransaction(transaction, req);
         if (transaction) {
           const span = transaction.startChild({
             description: fn.name,
@@ -134,6 +135,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
         next: NextFunction,
       ): any {
         const transaction = res.__sentry_transaction;
+        addExpressReqToTransaction(transaction, req);
         const span =
           transaction &&
           transaction.startChild({
@@ -158,6 +160,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
         next: NextFunction,
       ): any {
         const transaction = res.__sentry_transaction;
+        addExpressReqToTransaction(transaction, req);
         const span =
           transaction &&
           transaction.startChild({
@@ -177,6 +180,23 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
       throw new Error(`Express middleware takes 2-4 arguments. Got: ${arity}`);
     }
   }
+}
+
+/**
+ * Set parameterized as transaction name e.g.: `GET /users/:id`
+ * Also adds more context data on the transaction from the request
+ */
+function addExpressReqToTransaction(transaction: Transaction | undefined, req: any): void {
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+  if (transaction) {
+    if (req.route && req.route.path) {
+      transaction.name = `${req.method} ${req.route.path}`;
+    }
+    transaction.setData('url', req.originalUrl);
+    transaction.setData('baseUrl', req.baseUrl);
+    transaction.setData('query', req.query);
+  }
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }
 
 /**
