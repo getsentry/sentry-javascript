@@ -68,7 +68,7 @@ export interface Options {
   dist?: string;
 
   /**
-   * The maximum number of breadcrumbs sent with events. Defaults to 30.
+   * The maximum number of breadcrumbs sent with events. Defaults to 100.
    * Values over 100 will be ignored and 100 used instead.
    */
   maxBreadcrumbs?: number;
