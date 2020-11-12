@@ -1,15 +1,17 @@
+import { Event } from '@sentry/types';
+import * as domain from 'domain';
+
+import * as Sentry from '../src';
+import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
 import {
   CloudEventFunction,
   CloudEventFunctionWithCallback,
   EventFunction,
   EventFunctionWithCallback,
   HttpFunction,
-} from '@google-cloud/functions-framework/build/src/functions';
-import { Event } from '@sentry/types';
-import * as domain from 'domain';
-
-import * as Sentry from '../src';
-import { Request, Response, wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
+  Request,
+  Response,
+} from '../src/gcpfunction/general';
 
 /**
  * Why @ts-ignore some Sentry.X calls
