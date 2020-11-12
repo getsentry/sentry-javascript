@@ -62,8 +62,9 @@ export function init(options: Sentry.NodeOptions = {}): void {
  *
  * @param scope Scope that should be enhanced
  * @param context AWS Lambda context that will be used to extract some part of the data
+ * @param startTime performance.now() when wrapHandler was invoked
  */
-function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
+function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTime: number): void {
   scope.setTransactionName(context.functionName);
 
   scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
@@ -79,7 +80,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context): void {
     function_name: context.functionName,
     function_version: context.functionVersion,
     invoked_function_arn: context.invokedFunctionArn,
-    execution_duration_in_millis: performance.now(),
+    execution_duration_in_millis: performance.now() - startTime,
     remaining_time_in_millis: context.getRemainingTimeInMillis(),
     'sys.argv': process.argv,
   });
@@ -106,6 +107,7 @@ export function wrapHandler<TEvent, TResult>(
   handler: Handler<TEvent, TResult>,
   wrapOptions: Partial<WrapperOptions> = {},
 ): Handler<TEvent, TResult | undefined> {
+  const START_TIME = performance.now();
   const options: WrapperOptions = {
     flushTimeout: 2000,
     rethrowAfterCapture: true,
@@ -176,7 +178,7 @@ export function wrapHandler<TEvent, TResult>(
     const scope = hub.pushScope();
     let rv: TResult | undefined;
     try {
-      enhanceScopeWithEnvironmentData(scope, context);
+      enhanceScopeWithEnvironmentData(scope, context, START_TIME);
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
       rv = await asyncHandler(event, context);
