@@ -24,6 +24,7 @@ export interface Carrier {
      */
     extensions?: {
       /** Hack to prevent bundlers from breaking our usage of the domain package in the cross-platform Hub package */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       domain?: { [key: string]: any };
     } & {
       /** Extension methods for the hub, which are bound to the current Hub instance */
@@ -34,5 +35,6 @@ export interface Carrier {
 }
 
 export interface DomainAsCarrier extends Carrier {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   members: { [key: string]: any }[];
 }

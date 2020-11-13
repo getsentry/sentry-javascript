@@ -477,10 +477,12 @@ export class Scope implements ScopeInterface {
  * Retruns the global event processors.
  */
 function getGlobalEventProcessors(): EventProcessor[] {
-  const global = getGlobalObject<Window | NodeJS.Global>();
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access  */
+  const global = getGlobalObject<any>();
   global.__SENTRY__ = global.__SENTRY__ || {};
   global.__SENTRY__.globalEventProcessors = global.__SENTRY__.globalEventProcessors || [];
   return global.__SENTRY__.globalEventProcessors;
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 }
 
 /**
