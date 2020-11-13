@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular",
-  "version": "5.27.3",
+  "version": "5.27.4",
   "description": "Offical Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
@@ -21,9 +21,9 @@
     "@angular/router": "^10.0.3"
   },
   "dependencies": {
-    "@sentry/browser": "5.27.3",
-    "@sentry/types": "5.27.3",
-    "@sentry/utils": "5.27.3",
+    "@sentry/browser": "5.27.4",
+    "@sentry/types": "5.27.4",
+    "@sentry/utils": "5.27.4",
     "rxjs": "^6.6.0",
     "tslib": "^1.9.3"
   },
@@ -31,7 +31,7 @@
     "@angular/common": "^10.0.3",
     "@angular/core": "^10.0.3",
     "@angular/router": "^10.0.3",
-    "@sentry-internal/eslint-config-sdk": "5.27.3",
+    "@sentry-internal/eslint-config-sdk": "5.27.4",
     "eslint": "7.6.0",
     "npm-run-all": "^4.1.2",
     "prettier": "1.19.0",
