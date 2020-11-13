@@ -1,5 +1,4 @@
 import { Client } from '@sentry/types';
-import * as domain from 'domain';
 
 import { Hub } from './hub';
 import { Scope } from './scope';
@@ -25,13 +24,8 @@ export interface Carrier {
      */
     extensions?: {
       /** Hack to prevent bundlers from breaking our usage of the domain package in the cross-platform Hub package */
-      domain?: typeof domain & {
-        /**
-         * The currently active domain. This is part of the domain package, but for some reason not declared in the
-         * package's typedef.
-         */
-        active?: domain.Domain;
-      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      domain?: { [key: string]: any };
     } & {
       /** Extension methods for the hub, which are bound to the current Hub instance */
       // eslint-disable-next-line @typescript-eslint/ban-types
@@ -40,4 +34,7 @@ export interface Carrier {
   };
 }
 
-export interface DomainAsCarrier extends domain.Domain, Carrier {}
+export interface DomainAsCarrier extends Carrier {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  members: { [key: string]: any }[];
+}
