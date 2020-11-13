@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.27.4
+
+- [core] fix: Remove globalThis usage (#3033)
+- [react] ref: Add React 17.x to peerDependencies (#3034)
+- [tracing] fix: Express transaction name (#3048)
+- [serverless] fix: AWS Execution duration (#3032)
+- [serverless] fix: Add `optional` parameter to AWSServices integration (#3030)
+- [serverless] fix: Wrap google cloud functions with a Proxy(). (#3035)
+- [hub] fix: stop using @types/node in @sentry/hub (#3050)
+
 ## 5.27.3
 
 - [hub] fix: Make sure that `getSession` exists before calling it (#3017)
