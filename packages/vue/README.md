@@ -29,9 +29,7 @@ Vue.config.productionTip = false
 
 Sentry.init({
   Vue: Vue,
-  debug: true,
   dsn: '__PUBLIC_DSN__',
-  attachProps: true,
 })
 
 /* eslint-disable no-new */
