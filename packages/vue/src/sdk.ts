@@ -179,8 +179,7 @@ export class VueHelper {
     this._options = options;
     this._attachErrorHandler();
 
-    // TODO: Use other check to determine if tracing is enabled
-    if (this._options.tracesSampleRate) {
+    if ('tracesSampleRate' in this._options || 'tracesSampler' in this._options) {
       this._startTracing();
     }
   }
