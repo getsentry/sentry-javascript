@@ -24,7 +24,7 @@
     "tslib": "^1.9.3"
   },
   "peerDependencies": {
-    "vue": "2.x || 3.x"
+    "vue": "2.x"
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "5.27.4",
@@ -35,11 +35,19 @@
     "prettier": "1.19.0",
     "react": "^16.0.0",
     "rimraf": "^2.6.3",
+    "rollup": "^1.10.1",
+    "rollup-plugin-commonjs": "^9.3.4",
+    "rollup-plugin-license": "^0.8.1",
+    "rollup-plugin-node-resolve": "^4.2.3",
+    "rollup-plugin-terser": "^4.0.4",
+    "rollup-plugin-typescript2": "^0.21.0",
     "typescript": "3.7.5",
     "vue": "^2.6"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm",
+    "build": "run-p build:es5 build:esm build:bundle",
+    "build:bundle": "rollup --config",
+    "build:bundle:watch": "rollup --config --watch",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "run-p build:watch:es5 build:watch:esm",
