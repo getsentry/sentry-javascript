@@ -1,8 +1,18 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span, Transaction } from '@sentry/types';
-import { fill, parseSemver } from '@sentry/utils';
+import { fill, logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
+
+import {
+  cleanSpanDescription,
+  extractUrl,
+  isSentryRequest,
+  normalizeRequestArgs,
+  RequestMethod,
+  RequestMethodArgs,
+  RequestOptions,
+} from './utils/http';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
@@ -45,7 +55,7 @@ export class Http implements Integration {
       return;
     }
 
-    const wrappedHandlerMaker = _createWrappedHandlerMaker(this._breadcrumbs, this._tracing);
+    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, this._tracing);
 
     const httpModule = require('http');
     fill(httpModule, 'get', wrappedHandlerMaker);
@@ -62,9 +72,10 @@ export class Http implements Integration {
   }
 }
 
-type OriginalHandler = () => http.ClientRequest;
-type WrappedHandler = (options: string | http.ClientRequestArgs) => http.ClientRequest;
-type WrappedHandlerMaker = (originalHandler: OriginalHandler) => WrappedHandler;
+// for ease of reading below
+type OriginalRequestMethod = RequestMethod;
+type WrappedRequestMethod = RequestMethod;
+type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedRequestMethod;
 
 /**
  * Function which creates a function which creates wrapped versions of internal `request` and `get` calls within `http`
@@ -75,17 +86,19 @@ type WrappedHandlerMaker = (originalHandler: OriginalHandler) => WrappedHandler;
  *
  * @returns A function which accepts the exiting handler and returns a wrapped handler
  */
-function _createWrappedHandlerMaker(breadcrumbsEnabled: boolean, tracingEnabled: boolean): WrappedHandlerMaker {
-  return function wrappedHandlerMaker(originalHandler: OriginalHandler): WrappedHandler {
-    return function wrappedHandler(
-      this: typeof http | typeof https,
-      options: string | http.ClientRequestArgs,
-    ): http.ClientRequest {
-      const requestUrl = extractUrl(options);
+function _createWrappedRequestMethodFactory(
+  breadcrumbsEnabled: boolean,
+  tracingEnabled: boolean,
+): WrappedRequestMethodFactory {
+  return function wrappedRequestMethodFactory(originalRequestMethod: OriginalRequestMethod): WrappedRequestMethod {
+    return function wrappedMethod(this: typeof http | typeof https, ...args: RequestMethodArgs): http.ClientRequest {
+      const requestArgs = normalizeRequestArgs(args);
+      const requestOptions = requestArgs[0];
+      const requestUrl = extractUrl(requestOptions);
 
-      // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original handler
+      // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
       if (isSentryRequest(requestUrl)) {
-        return originalHandler.apply(this, arguments);
+        return originalRequestMethod.apply(this, requestArgs);
       }
 
       let span: Span | undefined;
@@ -96,22 +109,23 @@ function _createWrappedHandlerMaker(breadcrumbsEnabled: boolean, tracingEnabled:
         transaction = scope.getTransaction();
         if (transaction) {
           span = transaction.startChild({
-            description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
+            description: `${requestOptions.method || 'GET'} ${requestUrl}`,
             op: 'request',
           });
+          addSentryTraceHeader(span, requestOptions);
         }
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return originalHandler
-        .apply(this, arguments)
+      return originalRequestMethod
+        .apply(this, requestArgs)
         .once('response', function(this: http.IncomingMessage, res: http.ServerResponse): void {
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('response', requestUrl, this, res);
           }
           if (tracingEnabled && span) {
             span.setHttpStatus(res.statusCode);
-            cleanDescription(options, this, span);
+            cleanSpanDescription(requestOptions, this, span);
             span.finish();
           }
         })
@@ -121,7 +135,7 @@ function _createWrappedHandlerMaker(breadcrumbsEnabled: boolean, tracingEnabled:
           }
           if (tracingEnabled && span) {
             span.setHttpStatus(500);
-            cleanDescription(options, this, span);
+            cleanSpanDescription(requestOptions, this, span);
             span.finish();
           }
         });
@@ -156,70 +170,14 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
 }
 
 /**
- * Assemble a URL to be used for breadcrumbs and spans.
+ * Add the `sentry-trace` header to the request options passed to `http(s).request()` and `http(s).get()`.
  *
- * @param url URL string or object containing the component parts
- * @returns Fully-formed URL
- */
-export function extractUrl(url: string | http.ClientRequestArgs): string {
-  if (typeof url === 'string') {
-    return url;
-  }
-  const protocol = url.protocol || '';
-  const hostname = url.hostname || url.host || '';
-  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-  const port = !url.port || url.port === 80 || url.port === 443 ? '' : `:${url.port}`;
-  const path = url.path ? url.path : '/';
-
-  // internal routes end up with too many slashes
-  return `${protocol}//${hostname}${port}${path}`.replace('///', '/');
-}
-
-/**
- * Handle an edge case with urls in the span description. Runs just before the span closes because it relies on
- * data from the response object.
+ * @param span The span representing this outgoing request.
+ * @param requestArgs The arguments passed to `http(s).request()` or `http(s).get()`
  *
- * @param requestOptions Configuration data for the request
- * @param response Response object
- * @param span Span representing the request
  */
-function cleanDescription(
-  requestOptions: string | http.ClientRequestArgs,
-  response: http.IncomingMessage,
-  span: Span,
-): void {
-  // There are some libraries which don't pass the request protocol in the options object, so attempt to retrieve it
-  // from the response and run the URL processing again. We only do this in the presence of a (non-empty) host value,
-  // because if we're missing both, it's likely we're dealing with an internal route, in which case we don't want to be
-  // jamming a random `http:` on the front of it.
-  if (typeof requestOptions !== 'string' && !Object.keys(requestOptions).includes('protocol') && requestOptions.host) {
-    // Neither http.IncomingMessage nor any of its ancestors have an `agent` property in their type definitions, and
-    // http.Agent doesn't have a `protocol` property in its type definition. Nonetheless, at least one request library
-    // (superagent) arranges things that way, so might as well give it a shot.
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      requestOptions.protocol = (response as any).agent.protocol;
-      span.description = `${requestOptions.method || 'GET'} ${extractUrl(requestOptions)}`;
-    } catch (error) {
-      // well, we tried
-    }
-  }
-}
-
-/**
- * Checks whether given url points to Sentry server
- * @param url url to verify
- */
-function isSentryRequest(url: string): boolean {
-  const client = getCurrentHub().getClient();
-  if (!url || !client) {
-    return false;
-  }
-
-  const dsn = client.getDsn();
-  if (!dsn) {
-    return false;
-  }
-
-  return url.indexOf(dsn.host) !== -1;
+function addSentryTraceHeader(span: Span, requestOptions: RequestOptions): void {
+  const headerValue = span.toTraceparent();
+  logger.log(`[Tracing] Adding sentry-trace header to outgoing request: ${headerValue}`);
+  requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': headerValue };
 }
