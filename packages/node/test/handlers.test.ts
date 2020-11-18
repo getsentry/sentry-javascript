@@ -308,7 +308,7 @@ describe('tracingHandler', () => {
     });
   });
 
-  it('lets all spans being finished before calling `finish` itself, despite being registered to `res.finish` event first', done => {
+  it('waits to finish transaction until all spans are finished, even though `transaction.finish()` is registered on `res.finish` event first', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
     transaction.initSpanRecorder();
     const span = transaction.startChild({
@@ -328,7 +328,7 @@ describe('tracingHandler', () => {
     setImmediate(() => {
       expect(finishSpan).toHaveBeenCalled();
       expect(finishTransaction).toHaveBeenCalled();
-      expect(span.endTimestamp).toBeLessThan(transaction.endTimestamp!);
+      expect(span.endTimestamp).toBeLessThanOrEqual(transaction.endTimestamp!);
       done();
     });
   });
