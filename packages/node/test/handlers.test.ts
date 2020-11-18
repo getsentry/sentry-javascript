@@ -309,7 +309,7 @@ describe('tracingHandler', () => {
   });
 
   it('waits to finish transaction until all spans are finished, even though `transaction.finish()` is registered on `res.finish` event first', done => {
-    const transaction = new Transaction({ name: 'mockTransaction' });
+    const transaction = new Transaction({ name: 'mockTransaction', sampled: true });
     transaction.initSpanRecorder();
     const span = transaction.startChild({
       description: 'reallyCoolHandler',
@@ -318,6 +318,11 @@ describe('tracingHandler', () => {
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
     const finishSpan = jest.spyOn(span, 'finish');
     const finishTransaction = jest.spyOn(transaction, 'finish');
+
+    let sentEvent: Event;
+    jest.spyOn((transaction as any)._hub, 'captureEvent').mockImplementation(event => {
+      sentEvent = event as Event;
+    });
 
     sentryTracingMiddleware(req, res, next);
     res.once('finish', () => {
@@ -329,6 +334,8 @@ describe('tracingHandler', () => {
       expect(finishSpan).toHaveBeenCalled();
       expect(finishTransaction).toHaveBeenCalled();
       expect(span.endTimestamp).toBeLessThanOrEqual(transaction.endTimestamp!);
+      expect(sentEvent.spans?.length).toEqual(1);
+      expect(sentEvent.spans?.[0].spanId).toEqual(span.spanId);
       done();
     });
   });
