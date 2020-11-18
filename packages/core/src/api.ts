@@ -76,7 +76,7 @@ export class API {
     const dsn = this._dsnObject;
     const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
     header.push(`sentry_client=${clientName}/${clientVersion}`);
-    header.push(`sentry_key=${dsn.user}`);
+    header.push(`sentry_key=${dsn.publicKey}`);
     if (dsn.pass) {
       header.push(`sentry_secret=${dsn.pass}`);
     }
@@ -143,7 +143,7 @@ export class API {
     const auth = {
       // We send only the minimum set of required information. See
       // https://github.com/getsentry/sentry-javascript/issues/2572.
-      sentry_key: dsn.user,
+      sentry_key: dsn.publicKey,
       sentry_version: SENTRY_API_VERSION,
     };
     return urlEncode(auth);
