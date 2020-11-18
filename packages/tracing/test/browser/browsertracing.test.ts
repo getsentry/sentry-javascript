@@ -10,7 +10,7 @@ import {
   getHeaderContext,
   getMetaContent,
 } from '../../src/browser/browsertracing';
-import { defaultRequestInstrumentionOptions } from '../../src/browser/request';
+import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { defaultRoutingInstrumentation } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
@@ -84,7 +84,7 @@ describe('BrowserTracing', () => {
       routingInstrumentation: defaultRoutingInstrumentation,
       startTransactionOnLocationChange: true,
       startTransactionOnPageLoad: true,
-      ...defaultRequestInstrumentionOptions,
+      ...defaultRequestInstrumentationOptions,
     });
   });
 
@@ -131,7 +131,7 @@ describe('BrowserTracing', () => {
         });
 
         expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
       });
 
       it('warns and uses default tracing origins if empty array given', () => {
@@ -141,7 +141,7 @@ describe('BrowserTracing', () => {
         });
 
         expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
       });
 
       it('warns and uses default tracing origins if tracing origins are not defined', () => {
@@ -151,7 +151,7 @@ describe('BrowserTracing', () => {
         });
 
         expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentionOptions.tracingOrigins);
+        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
       });
 
       it('sets tracing origins if provided and does not warn', () => {
