@@ -67,7 +67,7 @@ export abstract class BaseTransport implements Transport {
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
      */
     const limited = this._handleRateLimit(headers);
-    if (limited) logger.warn(`Too many requests, backing off till: ${this._disabledUntil(requestType)}`);
+    if (limited) logger.warn(`Too many requests, backing off until: ${this._disabledUntil(requestType)}`);
 
     if (status === Status.Success) {
       resolve({ status });
