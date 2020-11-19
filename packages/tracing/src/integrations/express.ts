@@ -27,10 +27,11 @@ type Method =
   | 'subscribe'
   | 'trace'
   | 'unlock'
-  | 'unsubscribe';
+  | 'unsubscribe'
+  | 'use';
 
 type Application = {
-  [method in Method | 'use']: (...args: any) => any;
+  [method in Method]: (...args: any) => any;
 };
 
 type ErrorRequestHandler = (...args: any) => any;
@@ -39,6 +40,16 @@ type NextFunction = (...args: any) => any;
 
 interface Response {
   once(name: string, callback: () => void): void;
+}
+
+interface Request {
+  route?: {
+    path: string;
+  };
+  method: string;
+  originalUrl: string;
+  baseUrl: string;
+  query: string;
 }
 
 /**
@@ -77,7 +88,7 @@ export class Express implements Integration {
    */
   public constructor(options: { app?: Application; methods?: Method[] } = {}) {
     this._app = options.app;
-    this._methods = options.methods;
+    this._methods = (Array.isArray(options.methods) ? options.methods : []).concat('use');
   }
 
   /**
@@ -88,8 +99,7 @@ export class Express implements Integration {
       logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
-    instrumentMiddlewares(this._app);
-    routeMiddlewares(this._app, this._methods);
+    instrumentMiddlewares(this._app, this._methods);
   }
 }
 
@@ -106,7 +116,7 @@ export class Express implements Integration {
  * app.use(function (err, req, res, next) { ... })
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
+function wrap(fn: Function, method: Method): RequestHandler | ErrorRequestHandler {
   const arity = fn.length;
 
   switch (arity) {
@@ -117,7 +127,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
         if (transaction) {
           const span = transaction.startChild({
             description: fn.name,
-            op: 'middleware',
+            op: `middleware.${method}`,
           });
           res.once('finish', () => {
             span.finish();
@@ -140,7 +150,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
           transaction &&
           transaction.startChild({
             description: fn.name,
-            op: 'middleware',
+            op: `middleware.${method}`,
           });
         fn.call(this, req, res, function(this: NodeJS.Global): any {
           if (span) {
@@ -165,7 +175,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
           transaction &&
           transaction.startChild({
             description: fn.name,
-            op: 'middleware',
+            op: `middleware.${method}`,
           });
         fn.call(this, err, req, res, function(this: NodeJS.Global): any {
           if (span) {
@@ -183,23 +193,6 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
 }
 
 /**
- * Set parameterized as transaction name e.g.: `GET /users/:id`
- * Also adds more context data on the transaction from the request
- */
-function addExpressReqToTransaction(transaction: Transaction | undefined, req: any): void {
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-  if (transaction) {
-    if (req.route && req.route.path) {
-      transaction.name = `${req.method} ${req.route.path}`;
-    }
-    transaction.setData('url', req.originalUrl);
-    transaction.setData('baseUrl', req.baseUrl);
-    transaction.setData('query', req.query);
-  }
-  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-}
-
-/**
  * Takes all the function arguments passed to the original `app.use` call
  * and wraps every function, as well as array of functions with a call to our `wrap` method.
  * We have to take care of the arrays as well as iterate over all of the arguments,
@@ -209,16 +202,16 @@ function addExpressReqToTransaction(transaction: Transaction | undefined, req: a
  * app.use([<path>], <fn>, ...<fn>)
  * app.use([<path>], ...<fn>[])
  */
-function wrapUseArgs(args: IArguments): unknown[] {
-  return Array.from(args).map((arg: unknown) => {
+function wrapMiddlewareArgs(args: unknown[], method: Method): unknown[] {
+  return args.map((arg: unknown) => {
     if (typeof arg === 'function') {
-      return wrap(arg);
+      return wrap(arg, method);
     }
 
     if (Array.isArray(arg)) {
       return arg.map((a: unknown) => {
         if (typeof a === 'function') {
-          return wrap(a);
+          return wrap(a, method);
         }
         return a;
       });
@@ -231,29 +224,34 @@ function wrapUseArgs(args: IArguments): unknown[] {
 /**
  * Patches original App to utilize our tracing functionality
  */
-function patchMiddleware(app: Application, method: Method | 'use'): Application {
+function patchMiddleware(app: Application, method: Method): Application {
   const originalAppCallback = app[method];
 
-  app[method] = function(): any {
-    // eslint-disable-next-line prefer-rest-params
-    return originalAppCallback.apply(this, wrapUseArgs(arguments));
+  app[method] = function(...args: unknown[]): any {
+    return originalAppCallback.apply(this, wrapMiddlewareArgs(args, method));
   };
 
   return app;
 }
 
 /**
- * Patches original app.use
+ * Patches original application methods
  */
-function instrumentMiddlewares(app: Application): void {
-  patchMiddleware(app, 'use');
+function instrumentMiddlewares(app: Application, methods: Method[] = []): void {
+  methods.forEach((method: Method) => patchMiddleware(app, method));
 }
 
 /**
- * Patches original app.METHOD
+ * Set parameterized as transaction name e.g.: `GET /users/:id`
+ * Also adds more context data on the transaction from the request
  */
-function routeMiddlewares(app: Application, methods: Method[] = []): void {
-  methods.forEach(function(method: Method) {
-    patchMiddleware(app, method);
-  });
+function addExpressReqToTransaction(transaction: Transaction | undefined, req: Request): void {
+  if (transaction) {
+    if (req.route && req.route.path) {
+      transaction.name = `${req.method} ${req.route.path}`;
+    }
+    transaction.setData('url', req.originalUrl);
+    transaction.setData('baseUrl', req.baseUrl);
+    transaction.setData('query', req.query);
+  }
 }
