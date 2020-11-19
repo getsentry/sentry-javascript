@@ -37,10 +37,20 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   if (useEnvelope) {
     const envelopeHeaders = JSON.stringify({
       event_id: event.event_id,
+
       // We need to add * 1000 since we divide it by 1000 by default but JS works with ms precision
       // The reason we use timestampWithMs here is that all clocks across the SDK use the same clock
       sent_at: new Date().toISOString(),
+
+      // trace context for dynamic sampling on relay
+      trace: {
+        trace_id: event.contexts?.trace?.trace_id,
+        // TODO: any reason we can't change this property to be called publicKey, since that's what it is?
+        public_key: api.getDsn().user,
+        release: event.release || 'no release specified',
+      },
     });
+
     const itemHeaders = JSON.stringify({
       type: event.type,
       // The content-type is assumed to be 'application/json' and not part of
@@ -57,6 +67,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
       //
       // length: new TextEncoder().encode(req.body).length,
     });
+
     // The trailing newline is optional. We intentionally don't send it to avoid
     // sending unnecessary bytes.
     //
