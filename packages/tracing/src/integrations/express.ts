@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -30,25 +29,11 @@ type Method =
   | 'use';
 
 type Router = {
-  [method in Method]: (...args: any) => any;
+  [method in Method]: (...args: unknown[]) => unknown;
 };
 
-type ErrorRequestHandler = (...args: any) => any;
-type RequestHandler = (...args: any) => any;
-type NextFunction = (...args: any) => any;
-
-interface Response {
+interface ExpressResponse {
   once(name: string, callback: () => void): void;
-}
-
-interface Request {
-  route?: {
-    path: string;
-  };
-  method: string;
-  originalUrl: string;
-  baseUrl: string;
-  query: string;
 }
 
 /**
@@ -62,8 +47,7 @@ interface SentryTracingResponse {
 /**
  * Express integration
  *
- * Provides an request and error handler for Express framework
- * as well as tracing capabilities
+ * Provides an request and error handler for Express framework as well as tracing capabilities
  */
 export class Express implements Integration {
   /**
@@ -79,14 +63,14 @@ export class Express implements Integration {
   /**
    * Express App instance
    */
-  private readonly _app?: Router;
+  private readonly _router?: Router;
   private readonly _methods?: Method[];
 
   /**
    * @inheritDoc
    */
-  public constructor(options: { app?: Router; methods?: Method[] } = {}) {
-    this._app = options.app;
+  public constructor(options: { app?: Router; router?: Router; methods?: Method[] } = {}) {
+    this._router = options.router || options.app;
     this._methods = (Array.isArray(options.methods) ? options.methods : []).concat('use');
   }
 
@@ -94,11 +78,11 @@ export class Express implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    if (!this._app) {
+    if (!this._router) {
       logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
-    instrumentMiddlewares(this._app, this._methods);
+    instrumentMiddlewares(this._router, this._methods);
   }
 }
 
@@ -113,16 +97,17 @@ export class Express implements Integration {
  * app.use(function (req, res, next) { ... })
  * // error handler
  * app.use(function (err, req, res, next) { ... })
+ *
+ * They all internally delegate to the `router[method]` of the given application instance.
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
-function wrap(fn: Function, method: Method): RequestHandler | ErrorRequestHandler {
+// eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
+function wrap(fn: Function, method: Method): (...args: any[]) => void {
   const arity = fn.length;
 
   switch (arity) {
     case 2: {
-      return function(this: NodeJS.Global, req: Request, res: Response & SentryTracingResponse): any {
+      return function(this: NodeJS.Global, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
         const transaction = res.__sentry_transaction;
-        addExpressReqToTransaction(transaction, req);
         if (transaction) {
           const span = transaction.startChild({
             description: fn.name,
@@ -132,56 +117,43 @@ function wrap(fn: Function, method: Method): RequestHandler | ErrorRequestHandle
             span.finish();
           });
         }
-        // eslint-disable-next-line prefer-rest-params
-        return fn.apply(this, arguments);
+        return fn.call(this, req, res);
       };
     }
     case 3: {
       return function(
         this: NodeJS.Global,
-        req: Request,
-        res: Response & SentryTracingResponse,
-        next: NextFunction,
-      ): any {
+        req: unknown,
+        res: ExpressResponse & SentryTracingResponse,
+        next: () => void,
+      ): void {
         const transaction = res.__sentry_transaction;
-        addExpressReqToTransaction(transaction, req);
-        const span =
-          transaction &&
-          transaction.startChild({
-            description: fn.name,
-            op: `middleware.${method}`,
-          });
-        fn.call(this, req, res, function(this: NodeJS.Global): any {
-          if (span) {
-            span.finish();
-          }
-          // eslint-disable-next-line prefer-rest-params
-          return next.apply(this, arguments);
+        const span = transaction?.startChild({
+          description: fn.name,
+          op: `middleware.${method}`,
+        });
+        fn.call(this, req, res, function(this: NodeJS.Global, ...args: unknown[]): void {
+          span?.finish();
+          next.call(this, ...args);
         });
       };
     }
     case 4: {
       return function(
         this: NodeJS.Global,
-        err: any,
+        err: Error,
         req: Request,
         res: Response & SentryTracingResponse,
-        next: NextFunction,
-      ): any {
+        next: () => void,
+      ): void {
         const transaction = res.__sentry_transaction;
-        addExpressReqToTransaction(transaction, req);
-        const span =
-          transaction &&
-          transaction.startChild({
-            description: fn.name,
-            op: `middleware.${method}`,
-          });
-        fn.call(this, err, req, res, function(this: NodeJS.Global): any {
-          if (span) {
-            span.finish();
-          }
-          // eslint-disable-next-line prefer-rest-params
-          return next.apply(this, arguments);
+        const span = transaction?.startChild({
+          description: fn.name,
+          op: `middleware.${method}`,
+        });
+        fn.call(this, err, req, res, function(this: NodeJS.Global, ...args: unknown[]): void {
+          span?.finish();
+          next.call(this, ...args);
         });
       };
     }
@@ -192,7 +164,7 @@ function wrap(fn: Function, method: Method): RequestHandler | ErrorRequestHandle
 }
 
 /**
- * Takes all the function arguments passed to the original `app.use` call
+ * Takes all the function arguments passed to the original `app` or `router` method, eg. `app.use` or `router.use`
  * and wraps every function, as well as array of functions with a call to our `wrap` method.
  * We have to take care of the arrays as well as iterate over all of the arguments,
  * as `app.use` can accept middlewares in few various forms.
@@ -221,36 +193,21 @@ function wrapMiddlewareArgs(args: unknown[], method: Method): unknown[] {
 }
 
 /**
- * Patches original App to utilize our tracing functionality
+ * Patches original router to utilize our tracing functionality
  */
-function patchMiddleware(app: Router, method: Method): Router {
-  const originalAppCallback = app[method];
+function patchMiddleware(router: Router, method: Method): Router {
+  const originalCallback = router[method];
 
-  app[method] = function(...args: unknown[]): any {
-    return originalAppCallback.apply(this, wrapMiddlewareArgs(args, method));
+  router[method] = function(...args: unknown[]): void {
+    return originalCallback.call(this, ...wrapMiddlewareArgs(args, method));
   };
 
-  return app;
+  return router;
 }
 
 /**
- * Patches original application methods
+ * Patches original router methods
  */
-function instrumentMiddlewares(app: Router, methods: Method[] = []): void {
-  methods.forEach((method: Method) => patchMiddleware(app, method));
-}
-
-/**
- * Set parameterized as transaction name e.g.: `GET /users/:id`
- * Also adds more context data on the transaction from the request
- */
-function addExpressReqToTransaction(transaction: Transaction | undefined, req: Request): void {
-  if (transaction) {
-    if (req.route && req.route.path) {
-      transaction.name = `${req.method} ${req.route.path}`;
-    }
-    transaction.setData('url', req.originalUrl);
-    transaction.setData('baseUrl', req.baseUrl);
-    transaction.setData('query', req.query);
-  }
+function instrumentMiddlewares(router: Router, methods: Method[] = []): void {
+  methods.forEach((method: Method) => patchMiddleware(router, method));
 }
