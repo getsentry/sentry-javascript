@@ -2,7 +2,6 @@
 import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-// Have to manually set types because we are using package-alias
 type Method =
   | 'all'
   | 'get'
@@ -30,7 +29,7 @@ type Method =
   | 'unsubscribe'
   | 'use';
 
-type Application = {
+type Router = {
   [method in Method]: (...args: any) => any;
 };
 
@@ -80,13 +79,13 @@ export class Express implements Integration {
   /**
    * Express App instance
    */
-  private readonly _app?: Application;
+  private readonly _app?: Router;
   private readonly _methods?: Method[];
 
   /**
    * @inheritDoc
    */
-  public constructor(options: { app?: Application; methods?: Method[] } = {}) {
+  public constructor(options: { app?: Router; methods?: Method[] } = {}) {
     this._app = options.app;
     this._methods = (Array.isArray(options.methods) ? options.methods : []).concat('use');
   }
@@ -224,7 +223,7 @@ function wrapMiddlewareArgs(args: unknown[], method: Method): unknown[] {
 /**
  * Patches original App to utilize our tracing functionality
  */
-function patchMiddleware(app: Application, method: Method): Application {
+function patchMiddleware(app: Router, method: Method): Router {
   const originalAppCallback = app[method];
 
   app[method] = function(...args: unknown[]): any {
@@ -237,7 +236,7 @@ function patchMiddleware(app: Application, method: Method): Application {
 /**
  * Patches original application methods
  */
-function instrumentMiddlewares(app: Application, methods: Method[] = []): void {
+function instrumentMiddlewares(app: Router, methods: Method[] = []): void {
   methods.forEach((method: Method) => patchMiddleware(app, method));
 }
 
