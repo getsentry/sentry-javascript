@@ -440,12 +440,10 @@ export class Scope implements ScopeInterface {
   protected _notifyScopeListeners(): void {
     if (!this._notifyingListeners) {
       this._notifyingListeners = true;
-      setTimeout(() => {
-        this._scopeListeners.forEach(callback => {
-          callback(this);
-        });
-        this._notifyingListeners = false;
+      this._scopeListeners.forEach(callback => {
+        callback(this);
       });
+      this._notifyingListeners = false;
     }
   }
 
