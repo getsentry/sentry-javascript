@@ -171,7 +171,7 @@ describe('Hub', () => {
     });
 
     describe('sample()', () => {
-      it('should not sample transactions when tracing is disabled', () => {
+      it('should set sampled = false when tracing is disabled', () => {
         // neither tracesSampleRate nor tracesSampler is defined -> tracing disabled
         const hub = new Hub(new BrowserClient({}));
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -219,7 +219,7 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(true);
       });
 
-      it('should not try to override positive sampling decision provided in transaction context', () => {
+      it('should not try to override explicitly set positive sampling decision', () => {
         // so that the decision otherwise would be false
         const tracesSampler = jest.fn().mockReturnValue(0);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
@@ -228,7 +228,7 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(true);
       });
 
-      it('should not try to override negative sampling decision provided in transaction context', () => {
+      it('should not try to override explicitly set negative sampling decision', () => {
         // so that the decision otherwise would be true
         const tracesSampler = jest.fn().mockReturnValue(1);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
@@ -254,6 +254,40 @@ describe('Hub', () => {
 
         expect(tracesSampler).toHaveBeenCalled();
         expect(transaction.sampled).toBe(true);
+      });
+
+      it('should record sampling method when sampling decision is explicitly set', () => {
+        const tracesSampler = jest.fn().mockReturnValue(0.1121);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark', sampled: true });
+
+        expect(transaction.tags).toEqual(expect.objectContaining({ __sentry_samplingMethod: 'explicitly_set' }));
+      });
+
+      it('should record sampling method and rate when sampling decision comes from tracesSampler', () => {
+        const tracesSampler = jest.fn().mockReturnValue(0.1121);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(transaction.tags).toEqual(
+          expect.objectContaining({ __sentry_samplingMethod: 'client_sampler', __sentry_sampleRate: '0.1121' }),
+        );
+      });
+
+      it('should record sampling method when sampling decision is inherited', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.1121 }));
+        const transaction = hub.startTransaction({ name: 'dogpark', parentSampled: true });
+
+        expect(transaction.tags).toEqual(expect.objectContaining({ __sentry_samplingMethod: 'inheritance' }));
+      });
+
+      it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.1121 }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(transaction.tags).toEqual(
+          expect.objectContaining({ __sentry_samplingMethod: 'client_rate', __sentry_sampleRate: '0.1121' }),
+        );
       });
     });
 
