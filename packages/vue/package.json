@@ -42,7 +42,8 @@
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
     "typescript": "3.7.5",
-    "vue": "^2.6"
+    "vue": "^2.6",
+    "vue-router": "^3.0.1"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm build:bundle",

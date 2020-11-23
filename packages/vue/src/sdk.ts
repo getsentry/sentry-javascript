@@ -146,7 +146,7 @@ export function init(
     tracing: false,
     ...options,
     tracingOptions: {
-      hooks: ['mount', 'update'],
+      hooks: ['activate', 'mount', 'update'],
       timeout: 2000,
       trackComponents: false,
       ...options.tracingOptions,
@@ -270,13 +270,14 @@ export class VueHelper {
         ? this._options.tracingOptions.trackComponents.indexOf(name) > -1
         : this._options.tracingOptions.trackComponents;
 
-      if (!this._rootSpan || !shouldTrack) {
+      const childOf = this._rootSpan || getActiveTransaction(getCurrentHub());
+
+      if (!childOf || !shouldTrack) {
         return;
       }
 
       const now = timestampWithMs();
       const span = spans[operation];
-
       // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
       // However, on the second call (after), it'll be already in place.
       if (span) {
@@ -284,8 +285,8 @@ export class VueHelper {
         this._finishRootSpan(now);
       } else {
         vm.$once(`hook:${hook}`, () => {
-          if (this._rootSpan) {
-            spans[operation] = this._rootSpan.startChild({
+          if (childOf) {
+            spans[operation] = childOf.startChild({
               description: `Vue <${name}>`,
               op: operation,
             });
@@ -332,6 +333,7 @@ export class VueHelper {
       // We should always finish the span, only should pop activity if using @sentry/apm
       if (this._rootSpan) {
         this._rootSpan.finish(timestamp);
+        this._rootSpan = undefined;
       }
     }, this._options.tracingOptions.timeout);
   }
