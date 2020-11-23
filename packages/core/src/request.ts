@@ -47,6 +47,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
         trace_id: event.contexts?.trace?.trace_id,
         // TODO: any reason we can't change this property to be called publicKey, since that's what it is?
         public_key: api.getDsn().user,
+        environment: event.environment || 'no environment specified',
         release: event.release || 'no release specified',
       },
     });

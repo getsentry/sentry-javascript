@@ -26,6 +26,7 @@ describe('eventToSentryRequest', () => {
     const traceId = '0908201304152013';
     const event = {
       contexts: { trace: { trace_id: traceId, span_id: '12261980', op: 'pageload' } },
+      environment: 'dogpark',
       event_id: eventId,
       release: 'off.leash.park',
       spans: [],
@@ -51,7 +52,12 @@ describe('eventToSentryRequest', () => {
     expect(envelope.envelopeHeader).toEqual({
       event_id: eventId,
       sent_at: expect.any(String),
-      trace: { public_key: 'dogsarebadatkeepingsecrets', release: 'off.leash.park', trace_id: traceId },
+      trace: {
+        environment: 'dogpark',
+        public_key: 'dogsarebadatkeepingsecrets',
+        release: 'off.leash.park',
+        trace_id: traceId,
+      },
     });
     expect(envelope.itemHeader).toEqual({ type: 'transaction' });
     expect(envelope.event).toEqual(event);
