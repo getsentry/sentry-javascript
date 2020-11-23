@@ -25,9 +25,6 @@ import { Session } from './session';
  * called by the client before an event will be sent.
  */
 export class Scope implements ScopeInterface {
-  /** Flag if notifiying is happening. */
-  protected _notifyingListeners: boolean = false;
-
   /** Callback for client to receive scope changes. */
   protected _scopeListeners: Array<(scope: Scope) => void> = [];
 
@@ -438,13 +435,9 @@ export class Scope implements ScopeInterface {
    * This will be called on every set call.
    */
   protected _notifyScopeListeners(): void {
-    if (!this._notifyingListeners) {
-      this._notifyingListeners = true;
-      this._scopeListeners.forEach(callback => {
-        callback(this);
-      });
-      this._notifyingListeners = false;
-    }
+    this._scopeListeners.forEach(callback => {
+      callback(this);
+    });
   }
 
   /**
