@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.27.6
+
+- [hub] fix: Don't invoke scope updates in scope listeners
+
 ## 5.27.5
 
 - [hub] fix: Sync ScopeListeners (#3065)
