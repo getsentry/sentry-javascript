@@ -80,7 +80,16 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
       event_id: event.event_id,
       sent_at: new Date().toISOString(),
       ...(sdkInfo && { sdk: sdkInfo }),
+
+      // trace context for dynamic sampling on relay
+      trace: {
+        trace_id: event.contexts?.trace?.trace_id,
+        public_key: api.getDsn().publicKey,
+        environment: event.environment || null,
+        release: event.release || null,
+      },
     });
+
     const itemHeaders = JSON.stringify({
       type: event.type,
 
@@ -102,6 +111,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
       //
       // length: new TextEncoder().encode(req.body).length,
     });
+
     // The trailing newline is optional. We intentionally don't send it to avoid
     // sending unnecessary bytes.
     //
