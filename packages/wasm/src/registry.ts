@@ -44,7 +44,7 @@ export function registerModule(module: WebAssembly.Module, url: string) {
       type: 'wasm',
       code_id: buildId,
       code_file: url,
-      debug_file: debugFile,
+      debug_file: debugFile ? new URL(debugFile, url).href : null,
       debug_id: buildId.padEnd(32, '0').substr(0, 32) + '0',
     });
   }
