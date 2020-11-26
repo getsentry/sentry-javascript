@@ -1,5 +1,6 @@
 import { Breadcrumb } from './breadcrumb';
 import { Contexts } from './context';
+import { DebugMeta } from './debugMeta';
 import { Exception } from './exception';
 import { Extras } from './extra';
 import { Request } from './request';
@@ -41,6 +42,7 @@ export interface Event {
   type?: EventType;
   spans?: Span[];
   measurements?: Measurements;
+  debug_meta?: DebugMeta;
 }
 
 /** JSDoc */

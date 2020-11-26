@@ -1,0 +1,4 @@
+*.js.map
+*.d.ts
+*.js
+!.eslintrc.js
