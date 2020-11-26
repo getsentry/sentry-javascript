@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event } from '@sentry/types';
+import { Event, Transaction } from '@sentry/types';
 import {
   extractNodeRequestData,
   forget,
@@ -20,6 +20,16 @@ import { NodeClient } from './client';
 import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
+
+interface ExpressRequest {
+  route?: {
+    path: string;
+  };
+  method: string;
+  originalUrl: string;
+  baseUrl: string;
+  query: string;
+}
 
 /**
  * Express-compatible tracing handler.
@@ -65,6 +75,7 @@ export function tracingHandler(): (
     res.once('finish', () => {
       // We schedule the immediate execution of the `finish` to let all the spans being closed first.
       setImmediate(() => {
+        addExpressReqToTransaction(transaction, (req as unknown) as ExpressRequest);
         transaction.setHttpStatus(res.statusCode);
         transaction.finish();
       });
@@ -72,6 +83,20 @@ export function tracingHandler(): (
 
     next();
   };
+}
+
+/**
+ * Set parameterized as transaction name e.g.: `GET /users/:id`
+ * Also adds more context data on the transaction from the request
+ */
+function addExpressReqToTransaction(transaction: Transaction | undefined, req: ExpressRequest): void {
+  if (!transaction) return;
+  if (req.route) {
+    transaction.name = `${req.method} ${req.baseUrl}${req.route.path}`;
+  }
+  transaction.setData('url', req.originalUrl);
+  transaction.setData('baseUrl', req.baseUrl);
+  transaction.setData('query', req.query);
 }
 
 type TransactionTypes = 'path' | 'methodPath' | 'handler';
