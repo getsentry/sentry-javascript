@@ -76,7 +76,7 @@ export interface XHRData {
   endTimestamp?: number;
 }
 
-export const defaultRequestInstrumentionOptions: RequestInstrumentationOptions = {
+export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
   tracingOrigins: DEFAULT_TRACING_ORIGINS,
@@ -86,7 +86,7 @@ export const defaultRequestInstrumentionOptions: RequestInstrumentationOptions =
 export function registerRequestInstrumentation(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
-    ...defaultRequestInstrumentionOptions,
+    ...defaultRequestInstrumentationOptions,
     ..._options,
   };
 

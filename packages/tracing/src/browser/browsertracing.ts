@@ -9,7 +9,7 @@ import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
-  defaultRequestInstrumentionOptions,
+  defaultRequestInstrumentationOptions,
   registerRequestInstrumentation,
   RequestInstrumentationOptions,
 } from './request';
@@ -90,7 +90,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS = {
   routingInstrumentation: defaultRoutingInstrumentation,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
-  ...defaultRequestInstrumentionOptions,
+  ...defaultRequestInstrumentationOptions,
 };
 
 /**
@@ -121,7 +121,7 @@ export class BrowserTracing implements Integration {
   private readonly _emitOptionsWarning: boolean = false;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
-    let tracingOrigins = defaultRequestInstrumentionOptions.tracingOrigins;
+    let tracingOrigins = defaultRequestInstrumentationOptions.tracingOrigins;
     // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
     if (
       _options &&
@@ -152,7 +152,7 @@ export class BrowserTracing implements Integration {
         '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
       );
       logger.warn(
-        `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentionOptions.tracingOrigins}`,
+        `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentationOptions.tracingOrigins}`,
       );
     }
 
