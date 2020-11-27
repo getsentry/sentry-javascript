@@ -1,4 +1,5 @@
-import { DebugImage, Hub, EventProcessor, Integration, StackFrame } from '@sentry/types';
+import { DebugImage, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+
 import { patchWebAssembly } from './patchWebAssembly';
 import { getImage, getImages } from './registry';
 
@@ -9,9 +10,10 @@ export interface ModuleInfo {
   debugFile: string | null;
 }
 
+/** plz don't */
 function patchFrames(frames: Array<StackFrame>): boolean {
   let haveWasm = false;
-  frames.forEach((frame) => {
+  frames.forEach(frame => {
     if (!frame.filename) {
       return;
     }
@@ -53,11 +55,11 @@ export class Wasm implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
     patchWebAssembly();
 
-    addGlobalEventProcessor((event) => {
+    addGlobalEventProcessor(event => {
       let haveWasm = false;
 
       if (event.exception && event.exception.values) {
-        event.exception.values.forEach((exception) => {
+        event.exception.values.forEach(exception => {
           if (exception?.stacktrace?.frames) {
             haveWasm = haveWasm || patchFrames(exception.stacktrace.frames);
           }

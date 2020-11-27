@@ -1,6 +1,6 @@
 import { DebugImage } from '@sentry/types';
-import { ModuleInfo } from './index';
-import { IMAGES } from './index';
+
+import { IMAGES, ModuleInfo } from './index';
 
 /**
  * Returns the extracted meta information from a web assembly module that
@@ -33,7 +33,7 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
 /**
  * Records a module
  */
-export function registerModule(module: WebAssembly.Module, url: string) {
+export function registerModule(module: WebAssembly.Module, url: string): void {
   const { buildId, debugFile } = getModuleInfo(module);
   if (buildId) {
     const oldIdx = IMAGES.findIndex(img => img.code_file === url);
@@ -45,7 +45,7 @@ export function registerModule(module: WebAssembly.Module, url: string) {
       code_id: buildId,
       code_file: url,
       debug_file: debugFile ? new URL(debugFile, url).href : null,
-      debug_id: buildId.padEnd(32, '0').substr(0, 32) + '0',
+      debug_id: `${buildId.padEnd(32, '0').substr(0, 32)}0`,
     });
   }
 }
@@ -62,6 +62,6 @@ export function getImages(): Array<DebugImage> {
  *
  * @param url the URL of the WebAssembly module.
  */
-export function getImage(url: string) {
+export function getImage(url: string): number {
   return IMAGES.findIndex(img => img.code_file === url);
 }

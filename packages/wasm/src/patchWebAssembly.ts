@@ -3,32 +3,37 @@ import { registerModule } from './registry';
 /**
  * Patches the web assembly runtime.
  */
-export function patchWebAssembly() {
-  const origInstantiateStreaming = WebAssembly.instantiateStreaming;
-  const origCompileStreaming = WebAssembly.compileStreaming;
-
-  function recordedInstanticateStreaming(promise: Promise<any>, obj: any) {
-    return Promise.resolve(promise).then(resp => {
-      return origInstantiateStreaming(resp, obj).then(rv => {
-        if (resp.url) {
-          registerModule(rv.module, resp.url);
-        }
-        return rv;
+export function patchWebAssembly(): void {
+  if ('instantiateStreaming' in WebAssembly) {
+    const origInstantiateStreaming = WebAssembly.instantiateStreaming;
+    WebAssembly.instantiateStreaming = function instantiateStreaming(
+      response: Response | PromiseLike<Response>,
+      importObject: WebAssembly.Imports,
+    ): Promise<WebAssembly.Module> {
+      return Promise.resolve(response).then(response => {
+        return origInstantiateStreaming(response, importObject).then(rv => {
+          if (response.url) {
+            registerModule(rv.module, response.url);
+          }
+          return rv;
+        });
       });
-    });
+    } as typeof WebAssembly.instantiateStreaming;
   }
 
-  function recordedCompileStreaming(promise: Promise<any>) {
-    return Promise.resolve(promise).then(resp => {
-      return origCompileStreaming(resp).then(module => {
-        if (resp.url) {
-          registerModule(module, resp.url);
-        }
-        return module;
+  if ('compileStreaming' in WebAssembly) {
+    const origCompileStreaming = WebAssembly.compileStreaming;
+    WebAssembly.compileStreaming = function compileStreaming(
+      source: Response | Promise<Response>,
+    ): Promise<WebAssembly.Module> {
+      return Promise.resolve(source).then(response => {
+        return origCompileStreaming(response).then(module => {
+          if (response.url) {
+            registerModule(module, response.url);
+          }
+          return module;
+        });
       });
-    });
+    } as typeof WebAssembly.compileStreaming;
   }
-
-  (WebAssembly as any).instantiateStreaming = recordedInstanticateStreaming;
-  (WebAssembly as any).compileStreaming = recordedCompileStreaming;
 }
