@@ -21,6 +21,10 @@
 - [ember] fix: Use correct import from `@sentry/browser` (#3077)
 - [node] ref: Express integration span name change and path unification (#3078)
 
+## 5.27.7-beta.0
+
+- [tracing] ref: Send correlation context for dynamic sampling in envelope header
+
 ## 5.27.6
 
 - [hub] fix: Don't invoke scope updates in scope listeners
