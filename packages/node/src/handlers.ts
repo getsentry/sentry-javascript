@@ -14,21 +14,28 @@ import {
 import * as domain from 'domain';
 import * as http from 'http';
 import * as os from 'os';
-import * as url from 'url';
 
 import { NodeClient } from './client';
 import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
-interface ExpressRequest {
+interface ExpressRequest extends http.IncomingMessage {
+  [key: string]: any;
+  baseUrl?: string;
+  ip?: string;
+  originalUrl?: string;
   route?: {
     path: string;
+    stack: [
+      {
+        name: string;
+      },
+    ];
   };
-  method: string;
-  originalUrl: string;
-  baseUrl: string;
-  query: string;
+  user?: {
+    [key: string]: any;
+  };
 }
 
 /**
@@ -45,11 +52,6 @@ export function tracingHandler(): (
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    // TODO: At this point `req.route.path` (which we use in `extractTransaction`) is not available
-    // but `req.path` or `req.url` should do the job as well. We could unify this here.
-    const reqMethod = (req.method || '').toUpperCase();
-    const reqUrl = req.url && stripUrlQueryAndFragment(req.url);
-
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
     let traceparentData;
     if (req.headers && isString(req.headers['sentry-trace'])) {
@@ -57,7 +59,7 @@ export function tracingHandler(): (
     }
 
     const transaction = startTransaction({
-      name: `${reqMethod} ${reqUrl}`,
+      name: extractRouteInfo(req, { path: true, method: true }),
       op: 'http.server',
       ...traceparentData,
     });
@@ -75,7 +77,7 @@ export function tracingHandler(): (
     res.once('finish', () => {
       // We schedule the immediate execution of the `finish` to let all the spans being closed first.
       setImmediate(() => {
-        addExpressReqToTransaction(transaction, (req as unknown) as ExpressRequest);
+        addExpressReqToTransaction(transaction, req);
         transaction.setHttpStatus(res.statusCode);
         transaction.finish();
       });
@@ -91,56 +93,56 @@ export function tracingHandler(): (
  */
 function addExpressReqToTransaction(transaction: Transaction | undefined, req: ExpressRequest): void {
   if (!transaction) return;
-  if (req.route) {
-    transaction.name = `${req.method} ${req.baseUrl}${req.route.path}`;
-  }
+  transaction.name = extractRouteInfo(req, { path: true, method: true });
   transaction.setData('url', req.originalUrl);
   transaction.setData('baseUrl', req.baseUrl);
   transaction.setData('query', req.query);
 }
 
+/**
+ * Extracts complete generalized path from the request object.
+ * eg. /mountpoint/user/:id
+ */
+function extractRouteInfo(req: ExpressRequest, options: { path?: boolean; method?: boolean } = {}): string {
+  const method = req.method?.toUpperCase();
+  let path;
+  if (req.baseUrl && req.route) {
+    path = `${req.baseUrl}${req.route.path}`;
+  } else if (req.originalUrl || req.url) {
+    path = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
+  } else {
+    path = req.route?.path || '';
+  }
+
+  let info = '';
+  if (options.method && method) {
+    info += method;
+  }
+  if (options.method && options.path) {
+    info += ` `;
+  }
+  if (options.path && path) {
+    info += path;
+  }
+
+  return info;
+}
+
 type TransactionTypes = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction(req: { [key: string]: any }, type: boolean | TransactionTypes): string | undefined {
-  try {
-    // Express.js shape
-    const request = req as {
-      url: string;
-      originalUrl: string;
-      method: string;
-      route: {
-        path: string;
-        stack: [
-          {
-            name: string;
-          },
-        ];
-      };
-    };
-
-    let routePath;
-    try {
-      routePath = url.parse(request.originalUrl || request.url).pathname;
-    } catch (_oO) {
-      routePath = request.route.path;
+function extractTransaction(req: ExpressRequest, type: boolean | TransactionTypes): string {
+  switch (type) {
+    case 'path': {
+      return extractRouteInfo(req, { path: true });
     }
-
-    switch (type) {
-      case 'path': {
-        return routePath;
-      }
-      case 'handler': {
-        return request.route.stack[0].name;
-      }
-      case 'methodPath':
-      default: {
-        const method = request.method.toUpperCase();
-        return `${method} ${routePath}`;
-      }
+    case 'handler': {
+      return req.route?.stack[0].name || '<anonymous>';
     }
-  } catch (_oO) {
-    return undefined;
+    case 'methodPath':
+    default: {
+      return extractRouteInfo(req, { path: true, method: true });
+    }
   }
 }
 
@@ -186,20 +188,7 @@ export interface ParseRequestOptions {
  * @param options object containing flags to enable functionality
  * @hidden
  */
-export function parseRequest(
-  event: Event,
-  req: {
-    [key: string]: any;
-    user?: {
-      [key: string]: any;
-    };
-    ip?: string;
-    connection?: {
-      remoteAddress?: string;
-    };
-  },
-  options?: ParseRequestOptions,
-): Event {
+export function parseRequest(event: Event, req: ExpressRequest, options?: ParseRequestOptions): Event {
   // eslint-disable-next-line no-param-reassign
   options = {
     ip: false,
@@ -261,10 +250,7 @@ export function parseRequest(
   }
 
   if (options.transaction && !event.transaction) {
-    const transaction = extractTransaction(req, options.transaction);
-    if (transaction) {
-      event.transaction = transaction;
-    }
+    event.transaction = extractTransaction(req, options.transaction);
   }
 
   return event;
