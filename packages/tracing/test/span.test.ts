@@ -229,35 +229,6 @@ describe('Span', () => {
         expect(spy).not.toHaveBeenCalled();
       });
 
-      test('mixing hub.startSpan(transaction) + span.startChild + maxSpans', () => {
-        const _hub = new Hub(
-          new BrowserClient({
-            _experiments: { maxSpans: 2 },
-            tracesSampleRate: 1,
-          }),
-        );
-        const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-
-        const transaction = _hub.startTransaction({ name: 'test' });
-        const childSpanOne = transaction.startChild({ op: '1' });
-        childSpanOne.finish();
-
-        _hub.configureScope(scope => {
-          scope.setSpan(transaction);
-        });
-
-        const spanTwo = transaction.startChild({ op: '2' });
-        spanTwo.finish();
-
-        const spanThree = transaction.startChild({ op: '3' });
-        spanThree.finish();
-
-        transaction.finish();
-
-        expect(spy).toHaveBeenCalled();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(2);
-      });
-
       test('tree structure of spans should be correct when mixing it with span on scope', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
 
