@@ -21,7 +21,7 @@ export interface StackFrame {
   columnNumber: number;
 }
 
-/** Extracts StackFrames fron the Error */
+/** Extracts StackFrames from the Error */
 export function parse(err: Error): StackFrame[] {
   if (!err.stack) {
     return [];
