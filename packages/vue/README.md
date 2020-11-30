@@ -14,7 +14,7 @@
 
 ## General
 
-This package is a wrapper around `@sentry/browser`, with added functionality related to VueJS. All methods available in
+This package is a wrapper around `@sentry/browser`, with added functionality related to Vue.js. All methods available in
 `@sentry/browser` can be imported from `@sentry/vue`.
 
 To use this SDK, call `Sentry.init(options)` before you create a new Vue instance.
@@ -25,19 +25,15 @@ import App from './App'
 import router from './router'
 import * as Sentry from '@sentry/vue'
 
-Vue.config.productionTip = false
-
 Sentry.init({
   Vue: Vue,
   dsn: '__PUBLIC_DSN__',
 })
 
-/* eslint-disable no-new */
 new Vue({
   el: '#app',
   router,
   components: { App },
   template: '<App/>'
 })
-
 ```
