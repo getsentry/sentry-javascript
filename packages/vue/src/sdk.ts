@@ -405,12 +405,5 @@ interface HubType extends Hub {
 
 /** Grabs active transaction off scope */
 export function getActiveTransaction<T extends Transaction>(hub: HubType): T | undefined {
-  if (hub && hub.getScope) {
-    const scope = hub.getScope() as Scope;
-    if (scope) {
-      return scope.getTransaction() as T | undefined;
-    }
-  }
-
-  return undefined;
+  return hub?.getScope()?.getTransaction() as T | undefined;
 }
