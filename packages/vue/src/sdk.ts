@@ -179,12 +179,12 @@ export class VueHelper {
   private readonly _componentsCache: { [key: string]: string } = {};
   private _rootSpan?: Span;
   private _rootSpanTimer?: ReturnType<typeof setTimeout>;
-  private _options: Omit<VueOptions, 'Vue'> & { Vue: VueInstance };
+  private _options: VueOptions;
 
   /**
    * @inheritDoc
    */
-  public constructor(options: Omit<VueOptions, 'Vue'> & { Vue: VueInstance }) {
+  public constructor(options: VueOptions) {
     this._options = options;
     this._attachErrorHandler();
 
@@ -349,6 +349,9 @@ export class VueHelper {
 
   /** Inject configured tracing hooks into Vue's component lifecycles */
   private _startTracing(): void {
+    if (!this._options.Vue) {
+      return;
+    }
     const applyTracingHooks = this._applyTracingHooks;
     const appliedTracingHooks = setTimeout(() => {
       logger.warn("Didn't apply tracing hooks, make sure you call Sentry.init before initialzing Vue!");
@@ -363,6 +366,9 @@ export class VueHelper {
 
   /** Inject Sentry's handler into owns Vue's error handler  */
   private _attachErrorHandler(): void {
+    if (!this._options.Vue) {
+      return;
+    }
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const currentErrorHandler = this._options.Vue.config.errorHandler;
 
@@ -398,7 +404,7 @@ export class VueHelper {
       }
 
       if (this._options.logErrors) {
-        if (this._options.Vue.util) {
+        if (this._options.Vue && this._options.Vue.util) {
           this._options.Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
         }
         // eslint-disable-next-line no-console
@@ -409,6 +415,8 @@ export class VueHelper {
 }
 
 /** Grabs active transaction off scope, if any */
-export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
-  return hub?.getScope()?.getTransaction() as T | undefined;
+export function getActiveTransaction(): Transaction | undefined {
+  return getCurrentHub()
+    .getScope()
+    ?.getTransaction();
 }
