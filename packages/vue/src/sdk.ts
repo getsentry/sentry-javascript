@@ -5,9 +5,11 @@ import { initAndBind } from '@sentry/core';
 import { Hub, Scope, Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
+import { createVueEventProcessor } from './eventprocessor';
+
 export interface VueOptions extends BrowserOptions {
   /** Vue instance to be used inside the integration */
-  Vue: VueInstance;
+  Vue?: VueInstance;
 
   /**
    * When set to `false`, Sentry will suppress reporting of all props data
@@ -153,6 +155,10 @@ export function init(
     },
   } as VueOptions;
 
+  if (finalOptions.Vue === undefined) {
+    logger.warn('No Vue instance was provided. Also there is no Vue instance on the `window` object.');
+  }
+
   initAndBind(BrowserClient, finalOptions);
   const client = getCurrentHub().getClient();
   if (client) {
@@ -160,6 +166,8 @@ export function init(
     // @ts-ignore
     client.__vueHelper = new VueHelper(finalOptions);
   }
+
+  createVueEventProcessor();
 }
 
 /** JSDoc */
@@ -170,12 +178,12 @@ export class VueHelper {
   private readonly _componentsCache: { [key: string]: string } = {};
   private _rootSpan?: Span;
   private _rootSpanTimer?: ReturnType<typeof setTimeout>;
-  private _options: VueOptions;
+  private _options: Omit<VueOptions, 'Vue'> & { Vue: VueInstance };
 
   /**
    * @inheritDoc
    */
-  public constructor(options: VueOptions) {
+  public constructor(options: Omit<VueOptions, 'Vue'> & { Vue: VueInstance }) {
     this._options = options;
     this._attachErrorHandler();
 
@@ -405,5 +413,12 @@ interface HubType extends Hub {
 
 /** Grabs active transaction off scope */
 export function getActiveTransaction<T extends Transaction>(hub: HubType): T | undefined {
-  return hub?.getScope()?.getTransaction() as T | undefined;
+  if (hub && hub.getScope) {
+    const scope = hub.getScope() as Scope;
+    if (scope) {
+      return scope.getTransaction() as T | undefined;
+    }
+  }
+
+  return undefined;
 }

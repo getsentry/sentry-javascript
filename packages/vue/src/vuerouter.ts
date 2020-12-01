@@ -4,12 +4,6 @@ import VueRouter from 'vue-router';
 
 export type Action = 'PUSH' | 'REPLACE' | 'POP';
 
-export type Location = {
-  pathname: string;
-  action?: Action;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} & Record<string, any>;
-
 export type VueRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
   startTransactionOnPageLoad?: boolean,
@@ -34,6 +28,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
     const tags = {
       'routing.instrumentation': 'vue-router',
     };
+
     router.beforeEach((to, _from, next) => {
       const data = {
         params: to.params,
@@ -47,10 +42,8 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
           tags,
           data,
         });
-        firstLoad = false;
-        next();
-        return;
       }
+
       if (startTransactionOnLocationChange && !firstLoad) {
         startTransaction({
           name: to.name || to.matched[0].path || to.path,
@@ -58,9 +51,10 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
           tags,
           data,
         });
-        next();
-        return;
       }
+
+      firstLoad = false;
+      next();
     });
   };
 }

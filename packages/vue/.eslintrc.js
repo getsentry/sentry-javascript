@@ -12,15 +12,9 @@ module.exports = {
   ignorePatterns: ['build/**', 'dist/**', 'esm/**', 'examples/**', 'scripts/**'],
   overrides: [
     {
-      files: ['*.ts', '*.tsx', '*.d.ts'],
+      files: ['*.ts', '*.d.ts'],
       parserOptions: {
         project: './tsconfig.json',
-      },
-    },
-    {
-      files: ['*.tsx'],
-      rules: {
-        'jsdoc/require-jsdoc': 'off',
       },
     },
     {

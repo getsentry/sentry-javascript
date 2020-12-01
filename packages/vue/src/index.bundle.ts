@@ -1,5 +1,3 @@
-import { createVueEventProcessor } from './eventprocessor';
-
 export {
   Breadcrumb,
   Request,
@@ -16,6 +14,17 @@ export {
 } from '@sentry/types';
 
 export {
+  BrowserClient,
+  BrowserOptions,
+  defaultIntegrations,
+  forceLoad,
+  lastEventId,
+  onLoad,
+  showReportDialog,
+  flush,
+  close,
+  wrap,
+  ReportDialogOptions,
   addGlobalEventProcessor,
   addBreadcrumb,
   captureException,
@@ -35,21 +44,9 @@ export {
   startTransaction,
   Transports,
   withScope,
+  SDK_NAME,
+  SDK_VERSION,
 } from '@sentry/browser';
-
-export { BrowserOptions } from '@sentry/browser';
-export { BrowserClient, ReportDialogOptions } from '@sentry/browser';
-export {
-  defaultIntegrations,
-  forceLoad,
-  lastEventId,
-  onLoad,
-  showReportDialog,
-  flush,
-  close,
-  wrap,
-} from '@sentry/browser';
-export { SDK_NAME, SDK_VERSION } from '@sentry/browser';
 
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
 import { getGlobalObject } from '@sentry/utils';
@@ -70,5 +67,3 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations };
-
-createVueEventProcessor();

@@ -44,7 +44,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): SDK for Angular
 - [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): SDK for ReactJS
 - [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): SDK for Ember
-- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): SDK for Vue
+- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): SDK for Vue.js
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
 - [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for native crashes
 - [`@sentry/integrations`](https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations): Pluggable

@@ -1,5 +1,3 @@
-import { createVueEventProcessor } from './eventprocessor';
-
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
@@ -23,5 +21,3 @@ export {
 
 export { init } from './sdk';
 export { vueRouterInstrumentation } from './vuerouter';
-
-createVueEventProcessor();

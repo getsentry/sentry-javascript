@@ -5,7 +5,7 @@
   <br />
 </p>
 
-# Official Sentry SDK for VueJS
+# Official Sentry SDK for Vue.js
 
 ## Links
 
