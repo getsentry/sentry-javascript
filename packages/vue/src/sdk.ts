@@ -160,18 +160,14 @@ export function init(
   }
 
   initAndBind(BrowserClient, finalOptions);
-  const client = getCurrentHub().getClient();
-  if (client) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    client.__vueHelper = new VueHelper(finalOptions);
-  }
+  const vueHelper = new VueHelper(finalOptions);
+  vueHelper.setup();
 
   createVueEventProcessor();
 }
 
 /** JSDoc */
-export class VueHelper {
+class VueHelper {
   /**
    * Cache holding already processed component names
    */
@@ -185,6 +181,12 @@ export class VueHelper {
    */
   public constructor(options: VueOptions) {
     this._options = options;
+  }
+
+  /**
+   * Attaches the error handler and starts tracing
+   */
+  public setup(): void {
     this._attachErrorHandler();
 
     if ('tracesSampleRate' in this._options || 'tracesSampler' in this._options) {
