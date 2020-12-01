@@ -155,13 +155,14 @@ export function init(
     },
   } as VueOptions;
 
+  initAndBind(BrowserClient, finalOptions);
   if (finalOptions.Vue === undefined) {
     logger.warn('No Vue instance was provided. Also there is no Vue instance on the `window` object.');
+    logger.warn('We will only capture global unhandled errors.');
+  } else {
+    const vueHelper = new VueHelper(finalOptions);
+    vueHelper.setup();
   }
-
-  initAndBind(BrowserClient, finalOptions);
-  const vueHelper = new VueHelper(finalOptions);
-  vueHelper.setup();
 
   createVueEventProcessor();
 }
@@ -174,13 +175,13 @@ class VueHelper {
   private readonly _componentsCache: { [key: string]: string } = {};
   private _rootSpan?: Span;
   private _rootSpanTimer?: ReturnType<typeof setTimeout>;
-  private _options: VueOptions;
+  private _options: Omit<VueOptions, 'Vue'> & { Vue: VueInstance };
 
   /**
    * @inheritDoc
    */
   public constructor(options: VueOptions) {
-    this._options = options;
+    this._options = options as Omit<VueOptions, 'Vue'> & { Vue: VueInstance };
   }
 
   /**
@@ -350,9 +351,6 @@ class VueHelper {
 
   /** Inject configured tracing hooks into Vue's component lifecycles */
   private _startTracing(): void {
-    if (!this._options.Vue) {
-      return;
-    }
     const applyTracingHooks = this._applyTracingHooks;
     const appliedTracingHooks = setTimeout(() => {
       logger.warn("Didn't apply tracing hooks, make sure you call Sentry.init before initialzing Vue!");
@@ -367,9 +365,6 @@ class VueHelper {
 
   /** Inject Sentry's handler into owns Vue's error handler  */
   private _attachErrorHandler(): void {
-    if (!this._options.Vue) {
-      return;
-    }
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const currentErrorHandler = this._options.Vue.config.errorHandler;
 
@@ -405,7 +400,7 @@ class VueHelper {
       }
 
       if (this._options.logErrors) {
-        if (this._options.Vue && this._options.Vue.util) {
+        if (this._options.Vue.util) {
           this._options.Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
         }
         // eslint-disable-next-line no-console
