@@ -18,7 +18,6 @@
   "dependencies": {
     "@sentry/browser": "5.27.4",
     "@sentry/core": "5.27.4",
-    "@sentry/hub": "5.27.4",
     "@sentry/minimal": "5.27.4",
     "@sentry/types": "5.27.4",
     "@sentry/utils": "5.27.4",

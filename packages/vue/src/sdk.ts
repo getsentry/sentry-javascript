@@ -1,8 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserClient, BrowserOptions, defaultIntegrations } from '@sentry/browser';
+import { BrowserClient, BrowserOptions, defaultIntegrations, getCurrentHub } from '@sentry/browser';
 import { initAndBind } from '@sentry/core';
-import { getCurrentHub, Hub } from '@sentry/hub';
 import { Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
