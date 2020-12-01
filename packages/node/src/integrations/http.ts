@@ -11,7 +11,6 @@ import {
   normalizeRequestArgs,
   RequestMethod,
   RequestMethodArgs,
-  RequestOptions,
 } from './utils/http';
 
 const NODE_VERSION = parseSemver(process.versions.node);
@@ -92,13 +91,16 @@ function _createWrappedRequestMethodFactory(
 ): WrappedRequestMethodFactory {
   return function wrappedRequestMethodFactory(originalRequestMethod: OriginalRequestMethod): WrappedRequestMethod {
     return function wrappedMethod(this: typeof http | typeof https, ...args: RequestMethodArgs): http.ClientRequest {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const httpModule = this;
+
       const requestArgs = normalizeRequestArgs(args);
       const requestOptions = requestArgs[0];
       const requestUrl = extractUrl(requestOptions);
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
       if (isSentryRequest(requestUrl)) {
-        return originalRequestMethod.apply(this, requestArgs);
+        return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
       let span: Span | undefined;
@@ -112,30 +114,40 @@ function _createWrappedRequestMethodFactory(
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,
             op: 'request',
           });
-          addSentryTraceHeader(span, requestOptions);
+
+          const sentryTraceHeader = span.toTraceparent();
+          logger.log(`[Tracing] Adding sentry-trace header to outgoing request: ${sentryTraceHeader}`);
+          requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
         }
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalRequestMethod
-        .apply(this, requestArgs)
-        .once('response', function(this: http.IncomingMessage, res: http.ServerResponse): void {
+        .apply(httpModule, requestArgs)
+        .once('response', function(this: http.ClientRequest, res: http.IncomingMessage): void {
+          // eslint-disable-next-line @typescript-eslint/no-this-alias
+          const req = this;
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', requestUrl, this, res);
+            addRequestBreadcrumb('response', requestUrl, req, res);
           }
           if (tracingEnabled && span) {
-            span.setHttpStatus(res.statusCode);
-            cleanSpanDescription(requestOptions, this, span);
+            if (res.statusCode) {
+              span.setHttpStatus(res.statusCode);
+            }
+            span.description = cleanSpanDescription(span.description, requestOptions, req);
             span.finish();
           }
         })
-        .once('error', function(this: http.IncomingMessage): void {
+        .once('error', function(this: http.ClientRequest): void {
+          // eslint-disable-next-line @typescript-eslint/no-this-alias
+          const req = this;
+
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', requestUrl, this);
+            addRequestBreadcrumb('error', requestUrl, req);
           }
           if (tracingEnabled && span) {
             span.setHttpStatus(500);
-            cleanSpanDescription(requestOptions, this, span);
+            span.description = cleanSpanDescription(span.description, requestOptions, req);
             span.finish();
           }
         });
@@ -146,7 +158,7 @@ function _createWrappedRequestMethodFactory(
 /**
  * Captures Breadcrumb based on provided request/response pair
  */
-function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMessage, res?: http.ServerResponse): void {
+function addRequestBreadcrumb(event: string, url: string, req: http.ClientRequest, res?: http.IncomingMessage): void {
   if (!getCurrentHub().getIntegration(Http)) {
     return;
   }
@@ -167,17 +179,4 @@ function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMess
       response: res,
     },
   );
-}
-
-/**
- * Add the `sentry-trace` header to the request options passed to `http(s).request()` and `http(s).get()`.
- *
- * @param span The span representing this outgoing request.
- * @param requestArgs The arguments passed to `http(s).request()` or `http(s).get()`
- *
- */
-function addSentryTraceHeader(span: Span, requestOptions: RequestOptions): void {
-  const headerValue = span.toTraceparent();
-  logger.log(`[Tracing] Adding sentry-trace header to outgoing request: ${headerValue}`);
-  requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': headerValue };
 }

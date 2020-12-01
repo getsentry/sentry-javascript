@@ -9,7 +9,6 @@ if [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 6 ]]; then
   # current versions of nock don't support node 6
   cd packages/node
   yarn add --dev --ignore-engines nock@10.x
-  yarn list --pattern nock
   cd ../..
   # ember requires Node >= 10 to build
   yarn build --ignore="@sentry/ember" --ignore="@sentry/serverless" --ignore="@sentry/gatsby" --ignore="@sentry/react"

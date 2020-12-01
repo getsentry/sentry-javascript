@@ -1,5 +1,4 @@
 import { getCurrentHub } from '@sentry/core';
-import { Span } from '@sentry/types';
 import * as http from 'http';
 import { URL } from 'url';
 
@@ -8,17 +7,10 @@ import { URL } from 'url';
  * @param url url to verify
  */
 export function isSentryRequest(url: string): boolean {
-  const client = getCurrentHub().getClient();
-  if (!url || !client) {
-    return false;
-  }
-
-  const dsn = client.getDsn();
-  if (!dsn) {
-    return false;
-  }
-
-  return url.indexOf(dsn.host) !== -1;
+  const dsn = getCurrentHub()
+    .getClient()
+    ?.getDsn();
+  return dsn ? url.includes(dsn.host) : false;
 }
 
 /**
@@ -39,26 +31,41 @@ export function extractUrl(requestOptions: RequestOptions): string {
 }
 
 /**
- * Handle various edge cases in the span description. Runs just before the span closes because in one case it relies on
- * data from the response object.
+ * Handle various edge cases in the span description (for spans representing http(s) requests).
  *
+ * @param description current `description` property of the span representing the request
  * @param requestOptions Configuration data for the request
- * @param response Response object
- * @param span Span representing the request
+ * @param Request Request object
+ *
+ * @returns The cleaned description
  */
-export function cleanSpanDescription(requestOptions: RequestOptions, response: http.IncomingMessage, span: Span): void {
+export function cleanSpanDescription(
+  description: string | undefined,
+  requestOptions: RequestOptions,
+  request: http.ClientRequest,
+): string | undefined {
+  // nothing to clean
+  if (!description) {
+    return description;
+  }
+
+  // eslint-disable-next-line prefer-const
+  let [method, requestUrl] = description.split(' ');
+
   // superagent sticks the protocol in a weird place (we check for host because if both host *and* protocol are missing,
   // we're likely dealing with an internal route and this doesn't apply)
-  if (requestOptions.host && !('protocol' in requestOptions)) {
+  if (requestOptions.host && !requestOptions.protocol) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    requestOptions.protocol = (response as any).agent?.protocol; // worst comes to worst, this is undefined and nothing changes
-    span.description = `${requestOptions.method || 'GET'} ${extractUrl(requestOptions)}`;
+    requestOptions.protocol = (request as any)?.agent?.protocol; // worst comes to worst, this is undefined and nothing changes
+    requestUrl = extractUrl(requestOptions);
   }
 
   // internal routes can end up starting with a triple slash rather than a single one
-  if (span.description?.startsWith('///')) {
-    span.description = span.description.slice(2);
+  if (requestUrl?.startsWith('///')) {
+    requestUrl = requestUrl.slice(2);
   }
+
+  return `${method} ${requestUrl}`;
 }
 
 // the node types are missing a few properties which node's `urlToOptions` function spits out
