@@ -48,3 +48,8 @@ targets:
     onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/gatsby'
+  - name: registry
+    type: sdk
+    onlyIfPresent: /^sentry-angular-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/angular'
