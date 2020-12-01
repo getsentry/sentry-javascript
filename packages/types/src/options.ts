@@ -28,6 +28,7 @@ export interface Options {
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.
+   * TODO: We should consider changing this to `boolean | Integration[]`
    */
   defaultIntegrations?: false | Integration[];
 
