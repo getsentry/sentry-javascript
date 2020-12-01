@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [vue] feat: Add `@sentry/vue` package (#2953)
+
 ## 5.27.6
 
 - [hub] fix: Don't invoke scope updates in scope listeners
