@@ -4,7 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- [vue] feat: Add `@sentry/vue` package (#2953)
+## 5.28.0
+
+- Change style in how we write the entries to be able to copy paste commits
+- fix(tracekit): Handle expo file dir stack frames (#3070)
+- feat: @sentry/vue (#2953)
+- ref: Revamp express route info extraction (#3084)
+- fix: Dont append dsn twice to report dialog calls (#3079)
+- fix(ember): Use correct import from `@sentry/browser` (#3077)
+- ref: Express integration span name change and path unification (#3078)
 
 ## 5.27.6
 
