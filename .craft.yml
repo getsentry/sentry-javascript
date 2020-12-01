@@ -40,6 +40,11 @@ targets:
       canonical: 'npm:@sentry/react'
   - name: registry
     type: sdk
+    onlyIfPresent: /^sentry-vue-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/vue'
+  - name: registry
+    type: sdk
     onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/gatsby'
