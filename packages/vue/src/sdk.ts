@@ -1,8 +1,9 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserClient, BrowserOptions, defaultIntegrations, getCurrentHub } from '@sentry/browser';
+import { BrowserClient, BrowserOptions, defaultIntegrations } from '@sentry/browser';
 import { initAndBind } from '@sentry/core';
-import { Hub, Scope, Span, Transaction } from '@sentry/types';
+import { getCurrentHub, Hub } from '@sentry/hub';
+import { Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
 import { createVueEventProcessor } from './eventprocessor';
@@ -261,7 +262,7 @@ export class VueHelper {
         vm.$once(`hook:${hook}`, () => {
           // Create an activity on the first event call. There'll be no second call, as rootSpan will be in place,
           // thus new event handler won't be attached.
-          const activeTransaction = getActiveTransaction(getCurrentHub());
+          const activeTransaction = getActiveTransaction();
           if (activeTransaction) {
             this._rootSpan = activeTransaction.startChild({
               description: 'Application Render',
@@ -278,7 +279,7 @@ export class VueHelper {
         ? this._options.tracingOptions.trackComponents.indexOf(name) > -1
         : this._options.tracingOptions.trackComponents;
 
-      const childOf = this._rootSpan || getActiveTransaction(getCurrentHub());
+      const childOf = this._rootSpan || getActiveTransaction();
 
       if (!childOf || !shouldTrack) {
         return;
@@ -407,18 +408,7 @@ export class VueHelper {
   }
 }
 
-interface HubType extends Hub {
-  getScope?(): Scope | undefined;
-}
-
-/** Grabs active transaction off scope */
-export function getActiveTransaction<T extends Transaction>(hub: HubType): T | undefined {
-  if (hub && hub.getScope) {
-    const scope = hub.getScope() as Scope;
-    if (scope) {
-      return scope.getTransaction() as T | undefined;
-    }
-  }
-
-  return undefined;
+/** Grabs active transaction off scope, if any */
+export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
+  return hub?.getScope()?.getTransaction() as T | undefined;
 }
