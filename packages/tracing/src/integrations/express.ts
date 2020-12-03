@@ -29,7 +29,7 @@ type Method =
   | 'use';
 
 type Router = {
-  [method in Method]: (...args: unknown[]) => unknown;
+  [method in Method]: (...args: any) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 interface ExpressResponse {
