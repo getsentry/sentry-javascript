@@ -132,6 +132,9 @@ export function init(
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
+  if (options.autoSessionTracking === undefined) {
+    options.autoSessionTracking = true;
+  }
   if (options.release === undefined) {
     const window = getGlobalObject<Window>();
     // This supports the variable that sentry-webpack-plugin injects

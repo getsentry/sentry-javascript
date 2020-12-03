@@ -17,6 +17,9 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
   assert('Missing configuration for Sentry.', config.sentry);
 
   const initConfig = Object.assign({}, config.sentry, _runtimeConfig || {});
+  if (initConfig.autoSessionTracking === undefined) {
+    initConfig.autoSessionTracking = true;
+  }
 
   createEmberEventProcessor();
 

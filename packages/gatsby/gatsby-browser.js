@@ -15,6 +15,7 @@ exports.onClientEntry = function(_, pluginParams) {
   Tracing.addExtensionMethods();
 
   Sentry.init({
+    autoSessionTracking: true,
     environment: process.env.NODE_ENV || 'development',
     // eslint-disable-next-line no-undef
     release: __SENTRY_RELEASE__,
