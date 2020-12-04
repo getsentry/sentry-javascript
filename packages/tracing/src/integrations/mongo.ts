@@ -48,6 +48,7 @@ const OPERATION_SIGNATURES: {
   [op in Operation]?: string[];
 } = {
   // aggregate intentionally not included because `pipeline` arguments are too complex to serialize well
+  // see https://github.com/getsentry/sentry-javascript/pull/3102
   bulkWrite: ['operations'],
   countDocuments: ['query'],
   createIndex: ['fieldOrSpec'],
