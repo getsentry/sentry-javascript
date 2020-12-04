@@ -15,4 +15,10 @@ addExtensionMethods();
 
 export { addExtensionMethods };
 
-export { extractTraceparentData, getActiveTransaction, hasTracingEnabled, stripUrlQueryAndFragment } from './utils';
+export {
+  extractTraceparentData,
+  getActiveTransaction,
+  hasTracingEnabled,
+  stripUrlQueryAndFragment,
+  TRACEPARENT_REGEXP,
+} from './utils';

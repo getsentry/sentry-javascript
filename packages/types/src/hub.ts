@@ -176,10 +176,7 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /**
-   * Starts a new `Span` and returns it. If there is a `Span` on the `Scope`,
-   * the new `Span` will be a child of the existing `Span`.
-   *
-   * @param context Properties of the new `Span`.
+   * @deprecated No longer does anything. Use use {@link Transaction.startChild} instead.
    */
   startSpan(context: SpanContext): Span;
 
