@@ -3,7 +3,6 @@ import { EventProcessor, Integration } from '@sentry/types';
 import { dynamicRequire, fill, logger } from '@sentry/utils';
 
 interface MysqlConnection {
-  end: () => void;
   prototype: {
     query: () => void;
   };
@@ -28,23 +27,18 @@ export class Mysql implements Integration {
     let connection: MysqlConnection;
 
     try {
-      const mysqlModule = dynamicRequire(module, 'mysql') as {
-        createConnection: (options: unknown) => MysqlConnection;
-      };
-      const conn = mysqlModule.createConnection({});
-      connection = (conn.constructor as unknown) as MysqlConnection;
-      conn.end();
+      // Unfortunatelly mysql is using some custom loading system and `Connection` is not exported directly.
+      connection = dynamicRequire(module, 'mysql/lib/Connection.js');
     } catch (e) {
       logger.error('Mysql Integration was unable to require `mysql` package.');
       return;
     }
 
     // The original function will have one of these signatures:
-    //    function (query, callback) => void
-    //    function (query, params, callback) => void
-    //    function (query) => Promise
-    //    function (query, params) => Promise
-    fill(connection, 'query', function(orig: () => void | Promise<unknown>) {
+    //    function (callback) => void
+    //    function (options, callback) => void
+    //    function (options, values, callback) => void
+    fill(connection.prototype, 'query', function(orig: () => void) {
       return function(this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const transaction = scope?.getTransaction();
