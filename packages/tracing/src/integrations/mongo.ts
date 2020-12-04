@@ -47,7 +47,7 @@ const OPERATIONS = [
 const OPERATION_SIGNATURES: {
   [op in Operation]?: string[];
 } = {
-  aggregate: ['pipeline'],
+  // aggregate intentionally not included because `pipeline` arguments are too complex to serialize well
   bulkWrite: ['operations'],
   countDocuments: ['query'],
   createIndex: ['fieldOrSpec'],
