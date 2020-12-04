@@ -3,7 +3,7 @@ import { EventProcessor, Integration, SpanContext } from '@sentry/types';
 import { dynamicRequire, fill, logger } from '@sentry/utils';
 
 // This allows us to use the same array for both defaults options and the type itself.
-// (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... ) 
+// (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... )
 // and not just a string[])
 type Operation = typeof OPERATIONS[number];
 const OPERATIONS = [
@@ -41,7 +41,7 @@ const OPERATIONS = [
 ] as const;
 
 // All of the operations above take `options` and `callback` as their final parameters, but some of them
-// take additional parameters as well. For those operations, this is a map of 
+// take additional parameters as well. For those operations, this is a map of
 // { <operation name>:  [<names of additional parameters>] }, as a way to know what to call the operation's
 // positional arguments when we add them to the span's `data` object later
 const OPERATION_SIGNATURES: {
@@ -145,19 +145,19 @@ export class Mongo implements Integration {
       return function(this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
         const scope = getCurrentHub().getScope();
-        const transaction = scope?.getTransaction();
+        const parentSpan = scope?.getSpan();
 
         // Check if the operation was passed a callback. (mapReduce requires a different check, as
         // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
-          const span = transaction?.startChild(getSpanContext(this, operation, args));
+          const span = parentSpan?.startChild(getSpanContext(this, operation, args));
           return (orig.call(this, ...args) as Promise<unknown>).then((res: unknown) => {
             span?.finish();
             return res;
           });
         }
 
-        const span = transaction?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
+        const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
         return orig.call(this, ...args.slice(0, -1), function(err: Error, result: unknown) {
           span?.finish();
           lastArg(err, result);
