@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
 
+import { getGlobalObject } from './compat';
 import { isInstanceOf, isString } from './is';
 import { logger } from './logger';
-import { getGlobalObject } from './misc';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';

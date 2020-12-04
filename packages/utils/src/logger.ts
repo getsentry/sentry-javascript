@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { consoleSandbox, getGlobalObject } from './misc';
+import { getGlobalObject } from './compat';
+import { consoleSandbox } from './misc';
 
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject<Window | NodeJS.Global>();

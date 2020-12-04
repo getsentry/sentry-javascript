@@ -1,17 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ExtractedNodeRequestData } from '@sentry/types';
 
+import { isNodeEnv } from './compat';
 import { isString } from './is';
 import { normalize } from './object';
-
-/**
- * Checks whether we're in the Node.js or Browser environment
- *
- * @returns Answer to given question
- */
-export function isNodeEnv(): boolean {
-  return Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
-}
 
 /**
  * Requires a module which is protected against bundler minification.
