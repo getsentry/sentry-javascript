@@ -43,10 +43,10 @@ export class Postgres implements Integration {
     fill(client.prototype, 'query', function(orig: () => void | Promise<unknown>) {
       return function(this: unknown, config: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
-        const transaction = scope?.getTransaction();
-        const span = transaction?.startChild({
+        const parentSpan = scope?.getSpan();
+        const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,
-          op: `query`,
+          op: `db`,
         });
 
         if (typeof callback === 'function') {
