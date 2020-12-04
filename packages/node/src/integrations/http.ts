@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration, Span, Transaction } from '@sentry/types';
+import { Integration, Span } from '@sentry/types';
 import { fill, logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -104,13 +104,13 @@ function _createWrappedRequestMethodFactory(
       }
 
       let span: Span | undefined;
-      let transaction: Transaction | undefined;
+      let parentSpan: Span | undefined;
 
       const scope = getCurrentHub().getScope();
       if (scope && tracingEnabled) {
-        transaction = scope.getTransaction();
-        if (transaction) {
-          span = transaction.startChild({
+        parentSpan = scope.getSpan();
+        if (parentSpan) {
+          span = parentSpan.startChild({
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,
             op: 'request',
           });
