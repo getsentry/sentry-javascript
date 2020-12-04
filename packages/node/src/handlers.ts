@@ -108,10 +108,12 @@ function extractRouteInfo(req: ExpressRequest, options: { path?: boolean; method
   let path;
   if (req.baseUrl && req.route) {
     path = `${req.baseUrl}${req.route.path}`;
+  } else if (req.route) {
+    path = `${req.route.path}`;
   } else if (req.originalUrl || req.url) {
     path = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
   } else {
-    path = req.route?.path || '';
+    path = '';
   }
 
   let info = '';
