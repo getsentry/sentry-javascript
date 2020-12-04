@@ -39,12 +39,11 @@ export class Mysql implements Integration {
       return;
     }
 
-    /**
-     * function (query, callback) => void
-     * function (query, params, callback) => void
-     * function (query) => Promise
-     * function (query, params) => Promise
-     */
+    // The original function will have one of these signatures:
+    //    function (query, callback) => void
+    //    function (query, params, callback) => void
+    //    function (query) => Promise
+    //    function (query, params) => Promise
     fill(connection, 'query', function(orig: () => void | Promise<unknown>) {
       return function(this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
