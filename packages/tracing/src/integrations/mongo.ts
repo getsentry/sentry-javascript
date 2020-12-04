@@ -147,10 +147,8 @@ export class Mongo implements Integration {
         const scope = getCurrentHub().getScope();
         const transaction = scope?.getTransaction();
 
-        // mapReduce is a special edge-case, as it's the only operation that accepts functions
-        // other than the callback as it's own arguments. Therefore despite lastArg being
-        // a function, it can be still a promise-based call without a callback.
-        // mapReduce(map, reduce, options, callback) where `[map|reduce]: function | string`
+        // Check if the operation was passed a callback. (mapReduce requires a different check, as
+        // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
           const span = transaction?.startChild(getSpanContext(this, operation, args));
           return (orig.call(this, ...args) as Promise<unknown>).then((res: unknown) => {
