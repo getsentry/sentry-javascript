@@ -40,6 +40,10 @@ const OPERATIONS = [
   'updateOne', // updateOne(filter, update, options, callback)
 ] as const;
 
+// All of the operations above take `options` and `callback` as their final parameters, but some of them
+// take additional parameters as well. For those operations, this is a map of 
+// { <operation name>:  [<names of additional parameters>] }, as a way to know what to call the operation's
+// positional arguments when we add them to the span's `data` object later
 const OPERATION_SIGNATURES: {
   [op in Operation]?: string[];
 } = {
