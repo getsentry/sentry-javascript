@@ -2,8 +2,9 @@ import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
 import { dynamicRequire, fill, logger } from '@sentry/utils';
 
-// This allows us to use the same array for both, defaults option and the type itself.
-// (note `as const` at the end to make it a concrete union type, and not just string[])
+// This allows us to use the same array for both defaults options and the type itself.
+// (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... ) 
+// and not just a string[])
 type Operation = typeof OPERATIONS[number];
 const OPERATIONS = [
   'aggregate', // aggregate(pipeline, options, callback)
