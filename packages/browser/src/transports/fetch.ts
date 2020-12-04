@@ -61,7 +61,13 @@ export class FetchTransport extends BaseTransport {
               'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
               'retry-after': response.headers.get('Retry-After'),
             };
-            this._handleResponse({ requestType: sentryRequest.type, response, headers, resolve, reject });
+            this._handleResponse({
+              requestType: sentryRequest.type,
+              response,
+              headers,
+              resolve,
+              reject,
+            });
           })
           .catch(reject);
       }),
