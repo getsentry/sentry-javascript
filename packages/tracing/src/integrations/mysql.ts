@@ -41,10 +41,10 @@ export class Mysql implements Integration {
     fill(connection.prototype, 'query', function(orig: () => void) {
       return function(this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
-        const transaction = scope?.getTransaction();
-        const span = transaction?.startChild({
+        const parentSpan = scope?.getSpan();
+        const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,
-          op: `query`,
+          op: `db`,
         });
 
         if (typeof callback === 'function') {
