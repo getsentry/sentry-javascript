@@ -184,8 +184,8 @@ export class Mongo implements Integration {
       data,
     };
 
-    // If there was no signature available for us to be used for the extracted data description.
-    // Or user decided to not describe given operation, just return early.
+    // If the operation takes no arguments besides `options` and `callback`, or if argument
+    // collection is disabled for this operation, just return early.
     const signature = OPERATION_SIGNATURES[operation];
     const shouldDescribe = Array.isArray(this._describeOperations)
       ? this._describeOperations.includes(operation)
