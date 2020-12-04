@@ -84,7 +84,7 @@ interface MongoOptions {
   describeOperations?: boolean | Operation[];
 }
 
-/** Tracing integration for node-postgres package */
+/** Tracing integration for mongo package */
 export class Mongo implements Integration {
   /**
    * @inheritDoc
