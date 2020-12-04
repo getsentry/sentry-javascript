@@ -47,6 +47,7 @@ const OPERATIONS = [
 const OPERATION_SIGNATURES: {
   [op in Operation]?: string[];
 } = {
+  aggregate: ['pipeline'],
   bulkWrite: ['operations'],
   countDocuments: ['query'],
   createIndex: ['fieldOrSpec'],
