@@ -180,7 +180,8 @@ export class Mongo implements Integration {
       namespace: collection.namespace,
     };
     const spanContext: SpanContext = {
-      op: `query.${operation}`,
+      op: `db`,
+      description: operation,
       data,
     };
 
