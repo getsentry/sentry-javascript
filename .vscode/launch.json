@@ -76,5 +76,29 @@
       "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
       "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
     },
+
+    // @sentry/utils - run a specific test file in watch mode
+    // must have file in currently active tab when hitting the play button
+    {
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/utils",
+      "name": "Debug @sentry/utils tests - just open file",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": [
+        "--watch",
+        "--runInBand",
+        "--config",
+        "${workspaceFolder}/packages/utils/package.json",
+        "--coverage",
+        "false", // coverage messes up the source maps
+        "${relativeFile}" // remove this to run all package tests
+      ],
+      "disableOptimisticBPs": true,
+      "sourceMaps": true,
+      "smartStep": true,
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
+      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
+    },
   ]
 }
