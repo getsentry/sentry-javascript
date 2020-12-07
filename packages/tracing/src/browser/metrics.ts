@@ -136,7 +136,7 @@ export class MetricsInstrumentation {
     if (transaction.op === 'pageload') {
       // normalize applicable web vital values to be relative to transaction.startTimestamp
 
-      const timeOrigin = msToSec(performance.timeOrigin);
+      const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
       ['fcp', 'fp', 'lcp', 'ttfb'].forEach(name => {
         if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
