@@ -32,3 +32,6 @@ jobs:
     - name: '@sentry/packages - build and test [node v12]'
       node_js: '12'
       script: scripts/test.sh
+    - name: '@sentry/packages - build and test [node v14]'
+      node_js: '14'
+      script: scripts/test.sh
