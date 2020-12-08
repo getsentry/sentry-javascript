@@ -136,7 +136,7 @@ export class MetricsInstrumentation {
     if (transaction.op === 'pageload') {
       // normalize applicable web vital values to be relative to transaction.startTimestamp
 
-      const timeOrigin = msToSec(performance.timeOrigin);
+      const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
       ['fcp', 'fp', 'lcp', 'ttfb'].forEach(name => {
         if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
@@ -150,12 +150,10 @@ export class MetricsInstrumentation {
         const oldValue = this._measurements[name].value;
         const measurementTimestamp = timeOrigin + msToSec(oldValue);
         // normalizedValue should be in milliseconds
-        const normalizedValue = (measurementTimestamp - transaction.startTimestamp) * 1000;
+        const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
 
         const delta = normalizedValue - oldValue;
-        logger.log(
-          `[Measurements] Normalized ${name} from ${this._measurements[name].value} to ${normalizedValue} (${delta})`,
-        );
+        logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
 
         this._measurements[name].value = normalizedValue;
       });
