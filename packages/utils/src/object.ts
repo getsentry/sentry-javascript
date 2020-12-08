@@ -170,7 +170,13 @@ export function normalizeToSize<T>(
   return serialized as T;
 }
 
-/** Transforms any input value into a string form, either primitive value or a type of the input */
+/**
+ * Transform any non-primitive or Symbol-type value into a string. Acts as a no-op on non-Symbol primitives.
+ *
+ * @param value The value to stringify
+ * @returns For non-primitive and Symbol-type values, a string denoting the value's type, or in the case of a Symbol,
+ * its type and description. For non-Symbol primitives, the original value, unchanged.
+ */
 function serializeValue(value: any): any {
   const type = Object.prototype.toString.call(value);
 
@@ -234,6 +240,10 @@ function normalizeValue<T>(value: T, key?: any): T | string {
 
   if (typeof value === 'function') {
     return `[Function: ${getFunctionName(value)}]`;
+  }
+
+  if (typeof value === 'symbol') {
+    return `[${String(value)}]`;
   }
 
   return value;

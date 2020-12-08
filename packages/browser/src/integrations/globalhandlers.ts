@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration, Severity } from '@sentry/types';
+import { Event, Integration, Primitive, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -152,7 +152,7 @@ export class GlobalHandlers implements Integration {
 
         const client = currentHub.getClient();
         const event = isPrimitive(error)
-          ? this._eventFromIncompleteRejection(error)
+          ? this._eventFromRejectionWithPrimitive(error)
           : eventFromUnknownInput(error, undefined, {
               attachStacktrace: client && client.getOptions().attachStacktrace,
               rejection: true,
@@ -211,16 +211,20 @@ export class GlobalHandlers implements Integration {
   }
 
   /**
-   * This function creates an Event from an TraceKitStackTrace that has part of it missing.
+   * Create an event from a promise rejection where the `reason` is a primitive.
+   *
+   * @param reason: The `reason` property of the promise rejection
+   * @returns An Event object with an appropriate `exception` value
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _eventFromIncompleteRejection(error: any): Event {
+  private _eventFromRejectionWithPrimitive(reason: Primitive): Event {
     return {
       exception: {
         values: [
           {
             type: 'UnhandledRejection',
-            value: `Non-Error promise rejection captured with value: ${error}`,
+            // String() is needed because the Primitive type includes symbols (which can't be automatically stringified)
+            value: `Non-Error promise rejection captured with value: ${String(reason)}`,
           },
         ],
       },
