@@ -51,7 +51,7 @@ export interface Transaction extends TransactionContext, Span {
   /**
    * @inheritDoc
    */
-  tags: { [key: string]: string };
+  tags: { [key: string]: string | number | boolean | undefined };
 
   /**
    * @inheritDoc

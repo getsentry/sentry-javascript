@@ -86,7 +86,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public tags: { [key: string]: string } = {};
+  public tags: { [key: string]: string | number | boolean | undefined } = {};
 
   /**
    * @inheritDoc
@@ -187,7 +187,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public setTag(key: string, value: string): this {
+  public setTag(key: string, value: string | number | boolean | undefined): this {
     this.tags = { ...this.tags, [key]: value };
     return this;
   }
@@ -257,7 +257,7 @@ export class Span implements SpanInterface {
     parent_span_id?: string;
     span_id: string;
     status?: string;
-    tags?: { [key: string]: string };
+    tags?: { [key: string]: string | number | boolean | undefined };
     trace_id: string;
   } {
     return dropUndefinedKeys({
@@ -284,7 +284,7 @@ export class Span implements SpanInterface {
     span_id: string;
     start_timestamp: number;
     status?: string;
-    tags?: { [key: string]: string };
+    tags?: { [key: string]: string | number | boolean | undefined };
     timestamp?: number;
     trace_id: string;
   } {

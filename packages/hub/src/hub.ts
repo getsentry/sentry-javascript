@@ -261,7 +261,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setTags(tags: { [key: string]: string }): void {
+  public setTags(tags: { [key: string]: string | number | boolean | undefined }): void {
     const scope = this.getScope();
     if (scope) scope.setTags(tags);
   }
@@ -277,7 +277,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setTag(key: string, value: string): void {
+  public setTag(key: string, value: string | number | boolean | undefined): void {
     const scope = this.getScope();
     if (scope) scope.setTag(key, value);
   }

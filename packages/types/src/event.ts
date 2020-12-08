@@ -35,7 +35,7 @@ export interface Event {
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: Contexts;
-  tags?: { [key: string]: string };
+  tags?: { [key: string]: string | number | boolean | undefined };
   extra?: Extras;
   user?: User;
   type?: EventType;

@@ -62,7 +62,9 @@ export function reactRouterV3Instrumentation(
           if (activeTransaction) {
             activeTransaction.finish();
           }
-          const tags: Record<string, string> = { 'routing.instrumentation': 'react-router-v3' };
+          const tags: Record<string, string | number | boolean | undefined> = {
+            'routing.instrumentation': 'react-router-v3',
+          };
           if (prevName) {
             tags.from = prevName;
           }

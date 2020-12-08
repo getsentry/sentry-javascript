@@ -41,7 +41,7 @@ export interface SpanContext {
   /**
    * Tags of the Span.
    */
-  tags?: { [key: string]: string };
+  tags?: { [key: string]: string | number | boolean | undefined };
 
   /**
    * Data of the Span.
@@ -79,7 +79,7 @@ export interface Span extends SpanContext {
   /**
    * @inheritDoc
    */
-  tags: { [key: string]: string };
+  tags: { [key: string]: string | number | boolean | undefined };
 
   /**
    * @inheritDoc
@@ -98,11 +98,14 @@ export interface Span extends SpanContext {
   finish(endTimestamp?: number): void;
 
   /**
-   * Sets the tag attribute on the current span
+   * Sets the tag attribute on the current span.
+   *
+   * Can also be used to unset a tag, by passing `undefined`.
+   *
    * @param key Tag key
    * @param value Tag value
    */
-  setTag(key: string, value: string): this;
+  setTag(key: string, value: string | number | boolean | undefined): this;
 
   /**
    * Sets the data attribute on the current span
@@ -156,7 +159,7 @@ export interface Span extends SpanContext {
     parent_span_id?: string;
     span_id: string;
     status?: string;
-    tags?: { [key: string]: string };
+    tags?: { [key: string]: string | number | boolean | undefined };
     trace_id: string;
   };
   /** Convert the object to JSON */
@@ -168,7 +171,7 @@ export interface Span extends SpanContext {
     span_id: string;
     start_timestamp: number;
     status?: string;
-    tags?: { [key: string]: string };
+    tags?: { [key: string]: string | number | boolean | undefined };
     timestamp?: number;
     trace_id: string;
   };
