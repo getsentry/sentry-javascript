@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
@@ -86,7 +86,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public tags: { [key: string]: string | number | boolean | undefined } = {};
+  public tags: { [key: string]: Primitive } = {};
 
   /**
    * @inheritDoc
@@ -187,7 +187,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public setTag(key: string, value: string | number | boolean | undefined): this {
+  public setTag(key: string, value: Primitive): this {
     this.tags = { ...this.tags, [key]: value };
     return this;
   }
@@ -257,7 +257,7 @@ export class Span implements SpanInterface {
     parent_span_id?: string;
     span_id: string;
     status?: string;
-    tags?: { [key: string]: string | number | boolean | undefined };
+    tags?: { [key: string]: Primitive };
     trace_id: string;
   } {
     return dropUndefinedKeys({
@@ -284,7 +284,7 @@ export class Span implements SpanInterface {
     span_id: string;
     start_timestamp: number;
     status?: string;
-    tags?: { [key: string]: string | number | boolean | undefined };
+    tags?: { [key: string]: Primitive };
     timestamp?: number;
     trace_id: string;
   } {

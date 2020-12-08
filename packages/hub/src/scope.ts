@@ -9,6 +9,7 @@ import {
   EventProcessor,
   Extra,
   Extras,
+  Primitive,
   Scope as ScopeInterface,
   ScopeContext,
   Severity,
@@ -41,7 +42,7 @@ export class Scope implements ScopeInterface {
   protected _user: User = {};
 
   /** Tags */
-  protected _tags: { [key: string]: string | number | boolean | undefined } = {};
+  protected _tags: { [key: string]: Primitive } = {};
 
   /** Extra */
   protected _extra: Extras = {};
@@ -124,7 +125,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setTags(tags: { [key: string]: string | number | boolean | undefined }): this {
+  public setTags(tags: { [key: string]: Primitive }): this {
     this._tags = {
       ...this._tags,
       ...tags,
@@ -136,7 +137,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setTag(key: string, value: string | number | boolean | undefined): this {
+  public setTag(key: string, value: Primitive): this {
     this._tags = { ...this._tags, [key]: value };
     this._notifyScopeListeners();
     return this;

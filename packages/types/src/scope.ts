@@ -2,6 +2,7 @@ import { Breadcrumb } from './breadcrumb';
 import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
+import { Primitive } from './misc';
 import { Session } from './session';
 import { Severity } from './severity';
 import { Span } from './span';
@@ -17,7 +18,7 @@ export interface ScopeContext {
   level: Severity;
   extra: Extras;
   contexts: Contexts;
-  tags: { [key: string]: string | number | boolean | undefined };
+  tags: { [key: string]: Primitive };
   fingerprint: string[];
 }
 
@@ -45,7 +46,7 @@ export interface Scope {
    * Set an object that will be merged sent as tags data with the event.
    * @param tags Tags context object to merge into current context.
    */
-  setTags(tags: { [key: string]: string | number | boolean | undefined }): this;
+  setTags(tags: { [key: string]: Primitive }): this;
 
   /**
    * Set key:value that will be sent as tags data with the event.
@@ -55,7 +56,7 @@ export interface Scope {
    * @param key String key of tag
    * @param value Value of tag
    */
-  setTag(key: string, value: string | number | boolean | undefined): this;
+  setTag(key: string, value: Primitive): this;
 
   /**
    * Set an object that will be merged sent as extra data with the event.

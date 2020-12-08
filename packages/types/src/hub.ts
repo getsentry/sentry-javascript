@@ -3,6 +3,7 @@ import { Client } from './client';
 import { Event, EventHint } from './event';
 import { Extra, Extras } from './extra';
 import { Integration, IntegrationClass } from './integration';
+import { Primitive } from './misc';
 import { Scope } from './scope';
 import { Session, SessionContext } from './session';
 import { Severity } from './severity';
@@ -127,7 +128,7 @@ export interface Hub {
    *
    * @param tags Tags context object to merge into current context.
    */
-  setTags(tags: { [key: string]: string | number | boolean | undefined }): void;
+  setTags(tags: { [key: string]: Primitive }): void;
 
   /**
    * Set key:value that will be sent as tags data with the event.
@@ -137,7 +138,7 @@ export interface Hub {
    * @param key String key of tag
    * @param value Value of tag
    */
-  setTag(key: string, value: string | number | boolean | undefined): void;
+  setTag(key: string, value: Primitive): void;
 
   /**
    * Set key:value that will be sent as extra data with the event.

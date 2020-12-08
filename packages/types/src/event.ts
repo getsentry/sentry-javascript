@@ -2,6 +2,7 @@ import { Breadcrumb } from './breadcrumb';
 import { Contexts } from './context';
 import { Exception } from './exception';
 import { Extras } from './extra';
+import { Primitive } from './misc';
 import { Request } from './request';
 import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
@@ -35,7 +36,7 @@ export interface Event {
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: Contexts;
-  tags?: { [key: string]: string | number | boolean | undefined };
+  tags?: { [key: string]: Primitive };
   extra?: Extras;
   user?: User;
   type?: EventType;

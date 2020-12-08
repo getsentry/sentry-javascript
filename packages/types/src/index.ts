@@ -11,7 +11,7 @@ export { Hub } from './hub';
 export { Integration, IntegrationClass } from './integration';
 export { LogLevel } from './loglevel';
 export { Mechanism } from './mechanism';
-export { ExtractedNodeRequestData, WorkerLocation } from './misc';
+export { ExtractedNodeRequestData, NonPrimitive, Primitive, WorkerLocation } from './misc';
 export { Options } from './options';
 export { Package } from './package';
 export { Request, SentryRequest, SentryRequestType } from './request';
