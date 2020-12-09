@@ -48,7 +48,7 @@
     "typescript": "3.7.5"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm && yarn build:awslambda-layer",
+    "build": "run-p build:es5 build:esm build:awslambda-layer",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:awslambda-layer": "node scripts/build-awslambda-layer.js",

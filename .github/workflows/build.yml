@@ -27,6 +27,8 @@ jobs:
         run: yarn install
       - name: Build
         run: yarn build
+      - name: AWS Lambda build
+        run: node packages/serverless/scripts/build-awslambda-layer.js
 
   job_size_check:
     name: Size Check
@@ -118,6 +120,7 @@ jobs:
             ${{ github.workspace }}/packages/integrations/build/**
             ${{ github.workspace }}/packages/tracing/build/**
             ${{ github.workspace }}/packages/**/*.tgz
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   job_browserstack_test:
     name: BrowserStack
