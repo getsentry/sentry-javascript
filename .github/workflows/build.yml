@@ -21,6 +21,7 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
           key: ${{ runner.os }}-${{ github.sha }}
       - name: Install
         run: yarn install
