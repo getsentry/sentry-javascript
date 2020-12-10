@@ -42,7 +42,7 @@ exports.handler = Sentry.AWSLambda.wrapHandler((event, context, callback) => {
 });
 ```
 
-If you also want to trace performance of all the incoming requests and also outgoing AWS service requests, just set the `tracesSampleRate` option. 
+If you also want to trace performance of all the incoming requests and also outgoing AWS service requests, just set the `tracesSampleRate` option.
 
 ```javascript
 import * as Sentry from '@sentry/serverless';
@@ -62,7 +62,7 @@ Another and much simpler way to integrate Sentry to your AWS Lambda function is 
 3. *(optional)* Go to Environment variables and add:
    - `NODE_OPTIONS`: `-r @sentry/serverless/dist/auto`.
    - `SENTRY_DSN`: `your dsn`.
-   - `SENTRY_TRACES_SAMPLE_RATE`: `1.0` if you want to enable tracing.
+   - `SENTRY_TRACES_SAMPLE_RATE`: a number between 0 and 1 representing the chance a transaction is sent to Sentry. For more information, see [docs](https://docs.sentry.io/platforms/node/guides/aws-lambda/configuration/options/#tracesSampleRate).
 
 *NOTE*: Optional step 3 automatically enables the `@sentry/serverless` so you should remove `Sentry.init()` and `Sentry.AWSLambda.wrapHandler()` you had before in your function code.
 
