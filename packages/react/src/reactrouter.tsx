@@ -154,8 +154,9 @@ export function withSentryRouting<P extends RouteProps & Record<string, any>>(
   const componentDisplayName = Route.displayName || Route.name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
-    if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
-      activeTransaction.setName(props.computedMatch.path);
+    const path = props.computedMatch ? props.computedMatch.path : props.path;
+    if (activeTransaction && props && path) {
+      activeTransaction.setName(path);
     }
     return <Route {...props} />;
   };

@@ -210,6 +210,34 @@ describe('React Router v5', () => {
     expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid');
   });
 
+  it('normalizes transaction name with nested Route', () => {
+    const [mockStartTransaction, history, { mockSetName }] = createInstrumentation();
+    const SentryRoute = withSentryRouting(Route);
+    const { container } = render(
+      <Router history={history}>
+        <Switch>
+          <>
+            <SentryRoute path="/users/:userid" component={() => <div>UserId</div>} />
+            <SentryRoute path="/users" component={() => <div>Users</div>} />
+            <SentryRoute path="/" component={() => <div>Home</div>} />
+          </>
+        </Switch>
+      </Router>,
+    );
+
+    history.push('/users/123');
+    expect(container.innerHTML).toContain('UserId');
+
+    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/users/123',
+      op: 'navigation',
+      tags: { 'routing.instrumentation': 'react-router-v5' },
+    });
+    expect(mockSetName).toHaveBeenCalledTimes(3);
+    expect(mockSetName).toHaveBeenNthCalledWith(1, '/users/:userid');
+  });
+
   it('matches with route object', () => {
     const routes: RouteConfig[] = [
       {
