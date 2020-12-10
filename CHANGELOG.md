@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.29.0
+
+- [tracing] feat: MongoDB Tracing Support (#3072)
+- [tracing] feat: MySQL Tracing Support (#3088)
+- [tracing] feat: PostgreSQL Tracing Support (#3064)
+- [tracing] fix: Add `sentry-trace` header to outgoing http(s) requests in node (#3053)
+- [node] fix: Revert express tracing integration type to use any (#3093)
+
 ## 5.28.0
 
 - [browser] fix: Handle expo file dir stack frames (#3070)
