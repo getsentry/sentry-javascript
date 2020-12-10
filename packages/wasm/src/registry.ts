@@ -1,6 +1,11 @@
 import { DebugImage } from '@sentry/types';
 
-import { IMAGES, ModuleInfo } from './index';
+export const IMAGES: Array<DebugImage> = [];
+
+export interface ModuleInfo {
+  buildId: string | null;
+  debugFile: string | null;
+}
 
 /**
  * Returns the extracted meta information from a web assembly module that

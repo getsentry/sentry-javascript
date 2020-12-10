@@ -1,14 +1,7 @@
-import { DebugImage, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import { EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
 
 import { patchWebAssembly } from './patchWebAssembly';
 import { getImage, getImages } from './registry';
-
-export const IMAGES: Array<DebugImage> = [];
-
-export interface ModuleInfo {
-  buildId: string | null;
-  debugFile: string | null;
-}
 
 /** plz don't */
 function patchFrames(frames: Array<StackFrame>): boolean {
