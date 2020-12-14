@@ -12,7 +12,7 @@ import { SDK_NAME, SDK_VERSION } from '../version';
  * Internal used interface for typescript.
  * @hidden
  */
-export interface HTTPRequest {
+export interface HTTPModule {
   /**
    * Request wrapper
    * @param options These are {@see TransportOptions}
@@ -37,7 +37,7 @@ export interface HTTPRequest {
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /** The Agent used for corresponding transport */
-  public module?: HTTPRequest;
+  public module?: HTTPModule;
 
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
@@ -96,7 +96,7 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async _sendWithModule(httpModule: HTTPRequest, event: Event): Promise<Response> {
+  protected async _sendWithModule(httpModule: HTTPModule, event: Event): Promise<Response> {
     if (new Date(Date.now()) < this._disabledUntil) {
       return Promise.reject(new SentryError(`Transport locked till ${this._disabledUntil} due to too many requests.`));
     }

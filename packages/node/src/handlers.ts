@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event } from '@sentry/types';
+import { Event, Transaction } from '@sentry/types';
 import {
   extractNodeRequestData,
   forget,
@@ -14,12 +14,29 @@ import {
 import * as domain from 'domain';
 import * as http from 'http';
 import * as os from 'os';
-import * as url from 'url';
 
 import { NodeClient } from './client';
 import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
+
+export interface ExpressRequest extends http.IncomingMessage {
+  [key: string]: any;
+  baseUrl?: string;
+  ip?: string;
+  originalUrl?: string;
+  route?: {
+    path: string;
+    stack: [
+      {
+        name: string;
+      },
+    ];
+  };
+  user?: {
+    [key: string]: any;
+  };
+}
 
 /**
  * Express-compatible tracing handler.
@@ -35,11 +52,6 @@ export function tracingHandler(): (
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    // TODO: At this point `req.route.path` (which we use in `extractTransaction`) is not available
-    // but `req.path` or `req.url` should do the job as well. We could unify this here.
-    const reqMethod = (req.method || '').toUpperCase();
-    const reqUrl = req.url && stripUrlQueryAndFragment(req.url);
-
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
     let traceparentData;
     if (req.headers && isString(req.headers['sentry-trace'])) {
@@ -47,7 +59,7 @@ export function tracingHandler(): (
     }
 
     const transaction = startTransaction({
-      name: `${reqMethod} ${reqUrl}`,
+      name: extractExpressTransactionName(req, { path: true, method: true }),
       op: 'http.server',
       ...traceparentData,
     });
@@ -63,8 +75,10 @@ export function tracingHandler(): (
     (res as any).__sentry_transaction = transaction;
 
     res.once('finish', () => {
-      // We schedule the immediate execution of the `finish` to let all the spans being closed first.
+      // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
+      // closes
       setImmediate(() => {
+        addExpressReqToTransaction(transaction, req);
         transaction.setHttpStatus(res.statusCode);
         transaction.finish();
       });
@@ -74,48 +88,72 @@ export function tracingHandler(): (
   };
 }
 
+/**
+ * Set parameterized as transaction name e.g.: `GET /users/:id`
+ * Also adds more context data on the transaction from the request
+ */
+function addExpressReqToTransaction(transaction: Transaction | undefined, req: ExpressRequest): void {
+  if (!transaction) return;
+  transaction.name = extractExpressTransactionName(req, { path: true, method: true });
+  transaction.setData('url', req.originalUrl);
+  transaction.setData('baseUrl', req.baseUrl);
+  transaction.setData('query', req.query);
+}
+
+/**
+ * Extracts complete generalized path from the request object and uses it to construct transaction name.
+ *
+ * eg. GET /mountpoint/user/:id
+ *
+ * @param req The ExpressRequest object
+ * @param options What to include in the transaction name (method, path, or both)
+ *
+ * @returns The fully constructed transaction name
+ */
+function extractExpressTransactionName(
+  req: ExpressRequest,
+  options: { path?: boolean; method?: boolean } = {},
+): string {
+  const method = req.method?.toUpperCase();
+
+  let path = '';
+  if (req.route) {
+    // if the mountpoint is `/`, req.baseUrl is '' (not undefined), so it's safe to include it here
+    // see https://github.com/expressjs/express/blob/508936853a6e311099c9985d4c11a4b1b8f6af07/test/req.baseUrl.js#L7
+    path = `${req.baseUrl}${req.route.path}`;
+  } else if (req.originalUrl || req.url) {
+    path = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
+  }
+
+  let info = '';
+  if (options.method && method) {
+    info += method;
+  }
+  if (options.method && options.path) {
+    info += ` `;
+  }
+  if (options.path && path) {
+    info += path;
+  }
+
+  return info;
+}
+
 type TransactionTypes = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction(req: { [key: string]: any }, type: boolean | TransactionTypes): string | undefined {
-  try {
-    // Express.js shape
-    const request = req as {
-      url: string;
-      originalUrl: string;
-      method: string;
-      route: {
-        path: string;
-        stack: [
-          {
-            name: string;
-          },
-        ];
-      };
-    };
-
-    let routePath;
-    try {
-      routePath = url.parse(request.originalUrl || request.url).pathname;
-    } catch (_oO) {
-      routePath = request.route.path;
+function extractTransaction(req: ExpressRequest, type: boolean | TransactionTypes): string {
+  switch (type) {
+    case 'path': {
+      return extractExpressTransactionName(req, { path: true });
     }
-
-    switch (type) {
-      case 'path': {
-        return routePath;
-      }
-      case 'handler': {
-        return request.route.stack[0].name;
-      }
-      case 'methodPath':
-      default: {
-        const method = request.method.toUpperCase();
-        return `${method} ${routePath}`;
-      }
+    case 'handler': {
+      return req.route?.stack[0].name || '<anonymous>';
     }
-  } catch (_oO) {
-    return undefined;
+    case 'methodPath':
+    default: {
+      return extractExpressTransactionName(req, { path: true, method: true });
+    }
   }
 }
 
@@ -161,20 +199,7 @@ export interface ParseRequestOptions {
  * @param options object containing flags to enable functionality
  * @hidden
  */
-export function parseRequest(
-  event: Event,
-  req: {
-    [key: string]: any;
-    user?: {
-      [key: string]: any;
-    };
-    ip?: string;
-    connection?: {
-      remoteAddress?: string;
-    };
-  },
-  options?: ParseRequestOptions,
-): Event {
+export function parseRequest(event: Event, req: ExpressRequest, options?: ParseRequestOptions): Event {
   // eslint-disable-next-line no-param-reassign
   options = {
     ip: false,
@@ -236,10 +261,7 @@ export function parseRequest(
   }
 
   if (options.transaction && !event.transaction) {
-    const transaction = extractTransaction(req, options.transaction);
-    if (transaction) {
-      event.transaction = transaction;
-    }
+    event.transaction = extractTransaction(req, options.transaction);
   }
 
   return event;

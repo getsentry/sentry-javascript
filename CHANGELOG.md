@@ -4,6 +4,32 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.29.0
+
+- [tracing] feat: MongoDB Tracing Support (#3072)
+- [tracing] feat: MySQL Tracing Support (#3088)
+- [tracing] feat: PostgreSQL Tracing Support (#3064)
+- [tracing] fix: Add `sentry-trace` header to outgoing http(s) requests in node (#3053)
+- [node] fix: Revert express tracing integration type to use any (#3093)
+
+## 5.28.0
+
+- [browser] fix: Handle expo file dir stack frames (#3070)
+- [vue] feat: @sentry/vue (#2953)
+- [node] ref: Revamp express route info extraction (#3084)
+- [browser] fix: Dont append dsn twice to report dialog calls (#3079)
+- [ember] fix: Use correct import from `@sentry/browser` (#3077)
+- [node] ref: Express integration span name change and path unification (#3078)
+
+## 5.27.6
+
+- [hub] fix: Don't invoke scope updates in scope listeners
+
+## 5.27.5
+
+- [hub] fix: Sync ScopeListeners (#3065)
+- [tracing] fix: Typo in constant name in @sentry/tracing (#3058)
+
 ## 5.27.4
 
 - [core] fix: Remove globalThis usage (#3033)
