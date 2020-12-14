@@ -5,7 +5,6 @@ const fs = require('fs-extra');
 const execa = require('execa');
 const findUp = require('find-up');
 const packList = require('npm-packlist');
-const pathExists = require('path-exists');
 const readPkg = require('read-pkg');
 
 // AWS Lambda layer are being uploaded as zip archive, whose content is then being unpacked to the /opt
@@ -43,9 +42,14 @@ async function collectPackages(cwd, packages = {}) {
     Object.keys(packageJson.dependencies).map(async dep => {
       // We are interested only in 'external' dependencies which are strictly upper than current directory.
       // Internal deps aka local node_modules folder of each package is handled differently.
-      if (await pathExists(path.resolve(cwd, 'node_modules', dep))) {
-        return;
-      }
+
+      // `fs.constants.F_OK` indicates whether the file is visible to the current process, but it doesn't check
+      // its permissions. For more information, refer to https://nodejs.org/api/fs.html#fs_file_access_constants.
+      fs.access(path.resolve(cwd, 'node_modules', dep), fs.constants.F_OK, fileAccessError => {
+        if (!fileAccessError) {
+          return;
+        }
+      })
 
       const searchPath = path.resolve(cwd, '..');
       const depPath = await fs.realpath(
@@ -94,9 +98,13 @@ async function main() {
       );
 
       const sourceModulesRoot = path.resolve(pkg.cwd, 'node_modules');
-      if (!(await pathExists(sourceModulesRoot))) {
-        return;
-      }
+      // `fs.constants.F_OK` indicates whether the file is visible to the current process, but it doesn't check
+      // its permissions. For more information, refer to https://nodejs.org/api/fs.html#fs_file_access_constants.
+      fs.access(path.resolve(sourceModulesRoot), fs.constants.F_OK, fileAccessError => {
+        if (!fileAccessError) {
+          return;
+        }
+      })
 
       // Scan over local node_modules folder of the package and symlink its non-dev dependencies.
       const sourceModules = await fs.readdir(sourceModulesRoot);
