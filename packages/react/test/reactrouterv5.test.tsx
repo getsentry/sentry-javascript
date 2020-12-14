@@ -234,8 +234,8 @@ describe('React Router v5', () => {
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
     });
-    expect(mockSetName).toHaveBeenCalledTimes(3);
-    expect(mockSetName).toHaveBeenNthCalledWith(1, '/users/:userid');
+    expect(mockSetName).toHaveBeenCalledTimes(2);
+    expect(mockSetName).toHaveBeenLastCalledWith('/users/:userid');
   });
 
   it('matches with route object', () => {
