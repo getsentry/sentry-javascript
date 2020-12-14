@@ -1,5 +1,5 @@
 import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
-import { CustomSamplingContext, SamplingContext, TransactionContext } from '@sentry/types';
+import { CustomSamplingContext, SamplingContext, TransactionContext, TransactionSamplingMethod } from '@sentry/types';
 import {
   dynamicRequire,
   extractNodeRequestData,
@@ -52,7 +52,7 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
 
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   if (transaction.sampled !== undefined) {
-    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: 'explicitly_set' };
+    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: TransactionSamplingMethod.Explicit };
     return transaction;
   }
 
@@ -64,18 +64,20 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
     // cast the rate to a number first in case it's a boolean
     transaction.tags = {
       ...transaction.tags,
-      __sentry_samplingMethod: 'client_sampler',
+      __sentry_samplingMethod: TransactionSamplingMethod.Sampler,
+      // TODO kmclb - once tag types are loosened, don't need to cast to string here
       __sentry_sampleRate: String(Number(sampleRate)),
     };
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
-    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: 'inheritance' };
+    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: TransactionSamplingMethod.Inheritance };
   } else {
     sampleRate = options.tracesSampleRate;
     // cast the rate to a number first in case it's a boolean
     transaction.tags = {
       ...transaction.tags,
-      __sentry_samplingMethod: 'client_rate',
+      __sentry_samplingMethod: TransactionSamplingMethod.Rate,
+      // TODO kmclb - once tag types are loosened, don't need to cast to string here
       __sentry_sampleRate: String(Number(sampleRate)),
     };
   }
