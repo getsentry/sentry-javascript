@@ -2,6 +2,7 @@ import { Transaction } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
+import { useRouteMatch } from 'react-router-5';
 
 import { Action, Location, ReactRouterInstrumentation } from './types';
 
@@ -154,9 +155,9 @@ export function withSentryRouting<P extends RouteProps & Record<string, any>>(
   const componentDisplayName = Route.displayName || Route.name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
-    const path = props.computedMatch ? props.computedMatch.path : props.path;
-    if (activeTransaction && props && path) {
-      activeTransaction.setName(path);
+    const match = (props.computedMatch || !props.path) ? props.computedMatch : useRouteMatch(props.path);
+    if (activeTransaction && props && match && match.isExact) {
+      activeTransaction.setName(match.path);
     }
     return <Route {...props} />;
   };
