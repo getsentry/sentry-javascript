@@ -171,11 +171,13 @@ export function normalizeToSize<T>(
 }
 
 /**
- * Transform any non-primitive or Symbol-type value into a string. Acts as a no-op on non-Symbol primitives.
+ * Transform any non-primitive, BigInt, or Symbol-type value into a string. Acts as a no-op on strings, numbers,
+ * booleans, null, and undefined.
  *
  * @param value The value to stringify
- * @returns For non-primitive and Symbol-type values, a string denoting the value's type, or in the case of a Symbol,
- * its type and description. For non-Symbol primitives, the original value, unchanged.
+ * @returns For non-primitive, BigInt, and Symbol-type values, a string denoting the value's type, type and value, or
+ *  type and `description` property, respectively. For non-BigInt, non-Symbol primitives, returns the original value,
+ *  unchanged.
  */
 function serializeValue(value: any): any {
   const type = Object.prototype.toString.call(value);
@@ -242,8 +244,14 @@ function normalizeValue<T>(value: T, key?: any): T | string {
     return `[Function: ${getFunctionName(value)}]`;
   }
 
+  // symbols and bigints are considered primitives by TS, but aren't natively JSON-serilaizable
+
   if (typeof value === 'symbol') {
     return `[${String(value)}]`;
+  }
+
+  if (typeof value === 'bigint') {
+    return `[BigInt: ${String(value)}]`;
   }
 
   return value;

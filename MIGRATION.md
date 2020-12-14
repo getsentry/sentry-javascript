@@ -92,7 +92,7 @@ We realized how annoying it is to set a whole object using `setExtra`, so there 
 `Scope`.
 
 ```typescript
-setTags(tags: { [key: string]: string | number | boolean | bigint| symbol| null | undefined }): this;
+setTags(tags: { [key: string]: string | number | boolean | null | undefined }): this;
 setExtras(extras: { [key: string]: any }): this;
 clearBreadcrumbs(): this;
 ```
