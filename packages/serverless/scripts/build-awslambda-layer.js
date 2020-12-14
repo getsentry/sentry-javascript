@@ -45,11 +45,11 @@ async function collectPackages(cwd, packages = {}) {
 
       // `fs.constants.F_OK` indicates whether the file is visible to the current process, but it doesn't check
       // its permissions. For more information, refer to https://nodejs.org/api/fs.html#fs_file_access_constants.
-      fs.access(path.resolve(cwd, 'node_modules', dep), fs.constants.F_OK, fileAccessError => {
-        if (!fileAccessError) {
-          return;
-        }
-      })
+      try {
+        await fs.access(path.resolve(cwd, 'node_modules', dep), fs.constants.F_OK);
+      } catch (e) {
+        return;
+      }
 
       const searchPath = path.resolve(cwd, '..');
       const depPath = await fs.realpath(
@@ -100,11 +100,11 @@ async function main() {
       const sourceModulesRoot = path.resolve(pkg.cwd, 'node_modules');
       // `fs.constants.F_OK` indicates whether the file is visible to the current process, but it doesn't check
       // its permissions. For more information, refer to https://nodejs.org/api/fs.html#fs_file_access_constants.
-      fs.access(path.resolve(sourceModulesRoot), fs.constants.F_OK, fileAccessError => {
-        if (!fileAccessError) {
-          return;
-        }
-      })
+      try {
+        await fs.access(path.resolve(sourceModulesRoot), fs.constants.F_OK);
+      } catch (e) {
+        return;
+      }
 
       // Scan over local node_modules folder of the package and symlink its non-dev dependencies.
       const sourceModules = await fs.readdir(sourceModulesRoot);
