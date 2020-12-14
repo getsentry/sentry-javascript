@@ -86,6 +86,10 @@ export class API {
     const encodedOptions = [];
     encodedOptions.push(`dsn=${dsn.toString()}`);
     for (const key in dialogOptions) {
+      if (key === 'dsn') {
+        continue;
+      }
+
       if (key === 'user') {
         if (!dialogOptions.user) {
           continue;

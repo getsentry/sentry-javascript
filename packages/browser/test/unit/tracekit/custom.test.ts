@@ -49,6 +49,60 @@ describe('Tracekit - Custom Tests', () => {
     ]);
   });
 
+  it('should parse exceptions for react-native Expo bundles', () => {
+    const REACT_NATIVE_EXPO_EXCEPTION = {
+      message: 'Test Error Expo',
+      name: 'Error',
+      stack: `onPress@/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3:595:658
+          value@/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3:221:7656
+          onResponderRelease@/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3:221:5666
+          p@/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3:96:385
+          forEach@[native code]`,
+    };
+    const stacktrace = computeStackTrace(REACT_NATIVE_EXPO_EXCEPTION);
+    expect(stacktrace.stack).deep.equal([
+      {
+        url:
+          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        func: 'onPress',
+        args: [],
+        line: 595,
+        column: 658,
+      },
+      {
+        url:
+          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        func: 'value',
+        args: [],
+        line: 221,
+        column: 7656,
+      },
+      {
+        url:
+          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        func: 'onResponderRelease',
+        args: [],
+        line: 221,
+        column: 5666,
+      },
+      {
+        url:
+          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        func: 'p',
+        args: [],
+        line: 96,
+        column: 385,
+      },
+      {
+        url: '[native code]',
+        func: 'forEach',
+        args: [],
+        line: null,
+        column: null,
+      },
+    ]);
+  });
+
   describe('should parse exceptions with native code frames', () => {
     it('in Chrome 73', () => {
       const CHROME73_NATIVE_CODE_EXCEPTION = {
