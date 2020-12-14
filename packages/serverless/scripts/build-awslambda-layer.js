@@ -30,10 +30,8 @@ const readPkg = require('read-pkg');
 // so I think it's better to have a classic package directory with node_modules file structure.
 
 /** Recursively traverse all the dependencies and collect all the info to the map */
-async function collectPackages(cwd, packages) {
-  packages = packages || {}; // eslint-disable-line no-param-reassign
-
-  const packageJson = await readPkg({ cwd: cwd });
+async function collectPackages(cwd, packages = {}) {
+  const packageJson = await readPkg({ cwd });
 
   packages[packageJson.name] = { cwd, packageJson };
 
