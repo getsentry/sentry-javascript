@@ -1,12 +1,7 @@
 import { StackFrame } from '@sentry/types';
 
-import {
-  addContextToFrame,
-  getEventDescription,
-  getGlobalObject,
-  parseRetryAfterHeader,
-  stripUrlQueryAndFragment,
-} from '../src/misc';
+import { getGlobalObject } from '../src/compat';
+import { addContextToFrame, getEventDescription, parseRetryAfterHeader, stripUrlQueryAndFragment } from '../src/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {

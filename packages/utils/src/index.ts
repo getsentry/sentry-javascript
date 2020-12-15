@@ -1,5 +1,6 @@
 export * from './async';
 export * from './browser';
+export * from './compat';
 export * from './dsn';
 export * from './error';
 export * from './instrument';
