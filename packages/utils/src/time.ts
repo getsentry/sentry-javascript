@@ -1,5 +1,5 @@
-import { getGlobalObject } from './misc';
-import { dynamicRequire, isNodeEnv } from './node';
+import { getGlobalObject, isNodeEnv } from './compat';
+import { dynamicRequire } from './node';
 
 /**
  * An object that can return the current timestamp in seconds since the UNIX epoch.

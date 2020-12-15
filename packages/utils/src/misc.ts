@@ -1,42 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, Integration, StackFrame, WrappedFunction } from '@sentry/types';
+import { Event, StackFrame, WrappedFunction } from '@sentry/types';
 
-import { isNodeEnv } from './node';
+import { getGlobalObject } from './compat';
 import { snipLine } from './string';
-
-/** Internal */
-interface SentryGlobal {
-  Sentry?: {
-    Integrations?: Integration[];
-  };
-  SENTRY_ENVIRONMENT?: string;
-  SENTRY_DSN?: string;
-  SENTRY_RELEASE?: {
-    id?: string;
-  };
-  __SENTRY__: {
-    globalEventProcessors: any;
-    hub: any;
-    logger: any;
-  };
-}
-
-const fallbackGlobalObject = {};
-
-/**
- * Safely get global scope object
- *
- * @returns Global scope object
- */
-export function getGlobalObject<T>(): T & SentryGlobal {
-  return (isNodeEnv()
-    ? global
-    : typeof window !== 'undefined'
-    ? window
-    : typeof self !== 'undefined'
-    ? self
-    : fallbackGlobalObject) as T & SentryGlobal;
-}
 
 /**
  * Extended Window interface that allows for Crypto API usage in IE browsers
