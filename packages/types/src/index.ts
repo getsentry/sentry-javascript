@@ -32,6 +32,7 @@ export {
   TraceparentData,
   Transaction,
   TransactionContext,
+  TransactionSamplingMethod,
 } from './transaction';
 export { Thread } from './thread';
 export { Transport, TransportOptions, TransportClass } from './transport';

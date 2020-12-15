@@ -100,3 +100,10 @@ export interface SamplingContext extends CustomSamplingContext {
 }
 
 export type Measurements = Record<string, { value: number }>;
+
+export enum TransactionSamplingMethod {
+  Explicit = 'explicitly_set',
+  Sampler = 'client_sampler',
+  Rate = 'client_rate',
+  Inheritance = 'inheritance',
+}
