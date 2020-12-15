@@ -216,7 +216,6 @@ export class GlobalHandlers implements Integration {
    * @param reason: The `reason` property of the promise rejection
    * @returns An Event object with an appropriate `exception` value
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _eventFromRejectionWithPrimitive(reason: Primitive): Event {
     return {
       exception: {
