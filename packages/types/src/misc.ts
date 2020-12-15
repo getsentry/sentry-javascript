@@ -61,6 +61,3 @@ export interface WorkerLocation {
 }
 
 export type Primitive = number | string | boolean | bigint | symbol | null | undefined;
-
-// at eslint's suggestion, not using 'object' because https://github.com/microsoft/TypeScript/issues/21732 is still open
-export type NonPrimitive = Record<string, unknown>;
