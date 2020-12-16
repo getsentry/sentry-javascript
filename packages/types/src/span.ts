@@ -1,3 +1,4 @@
+import { Primitive } from './misc';
 import { Transaction } from './transaction';
 
 /** Interface holding all properties that can be set on a Span on creation. */
@@ -41,7 +42,7 @@ export interface SpanContext {
   /**
    * Tags of the Span.
    */
-  tags?: { [key: string]: string };
+  tags?: { [key: string]: Primitive };
 
   /**
    * Data of the Span.
@@ -79,7 +80,7 @@ export interface Span extends SpanContext {
   /**
    * @inheritDoc
    */
-  tags: { [key: string]: string };
+  tags: { [key: string]: Primitive };
 
   /**
    * @inheritDoc
@@ -98,11 +99,14 @@ export interface Span extends SpanContext {
   finish(endTimestamp?: number): void;
 
   /**
-   * Sets the tag attribute on the current span
+   * Sets the tag attribute on the current span.
+   *
+   * Can also be used to unset a tag, by passing `undefined`.
+   *
    * @param key Tag key
    * @param value Tag value
    */
-  setTag(key: string, value: string): this;
+  setTag(key: string, value: Primitive): this;
 
   /**
    * Sets the data attribute on the current span
@@ -156,7 +160,7 @@ export interface Span extends SpanContext {
     parent_span_id?: string;
     span_id: string;
     status?: string;
-    tags?: { [key: string]: string };
+    tags?: { [key: string]: Primitive };
     trace_id: string;
   };
   /** Convert the object to JSON */
@@ -168,7 +172,7 @@ export interface Span extends SpanContext {
     span_id: string;
     start_timestamp: number;
     status?: string;
-    tags?: { [key: string]: string };
+    tags?: { [key: string]: Primitive };
     timestamp?: number;
     trace_id: string;
   };

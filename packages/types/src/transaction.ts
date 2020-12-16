@@ -1,4 +1,4 @@
-import { ExtractedNodeRequestData, WorkerLocation } from './misc';
+import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import { Span, SpanContext } from './span';
 
 /**
@@ -51,7 +51,7 @@ export interface Transaction extends TransactionContext, Span {
   /**
    * @inheritDoc
    */
-  tags: { [key: string]: string };
+  tags: { [key: string]: Primitive };
 
   /**
    * @inheritDoc

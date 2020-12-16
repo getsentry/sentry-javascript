@@ -59,3 +59,5 @@ export interface WorkerLocation {
   /** Synonym for `href` attribute */
   toString(): string;
 }
+
+export type Primitive = number | string | boolean | bigint | symbol | null | undefined;
