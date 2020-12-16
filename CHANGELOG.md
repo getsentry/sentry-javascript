@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.29.1
+
+- [types] ref: Loosen tag types, create new `Primitive` type (#3108)
+- [tracing] feat: Send sample rate and type in transaction item header in envelope (#3068)
+- [tracing] fix(web-vitals): Fix TTFB capture in Safari (#3106)
+
 ## 5.29.0
 
 - [tracing] feat: MongoDB Tracing Support (#3072)

@@ -119,7 +119,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
-      ? this._getBackend().eventFromMessage(`${message}`, level, hint)
+      ? this._getBackend().eventFromMessage(String(message), level, hint)
       : this._getBackend().eventFromException(message, hint);
 
     this._process(

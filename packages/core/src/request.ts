@@ -20,6 +20,10 @@ export function sessionToSentryRequest(session: Session, api: API): SentryReques
 
 /** Creates a SentryRequest from an event. */
 export function eventToSentryRequest(event: Event, api: API): SentryRequest {
+  // since JS has no Object.prototype.pop()
+  const { __sentry_samplingMethod: samplingMethod, __sentry_sampleRate: sampleRate, ...otherTags } = event.tags || {};
+  event.tags = otherTags;
+
   const useEnvelope = event.type === 'transaction';
 
   const req: SentryRequest = {
@@ -41,6 +45,11 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
     });
     const itemHeaders = JSON.stringify({
       type: event.type,
+
+      // TODO: Right now, sampleRate may or may not be defined (it won't be in the cases of inheritance and
+      // explicitly-set sampling decisions). Are we good with that?
+      sample_rates: [{ id: samplingMethod, rate: sampleRate }],
+
       // The content-type is assumed to be 'application/json' and not part of
       // the current spec for transaction items, so we don't bloat the request
       // body with it.
