@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+
+import { Primitive } from '@sentry/types';
 /**
  * Checks whether given value's type is one of a few Error or Error-like
  * {@link isError}.
@@ -65,13 +67,13 @@ export function isString(wat: any): boolean {
 }
 
 /**
- * Checks whether given value's is a primitive (undefined, null, number, boolean, string)
+ * Checks whether given value's is a primitive (undefined, null, number, boolean, string, bigint, symbol)
  * {@link isPrimitive}.
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isPrimitive(wat: any): boolean {
+export function isPrimitive(wat: any): wat is Primitive {
   return wat === null || (typeof wat !== 'object' && typeof wat !== 'function');
 }
 
