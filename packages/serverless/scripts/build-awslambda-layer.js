@@ -42,11 +42,7 @@ async function collectPackages(cwd, packages = {}) {
     Object.keys(packageJson.dependencies).map(async dep => {
       // We are interested only in 'external' dependencies which are strictly upper than current directory.
       // Internal deps aka local node_modules folder of each package is handled differently.
-
       const searchPath = path.resolve(cwd, '..');
-      // const depPath = await fs.realpath(
-      //   await findUp(path.join('node_modules', dep), { type: 'directory', cwd: searchPath }),
-      // );
       const depPath = fs.realpathSync(
         await findUp(path.join('node_modules', dep),
         { type: 'directory', cwd: searchPath })
@@ -78,8 +74,7 @@ async function main() {
     fs.rmSync(destRoot, { force: true, recursive: true, maxRetries: 1 });
     fs.mkdirSync(destRoot, { recursive: true });
   } catch (error) {
-    // TODO: deal with the error.
-    console.log(error); // eslint-disable-line no-console
+    // Ignore errors.
   }
 
   await Promise.all(
@@ -98,8 +93,7 @@ async function main() {
             fs.mkdirSync(path.dirname(destFilename), { recursive: true });
             fs.symlinkSync(sourceFilename, destFilename);
           } catch (error) {
-            // TODO: deal with the error.
-            console.log(error); // eslint-disable-line no-console
+            // Ignore errors.
           }
         }),
       );
@@ -110,7 +104,6 @@ async function main() {
       try {
         fs.accessSync(path.resolve(sourceModulesRoot), fs.constants.F_OK);
       } catch (error) {
-        // console.log(error); // eslint-disable-line no-console
         return;
       }
 
@@ -129,8 +122,7 @@ async function main() {
             fs.mkdirSync(path.dirname(destModulePath), { recursive: true });
             fs.symlinkSync(sourceModulePath, destModulePath);
           } catch (error) {
-            // TODO: deal with the error.
-            console.log(error); // eslint-disable-line no-console
+            // Ignore errors.
           }
         }),
       );
@@ -141,9 +133,10 @@ async function main() {
   const zipFilename = `sentry-node-serverless-${version}.zip`;
 
   try {
-    fs.rmSync(path.resolve(dist, zipFilename));
+    fs.unlinkSync(path.resolve(dist, zipFilename));
   } catch (error) {
-
+    // If the ZIP file hasn't been previously created (e.g. running this script for the first time),
+    // `unlinkSync` will try to delete a non-existing file. This error is ignored.
   }
   await execa('zip', ['-r', zipFilename, destRootRelative], { cwd: dist, shell: true });
 }
