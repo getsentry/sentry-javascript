@@ -14,9 +14,9 @@ import { logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
-import * as fs from 'fs';
+import { existsSync } from 'fs';
 import { hostname } from 'os';
-import * as path from 'path';
+import { basename, resolve } from 'path';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
 
@@ -62,8 +62,8 @@ export function init(options: Sentry.NodeOptions = {}): void {
 
 /** */
 function tryRequire<T>(taskRoot: string, subdir: string, mod: string): T {
-  const lambdaStylePath = path.resolve(taskRoot, subdir, mod);
-  if (fs.existsSync(lambdaStylePath) || fs.existsSync(`${lambdaStylePath}.js`)) {
+  const lambdaStylePath = resolve(taskRoot, subdir, mod);
+  if (existsSync(lambdaStylePath) || existsSync(`${lambdaStylePath}.js`)) {
     // Lambda-style path
     return require(lambdaStylePath);
   }
@@ -78,7 +78,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     [key: string]: HandlerBag;
   }
 
-  const handlerDesc = path.basename(handlerPath);
+  const handlerDesc = basename(handlerPath);
   const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
   if (!match) {
     logger.error(`Bad handler ${handlerDesc}`);

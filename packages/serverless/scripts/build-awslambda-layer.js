@@ -7,6 +7,8 @@ const findUp = require('find-up');
 const packList = require('npm-packlist');
 const readPkg = require('read-pkg');
 
+const serverlessPackage = require('../package.json');
+
 // AWS Lambda layer are being uploaded as zip archive, whose content is then being unpacked to the /opt
 // directory in the lambda environment.
 //
@@ -79,7 +81,7 @@ async function main() {
 
   await Promise.all(
     Object.entries(packages).map(async ([name, pkg]) => {
-      const isRoot = name == '@sentry/serverless';
+      const isRoot = name == serverlessPackage.name;
       const destPath = isRoot ? destRoot : path.resolve(destModulesRoot, name);
 
       // Scan over the distributable files of the module and symlink each of them.
@@ -129,7 +131,7 @@ async function main() {
     }),
   );
 
-  const version = packages['@sentry/serverless'].packageJson.version;
+  const version = serverlessPackage.version;
   const zipFilename = `sentry-node-serverless-${version}.zip`;
 
   try {
