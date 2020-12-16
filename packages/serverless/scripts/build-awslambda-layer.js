@@ -1,7 +1,7 @@
 const path = require('path');
 const process = require('process');
+const fs = require('fs');
 
-const fs = require('fs-extra');
 const execa = require('execa');
 const findUp = require('find-up');
 const packList = require('npm-packlist');
@@ -43,17 +43,13 @@ async function collectPackages(cwd, packages = {}) {
       // We are interested only in 'external' dependencies which are strictly upper than current directory.
       // Internal deps aka local node_modules folder of each package is handled differently.
 
-      // `fs.constants.F_OK` indicates whether the file is visible to the current process, but it doesn't check
-      // its permissions. For more information, refer to https://nodejs.org/api/fs.html#fs_file_access_constants.
-      try {
-        await fs.access(path.resolve(cwd, 'node_modules', dep), fs.constants.F_OK);
-      } catch (e) {
-        return;
-      }
-
       const searchPath = path.resolve(cwd, '..');
-      const depPath = await fs.realpath(
-        await findUp(path.join('node_modules', dep), { type: 'directory', cwd: searchPath }),
+      // const depPath = await fs.realpath(
+      //   await findUp(path.join('node_modules', dep), { type: 'directory', cwd: searchPath }),
+      // );
+      const depPath = fs.realpathSync(
+        await findUp(path.join('node_modules', dep),
+        { type: 'directory', cwd: searchPath })
       );
       if (packages[dep]) {
         if (packages[dep].cwd != depPath) {
@@ -77,8 +73,14 @@ async function main() {
   const destRoot = path.resolve(dist, destRootRelative);
   const destModulesRoot = path.resolve(destRoot, 'node_modules');
 
-  await fs.remove(destRoot, { recursive: true });
-  await fs.mkdir(destRoot, { recursive: true });
+  try {
+    // Setting `force: true` ignores exceptions when paths don't exist.
+    fs.rmSync(destRoot, { force: true, recursive: true, maxRetries: 1 });
+    fs.mkdirSync(destRoot, { recursive: true });
+  } catch (error) {
+    // TODO: deal with the error.
+    console.log(error); // eslint-disable-line no-console
+  }
 
   await Promise.all(
     Object.entries(packages).map(async ([name, pkg]) => {
@@ -92,8 +94,13 @@ async function main() {
           const sourceFilename = path.resolve(pkg.cwd, filename);
           const destFilename = path.resolve(destPath, filename);
 
-          await fs.mkdir(path.dirname(destFilename), { recursive: true });
-          await fs.symlink(sourceFilename, destFilename);
+          try {
+            fs.mkdirSync(path.dirname(destFilename), { recursive: true });
+            fs.symlinkSync(sourceFilename, destFilename);
+          } catch (error) {
+            // TODO: deal with the error.
+            console.log(error); // eslint-disable-line no-console
+          }
         }),
       );
 
@@ -101,13 +108,14 @@ async function main() {
       // `fs.constants.F_OK` indicates whether the file is visible to the current process, but it doesn't check
       // its permissions. For more information, refer to https://nodejs.org/api/fs.html#fs_file_access_constants.
       try {
-        await fs.access(path.resolve(sourceModulesRoot), fs.constants.F_OK);
-      } catch (e) {
+        fs.accessSync(path.resolve(sourceModulesRoot), fs.constants.F_OK);
+      } catch (error) {
+        // console.log(error); // eslint-disable-line no-console
         return;
       }
 
       // Scan over local node_modules folder of the package and symlink its non-dev dependencies.
-      const sourceModules = await fs.readdir(sourceModulesRoot);
+      const sourceModules = fs.readdirSync(sourceModulesRoot);
       await Promise.all(
         sourceModules.map(async sourceModule => {
           if (!pkg.packageJson.dependencies || !pkg.packageJson.dependencies[sourceModule]) {
@@ -117,8 +125,13 @@ async function main() {
           const sourceModulePath = path.resolve(sourceModulesRoot, sourceModule);
           const destModulePath = path.resolve(destPath, 'node_modules', sourceModule);
 
-          await fs.mkdir(path.dirname(destModulePath), { recursive: true });
-          await fs.symlink(sourceModulePath, destModulePath);
+          try {
+            fs.mkdirSync(path.dirname(destModulePath), { recursive: true });
+            fs.symlinkSync(sourceModulePath, destModulePath);
+          } catch (error) {
+            // TODO: deal with the error.
+            console.log(error); // eslint-disable-line no-console
+          }
         }),
       );
     }),
@@ -127,7 +140,11 @@ async function main() {
   const version = packages['@sentry/serverless'].packageJson.version;
   const zipFilename = `sentry-node-serverless-${version}.zip`;
 
-  await fs.remove(path.resolve(dist, zipFilename));
+  try {
+    fs.rmSync(path.resolve(dist, zipFilename));
+  } catch (error) {
+
+  }
   await execa('zip', ['-r', zipFilename, destRootRelative], { cwd: dist, shell: true });
 }
 
