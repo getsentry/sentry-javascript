@@ -27,8 +27,6 @@ jobs:
         run: yarn install
       - name: Build
         run: yarn build
-      - name: AWS Lambda build
-        run: node packages/serverless/scripts/build-awslambda-layer.js
 
   job_size_check:
     name: Size Check
