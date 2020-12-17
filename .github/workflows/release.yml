@@ -23,7 +23,7 @@ jobs:
           token: ${{ secrets.GH_RELEASE_PAT }}
           fetch-depth: 0
       - name: Craft Prepare
-        run: npx @sentry/craft prepare ${{ env.RELEASE_VERSION }}
+        run: npx @sentry/craft prepare --no-input "${{ env.RELEASE_VERSION }}"
       - name: Request publish
         if: success()
         uses: actions/github-script@v3
