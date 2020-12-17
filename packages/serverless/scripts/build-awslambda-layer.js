@@ -1,8 +1,8 @@
 const path = require('path');
 const process = require('process');
 const fs = require('fs');
+const childProcess = require('child_process');
 
-const execa = require('execa');
 const findUp = require('find-up');
 const packList = require('npm-packlist');
 const readPkg = require('read-pkg');
@@ -140,7 +140,14 @@ async function main() {
     // If the ZIP file hasn't been previously created (e.g. running this script for the first time),
     // `unlinkSync` will try to delete a non-existing file. This error is ignored.
   }
-  await execa('zip', ['-r', zipFilename, destRootRelative], { cwd: dist, shell: true });
+
+  try {
+    childProcess.execSync(`zip -r ${zipFilename} ${destRootRelative}`, { cwd: dist });
+  } catch (error) {
+    // The child process timed out or had non-zero exit code.
+    // The error contains the entire result from `childProcess.spawnSync`.
+    console.log(error);  // eslint-disable-line no-console
+  }
 }
 
 main().then(
