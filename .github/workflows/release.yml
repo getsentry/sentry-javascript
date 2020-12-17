@@ -24,6 +24,8 @@ jobs:
           fetch-depth: 0
       - name: Craft Prepare
         run: npx @sentry/craft prepare --no-input "${{ env.RELEASE_VERSION }}"
+        env:
+          GITHUB_API_TOKEN: $${ github.token }
       - name: Request publish
         if: success()
         uses: actions/github-script@v3
