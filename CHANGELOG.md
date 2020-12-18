@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.29.2
+
+- Fix version
+
 ## 5.29.1
 
 - [types] ref: Loosen tag types, create new `Primitive` type (#3108)
