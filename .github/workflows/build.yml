@@ -21,7 +21,8 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ github.sha }}
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
       - name: Install
         run: yarn install
       - name: Build
@@ -43,7 +44,8 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ github.sha }}
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
       - uses: andresz1/size-limit-action@v1.4.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -64,7 +66,8 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ github.sha }}
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
       - run: yarn install
       - name: Run Linter
         run: yarn lint
@@ -84,7 +87,8 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ github.sha }}
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
       - run: yarn install
       - name: Unit Tests
         run: yarn test
@@ -105,9 +109,11 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ github.sha }}
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
       - name: Pack
         run: yarn pack:changed
+      - run: yarn install
       - name: Archive Artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -117,6 +123,7 @@ jobs:
             ${{ github.workspace }}/packages/integrations/build/**
             ${{ github.workspace }}/packages/tracing/build/**
             ${{ github.workspace }}/packages/**/*.tgz
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   job_browserstack_test:
     name: BrowserStack
@@ -134,7 +141,8 @@ jobs:
             ${{ github.workspace }}/packages/**/build
             ${{ github.workspace }}/packages/**/dist
             ${{ github.workspace }}/packages/**/esm
-          key: ${{ runner.os }}-${{ github.sha }}
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
       - run: yarn install
       - name: Integration Tests
         env:
