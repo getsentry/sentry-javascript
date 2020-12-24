@@ -1,2 +1,6 @@
 export { BrowserTracing } from './browsertracing';
-export * from './request';
+export {
+  registerRequestInstrumentation,
+  RequestInstrumentationOptions,
+  defaultRequestInstrumentationOptions,
+} from './request';
