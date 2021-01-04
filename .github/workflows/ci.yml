@@ -22,7 +22,10 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+
       - name: Test
         env:
           NODE_VERSION: ${{ matrix.node }}
-        run: ./scripts/test.sh
+        run: |
+          nvm install ${{ matrix.node }}
+          ./scripts/test.sh
