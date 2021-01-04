@@ -1,0 +1,155 @@
+name: 'Build & Test'
+on:
+  push:
+    branches:
+      - master
+      - release/**
+  pull_request:
+
+jobs:
+  job_build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
+      - name: Install
+        run: yarn install
+      - name: Build
+        run: yarn build
+
+  job_size_check:
+    name: Size Check
+    needs: job_build
+    runs-on: ubuntu-latest
+    if: ${{ github.head_ref }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
+      - uses: andresz1/size-limit-action@v1.4.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          skip_step: build
+
+  job_lint:
+    name: Lint
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
+      - run: yarn install
+      - name: Run Linter
+        run: yarn lint
+
+  job_unit_test:
+    name: Test
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
+      - run: yarn install
+      - name: Unit Tests
+        run: yarn test
+      - uses: codecov/codecov-action@v1
+
+  job_artifacts:
+    name: Artifacts Upload
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
+      - name: Pack
+        run: yarn pack:changed
+      - run: yarn install
+      - name: Archive Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/packages/browser/build/**
+            ${{ github.workspace }}/packages/integrations/build/**
+            ${{ github.workspace }}/packages/tracing/build/**
+            ${{ github.workspace }}/packages/**/*.tgz
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+
+  job_browserstack_test:
+    name: BrowserStack
+    needs: job_build
+    runs-on: ubuntu-latest
+    if: "github.ref == 'refs/heads/master'"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/**/node_modules
+            ${{ github.workspace }}/packages/**/build
+            ${{ github.workspace }}/packages/**/dist
+            ${{ github.workspace }}/packages/**/esm
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+          key: ${{ github.sha }}
+      - run: yarn install
+      - name: Integration Tests
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          cd packages/browser
+          yarn test:integration:checkbrowsers
+          yarn test:integration
+          yarn test:package
