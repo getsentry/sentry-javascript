@@ -76,9 +76,14 @@ jobs:
     name: Test
     needs: job_build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [6, 8, 10, 12, 14]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
       - uses: actions/cache@v2
         with:
           path: |
@@ -91,7 +96,10 @@ jobs:
           key: ${{ github.sha }}
       - run: yarn install
       - name: Unit Tests
-        run: yarn test
+        env:
+          NODE_VERSION: ${{ matrix.node }}
+        run: |
+          ./scripts/test.sh
       - uses: codecov/codecov-action@v1
 
   job_artifacts:
