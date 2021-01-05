@@ -22,17 +22,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-          key: ${{ github.sha }}
-
       - name: Test
         env:
           NODE_VERSION: ${{ matrix.node }}
