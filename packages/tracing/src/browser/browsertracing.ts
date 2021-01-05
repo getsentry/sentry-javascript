@@ -1,5 +1,5 @@
 import { Hub } from '@sentry/hub';
-import { EventProcessor, Integration, Transaction as TransactionType, TransactionContext } from '@sentry/types';
+import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
@@ -76,7 +76,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Instrumentation that creates routing change transactions. By default creates
    * pageload and navigation transactions.
    */
-  routingInstrumentation<T extends TransactionType>(
+  routingInstrumentation<T extends Transaction>(
     startTransaction: (context: TransactionContext) => T | undefined,
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
@@ -182,7 +182,7 @@ export class BrowserTracing implements Integration {
   }
 
   /** Create routing idle transaction. */
-  private _createRouteTransaction(context: TransactionContext): TransactionType | undefined {
+  private _createRouteTransaction(context: TransactionContext): Transaction | undefined {
     if (!this._getCurrentHub) {
       logger.warn(`[Tracing] Did not create ${context.op} transaction because _getCurrentHub is invalid.`);
       return undefined;
@@ -216,7 +216,7 @@ export class BrowserTracing implements Integration {
       adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);
     });
 
-    return idleTransaction as TransactionType;
+    return idleTransaction as Transaction;
   }
 }
 
