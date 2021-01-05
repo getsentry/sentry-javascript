@@ -9,11 +9,11 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: build and test
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [6, 8, 10, 12, 14]
+        node: [6]
 
     steps:
       - uses: actions/checkout@v2
@@ -22,10 +22,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-
       - name: Test
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
-          nvm install ${{ matrix.node }}
           ./scripts/test.sh

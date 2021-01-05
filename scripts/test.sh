@@ -4,6 +4,7 @@ source ~/.nvm/nvm.sh
 
 # We need this check to skip engines check for typescript-tslint-plugin package
 if [[ "$(cut -d. -f1 <<< "$NODE_VERSION")" -le 6 ]]; then
+  nvm install 8
   nvm use 8
   yarn install --ignore-engines --ignore-scripts
   # current versions of nock don't support node 6
