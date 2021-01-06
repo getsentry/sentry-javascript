@@ -140,7 +140,7 @@ jobs:
     name: BrowserStack
     needs: job_build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     if: "github.ref == 'refs/heads/master'"
     steps:
       - uses: actions/checkout@v2
