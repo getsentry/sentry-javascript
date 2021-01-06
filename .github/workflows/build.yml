@@ -73,7 +73,7 @@ jobs:
           key: ${{ github.sha }}
       - run: yarn install
       - name: Run Linter
-        run: yarn lint
+        run: yarn lint:ci
 
   job_unit_test:
     name: Test

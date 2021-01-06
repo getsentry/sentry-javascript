@@ -9,7 +9,9 @@
     "fix": "lerna run --stream --concurrency 1 fix",
     "link:yarn": "lerna run --stream --concurrency 1 link:yarn",
     "lint": "lerna run --stream --concurrency 1 lint",
+    "lint:ci": "lerna run --stream lint",
     "test": "lerna run --stream --concurrency 1 --sort test",
+    "test:ci": "lerna run --stream --sort test",
     "codecov": "codecov",
     "pack:changed": "lerna run pack --since",
     "postpublish": "make publish-docs"
