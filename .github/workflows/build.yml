@@ -76,7 +76,7 @@ jobs:
         run: yarn lint
 
   job_unit_test:
-    name: Test
+    name: Test (Node ${{ matrix.node }})
     needs: job_build
     continue-on-error: true
     timeout-minutes: 30
