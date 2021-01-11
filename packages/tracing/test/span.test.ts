@@ -127,9 +127,8 @@ describe('Span', () => {
         traceId: 'c',
       });
       const serialized = spanB.toJSON();
-      expect(serialized).toHaveProperty('start_timestamp');
-      delete (serialized as { start_timestamp: number }).start_timestamp;
       expect(serialized).toStrictEqual({
+        start_timestamp: expect.any(Number),
         parent_span_id: 'b',
         span_id: 'd',
         trace_id: 'c',
