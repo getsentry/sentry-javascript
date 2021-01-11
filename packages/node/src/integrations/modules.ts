@@ -4,12 +4,21 @@ import { dirname, join } from 'path';
 
 let moduleCache: { [key: string]: string };
 
+/** Extract information about paths */
+function getPaths(): string[] {
+  try {
+    return require.cache ? Object.keys(require.cache as Record<string, unknown>) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
 /** Extract information about package.json modules */
 function collectModules(): {
   [name: string]: string;
 } {
   const mainPaths = (require.main && require.main.paths) || [];
-  const paths = require.cache ? Object.keys(require.cache as Record<string, unknown>) : [];
+  const paths = getPaths();
   const infos: {
     [name: string]: string;
   } = {};
