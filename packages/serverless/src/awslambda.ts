@@ -10,10 +10,13 @@ import {
 } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { Integration } from '@sentry/types';
+import { logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
+import { existsSync } from 'fs';
 import { hostname } from 'os';
+import { basename, resolve } from 'path';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
 
@@ -55,6 +58,62 @@ export function init(options: Sentry.NodeOptions = {}): void {
   }
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor('AWSLambda'));
+}
+
+/** */
+function tryRequire<T>(taskRoot: string, subdir: string, mod: string): T {
+  const lambdaStylePath = resolve(taskRoot, subdir, mod);
+  if (existsSync(lambdaStylePath) || existsSync(`${lambdaStylePath}.js`)) {
+    // Lambda-style path
+    return require(lambdaStylePath);
+  }
+  // Node-style path
+  return require(require.resolve(mod, { paths: [taskRoot, subdir] }));
+}
+
+/** */
+export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
+  type HandlerBag = HandlerModule | Handler | null | undefined;
+  interface HandlerModule {
+    [key: string]: HandlerBag;
+  }
+
+  const handlerDesc = basename(handlerPath);
+  const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
+  if (!match) {
+    logger.error(`Bad handler ${handlerDesc}`);
+    return;
+  }
+
+  const [, handlerMod, handlerName] = match;
+
+  let obj: HandlerBag;
+  try {
+    const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
+    obj = tryRequire(taskRoot, handlerDir, handlerMod);
+  } catch (e) {
+    logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
+    return;
+  }
+
+  let mod: HandlerBag;
+  let functionName: string | undefined;
+  handlerName.split('.').forEach(name => {
+    mod = obj;
+    obj = obj && (obj as HandlerModule)[name];
+    functionName = name;
+  });
+  if (!obj) {
+    logger.error(`${handlerPath} is undefined or not exported`);
+    return;
+  }
+  if (typeof obj !== 'function') {
+    logger.error(`${handlerPath} is not a function`);
+    return;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  (mod as HandlerModule)[functionName!] = wrapHandler(obj as Handler);
 }
 
 /**

@@ -23,7 +23,7 @@ module.exports = {
   bs_android_6: {
     base: "BrowserStack",
     browser: "Android Browser",
-    device: "Samsung Galaxy Note 4",
+    device: "Google Nexus 6",
     os: "android",
     os_version: "6.0",
     real_mobile: true,

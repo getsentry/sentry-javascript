@@ -1,5 +1,5 @@
 import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
-import { CustomSamplingContext, SamplingContext, TransactionContext } from '@sentry/types';
+import { CustomSamplingContext, SamplingContext, TransactionContext, TransactionSamplingMethod } from '@sentry/types';
 import {
   dynamicRequire,
   extractNodeRequestData,
@@ -29,18 +29,6 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * Implements sampling inheritance and falls back to user-provided static rate if no parent decision is available.
- *
- * @param parentSampled: The parent transaction's sampling decision, if any.
- * @param givenRate: The rate to use if no parental decision is available.
- *
- * @returns The parent's sampling decision (if one exists), or the provided static rate
- */
-function _inheritOrUseGivenRate(parentSampled: boolean | undefined, givenRate: unknown): boolean | unknown {
-  return parentSampled !== undefined ? parentSampled : givenRate;
-}
-
-/**
  * Makes a sampling decision for the given transaction and stores it on the transaction.
  *
  * Called every time a transaction is created. Only transactions which emerge with a `sampled` value of `true` will be
@@ -64,15 +52,35 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
 
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   if (transaction.sampled !== undefined) {
+    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: TransactionSamplingMethod.Explicit };
     return transaction;
   }
 
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
   // work; prefer the hook if so
-  const sampleRate =
-    typeof options.tracesSampler === 'function'
-      ? options.tracesSampler(samplingContext)
-      : _inheritOrUseGivenRate(samplingContext.parentSampled, options.tracesSampleRate);
+  let sampleRate;
+  if (typeof options.tracesSampler === 'function') {
+    sampleRate = options.tracesSampler(samplingContext);
+    // cast the rate to a number first in case it's a boolean
+    transaction.tags = {
+      ...transaction.tags,
+      __sentry_samplingMethod: TransactionSamplingMethod.Sampler,
+      // TODO kmclb - once tag types are loosened, don't need to cast to string here
+      __sentry_sampleRate: String(Number(sampleRate)),
+    };
+  } else if (samplingContext.parentSampled !== undefined) {
+    sampleRate = samplingContext.parentSampled;
+    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: TransactionSamplingMethod.Inheritance };
+  } else {
+    sampleRate = options.tracesSampleRate;
+    // cast the rate to a number first in case it's a boolean
+    transaction.tags = {
+      ...transaction.tags,
+      __sentry_samplingMethod: TransactionSamplingMethod.Rate,
+      // TODO kmclb - once tag types are loosened, don't need to cast to string here
+      __sentry_sampleRate: String(Number(sampleRate)),
+    };
+  }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
@@ -88,7 +96,7 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
       `[Tracing] Discarding transaction because ${
         typeof options.tracesSampler === 'function'
           ? 'tracesSampler returned 0 or false'
-          : 'tracesSampleRate is set to 0'
+          : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
       }`,
     );
     transaction.sampled = false;
