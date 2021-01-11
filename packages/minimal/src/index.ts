@@ -6,6 +6,7 @@ import {
   Event,
   Extra,
   Extras,
+  Primitive,
   Severity,
   Transaction,
   TransactionContext,
@@ -127,7 +128,7 @@ export function setExtras(extras: Extras): void {
  * Set an object that will be merged sent as tags data with the event.
  * @param tags Tags context object to merge into current context.
  */
-export function setTags(tags: { [key: string]: string }): void {
+export function setTags(tags: { [key: string]: Primitive }): void {
   callOnHub<void>('setTags', tags);
 }
 
@@ -142,10 +143,13 @@ export function setExtra(key: string, extra: Extra): void {
 
 /**
  * Set key:value that will be sent as tags data with the event.
+ *
+ * Can also be used to unset a tag, by passing `undefined`.
+ *
  * @param key String key of tag
- * @param value String value of tag
+ * @param value Value of tag
  */
-export function setTag(key: string, value: string): void {
+export function setTag(key: string, value: Primitive): void {
   callOnHub<void>('setTag', key, value);
 }
 

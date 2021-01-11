@@ -1,4 +1,4 @@
-import { ExtractedNodeRequestData, WorkerLocation } from './misc';
+import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import { Span, SpanContext } from './span';
 
 /**
@@ -51,7 +51,7 @@ export interface Transaction extends TransactionContext, Span {
   /**
    * @inheritDoc
    */
-  tags: { [key: string]: string };
+  tags: { [key: string]: Primitive };
 
   /**
    * @inheritDoc
@@ -100,3 +100,10 @@ export interface SamplingContext extends CustomSamplingContext {
 }
 
 export type Measurements = Record<string, { value: number }>;
+
+export enum TransactionSamplingMethod {
+  Explicit = 'explicitly_set',
+  Sampler = 'client_sampler',
+  Rate = 'client_rate',
+  Inheritance = 'inheritance',
+}

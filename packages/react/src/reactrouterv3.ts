@@ -1,4 +1,4 @@
-import { Transaction, TransactionContext } from '@sentry/types';
+import { Primitive, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { Location, ReactRouterInstrumentation } from './types';
@@ -62,7 +62,9 @@ export function reactRouterV3Instrumentation(
           if (activeTransaction) {
             activeTransaction.finish();
           }
-          const tags: Record<string, string> = { 'routing.instrumentation': 'react-router-v3' };
+          const tags: Record<string, Primitive> = {
+            'routing.instrumentation': 'react-router-v3',
+          };
           if (prevName) {
             tags.from = prevName;
           }
