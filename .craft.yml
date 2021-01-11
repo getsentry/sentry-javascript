@@ -53,3 +53,8 @@ targets:
     onlyIfPresent: /^sentry-angular-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/angular'
+  - name: registry
+    type: sdk
+    onlyIfPresent: /^sentry-wasm-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/wasm'
