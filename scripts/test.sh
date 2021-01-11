@@ -12,7 +12,7 @@ if [[ "$(cut -d. -f1 <<< "$NODE_VERSION")" -le 6 ]]; then
   yarn add --dev --ignore-engines nock@10.x
   cd ../..
   # ember requires Node >= 10 to build
-  yarn build --ignore="@sentry/ember" --ignore="@sentry/serverless" --ignore="@sentry/gatsby" --ignore="@sentry/react" --ignore="@sentry/wasm"
+  yarn build --ignore="@sentry/ember" --ignore="@sentry/serverless" --ignore="@sentry/gatsby" --ignore="@sentry/react" --ignore="@sentry/wasm" --ignore="@sentry/utils"
   nvm install 6
   nvm use 6
   # browser can be tested only on Node >= v8 because Karma is not supporting anything older
