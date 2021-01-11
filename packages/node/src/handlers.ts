@@ -139,10 +139,10 @@ function extractExpressTransactionName(
   return info;
 }
 
-type TransactionTypes = 'path' | 'methodPath' | 'handler';
+type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction(req: ExpressRequest, type: boolean | TransactionTypes): string {
+function extractTransaction(req: ExpressRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
     case 'path': {
       return extractExpressTransactionName(req, { path: true });
@@ -186,7 +186,7 @@ export interface ParseRequestOptions {
   ip?: boolean;
   request?: boolean | string[];
   serverName?: boolean;
-  transaction?: boolean | TransactionTypes;
+  transaction?: boolean | TransactionNamingScheme;
   user?: boolean | string[];
   version?: boolean;
 }

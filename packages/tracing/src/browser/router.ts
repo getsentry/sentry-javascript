@@ -1,4 +1,4 @@
-import { Transaction as TransactionType, TransactionContext } from '@sentry/types';
+import { Transaction, TransactionContext } from '@sentry/types';
 import { addInstrumentationHandler, getGlobalObject, logger } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
@@ -6,7 +6,7 @@ const global = getGlobalObject<Window>();
 /**
  * Default function implementing pageload and navigation transactions
  */
-export function defaultRoutingInstrumentation<T extends TransactionType>(
+export function defaultRoutingInstrumentation<T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
