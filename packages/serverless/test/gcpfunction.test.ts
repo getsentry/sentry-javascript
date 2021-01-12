@@ -1,4 +1,5 @@
 import { Event } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
 
 import * as Sentry from '../src';
@@ -361,6 +362,26 @@ describe('GCPFunction', () => {
   });
 
   describe('init()', () => {
+    // Note: this is the same test that's in the AWS test file, but putting it here also in case AWS and GCP ever get
+    // split
+    it('sets SDK data globally', () => {
+      // the SDK data is set when we import from (and therefore run) `../src/index.ts` - it sets the serverless part itself,
+      // and the node part gets set when it imports from @sentry/node - so no action is necessary here before we run
+      // the `expect`s
+
+      const global = getGlobalObject();
+
+      expect(global.__SENTRY__?.sdkInfo).toBeDefined();
+      expect(global.__SENTRY__?.sdkInfo?.name).toEqual('sentry.javascript.serverless');
+      expect(global.__SENTRY__?.sdkInfo?.version).toEqual(Sentry.SDK_VERSION);
+      expect(global.__SENTRY__?.sdkInfo?.packages).toEqual(
+        expect.arrayContaining([
+          { name: 'npm:@sentry/serverless', version: Sentry.SDK_VERSION },
+          { name: 'npm:@sentry/node', version: Sentry.SDK_VERSION },
+        ]),
+      );
+    });
+
     test('enhance event with SDK info and correct mechanism value', async () => {
       expect.assertions(1);
 
@@ -401,10 +422,10 @@ describe('GCPFunction', () => {
             },
             {
               name: 'npm:@sentry/serverless',
-              version: '6.6.6',
+              version: Sentry.SDK_VERSION,
             },
           ],
-          version: '6.6.6',
+          version: Sentry.SDK_VERSION,
         },
       });
     });
@@ -436,10 +457,10 @@ describe('GCPFunction', () => {
           packages: [
             {
               name: 'npm:@sentry/serverless',
-              version: '6.6.6',
+              version: Sentry.SDK_VERSION,
             },
           ],
-          version: '6.6.6',
+          version: Sentry.SDK_VERSION,
         },
       });
     });

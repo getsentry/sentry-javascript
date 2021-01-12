@@ -1,4 +1,5 @@
 import { Event } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Callback, Handler } from 'aws-lambda';
@@ -341,6 +342,24 @@ describe('AWSLambda', () => {
   });
 
   describe('init()', () => {
+    it('sets SDK data globally', () => {
+      // the SDK data is set when we import from (and therefore run) `../src/index.ts` - it sets the serverless part itself,
+      // and the node part gets set when it imports from @sentry/node - so no action is necessary here before we run
+      // the `expect`s
+
+      const global = getGlobalObject();
+
+      expect(global.__SENTRY__?.sdkInfo).toBeDefined();
+      expect(global.__SENTRY__?.sdkInfo?.name).toEqual('sentry.javascript.serverless');
+      expect(global.__SENTRY__?.sdkInfo?.version).toEqual(Sentry.SDK_VERSION);
+      expect(global.__SENTRY__?.sdkInfo?.packages).toEqual(
+        expect.arrayContaining([
+          { name: 'npm:@sentry/serverless', version: Sentry.SDK_VERSION },
+          { name: 'npm:@sentry/node', version: Sentry.SDK_VERSION },
+        ]),
+      );
+    });
+
     test('enhance event with SDK info and correct mechanism value', async () => {
       expect.assertions(1);
 
@@ -381,10 +400,10 @@ describe('AWSLambda', () => {
             },
             {
               name: 'npm:@sentry/serverless',
-              version: '6.6.6',
+              version: Sentry.SDK_VERSION,
             },
           ],
-          version: '6.6.6',
+          version: Sentry.SDK_VERSION,
         },
       });
     });
@@ -416,10 +435,10 @@ describe('AWSLambda', () => {
           packages: [
             {
               name: 'npm:@sentry/serverless',
-              version: '6.6.6',
+              version: Sentry.SDK_VERSION,
             },
           ],
-          version: '6.6.6',
+          version: Sentry.SDK_VERSION,
         },
       });
     });

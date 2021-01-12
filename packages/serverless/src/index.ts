@@ -5,3 +5,8 @@ export { AWSLambda, GCPFunction };
 
 export * from './awsservices';
 export * from '@sentry/node';
+
+import { SDK_VERSION } from '@sentry/node';
+import { setSDKInfo } from '@sentry/utils';
+
+setSDKInfo('sentry.javascript.serverless', 'npm:@sentry/serverless', SDK_VERSION);
