@@ -1,4 +1,7 @@
-import { Package } from './package';
+interface Package {
+  name: string;
+  version: string;
+}
 
 /** JSDoc */
 export interface SdkInfo {

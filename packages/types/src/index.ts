@@ -13,7 +13,6 @@ export { LogLevel } from './loglevel';
 export { Mechanism } from './mechanism';
 export { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 export { Options } from './options';
-export { Package } from './package';
 export { Request, SentryRequest, SentryRequestType } from './request';
 export { Response } from './response';
 export { Runtime } from './runtime';
