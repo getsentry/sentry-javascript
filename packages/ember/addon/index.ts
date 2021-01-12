@@ -5,7 +5,7 @@ import { macroCondition, isDevelopingApp } from '@embroider/macros';
 import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
-import { timestampWithMs } from '@sentry/utils';
+import { setSDKInfo, timestampWithMs } from '@sentry/utils';
 
 declare module '@ember/debug' {
   export function assert(desc: string, test: unknown): void;
@@ -19,6 +19,7 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
   const initConfig = Object.assign({}, config.sentry, _runtimeConfig || {});
 
   createEmberEventProcessor();
+  setSDKInfo('sentry.javascript.ember', 'npm:@sentry/ember', SDK_VERSION);
 
   Sentry.init(initConfig);
 
