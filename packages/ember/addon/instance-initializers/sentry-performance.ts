@@ -41,7 +41,7 @@ export function _instrumentEmberRouter(
   let activeTransaction: Transaction;
   let transitionSpan: Span;
 
-  const url = location && location.getURL && location.formatURL() && location.formatURL(location.getURL());
+  const url = location && location.getURL && location.formatURL && location.formatURL(location.getURL());
 
   if (macroCondition(isTesting())) {
     routerService._sentryInstrumented = true;
