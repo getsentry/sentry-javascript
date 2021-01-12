@@ -1,11 +1,14 @@
 import { Event, SentryRequest, Session } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 
 import { API } from './api';
 
 /** Creates a SentryRequest from an event. */
 export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
+  const { name, version } = getGlobalObject().__SENTRY__?.sdkInfo || {};
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
+    sdk: { name, version },
   });
   const itemHeaders = JSON.stringify({
     type: 'session',
@@ -39,9 +42,12 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   // deserialization. Instead, we only implement a minimal subset of the spec to
   // serialize events inline here.
   if (useEnvelope) {
+    const { name, version } = getGlobalObject().__SENTRY__?.sdkInfo || {};
+
     const envelopeHeaders = JSON.stringify({
       event_id: event.event_id,
       sent_at: new Date().toISOString(),
+      sdk: { name, version },
     });
     const itemHeaders = JSON.stringify({
       type: event.type,

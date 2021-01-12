@@ -1,4 +1,5 @@
 import { Event, TransactionSamplingMethod } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 
 import { API } from '../../src/api';
 import { eventToSentryRequest } from '../../src/request';
@@ -52,5 +53,23 @@ describe('eventToSentryRequest', () => {
       expect('__sentry_sampleRate' in envelope.event.tags).toBe(false);
       expect('dog' in envelope.event.tags).toBe(true);
     });
+  });
+
+  it('adds sdk metadata to envelope header', () => {
+    getGlobalObject().__SENTRY__ = { sdkInfo: { name: 'sentry.javascript.browser', version: '12.31.12' } } as any;
+
+    const result = eventToSentryRequest(event as Event, api);
+
+    const [envelopeHeaderString, itemHeaderString, eventString] = result.body.split('\n');
+
+    const envelope = {
+      envelopeHeader: JSON.parse(envelopeHeaderString),
+      itemHeader: JSON.parse(itemHeaderString),
+      event: JSON.parse(eventString),
+    };
+
+    expect(envelope.envelopeHeader).toEqual(
+      expect.objectContaining({ sdk: { name: 'sentry.javascript.browser', version: '12.31.12' } }),
+    );
   });
 });
