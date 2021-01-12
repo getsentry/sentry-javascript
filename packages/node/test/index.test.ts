@@ -11,6 +11,7 @@ import {
   init,
   NodeClient,
   Scope,
+  SDK_VERSION,
 } from '../src';
 import { NodeBackend } from '../src/backend';
 
@@ -270,6 +271,16 @@ describe('SentryNode', () => {
 });
 
 describe('SentryNode initialization', () => {
+  test('sets SDK info globally', () => {
+    // the SDK data is set when we import from (and therefore run) `../src/index.ts`, so no action is necessary here
+    // before we run the `expect`s
+
+    expect(global.__SENTRY__.sdkInfo).toBeDefined();
+    expect(global.__SENTRY__.sdkInfo.name).toEqual('sentry.javascript.node');
+    expect(global.__SENTRY__.sdkInfo.version).toEqual(SDK_VERSION);
+    expect(global.__SENTRY__.sdkInfo.packages).toEqual([{ name: 'npm:@sentry/node', version: SDK_VERSION }]);
+  });
+
   test('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });

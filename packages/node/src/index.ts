@@ -42,6 +42,12 @@ export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 
+import { setSDKInfo } from '@sentry/utils';
+
+import { SDK_VERSION } from './version';
+
+setSDKInfo('sentry.javascript.node', 'npm:@sentry/node', SDK_VERSION, false);
+
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
 import * as domain from 'domain';
