@@ -53,3 +53,4 @@ targets:
     onlyIfPresent: /^sentry-angular-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/angular'
+  - name: aws-lambda
