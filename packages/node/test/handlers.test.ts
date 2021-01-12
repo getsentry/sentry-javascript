@@ -2,7 +2,7 @@ import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
 import { SpanStatus, Transaction } from '@sentry/tracing';
-import { Runtime, Transaction as TransactionType } from '@sentry/types';
+import { Runtime } from '@sentry/types';
 import * as http from 'http';
 import * as net from 'net';
 
@@ -255,7 +255,7 @@ describe('tracingHandler', () => {
 
   it('pulls status code from the response', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'finish');
 
     sentryTracingMiddleware(req, res, next);
@@ -302,7 +302,7 @@ describe('tracingHandler', () => {
 
   it('closes the transaction when request processing is done', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'finish');
 
     sentryTracingMiddleware(req, res, next);
@@ -321,7 +321,7 @@ describe('tracingHandler', () => {
       description: 'reallyCoolHandler',
       op: 'middleware',
     });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishSpan = jest.spyOn(span, 'finish');
     const finishTransaction = jest.spyOn(transaction, 'finish');
 
