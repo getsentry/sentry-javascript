@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, Integration, StackFrame, WrappedFunction } from '@sentry/types';
+import { Event, Integration, SdkInfo, StackFrame, WrappedFunction } from '@sentry/types';
 
 import { isNodeEnv } from './node';
 import { snipLine } from './string';
@@ -18,6 +18,7 @@ interface SentryGlobal {
     globalEventProcessors: any;
     hub: any;
     logger: any;
+    sdkInfo: SdkInfo;
   };
 }
 
@@ -36,6 +37,34 @@ export function getGlobalObject<T>(): T & SentryGlobal {
     : typeof self !== 'undefined'
     ? self
     : fallbackGlobalObject) as T & SentryGlobal;
+}
+/**
+ * Adds SDK info to global object
+ *
+ * @param name The name of the SDK, like 'sentry.javascript.browser'
+ * @param packageName The name of the package in npm or elsewhere
+ * @param version The SDK version
+ * @param overwriteMainSDK Should already-existing main SDK data be overwritten? Used to ensure that wrapper packages
+ * (like @sentry/react) show up as themselves rather than as the packages they wrap
+ */
+export function setSDKInfo(name: string, packageName: string, version: string, overwriteMainSDK: boolean = true): void {
+  const global = getGlobalObject();
+  global.__SENTRY__ = global.__SENTRY__ || {};
+
+  // we're the first ones here
+  if (global.__SENTRY__.sdkInfo === undefined) {
+    global.__SENTRY__.sdkInfo = { name, version, packages: [{ name: packageName, version }] };
+    return;
+  }
+
+  // add on to rather than replace package list (so that @sentry/react gets @sentry/react and @sentry/browser, for ex)
+  global.__SENTRY__.sdkInfo.packages = global.__SENTRY__.sdkInfo.packages || [];
+  global.__SENTRY__.sdkInfo.packages.push({ name: packageName, version });
+
+  if (overwriteMainSDK) {
+    global.__SENTRY__.sdkInfo.name = name;
+    global.__SENTRY__.sdkInfo.version = version;
+  }
 }
 
 /**
