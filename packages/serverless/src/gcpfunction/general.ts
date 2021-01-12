@@ -61,3 +61,5 @@ export function configureScopeWithContext(scope: Scope, context: Context): void 
   scope.setTag('server_name', process.env.SENTRY_NAME || hostname());
   scope.setContext('gcp.function.context', { ...context } as SentryContext);
 }
+
+export { Request, Response };
