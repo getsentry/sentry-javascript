@@ -17,7 +17,13 @@ export {
   setUser,
   startTransaction,
   withScope,
+  SDK_VERSION,
 } from '@sentry/browser';
 
 export { init } from './sdk';
 export { vueRouterInstrumentation } from './vuerouter';
+
+import { SDK_VERSION } from '@sentry/browser';
+import { setSDKInfo } from '@sentry/utils';
+
+setSDKInfo('sentry.javascript.vue', 'npm:@sentry/vue', SDK_VERSION);
