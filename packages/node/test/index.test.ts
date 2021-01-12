@@ -69,7 +69,7 @@ describe('SentryNode', () => {
     });
 
     afterEach(() => {
-      s.mockReset();
+      s.mockRestore();
     });
 
     test('record auto breadcrumbs', done => {
@@ -98,7 +98,7 @@ describe('SentryNode', () => {
     });
 
     afterEach(() => {
-      s.mockReset();
+      s.mockRestore();
     });
 
     test('capture an exception', done => {
