@@ -1,4 +1,7 @@
 import { addGlobalEventProcessor, SDK_VERSION } from '@sentry/browser';
+import { setSDKInfo } from '@sentry/utils';
+
+setSDKInfo('sentry.javascript.react', 'npm:@sentry/react', SDK_VERSION);
 
 /**
  * A global side effect that makes sure Sentry events that user
