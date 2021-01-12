@@ -14,6 +14,7 @@ import {
   init,
   Integrations,
   Scope,
+  SDK_VERSION,
   wrap,
 } from '../../src';
 import { SimpleTransport } from './mocks/simpletransport';
@@ -171,6 +172,16 @@ describe('SentryBrowser', () => {
 });
 
 describe('SentryBrowser initialization', () => {
+  it('should set SDK info globally', () => {
+    // the SDK data is set when we import from (and therefore run) `../src/index.ts`, so no action is necessary here
+    // before we run the `expect`s
+
+    expect(global.__SENTRY__.sdkInfo).to.exist;
+    expect(global.__SENTRY__.sdkInfo.name).to.equal('sentry.javascript.browser');
+    expect(global.__SENTRY__.sdkInfo.version).to.equal(SDK_VERSION);
+    expect(global.__SENTRY__.sdkInfo.packages).to.deep.equal([{ name: 'npm:@sentry/browser', version: SDK_VERSION }]);
+  });
+
   it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });

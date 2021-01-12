@@ -1,10 +1,13 @@
 export * from './exports';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, setSDKInfo } from '@sentry/utils';
 
 import * as BrowserIntegrations from './integrations';
 import * as Transports from './transports';
+import { SDK_VERSION } from './version';
+
+setSDKInfo('sentry.javascript.browser', 'npm:@sentry/browser', SDK_VERSION, false);
 
 let windowIntegrations = {};
 
