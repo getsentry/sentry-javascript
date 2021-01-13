@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.30.0
+
+- [node] fix: esbuild warning dynamic require (#3164)
+- [tracing] ref: Expose required things for React Native auto tracing (#3144)
+- [ember] fix: rootURL breaking route recognition (#3166)
+- [serverless] feat: Zip serverless dependencies for AWS Lambda (#3110)
+- [build] feat: Target to deploy on AWS Lambda (#3165)
+- [build] ref: Remove TravisCI (#3149)
+- [build] ref: Upgrade action-prepare-release to latest version
+
 ## 5.29.2
 
 - Fix version
