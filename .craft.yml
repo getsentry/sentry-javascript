@@ -58,3 +58,4 @@ targets:
     onlyIfPresent: /^sentry-wasm-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/wasm'
+  - name: aws-lambda

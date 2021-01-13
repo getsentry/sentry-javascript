@@ -490,7 +490,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      return SyncPromise.reject(new SentryError('This event has been sampled, will not send event.'));
+      return SyncPromise.reject(
+        new SentryError(
+          `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+        ),
+      );
     }
 
     return this._prepareEvent(event, scope, hint)

@@ -2,12 +2,18 @@ import { isMatchingPattern, truncate } from '../src/string';
 
 describe('truncate()', () => {
   test('it works as expected', () => {
-    expect(truncate(null, 3)).toEqual(null);
     expect(truncate('lolol', 3)).toEqual('lol...');
     expect(truncate('lolol', 10)).toEqual('lolol');
     expect(truncate('1'.repeat(1000), 300)).toHaveLength(303);
     expect(truncate(new Array(1000).join('f'), 0)).toEqual(new Array(1000).join('f'));
     expect(truncate(new Array(1000).join('f'), 0)).toEqual(new Array(1000).join('f'));
+  });
+
+  test('should bail out as an identity function when given non-string value', () => {
+    expect(truncate(null as any, 3)).toEqual(null);
+    expect(truncate(undefined as any, 3)).toEqual(undefined);
+    expect(truncate({} as any, 3)).toEqual({});
+    expect(truncate([] as any, 3)).toEqual([]);
   });
 });
 
@@ -33,9 +39,9 @@ describe('isMatchingPattern()', () => {
   });
 
   test('should bail out with false when given non-string value', () => {
-    expect(isMatchingPattern(null, 'foo')).toEqual(false);
-    expect(isMatchingPattern(undefined, 'foo')).toEqual(false);
-    expect(isMatchingPattern({}, 'foo')).toEqual(false);
-    expect(isMatchingPattern([], 'foo')).toEqual(false);
+    expect(isMatchingPattern(null as any, 'foo')).toEqual(false);
+    expect(isMatchingPattern(undefined as any, 'foo')).toEqual(false);
+    expect(isMatchingPattern({} as any, 'foo')).toEqual(false);
+    expect(isMatchingPattern([] as any, 'foo')).toEqual(false);
   });
 });
