@@ -12,8 +12,8 @@ const browsers = isLocalRun ? ["ChromeHeadless"] : Object.keys(customLaunchers);
 // for each browser here, so that we have a nice distinction of when the tests were run exactly.
 if (!isLocalRun) {
   for (const browser in customLaunchers) {
-    customLaunchers[browser].build = process.env.TRAVIS_BUILD_NUMBER
-      ? `Travis: ${process.env.TRAVIS_BUILD_NUMBER}`
+    customLaunchers[browser].build = process.env.GITHUB_RUN_ID
+      ? `CI: ${process.env.GITHUB_RUN_ID}`
       : `Manual: ${new Date().toLocaleString()}`;
   }
 }

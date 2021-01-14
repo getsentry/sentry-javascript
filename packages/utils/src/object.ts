@@ -12,16 +12,17 @@ import { truncate } from './string';
  *
  * @param source An object that contains a method to be wrapped.
  * @param name A name of method to be wrapped.
- * @param replacement A function that should be used to wrap a given method.
+ * @param replacementFactory A function that should be used to wrap a given method, returning the wrapped method which
+ * will be substituted in for `source[name]`.
  * @returns void
  */
-export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
+export function fill(source: { [key: string]: any }, name: string, replacementFactory: (...args: any[]) => any): void {
   if (!(name in source)) {
     return;
   }
 
   const original = source[name] as () => any;
-  const wrapped = replacement(original) as WrappedFunction;
+  const wrapped = replacementFactory(original) as WrappedFunction;
 
   // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
@@ -56,10 +57,10 @@ export function urlEncode(object: { [key: string]: any }): string {
 }
 
 /**
- * Transforms any object into an object literal with all it's attributes
+ * Transforms any object into an object literal with all its attributes
  * attached to it.
  *
- * @param value Initial source that we have to transform in order to be usable by the serializer
+ * @param value Initial source that we have to transform in order for it to be usable by the serializer
  */
 function getWalkSource(
   value: any,
@@ -383,7 +384,7 @@ export function dropUndefinedKeys<T>(val: T): T {
   }
 
   if (Array.isArray(val)) {
-    return val.map(dropUndefinedKeys) as any;
+    return (val as any[]).map(dropUndefinedKeys) as any;
   }
 
   return val;
