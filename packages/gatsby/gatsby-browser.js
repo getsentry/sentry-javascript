@@ -6,6 +6,9 @@ exports.onClientEntry = function(_, pluginParams) {
     return;
   }
 
+  pluginParams.metadata = pluginParams.metadata || {};
+  pluginParams.metadata.name = pluginParams.metadata.name || 'sentry.javascript.gatsby';
+
   const integrations = [...(pluginParams.integrations || [])];
 
   if (Tracing.hasTracingEnabled(pluginParams) && !integrations.some(ele => ele.name === 'BrowserTracing')) {

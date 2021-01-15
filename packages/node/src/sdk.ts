@@ -6,6 +6,7 @@ import * as domain from 'domain';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
 import { Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
+import { SDK_NAME } from './version';
 
 export const defaultIntegrations = [
   // Common
@@ -107,6 +108,9 @@ export function init(options: NodeOptions = {}): void {
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }
+
+  options.metadata = options.metadata || {};
+  options.metadata.name = options.metadata.name || SDK_NAME;
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {

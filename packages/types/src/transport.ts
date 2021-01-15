@@ -1,6 +1,7 @@
 import { DsnLike } from './dsn';
 import { Event } from './event';
 import { Response } from './response';
+import { SdkInfo } from './sdkinfo';
 import { Session } from './session';
 
 /** Transport used sending data to Sentry */
@@ -44,4 +45,6 @@ export interface TransportOptions {
   caCerts?: string;
   /** Fetch API init parameters */
   fetchParameters?: { [key: string]: string };
+  /** Set of metadata about the SDK that can be used to enhance envelopes/events and provide additional data about every request. */
+  metadata?: Partial<SdkInfo>;
 }

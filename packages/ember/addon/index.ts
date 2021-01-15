@@ -17,6 +17,8 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
   assert('Missing configuration for Sentry.', config.sentry);
 
   const initConfig = Object.assign({}, config.sentry, _runtimeConfig || {});
+  initConfig.metadata = initConfig.metadata || {};
+  initConfig.metadata.name = initConfig.metadata.name || 'sentry.javascript.ember';
 
   createEmberEventProcessor();
 

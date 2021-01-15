@@ -22,6 +22,8 @@ export function init(options: Sentry.NodeOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
+  options.metadata = options.metadata || {};
+  options.metadata.name = options.metadata.name || 'sentry.javascript.serverless';
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor('GCPFunction'));
 }

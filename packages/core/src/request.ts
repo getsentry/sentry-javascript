@@ -1,11 +1,33 @@
-import { Event, SentryRequest, Session } from '@sentry/types';
+import { Event, SdkInfo, SentryRequest, Session } from '@sentry/types';
+import { isString } from '@sentry/utils';
 
 import { API } from './api';
 
+/** Extract envelope header containing sdk metadata from the API object */
+function getSdkMetadataForEnvelopeHeader(api: API): Partial<SdkInfo> | undefined {
+  if (!api.metadata) {
+    return;
+  }
+
+  const { name, version } = api.metadata;
+  if (!isString(name) || !isString(version)) {
+    return;
+  }
+
+  return {
+    ...(isString(name) && { name }),
+    ...(isString(version) && { version }),
+  };
+}
+
 /** Creates a SentryRequest from an event. */
 export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
+  const sdkMetadata = getSdkMetadataForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
+    ...(sdkMetadata && {
+      sdk: sdkMetadata,
+    }),
   });
   const itemHeaders = JSON.stringify({
     type: 'session',
@@ -39,9 +61,13 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   // deserialization. Instead, we only implement a minimal subset of the spec to
   // serialize events inline here.
   if (useEnvelope) {
+    const sdkMetadata = getSdkMetadataForEnvelopeHeader(api);
     const envelopeHeaders = JSON.stringify({
       event_id: event.event_id,
       sent_at: new Date().toISOString(),
+      ...(sdkMetadata && {
+        sdk: sdkMetadata,
+      }),
     });
     const itemHeaders = JSON.stringify({
       type: event.type,

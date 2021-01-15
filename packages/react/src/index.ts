@@ -28,6 +28,7 @@ function createReactEventProcessor(): void {
 
 export * from '@sentry/browser';
 
+export { init } from './sdk';
 export { Profiler, withProfiler, useProfiler } from './profiler';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
 export { createReduxEnhancer } from './redux';

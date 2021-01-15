@@ -1,8 +1,8 @@
-import { BaseClient, Scope } from '@sentry/core';
+import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
 
 import { NodeBackend, NodeOptions } from './backend';
-import { SDK_NAME, SDK_VERSION } from './version';
+import { SDK_NAME } from './version';
 
 /**
  * The Sentry Node SDK Client.

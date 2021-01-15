@@ -5,6 +5,7 @@ import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { SDK_NAME } from './version';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -87,6 +88,9 @@ export function init(options: BrowserOptions = {}): void {
   if (options.autoSessionTracking === undefined) {
     options.autoSessionTracking = false;
   }
+
+  options.metadata = options.metadata || {};
+  options.metadata.name = options.metadata.name || SDK_NAME;
 
   initAndBind(BrowserClient, options);
 

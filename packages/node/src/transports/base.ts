@@ -1,4 +1,4 @@
-import { API, eventToSentryRequest } from '@sentry/core';
+import { API, eventToSentryRequest, SDK_VERSION } from '@sentry/core';
 import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
@@ -6,7 +6,7 @@ import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
 
-import { SDK_NAME, SDK_VERSION } from '../version';
+import { SDK_NAME } from '../version';
 
 /**
  * Internal used interface for typescript.
@@ -53,7 +53,7 @@ export abstract class BaseTransport implements Transport {
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
-    this._api = new API(options.dsn);
+    this._api = new API(options.dsn, options.metadata);
   }
 
   /**

@@ -2,6 +2,7 @@ import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { LogLevel } from './loglevel';
+import { SdkInfo } from './sdkinfo';
 import { SamplingContext } from './transaction';
 import { Transport, TransportClass, TransportOptions } from './transport';
 
@@ -105,6 +106,11 @@ export interface Options {
    * problems.
    */
   shutdownTimeout?: number;
+
+  /**
+   * Set of metadata about the SDK that can be used to enhance envelopes/events and provide additional data about every request.
+   * */
+  metadata?: Partial<SdkInfo>;
 
   /**
    * Options which are in beta, or otherwise not guaranteed to be stable.

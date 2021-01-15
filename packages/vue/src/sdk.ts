@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserClient, BrowserOptions, defaultIntegrations, getCurrentHub } from '@sentry/browser';
-import { initAndBind } from '@sentry/core';
+import { BrowserOptions, getCurrentHub, init as browserInit } from '@sentry/browser';
 import { Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
@@ -129,17 +128,6 @@ interface TracingOptions {
 export function init(
   options: Partial<Omit<VueOptions, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }> = {},
 ): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
-  }
-  if (options.release === undefined) {
-    const window = getGlobalObject<Window>();
-    // This supports the variable that sentry-webpack-plugin injects
-    if (window.SENTRY_RELEASE && window.SENTRY_RELEASE.id) {
-      options.release = window.SENTRY_RELEASE.id;
-    }
-  }
-
   const finalOptions = {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     Vue: getGlobalObject<any>().Vue as VueInstance,
@@ -155,7 +143,10 @@ export function init(
     },
   } as VueOptions;
 
-  initAndBind(BrowserClient, finalOptions);
+  finalOptions.metadata = finalOptions.metadata || {};
+  finalOptions.metadata.name = finalOptions.metadata.name || 'sentry.javascript.serverless';
+
+  browserInit(finalOptions);
   if (finalOptions.Vue === undefined) {
     logger.warn('No Vue instance was provided. Also there is no Vue instance on the `window` object.');
     logger.warn('We will only capture global unhandled errors.');

@@ -1,14 +1,18 @@
-import { DsnLike } from '@sentry/types';
+import { DsnLike, SdkInfo } from '@sentry/types';
 import { Dsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
 
-/** Helper class to provide urls to different Sentry endpoints. */
+/**
+ * Helper class to provide urls, headers and metadata that can be used to form
+ * different types of requests to Sentry endpoints.
+ * Supports both envelopes and regular event requests.
+ **/
 export class API {
   /** The internally used Dsn object. */
   private readonly _dsnObject: Dsn;
   /** Create a new instance of API */
-  public constructor(public dsn: DsnLike) {
+  public constructor(public dsn: DsnLike, public metadata?: Partial<SdkInfo>) {
     this._dsnObject = new Dsn(dsn);
   }
 
@@ -59,6 +63,7 @@ export class API {
    * This is needed for node and the old /store endpoint in sentry
    */
   public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
+    // CHANGE THIS to use metadata but keep clientName and clientVersion compatible
     const dsn = this._dsnObject;
     const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
     header.push(`sentry_client=${clientName}/${clientVersion}`);
