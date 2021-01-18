@@ -36,6 +36,7 @@
     "packages/types",
     "packages/typescript",
     "packages/utils",
+    "packages/wasm",
     "packages/vue"
   ],
   "devDependencies": {
@@ -65,7 +66,8 @@
     "typescript": "3.7.5"
   },
   "resolutions": {
-    "**/agent-base": "5"
+    "**/agent-base": "5",
+    "**/jest-environment-node": "24"
   },
   "version": "0.0.0"
 }

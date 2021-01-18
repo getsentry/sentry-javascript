@@ -1,0 +1,6 @@
+*
+!*.js.map
+!*.d.ts
+!*.js
+!/esm/**/*
+jest.config.js
