@@ -6,8 +6,17 @@ exports.onClientEntry = function(_, pluginParams) {
     return;
   }
 
-  pluginParams.metadata = pluginParams.metadata || {};
-  pluginParams.metadata.name = pluginParams.metadata.name || 'sentry.javascript.gatsby';
+  pluginParams._metadata = pluginParams._metadata || {};
+  pluginParams._metadata.sdk = {
+    name: 'sentry.javascript.gatsby',
+    packages: [
+      {
+        name: 'npm:@sentry/gatsby',
+        version: Sentry.SDK_VERSION,
+      },
+    ],
+    version: Sentry.SDK_VERSION,
+  };
 
   const integrations = [...(pluginParams.integrations || [])];
 
@@ -27,20 +36,5 @@ exports.onClientEntry = function(_, pluginParams) {
     integrations,
   });
 
-  Sentry.addGlobalEventProcessor(event => {
-    event.sdk = {
-      ...event.sdk,
-      name: 'sentry.javascript.gatsby',
-      packages: [
-        ...((event.sdk && event.sdk.packages) || []),
-        {
-          name: 'npm:@sentry/gatsby',
-          version: Sentry.SDK_VERSION,
-        },
-      ],
-      version: Sentry.SDK_VERSION,
-    };
-    return event;
-  });
   window.Sentry = Sentry;
 };

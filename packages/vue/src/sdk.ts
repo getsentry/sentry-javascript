@@ -1,10 +1,7 @@
-/* eslint-disable max-lines */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserOptions, getCurrentHub, init as browserInit } from '@sentry/browser';
+/* eslint-disable max-lines, @typescript-eslint/no-explicit-any */
+import { BrowserOptions, getCurrentHub, init as browserInit, SDK_VERSION } from '@sentry/browser';
 import { Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
-
-import { createVueEventProcessor } from './eventprocessor';
 
 export interface VueOptions extends BrowserOptions {
   /** Vue instance to be used inside the integration */
@@ -143,8 +140,17 @@ export function init(
     },
   } as VueOptions;
 
-  finalOptions.metadata = finalOptions.metadata || {};
-  finalOptions.metadata.name = finalOptions.metadata.name || 'sentry.javascript.serverless';
+  finalOptions._metadata = finalOptions._metadata || {};
+  finalOptions._metadata.sdk = {
+    name: 'sentry.javascript.vue',
+    packages: [
+      {
+        name: 'npm:@sentry/vue',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   browserInit(finalOptions);
   if (finalOptions.Vue === undefined) {
@@ -154,8 +160,6 @@ export function init(
     const vueHelper = new VueHelper(finalOptions);
     vueHelper.setup();
   }
-
-  createVueEventProcessor();
 }
 
 /** JSDoc */

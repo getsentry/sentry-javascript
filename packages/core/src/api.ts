@@ -1,4 +1,4 @@
-import { DsnLike, SdkInfo } from '@sentry/types';
+import { DsnLike, SdkMetadata } from '@sentry/types';
 import { Dsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
@@ -12,7 +12,7 @@ export class API {
   /** The internally used Dsn object. */
   private readonly _dsnObject: Dsn;
   /** Create a new instance of API */
-  public constructor(public dsn: DsnLike, public metadata?: Partial<SdkInfo>) {
+  public constructor(public dsn: DsnLike, public metadata?: SdkMetadata) {
     this._dsnObject = new Dsn(dsn);
   }
 

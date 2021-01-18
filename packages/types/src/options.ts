@@ -2,7 +2,7 @@ import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { LogLevel } from './loglevel';
-import { SdkInfo } from './sdkinfo';
+import { SdkMetadata } from './sdkmetadata';
 import { SamplingContext } from './transaction';
 import { Transport, TransportClass, TransportOptions } from './transport';
 
@@ -108,18 +108,6 @@ export interface Options {
   shutdownTimeout?: number;
 
   /**
-   * Set of metadata about the SDK that can be used to enhance envelopes/events and provide additional data about every request.
-   * */
-  metadata?: Partial<SdkInfo>;
-
-  /**
-   * Options which are in beta, or otherwise not guaranteed to be stable.
-   */
-  _experiments?: {
-    [key: string]: any;
-  };
-
-  /**
    * Sample rate to determine trace sampling.
    *
    * 0.0 = 0% chance of a given trace being sent (send no traces) 1.0 = 100% chance of a given trace being sent (send
@@ -129,6 +117,19 @@ export interface Options {
    * ignored.
    */
   tracesSampleRate?: number;
+
+  /**
+   * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
+   * and provide additional data about every request.
+   * */
+  _metadata?: SdkMetadata;
+
+  /**
+   * Options which are in beta, or otherwise not guaranteed to be stable.
+   */
+  _experiments?: {
+    [key: string]: any;
+  };
 
   /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.

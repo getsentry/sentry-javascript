@@ -1,4 +1,4 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
@@ -6,7 +6,6 @@ import * as domain from 'domain';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
 import { Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
-import { SDK_NAME } from './version';
 
 export const defaultIntegrations = [
   // Common
@@ -109,8 +108,17 @@ export function init(options: NodeOptions = {}): void {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }
 
-  options.metadata = options.metadata || {};
-  options.metadata.name = options.metadata.name || SDK_NAME;
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = {
+    name: 'sentry.javascript.node',
+    packages: [
+      {
+        name: 'npm:@sentry/node',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {

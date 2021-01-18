@@ -7,16 +7,12 @@ const { onClientEntry } = require('../gatsby-browser');
 (global as any).__SENTRY_DSN__ = 'https://examplePublicKey@o0.ingest.sentry.io/0';
 
 let sentryInit = jest.fn();
-let sentryProcessEvent: <T>(event: T) => T;
 jest.mock('@sentry/react', () => {
   const original = jest.requireActual('@sentry/react');
   return {
     ...original,
     init: (...args: any[]) => {
       sentryInit(...args);
-    },
-    addGlobalEventProcessor: (callback: any) => {
-      sentryProcessEvent = callback;
     },
   };
 });
@@ -36,9 +32,6 @@ describe('onClientEntry', () => {
   beforeEach(() => {
     sentryInit = jest.fn();
     tracingAddExtensionMethods = jest.fn();
-
-    // @ts-ignore need to set as undefined
-    sentryProcessEvent = undefined;
   });
 
   afterEach(() => {
@@ -53,20 +46,7 @@ describe('onClientEntry', () => {
       environment: process.env.NODE_ENV,
       integrations: [],
       release: (global as any).__SENTRY_RELEASE__,
-    });
-  });
-
-  it('sets window.Sentry', () => {
-    onClientEntry(undefined, {});
-    expect((window as any).Sentry).not.toBeUndefined();
-  });
-
-  it('adds a global event processor', () => {
-    onClientEntry(undefined, {});
-    if (sentryProcessEvent) {
-      const changedEvent = sentryProcessEvent({});
-
-      expect(changedEvent).toEqual({
+      _metadata: {
         sdk: {
           name: 'sentry.javascript.gatsby',
           packages: [
@@ -77,10 +57,13 @@ describe('onClientEntry', () => {
           ],
           version: expect.any(String),
         },
-      });
-    } else {
-      fail('process event not defined');
-    }
+      },
+    });
+  });
+
+  it('sets window.Sentry', () => {
+    onClientEntry(undefined, {});
+    expect((window as any).Sentry).not.toBeUndefined();
   });
 
   it('adds Tracing extension methods', () => {
@@ -145,7 +128,6 @@ describe('onClientEntry', () => {
     onClientEntry();
     expect(sentryInit).toHaveBeenCalledTimes(0);
     expect((window as any).Sentry).toBeUndefined();
-    expect(sentryProcessEvent).toBeUndefined();
     expect(tracingAddExtensionMethods).toHaveBeenCalledTimes(0);
   });
 });

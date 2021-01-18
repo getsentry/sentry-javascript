@@ -22,8 +22,20 @@ export function init(options: Sentry.NodeOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
-  options.metadata = options.metadata || {};
-  options.metadata.name = options.metadata.name || 'sentry.javascript.serverless';
+
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = {
+    name: 'sentry.javascript.serverless',
+    integrations: ['GCPFunction'],
+    packages: [
+      {
+        name: 'npm:@sentry/serverless',
+        version: Sentry.SDK_VERSION,
+      },
+    ],
+    version: Sentry.SDK_VERSION,
+  };
+
   Sentry.init(options);
-  Sentry.addGlobalEventProcessor(serverlessEventProcessor('GCPFunction'));
+  Sentry.addGlobalEventProcessor(serverlessEventProcessor);
 }

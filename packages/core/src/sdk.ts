@@ -2,8 +2,6 @@ import { getCurrentHub } from '@sentry/hub';
 import { Client, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { SDK_VERSION } from './version';
-
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends Options> = new (options: O) => F;
 
@@ -18,8 +16,6 @@ export function initAndBind<F extends Client, O extends Options>(clientClass: Cl
   if (options.debug === true) {
     logger.enable();
   }
-  options.metadata = options.metadata || {};
-  options.metadata.version = SDK_VERSION;
   const hub = getCurrentHub();
   const client = new clientClass(options);
   hub.bindClient(client);

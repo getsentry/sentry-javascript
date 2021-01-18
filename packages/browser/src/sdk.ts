@@ -1,11 +1,10 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
 import { getGlobalObject, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
-import { SDK_NAME } from './version';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -89,8 +88,17 @@ export function init(options: BrowserOptions = {}): void {
     options.autoSessionTracking = false;
   }
 
-  options.metadata = options.metadata || {};
-  options.metadata.name = options.metadata.name || SDK_NAME;
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = {
+    name: 'sentry.javascript.browser',
+    packages: [
+      {
+        name: 'npm:@sentry/browser',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   initAndBind(BrowserClient, options);
 

@@ -29,25 +29,6 @@ class SentryErrorHandler implements AngularErrorHandler {
       logErrors: true,
       ...options,
     };
-
-    Sentry.configureScope(scope => {
-      scope.addEventProcessor(event => {
-        event.sdk = {
-          ...event.sdk,
-          name: 'sentry.javascript.angular',
-          packages: [
-            ...((event.sdk && event.sdk.packages) || []),
-            {
-              name: 'npm:@sentry/angular',
-              version: Sentry.SDK_VERSION,
-            },
-          ],
-          version: Sentry.SDK_VERSION,
-        };
-
-        return event;
-      });
-    });
   }
 
   /**
