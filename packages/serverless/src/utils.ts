@@ -29,7 +29,7 @@ export function getActiveDomain(): domain.Domain | null {
  * @param fn function to run
  * @returns function which runs in the newly created domain or in the existing one
  */
-export function domainify<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+export function domainify<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R | void {
   return (...args) => {
     if (getActiveDomain()) {
       return fn(...args);
