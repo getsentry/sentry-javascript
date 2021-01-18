@@ -242,7 +242,7 @@ function startSessionTracking(): void {
   addInstrumentationHandler({
     callback: () => {
       if (
-        getCurrentHub()
+        !getCurrentHub()
           .getScope()
           ?.getSession()
       ) {
