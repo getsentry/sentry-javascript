@@ -140,6 +140,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
       ...(this._options.caCerts && { caCerts: this._options.caCerts }),
       dsn: this._options.dsn,
+      _metadata: this._options._metadata,
     };
 
     if (this._options.transport) {

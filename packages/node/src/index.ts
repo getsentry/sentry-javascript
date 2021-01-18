@@ -28,6 +28,7 @@ export {
   makeMain,
   Scope,
   startTransaction,
+  SDK_VERSION,
   setContext,
   setExtra,
   setExtras,
@@ -40,7 +41,7 @@ export {
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close } from './sdk';
-export { SDK_NAME, SDK_VERSION } from './version';
+export { SDK_NAME } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';

@@ -81,7 +81,6 @@
     "size:check": "run-p size:check:es5 size:check:es6",
     "size:check:es5": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
     "size:check:es6": "cat build/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",
-    "version": "node ../../scripts/versionbump.js src/version.ts",
     "pack": "npm pack"
   },
   "volta": {
