@@ -15,7 +15,7 @@ function getSdkMetadataForEnvelopeHeader(api: API): SdkInfo | undefined {
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
  **/
-function enhanceEventWithSdkInfo(event: Event, sdkInfo: SdkInfo): Event {
+function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
     return event;
   }
