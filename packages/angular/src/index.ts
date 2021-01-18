@@ -1,4 +1,6 @@
 export * from '@sentry/browser';
+
+export { init } from './sdk';
 export { createErrorHandler, ErrorHandlerOptions } from './errorhandler';
 export {
   getActiveTransaction,

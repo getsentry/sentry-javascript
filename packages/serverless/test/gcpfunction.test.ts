@@ -361,26 +361,39 @@ describe('GCPFunction', () => {
   });
 
   describe('init()', () => {
-    test('enhance event with SDK info and correct mechanism value', async () => {
-      expect.assertions(1);
+    test('calls Sentry.init with correct sdk info metadata', () => {
+      Sentry.GCPFunction.init({});
 
+      expect(Sentry.init).toBeCalledWith(
+        expect.objectContaining({
+          _metadata: {
+            sdk: {
+              name: 'sentry.javascript.serverless',
+              integrations: ['GCPFunction'],
+              packages: [
+                {
+                  name: 'npm:@sentry/serverless',
+                  version: '6.6.6',
+                },
+              ],
+              version: '6.6.6',
+            },
+          },
+        }),
+      );
+    });
+
+    test('enhance event with correct mechanism value', () => {
       const eventWithSomeData = {
         exception: {
           values: [{}],
         },
-        sdk: {
-          integrations: ['SomeIntegration'],
-          packages: [
-            {
-              name: 'some:@random/package',
-              version: '1337',
-            },
-          ],
-        },
       };
+
       // @ts-ignore see "Why @ts-ignore" note
       Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
-      Sentry.AWSLambda.init({ defaultIntegrations: [] });
+      Sentry.GCPFunction.init({});
+
       expect(eventWithSomeData).toEqual({
         exception: {
           values: [
@@ -390,56 +403,6 @@ describe('GCPFunction', () => {
               },
             },
           ],
-        },
-        sdk: {
-          name: 'sentry.javascript.serverless',
-          integrations: ['SomeIntegration', 'AWSLambda'],
-          packages: [
-            {
-              name: 'some:@random/package',
-              version: '1337',
-            },
-            {
-              name: 'npm:@sentry/serverless',
-              version: '6.6.6',
-            },
-          ],
-          version: '6.6.6',
-        },
-      });
-    });
-
-    test('populates missing SDK info and mechanism', async () => {
-      expect.assertions(1);
-
-      const eventWithoutAnyData: Event = {
-        exception: {
-          values: [{}],
-        },
-      };
-      // @ts-ignore see "Why @ts-ignore" note
-      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithoutAnyData));
-      Sentry.AWSLambda.init({ defaultIntegrations: [] });
-      expect(eventWithoutAnyData).toEqual({
-        exception: {
-          values: [
-            {
-              mechanism: {
-                handled: false,
-              },
-            },
-          ],
-        },
-        sdk: {
-          name: 'sentry.javascript.serverless',
-          integrations: ['AWSLambda'],
-          packages: [
-            {
-              name: 'npm:@sentry/serverless',
-              version: '6.6.6',
-            },
-          ],
-          version: '6.6.6',
         },
       });
     });

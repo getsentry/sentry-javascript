@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/browser';
-import { addGlobalEventProcessor, SDK_VERSION, BrowserOptions } from '@sentry/browser';
+import { SDK_VERSION, BrowserOptions } from '@sentry/browser';
 import environmentConfig from 'ember-get-config';
 import { macroCondition, isDevelopingApp } from '@embroider/macros';
 import { next } from '@ember/runloop';
@@ -18,7 +18,17 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
 
   const initConfig = Object.assign({}, config.sentry, _runtimeConfig || {});
 
-  createEmberEventProcessor();
+  initConfig._metadata = initConfig._metadata || {};
+  initConfig._metadata.sdk = {
+    name: 'sentry.javascript.ember',
+    packages: [
+      {
+        name: 'npm:@sentry/ember',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   Sentry.init(initConfig);
 
@@ -82,26 +92,5 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
     },
   }[BaseRoute.name];
 };
-
-function createEmberEventProcessor(): void {
-  if (addGlobalEventProcessor) {
-    addGlobalEventProcessor(event => {
-      event.sdk = {
-        ...event.sdk,
-        name: 'sentry.javascript.ember',
-        packages: [
-          ...((event.sdk && event.sdk.packages) || []),
-          {
-            name: 'npm:@sentry/ember',
-            version: SDK_VERSION,
-          },
-        ],
-        version: SDK_VERSION,
-      };
-
-      return event;
-    });
-  }
-}
 
 export * from '@sentry/browser';

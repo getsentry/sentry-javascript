@@ -67,6 +67,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     const transportOptions = {
       ...this._options.transportOptions,
       dsn: this._options.dsn,
+      _metadata: this._options._metadata,
     };
 
     if (this._options.transport) {

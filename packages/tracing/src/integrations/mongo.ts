@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
-import { dynamicRequire, fill, logger } from '@sentry/utils';
+import { dynamicRequire, fill, isThenable, logger } from '@sentry/utils';
 
 // This allows us to use the same array for both defaults options and the type itself.
 // (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... )
@@ -152,10 +152,17 @@ export class Mongo implements Integration {
         // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
           const span = parentSpan?.startChild(getSpanContext(this, operation, args));
-          return (orig.call(this, ...args) as Promise<unknown>).then((res: unknown) => {
+          const maybePromise = orig.call(this, ...args) as Promise<unknown>;
+
+          if (isThenable(maybePromise)) {
+            return maybePromise.then((res: unknown) => {
+              span?.finish();
+              return res;
+            });
+          } else {
             span?.finish();
-            return res;
-          });
+            return maybePromise;
+          }
         }
 
         const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
