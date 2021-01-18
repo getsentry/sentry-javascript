@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@embroider/macros": ">=0.25.0",
+    "@embroider/test-setup": "^0.35.1",
     "@sentry/browser": "5.30.0",
     "@sentry/tracing": "5.30.0",
     "@sentry/types": "5.30.0",
@@ -39,22 +40,24 @@
     "ember-auto-import": "^1.6.0",
     "ember-cli-babel": "^7.20.5",
     "ember-cli-htmlbars": "^5.1.2",
-    "ember-cli-typescript": "^3.1.4",
-    "ember-get-config": "^0.2.4"
+    "ember-cli-typescript": "^3.1.4"
   },
   "devDependencies": {
     "@ember/optional-features": "^1.3.0",
+    "@embroider/compat": "^0.35.1",
+    "@embroider/core": "^0.35.1",
+    "@embroider/webpack": "^0.35.1",
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
     "@sentry-internal/eslint-config-sdk": "5.30.0",
-    "@types/ember": "^3.16.0",
+    "@types/ember": "^3.16.3",
     "@types/ember-qunit": "^3.4.9",
     "@types/ember__test-helpers": "^1.7.0",
     "@types/qunit": "^2.9.1",
     "@types/rsvp": "^4.0.3",
     "babel-eslint": "^10.1.0",
     "broccoli-asset-rev": "^3.0.0",
-    "ember-cli": "^3.21.2",
+    "ember-cli": "^3.24.0",
     "ember-cli-dependency-checker": "^3.2.0",
     "ember-cli-inject-live-reload": "^2.0.2",
     "ember-cli-sri": "^2.1.1",
@@ -67,7 +70,7 @@
     "ember-qunit": "^4.6.0",
     "ember-resolver": "^8.0.0",
     "ember-sinon-qunit": "^5.0.0",
-    "ember-source": "^3.21.1",
+    "ember-source": "^3.24.0",
     "ember-source-channel-url": "^2.0.1",
     "ember-template-lint": "^2.9.1",
     "ember-test-selectors": "^4.1.0",
@@ -91,7 +94,7 @@
     "configPath": "tests/dummy/config"
   },
   "volta": {
-    "node": "12.18.3",
+    "node": "14.15.4",
     "yarn": "1.22.5"
   }
 }
