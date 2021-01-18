@@ -1,4 +1,4 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
 import { getGlobalObject, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
@@ -87,6 +87,18 @@ export function init(options: BrowserOptions = {}): void {
   if (options.autoSessionTracking === undefined) {
     options.autoSessionTracking = false;
   }
+
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = {
+    name: 'sentry.javascript.browser',
+    packages: [
+      {
+        name: 'npm:@sentry/browser',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   initAndBind(BrowserClient, options);
 
