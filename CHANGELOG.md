@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.0.0
+
+- [wasm] feat: Introduce a `@sentry/wasm` package (#3080)
+- [tracing] feat: Turn Sessions Tracking on by default (#3099)
+- [tracing] feat: Create session on history change (#3179)
+- [core] feat: Attach SDK metadata to options and pass it to the API and transports (#3177)
+- [build] feat: AWS Lambda layer target config for Craft (#3175)
+- [tracing] fix: Make sure that mongo method is thenable before calling it (#3173)
+
 ## 5.30.0
 
 - [node] fix: esbuild warning dynamic require (#3164)
