@@ -85,7 +85,7 @@ export function init(options: BrowserOptions = {}): void {
     }
   }
   if (options.autoSessionTracking === undefined) {
-    options.autoSessionTracking = false;
+    options.autoSessionTracking = true;
   }
 
   options._metadata = options._metadata || {};
