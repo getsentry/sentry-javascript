@@ -12,16 +12,17 @@ import { truncate } from './string';
  *
  * @param source An object that contains a method to be wrapped.
  * @param name A name of method to be wrapped.
- * @param replacement A function that should be used to wrap a given method.
+ * @param replacementFactory A function that should be used to wrap a given method, returning the wrapped method which
+ * will be substituted in for `source[name]`.
  * @returns void
  */
-export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
+export function fill(source: { [key: string]: any }, name: string, replacementFactory: (...args: any[]) => any): void {
   if (!(name in source)) {
     return;
   }
 
   const original = source[name] as () => any;
-  const wrapped = replacement(original) as WrappedFunction;
+  const wrapped = replacementFactory(original) as WrappedFunction;
 
   // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
@@ -56,10 +57,10 @@ export function urlEncode(object: { [key: string]: any }): string {
 }
 
 /**
- * Transforms any object into an object literal with all it's attributes
+ * Transforms any object into an object literal with all its attributes
  * attached to it.
  *
- * @param value Initial source that we have to transform in order to be usable by the serializer
+ * @param value Initial source that we have to transform in order for it to be usable by the serializer
  */
 function getWalkSource(
   value: any,
@@ -170,7 +171,15 @@ export function normalizeToSize<T>(
   return serialized as T;
 }
 
-/** Transforms any input value into a string form, either primitive value or a type of the input */
+/**
+ * Transform any non-primitive, BigInt, or Symbol-type value into a string. Acts as a no-op on strings, numbers,
+ * booleans, null, and undefined.
+ *
+ * @param value The value to stringify
+ * @returns For non-primitive, BigInt, and Symbol-type values, a string denoting the value's type, type and value, or
+ *  type and `description` property, respectively. For non-BigInt, non-Symbol primitives, returns the original value,
+ *  unchanged.
+ */
 function serializeValue(value: any): any {
   const type = Object.prototype.toString.call(value);
 
@@ -234,6 +243,16 @@ function normalizeValue<T>(value: T, key?: any): T | string {
 
   if (typeof value === 'function') {
     return `[Function: ${getFunctionName(value)}]`;
+  }
+
+  // symbols and bigints are considered primitives by TS, but aren't natively JSON-serilaizable
+
+  if (typeof value === 'symbol') {
+    return `[${String(value)}]`;
+  }
+
+  if (typeof value === 'bigint') {
+    return `[BigInt: ${String(value)}]`;
   }
 
   return value;
@@ -365,7 +384,7 @@ export function dropUndefinedKeys<T>(val: T): T {
   }
 
   if (Array.isArray(val)) {
-    return val.map(dropUndefinedKeys) as any;
+    return (val as any[]).map(dropUndefinedKeys) as any;
   }
 
   return val;

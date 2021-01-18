@@ -26,7 +26,7 @@ export abstract class BaseTransport implements Transport {
   protected readonly _rateLimits: Record<string, Date> = {};
 
   public constructor(public options: TransportOptions) {
-    this._api = new API(this.options.dsn);
+    this._api = new API(options.dsn, options._metadata);
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
   }
@@ -67,7 +67,7 @@ export abstract class BaseTransport implements Transport {
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
      */
     const limited = this._handleRateLimit(headers);
-    if (limited) logger.warn(`Too many requests, backing off till: ${this._disabledUntil(requestType)}`);
+    if (limited) logger.warn(`Too many requests, backing off until: ${this._disabledUntil(requestType)}`);
 
     if (status === Status.Success) {
       resolve({ status });
@@ -100,6 +100,16 @@ export abstract class BaseTransport implements Transport {
     const raHeader = headers['retry-after'];
 
     if (rlHeader) {
+      // rate limit headers are of the form
+      //     <header>,<header>,..
+      // where each <header> is of the form
+      //     <retry_after>: <categories>: <scope>: <reason_code>
+      // where
+      //     <retry_after> is a delay in ms
+      //     <categories> is the event type(s) (error, transaction, etc) being rate limited and is of the form
+      //         <category>;<category>;...
+      //     <scope> is what's being limited (org, project, or key) - ignored by SDK
+      //     <reason_code> is an arbitrary string like "org_quota" - ignored by SDK
       for (const limit of rlHeader.trim().split(',')) {
         const parameters = limit.split(':', 2);
         const headerDelay = parseInt(parameters[0], 10);

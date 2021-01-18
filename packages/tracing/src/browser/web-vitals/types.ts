@@ -82,3 +82,14 @@ interface NetworkInformation extends EventTarget {
 export interface NavigatorDeviceMemory {
   readonly deviceMemory?: number;
 }
+
+export type NavigationTimingPolyfillEntry = Omit<
+  PerformanceNavigationTiming,
+  | 'initiatorType'
+  | 'nextHopProtocol'
+  | 'redirectCount'
+  | 'transferSize'
+  | 'encodedBodySize'
+  | 'decodedBodySize'
+  | 'toJSON'
+>;

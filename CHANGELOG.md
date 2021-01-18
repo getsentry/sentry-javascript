@@ -4,6 +4,34 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.30.0
+
+- [node] fix: esbuild warning dynamic require (#3164)
+- [tracing] ref: Expose required things for React Native auto tracing (#3144)
+- [ember] fix: rootURL breaking route recognition (#3166)
+- [serverless] feat: Zip serverless dependencies for AWS Lambda (#3110)
+- [build] feat: Target to deploy on AWS Lambda (#3165)
+- [build] ref: Remove TravisCI (#3149)
+- [build] ref: Upgrade action-prepare-release to latest version
+
+## 5.29.2
+
+- Fix version
+
+## 5.29.1
+
+- [types] ref: Loosen tag types, create new `Primitive` type (#3108)
+- [tracing] feat: Send sample rate and type in transaction item header in envelope (#3068)
+- [tracing] fix(web-vitals): Fix TTFB capture in Safari (#3106)
+
+## 5.29.0
+
+- [tracing] feat: MongoDB Tracing Support (#3072)
+- [tracing] feat: MySQL Tracing Support (#3088)
+- [tracing] feat: PostgreSQL Tracing Support (#3064)
+- [tracing] fix: Add `sentry-trace` header to outgoing http(s) requests in node (#3053)
+- [node] fix: Revert express tracing integration type to use any (#3093)
+
 ## 5.28.0
 
 - [browser] fix: Handle expo file dir stack frames (#3070)

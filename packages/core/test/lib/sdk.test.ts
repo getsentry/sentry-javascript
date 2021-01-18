@@ -51,7 +51,7 @@ describe('SDK', () => {
       expect((DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
     });
 
-    test('not installs default integrations', () => {
+    test("doesn't install default integrations if told not to", () => {
       const DEFAULT_INTEGRATIONS: Integration[] = [
         new MockIntegration('MockIntegration 1'),
         new MockIntegration('MockIntegration 2'),

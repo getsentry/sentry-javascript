@@ -136,7 +136,7 @@ export class MetricsInstrumentation {
     if (transaction.op === 'pageload') {
       // normalize applicable web vital values to be relative to transaction.startTimestamp
 
-      const timeOrigin = msToSec(performance.timeOrigin);
+      const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
       ['fcp', 'fp', 'lcp', 'ttfb'].forEach(name => {
         if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
@@ -150,12 +150,10 @@ export class MetricsInstrumentation {
         const oldValue = this._measurements[name].value;
         const measurementTimestamp = timeOrigin + msToSec(oldValue);
         // normalizedValue should be in milliseconds
-        const normalizedValue = (measurementTimestamp - transaction.startTimestamp) * 1000;
+        const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
 
         const delta = normalizedValue - oldValue;
-        logger.log(
-          `[Measurements] Normalized ${name} from ${this._measurements[name].value} to ${normalizedValue} (${delta})`,
-        );
+        logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
 
         this._measurements[name].value = normalizedValue;
       });
@@ -323,7 +321,7 @@ export interface ResourceEntry extends Record<string, unknown> {
   decodedBodySize?: number;
 }
 
-/** Create resource related spans */
+/** Create resource-related spans */
 export function addResourceSpans(
   transaction: Transaction,
   entry: ResourceEntry,
@@ -377,27 +375,27 @@ function addPerformanceNavigationTiming(
     return;
   }
   _startChild(transaction, {
-    description: event,
-    endTimestamp: timeOrigin + msToSec(end),
     op: 'browser',
+    description: event,
     startTimestamp: timeOrigin + msToSec(start),
+    endTimestamp: timeOrigin + msToSec(end),
   });
 }
 
 /** Create request and response related spans */
 function addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
   _startChild(transaction, {
-    description: 'request',
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
+    description: 'request',
     startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
+    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
   });
 
   _startChild(transaction, {
-    description: 'response',
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     op: 'browser',
+    description: 'response',
     startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
   });
 }
 

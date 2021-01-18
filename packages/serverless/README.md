@@ -42,7 +42,7 @@ exports.handler = Sentry.AWSLambda.wrapHandler((event, context, callback) => {
 });
 ```
 
-If you also want to trace performance of all the incoming requests and also outgoing AWS service requests, just set the `tracesSampleRate` option. 
+If you also want to trace performance of all the incoming requests and also outgoing AWS service requests, just set the `tracesSampleRate` option.
 
 ```javascript
 import * as Sentry from '@sentry/serverless';
@@ -52,6 +52,18 @@ Sentry.AWSLambda.init({
   tracesSampleRate: 1.0,
 });
 ```
+
+#### Integrate Sentry using internal extension
+
+Another and much simpler way to integrate Sentry to your AWS Lambda function is to add an official layer.
+
+1. Choose Layers -> Add Layer.
+2. Specify an ARN: `arn:aws:lambda:us-west-1:TODO:layer:TODO:VERSION`.
+3. Go to Environment variables and add:
+   - `NODE_OPTIONS`: `-r @sentry/serverless/dist/awslambda-auto`.
+   - `SENTRY_DSN`: `your dsn`.
+   - `SENTRY_TRACES_SAMPLE_RATE`: a number between 0 and 1 representing the chance a transaction is sent to Sentry. For more information, see [docs](https://docs.sentry.io/platforms/node/guides/aws-lambda/configuration/options/#tracesSampleRate).
+
 
 ### Google Cloud Functions
 

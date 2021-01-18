@@ -1,7 +1,9 @@
 import { Breadcrumb } from './breadcrumb';
 import { Contexts } from './context';
+import { DebugMeta } from './debugMeta';
 import { Exception } from './exception';
 import { Extras } from './extra';
+import { Primitive } from './misc';
 import { Request } from './request';
 import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
@@ -35,12 +37,13 @@ export interface Event {
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: Contexts;
-  tags?: { [key: string]: string };
+  tags?: { [key: string]: Primitive };
   extra?: Extras;
   user?: User;
   type?: EventType;
   spans?: Span[];
   measurements?: Measurements;
+  debug_meta?: DebugMeta;
 }
 
 /** JSDoc */

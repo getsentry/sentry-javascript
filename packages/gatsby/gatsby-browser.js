@@ -6,6 +6,18 @@ exports.onClientEntry = function(_, pluginParams) {
     return;
   }
 
+  pluginParams._metadata = pluginParams._metadata || {};
+  pluginParams._metadata.sdk = {
+    name: 'sentry.javascript.gatsby',
+    packages: [
+      {
+        name: 'npm:@sentry/gatsby',
+        version: Sentry.SDK_VERSION,
+      },
+    ],
+    version: Sentry.SDK_VERSION,
+  };
+
   const integrations = [...(pluginParams.integrations || [])];
 
   if (Tracing.hasTracingEnabled(pluginParams) && !integrations.some(ele => ele.name === 'BrowserTracing')) {
@@ -25,20 +37,5 @@ exports.onClientEntry = function(_, pluginParams) {
     integrations,
   });
 
-  Sentry.addGlobalEventProcessor(event => {
-    event.sdk = {
-      ...event.sdk,
-      name: 'sentry.javascript.gatsby',
-      packages: [
-        ...((event.sdk && event.sdk.packages) || []),
-        {
-          name: 'npm:@sentry/gatsby',
-          version: Sentry.SDK_VERSION,
-        },
-      ],
-      version: Sentry.SDK_VERSION,
-    };
-    return event;
-  });
   window.Sentry = Sentry;
 };

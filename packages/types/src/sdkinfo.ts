@@ -1,6 +1,5 @@
 import { Package } from './package';
 
-/** JSDoc */
 export interface SdkInfo {
   name: string;
   version: string;

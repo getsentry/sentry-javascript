@@ -1,4 +1,4 @@
-import { Event, SDK_VERSION } from '@sentry/node';
+import { Event } from '@sentry/node';
 import { addExceptionMechanism } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -9,28 +9,12 @@ import * as domain from 'domain';
  * @param event Event
  * @param integration Name of the serverless integration ('AWSLambda', 'GCPFunction', etc)
  */
-export function serverlessEventProcessor(integration: string): (event: Event) => Event {
-  return event => {
-    event.sdk = {
-      ...event.sdk,
-      name: 'sentry.javascript.serverless',
-      integrations: [...((event.sdk && event.sdk.integrations) || []), integration],
-      packages: [
-        ...((event.sdk && event.sdk.packages) || []),
-        {
-          name: 'npm:@sentry/serverless',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
+export function serverlessEventProcessor(event: Event): Event {
+  addExceptionMechanism(event, {
+    handled: false,
+  });
 
-    addExceptionMechanism(event, {
-      handled: false,
-    });
-
-    return event;
-  };
+  return event;
 }
 
 /**

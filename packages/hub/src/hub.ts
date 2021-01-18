@@ -11,6 +11,7 @@ import {
   Hub as HubInterface,
   Integration,
   IntegrationClass,
+  Primitive,
   SessionContext,
   Severity,
   Span,
@@ -261,7 +262,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setTags(tags: { [key: string]: string }): void {
+  public setTags(tags: { [key: string]: Primitive }): void {
     const scope = this.getScope();
     if (scope) scope.setTags(tags);
   }
@@ -277,7 +278,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setTag(key: string, value: string): void {
+  public setTag(key: string, value: Primitive): void {
     const scope = this.getScope();
     if (scope) scope.setTag(key, value);
   }

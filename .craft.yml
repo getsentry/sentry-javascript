@@ -1,4 +1,4 @@
-minVersion: '0.13.2'
+minVersion: '0.14.0'
 github:
   owner: getsentry
   repo: sentry-javascript
@@ -53,3 +53,15 @@ targets:
     onlyIfPresent: /^sentry-angular-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/angular'
+  - name: registry
+    type: sdk
+    onlyIfPresent: /^sentry-wasm-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/wasm'
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+(\.\d+)*\.zip$/
+    layerName: SentryNodeServerlessSDK
+    compatibleRuntimes:
+      - nodejs10.x
+      - nodejs12.x
+    license: MIT

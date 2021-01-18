@@ -88,11 +88,11 @@ like this:
 
 ## New Scope functions
 
-We realized how annoying it is to set a whole object using `setExtra`, that's why there are now a few new methods on the
+We realized how annoying it is to set a whole object using `setExtra`, so there are now a few new methods on the
 `Scope`.
 
 ```typescript
-setTags(tags: { [key: string]: string }): this;
+setTags(tags: { [key: string]: string | number | boolean | null | undefined }): this;
 setExtras(extras: { [key: string]: any }): this;
 clearBreadcrumbs(): this;
 ```

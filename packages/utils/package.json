@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "5.28.0",
+  "version": "5.30.0",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -16,11 +16,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "5.28.0",
+    "@sentry/types": "5.30.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "5.28.0",
+    "@sentry-internal/eslint-config-sdk": "5.30.0",
     "chai": "^4.1.2",
     "eslint": "7.6.0",
     "jest": "^24.7.1",

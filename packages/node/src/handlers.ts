@@ -20,7 +20,7 @@ import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
-interface ExpressRequest extends http.IncomingMessage {
+export interface ExpressRequest extends http.IncomingMessage {
   [key: string]: any;
   baseUrl?: string;
   ip?: string;
@@ -59,7 +59,7 @@ export function tracingHandler(): (
     }
 
     const transaction = startTransaction({
-      name: extractRouteInfo(req, { path: true, method: true }),
+      name: extractExpressTransactionName(req, { path: true, method: true }),
       op: 'http.server',
       ...traceparentData,
     });
@@ -75,7 +75,8 @@ export function tracingHandler(): (
     (res as any).__sentry_transaction = transaction;
 
     res.once('finish', () => {
-      // We schedule the immediate execution of the `finish` to let all the spans being closed first.
+      // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
+      // closes
       setImmediate(() => {
         addExpressReqToTransaction(transaction, req);
         transaction.setHttpStatus(res.statusCode);
@@ -93,25 +94,35 @@ export function tracingHandler(): (
  */
 function addExpressReqToTransaction(transaction: Transaction | undefined, req: ExpressRequest): void {
   if (!transaction) return;
-  transaction.name = extractRouteInfo(req, { path: true, method: true });
+  transaction.name = extractExpressTransactionName(req, { path: true, method: true });
   transaction.setData('url', req.originalUrl);
   transaction.setData('baseUrl', req.baseUrl);
   transaction.setData('query', req.query);
 }
 
 /**
- * Extracts complete generalized path from the request object.
- * eg. /mountpoint/user/:id
+ * Extracts complete generalized path from the request object and uses it to construct transaction name.
+ *
+ * eg. GET /mountpoint/user/:id
+ *
+ * @param req The ExpressRequest object
+ * @param options What to include in the transaction name (method, path, or both)
+ *
+ * @returns The fully constructed transaction name
  */
-function extractRouteInfo(req: ExpressRequest, options: { path?: boolean; method?: boolean } = {}): string {
+function extractExpressTransactionName(
+  req: ExpressRequest,
+  options: { path?: boolean; method?: boolean } = {},
+): string {
   const method = req.method?.toUpperCase();
-  let path;
-  if (req.baseUrl && req.route) {
+
+  let path = '';
+  if (req.route) {
+    // if the mountpoint is `/`, req.baseUrl is '' (not undefined), so it's safe to include it here
+    // see https://github.com/expressjs/express/blob/508936853a6e311099c9985d4c11a4b1b8f6af07/test/req.baseUrl.js#L7
     path = `${req.baseUrl}${req.route.path}`;
   } else if (req.originalUrl || req.url) {
     path = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
-  } else {
-    path = req.route?.path || '';
   }
 
   let info = '';
@@ -128,20 +139,20 @@ function extractRouteInfo(req: ExpressRequest, options: { path?: boolean; method
   return info;
 }
 
-type TransactionTypes = 'path' | 'methodPath' | 'handler';
+type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction(req: ExpressRequest, type: boolean | TransactionTypes): string {
+function extractTransaction(req: ExpressRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
     case 'path': {
-      return extractRouteInfo(req, { path: true });
+      return extractExpressTransactionName(req, { path: true });
     }
     case 'handler': {
       return req.route?.stack[0].name || '<anonymous>';
     }
     case 'methodPath':
     default: {
-      return extractRouteInfo(req, { path: true, method: true });
+      return extractExpressTransactionName(req, { path: true, method: true });
     }
   }
 }
@@ -175,7 +186,7 @@ export interface ParseRequestOptions {
   ip?: boolean;
   request?: boolean | string[];
   serverName?: boolean;
-  transaction?: boolean | TransactionTypes;
+  transaction?: boolean | TransactionNamingScheme;
   user?: boolean | string[];
   version?: boolean;
 }

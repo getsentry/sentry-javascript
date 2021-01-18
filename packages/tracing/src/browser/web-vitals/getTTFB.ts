@@ -17,57 +17,9 @@
 import { getGlobalObject } from '@sentry/utils';
 
 import { initMetric } from './lib/initMetric';
-import { ReportHandler } from './types';
+import { NavigationTimingPolyfillEntry, ReportHandler } from './types';
 
 const global = getGlobalObject<Window>();
-
-interface NavigationEntryShim {
-  // From `PerformanceNavigationTimingEntry`.
-  entryType: string;
-  startTime: number;
-
-  // From `performance.timing`.
-  connectEnd?: number;
-  connectStart?: number;
-  domComplete?: number;
-  domContentLoadedEventEnd?: number;
-  domContentLoadedEventStart?: number;
-  domInteractive?: number;
-  domainLookupEnd?: number;
-  domainLookupStart?: number;
-  fetchStart?: number;
-  loadEventEnd?: number;
-  loadEventStart?: number;
-  redirectEnd?: number;
-  redirectStart?: number;
-  requestStart?: number;
-  responseEnd?: number;
-  responseStart?: number;
-  secureConnectionStart?: number;
-  unloadEventEnd?: number;
-  unloadEventStart?: number;
-}
-
-type PerformanceTimingKeys =
-  | 'connectEnd'
-  | 'connectStart'
-  | 'domComplete'
-  | 'domContentLoadedEventEnd'
-  | 'domContentLoadedEventStart'
-  | 'domInteractive'
-  | 'domainLookupEnd'
-  | 'domainLookupStart'
-  | 'fetchStart'
-  | 'loadEventEnd'
-  | 'loadEventStart'
-  | 'redirectEnd'
-  | 'redirectStart'
-  | 'requestStart'
-  | 'responseEnd'
-  | 'responseStart'
-  | 'secureConnectionStart'
-  | 'unloadEventEnd'
-  | 'unloadEventStart';
 
 const afterLoad = (callback: () => void): void => {
   if (document.readyState === 'complete') {
@@ -79,27 +31,22 @@ const afterLoad = (callback: () => void): void => {
   }
 };
 
-const getNavigationEntryFromPerformanceTiming = (): PerformanceNavigationTiming => {
+const getNavigationEntryFromPerformanceTiming = (): NavigationTimingPolyfillEntry => {
   // Really annoying that TypeScript errors when using `PerformanceTiming`.
-  // Note: browsers that do not support navigation entries will fall back to using performance.timing
-  // (with the timestamps converted from epoch time to DOMHighResTimeStamp).
   // eslint-disable-next-line deprecation/deprecation
   const timing = global.performance.timing;
 
-  const navigationEntry: NavigationEntryShim = {
+  const navigationEntry: { [key: string]: number | string } = {
     entryType: 'navigation',
     startTime: 0,
   };
 
   for (const key in timing) {
     if (key !== 'navigationStart' && key !== 'toJSON') {
-      navigationEntry[key as PerformanceTimingKeys] = Math.max(
-        timing[key as PerformanceTimingKeys] - timing.navigationStart,
-        0,
-      );
+      navigationEntry[key] = Math.max((timing[key as keyof PerformanceTiming] as number) - timing.navigationStart, 0);
     }
   }
-  return navigationEntry as PerformanceNavigationTiming;
+  return navigationEntry as NavigationTimingPolyfillEntry;
 };
 
 export const getTTFB = (onReport: ReportHandler): void => {
@@ -114,7 +61,6 @@ export const getTTFB = (onReport: ReportHandler): void => {
       metric.value = metric.delta = (navigationEntry as PerformanceNavigationTiming).responseStart;
 
       metric.entries = [navigationEntry];
-      metric.isFinal = true;
 
       onReport(metric);
     } catch (error) {

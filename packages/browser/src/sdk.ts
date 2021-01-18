@@ -1,5 +1,5 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getGlobalObject, SyncPromise } from '@sentry/utils';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
+import { addInstrumentationHandler, getGlobalObject, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
@@ -87,6 +87,18 @@ export function init(options: BrowserOptions = {}): void {
   if (options.autoSessionTracking === undefined) {
     options.autoSessionTracking = true;
   }
+
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = {
+    name: 'sentry.javascript.browser',
+    packages: [
+      {
+        name: 'npm:@sentry/browser',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   initAndBind(BrowserClient, options);
 
@@ -237,4 +249,19 @@ function startSessionTracking(): void {
     fcpResolved = true;
     possiblyEndSession();
   }
+
+  // We want to create a session for every navigation as well
+  addInstrumentationHandler({
+    callback: () => {
+      if (
+        !getCurrentHub()
+          .getScope()
+          ?.getSession()
+      ) {
+        hub.startSession();
+        hub.endSession();
+      }
+    },
+    type: 'history',
+  });
 }

@@ -2,35 +2,40 @@ import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
 import { SpanStatus, Transaction } from '@sentry/tracing';
-import { Runtime, Transaction as TransactionType } from '@sentry/types';
+import { Runtime } from '@sentry/types';
 import * as http from 'http';
 import * as net from 'net';
 
 import { Event, Request, User } from '../src';
 import { NodeClient } from '../src/client';
-import { parseRequest, tracingHandler } from '../src/handlers';
+import { ExpressRequest, parseRequest, tracingHandler } from '../src/handlers';
 
 describe('parseRequest', () => {
   let mockReq: { [key: string]: any };
 
   beforeEach(() => {
     mockReq = {
+      baseUrl: '/routerMountPath',
       body: 'foo',
       cookies: { test: 'test' },
       headers: {
         host: 'mattrobenolt.com',
       },
       method: 'POST',
-      originalUrl: '/some/originalUrl?key=value',
+      originalUrl: '/routerMountPath/subpath/specificValue?querystringKey=querystringValue',
+      path: '/subpath/specificValue',
+      query: {
+        querystringKey: 'querystringValue',
+      },
       route: {
-        path: '/path',
+        path: '/subpath/:parameterName',
         stack: [
           {
-            name: 'routeHandler',
+            name: 'parameterNameRouteHandler',
           },
         ],
       },
-      url: '/some/url?key=value',
+      url: '/subpath/specificValue?querystringKey=querystringValue',
       user: {
         custom_property: 'foo',
         email: 'tobias@mail.com',
@@ -42,17 +47,17 @@ describe('parseRequest', () => {
 
   describe('parseRequest.contexts runtime', () => {
     test('runtime name must contain node', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq);
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
       expect((parsedRequest.contexts!.runtime as Runtime).name).toEqual('node');
     });
 
     test('runtime version must contain current node version', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq);
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
       expect((parsedRequest.contexts!.runtime as Runtime).version).toEqual(process.version);
     });
 
     test('runtime disbaled by options', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq, {
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest, {
         version: false,
       });
       expect(parsedRequest).not.toHaveProperty('contexts.runtime');
@@ -64,12 +69,12 @@ describe('parseRequest', () => {
     const CUSTOM_USER_KEYS = ['custom_property'];
 
     test('parseRequest.user only contains the default properties from the user', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq);
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
       expect(Object.keys(parsedRequest.user as User)).toEqual(DEFAULT_USER_KEYS);
     });
 
     test('parseRequest.user only contains the custom properties specified in the options.user array', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq, {
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest, {
         user: CUSTOM_USER_KEYS,
       });
       expect(Object.keys(parsedRequest.user as User)).toEqual(CUSTOM_USER_KEYS);
@@ -95,7 +100,7 @@ describe('parseRequest', () => {
         {
           ...mockReq,
           ip: '123',
-        },
+        } as ExpressRequest,
         {
           ip: true,
         },
@@ -110,8 +115,8 @@ describe('parseRequest', () => {
           ...mockReq,
           connection: {
             remoteAddress: '321',
-          },
-        },
+          } as net.Socket,
+        } as ExpressRequest,
         {
           ip: true,
         },
@@ -123,55 +128,56 @@ describe('parseRequest', () => {
   describe('parseRequest.request properties', () => {
     test('parseRequest.request only contains the default set of properties from the request', () => {
       const DEFAULT_REQUEST_PROPERTIES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-      const parsedRequest: Event = parseRequest({}, mockReq);
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
       expect(Object.keys(parsedRequest.request as Request)).toEqual(DEFAULT_REQUEST_PROPERTIES);
     });
 
     test('parseRequest.request only contains the specified properties in the options.request array', () => {
       const INCLUDED_PROPERTIES = ['data', 'headers', 'query_string', 'url'];
-      const parsedRequest: Event = parseRequest({}, mockReq, {
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest, {
         request: INCLUDED_PROPERTIES,
       });
       expect(Object.keys(parsedRequest.request as Request)).toEqual(INCLUDED_PROPERTIES);
     });
 
     test('parseRequest.request skips `body` property for GET and HEAD requests', () => {
-      expect(parseRequest({}, mockReq, {}).request).toHaveProperty('data');
-      expect(parseRequest({}, { ...mockReq, method: 'GET' }, {}).request).not.toHaveProperty('data');
-      expect(parseRequest({}, { ...mockReq, method: 'HEAD' }, {}).request).not.toHaveProperty('data');
+      expect(parseRequest({}, mockReq as ExpressRequest, {}).request).toHaveProperty('data');
+      expect(parseRequest({}, { ...mockReq, method: 'GET' } as ExpressRequest, {}).request).not.toHaveProperty('data');
+      expect(parseRequest({}, { ...mockReq, method: 'HEAD' } as ExpressRequest, {}).request).not.toHaveProperty('data');
     });
   });
 
   describe('parseRequest.transaction property', () => {
-    test('extracts method and full route path by default from `originalUrl`', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq);
-      expect(parsedRequest.transaction).toEqual('POST /some/originalUrl');
+    test('extracts method and full route path by default`', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
+      expect(parsedRequest.transaction).toEqual('POST /routerMountPath/subpath/:parameterName');
     });
 
-    test('extracts method and full route path by default from `url` if `originalUrl` is not present', () => {
-      delete mockReq.originalUrl;
-      const parsedRequest: Event = parseRequest({}, mockReq);
-      expect(parsedRequest.transaction).toEqual('POST /some/url');
+    test('extracts method and full path by default when mountpoint is `/`', () => {
+      mockReq.originalUrl = mockReq.originalUrl.replace('/routerMountpath', '');
+      mockReq.baseUrl = '';
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
+      // "sub"path is the full path here, because there's no router mount path
+      expect(parsedRequest.transaction).toEqual('POST /subpath/:parameterName');
     });
 
-    test('fallback to method and `route.path` if previous attempts failed', () => {
-      delete mockReq.originalUrl;
-      delete mockReq.url;
-      const parsedRequest: Event = parseRequest({}, mockReq);
-      expect(parsedRequest.transaction).toEqual('POST /path');
+    test('fallback to method and `originalUrl` if route is missing', () => {
+      delete mockReq.route;
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
+      expect(parsedRequest.transaction).toEqual('POST /routerMountPath/subpath/specificValue');
     });
 
     test('can extract path only instead if configured', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq, { transaction: 'path' });
-      expect(parsedRequest.transaction).toEqual('/some/originalUrl');
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest, { transaction: 'path' });
+      expect(parsedRequest.transaction).toEqual('/routerMountPath/subpath/:parameterName');
     });
 
     test('can extract handler name instead if configured', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq, { transaction: 'handler' });
-      expect(parsedRequest.transaction).toEqual('routeHandler');
+      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest, { transaction: 'handler' });
+      expect(parsedRequest.transaction).toEqual('parameterNameRouteHandler');
     });
   });
-}); // end describe('parseRequest()')
+});
 
 describe('tracingHandler', () => {
   const urlString = 'http://dogs.are.great:1231/yay/';
@@ -249,7 +255,7 @@ describe('tracingHandler', () => {
 
   it('pulls status code from the response', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'finish');
 
     sentryTracingMiddleware(req, res, next);
@@ -296,7 +302,7 @@ describe('tracingHandler', () => {
 
   it('closes the transaction when request processing is done', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'finish');
 
     sentryTracingMiddleware(req, res, next);
@@ -315,7 +321,7 @@ describe('tracingHandler', () => {
       description: 'reallyCoolHandler',
       op: 'middleware',
     });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as TransactionType);
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishSpan = jest.spyOn(span, 'finish');
     const finishTransaction = jest.spyOn(transaction, 'finish');
 

@@ -1,4 +1,4 @@
-import { API, eventToSentryRequest } from '@sentry/core';
+import { API, eventToSentryRequest, SDK_VERSION } from '@sentry/core';
 import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
@@ -6,13 +6,13 @@ import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
 
-import { SDK_NAME, SDK_VERSION } from '../version';
+import { SDK_NAME } from '../version';
 
 /**
  * Internal used interface for typescript.
  * @hidden
  */
-export interface HTTPRequest {
+export interface HTTPModule {
   /**
    * Request wrapper
    * @param options These are {@see TransportOptions}
@@ -37,7 +37,7 @@ export interface HTTPRequest {
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /** The Agent used for corresponding transport */
-  public module?: HTTPRequest;
+  public module?: HTTPModule;
 
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
@@ -53,7 +53,7 @@ export abstract class BaseTransport implements Transport {
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
-    this._api = new API(options.dsn);
+    this._api = new API(options.dsn, options._metadata);
   }
 
   /**
@@ -96,7 +96,7 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async _sendWithModule(httpModule: HTTPRequest, event: Event): Promise<Response> {
+  protected async _sendWithModule(httpModule: HTTPModule, event: Event): Promise<Response> {
     if (new Date(Date.now()) < this._disabledUntil) {
       return Promise.reject(new SentryError(`Transport locked till ${this._disabledUntil} due to too many requests.`));
     }

@@ -1,0 +1,69 @@
+{
+  "name": "@sentry/wasm",
+  "version": "5.29.2",
+  "description": "Support for WASM.",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/wasm",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "dist/index.js",
+  "module": "esm/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry/browser": "5.29.2",
+    "@sentry/types": "5.29.2",
+    "tslib": "^1.9.3"
+  },
+  "devDependencies": {
+    "@sentry-internal/eslint-config-sdk": "5.29.2",
+    "@types/jest-environment-puppeteer": "^4.4.0",
+    "@types/puppeteer": "^5.4.0",
+    "eslint": "7.6.0",
+    "express": "^4.17.1",
+    "jest": "^24.7.1",
+    "jest-puppeteer": "^4.4.0",
+    "npm-run-all": "^4.1.2",
+    "prettier": "1.19.0",
+    "puppeteer": "^5.5.0",
+    "rimraf": "^2.6.3",
+    "rollup": "^1.10.1",
+    "rollup-plugin-commonjs": "^9.3.4",
+    "rollup-plugin-node-resolve": "^4.2.3",
+    "rollup-plugin-terser": "^4.0.4",
+    "rollup-plugin-typescript2": "^0.21.0",
+    "typescript": "3.7.5"
+  },
+  "scripts": {
+    "build": "run-p build:es5 build:esm build:bundle",
+    "build:es5": "tsc -p tsconfig.build.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:watch": "run-p build:watch:es5 build:watch:esm",
+    "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "build:bundle": "rollup --config",
+    "clean": "rimraf dist esm coverage *.js *.js.map *.d.ts",
+    "link:yarn": "yarn link",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "test": "PORT=1337 jest",
+    "test:watch": "jest --watch",
+    "pack": "npm pack"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "jest": {
+    "preset": "jest-puppeteer"
+  },
+  "sideEffects": false
+}
