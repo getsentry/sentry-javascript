@@ -3,11 +3,12 @@ import { Event, SdkInfo, SentryRequest, Session } from '@sentry/types';
 import { API } from './api';
 
 /** Extract sdk info from from the API metadata */
-function getSdkInfoFromApiMetadata(api: API): SdkInfo | undefined {
+function getSdkMetadataForEnvelopeHeader(api: API): SdkInfo | undefined {
   if (!api.metadata || !api.metadata.sdk) {
     return;
   }
-  return api.metadata.sdk;
+  const { name, version } = api.metadata.sdk;
+  return { name, version };
 }
 
 /**
@@ -15,6 +16,10 @@ function getSdkInfoFromApiMetadata(api: API): SdkInfo | undefined {
  * Merge with existing data if any.
  **/
 function enhanceEventWithSdkInfo(event: Event, sdkInfo: SdkInfo): Event {
+  if (!sdkInfo) {
+    return event;
+  }
+
   event.sdk = event.sdk || {
     name: sdkInfo.name,
     version: sdkInfo.version,
@@ -28,7 +33,7 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo: SdkInfo): Event {
 
 /** Creates a SentryRequest from an event. */
 export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
-  const sdkInfo = getSdkInfoFromApiMetadata(api);
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
@@ -50,12 +55,12 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   const { __sentry_samplingMethod: samplingMethod, __sentry_sampleRate: sampleRate, ...otherTags } = event.tags || {};
   event.tags = otherTags;
 
-  const sdkInfo = getSdkInfoFromApiMetadata(api);
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const eventType = event.type || 'event';
   const useEnvelope = eventType === 'transaction';
 
   const req: SentryRequest = {
-    body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, sdkInfo) : event),
+    body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, api.metadata.sdk) : event),
     type: eventType,
     url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
   };

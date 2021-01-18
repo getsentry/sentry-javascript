@@ -12,7 +12,7 @@ export class API {
   /** The internally used Dsn object. */
   private readonly _dsnObject: Dsn;
   /** Create a new instance of API */
-  public constructor(public dsn: DsnLike, public metadata?: SdkMetadata) {
+  public constructor(public dsn: DsnLike, public metadata: SdkMetadata = {}) {
     this._dsnObject = new Dsn(dsn);
   }
 
