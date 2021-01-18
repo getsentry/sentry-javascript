@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const path = require('path');
 const process = require('process');
 const fs = require('fs');
@@ -8,6 +9,11 @@ const packList = require('npm-packlist');
 const readPkg = require('read-pkg');
 
 const serverlessPackage = require('../package.json');
+
+if (!process.env.GITHUB_ACTIONS) {
+  console.log(`Skipping build-awslambda-layer script in local environment.`);
+  process.exit(0);
+}
 
 // AWS Lambda layer are being uploaded as zip archive, whose content is then being unpacked to the /opt
 // directory in the lambda environment.
@@ -46,12 +52,11 @@ async function collectPackages(cwd, packages = {}) {
       // Internal deps aka local node_modules folder of each package is handled differently.
       const searchPath = path.resolve(cwd, '..');
       const depPath = fs.realpathSync(
-        await findUp(path.join('node_modules', dep),
-        { type: 'directory', cwd: searchPath })
+        await findUp(path.join('node_modules', dep), { type: 'directory', cwd: searchPath }),
       );
       if (packages[dep]) {
         if (packages[dep].cwd != depPath) {
-          throw new Error(`${packageJson.name}'s dependenciy ${dep} maps to both ${packages[dep].cwd} and ${depPath}`);
+          throw new Error(`${packageJson.name}'s dependency ${dep} maps to both ${packages[dep].cwd} and ${depPath}`);
         }
         return;
       }
@@ -146,7 +151,7 @@ async function main() {
   } catch (error) {
     // The child process timed out or had non-zero exit code.
     // The error contains the entire result from `childProcess.spawnSync`.
-    console.log(error);  // eslint-disable-line no-console
+    console.log(error);
   }
 }
 
@@ -155,7 +160,7 @@ main().then(
     process.exit(0);
   },
   err => {
-    console.error(err); // eslint-disable-line no-console
+    console.error(err);
     process.exit(-1);
   },
 );

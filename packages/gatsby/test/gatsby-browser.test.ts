@@ -46,6 +46,7 @@ describe('onClientEntry', () => {
       environment: process.env.NODE_ENV,
       integrations: [],
       release: (global as any).__SENTRY_RELEASE__,
+      autoSessionTracking: true,
       _metadata: {
         sdk: {
           name: 'sentry.javascript.gatsby',
