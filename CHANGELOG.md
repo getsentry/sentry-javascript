@@ -6,6 +6,13 @@
 
 ## 6.0.0
 
+*This major version doesn't contain any API breaking changes.*
+Starting from `6.0.0` all SDKs that support sending session data will do so by default, for version this release this is true for all Browser SDKs (Browser, React, Angular, Vue, Gatsby ...).
+Node.js and other Server SDKs will follow and have this also enabled by default then.
+You can opt-out of this behavior when setting `autoSessionTracking: false` in the options.
+
+---
+
 - [wasm] feat: Introduce a `@sentry/wasm` package (#3080)
 - [tracing] feat: Turn Sessions Tracking on by default (#3099)
 - [tracing] feat: Create session on history change (#3179)
