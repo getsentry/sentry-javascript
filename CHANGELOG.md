@@ -6,9 +6,10 @@
 
 ## 6.0.0
 
-*This major version doesn't contain any API breaking changes.*
-Starting from `6.0.0` all SDKs that support sending session data will do so by default, for version this release this is true for all Browser SDKs (Browser, React, Angular, Vue, Gatsby ...).
-Node.js and other Server SDKs will follow and have this also enabled by default then.
+*This major version doesn't contain any API/code breaking changes.*
+Starting from `6.0.0` all SDKs that support sending session data will do so by default.
+For this release all Browser SDKs (Browser, React, Angular, Vue, Gatsby ...) will send Sessions.
+Node.js and other Server SDKs will follow.
 You can opt-out of this behavior when setting `autoSessionTracking: false` in the options.
 
 ---
