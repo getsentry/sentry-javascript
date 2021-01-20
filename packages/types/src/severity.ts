@@ -1,19 +1,34 @@
-/** JSDoc */
+/**
+ * Levels are used in the UI to emphasize and deemphasize the crumb.
+ */
 // eslint-disable-next-line import/export
 export enum Severity {
-  /** JSDoc */
-  Fatal = 'fatal',
-  /** JSDoc */
-  Error = 'error',
-  /** JSDoc */
-  Warning = 'warning',
-  /** JSDoc */
-  Log = 'log',
-  /** JSDoc */
-  Info = 'info',
-  /** JSDoc */
+  /**
+   * Debug level.
+   */
   Debug = 'debug',
-  /** JSDoc */
+
+  /**
+   * Info level.
+   */
+  Info = 'info',
+
+  /**
+   * Warning level.
+   */
+  Warning = 'warning',
+
+  /**
+   * Error level.
+   */
+  Error = 'error',
+
+  /**
+   * Fatal level.
+   */
+  Fatal = 'fatal',
+
+  Log = 'log',
   Critical = 'critical',
 }
 
