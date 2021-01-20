@@ -1,6 +1,5 @@
 import sinon from 'sinon';
 import * as Sentry from '@sentry/browser';
-import environmentConfig from 'ember-get-config';
 
 /**
  * Stub Sentry init function before application is imported to avoid actually setting up Sentry and needing a DSN
@@ -13,6 +12,12 @@ import { setApplication } from '@ember/test-helpers';
 import { start } from 'ember-qunit';
 import { Transports } from '@sentry/browser';
 import Ember from 'ember';
+
+import { getConfig } from '@embroider/macros';
+
+function getSentryConfig() {
+  return getConfig('@sentry/ember').sentryConfig;
+}
 
 export class TestFetchTransport extends Transports.FetchTransport {
   sendEvent(event) {
@@ -27,7 +32,8 @@ export class TestFetchTransport extends Transports.FetchTransport {
   }
 }
 
-environmentConfig['@sentry/ember'].sentry['transport'] = TestFetchTransport;
+const sentryConfig = getSentryConfig();
+sentryConfig.sentry['transport'] = TestFetchTransport;
 
 setApplication(Application.create(config.APP));
 
