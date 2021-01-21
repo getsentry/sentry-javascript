@@ -4,12 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.0.1
+
+- [vue] fix: Make sure that error is present before logging it in Vue (#3183)
+- [serverless] fix: Fix issue when `/dist` didn't exist before building (#3190)
+
 ## 6.0.0
 
-*This major version release doesn't contain any breaking API/code changes.*
-Starting from the version `6.0.0`, all SDKs that support sending sessions data will do so by default. See our [Release Health](https://docs.sentry.io/product/releases/health/) docs to learn more.
-As of this version, it applies to all Browser SDKs (Browser, React, Angular, Vue, Gatsby etc.). Node.js and other related Server SDKs will follow soon after, in the minor `6.x` release.
-You can opt-out of this behavior by setting `autoSessionTracking: false` option during SDK initialization.
+_This major version release doesn't contain any breaking API/code changes._ Starting from the version `6.0.0`, all SDKs
+that support sending sessions data will do so by default. See our
+[Release Health](https://docs.sentry.io/product/releases/health/) docs to learn more. As of this version, it applies to
+all Browser SDKs (Browser, React, Angular, Vue, Gatsby etc.). Node.js and other related Server SDKs will follow soon
+after, in the minor `6.x` release. You can opt-out of this behavior by setting `autoSessionTracking: false` option
+during SDK initialization.
 
 ---
 
@@ -292,7 +299,8 @@ You can opt-out of this behavior by setting `autoSessionTracking: false` option 
 - [tracing] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
 - [tracing] ref: Deprecate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
 - [tracing] feat: Add `beforeNavigate` option (#2691)
-- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href` (#2691)
+- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href`
+  (#2691)
 
 ## 5.17.0
 
@@ -1093,7 +1101,7 @@ Raven.setTagsContext({ key: 'value' });
 _New_:
 
 ```js
-Sentry.configureScope(scope => {
+Sentry.configureScope((scope) => {
   scope.setTag('key', 'value');
 });
 ```
@@ -1116,7 +1124,7 @@ _New_:
 try {
   throwingFunction();
 } catch (e) {
-  Sentry.withScope(scope => {
+  Sentry.withScope((scope) => {
     scope.setExtra('debug', false);
     Sentry.captureException(e);
   });
@@ -1134,7 +1142,7 @@ Raven.captureMessage('test', 'info', { extra: { debug: false } });
 _New_:
 
 ```js
-Sentry.withScope(scope => {
+Sentry.withScope((scope) => {
   scope.setExtra('debug', false);
   Sentry.captureMessage('test', 'info');
 });
