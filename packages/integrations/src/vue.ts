@@ -426,7 +426,7 @@ export class Vue implements Integration {
 
       if (this._options.logErrors) {
         if (this._options.Vue.util) {
-          this._options.Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
+          this._options.Vue.util.warn(`Error in ${info}: "${error && error.toString()}"`, vm);
         }
         // eslint-disable-next-line no-console
         console.error(error);
