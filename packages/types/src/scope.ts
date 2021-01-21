@@ -1,11 +1,18 @@
+import { AppContext } from './appcontext';
 import { Breadcrumb } from './breadcrumb';
+import { BrowserContext } from './browsercontext';
 import { Context, Contexts } from './context';
+import { DeviceContext } from './devicecontext';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
+import { GpuContext } from './gpucontext';
 import { Primitive } from './misc';
+import { OsContext } from './oscontext';
+import { RuntimeContext } from './runtimecontext';
 import { Session } from './session';
 import { Severity } from './severity';
 import { Span } from './span';
+import { StateContext } from './statecontext';
 import { Transaction } from './transaction';
 import { User } from './user';
 
@@ -93,6 +100,13 @@ export interface Scope {
    * @param name of the context
    * @param context an object containing context data. This data will be normalized. Pass `null` to unset the context.
    */
+  setContext(name: 'device', context: DeviceContext | null): this;
+  setContext(name: 'os', context: OsContext | null): this;
+  setContext(name: 'runtime', context: RuntimeContext | null): this;
+  setContext(name: 'app', context: AppContext | null): this;
+  setContext(name: 'browser', context: BrowserContext | null): this;
+  setContext(name: 'gpu', context: GpuContext | null): this;
+  setContext(name: 'state', context: StateContext | null): this;
   setContext(name: string, context: Context | null): this;
 
   /**
