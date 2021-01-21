@@ -6,6 +6,13 @@
 
 ## 6.0.0
 
+*This major version release doesn't contain any breaking API/code changes.*
+Starting from the version `6.0.0`, all SDKs that support sending sessions data will do so by default. See our [Release Health](https://docs.sentry.io/product/releases/health/) docs to learn more.
+As of this version, it applies to all Browser SDKs (Browser, React, Angular, Vue, Gatsby etc.). Node.js and other related Server SDKs will follow soon after, in the minor `6.x` release.
+You can opt-out of this behavior by setting `autoSessionTracking: false` option during SDK initialization.
+
+---
+
 - [wasm] feat: Introduce a `@sentry/wasm` package (#3080)
 - [tracing] feat: Turn Sessions Tracking on by default (#3099)
 - [tracing] feat: Create session on history change (#3179)
