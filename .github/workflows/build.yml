@@ -141,6 +141,7 @@ jobs:
     needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    continue-on-error: true
     if: "github.ref == 'refs/heads/master'"
     steps:
       - uses: actions/checkout@v2
