@@ -142,7 +142,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     continue-on-error: true
-    if: "github.ref == 'refs/heads/master'"
+    if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
