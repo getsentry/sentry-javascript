@@ -1,23 +1,54 @@
 import { Primitive } from './misc';
 import { Transaction } from './transaction';
 
-/** Interface holding all properties that can be set on a Span on creation. */
+/**
+ * The Span Interface specifies a series of timed application events that have a start and end time.
+ * @external https://develop.sentry.dev/sdk/event-payloads/span/
+ */
 export interface SpanContext {
   /**
-   * Description of the Span.
+   * A map or list of tags for this event.
+   * Each tag must be less than 200 characters.
    */
-  description?: string;
+  tags?: Record<string, Primitive>;
 
   /**
-   * Operation of the Span.
+   * Determines which trace the Span belongs to.
+   * The value should be 16 random bytes encoded as a hex string (32 characters long).
+   */
+  traceId?: string;
+
+  /**
+   * Short code identifying the type of operation the span is measuring.
    */
   op?: string;
 
   /**
-   * Completion status of the Span.
+   * Longer description of the span's operation,
+   * which uniquely identifies the span but is consistent across instances of the span.
+   */
+  description?: string;
+
+  /**
+   * A timestamp representing when the measuring started.
+   */
+  startTimestamp?: number;
+
+  /**
+   * A timestamp representing when the measuring finished.
+   */
+  endTimestamp?: number;
+
+  /**
+   * Describes the status of the Span/Transaction.
    * See: {@sentry/tracing SpanStatus} for possible values
    */
   status?: string;
+
+  /**
+   * Arbitrary data associated with this Span.
+   */
+  data?: Record<string, unknown>;
 
   /**
    * Parent Span ID
@@ -25,39 +56,14 @@ export interface SpanContext {
   parentSpanId?: string;
 
   /**
-   * Was this span chosen to be sent as part of the sample?
-   */
-  sampled?: boolean;
-
-  /**
    * Span ID
    */
   spanId?: string;
 
   /**
-   * Trace ID
+   * Was this span chosen to be sent as part of the sample?
    */
-  traceId?: string;
-
-  /**
-   * Tags of the Span.
-   */
-  tags?: { [key: string]: Primitive };
-
-  /**
-   * Data of the Span.
-   */
-  data?: { [key: string]: any };
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span started.
-   */
-  startTimestamp?: number;
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span ended.
-   */
-  endTimestamp?: number;
+  sampled?: boolean;
 }
 
 /** Span holding trace_id, span_id */
@@ -80,12 +86,12 @@ export interface Span extends SpanContext {
   /**
    * @inheritDoc
    */
-  tags: { [key: string]: Primitive };
+  tags: Record<string, Primitive>;
 
   /**
    * @inheritDoc
    */
-  data: { [key: string]: any };
+  data: Record<string, unknown>;
 
   /**
    * The transaction containing this span
