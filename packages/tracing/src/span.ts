@@ -268,7 +268,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public updateWithContext(spanContext: SpanContext): Span {
+  public updateWithContext(spanContext: SpanContext): this {
     this.data = spanContext.data ?? {};
     this.description = spanContext.description;
     this.endTimestamp = spanContext.endTimestamp;

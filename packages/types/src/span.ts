@@ -156,7 +156,7 @@ export interface Span extends SpanContext {
   toContext(): SpanContext;
 
   /** Updates the current span with a new `SpanContext` */
-  updateWithContext(spanContext: SpanContext): Span;
+  updateWithContext(spanContext: SpanContext): this;
 
   /** Convert the object to JSON for w. spans array info only */
   getTraceContext(): {

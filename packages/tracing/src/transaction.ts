@@ -136,7 +136,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public updateWithContext(transactionContext: TransactionContext): TransactionInterface {
+  public updateWithContext(transactionContext: TransactionContext): this {
     super.updateWithContext(transactionContext);
 
     this.name = transactionContext.name ?? '';
