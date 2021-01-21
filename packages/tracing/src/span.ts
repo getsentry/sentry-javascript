@@ -249,6 +249,44 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
+  public toContext(): SpanContext {
+    return dropUndefinedKeys({
+      data: this.data,
+      description: this.description,
+      endTimestamp: this.endTimestamp,
+      op: this.op,
+      parentSpanId: this.parentSpanId,
+      sampled: this.sampled,
+      spanId: this.spanId,
+      startTimestamp: this.startTimestamp,
+      status: this.status,
+      tags: this.tags,
+      traceId: this.traceId,
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public updateWithContext(spanContext: SpanContext): Span {
+    this.data = spanContext.data ?? {};
+    this.description = spanContext.description;
+    this.endTimestamp = spanContext.endTimestamp;
+    this.op = spanContext.op;
+    this.parentSpanId = spanContext.parentSpanId;
+    this.sampled = spanContext.sampled;
+    this.spanId = spanContext.spanId ?? this.spanId;
+    this.startTimestamp = spanContext.startTimestamp ?? this.startTimestamp;
+    this.status = spanContext.status;
+    this.tags = spanContext.tags ?? {};
+    this.traceId = spanContext.traceId ?? this.traceId;
+
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public getTraceContext(): {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: { [key: string]: any };
