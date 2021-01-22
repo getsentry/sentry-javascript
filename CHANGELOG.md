@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.0.2
+
+- [browser] fix: Disable session tracking in non-browser environments (#3194)
+
 ## 6.0.1
 
 - [vue] fix: Make sure that error is present before logging it in Vue (#3183)
