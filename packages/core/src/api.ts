@@ -9,11 +9,20 @@ const SENTRY_API_VERSION = '7';
  * Supports both envelopes and regular event requests.
  **/
 export class API {
+  /** The DSN as passed to Sentry.init() */
+  public dsn: DsnLike;
+
+  /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
+  public metadata: SdkMetadata;
+
   /** The internally used Dsn object. */
   private readonly _dsnObject: Dsn;
+
   /** Create a new instance of API */
-  public constructor(public dsn: DsnLike, public metadata: SdkMetadata = {}) {
+  public constructor(dsn: DsnLike, metadata: SdkMetadata = {}) {
+    this.dsn = dsn;
     this._dsnObject = new Dsn(dsn);
+    this.metadata = metadata;
   }
 
   /** Returns the Dsn object. */
