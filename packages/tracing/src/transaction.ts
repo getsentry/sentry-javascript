@@ -7,6 +7,10 @@ import { Span as SpanClass, SpanRecorder } from './span';
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _metadata: { [key: string]: any } = {};
+
   private _measurements: Measurements = {};
 
   /**
@@ -65,6 +69,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * Set metadata for this transaction.
+   * @hidden
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public setMetadata(newMetadata: { [key: string]: any }): void {
+    this._metadata = { ...this._metadata, ...newMetadata };
+  }
+
+  /**
    * @inheritDoc
    */
   public finish(endTimestamp?: number): string | undefined {
@@ -108,6 +121,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
+      debug_meta: this._metadata,
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;
