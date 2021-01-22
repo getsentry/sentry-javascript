@@ -29,6 +29,18 @@ function getTransitionInformation(transition: any, router: any) {
   };
 }
 
+function getLocationURL(location: any) {
+  if (!location || !location.getURL || !location.formatURL) {
+    return '';
+  }
+  const url = location.formatURL(location.getURL());
+
+  if (location.implementation === 'hash') {
+    return `${location.rootURL}${url}`;
+  }
+  return url;
+}
+
 export function _instrumentEmberRouter(
   routerService: any,
   routerMain: any,
@@ -41,7 +53,7 @@ export function _instrumentEmberRouter(
   let activeTransaction: Transaction;
   let transitionSpan: Span;
 
-  const url = location && location.getURL && location.formatURL && location.formatURL(location.getURL());
+  const url = getLocationURL(location);
 
   if (macroCondition(isTesting())) {
     routerService._sentryInstrumented = true;
