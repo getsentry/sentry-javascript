@@ -195,7 +195,7 @@ function startSessionTracking(): void {
   const document = window.document;
 
   if (typeof document === 'undefined') {
-    logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.')
+    logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
     return;
   }
 
