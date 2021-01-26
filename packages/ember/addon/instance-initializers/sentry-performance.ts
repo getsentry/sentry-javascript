@@ -1,16 +1,20 @@
 import ApplicationInstance from '@ember/application/instance';
 import Ember from 'ember';
 import { run } from '@ember/runloop';
-import environmentConfig from 'ember-get-config';
 import * as Sentry from '@sentry/browser';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
 import { timestampWithMs } from '@sentry/utils';
-import { macroCondition, isTesting } from '@embroider/macros';
+import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
+import { EmberSentryConfig, OwnConfig } from '../types';
+
+function getSentryConfig() {
+  return getOwnConfig<OwnConfig>().sentryConfig;
+}
 
 export function initialize(appInstance: ApplicationInstance): void {
-  const config = environmentConfig['@sentry/ember'];
+  const config = getSentryConfig();
   if (config['disablePerformance']) {
     return;
   }
@@ -44,7 +48,7 @@ function getLocationURL(location: any) {
 export function _instrumentEmberRouter(
   routerService: any,
   routerMain: any,
-  config: typeof environmentConfig['@sentry/ember'],
+  config: EmberSentryConfig,
   startTransaction: Function,
   startTransactionOnPageLoad?: boolean,
 ) {
@@ -118,7 +122,7 @@ export function _instrumentEmberRouter(
   };
 }
 
-function _instrumentEmberRunloop(config: typeof environmentConfig['@sentry/ember']) {
+function _instrumentEmberRunloop(config: EmberSentryConfig) {
   const { disableRunloopPerformance, minimumRunloopQueueDuration } = config;
   if (disableRunloopPerformance) {
     return;
@@ -239,7 +243,7 @@ function processComponentRenderAfter(
   }
 }
 
-function _instrumentComponents(config: typeof environmentConfig['@sentry/ember']) {
+function _instrumentComponents(config: EmberSentryConfig) {
   const { disableInstrumentComponents, minimumComponentRenderDuration, enableComponentDefinitions } = config;
   if (disableInstrumentComponents) {
     return;
@@ -276,7 +280,7 @@ function _instrumentComponents(config: typeof environmentConfig['@sentry/ember']
   _subscribeToRenderEvents();
 }
 
-function _instrumentInitialLoad(config: typeof environmentConfig['@sentry/ember']) {
+function _instrumentInitialLoad(config: EmberSentryConfig) {
   const startName = '@sentry/ember:initial-load-start';
   const endName = '@sentry/ember:initial-load-end';
 
@@ -321,7 +325,7 @@ function _instrumentInitialLoad(config: typeof environmentConfig['@sentry/ember'
 }
 
 export async function instrumentForPerformance(appInstance: ApplicationInstance) {
-  const config = environmentConfig['@sentry/ember'];
+  const config = getSentryConfig();
   const sentryConfig = config.sentry;
 
   const tracing = await import('@sentry/tracing');
