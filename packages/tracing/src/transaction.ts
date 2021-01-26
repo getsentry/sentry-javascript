@@ -4,12 +4,15 @@ import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
+interface TransactionMetadata {
+  transactionSampling?: { [key: string]: string | number };
+}
+
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _metadata: { [key: string]: any } = {};
+  private _metadata: TransactionMetadata = {};
 
   private _measurements: Measurements = {};
 
@@ -72,8 +75,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * Set metadata for this transaction.
    * @hidden
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setMetadata(newMetadata: { [key: string]: any }): void {
+  public setMetadata(newMetadata: TransactionMetadata): void {
     this._metadata = { ...this._metadata, ...newMetadata };
   }
 
