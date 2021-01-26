@@ -16,9 +16,9 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": "^10.0.3",
-    "@angular/core": "^10.0.3",
-    "@angular/router": "^10.0.3"
+    "@angular/common": "10.x || 11.x",
+    "@angular/core": "10.x || 11.x",
+    "@angular/router": "10.x || 11.x"
   },
   "dependencies": {
     "@sentry/browser": "6.0.2",
