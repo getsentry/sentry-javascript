@@ -33,8 +33,3 @@ export interface Carrier {
     };
   };
 }
-
-export interface DomainAsCarrier extends Carrier {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  members: { [key: string]: any }[];
-}

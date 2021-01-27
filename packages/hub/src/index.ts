@@ -1,12 +1,4 @@
-export { Carrier, DomainAsCarrier, Layer } from './interfaces';
+export { Carrier, Layer } from './interfaces';
 export { addGlobalEventProcessor, Scope } from './scope';
 export { Session } from './session';
-export {
-  getActiveDomain,
-  getCurrentHub,
-  getHubFromCarrier,
-  getMainCarrier,
-  Hub,
-  makeMain,
-  setHubOnCarrier,
-} from './hub';
+export { getCurrentHub, getHubFromCarrier, getMainCarrier, Hub, makeMain, setHubOnCarrier } from './hub';

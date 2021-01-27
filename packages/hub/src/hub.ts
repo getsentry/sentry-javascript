@@ -22,7 +22,7 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
-import { Carrier, DomainAsCarrier, Layer } from './interfaces';
+import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 import { Session } from './session';
 
@@ -472,23 +472,12 @@ export function getCurrentHub(): Hub {
 }
 
 /**
- * Returns the active domain, if one exists
- *
- * @returns The domain, or undefined if there is no active domain
- */
-export function getActiveDomain(): DomainAsCarrier | undefined {
-  const sentry = getMainCarrier().__SENTRY__;
-
-  return sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
-}
-
-/**
  * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
  * @returns discovered hub
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    const activeDomain = getActiveDomain();
+    const activeDomain = getMainCarrier().__SENTRY__?.extensions?.domain?.active;
 
     // If there's no active domain, just return global hub
     if (!activeDomain) {
