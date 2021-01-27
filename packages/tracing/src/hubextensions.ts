@@ -228,9 +228,14 @@ export function startIdleTransaction(
   transactionContext: TransactionContext,
   idleTimeout?: number,
   onScope?: boolean,
+  customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
   const transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
-  return sample(hub, transaction, getDefaultSamplingContext(transactionContext));
+  return sample(hub, transaction, {
+    parentSampled: transactionContext.parentSampled,
+    transactionContext,
+    ...customSamplingContext,
+  });
 }
 
 /**

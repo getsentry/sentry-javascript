@@ -3,7 +3,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
 import * as utilsModule from '@sentry/utils'; // for mocking
-import { getGlobalObject, isNodeEnv, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
@@ -64,31 +64,6 @@ describe('Hub', () => {
 
   describe('transaction sampling', () => {
     describe('default sample context', () => {
-      it('should extract window.location/self.location for default sampling context when in browser/service worker', () => {
-        // make sure we look like we're in the browser
-        (isNodeEnv as jest.Mock).mockReturnValue(false);
-
-        const dogParkLocation = {
-          hash: '#next-to-the-fountain',
-          host: 'the.dog.park',
-          hostname: 'the.dog.park',
-          href: 'mutualsniffing://the.dog.park/by/the/trees/?chase=me&please=thankyou#next-to-the-fountain',
-          origin: "'mutualsniffing://the.dog.park",
-          pathname: '/by/the/trees/',
-          port: '',
-          protocol: 'mutualsniffing:',
-          search: '?chase=me&please=thankyou',
-        };
-
-        getGlobalObject<Window>().location = dogParkLocation as any;
-
-        const tracesSampler = jest.fn();
-        const hub = new Hub(new BrowserClient({ tracesSampler }));
-        hub.startTransaction({ name: 'dogpark' });
-
-        expect(tracesSampler).toHaveBeenCalledWith(expect.objectContaining({ location: dogParkLocation }));
-      });
-
       it('should add transaction context data to default sample context', () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));

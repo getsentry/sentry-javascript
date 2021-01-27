@@ -1,5 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
+import { getGlobalObject } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { SpanStatus } from '../../src';
@@ -224,6 +225,7 @@ describe('BrowserTracing', () => {
         }),
         expect.any(Number),
         expect.any(Boolean),
+        expect.any(Object),
       );
     });
 
@@ -440,6 +442,54 @@ describe('BrowserTracing', () => {
         expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toBeUndefined();
       });
+    });
+  });
+
+  describe('sampling', () => {
+    const dogParkLocation = {
+      hash: '#next-to-the-fountain',
+      host: 'the.dog.park',
+      hostname: 'the.dog.park',
+      href: 'mutualsniffing://the.dog.park/by/the/trees/?chase=me&please=thankyou#next-to-the-fountain',
+      origin: "'mutualsniffing://the.dog.park",
+      pathname: '/by/the/trees/',
+      port: '',
+      protocol: 'mutualsniffing:',
+      search: '?chase=me&please=thankyou',
+    };
+
+    it('extracts window.location/self.location for sampling context in pageload transactions', () => {
+      getGlobalObject<Window>().location = dogParkLocation as any;
+
+      const tracesSampler = jest.fn();
+      hub.bindClient(new BrowserClient({ tracesSampler }));
+      // setting up the BrowserTracing integration automatically starts a pageload transaction
+      createBrowserTracing(true);
+
+      expect(tracesSampler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          location: dogParkLocation,
+          transactionContext: expect.objectContaining({ op: 'pageload' }),
+        }),
+      );
+    });
+
+    it('extracts window.location/self.location for sampling context in navigation transactions', () => {
+      getGlobalObject<Window>().location = dogParkLocation as any;
+
+      const tracesSampler = jest.fn();
+      hub.bindClient(new BrowserClient({ tracesSampler }));
+      // setting up the BrowserTracing integration normally automatically starts a pageload transaction, but that's not
+      // what we're testing here
+      createBrowserTracing(true, { startTransactionOnPageLoad: false });
+
+      mockChangeHistory({ to: 'here', from: 'there' });
+      expect(tracesSampler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          location: dogParkLocation,
+          transactionContext: expect.objectContaining({ op: 'navigation' }),
+        }),
+      );
     });
   });
 });
