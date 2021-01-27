@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
-import { getMainCarrier, Hub } from '@sentry/hub';
+import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { getGlobalObject, isNodeEnv, logger } from '@sentry/utils';
-import * as nodeHttpModule from 'http';
 
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
@@ -65,55 +64,6 @@ describe('Hub', () => {
 
   describe('transaction sampling', () => {
     describe('default sample context', () => {
-      it('should extract request data for default sampling context when in node', () => {
-        // make sure we look like we're in node
-        (isNodeEnv as jest.Mock).mockReturnValue(true);
-
-        // pre-normalization request object
-        const mockRequestObject = ({
-          headers: { ears: 'furry', nose: 'wet', tongue: 'panting', cookie: 'favorite=zukes' },
-          method: 'wagging',
-          protocol: 'mutualsniffing',
-          hostname: 'the.dog.park',
-          originalUrl: '/by/the/trees/?chase=me&please=thankyou',
-        } as unknown) as nodeHttpModule.IncomingMessage;
-
-        // The "as unknown as nodeHttpModule.IncomingMessage" casting above keeps TS happy, but doesn't actually mean that
-        // mockRequestObject IS an instance of our desired class. Fix that so that when we search for it by type, we
-        // actually find it.
-        Object.setPrototypeOf(mockRequestObject, nodeHttpModule.IncomingMessage.prototype);
-
-        // in production, the domain will have at minimum the request and the response, so make a response object to prove
-        // that our code identifying the request in domain.members works
-        const mockResponseObject = new nodeHttpModule.ServerResponse(mockRequestObject);
-
-        // normally the node request handler does this, but that's not part of this test
-        (getMainCarrier().__SENTRY__!.extensions as any).domain = {
-          active: { members: [mockRequestObject, mockResponseObject] },
-        };
-
-        // Ideally we'd use a NodeClient here, but @sentry/tracing can't depend on @sentry/node since the reverse is
-        // already true (node's request handlers start their own transactions) - even as a dev dependency. Fortunately,
-        // we're not relying on anything other than the client having a captureEvent method, which all clients do (it's
-        // in the abstract base class), so a BrowserClient will do.
-        const tracesSampler = jest.fn();
-        const hub = new Hub(new BrowserClient({ tracesSampler }));
-        hub.startTransaction({ name: 'dogpark' });
-
-        // post-normalization request object
-        expect(tracesSampler).toHaveBeenCalledWith(
-          expect.objectContaining({
-            request: {
-              headers: { ears: 'furry', nose: 'wet', tongue: 'panting', cookie: 'favorite=zukes' },
-              method: 'wagging',
-              url: 'http://the.dog.park/by/the/trees/?chase=me&please=thankyou',
-              cookies: { favorite: 'zukes' },
-              query_string: 'chase=me&please=thankyou',
-            },
-          }),
-        );
-      });
-
       it('should extract window.location/self.location for default sampling context when in browser/service worker', () => {
         // make sure we look like we're in the browser
         (isNodeEnv as jest.Mock).mockReturnValue(false);

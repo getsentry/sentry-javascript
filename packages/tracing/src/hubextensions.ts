@@ -214,7 +214,8 @@ function _startTransaction(
 ): Transaction {
   const transaction = new Transaction(transactionContext, this);
   return sample(this, transaction, {
-    ...getDefaultSamplingContext(transactionContext),
+    parentSampled: transactionContext.parentSampled,
+    transactionContext,
     ...customSamplingContext,
   });
 }

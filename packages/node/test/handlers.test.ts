@@ -180,8 +180,12 @@ describe('parseRequest', () => {
 });
 
 describe('tracingHandler', () => {
-  const urlString = 'http://dogs.are.great:1231/yay/';
-  const queryString = '?furry=yes&funny=very';
+  const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
+  const method = 'wagging';
+  const protocol = 'mutualsniffing';
+  const hostname = 'the.dog.park';
+  const path = '/by/the/trees/';
+  const queryString = 'chase=me&please=thankyou';
   const fragment = '#adoptnotbuy';
 
   const sentryTracingMiddleware = tracingHandler();
@@ -194,9 +198,13 @@ describe('tracingHandler', () => {
   }
 
   beforeEach(() => {
-    req = new http.IncomingMessage(new net.Socket());
-    req.url = `${urlString}`;
-    req.method = 'GET';
+    req = ({
+      headers,
+      method,
+      protocol,
+      hostname,
+      originalUrl: `${path}?${queryString}`,
+    } as unknown) as http.IncomingMessage;
     res = new http.ServerResponse(req);
     next = createNoOpSpy();
   });
@@ -226,6 +234,29 @@ describe('tracingHandler', () => {
     expect(transaction.sampled).toEqual(false);
   });
 
+  it('extracts request data for sampling context', () => {
+    const tracesSampler = jest.fn();
+    const hub = new Hub(new NodeClient({ tracesSampler }));
+    // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
+    // `@sentry/hub`, and mocking breaks the link between the two
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
+
+    sentryTracingMiddleware(req, res, next);
+
+    expect(tracesSampler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: {
+          headers,
+          method,
+          url: `http://${hostname}${path}?${queryString}`,
+          cookies: { favorite: 'zukes' },
+          query_string: queryString,
+        },
+      }),
+    );
+  });
+
   it('puts its transaction on the scope', () => {
     const hub = new Hub(new NodeClient({ tracesSampleRate: 1.0 }));
     // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
@@ -241,7 +272,9 @@ describe('tracingHandler', () => {
       ?.getTransaction();
 
     expect(transaction).toBeDefined();
-    expect(transaction).toEqual(expect.objectContaining({ name: `GET ${urlString}`, op: 'http.server' }));
+    expect(transaction).toEqual(
+      expect.objectContaining({ name: `${method.toUpperCase()} ${path}`, op: 'http.server' }),
+    );
   });
 
   it('puts its transaction on the response object', () => {
@@ -250,7 +283,9 @@ describe('tracingHandler', () => {
     const transaction = (res as any).__sentry_transaction;
 
     expect(transaction).toBeDefined();
-    expect(transaction).toEqual(expect.objectContaining({ name: `GET ${urlString}`, op: 'http.server' }));
+    expect(transaction).toEqual(
+      expect.objectContaining({ name: `${method.toUpperCase()} ${path}`, op: 'http.server' }),
+    );
   });
 
   it('pulls status code from the response', done => {
@@ -271,33 +306,33 @@ describe('tracingHandler', () => {
   });
 
   it('strips query string from request path', () => {
-    req.url = `${urlString}${queryString}`;
+    req.url = `${path}?${queryString}`;
 
     sentryTracingMiddleware(req, res, next);
 
     const transaction = (res as any).__sentry_transaction;
 
-    expect(transaction?.name).toBe(`GET ${urlString}`);
+    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
   });
 
   it('strips fragment from request path', () => {
-    req.url = `${urlString}${fragment}`;
+    req.url = `${path}${fragment}`;
 
     sentryTracingMiddleware(req, res, next);
 
     const transaction = (res as any).__sentry_transaction;
 
-    expect(transaction?.name).toBe(`GET ${urlString}`);
+    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
   });
 
   it('strips query string and fragment from request path', () => {
-    req.url = `${urlString}${queryString}${fragment}`;
+    req.url = `${path}?${queryString}${fragment}`;
 
     sentryTracingMiddleware(req, res, next);
 
     const transaction = (res as any).__sentry_transaction;
 
-    expect(transaction?.name).toBe(`GET ${urlString}`);
+    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
   });
 
   it('closes the transaction when request processing is done', done => {

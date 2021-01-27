@@ -53,11 +53,14 @@ export function tracingHandler(): (
       traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
     }
 
-    const transaction = startTransaction({
-      name: extractExpressTransactionName(req, { path: true, method: true }),
-      op: 'http.server',
-      ...traceparentData,
-    });
+    const transaction = startTransaction(
+      {
+        name: extractExpressTransactionName(req, { path: true, method: true }),
+        op: 'http.server',
+        ...traceparentData,
+      },
+      { request: extractRequestData(req) },
+    );
 
     // We put the transaction on the scope so users can attach children to it
     getCurrentHub().configureScope(scope => {
