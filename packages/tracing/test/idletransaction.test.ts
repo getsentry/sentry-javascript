@@ -150,7 +150,7 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000);
       transaction.initSpanRecorder(10);
 
-      jest.runTimersToTime(DEFAULT_IDLE_TIMEOUT);
+      jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
       expect(transaction.endTimestamp).toBeDefined();
     });
 
@@ -159,28 +159,34 @@ describe('IdleTransaction', () => {
       transaction.initSpanRecorder(10);
       transaction.startChild({});
 
-      jest.runTimersToTime(DEFAULT_IDLE_TIMEOUT);
+      jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
       expect(transaction.endTimestamp).toBeUndefined();
     });
   });
 
   describe('heartbeat', () => {
     it('does not start heartbeat if there is no span recorder', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+      const HEARTBEAT_INTERVAL = 5000;
+      // 20s to exceed 3 heartbeats
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
       const mockFinish = jest.spyOn(transaction, 'finish');
 
+      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 1
-      jest.runOnlyPendingTimers();
+      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.runOnlyPendingTimers();
+      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.runOnlyPendingTimers();
+      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
       expect(mockFinish).toHaveBeenCalledTimes(0);
     });
 
