@@ -378,19 +378,19 @@ function shouldShortcircuitPreviousDebounce(previous: Event | undefined, current
   }
 
   try {
-    // If both events have the same type, it's still possible that actions were performed on a different listeners.
+    // If both events have the same type, it's still possible that actions were performed on different targets.
     // e.g. 2 clicks on different buttons.
     if (previous.target !== current.target) {
       return true;
     }
   } catch (e) {
     // just accessing `target` property can throw an exception in some rare circumstances
-    // see: https://github.com/getsentry/raven-js/issues/838
+    // see: https://github.com/getsentry/sentry-javascript/issues/838
   }
 
   // If both events have the same type _and_ same `target` (an element which triggered an event, _not necessarily_
-  // to which an event listener was attached to), we treat them as the same action, as we want to capture
-  // only one breadcrumb. e.g. multiple clicks on the same button, or typing inside user input box.
+  // to which an event listener was attached), we treat them as the same action, as we want to capture
+  // only one breadcrumb. e.g. multiple clicks on the same button, or typing inside a user input box.
   return false;
 }
 
@@ -418,7 +418,7 @@ function shouldSkipDOMEvent(event: Event): boolean {
     }
   } catch (e) {
     // just accessing `target` property can throw an exception in some rare circumstances
-    // see: https://github.com/getsentry/raven-js/issues/838
+    // see: https://github.com/getsentry/sentry-javascript/issues/838
   }
 
   return true;
@@ -458,7 +458,7 @@ function makeDOMEventHandler(handler: Function, globalListener: boolean = false)
     }
 
     // If there is a debounce awaiting, see if the new event is different enough to treat it as a unique one.
-    // If that's the case, emit the instrumentation event and store locally newly captured DOM event.
+    // If that's the case, emit the previous event and store locally the newly-captured DOM event.
     if (debounceTimerID !== undefined && shouldShortcircuitPreviousDebounce(lastCapturedEvent, event)) {
       handler({
         event: event,
@@ -502,14 +502,19 @@ function instrumentDOM(): void {
     return;
   }
 
-  // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
-  // to the document. Do this before we instrument addEventListener.
+  // Make it so that any click or keypress that is unhandled / bubbled up all the way to the document triggers our dom 
+  // handlers. (Normally we have only one, which captures a breadcrumb for each click or keypress.) Do this before 
+  // we instrument `addEventListener` so that we don't end up attaching this handler twice.
   const triggerDOMHandler = triggerHandlers.bind(null, 'dom');
   const globalDOMEventHandler = makeDOMEventHandler(triggerDOMHandler, true);
   global.document.addEventListener('click', globalDOMEventHandler, false);
   global.document.addEventListener('keypress', globalDOMEventHandler, false);
 
-  // After hooking into document bubbled up click and keypresses events, we also hook into user handled click & keypresses.
+  // After hooking into click and keypress events bubbled up to `document`, we also hook into user-handled 
+  // clicks & keypresses, by adding an event listener of our own to any element to which they add a listener. That 
+  // way, whenever one of their handlers is triggered, ours will be, too. (This is needed because their handler 
+  // could potentially prevent the event from bubbling up to our global listeners. This way, our handler are still 
+  // guaranteed to fire at least once.)
   ['EventTarget', 'Node'].forEach((target: string) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const proto = (global as any)[target] && (global as any)[target].prototype;
@@ -558,14 +563,14 @@ function instrumentDOM(): void {
 
             if (handlerForType) {
               handlerForType.rc -= 1;
-              // If we no longer have any references to that handler, detach it and drop it completely.
+              // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
               if (handlerForType.rc <= 0) {
                 originalRemoveEventListener.call(this, type, handlerForType.handler, options);
                 handlerForType.handler = undefined;
                 delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
               }
 
-              // If we no longer have any references, to any type of handlers, cleanup everything.
+              // If there are no longer any custom handlers of any type on this element, cleanup everything.
               if (Object.keys(handlers).length === 0) {
                 delete el.__sentry_instrumentation_handlers__;
               }

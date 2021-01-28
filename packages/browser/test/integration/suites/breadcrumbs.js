@@ -446,7 +446,7 @@ describe("breadcrumbs", function() {
     });
   });
 
-  it("should bail out if accessing the `target` property of an event throw an exception", function() {
+  it("should bail out if accessing the `target` property of an event throws an exception", function() {
     // see: https://github.com/getsentry/sentry-javascript/issues/768
     return runInSandbox(sandbox, function() {
       // click <input/>
@@ -536,7 +536,7 @@ describe("breadcrumbs", function() {
     });
   });
 
-  it("should debounce multiple consecutive breadcrumbs but allow for switching to the different type", function() {
+  it("should debounce multiple consecutive identical breadcrumbs but allow for switching to a different type", function() {
     return runInSandbox(sandbox, function() {
       var input = document.getElementsByTagName("input")[0];
 
@@ -577,7 +577,7 @@ describe("breadcrumbs", function() {
     });
   });
 
-  it("should debounce multiple consecutive breadcrumbs but allow for switching to the different target", function() {
+  it("should debounce multiple consecutive identical breadcrumbs but allow for switching to a different target", function() {
     return runInSandbox(sandbox, function() {
       var input = document.querySelector("#foo-form input");
       var div = document.querySelector("#foo-form div");
