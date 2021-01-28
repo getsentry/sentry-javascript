@@ -491,7 +491,8 @@ type InstrumentedElement = Element & {
   __sentry_instrumentation_handlers__?: {
     [key in 'click' | 'keypress']?: {
       handler?: Function;
-      rc: number;
+      /** The number of custom listeners attached to this element */
+      refCount: number;
     };
   };
 };
@@ -502,18 +503,18 @@ function instrumentDOM(): void {
     return;
   }
 
-  // Make it so that any click or keypress that is unhandled / bubbled up all the way to the document triggers our dom 
-  // handlers. (Normally we have only one, which captures a breadcrumb for each click or keypress.) Do this before 
+  // Make it so that any click or keypress that is unhandled / bubbled up all the way to the document triggers our dom
+  // handlers. (Normally we have only one, which captures a breadcrumb for each click or keypress.) Do this before
   // we instrument `addEventListener` so that we don't end up attaching this handler twice.
   const triggerDOMHandler = triggerHandlers.bind(null, 'dom');
   const globalDOMEventHandler = makeDOMEventHandler(triggerDOMHandler, true);
   global.document.addEventListener('click', globalDOMEventHandler, false);
   global.document.addEventListener('keypress', globalDOMEventHandler, false);
 
-  // After hooking into click and keypress events bubbled up to `document`, we also hook into user-handled 
-  // clicks & keypresses, by adding an event listener of our own to any element to which they add a listener. That 
-  // way, whenever one of their handlers is triggered, ours will be, too. (This is needed because their handler 
-  // could potentially prevent the event from bubbling up to our global listeners. This way, our handler are still 
+  // After hooking into click and keypress events bubbled up to `document`, we also hook into user-handled
+  // clicks & keypresses, by adding an event listener of our own to any element to which they add a listener. That
+  // way, whenever one of their handlers is triggered, ours will be, too. (This is needed because their handler
+  // could potentially prevent the event from bubbling up to our global listeners. This way, our handler are still
   // guaranteed to fire at least once.)
   ['EventTarget', 'Node'].forEach((target: string) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -533,7 +534,7 @@ function instrumentDOM(): void {
         if (type === 'click' || type == 'keypress') {
           const el = this as InstrumentedElement;
           const handlers = (el.__sentry_instrumentation_handlers__ = el.__sentry_instrumentation_handlers__ || {});
-          const handlerForType = (handlers[type] = handlers[type] || { rc: 0 });
+          const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
 
           if (!handlerForType.handler) {
             const handler = makeDOMEventHandler(triggerDOMHandler);
@@ -541,7 +542,7 @@ function instrumentDOM(): void {
             originalAddEventListener.call(this, type, handler, options);
           }
 
-          handlerForType.rc += 1;
+          handlerForType.refCount += 1;
         }
 
         return originalAddEventListener.call(this, type, listener, options);
@@ -562,9 +563,9 @@ function instrumentDOM(): void {
             const handlerForType = handlers[type];
 
             if (handlerForType) {
-              handlerForType.rc -= 1;
+              handlerForType.refCount -= 1;
               // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
-              if (handlerForType.rc <= 0) {
+              if (handlerForType.refCount <= 0) {
                 originalRemoveEventListener.call(this, type, handlerForType.handler, options);
                 handlerForType.handler = undefined;
                 delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
