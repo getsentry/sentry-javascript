@@ -456,10 +456,9 @@ function makeDOMEventHandler(handler: Function, globalListener: boolean = false)
       });
       lastCapturedEvent = event;
     }
-
     // If there is a debounce awaiting, see if the new event is different enough to treat it as a unique one.
     // If that's the case, emit the previous event and store locally the newly-captured DOM event.
-    if (debounceTimerID !== undefined && shouldShortcircuitPreviousDebounce(lastCapturedEvent, event)) {
+    else if (shouldShortcircuitPreviousDebounce(lastCapturedEvent, event)) {
       handler({
         event: event,
         name,
