@@ -1,6 +1,6 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
-import { isInstanceOf, logger } from '@sentry/utils';
+import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -14,7 +14,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
 
-  private readonly _trimEnd?: boolean;
+  private _trimEnd?: boolean;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use
@@ -118,5 +118,31 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
 
     return this._hub.captureEvent(transaction);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public toContext(): TransactionContext {
+    const spanContext = super.toContext();
+
+    return dropUndefinedKeys({
+      ...spanContext,
+      name: this.name,
+      trimEnd: this._trimEnd,
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public updateWithContext(transactionContext: TransactionContext): this {
+    super.updateWithContext(transactionContext);
+
+    this.name = transactionContext.name ?? '';
+
+    this._trimEnd = transactionContext.trimEnd;
+
+    return this;
   }
 }

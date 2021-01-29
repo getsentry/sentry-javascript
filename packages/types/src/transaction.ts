@@ -62,6 +62,12 @@ export interface Transaction extends TransactionContext, Span {
    * Set the name of the transaction
    */
   setName(name: string): void;
+
+  /** Returns the current transaction properties as a `TransactionContext` */
+  toContext(): TransactionContext;
+
+  /** Updates the current transaction with a new `TransactionContext` */
+  updateWithContext(transactionContext: TransactionContext): this;
 }
 
 /**

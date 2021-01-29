@@ -152,6 +152,12 @@ export interface Span extends SpanContext {
   /** Return a traceparent compatible header string */
   toTraceparent(): string;
 
+  /** Returns the current span properties as a `SpanContext` */
+  toContext(): SpanContext;
+
+  /** Updates the current span with a new `SpanContext` */
+  updateWithContext(spanContext: SpanContext): this;
+
   /** Convert the object to JSON for w. spans array info only */
   getTraceContext(): {
     data?: { [key: string]: any };
