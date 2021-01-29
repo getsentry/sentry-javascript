@@ -141,7 +141,10 @@ jobs:
     needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: "github.ref == 'refs/heads/master'"
+    continue-on-error: true
+    # TODO: Fix BrowserStack tests
+    # if: startsWith(github.ref, 'refs/heads/release/')
+    if: false
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1

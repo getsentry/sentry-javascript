@@ -1,20 +1,21 @@
 import * as Sentry from '@sentry/browser';
 import { SDK_VERSION, BrowserOptions } from '@sentry/browser';
-import environmentConfig from 'ember-get-config';
-import { macroCondition, isDevelopingApp } from '@embroider/macros';
+import { macroCondition, isDevelopingApp, getOwnConfig } from '@embroider/macros';
 import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
 import { timestampWithMs } from '@sentry/utils';
+import { OwnConfig } from './types';
 
 declare module '@ember/debug' {
   export function assert(desc: string, test: unknown): void;
 }
 
 export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
-  const config = environmentConfig['@sentry/ember'];
-  assert('Missing configuration', config);
-  assert('Missing configuration for Sentry.', config.sentry);
+  const config = getOwnConfig<OwnConfig>().sentryConfig;
+
+  assert('Missing configuration.', config);
+  assert('Missing configuration for Sentry.', config.sentry || _runtimeConfig);
 
   const initConfig = Object.assign({}, config.sentry, _runtimeConfig || {});
 

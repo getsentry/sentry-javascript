@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
-import { addInstrumentationHandler, getGlobalObject, SyncPromise } from '@sentry/utils';
+import { addInstrumentationHandler, getGlobalObject, logger, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
@@ -192,6 +192,13 @@ export function wrap(fn: (...args: any) => any): any {
  */
 function startSessionTracking(): void {
   const window = getGlobalObject<Window>();
+  const document = window.document;
+
+  if (typeof document === 'undefined') {
+    logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
+    return;
+  }
+
   const hub = getCurrentHub();
 
   /**
