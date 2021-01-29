@@ -184,6 +184,7 @@ export class Breadcrumbs implements Integration {
       {
         event: handlerData.event,
         name: handlerData.name,
+        global: handlerData.global,
       },
     );
   }

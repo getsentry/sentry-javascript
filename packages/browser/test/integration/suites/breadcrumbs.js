@@ -446,7 +446,7 @@ describe("breadcrumbs", function() {
     });
   });
 
-  it("should bail out if accessing the `type` and `target` properties of an event throw an exception", function() {
+  it("should bail out if accessing the `target` property of an event throws an exception", function() {
     // see: https://github.com/getsentry/sentry-javascript/issues/768
     return runInSandbox(sandbox, function() {
       // click <input/>
@@ -454,7 +454,6 @@ describe("breadcrumbs", function() {
       function kaboom() {
         throw new Error("lol");
       }
-      Object.defineProperty(click, "type", { get: kaboom });
       Object.defineProperty(click, "target", { get: kaboom });
 
       var input = document.querySelector(".a"); // leaf node
@@ -496,6 +495,121 @@ describe("breadcrumbs", function() {
           summary.breadcrumbs[0].message,
           'body > form#foo-form > input[name="foo"]'
         );
+      }
+    });
+  });
+
+  it("should correctly capture multiple consecutive breadcrumbs if they are of different type", function() {
+    return runInSandbox(sandbox, function() {
+      var input = document.getElementsByTagName("input")[0];
+
+      var clickHandler = function() {};
+      input.addEventListener("click", clickHandler);
+      var keypressHandler = function() {};
+      input.addEventListener("keypress", keypressHandler);
+
+      input.dispatchEvent(new MouseEvent("click"));
+      input.dispatchEvent(new KeyboardEvent("keypress"));
+
+      Sentry.captureMessage("test");
+    }).then(function(summary) {
+      if (IS_LOADER) {
+        // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+        assert.lengthOf(summary.events, 1);
+      } else {
+        // Breadcrumb should be captured by the global event listeners, not a specific one
+        assert.equal(summary.breadcrumbs.length, 2);
+        assert.equal(summary.breadcrumbs[0].category, "ui.click");
+        assert.equal(
+          summary.breadcrumbs[0].message,
+          'body > form#foo-form > input[name="foo"]'
+        );
+        assert.equal(summary.breadcrumbs[1].category, "ui.input");
+        assert.equal(
+          summary.breadcrumbs[0].message,
+          'body > form#foo-form > input[name="foo"]'
+        );
+        assert.equal(summary.breadcrumbHints[0].global, false);
+        assert.equal(summary.breadcrumbHints[1].global, false);
+        assert.isUndefined(summary.events[0].exception);
+      }
+    });
+  });
+
+  it("should debounce multiple consecutive identical breadcrumbs but allow for switching to a different type", function() {
+    return runInSandbox(sandbox, function() {
+      var input = document.getElementsByTagName("input")[0];
+
+      var clickHandler = function() {};
+      input.addEventListener("click", clickHandler);
+      var keypressHandler = function() {};
+      input.addEventListener("keypress", keypressHandler);
+
+      input.dispatchEvent(new MouseEvent("click"));
+      input.dispatchEvent(new MouseEvent("click"));
+      input.dispatchEvent(new MouseEvent("click"));
+      input.dispatchEvent(new KeyboardEvent("keypress"));
+      input.dispatchEvent(new KeyboardEvent("keypress"));
+      input.dispatchEvent(new KeyboardEvent("keypress"));
+
+      Sentry.captureMessage("test");
+    }).then(function(summary) {
+      if (IS_LOADER) {
+        // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+        assert.lengthOf(summary.events, 1);
+      } else {
+        // Breadcrumb should be captured by the global event listeners, not a specific one
+        assert.equal(summary.breadcrumbs.length, 2);
+        assert.equal(summary.breadcrumbs[0].category, "ui.click");
+        assert.equal(
+          summary.breadcrumbs[0].message,
+          'body > form#foo-form > input[name="foo"]'
+        );
+        assert.equal(summary.breadcrumbs[1].category, "ui.input");
+        assert.equal(
+          summary.breadcrumbs[0].message,
+          'body > form#foo-form > input[name="foo"]'
+        );
+        assert.equal(summary.breadcrumbHints[0].global, false);
+        assert.equal(summary.breadcrumbHints[1].global, false);
+        assert.isUndefined(summary.events[0].exception);
+      }
+    });
+  });
+
+  it("should debounce multiple consecutive identical breadcrumbs but allow for switching to a different target", function() {
+    return runInSandbox(sandbox, function() {
+      var input = document.querySelector("#foo-form input");
+      var div = document.querySelector("#foo-form div");
+
+      var clickHandler = function() {};
+      input.addEventListener("click", clickHandler);
+      div.addEventListener("click", clickHandler);
+
+      input.dispatchEvent(new MouseEvent("click"));
+      div.dispatchEvent(new MouseEvent("click"));
+
+      Sentry.captureMessage("test");
+    }).then(function(summary) {
+      if (IS_LOADER) {
+        // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+        assert.lengthOf(summary.events, 1);
+      } else {
+        // Breadcrumb should be captured by the global event listeners, not a specific one
+        assert.equal(summary.breadcrumbs.length, 2);
+        assert.equal(summary.breadcrumbs[0].category, "ui.click");
+        assert.equal(
+          summary.breadcrumbs[0].message,
+          'body > form#foo-form > input[name="foo"]'
+        );
+        assert.equal(summary.breadcrumbs[1].category, "ui.click");
+        assert.equal(
+          summary.breadcrumbs[1].message,
+          "body > form#foo-form > div.contenteditable"
+        );
+        assert.equal(summary.breadcrumbHints[0].global, false);
+        assert.equal(summary.breadcrumbHints[1].global, false);
+        assert.isUndefined(summary.events[0].exception);
       }
     });
   });
@@ -655,6 +769,42 @@ describe("breadcrumbs", function() {
         );
 
         assert.equal(summary.window.handleEventCalled, true);
+      }
+    });
+  });
+
+  it("should remove breadcrumb instrumentation when all event listeners are detached", function() {
+    return runInSandbox(sandbox, function() {
+      var input = document.getElementsByTagName("input")[0];
+
+      var clickHandler = function() {};
+      var otherClickHandler = function() {};
+      input.addEventListener("click", clickHandler);
+      input.addEventListener("click", otherClickHandler);
+      input.removeEventListener("click", clickHandler);
+      input.removeEventListener("click", otherClickHandler);
+
+      var keypressHandler = function() {};
+      var otherKeypressHandler = function() {};
+      input.addEventListener("keypress", keypressHandler);
+      input.addEventListener("keypress", otherKeypressHandler);
+      input.removeEventListener("keypress", keypressHandler);
+      input.removeEventListener("keypress", otherKeypressHandler);
+
+      input.dispatchEvent(new MouseEvent("click"));
+      input.dispatchEvent(new KeyboardEvent("keypress"));
+
+      Sentry.captureMessage("test");
+    }).then(function(summary) {
+      if (IS_LOADER) {
+        // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+        assert.lengthOf(summary.events, 1);
+      } else {
+        // Breadcrumb should be captured by the global event listeners, not a specific one
+        assert.equal(summary.breadcrumbs.length, 2);
+        assert.equal(summary.breadcrumbHints[0].global, true);
+        assert.equal(summary.breadcrumbHints[1].global, true);
+        assert.isUndefined(summary.events[0].exception);
       }
     });
   });

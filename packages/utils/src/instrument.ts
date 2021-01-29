@@ -357,179 +357,233 @@ function instrumentHistory(): void {
   fill(global.history, 'replaceState', historyReplacementFunction);
 }
 
+const debounceDuration = 1000;
+let debounceTimerID: number | undefined;
+let lastCapturedEvent: Event | undefined;
+
+/**
+ * Decide whether the current event should finish the debounce of previously captured one.
+ * @param previous previously captured event
+ * @param current event to be captured
+ */
+function shouldShortcircuitPreviousDebounce(previous: Event | undefined, current: Event): boolean {
+  // If there was no previous event, it should always be swapped for the new one.
+  if (!previous) {
+    return true;
+  }
+
+  // If both events have different type, then user definitely performed two separate actions. e.g. click + keypress.
+  if (previous.type !== current.type) {
+    return true;
+  }
+
+  try {
+    // If both events have the same type, it's still possible that actions were performed on different targets.
+    // e.g. 2 clicks on different buttons.
+    if (previous.target !== current.target) {
+      return true;
+    }
+  } catch (e) {
+    // just accessing `target` property can throw an exception in some rare circumstances
+    // see: https://github.com/getsentry/sentry-javascript/issues/838
+  }
+
+  // If both events have the same type _and_ same `target` (an element which triggered an event, _not necessarily_
+  // to which an event listener was attached), we treat them as the same action, as we want to capture
+  // only one breadcrumb. e.g. multiple clicks on the same button, or typing inside a user input box.
+  return false;
+}
+
+/**
+ * Decide whether an event should be captured.
+ * @param event event to be captured
+ */
+function shouldSkipDOMEvent(event: Event): boolean {
+  // We are only interested in filtering `keypress` events for now.
+  if (event.type !== 'keypress') {
+    return false;
+  }
+
+  try {
+    const target = event.target as HTMLElement;
+
+    if (!target || !target.tagName) {
+      return true;
+    }
+
+    // Only consider keypress events on actual input elements. This will disregard keypresses targeting body
+    // e.g.tabbing through elements, hotkeys, etc.
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return false;
+    }
+  } catch (e) {
+    // just accessing `target` property can throw an exception in some rare circumstances
+    // see: https://github.com/getsentry/sentry-javascript/issues/838
+  }
+
+  return true;
+}
+
+/**
+ * Wraps addEventListener to capture UI breadcrumbs
+ * @param handler function that will be triggered
+ * @param globalListener indicates whether event was captured by the global event listener
+ * @returns wrapped breadcrumb events handler
+ * @hidden
+ */
+function makeDOMEventHandler(handler: Function, globalListener: boolean = false): (event: Event) => void {
+  return (event: Event): void => {
+    // It's possible this handler might trigger multiple times for the same
+    // event (e.g. event propagation through node ancestors).
+    // Ignore if we've already captured that event.
+    if (!event || lastCapturedEvent === event) {
+      return;
+    }
+
+    // We always want to skip _some_ events.
+    if (shouldSkipDOMEvent(event)) {
+      return;
+    }
+
+    const name = event.type === 'keypress' ? 'input' : event.type;
+
+    // If there is no debounce timer, it means that we can safely capture the new event and store it for future comparisons.
+    if (debounceTimerID === undefined) {
+      handler({
+        event: event,
+        name,
+        global: globalListener,
+      });
+      lastCapturedEvent = event;
+    }
+    // If there is a debounce awaiting, see if the new event is different enough to treat it as a unique one.
+    // If that's the case, emit the previous event and store locally the newly-captured DOM event.
+    else if (shouldShortcircuitPreviousDebounce(lastCapturedEvent, event)) {
+      handler({
+        event: event,
+        name,
+        global: globalListener,
+      });
+      lastCapturedEvent = event;
+    }
+
+    // Start a new debounce timer that will prevent us from capturing multiple events that should be grouped together.
+    clearTimeout(debounceTimerID);
+    debounceTimerID = global.setTimeout(() => {
+      debounceTimerID = undefined;
+    }, debounceDuration);
+  };
+}
+
+type AddEventListener = (
+  type: string,
+  listener: EventListenerOrEventListenerObject,
+  options?: boolean | AddEventListenerOptions,
+) => void;
+type RemoveEventListener = (
+  type: string,
+  listener: EventListenerOrEventListenerObject,
+  options?: boolean | EventListenerOptions,
+) => void;
+
+type InstrumentedElement = Element & {
+  __sentry_instrumentation_handlers__?: {
+    [key in 'click' | 'keypress']?: {
+      handler?: Function;
+      /** The number of custom listeners attached to this element */
+      refCount: number;
+    };
+  };
+};
+
 /** JSDoc */
 function instrumentDOM(): void {
   if (!('document' in global)) {
     return;
   }
 
-  // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
-  // to the document. Do this before we instrument addEventListener.
-  global.document.addEventListener('click', domEventHandler('click', triggerHandlers.bind(null, 'dom')), false);
-  global.document.addEventListener('keypress', keypressEventHandler(triggerHandlers.bind(null, 'dom')), false);
+  // Make it so that any click or keypress that is unhandled / bubbled up all the way to the document triggers our dom
+  // handlers. (Normally we have only one, which captures a breadcrumb for each click or keypress.) Do this before
+  // we instrument `addEventListener` so that we don't end up attaching this handler twice.
+  const triggerDOMHandler = triggerHandlers.bind(null, 'dom');
+  const globalDOMEventHandler = makeDOMEventHandler(triggerDOMHandler, true);
+  global.document.addEventListener('click', globalDOMEventHandler, false);
+  global.document.addEventListener('keypress', globalDOMEventHandler, false);
 
-  // After hooking into document bubbled up click and keypresses events, we also hook into user handled click & keypresses.
+  // After hooking into click and keypress events bubbled up to `document`, we also hook into user-handled
+  // clicks & keypresses, by adding an event listener of our own to any element to which they add a listener. That
+  // way, whenever one of their handlers is triggered, ours will be, too. (This is needed because their handler
+  // could potentially prevent the event from bubbling up to our global listeners. This way, our handler are still
+  // guaranteed to fire at least once.)
   ['EventTarget', 'Node'].forEach((target: string) => {
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const proto = (global as any)[target] && (global as any)[target].prototype;
-
-    // eslint-disable-next-line no-prototype-builtins
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
     if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
-    fill(proto, 'addEventListener', function(
-      original: () => void,
-    ): (
-      eventName: string,
-      fn: EventListenerOrEventListenerObject,
-      options?: boolean | AddEventListenerOptions,
-    ) => void {
+    fill(proto, 'addEventListener', function(originalAddEventListener: AddEventListener): AddEventListener {
       return function(
-        this: any,
-        eventName: string,
-        fn: EventListenerOrEventListenerObject,
+        this: Element,
+        type: string,
+        listener: EventListenerOrEventListenerObject,
         options?: boolean | AddEventListenerOptions,
-      ): (eventName: string, fn: EventListenerOrEventListenerObject, capture?: boolean, secure?: boolean) => void {
-        if (fn && (fn as EventListenerObject).handleEvent) {
-          if (eventName === 'click') {
-            fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
-              return function(this: any, event: Event): (event: Event) => void {
-                domEventHandler('click', triggerHandlers.bind(null, 'dom'))(event);
-                return innerOriginal.call(this, event);
-              };
-            });
+      ): AddEventListener {
+        if (type === 'click' || type == 'keypress') {
+          const el = this as InstrumentedElement;
+          const handlers = (el.__sentry_instrumentation_handlers__ = el.__sentry_instrumentation_handlers__ || {});
+          const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
+
+          if (!handlerForType.handler) {
+            const handler = makeDOMEventHandler(triggerDOMHandler);
+            handlerForType.handler = handler;
+            originalAddEventListener.call(this, type, handler, options);
           }
-          if (eventName === 'keypress') {
-            fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
-              return function(this: any, event: Event): (event: Event) => void {
-                keypressEventHandler(triggerHandlers.bind(null, 'dom'))(event);
-                return innerOriginal.call(this, event);
-              };
-            });
-          }
-        } else {
-          if (eventName === 'click') {
-            domEventHandler('click', triggerHandlers.bind(null, 'dom'), true)(this);
-          }
-          if (eventName === 'keypress') {
-            keypressEventHandler(triggerHandlers.bind(null, 'dom'))(this);
-          }
+
+          handlerForType.refCount += 1;
         }
 
-        return original.call(this, eventName, fn, options);
+        return originalAddEventListener.call(this, type, listener, options);
       };
     });
 
-    fill(proto, 'removeEventListener', function(
-      original: () => void,
-    ): (
-      this: any,
-      eventName: string,
-      fn: EventListenerOrEventListenerObject,
-      options?: boolean | EventListenerOptions,
-    ) => () => void {
+    fill(proto, 'removeEventListener', function(originalRemoveEventListener: RemoveEventListener): RemoveEventListener {
       return function(
-        this: any,
-        eventName: string,
-        fn: EventListenerOrEventListenerObject,
+        this: Element,
+        type: string,
+        listener: EventListenerOrEventListenerObject,
         options?: boolean | EventListenerOptions,
       ): () => void {
-        try {
-          original.call(this, eventName, ((fn as unknown) as WrappedFunction).__sentry_wrapped__, options);
-        } catch (e) {
-          // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+        if (type === 'click' || type == 'keypress') {
+          try {
+            const el = this as InstrumentedElement;
+            const handlers = el.__sentry_instrumentation_handlers__ || {};
+            const handlerForType = handlers[type];
+
+            if (handlerForType) {
+              handlerForType.refCount -= 1;
+              // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
+              if (handlerForType.refCount <= 0) {
+                originalRemoveEventListener.call(this, type, handlerForType.handler, options);
+                handlerForType.handler = undefined;
+                delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
+              }
+
+              // If there are no longer any custom handlers of any type on this element, cleanup everything.
+              if (Object.keys(handlers).length === 0) {
+                delete el.__sentry_instrumentation_handlers__;
+              }
+            }
+          } catch (e) {
+            // accessing dom properties is always fragile
+          }
         }
-        return original.call(this, eventName, fn, options);
+
+        return originalRemoveEventListener.call(this, type, listener, options);
       };
     });
   });
-}
-
-const debounceDuration: number = 1000;
-let debounceTimer: number = 0;
-let keypressTimeout: number | undefined;
-let lastCapturedEvent: Event | undefined;
-
-/**
- * Wraps addEventListener to capture UI breadcrumbs
- * @param name the event name (e.g. "click")
- * @param handler function that will be triggered
- * @param debounce decides whether it should wait till another event loop
- * @returns wrapped breadcrumb events handler
- * @hidden
- */
-function domEventHandler(name: string, handler: Function, debounce: boolean = false): (event: Event) => void {
-  return (event: Event): void => {
-    // reset keypress timeout; e.g. triggering a 'click' after
-    // a 'keypress' will reset the keypress debounce so that a new
-    // set of keypresses can be recorded
-    keypressTimeout = undefined;
-    // It's possible this handler might trigger multiple times for the same
-    // event (e.g. event propagation through node ancestors). Ignore if we've
-    // already captured the event.
-    if (!event || lastCapturedEvent === event) {
-      return;
-    }
-
-    lastCapturedEvent = event;
-
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
-    if (debounce) {
-      debounceTimer = setTimeout(() => {
-        handler({ event, name });
-      });
-    } else {
-      handler({ event, name });
-    }
-  };
-}
-
-/**
- * Wraps addEventListener to capture keypress UI events
- * @param handler function that will be triggered
- * @returns wrapped keypress events handler
- * @hidden
- */
-function keypressEventHandler(handler: Function): (event: Event) => void {
-  // TODO: if somehow user switches keypress target before
-  //       debounce timeout is triggered, we will only capture
-  //       a single breadcrumb from the FIRST target (acceptable?)
-  return (event: Event): void => {
-    let target;
-
-    try {
-      target = event.target;
-    } catch (e) {
-      // just accessing event properties can throw an exception in some rare circumstances
-      // see: https://github.com/getsentry/raven-js/issues/838
-      return;
-    }
-
-    const tagName = target && (target as HTMLElement).tagName;
-
-    // only consider keypress events on actual input elements
-    // this will disregard keypresses targeting body (e.g. tabbing
-    // through elements, hotkeys, etc)
-    if (!tagName || (tagName !== 'INPUT' && tagName !== 'TEXTAREA' && !(target as HTMLElement).isContentEditable)) {
-      return;
-    }
-
-    // record first keypress in a series, but ignore subsequent
-    // keypresses until debounce clears
-    if (!keypressTimeout) {
-      domEventHandler('input', handler)(event);
-    }
-    clearTimeout(keypressTimeout);
-
-    keypressTimeout = (setTimeout(() => {
-      keypressTimeout = undefined;
-    }, debounceDuration) as any) as number;
-  };
 }
 
 let _oldOnErrorHandler: OnErrorEventHandler = null;
