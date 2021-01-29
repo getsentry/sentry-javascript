@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.0.3
+
+- [tracing] ref: feat(tracing): Add context update methods to Span and Transaction (#3192)
+- [node] ref: Make ExpressRequest not extend http.IncomingMessage anymore (#3211)
+- [browser] deps: Allow for LocalForage >=1.8.1 (#3205)
+- [ember] fix(ember): Fix location url for 'hash' location type (#3195)
+- [ember] fix(ember): Fix Ember to work with Embroider and Fastboot (#3181)
+
 ## 6.0.2
 
 - [browser] fix: Disable session tracking in non-browser environments (#3194)
