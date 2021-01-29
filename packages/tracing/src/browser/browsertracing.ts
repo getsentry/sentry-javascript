@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
@@ -209,7 +209,15 @@ export class BrowserTracing implements Integration {
     }
 
     const hub = this._getCurrentHub();
-    const idleTransaction = startIdleTransaction(hub, finalContext, idleTimeout, true);
+    const { location } = getGlobalObject() as WindowOrWorkerGlobalScope & { location: Location };
+
+    const idleTransaction = startIdleTransaction(
+      hub,
+      finalContext,
+      idleTimeout,
+      true,
+      { location }, // for use in the tracesSampler
+    );
     logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
     idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {
       this._metrics.addPerformanceEntries(transaction);

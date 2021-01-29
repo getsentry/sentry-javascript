@@ -1,13 +1,6 @@
-import { getActiveDomain, getMainCarrier, Hub } from '@sentry/hub';
+import { getMainCarrier, Hub } from '@sentry/hub';
 import { CustomSamplingContext, SamplingContext, TransactionContext, TransactionSamplingMethod } from '@sentry/types';
-import {
-  dynamicRequire,
-  extractNodeRequestData,
-  getGlobalObject,
-  isInstanceOf,
-  isNodeEnv,
-  logger,
-} from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
@@ -124,50 +117,6 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
   logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
   return transaction;
 }
-/**
- * Gets the correct context to pass to the tracesSampler, based on the environment (i.e., which SDK is being used)
- *
- * @returns The default sample context
- */
-function getDefaultSamplingContext(transactionContext: TransactionContext): SamplingContext {
-  // promote parent sampling decision (if any) for easy access
-  const { parentSampled } = transactionContext;
-  const defaultSamplingContext: SamplingContext = { transactionContext, parentSampled };
-
-  if (isNodeEnv()) {
-    const domain = getActiveDomain();
-
-    if (domain) {
-      // for all node servers that we currently support, we store the incoming request object (which is an instance of
-      // http.IncomingMessage) on the domain
-
-      // the domain members are stored as an array, so our only way to find the request is to iterate through the array
-      // and compare types
-
-      const nodeHttpModule = dynamicRequire(module, 'http');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const requestType = nodeHttpModule.IncomingMessage;
-
-      const request = domain.members.find(member => isInstanceOf(member, requestType));
-      if (request) {
-        defaultSamplingContext.request = extractNodeRequestData(request);
-      }
-    }
-  }
-
-  // we must be in browser-js (or some derivative thereof)
-  else {
-    // we use `getGlobalObject()` rather than `window` since service workers also have a `location` property on `self`
-    const globalObject = getGlobalObject<WindowOrWorkerGlobalScope>();
-
-    if ('location' in globalObject) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      defaultSamplingContext.location = { ...(globalObject as any).location };
-    }
-  }
-
-  return defaultSamplingContext;
-}
 
 /**
  * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
@@ -214,7 +163,8 @@ function _startTransaction(
 ): Transaction {
   const transaction = new Transaction(transactionContext, this);
   return sample(this, transaction, {
-    ...getDefaultSamplingContext(transactionContext),
+    parentSampled: transactionContext.parentSampled,
+    transactionContext,
     ...customSamplingContext,
   });
 }
@@ -227,9 +177,14 @@ export function startIdleTransaction(
   transactionContext: TransactionContext,
   idleTimeout?: number,
   onScope?: boolean,
+  customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
   const transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
-  return sample(hub, transaction, getDefaultSamplingContext(transactionContext));
+  return sample(hub, transaction, {
+    parentSampled: transactionContext.parentSampled,
+    transactionContext,
+    ...customSamplingContext,
+  });
 }
 
 /**
