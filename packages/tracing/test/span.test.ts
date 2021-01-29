@@ -287,4 +287,86 @@ describe('Span', () => {
       });
     });
   });
+
+  describe('toContext and updateWithContext', () => {
+    test('toContext should return correct context', () => {
+      const originalContext = { traceId: 'a', spanId: 'b', sampled: false, description: 'test', op: 'op' };
+      const span = new Span(originalContext);
+
+      const newContext = span.toContext();
+
+      expect(newContext).toStrictEqual({
+        ...originalContext,
+        data: {},
+        spanId: expect.any(String),
+        startTimestamp: expect.any(Number),
+        tags: {},
+        traceId: expect.any(String),
+      });
+    });
+
+    test('updateWithContext should completely change span properties', () => {
+      const originalContext = {
+        traceId: 'a',
+        spanId: 'b',
+        sampled: false,
+        description: 'test',
+        op: 'op',
+        tags: {
+          tag0: 'hello',
+        },
+      };
+      const span = new Span(originalContext);
+
+      span.updateWithContext({
+        traceId: 'c',
+        spanId: 'd',
+        sampled: true,
+      });
+
+      expect(span.traceId).toBe('c');
+      expect(span.spanId).toBe('d');
+      expect(span.sampled).toBe(true);
+      expect(span.description).toBe(undefined);
+      expect(span.op).toBe(undefined);
+      expect(span.tags).toStrictEqual({});
+    });
+
+    test('using toContext and updateWithContext together should update only changed properties', () => {
+      const originalContext = {
+        traceId: 'a',
+        spanId: 'b',
+        sampled: false,
+        description: 'test',
+        op: 'op',
+        tags: { tag0: 'hello' },
+        data: { data0: 'foo' },
+      };
+      const span = new Span(originalContext);
+
+      const newContext = {
+        ...span.toContext(),
+        description: 'new',
+        endTimestamp: 1,
+        op: 'new-op',
+        sampled: true,
+        tags: {
+          tag1: 'bye',
+        },
+      };
+
+      if (newContext.data) newContext.data.data1 = 'bar';
+
+      span.updateWithContext(newContext);
+
+      expect(span.traceId).toBe('a');
+      expect(span.spanId).toBe('b');
+      expect(span.description).toBe('new');
+      expect(span.endTimestamp).toBe(1);
+      expect(span.op).toBe('new-op');
+      expect(span.sampled).toBe(true);
+      expect(span.tags).toStrictEqual({ tag1: 'bye' });
+      expect(span.data).toStrictEqual({ data0: 'foo', data1: 'bar' });
+    });
+  });
 });

@@ -20,10 +20,13 @@ import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
-export interface ExpressRequest extends http.IncomingMessage {
-  [key: string]: any;
+export interface ExpressRequest {
   baseUrl?: string;
+  connection?: {
+    remoteAddress?: string;
+  };
   ip?: string;
+  method?: string;
   originalUrl?: string;
   route?: {
     path: string;
@@ -33,6 +36,11 @@ export interface ExpressRequest extends http.IncomingMessage {
       },
     ];
   };
+  query?: {
+    // It can be: undefined | string | string[] | ParsedQs | ParsedQs[] (from `qs` package), but we dont want to pull it.
+    [key: string]: unknown;
+  };
+  url?: string;
   user?: {
     [key: string]: any;
   };
