@@ -94,8 +94,8 @@ export interface SamplingContext extends CustomSamplingContext {
   parentSampled?: boolean;
 
   /**
-   * Object representing the URL of the current page or worker script. Passed by default in a browser or service worker
-   * context.
+   * Object representing the URL of the current page or worker script. Passed by default when using the `BrowserTracing`
+   * integration.
    */
   location?: WorkerLocation;
 
