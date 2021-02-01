@@ -165,7 +165,7 @@ describe('IdleTransaction', () => {
   });
 
   describe('heartbeat', () => {
-    it('does not start heartbeat if there is no span recorder', () => {
+    it('does not mark transaction as `DeadlineExceeded` if idle timeout has not been reached', () => {
       const HEARTBEAT_INTERVAL = 5000;
       // 20s to exceed 3 heartbeats
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
