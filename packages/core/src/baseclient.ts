@@ -156,6 +156,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       logger.warn('Discarded session because of missing release');
     } else {
       this._sendSession(session);
+      // After sending, we set init false to inidcate it's not the first occurence
+      session.update({ init: false });
     }
   }
 
@@ -252,6 +254,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       userAgent,
       errors: session.errors + Number(errored || crashed),
     });
+    this.captureSession(session);
   }
 
   /** Deliver captured session to Sentry */

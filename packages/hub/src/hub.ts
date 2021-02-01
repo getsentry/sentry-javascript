@@ -19,6 +19,7 @@ import {
   Transaction,
   TransactionContext,
   User,
+  SessionStatus,
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
@@ -361,9 +362,6 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public startSession(context?: SessionContext): Session {
-    // End existing session if there's one
-    this.endSession();
-
     const { scope, client } = this.getStackTop();
     const { release, environment } = (client && client.getOptions()) || {};
     const session = new Session({
@@ -373,6 +371,14 @@ export class Hub implements HubInterface {
       ...context,
     });
     if (scope) {
+      // End existing session if there's one
+      const session = scope.getSession && scope.getSession();
+      if (session) {
+        session.update({ status: SessionStatus.Exited });
+      }
+      this.endSession();
+
+      // Afterwards we set the new session on the scope
       scope.setSession(session);
     }
     return session;
@@ -381,17 +387,18 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public endSession(): void {
+  public endSession(clearSessionFromScope: boolean = true): void {
     const { scope, client } = this.getStackTop();
     if (!scope) return;
 
     const session = scope.getSession && scope.getSession();
     if (session) {
-      session.close();
       if (client && client.captureSession) {
         client.captureSession(session);
       }
-      scope.setSession();
+      if (clearSessionFromScope) {
+        scope.setSession();
+      }
     }
   }
 
