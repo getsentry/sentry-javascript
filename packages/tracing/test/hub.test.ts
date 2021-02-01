@@ -2,17 +2,20 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
+import { TransactionSamplingMethod } from '@sentry/types';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
 
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
+import { Transaction } from '../src/transaction';
 import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
 import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName } from './testutils';
 
 addExtensionMethods();
 
 const mathRandom = jest.spyOn(Math, 'random');
+jest.spyOn(Transaction.prototype, 'setMetadata');
 
 // we have to add things into the real global object (rather than mocking the return value of getGlobalObject) because
 // there are modules which call getGlobalObject as they load, which is seemingly too early for jest to intervene
@@ -26,7 +29,7 @@ describe('Hub', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
     jest.useRealTimers();
   });
 
@@ -184,35 +187,39 @@ describe('Hub', () => {
       it('should record sampling method when sampling decision is explicitly set', () => {
         const tracesSampler = jest.fn().mockReturnValue(0.1121);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
-        const transaction = hub.startTransaction({ name: 'dogpark', sampled: true });
+        hub.startTransaction({ name: 'dogpark', sampled: true });
 
-        expect(transaction.tags).toEqual(expect.objectContaining({ __sentry_samplingMethod: 'explicitly_set' }));
+        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
+          transactionSampling: { method: TransactionSamplingMethod.Explicit },
+        });
       });
 
       it('should record sampling method and rate when sampling decision comes from tracesSampler', () => {
         const tracesSampler = jest.fn().mockReturnValue(0.1121);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
-        const transaction = hub.startTransaction({ name: 'dogpark' });
+        hub.startTransaction({ name: 'dogpark' });
 
-        expect(transaction.tags).toEqual(
-          expect.objectContaining({ __sentry_samplingMethod: 'client_sampler', __sentry_sampleRate: '0.1121' }),
-        );
+        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
+          transactionSampling: { method: TransactionSamplingMethod.Sampler, rate: 0.1121 },
+        });
       });
 
       it('should record sampling method when sampling decision is inherited', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.1121 }));
-        const transaction = hub.startTransaction({ name: 'dogpark', parentSampled: true });
+        hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
-        expect(transaction.tags).toEqual(expect.objectContaining({ __sentry_samplingMethod: 'inheritance' }));
+        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
+          transactionSampling: { method: TransactionSamplingMethod.Inheritance },
+        });
       });
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.1121 }));
-        const transaction = hub.startTransaction({ name: 'dogpark' });
+        hub.startTransaction({ name: 'dogpark' });
 
-        expect(transaction.tags).toEqual(
-          expect.objectContaining({ __sentry_samplingMethod: 'client_rate', __sentry_sampleRate: '0.1121' }),
-        );
+        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
+          transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 },
+        });
       });
     });
 

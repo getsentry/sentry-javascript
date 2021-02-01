@@ -45,7 +45,9 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
 
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   if (transaction.sampled !== undefined) {
-    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: TransactionSamplingMethod.Explicit };
+    transaction.setMetadata({
+      transactionSampling: { method: TransactionSamplingMethod.Explicit },
+    });
     return transaction;
   }
 
@@ -54,25 +56,27 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
-    // cast the rate to a number first in case it's a boolean
-    transaction.tags = {
-      ...transaction.tags,
-      __sentry_samplingMethod: TransactionSamplingMethod.Sampler,
-      // TODO kmclb - once tag types are loosened, don't need to cast to string here
-      __sentry_sampleRate: String(Number(sampleRate)),
-    };
+    transaction.setMetadata({
+      transactionSampling: {
+        method: TransactionSamplingMethod.Sampler,
+        // cast to number in case it's a boolean
+        rate: Number(sampleRate),
+      },
+    });
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
-    transaction.tags = { ...transaction.tags, __sentry_samplingMethod: TransactionSamplingMethod.Inheritance };
+    transaction.setMetadata({
+      transactionSampling: { method: TransactionSamplingMethod.Inheritance },
+    });
   } else {
     sampleRate = options.tracesSampleRate;
-    // cast the rate to a number first in case it's a boolean
-    transaction.tags = {
-      ...transaction.tags,
-      __sentry_samplingMethod: TransactionSamplingMethod.Rate,
-      // TODO kmclb - once tag types are loosened, don't need to cast to string here
-      __sentry_sampleRate: String(Number(sampleRate)),
-    };
+    transaction.setMetadata({
+      transactionSampling: {
+        method: TransactionSamplingMethod.Rate,
+        // cast to number in case it's a boolean
+        rate: Number(sampleRate),
+      },
+    });
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The

@@ -4,9 +4,16 @@ import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
+interface TransactionMetadata {
+  transactionSampling?: { [key: string]: string | number };
+}
+
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
+
+  private _metadata: TransactionMetadata = {};
+
   private _measurements: Measurements = {};
 
   /**
@@ -65,6 +72,14 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * Set metadata for this transaction.
+   * @hidden
+   */
+  public setMetadata(newMetadata: TransactionMetadata): void {
+    this._metadata = { ...this._metadata, ...newMetadata };
+  }
+
+  /**
    * @inheritDoc
    */
   public finish(endTimestamp?: number): string | undefined {
@@ -108,6 +123,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
+      debug_meta: this._metadata,
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;

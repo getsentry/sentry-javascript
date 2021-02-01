@@ -3,6 +3,7 @@
  **/
 export interface DebugMeta {
   images?: Array<DebugImage>;
+  transactionSampling?: { rate?: number; method?: string };
 }
 
 /**
