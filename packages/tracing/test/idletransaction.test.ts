@@ -30,9 +30,20 @@ describe('IdleTransaction', () => {
       });
     });
 
-    it('removes transaction from scope on finish if onScope is true', () => {
+    it('removes sampled transaction from scope on finish if onScope is true', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000, true);
       transaction.initSpanRecorder(10);
+
+      transaction.finish();
+      jest.runAllTimers();
+
+      hub.configureScope(s => {
+        expect(s.getTransaction()).toBe(undefined);
+      });
+    });
+
+    it('removes unsampled transaction from scope on finish if onScope is true', () => {
+      const transaction = new IdleTransaction({ name: 'foo', sampled: false }, hub, 1000, true);
 
       transaction.finish();
       jest.runAllTimers();
