@@ -93,6 +93,12 @@ export class IdleTransaction extends Transaction {
       logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
+
+    this._initTimeout = setTimeout(() => {
+      if (!this._finished) {
+        this.finish();
+      }
+    }, this._idleTimeout);
   }
 
   /** {@inheritDoc} */
@@ -130,14 +136,14 @@ export class IdleTransaction extends Transaction {
         return keepSpan;
       });
 
-      // this._onScope is true if the transaction was previously on the scope.
-      if (this._onScope) {
-        clearActiveTransaction(this._idleHub);
-      }
-
       logger.log('[Tracing] flushing IdleTransaction');
     } else {
       logger.log('[Tracing] No active IdleTransaction');
+    }
+
+    // this._onScope is true if the transaction was previously on the scope.
+    if (this._onScope) {
+      clearActiveTransaction(this._idleHub);
     }
 
     return super.finish(endTimestamp);
@@ -159,12 +165,6 @@ export class IdleTransaction extends Transaction {
    */
   public initSpanRecorder(maxlen?: number): void {
     if (!this.spanRecorder) {
-      this._initTimeout = setTimeout(() => {
-        if (!this._finished) {
-          this.finish();
-        }
-      }, this._idleTimeout);
-
       const pushActivity = (id: string): void => {
         if (this._finished) {
           return;

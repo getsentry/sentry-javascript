@@ -208,6 +208,8 @@ export class BrowserTracing implements Integration {
       logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
 
+    logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
+
     const hub = this._getCurrentHub();
     const { location } = getGlobalObject() as WindowOrWorkerGlobalScope & { location: Location };
 
@@ -218,7 +220,6 @@ export class BrowserTracing implements Integration {
       true,
       { location }, // for use in the tracesSampler
     );
-    logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
     idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {
       this._metrics.addPerformanceEntries(transaction);
       adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);
