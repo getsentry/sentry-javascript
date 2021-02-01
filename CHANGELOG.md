@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.0.4
+
+- [browser] fix: Don't break when function call context is undefined (#3222)
+- [tracing] fix: Set default sampling context data where `startTransaction` is called (#3210)
+
 ## 6.0.3
 
 - [tracing] ref: feat(tracing): Add context update methods to Span and Transaction (#3192)
