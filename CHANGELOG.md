@@ -8,6 +8,10 @@
 
 - [browser] fix: Don't break when function call context is undefined (#3222)
 - [tracing] fix: Set default sampling context data where `startTransaction` is called (#3210)
+- [tracing] fix: Remove stray sampling data tags (#3197)
+- [tracing] fix: Clear activeTransaction from the scope and always start idle timers (#3215)
+- [angular] ref: Add Angular 11 to possible peerDependencies list (#3201)
+- [vue] ref: Add `vue-router` to peerDependencies list (#3214)
 
 ## 6.0.3
 
