@@ -531,17 +531,22 @@ function instrumentDOM(): void {
         options?: boolean | AddEventListenerOptions,
       ): AddEventListener {
         if (type === 'click' || type == 'keypress') {
-          const el = this as InstrumentedElement;
-          const handlers = (el.__sentry_instrumentation_handlers__ = el.__sentry_instrumentation_handlers__ || {});
-          const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
+          try {
+            const el = this as InstrumentedElement;
+            const handlers = (el.__sentry_instrumentation_handlers__ = el.__sentry_instrumentation_handlers__ || {});
+            const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
 
-          if (!handlerForType.handler) {
-            const handler = makeDOMEventHandler(triggerDOMHandler);
-            handlerForType.handler = handler;
-            originalAddEventListener.call(this, type, handler, options);
+            if (!handlerForType.handler) {
+              const handler = makeDOMEventHandler(triggerDOMHandler);
+              handlerForType.handler = handler;
+              originalAddEventListener.call(this, type, handler, options);
+            }
+
+            handlerForType.refCount += 1;
+          } catch (e) {
+            // Accessing dom properties is always fragile.
+            // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
           }
-
-          handlerForType.refCount += 1;
         }
 
         return originalAddEventListener.call(this, type, listener, options);
@@ -576,7 +581,8 @@ function instrumentDOM(): void {
               }
             }
           } catch (e) {
-            // accessing dom properties is always fragile
+            // Accessing dom properties is always fragile.
+            // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
           }
         }
 
