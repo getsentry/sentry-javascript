@@ -40,7 +40,7 @@ import { IntegrationIndex, setupIntegrations } from './integration';
  * without a valid Dsn, the SDK will not send any events to Sentry.
  *
  * Before sending an event via the backend, it is passed through
- * {@link BaseClient.prepareEvent} to add SDK information and scope data
+ * {@link BaseClient._prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
  *
@@ -428,7 +428,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
   /**
    * This function adds all used integrations to the SDK info in the event.
-   * @param sdkInfo The sdkInfo of the event that will be filled with all integrations.
+   * @param event The event that will be filled with all integrations.
    */
   protected _applyIntegrationsMetadata(event: Event): void {
     const sdkInfo = event.sdk;

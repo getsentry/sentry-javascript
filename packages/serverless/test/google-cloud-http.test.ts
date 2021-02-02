@@ -13,7 +13,7 @@ import { GoogleCloudHttp } from '../src/google-cloud-http';
  * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
  */
 
-describe('GoogleCloudHttp', () => {
+describe('GoogleCloudHttp tracing', () => {
   beforeAll(() => {
     new GoogleCloudHttp().setupOnce();
   });

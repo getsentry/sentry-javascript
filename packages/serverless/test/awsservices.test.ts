@@ -23,7 +23,7 @@ describe('AWSServices', () => {
     nock.restore();
   });
 
-  describe('S3', () => {
+  describe('S3 tracing', () => {
     const s3 = new AWS.S3({ accessKeyId: '-', secretAccessKey: '-' });
 
     test('getObject', async () => {

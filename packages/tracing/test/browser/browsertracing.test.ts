@@ -25,6 +25,7 @@ jest.mock('@sentry/utils', () => {
     ...actual,
     addInstrumentationHandler: ({ callback, type }: any): void => {
       if (type === 'history') {
+        // rather than actually add the navigation-change handler, grab a reference to it, so we can trigger it manually
         mockChangeHistory = callback;
       }
     },
@@ -64,17 +65,17 @@ describe('BrowserTracing', () => {
   });
 
   function createBrowserTracing(setup?: boolean, _options?: Partial<BrowserTracingOptions>): BrowserTracing {
-    const inst = new BrowserTracing(_options);
+    const instance = new BrowserTracing(_options);
     if (setup) {
       const processor = () => undefined;
-      inst.setupOnce(processor, () => hub);
+      instance.setupOnce(processor, () => hub);
     }
 
-    return inst;
+    return instance;
   }
 
   // These are important enough to check with a test as incorrect defaults could
-  // break a lot of users configurations.
+  // break a lot of users' configurations.
   it('is created with default settings', () => {
     const browserTracing = createBrowserTracing();
 
@@ -126,7 +127,7 @@ describe('BrowserTracing', () => {
     });
 
     describe('tracingOrigins', () => {
-      it('warns and uses default tracing origins if non are provided', () => {
+      it('warns and uses default tracing origins if none are provided', () => {
         const inst = createBrowserTracing(true, {
           routingInstrumentation: customRoutingInstrumentation,
         });

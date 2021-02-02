@@ -37,7 +37,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       this._hub = hub as Hub;
     }
 
-    this.name = transactionContext.name ? transactionContext.name : '';
+    this.name = transactionContext.name || '';
 
     this._trimEnd = transactionContext.trimEnd;
 

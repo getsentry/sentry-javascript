@@ -537,6 +537,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  * This will set passed {@link Hub} on the passed object's __SENTRY__.hub attribute
  * @param carrier object
  * @param hub Hub
+ * @returns A boolean indicating success or failure
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
