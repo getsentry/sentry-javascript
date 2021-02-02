@@ -45,8 +45,6 @@
   "devDependencies": {
     "@ember/optional-features": "^1.3.0",
     "@embroider/compat": "^0.35.1",
-    "@embroider/core": "^0.35.1",
-    "@embroider/webpack": "^0.35.1",
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
     "@sentry-internal/eslint-config-sdk": "6.0.4",
