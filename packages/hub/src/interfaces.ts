@@ -33,3 +33,12 @@ export interface Carrier {
     };
   };
 }
+
+/**
+ * @hidden
+ * @deprecated Can be removed once `Hub.getActiveDomain` is removed.
+ */
+export interface DomainAsCarrier extends Carrier {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  members: { [key: string]: any }[];
+}

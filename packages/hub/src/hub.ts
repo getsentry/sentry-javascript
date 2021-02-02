@@ -22,7 +22,7 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
-import { Carrier, Layer } from './interfaces';
+import { Carrier, DomainAsCarrier, Layer } from './interfaces';
 import { Scope } from './scope';
 import { Session } from './session';
 
@@ -469,6 +469,20 @@ export function getCurrentHub(): Hub {
   }
   // Return hub that lives on a global object
   return getHubFromCarrier(registry);
+}
+
+/**
+ * Returns the active domain, if one exists
+ * @deprecated No longer used; remove in v7
+ * @returns The domain, or undefined if there is no active domain
+ */
+// eslint-disable-next-line deprecation/deprecation
+export function getActiveDomain(): DomainAsCarrier | undefined {
+  logger.warn('Function `getActiveDomain` is deprecated and will be removed in a future version.');
+
+  const sentry = getMainCarrier().__SENTRY__;
+
+  return sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
 }
 
 /**
