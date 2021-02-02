@@ -10,10 +10,10 @@ describe('Dsn', () => {
         port: '1234',
         projectId: '123',
         protocol: 'https',
-        user: 'abc',
+        publicKey: 'abc',
       });
       expect(dsn.protocol).toBe('https');
-      expect(dsn.user).toBe('abc');
+      expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('xyz');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
@@ -26,10 +26,10 @@ describe('Dsn', () => {
         host: 'sentry.io',
         projectId: '123',
         protocol: 'https',
-        user: 'abc',
+        publicKey: 'abc',
       });
       expect(dsn.protocol).toBe('https');
-      expect(dsn.user).toBe('abc');
+      expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
@@ -44,7 +44,7 @@ describe('Dsn', () => {
             host: '',
             projectId: '123',
             protocol: 'https',
-            user: 'abc',
+            publicKey: 'abc',
           }),
       ).toThrow(SentryError);
       expect(
@@ -53,7 +53,7 @@ describe('Dsn', () => {
             host: 'sentry.io',
             projectId: '',
             protocol: 'https',
-            user: 'abc',
+            publicKey: 'abc',
           }),
       ).toThrow(SentryError);
       expect(
@@ -62,7 +62,7 @@ describe('Dsn', () => {
             host: 'sentry.io',
             projectId: '123',
             protocol: '' as 'http', // Trick the type checker here
-            user: 'abc',
+            publicKey: 'abc',
           }),
       ).toThrow(SentryError);
       expect(
@@ -71,7 +71,7 @@ describe('Dsn', () => {
             host: 'sentry.io',
             projectId: '123',
             protocol: 'https',
-            user: '',
+            publicKey: '',
           }),
       ).toThrow(SentryError);
     });
@@ -83,7 +83,7 @@ describe('Dsn', () => {
             host: 'sentry.io',
             projectId: '123',
             protocol: 'httpx' as 'http', // Trick the type checker here
-            user: 'abc',
+            publicKey: 'abc',
           }),
       ).toThrow(SentryError);
       expect(
@@ -93,7 +93,7 @@ describe('Dsn', () => {
             port: 'xxx',
             projectId: '123',
             protocol: 'https',
-            user: 'abc',
+            publicKey: 'abc',
           }),
       ).toThrow(SentryError);
     });
@@ -103,7 +103,7 @@ describe('Dsn', () => {
     test('parses a valid full Dsn', () => {
       const dsn = new Dsn('https://abc:xyz@sentry.io:1234/123');
       expect(dsn.protocol).toBe('https');
-      expect(dsn.user).toBe('abc');
+      expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('xyz');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
@@ -114,7 +114,7 @@ describe('Dsn', () => {
     test('parses a valid partial Dsn', () => {
       const dsn = new Dsn('https://abc@sentry.io/123/321');
       expect(dsn.protocol).toBe('https');
-      expect(dsn.user).toBe('abc');
+      expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
@@ -125,7 +125,7 @@ describe('Dsn', () => {
     test('with a long path', () => {
       const dsn = new Dsn('https://abc@sentry.io/sentry/custom/installation/321');
       expect(dsn.protocol).toBe('https');
-      expect(dsn.user).toBe('abc');
+      expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
@@ -136,7 +136,7 @@ describe('Dsn', () => {
     test('with a query string', () => {
       const dsn = new Dsn('https://abc@sentry.io/321?sample.rate=0.1&other=value');
       expect(dsn.protocol).toBe('https');
-      expect(dsn.user).toBe('abc');
+      expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');

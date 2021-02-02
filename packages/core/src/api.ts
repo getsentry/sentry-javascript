@@ -9,11 +9,20 @@ const SENTRY_API_VERSION = '7';
  * Supports both envelopes and regular event requests.
  **/
 export class API {
+  /** The DSN as passed to Sentry.init() */
+  public dsn: DsnLike;
+
+  /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
+  public metadata: SdkMetadata;
+
   /** The internally used Dsn object. */
   private readonly _dsnObject: Dsn;
+
   /** Create a new instance of API */
-  public constructor(public dsn: DsnLike, public metadata: SdkMetadata = {}) {
+  public constructor(dsn: DsnLike, metadata: SdkMetadata = {}) {
+    this.dsn = dsn;
     this._dsnObject = new Dsn(dsn);
+    this.metadata = metadata;
   }
 
   /** Returns the Dsn object. */
@@ -67,7 +76,7 @@ export class API {
     const dsn = this._dsnObject;
     const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
     header.push(`sentry_client=${clientName}/${clientVersion}`);
-    header.push(`sentry_key=${dsn.user}`);
+    header.push(`sentry_key=${dsn.publicKey}`);
     if (dsn.pass) {
       header.push(`sentry_secret=${dsn.pass}`);
     }
@@ -134,7 +143,7 @@ export class API {
     const auth = {
       // We send only the minimum set of required information. See
       // https://github.com/getsentry/sentry-javascript/issues/2572.
-      sentry_key: dsn.user,
+      sentry_key: dsn.publicKey,
       sentry_version: SENTRY_API_VERSION,
     };
     return urlEncode(auth);

@@ -76,7 +76,7 @@ function mockHttp2Session(): FakeSession {
   return session;
 }
 
-describe('GoogleCloudGrpc', () => {
+describe('GoogleCloudGrpc tracing', () => {
   beforeAll(() => {
     new GoogleCloudGrpc().setupOnce();
   });
