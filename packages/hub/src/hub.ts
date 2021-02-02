@@ -473,10 +473,13 @@ export function getCurrentHub(): Hub {
 
 /**
  * Returns the active domain, if one exists
- *
+ * @deprecated No longer used; remove in v7
  * @returns The domain, or undefined if there is no active domain
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getActiveDomain(): DomainAsCarrier | undefined {
+  logger.warn('Function `getActiveDomain` is deprecated and will be removed in a future version.');
+
   const sentry = getMainCarrier().__SENTRY__;
 
   return sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
@@ -488,7 +491,7 @@ export function getActiveDomain(): DomainAsCarrier | undefined {
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    const activeDomain = getActiveDomain();
+    const activeDomain = getMainCarrier().__SENTRY__?.extensions?.domain?.active;
 
     // If there's no active domain, just return global hub
     if (!activeDomain) {
