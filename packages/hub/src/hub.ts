@@ -13,13 +13,13 @@ import {
   IntegrationClass,
   Primitive,
   SessionContext,
+  SessionStatus,
   Severity,
   Span,
   SpanContext,
   Transaction,
   TransactionContext,
   User,
-  SessionStatus,
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
