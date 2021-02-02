@@ -361,6 +361,32 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  public captureSession(endSession: boolean = false): void {
+    // both send the update and pull the session from the scope
+    if (endSession) {
+      return this.endSession();
+    }
+
+    // only send the update
+    this._sendSessionUpdate();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public endSession(): void {
+    this.getStackTop()
+      ?.scope?.getSession()
+      ?.close();
+    this._sendSessionUpdate();
+
+    // the session is over; take it off of the scope
+    this.getStackTop()?.scope?.setSession();
+  }
+
+  /**
+   * @inheritDoc
+   */
   public startSession(context?: SessionContext): Session {
     const { scope, client } = this.getStackTop();
     const { release, environment } = (client && client.getOptions()) || {};
@@ -370,10 +396,11 @@ export class Hub implements HubInterface {
       ...(scope && { user: scope.getUser() }),
       ...context,
     });
+
     if (scope) {
       // End existing session if there's one
       const currentSession = scope.getSession && scope.getSession();
-      if (currentSession) {
+      if (currentSession && currentSession.status === SessionStatus.Ok) {
         currentSession.update({ status: SessionStatus.Exited });
       }
       this.endSession();
@@ -381,13 +408,14 @@ export class Hub implements HubInterface {
       // Afterwards we set the new session on the scope
       scope.setSession(session);
     }
+
     return session;
   }
 
   /**
-   * @inheritDoc
+   * Sends the current Session on the scope
    */
-  public endSession(clearSessionFromScope: boolean = true): void {
+  private _sendSessionUpdate(): void {
     const { scope, client } = this.getStackTop();
     if (!scope) return;
 
@@ -395,9 +423,6 @@ export class Hub implements HubInterface {
     if (session) {
       if (client && client.captureSession) {
         client.captureSession(session);
-      }
-      if (clearSessionFromScope) {
-        scope.setSession();
       }
     }
   }

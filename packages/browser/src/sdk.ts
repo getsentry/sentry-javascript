@@ -202,23 +202,13 @@ function startSessionTracking(): void {
   const hub = getCurrentHub();
 
   hub.startSession();
-  // We end the session without removing it from the scope
-  // which is equal to sending it.
-  hub.endSession(false);
+  hub.captureSession();
 
   // We want to create a session for every navigation as well
   addInstrumentationHandler({
     callback: () => {
-      if (
-        !getCurrentHub()
-          .getScope()
-          ?.getSession()
-      ) {
-        hub.startSession();
-        // We end the session without removing it from the scope
-        // which is equal to sending it.
-        hub.endSession(false);
-      }
+      hub.startSession();
+      hub.captureSession();
     },
     type: 'history',
   });

@@ -98,10 +98,10 @@ export class TryCatch implements Integration {
       fill(XMLHttpRequest.prototype, 'send', this._wrapXHR.bind(this));
     }
 
-    if (this._options.eventTarget) {
-      const eventTarget = Array.isArray(this._options.eventTarget) ? this._options.eventTarget : DEFAULT_EVENT_TARGET;
-      eventTarget.forEach(this._wrapEventTarget.bind(this));
-    }
+    // if (this._options.eventTarget) {
+    //   const eventTarget = Array.isArray(this._options.eventTarget) ? this._options.eventTarget : DEFAULT_EVENT_TARGET;
+    //   eventTarget.forEach(this._wrapEventTarget.bind(this));
+    // }
   }
 
   /** JSDoc */
