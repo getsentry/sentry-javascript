@@ -77,7 +77,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * pageload and navigation transactions.
    */
   routingInstrumentation<T extends Transaction>(
-    startTransaction: (context: TransactionContext) => T | undefined,
+    customStartTransaction: (context: TransactionContext) => T | undefined,
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
   ): void;

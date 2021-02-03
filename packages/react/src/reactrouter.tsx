@@ -80,9 +80,9 @@ function reactRouterInstrumentation(
     return pathname;
   }
 
-  return (startTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
+  return (customStartTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
     if (startTransactionOnPageLoad && global && global.location) {
-      activeTransaction = startTransaction({
+      activeTransaction = customStartTransaction({
         name: getName(global.location.pathname),
         op: 'pageload',
         tags: {
@@ -101,7 +101,7 @@ function reactRouterInstrumentation(
             'routing.instrumentation': name,
           };
 
-          activeTransaction = startTransaction({
+          activeTransaction = customStartTransaction({
             name: getName(location.pathname),
             op: 'navigation',
             tags,

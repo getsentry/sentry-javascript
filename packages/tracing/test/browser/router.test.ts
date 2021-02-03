@@ -17,7 +17,7 @@ jest.mock('@sentry/utils', () => {
 
 describe('defaultRoutingInstrumentation', () => {
   const mockFinish = jest.fn();
-  const startTransaction = jest.fn().mockReturnValue({ finish: mockFinish });
+  const customStartTransaction = jest.fn().mockReturnValue({ finish: mockFinish });
   beforeEach(() => {
     const dom = new JSDOM();
     // @ts-ignore need to override global document
@@ -27,26 +27,26 @@ describe('defaultRoutingInstrumentation', () => {
     // @ts-ignore need to override global document
     global.location = dom.window.location;
 
-    startTransaction.mockClear();
+    customStartTransaction.mockClear();
     mockFinish.mockClear();
   });
 
   it('does not start transactions if global location is undefined', () => {
     // @ts-ignore need to override global document
     global.location = undefined;
-    defaultRoutingInstrumentation(startTransaction);
-    expect(startTransaction).toHaveBeenCalledTimes(0);
+    defaultRoutingInstrumentation(customStartTransaction);
+    expect(customStartTransaction).toHaveBeenCalledTimes(0);
   });
 
   it('starts a pageload transaction', () => {
-    defaultRoutingInstrumentation(startTransaction);
-    expect(startTransaction).toHaveBeenCalledTimes(1);
-    expect(startTransaction).toHaveBeenLastCalledWith({ name: 'blank', op: 'pageload' });
+    defaultRoutingInstrumentation(customStartTransaction);
+    expect(customStartTransaction).toHaveBeenCalledTimes(1);
+    expect(customStartTransaction).toHaveBeenLastCalledWith({ name: 'blank', op: 'pageload' });
   });
 
   it('does not start a pageload transaction if startTransactionOnPageLoad is false', () => {
-    defaultRoutingInstrumentation(startTransaction, false);
-    expect(startTransaction).toHaveBeenCalledTimes(0);
+    defaultRoutingInstrumentation(customStartTransaction, false);
+    expect(customStartTransaction).toHaveBeenCalledTimes(0);
   });
 
   describe('navigation transaction', () => {
@@ -56,29 +56,29 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('it is not created automatically', () => {
-      defaultRoutingInstrumentation(startTransaction);
-      expect(startTransaction).not.toHaveBeenLastCalledWith({ name: 'blank', op: 'navigation' });
+      defaultRoutingInstrumentation(customStartTransaction);
+      expect(customStartTransaction).not.toHaveBeenLastCalledWith({ name: 'blank', op: 'navigation' });
     });
 
     it('is created on location change', () => {
-      defaultRoutingInstrumentation(startTransaction);
+      defaultRoutingInstrumentation(customStartTransaction);
       mockChangeHistory({ to: 'here', from: 'there' });
       expect(addInstrumentationHandlerType).toBe('history');
 
-      expect(startTransaction).toHaveBeenCalledTimes(2);
-      expect(startTransaction).toHaveBeenLastCalledWith({ name: 'blank', op: 'navigation' });
+      expect(customStartTransaction).toHaveBeenCalledTimes(2);
+      expect(customStartTransaction).toHaveBeenLastCalledWith({ name: 'blank', op: 'navigation' });
     });
 
     it('is not created if startTransactionOnLocationChange is false', () => {
-      defaultRoutingInstrumentation(startTransaction, true, false);
+      defaultRoutingInstrumentation(customStartTransaction, true, false);
       mockChangeHistory({ to: 'here', from: 'there' });
       expect(addInstrumentationHandlerType).toBe('');
 
-      expect(startTransaction).toHaveBeenCalledTimes(1);
+      expect(customStartTransaction).toHaveBeenCalledTimes(1);
     });
 
     it('finishes the last active transaction', () => {
-      defaultRoutingInstrumentation(startTransaction);
+      defaultRoutingInstrumentation(customStartTransaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
       mockChangeHistory({ to: 'here', from: 'there' });
@@ -86,7 +86,7 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('will finish active transaction multiple times', () => {
-      defaultRoutingInstrumentation(startTransaction);
+      defaultRoutingInstrumentation(customStartTransaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
       mockChangeHistory({ to: 'here', from: 'there' });
@@ -98,12 +98,12 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('not created if `from` is equal to `to`', () => {
-      defaultRoutingInstrumentation(startTransaction);
+      defaultRoutingInstrumentation(customStartTransaction);
       mockChangeHistory({ to: 'first/path', from: 'first/path' });
       expect(addInstrumentationHandlerType).toBe('history');
 
-      expect(startTransaction).toHaveBeenCalledTimes(1);
-      expect(startTransaction).not.toHaveBeenLastCalledWith('navigation');
+      expect(customStartTransaction).toHaveBeenCalledTimes(1);
+      expect(customStartTransaction).not.toHaveBeenLastCalledWith('navigation');
     });
   });
 });

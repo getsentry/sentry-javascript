@@ -96,8 +96,8 @@ describe('BrowserTracing', () => {
    * so that we can show this functionality works independent of the default routing integration.
    */
   describe('route transaction', () => {
-    const customRoutingInstrumentation = (startTransaction: (obj: any) => void) => {
-      startTransaction({ name: 'a/path', op: 'pageload' });
+    const customRoutingInstrumentation = (customStartTransaction: (obj: any) => void) => {
+      customStartTransaction({ name: 'a/path', op: 'pageload' });
     };
 
     it('calls custom routing instrumenation', () => {

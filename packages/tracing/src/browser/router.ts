@@ -7,7 +7,7 @@ const global = getGlobalObject<Window>();
  * Default function implementing pageload and navigation transactions
  */
 export function defaultRoutingInstrumentation<T extends Transaction>(
-  startTransaction: (context: TransactionContext) => T | undefined,
+  customStartTransaction: (context: TransactionContext) => T | undefined,
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
@@ -20,7 +20,7 @@ export function defaultRoutingInstrumentation<T extends Transaction>(
 
   let activeTransaction: T | undefined;
   if (startTransactionOnPageLoad) {
-    activeTransaction = startTransaction({ name: global.location.pathname, op: 'pageload' });
+    activeTransaction = customStartTransaction({ name: global.location.pathname, op: 'pageload' });
   }
 
   if (startTransactionOnLocationChange) {
@@ -47,7 +47,7 @@ export function defaultRoutingInstrumentation<T extends Transaction>(
             // If there's an open transaction on the scope, we need to finish it before creating an new one.
             activeTransaction.finish();
           }
-          activeTransaction = startTransaction({ name: global.location.pathname, op: 'navigation' });
+          activeTransaction = customStartTransaction({ name: global.location.pathname, op: 'navigation' });
         }
       },
       type: 'history',
