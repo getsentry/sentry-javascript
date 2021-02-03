@@ -17,7 +17,12 @@ module.exports = {
   },
 
   getAddonConfig(app) {
-    const config = require(app.options.configPath)(app.env);
+    let config = {};
+    try {
+      config = require(app.options.configPath)(app.env);
+    } catch(_) {
+      // Config not found
+    }
     return config['@sentry/ember'] || {};
   },
 
