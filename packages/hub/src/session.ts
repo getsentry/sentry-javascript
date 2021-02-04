@@ -16,6 +16,7 @@ export class Session implements SessionInterface {
   public status: SessionStatus = SessionStatus.Ok;
   public environment?: string;
   public ipAddress?: string;
+  public init: boolean = true;
 
   constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
     if (context) {
@@ -41,6 +42,9 @@ export class Session implements SessionInterface {
     if (context.sid) {
       // Good enough uuid validation. — Kamil
       this.sid = context.sid.length === 32 ? context.sid : uuid4();
+    }
+    if (context.init !== undefined) {
+      this.init = context.init;
     }
     if (context.did) {
       this.did = `${context.did}`;
@@ -103,7 +107,7 @@ export class Session implements SessionInterface {
   } {
     return dropUndefinedKeys({
       sid: `${this.sid}`,
-      init: true,
+      init: this.init,
       started: new Date(this.started).toISOString(),
       timestamp: new Date(this.timestamp).toISOString(),
       status: this.status,

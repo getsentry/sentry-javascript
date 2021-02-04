@@ -201,73 +201,14 @@ function startSessionTracking(): void {
 
   const hub = getCurrentHub();
 
-  /**
-   * We should be using `Promise.all([windowLoaded, firstContentfulPaint])` here,
-   * but, as always, it's not available in the IE10-11. Thanks IE.
-   */
-  let loadResolved = document.readyState === 'complete';
-  let fcpResolved = false;
-  const possiblyEndSession = (): void => {
-    if (fcpResolved && loadResolved) {
-      hub.endSession();
-    }
-  };
-  const resolveWindowLoaded = (): void => {
-    loadResolved = true;
-    possiblyEndSession();
-    window.removeEventListener('load', resolveWindowLoaded);
-  };
-
   hub.startSession();
-
-  if (!loadResolved) {
-    // IE doesn't support `{ once: true }` for event listeners, so we have to manually
-    // attach and then detach it once completed.
-    window.addEventListener('load', resolveWindowLoaded);
-  }
-
-  try {
-    const po = new PerformanceObserver((entryList, po) => {
-      entryList.getEntries().forEach(entry => {
-        if (entry.name === 'first-contentful-paint' && entry.startTime < firstHiddenTime) {
-          po.disconnect();
-          fcpResolved = true;
-          possiblyEndSession();
-        }
-      });
-    });
-
-    // There's no need to even attach this listener if `PerformanceObserver` constructor will fail,
-    // so we do it below here.
-    let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
-    document.addEventListener(
-      'visibilitychange',
-      event => {
-        firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
-      },
-      { once: true },
-    );
-
-    po.observe({
-      type: 'paint',
-      buffered: true,
-    });
-  } catch (e) {
-    fcpResolved = true;
-    possiblyEndSession();
-  }
+  hub.captureSession();
 
   // We want to create a session for every navigation as well
   addInstrumentationHandler({
     callback: () => {
-      if (
-        !getCurrentHub()
-          .getScope()
-          ?.getSession()
-      ) {
-        hub.startSession();
-        hub.endSession();
-      }
+      hub.startSession();
+      hub.captureSession();
     },
     type: 'history',
   });

@@ -13,6 +13,7 @@ import {
   IntegrationClass,
   Primitive,
   SessionContext,
+  SessionStatus,
   Severity,
   Span,
   SpanContext,
@@ -360,10 +361,33 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSession(context?: SessionContext): Session {
-    // End existing session if there's one
-    this.endSession();
+  public captureSession(endSession: boolean = false): void {
+    // both send the update and pull the session from the scope
+    if (endSession) {
+      return this.endSession();
+    }
 
+    // only send the update
+    this._sendSessionUpdate();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public endSession(): void {
+    this.getStackTop()
+      ?.scope?.getSession()
+      ?.close();
+    this._sendSessionUpdate();
+
+    // the session is over; take it off of the scope
+    this.getStackTop()?.scope?.setSession();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startSession(context?: SessionContext): Session {
     const { scope, client } = this.getStackTop();
     const { release, environment } = (client && client.getOptions()) || {};
     const session = new Session({
@@ -372,26 +396,34 @@ export class Hub implements HubInterface {
       ...(scope && { user: scope.getUser() }),
       ...context,
     });
+
     if (scope) {
+      // End existing session if there's one
+      const currentSession = scope.getSession && scope.getSession();
+      if (currentSession && currentSession.status === SessionStatus.Ok) {
+        currentSession.update({ status: SessionStatus.Exited });
+      }
+      this.endSession();
+
+      // Afterwards we set the new session on the scope
       scope.setSession(session);
     }
+
     return session;
   }
 
   /**
-   * @inheritDoc
+   * Sends the current Session on the scope
    */
-  public endSession(): void {
+  private _sendSessionUpdate(): void {
     const { scope, client } = this.getStackTop();
     if (!scope) return;
 
     const session = scope.getSession && scope.getSession();
     if (session) {
-      session.close();
       if (client && client.captureSession) {
         client.captureSession(session);
       }
-      scope.setSession();
     }
   }
 
