@@ -62,6 +62,8 @@ targets:
     includeNames: /^sentry-node-serverless-\d+(\.\d+)*\.zip$/
     layerName: SentryNodeServerlessSDK
     compatibleRuntimes:
-      - nodejs10.x
-      - nodejs12.x
+      - name: node
+        versions:
+          - nodejs10.x
+          - nodejs12.x
     license: MIT
