@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.1.0
+
+We updated the way how we calculate errored and crashed sessions with this update. Please be aware that some numbers might change for you and they now should reflect the actual reality. Visit [our docs](https://docs.sentry.io/platforms/javascript/configuration/releases/#release-health) for more information.
+
+- [browser] feat: Rework how we track sessions (#3224)
+- [hub] ref: Simplify getting hub from active domain (#3227)
+- [core] ref: Rename `user` to `publicKey` in `Dsn` type and class (#3225)
+- [ember] fix: Fix backwards compatibility with Embroider changes (#3230)
+
 ## 6.0.4
 
 - [browser] fix: Don't break when function call context is undefined (#3222)
