@@ -35,6 +35,7 @@ export interface Session extends SessionContext {
 export interface SessionContext {
   sid?: string;
   did?: string;
+  init?: boolean;
   timestamp?: number;
   started?: number;
   duration?: number;

@@ -10,7 +10,7 @@ import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
 import { Transaction } from '../src/transaction';
 import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
-import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName } from './testutils';
+import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName, testOnlyIfNodeVersionAtLeast } from './testutils';
 
 addExtensionMethods();
 
@@ -309,77 +309,89 @@ describe('Hub', () => {
         expect(child.sampled).toBe(transaction.sampled);
       });
 
-      it('should propagate positive sampling decision to child transactions in XHR header', () => {
-        const hub = new Hub(
-          new BrowserClient({
-            dsn: 'https://1231@dogs.are.great/1121',
-            tracesSampleRate: 1,
-            integrations: [new BrowserTracing()],
-          }),
-        );
-        jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
+      // TODO the way we dig out the headers to test them doesn't work on Node < 10
+      testOnlyIfNodeVersionAtLeast(10)(
+        'should propagate positive sampling decision to child transactions in XHR header',
+        () => {
+          const hub = new Hub(
+            new BrowserClient({
+              dsn: 'https://1231@dogs.are.great/1121',
+              tracesSampleRate: 1,
+              integrations: [new BrowserTracing()],
+            }),
+          );
+          jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
 
-        const transaction = hub.startTransaction({ name: 'dogpark' });
-        hub.configureScope(scope => {
-          scope.setSpan(transaction);
-        });
+          const transaction = hub.startTransaction({ name: 'dogpark' });
+          hub.configureScope(scope => {
+            scope.setSpan(transaction);
+          });
 
-        const request = new XMLHttpRequest();
-        request.open('GET', '/chase-partners');
+          const request = new XMLHttpRequest();
+          request.open('GET', '/chase-partners');
 
-        // mock a response having been received successfully (we have to do it in this roundabout way because readyState
-        // is readonly and changing it doesn't trigger a readystatechange event)
-        Object.defineProperty(request, 'readyState', { value: 4 });
-        request.dispatchEvent(new Event('readystatechange'));
+          // mock a response having been received successfully (we have to do it in this roundabout way because readyState
+          // is readonly and changing it doesn't trigger a readystatechange event)
+          Object.defineProperty(request, 'readyState', { value: 4 });
+          request.dispatchEvent(new Event('readystatechange'));
 
-        // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
-        // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
-        // value
-        const headers = (request as any)[getSymbolObjectKeyByName(request, 'impl') as symbol].flag.requestHeaders;
+          // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
+          // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
+          // value
+          const headers = (request as any)[getSymbolObjectKeyByName(request, 'impl') as symbol].flag.requestHeaders;
 
-        // check that sentry-trace header is added to request
-        expect(headers).toEqual(expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }));
+          // check that sentry-trace header is added to request
+          expect(headers).toEqual(
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+          );
 
-        // check that sampling decision is passed down correctly
-        expect(transaction.sampled).toBe(true);
-        expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(true);
-      });
+          // check that sampling decision is passed down correctly
+          expect(transaction.sampled).toBe(true);
+          expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(true);
+        },
+      );
 
-      it('should propagate negative sampling decision to child transactions in XHR header', () => {
-        const hub = new Hub(
-          new BrowserClient({
-            dsn: 'https://1231@dogs.are.great/1121',
-            tracesSampleRate: 1,
-            integrations: [new BrowserTracing()],
-          }),
-        );
-        jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
+      // TODO the way we dig out the headers to test them doesn't work on Node < 10
+      testOnlyIfNodeVersionAtLeast(10)(
+        'should propagate negative sampling decision to child transactions in XHR header',
+        () => {
+          const hub = new Hub(
+            new BrowserClient({
+              dsn: 'https://1231@dogs.are.great/1121',
+              tracesSampleRate: 1,
+              integrations: [new BrowserTracing()],
+            }),
+          );
+          jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
 
-        const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
-        hub.configureScope(scope => {
-          scope.setSpan(transaction);
-        });
+          const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
+          hub.configureScope(scope => {
+            scope.setSpan(transaction);
+          });
 
-        const request = new XMLHttpRequest();
-        request.open('GET', '/chase-partners');
+          const request = new XMLHttpRequest();
+          request.open('GET', '/chase-partners');
 
-        // mock a response having been received successfully (we have to do it in this roundabout way because readyState
-        // is readonly and changing it doesn't trigger a readystatechange event)
-        Object.defineProperty(request, 'readyState', { value: 4 });
-        request.dispatchEvent(new Event('readystatechange'));
+          // mock a response having been received successfully (we have to do it in this roundabout way because readyState
+          // is readonly and changing it doesn't trigger a readystatechange event)
+          Object.defineProperty(request, 'readyState', { value: 4 });
+          request.dispatchEvent(new Event('readystatechange'));
 
-        // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
-        // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
-        // value
-        const headers = (request as any)[getSymbolObjectKeyByName(request, 'impl') as symbol].flag.requestHeaders;
+          // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
+          // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
+          // value
+          const headers = (request as any)[getSymbolObjectKeyByName(request, 'impl') as symbol].flag.requestHeaders;
 
-        // check that sentry-trace header is added to request
-        expect(headers).toEqual(expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }));
+          // check that sentry-trace header is added to request
+          expect(headers).toEqual(
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+          );
 
-        // check that sampling decision is passed down correctly
-        expect(transaction.sampled).toBe(false);
-        expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(false);
-      });
+          // check that sampling decision is passed down correctly
+          expect(transaction.sampled).toBe(false);
+          expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(false);
+        },
+      );
 
       it('should propagate positive sampling decision to child transactions in fetch header', () => {
         // TODO

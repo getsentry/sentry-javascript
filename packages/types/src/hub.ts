@@ -222,4 +222,10 @@ export interface Hub {
    * Ends the session that lives on the current scope and sends it to Sentry
    */
   endSession(): void;
+
+  /**
+   * Sends the current session on the scope to Sentry
+   * @param endSession If set the session will be marked as exited and removed from the scope
+   */
+  captureSession(endSession: boolean): void;
 }

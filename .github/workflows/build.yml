@@ -6,28 +6,80 @@ on:
       - release/**
   pull_request:
 
+env:
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/**/node_modules
+
+  # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
+
+  CACHED_BUILD_PATHS: |
+    ${{ github.workspace }}/packages/**/build
+    ${{ github.workspace }}/packages/**/dist
+    ${{ github.workspace }}/packages/**/esm
+    ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+
+  BUILD_CACHE_KEY: ${{ github.sha }}
+
 jobs:
-  job_build:
-    name: Build
+  job_install_deps:
+    name: Install Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - uses: actions/cache@v2
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
+        # so no need to reinstall them
+      - name: Compute dependency cache key
+        id: compute_lockfile_hash
+        run: echo "::set-output name=hash::${{ hashFiles('yarn.lock') }}"
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        id: cache_dependencies
         with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-          key: ${{ github.sha }}
-      - name: Install
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+      - name: Install dependencies
+        if: steps.cache_dependencies.outputs.cache-hit == ''
         run: yarn install
-      - name: Build
+    outputs:
+      dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+
+  job_build:
+    name: Build
+    needs: job_install_deps
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        id: cache_built_packages
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Build packages
+        # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
+        # packages, and so `yarn build` should always run. This `if` check is therefore only there for testing CI issues
+        # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
+        # this file) to a constant and skip rebuilding all of the packages each time CI runs.
+        if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
+    outputs:
+      # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
+      # `job_build` can't see `job_install_deps` and what it returned)
+      dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
   job_size_check:
     name: Size Check
@@ -36,19 +88,22 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.head_ref }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - uses: actions/cache@v2
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
         with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-          key: ${{ github.sha }}
-      - uses: andresz1/size-limit-action@v1.4.0
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Check bundle sizes
+        uses: andresz1/size-limit-action@v1.4.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
@@ -59,20 +114,21 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - uses: actions/cache@v2
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
         with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-          key: ${{ github.sha }}
-      - run: yarn install
-      - name: Run Linter
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run linter
         run: yarn lint
 
   job_unit_test:
@@ -85,47 +141,85 @@ jobs:
       matrix:
         node: [6, 8, 10, 12, 14]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
-      - uses: actions/cache@v2
+      - name: Check dependency cache
+        uses: actions/cache@v2
         with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-          key: ${{ github.sha }}
-      - name: Unit Tests
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: ./scripts/test.sh
-      - uses: codecov/codecov-action@v1
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v1
+
+  # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
+  # separate job allows them to run in parallel with the other tests.
+  job_ember_tests:
+    name: Test @sentry/ember
+    needs: job_build
+    continue-on-error: true
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          # The only danger with Ember in terms of Node versions is that the build tool, ember-cli, won't work if Node
+          # is too old. Since Oct 2019, Node 10 has been the oldest version supported by ember-cli, so test against
+          # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
+          # tests in our Node matrix above.
+          node-version: '10'
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run Ember tests
+        run: yarn test --scope=@sentry/ember
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v1
 
   job_artifacts:
-    name: Artifacts Upload
+    name: Upload Artifacts
     needs: job_build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - uses: actions/cache@v2
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
         with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-          key: ${{ github.sha }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Pack
         run: yarn pack:changed
-      - run: yarn install
-      - name: Archive Artifacts
+      - name: Archive artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ github.sha }}
@@ -146,20 +240,21 @@ jobs:
     # if: startsWith(github.ref, 'refs/heads/release/')
     if: false
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-      - uses: actions/cache@v2
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
         with:
-          path: |
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/**/node_modules
-            ${{ github.workspace }}/packages/**/build
-            ${{ github.workspace }}/packages/**/dist
-            ${{ github.workspace }}/packages/**/esm
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-          key: ${{ github.sha }}
-      - run: yarn install
-      - name: Integration Tests
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run integration tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
