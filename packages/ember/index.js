@@ -19,7 +19,7 @@ module.exports = {
   getAddonConfig(app) {
     let config = {};
     try {
-      config = require(app.options.configPath)(app.env);
+      config = require(app.project.configPath())(app.env);
     } catch(_) {
       // Config not found
     }
