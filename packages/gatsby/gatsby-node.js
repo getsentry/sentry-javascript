@@ -18,12 +18,12 @@ const sentryRelease = JSON.stringify(
 
 const sentryDsn = JSON.stringify(process.env.SENTRY_DSN || '');
 
-exports.onCreateWebpackConfig = ({ plugins, actions }) => {
+exports.onCreateWebpackConfig = ({ plugins, actions }, { dsn }) => {
   actions.setWebpackConfig({
     plugins: [
       plugins.define({
         __SENTRY_RELEASE__: sentryRelease,
-        __SENTRY_DSN__: sentryDsn,
+        __SENTRY_DSN__: dsn || sentryDsn,
       }),
     ],
   });
