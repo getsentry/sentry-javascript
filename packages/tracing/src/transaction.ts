@@ -1,13 +1,11 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
+import { DebugMeta, Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 import { computeTracestateValue } from './utils';
 
-interface TransactionMetadata {
-  transactionSampling?: { [key: string]: string | number };
-}
+type TransactionMetadata = Pick<DebugMeta, 'transactionSampling' | 'tracestate'>;
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
@@ -119,6 +117,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
         return prev;
       }).endTimestamp;
     }
+
+    this._metadata.tracestate = this.tracestate;
 
     const transaction: Event = {
       contexts: {
