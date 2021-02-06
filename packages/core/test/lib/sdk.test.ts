@@ -14,15 +14,19 @@ jest.mock('@sentry/hub', () => ({
     bindClient(client: Client): boolean;
     getClient(): boolean;
   } {
-    return {
+    const mockHub = {
+      _stack: [],
       getClient(): boolean {
         return false;
       },
       bindClient(client: Client): boolean {
+        (this._stack as any[]).push({ client });
         client.setupIntegrations();
         return true;
       },
     };
+    global.__SENTRY__.hub = mockHub;
+    return mockHub;
   },
 }));
 
@@ -41,6 +45,15 @@ describe('SDK', () => {
   });
 
   describe('initAndBind', () => {
+    test("sets environment to 'production' if none is provided", () => {
+      initAndBind(TestClient, { dsn: PUBLIC_DSN });
+      expect(global.__SENTRY__.hub._stack[0].client.getOptions().environment).toEqual('production');
+    });
+    test("doesn't overwrite given environment", () => {
+      initAndBind(TestClient, { dsn: PUBLIC_DSN, environment: 'dogpark' });
+      expect(global.__SENTRY__.hub._stack[0].client.getOptions().environment).toEqual('dogpark');
+    });
+
     test('installs default integrations', () => {
       const DEFAULT_INTEGRATIONS: Integration[] = [
         new MockIntegration('MockIntegration 1'),
