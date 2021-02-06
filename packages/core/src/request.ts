@@ -1,4 +1,5 @@
 import { Event, SdkInfo, SentryRequest, Session } from '@sentry/types';
+import { base64ToUnicode, logger } from '@sentry/utils';
 
 import { API } from './api';
 
@@ -66,7 +67,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
 export function transactionToSentryRequest(event: Event, api: API): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
 
-  const { transactionSampling, ...metadata } = event.debug_meta || {};
+  const { transactionSampling, tracestate: encodedTracestate, ...metadata } = event.debug_meta || {};
   const { method: samplingMethod, rate: sampleRate } = transactionSampling || {};
   if (Object.keys(metadata).length === 0) {
     delete event.debug_meta;
@@ -74,18 +75,20 @@ export function transactionToSentryRequest(event: Event, api: API): SentryReques
     event.debug_meta = metadata;
   }
 
+  // the tracestate is stored in bas64-encoded JSON, but envelope header values are expected to be full JS values,
+  // so we have to decode and reinflate it
+  let tracestate;
+  try {
+    tracestate = JSON.parse(base64ToUnicode(encodedTracestate as string));
+  } catch (err) {
+    logger.warn(err);
+  }
+
   const envelopeHeaders = JSON.stringify({
     event_id: event.event_id,
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
-
-    // trace context for dynamic sampling on relay
-    trace: {
-      trace_id: event.contexts?.trace?.trace_id,
-      public_key: api.getDsn().publicKey,
-      environment: event.environment || null,
-      release: event.release || null,
-    },
+    ...(tracestate && { trace: tracestate }), // trace context for dynamic sampling on relay
   });
 
   const itemHeaders = JSON.stringify({
