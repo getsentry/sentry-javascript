@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
@@ -282,6 +282,19 @@ export class Span implements SpanInterface {
     this.traceId = spanContext.traceId ?? this.traceId;
 
     return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getTraceHeaders(): TraceHeaders {
+    // tracestates live on the transaction, so if this is a free-floating span, there won't be one
+    const tracestate = this.transaction && `sentry=${this.transaction.tracestate}`; // TODO kmclb
+
+    return {
+      'sentry-trace': this.toTraceparent(),
+      ...(tracestate && { tracestate }),
+    };
   }
 
   /**
