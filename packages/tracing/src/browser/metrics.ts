@@ -282,14 +282,14 @@ export class MetricsInstrumentation {
 
 /** Instrument navigation entries */
 function addNavigationSpans(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  addPerformanceNavigationTiming(transaction, entry, 'unloadEvent', timeOrigin);
-  addPerformanceNavigationTiming(transaction, entry, 'redirect', timeOrigin);
-  addPerformanceNavigationTiming(transaction, entry, 'domContentLoadedEvent', timeOrigin);
-  addPerformanceNavigationTiming(transaction, entry, 'loadEvent', timeOrigin);
-  addPerformanceNavigationTiming(transaction, entry, 'connect', timeOrigin);
-  addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'connectEnd');
-  addPerformanceNavigationTiming(transaction, entry, 'fetch', timeOrigin, 'domainLookupStart');
-  addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin);
+  addPerformanceNavigationTiming({ transaction, entry, event: 'unloadEvent', timeOrigin });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'redirect', timeOrigin });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'domContentLoadedEvent', timeOrigin });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'loadEvent', timeOrigin });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'connect', timeOrigin });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'secureConnection', timeOrigin, eventEnd: 'connectEnd', description: 'secureConnection (TLS)' });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'fetch', timeOrigin, eventEnd: 'domainLookupStart', description: 'cache' });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'domainLookup', timeOrigin, description: 'DNS' });
   addRequest(transaction, entry, timeOrigin);
 }
 
@@ -362,13 +362,16 @@ export function addResourceSpans(
 }
 
 /** Create performance navigation related spans */
-function addPerformanceNavigationTiming(
-  transaction: Transaction,
-  entry: Record<string, any>,
-  event: string,
-  timeOrigin: number,
-  eventEnd?: string,
-): void {
+function addPerformanceNavigationTiming(props: {
+  transaction: Transaction;
+  entry: Record<string, any>;
+  event: string;
+  timeOrigin: number;
+  eventEnd?: string;
+  description?: string;
+}): void {
+  const { transaction, entry, event, timeOrigin, eventEnd, description } = props;
+
   const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
   const start = entry[`${event}Start`] as number | undefined;
   if (!start || !end) {
@@ -376,7 +379,7 @@ function addPerformanceNavigationTiming(
   }
   _startChild(transaction, {
     op: 'browser',
-    description: event,
+    description: description ?? event,
     startTimestamp: timeOrigin + msToSec(start),
     endTimestamp: timeOrigin + msToSec(end),
   });
