@@ -24,8 +24,7 @@
     "tslib": "^1.9.3"
   },
   "peerDependencies": {
-    "react": "15.x || 16.x || 17.x",
-    "react-dom": "15.x || 16.x || 17.x"
+    "react": "15.x || 16.x || 17.x"
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "6.1.0",
