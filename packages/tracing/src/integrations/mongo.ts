@@ -19,6 +19,7 @@ const OPERATIONS = [
   'dropIndex', // dropIndex(indexName, options, callback)
   'dropIndexes', // dropIndexes(options, callback)
   'estimatedDocumentCount', // estimatedDocumentCount(options, callback)
+  'find', // find(query, options, callback)
   'findOne', // findOne(query, options, callback)
   'findOneAndDelete', // findOneAndDelete(filter, options, callback)
   'findOneAndReplace', // findOneAndReplace(filter, replacement, options, callback)
@@ -57,6 +58,7 @@ const OPERATION_SIGNATURES: {
   deleteOne: ['filter'],
   distinct: ['key', 'query'],
   dropIndex: ['indexName'],
+  find: ['query'],
   findOne: ['query'],
   findOneAndDelete: ['filter'],
   findOneAndReplace: ['filter', 'replacement'],
