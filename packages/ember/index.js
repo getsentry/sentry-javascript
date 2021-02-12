@@ -18,8 +18,7 @@ module.exports = {
 
   config(_, appConfig) {
     const addonConfig = appConfig['@sentry/ember'];
-    const options = Object.assign({}, addonConfig);
-    this.options['@embroider/macros'].setOwnConfig.sentryConfig = options;
+    this.options['@embroider/macros'].setOwnConfig.sentryConfig = { ...addonConfig };
     return this._super(...arguments);
   },
 
