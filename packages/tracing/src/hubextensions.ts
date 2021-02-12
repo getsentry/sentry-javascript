@@ -164,8 +164,7 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const client = this.getClient();
-  const options = (client && client.getOptions()) || {};
+  const options = hub.getClient()?.getOptions() || {};
 
   let transaction = new Transaction(transactionContext, this);
   transaction = sample(transaction, options, {
@@ -189,8 +188,7 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
-  const client = hub.getClient();
-  const options = (client && client.getOptions()) || {};
+  const options = hub.getClient()?.getOptions() || {};
 
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
   transaction = sample(transaction, options, {
