@@ -164,7 +164,7 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const options = hub.getClient()?.getOptions() || {};
+  const options = this.getClient()?.getOptions() || {};
 
   let transaction = new Transaction(transactionContext, this);
   transaction = sample(transaction, options, {
