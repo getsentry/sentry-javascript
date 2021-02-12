@@ -167,6 +167,18 @@ describe('Span', () => {
         expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
       });
 
+      // See https://github.com/getsentry/sentry-javascript/issues/3254
+      test('finish a transaction + child span + sampled:true', () => {
+        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+        const transaction = hub.startTransaction({ name: 'test', op: 'parent', sampled: true });
+        const childSpan = transaction.startChild({ op: 'child' });
+        childSpan.finish();
+        transaction.finish();
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls[0][0].spans).toHaveLength(1);
+        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
+      });
+
       test("finish a child span shouldn't trigger captureEvent", () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
         const transaction = hub.startTransaction({ name: 'test' });
