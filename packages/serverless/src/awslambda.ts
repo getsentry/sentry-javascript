@@ -245,8 +245,9 @@ export function wrapHandler<TEvent, TResult>(
 
     // Applying `sentry-trace` to context
     let traceparentData;
-    if (event.headers && isString(event.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(event.headers['sentry-trace'] as string);
+    const eventWithHeaders = event as { headers?: { [key: string]: string } };
+    if (eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])) {
+      traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace'] as string);
     }
     const transaction = startTransaction({
       name: context.functionName,

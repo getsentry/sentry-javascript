@@ -16,9 +16,7 @@ const { wrapHandler } = Sentry.AWSLambda;
 
 // Default `timeoutWarningLimit` is 500ms so leaving some space for it to trigger when necessary
 const DEFAULT_EXECUTION_TIME = 100;
-const fakeEvent = {
-  fortySix: 'o_O',
-};
+let fakeEvent: { [key: string]: unknown };
 const fakeContext = {
   callbackWaitsForEmptyEventLoop: false,
   functionName: 'functionName',
@@ -72,6 +70,12 @@ function expectScopeSettings() {
 }
 
 describe('AWSLambda', () => {
+  beforeEach(() => {
+    fakeEvent = {
+      fortySix: 'o_O',
+    };
+  });
+
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note
     Sentry.resetMocks();
@@ -228,9 +232,16 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
 
       try {
+        fakeEvent.headers = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
-        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
+        expect(Sentry.startTransaction).toBeCalledWith({
+          name: 'functionName',
+          op: 'awslambda.handler',
+          traceId: '12312012123120121231201212312012',
+          parentSpanId: '1121201211212012',
+          parentSampled: false,
+        });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(e);
         // @ts-ignore see "Why @ts-ignore" note
