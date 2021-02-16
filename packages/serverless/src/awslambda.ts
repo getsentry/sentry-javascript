@@ -10,7 +10,8 @@ import {
 } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger, isString } from '@sentry/utils';
+import { extractTraceparentData } from '@sentry/tracing';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -112,7 +113,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
 
   let mod: HandlerBag;
   let functionName: string | undefined;
-  handlerName.split('.').forEach(name => {
+  handlerName.split('.').forEach((name) => {
     mod = obj;
     obj = obj && (obj as HandlerModule)[name];
     functionName = name;
@@ -235,16 +236,22 @@ export function wrapHandler<TEvent, TResult>(
       const timeoutWarningDelay = context.getRemainingTimeInMillis() - options.timeoutWarningLimit;
 
       timeoutWarningTimer = setTimeout(() => {
-        withScope(scope => {
+        withScope((scope) => {
           scope.setTag('timeout', humanReadableTimeout);
           captureMessage(`Possible function timeout: ${context.functionName}`, Severity.Warning);
         });
       }, timeoutWarningDelay);
     }
 
+    // Applying `sentry-trace` to context
+    let traceparentData;
+    if (event.headers && isString(event.headers['sentry-trace'])) {
+      traceparentData = extractTraceparentData(event.headers['sentry-trace'] as string);
+    }
     const transaction = startTransaction({
       name: context.functionName,
       op: 'awslambda.handler',
+      ...traceparentData,
     });
 
     const hub = getCurrentHub();
