@@ -113,7 +113,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
 
   let mod: HandlerBag;
   let functionName: string | undefined;
-  handlerName.split('.').forEach((name) => {
+  handlerName.split('.').forEach(name => {
     mod = obj;
     obj = obj && (obj as HandlerModule)[name];
     functionName = name;
@@ -236,7 +236,7 @@ export function wrapHandler<TEvent, TResult>(
       const timeoutWarningDelay = context.getRemainingTimeInMillis() - options.timeoutWarningLimit;
 
       timeoutWarningTimer = setTimeout(() => {
-        withScope((scope) => {
+        withScope(scope => {
           scope.setTag('timeout', humanReadableTimeout);
           captureMessage(`Possible function timeout: ${context.functionName}`, Severity.Warning);
         });
