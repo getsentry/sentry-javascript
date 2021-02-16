@@ -1,6 +1,6 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
-import { logger, stripUrlQueryAndFragment, isString } from '@sentry/utils';
 import { extractTraceparentData } from '@sentry/tracing';
+import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
