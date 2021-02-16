@@ -19,6 +19,7 @@ import {
  * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
  * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
  */
+type objectOfStrings = { [key: string]: string };
 
 describe('GCPFunction', () => {
   afterEach(() => {
@@ -26,13 +27,17 @@ describe('GCPFunction', () => {
     Sentry.resetMocks();
   });
 
-  async function handleHttp(fn: HttpFunction): Promise<void> {
+  async function handleHttp(fn: HttpFunction, trace_headers: objectOfStrings | null = null): Promise<void> {
+    let headers: objectOfStrings = { host: 'hostname', 'content-type': 'application/json' };
+    if (trace_headers) {
+      headers = { ...headers, ...trace_headers };
+    }
     return new Promise((resolve, _reject) => {
       const d = domain.create();
       const req = {
         method: 'POST',
         url: '/path?q=query',
-        headers: { host: 'hostname', 'content-type': 'application/json' },
+        headers: headers,
         body: { foo: 'bar' },
       } as Request;
       const res = { end: resolve } as Response;
@@ -124,8 +129,17 @@ describe('GCPFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapHttpFunction(handler);
-      await handleHttp(wrappedHandler);
-      expect(Sentry.startTransaction).toBeCalledWith({ name: 'POST /path', op: 'gcp.function.http' });
+
+      const trace_headers: objectOfStrings = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
+
+      await handleHttp(wrappedHandler, trace_headers);
+      expect(Sentry.startTransaction).toBeCalledWith({
+        name: 'POST /path',
+        op: 'gcp.function.http',
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        parentSampled: false,
+      });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
