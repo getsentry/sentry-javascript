@@ -1,8 +1,8 @@
-import { extractTraceparentData } from '../src/utils';
+import { extractSentrytraceData } from '../src/utils';
 
-describe('extractTraceparentData', () => {
+describe('extractSentrytraceData', () => {
   test('no sample', () => {
-    const data = extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb') as any;
+    const data = extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb') as any;
 
     expect(data).toBeDefined();
     expect(data.parentSpanId).toEqual('bbbbbbbbbbbbbbbb');
@@ -11,21 +11,21 @@ describe('extractTraceparentData', () => {
   });
 
   test('sample true', () => {
-    const data = extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-1') as any;
+    const data = extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-1') as any;
 
     expect(data).toBeDefined();
     expect(data.parentSampled).toBeTruthy();
   });
 
   test('sample false', () => {
-    const data = extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-0') as any;
+    const data = extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-0') as any;
 
     expect(data).toBeDefined();
     expect(data.parentSampled).toBeFalsy();
   });
 
   test('just sample decision - false', () => {
-    const data = extractTraceparentData('0') as any;
+    const data = extractSentrytraceData('0') as any;
 
     expect(data).toBeDefined();
     expect(data.traceId).toBeUndefined();
@@ -34,7 +34,7 @@ describe('extractTraceparentData', () => {
   });
 
   test('just sample decision - true', () => {
-    const data = extractTraceparentData('1') as any;
+    const data = extractSentrytraceData('1') as any;
 
     expect(data).toBeDefined();
     expect(data.traceId).toBeUndefined();
@@ -44,21 +44,21 @@ describe('extractTraceparentData', () => {
 
   test('invalid', () => {
     // trace id wrong length
-    expect(extractTraceparentData('a-bbbbbbbbbbbbbbbb-1')).toBeUndefined();
+    expect(extractSentrytraceData('a-bbbbbbbbbbbbbbbb-1')).toBeUndefined();
 
     // parent span id wrong length
-    expect(extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-b-1')).toBeUndefined();
+    expect(extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-b-1')).toBeUndefined();
 
     // parent sampling decision wrong length
-    expect(extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-11')).toBeUndefined();
+    expect(extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-11')).toBeUndefined();
 
     // trace id invalid hex value
-    expect(extractTraceparentData('someStuffHereWhichIsNotAtAllHexy-bbbbbbbbbbbbbbbb-1')).toBeUndefined();
+    expect(extractSentrytraceData('someStuffHereWhichIsNotAtAllHexy-bbbbbbbbbbbbbbbb-1')).toBeUndefined();
 
     // parent span id invalid hex value
-    expect(extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-alsoNotSuperHexy-1')).toBeUndefined();
+    expect(extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-alsoNotSuperHexy-1')).toBeUndefined();
 
     // bogus sampling decision
-    expect(extractTraceparentData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
+    expect(extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
   });
 });

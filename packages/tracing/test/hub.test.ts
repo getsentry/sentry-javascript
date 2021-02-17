@@ -9,7 +9,7 @@ import { logger } from '@sentry/utils';
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
 import { Transaction } from '../src/transaction';
-import { computeTracestateValue, extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
+import { computeTracestateValue, extractSentrytraceData, TRACEPARENT_REGEXP } from '../src/utils';
 import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName, testOnlyIfNodeVersionAtLeast } from './testutils';
 
 addExtensionMethods();
@@ -409,7 +409,7 @@ describe('Hub', () => {
 
           // check that sampling decision is passed down correctly
           expect(transaction.sampled).toBe(true);
-          expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(true);
+          expect(extractSentrytraceData(headers['sentry-trace'])!.parentSampled).toBe(true);
         },
       );
 
@@ -451,7 +451,7 @@ describe('Hub', () => {
 
           // check that sampling decision is passed down correctly
           expect(transaction.sampled).toBe(false);
-          expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(false);
+          expect(extractSentrytraceData(headers['sentry-trace'])!.parentSampled).toBe(false);
         },
       );
 

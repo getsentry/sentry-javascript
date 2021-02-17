@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { extractTraceparentData, Span } from '@sentry/tracing';
+import { extractSentrytraceData, Span } from '@sentry/tracing';
 import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
 import { forget, isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -58,7 +58,7 @@ export function tracingHandler(): (
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
     let traceparentData;
     if (req.headers && isString(req.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
+      traceparentData = extractSentrytraceData(req.headers['sentry-trace'] as string);
     }
 
     const transaction = startTransaction(

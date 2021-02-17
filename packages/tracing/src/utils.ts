@@ -2,7 +2,7 @@ import { getCurrentHub, Hub } from '@sentry/hub';
 import { Options, TraceparentData, Transaction } from '@sentry/types';
 import { SentryError, unicodeToBase64 } from '@sentry/utils';
 
-export const TRACEPARENT_REGEXP = new RegExp(
+export const SENTRY_TRACE_REGEX = new RegExp(
   '^[ \\t]*' + // whitespace
   '([0-9a-f]{32})?' + // trace_id
   '-?([0-9a-f]{16})?' + // span_id
@@ -22,12 +22,12 @@ export function hasTracingEnabled(options: Options): boolean {
 /**
  * Extract transaction context data from a `sentry-trace` header.
  *
- * @param traceparent Traceparent string
+ * @param header Traceparent string
  *
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
  */
-export function extractTraceparentData(traceparent: string): TraceparentData | undefined {
-  const matches = traceparent.match(TRACEPARENT_REGEXP);
+export function extractSentrytraceData(header: string): TraceparentData | undefined {
+  const matches = header.match(SENTRY_TRACE_REGEX);
   if (matches) {
     let parentSampled: boolean | undefined;
     if (matches[3] === '1') {
@@ -68,7 +68,7 @@ export function secToMs(time: number): number {
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
 export { stripUrlQueryAndFragment } from '@sentry/utils';
 
-type TracestateData = {
+type SentryTracestateData = {
   trace_id: string;
   environment: string | undefined | null;
   release: string | undefined | null;
@@ -81,7 +81,7 @@ type TracestateData = {
  * @throws SentryError (because using the logger creates a circular dependency)
  * @returns the base64-encoded header value
  */
-export function computeTracestateValue(data: TracestateData): string {
+export function computeTracestateValue(data: SentryTracestateData): string {
   // `JSON.stringify` will drop keys with undefined values, but not ones with null values
   data.environment = data.environment || null;
   data.release = data.release || null;
