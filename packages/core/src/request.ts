@@ -67,7 +67,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
 export function transactionToSentryRequest(event: Event, api: API): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
 
-  const { transactionSampling, tracestate: encodedTracestate, ...metadata } = event.debug_meta || {};
+  const { transactionSampling, tracestate, ...metadata } = event.debug_meta || {};
   const { method: samplingMethod, rate: sampleRate } = transactionSampling || {};
   if (Object.keys(metadata).length === 0) {
     delete event.debug_meta;
@@ -77,9 +77,14 @@ export function transactionToSentryRequest(event: Event, api: API): SentryReques
 
   // the tracestate is stored in bas64-encoded JSON, but envelope header values are expected to be full JS values,
   // so we have to decode and reinflate it
-  let tracestate;
+  let reinflatedTracestate;
   try {
-    tracestate = JSON.parse(base64ToUnicode(encodedTracestate as string));
+    // Because transaction metadata passes through a number of locations (transactionContext, transaction, event during
+    // processing, event as sent), each with different requirements, all of the parts are typed as optional. That said,
+    // if we get to this point and either `tracestate` or `tracestate.sentry` are undefined, something's gone very wrong.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const encodedSentryValue = tracestate!.sentry!.replace('sentry=', '');
+    reinflatedTracestate = JSON.parse(base64ToUnicode(encodedSentryValue));
   } catch (err) {
     logger.warn(err);
   }
@@ -88,7 +93,7 @@ export function transactionToSentryRequest(event: Event, api: API): SentryReques
     event_id: event.event_id,
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
-    ...(tracestate && { trace: tracestate }), // trace context for dynamic sampling on relay
+    ...(reinflatedTracestate && { trace: reinflatedTracestate }), // trace context for dynamic sampling on relay
   });
 
   const itemHeaders = JSON.stringify({

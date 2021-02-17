@@ -1,8 +1,10 @@
 /* eslint-disable max-lines */
-import { Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
+import { getCurrentHub } from '@sentry/hub';
+import { Hub, Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
+import { computeTracestateValue } from './utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -289,7 +291,12 @@ export class Span implements SpanInterface {
    */
   public getTraceHeaders(): TraceHeaders {
     // tracestates live on the transaction, so if this is a free-floating span, there won't be one
-    const tracestate = this.transaction && `sentry=${this.transaction.tracestate}`; // TODO kmclb
+    let tracestate;
+    if (this.transaction) {
+      tracestate = this.transaction.metadata?.tracestate?.sentry;
+    } else {
+      tracestate = this._getNewTracestate();
+    }
 
     return {
       'sentry-trace': this.toTraceparent(),
@@ -351,5 +358,33 @@ export class Span implements SpanInterface {
       timestamp: this.endTimestamp,
       trace_id: this.traceId,
     });
+  }
+
+  /**
+   * Create a new Sentry tracestate header entry (i.e. `sentry=xxxxxx`)
+   *
+   * @returns The new Sentry tracestate entry, or undefined if there's no client or no dsn
+   */
+  protected _getNewTracestate(hub: Hub = getCurrentHub()): string | undefined {
+    const client = hub.getClient();
+    const dsn = client?.getDsn();
+
+    if (!client || !dsn) {
+      return;
+    }
+
+    const { environment, release } = client.getOptions() || {};
+
+    // TODO - the only reason we need the non-null assertion on `dsn.publicKey` (below) is because `dsn.publicKey` has
+    // to be optional while we transition from `dsn.user` -> `dsn.publicKey`. Once `dsn.user` is removed, we can make
+    // `dsn.publicKey` required and remove the `!`.
+
+    return `sentry=${computeTracestateValue({
+      trace_id: this.traceId,
+      environment,
+      release,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      public_key: dsn.publicKey!,
+    })}`;
   }
 }

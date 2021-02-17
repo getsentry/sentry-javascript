@@ -35,12 +35,19 @@ describe('Hub', () => {
         name: 'dogpark',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
-        tracestate: 'doGsaREgReaT',
+        metadata: { tracestate: { sentry: 'sentry=doGsaREgReaT' } },
       };
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction(transactionContext);
 
-      expect(transaction).toEqual(expect.objectContaining(transactionContext));
+      expect(transaction).toEqual(
+        expect.objectContaining({
+          name: 'dogpark',
+          traceId: '12312012123120121231201212312012',
+          parentSpanId: '1121201211212012',
+          metadata: expect.objectContaining({ tracestate: { sentry: 'sentry=doGsaREgReaT' } }),
+        }),
+      );
     });
 
     it('creates a new tracestate value if not given one in transaction context', () => {
@@ -62,7 +69,7 @@ describe('Hub', () => {
         public_key: 'dogsarebadatkeepingsecrets',
       });
 
-      expect(transaction.tracestate).toEqual(b64Value);
+      expect(transaction.metadata?.tracestate?.sentry).toEqual(`sentry=${b64Value}`);
     });
 
     it('uses default environment if none given', () => {
@@ -80,7 +87,7 @@ describe('Hub', () => {
         public_key: 'dogsarebadatkeepingsecrets',
       });
 
-      expect(transaction.tracestate).toEqual(b64Value);
+      expect(transaction.metadata?.tracestate?.sentry).toEqual(`sentry=${b64Value}`);
     });
   });
 
