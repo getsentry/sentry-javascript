@@ -144,7 +144,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
   const frames: StackFrame[] = stack.map(frame => {
     const parsedFrame: StackFrame = {
       colno: frame.columnNumber,
-      filename: frame.fileName || '',
+      filename: frame.fileName?.startsWith('file://') ? frame.fileName.substr(7) : frame.fileName || '',
       function: getFunction(frame),
       lineno: frame.lineNumber,
     };
