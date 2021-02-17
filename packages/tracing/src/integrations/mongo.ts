@@ -85,6 +85,7 @@ interface MongoCollection {
 interface MongoOptions {
   operations?: Operation[];
   describeOperations?: boolean | Operation[];
+  useMongoose?: boolean;
 }
 
 /** Tracing integration for mongo package */
@@ -101,6 +102,7 @@ export class Mongo implements Integration {
 
   private _operations: Operation[];
   private _describeOperations?: boolean | Operation[];
+  private _useMongoose: boolean;
 
   /**
    * @inheritDoc
@@ -110,6 +112,7 @@ export class Mongo implements Integration {
       ? options.operations
       : ((OPERATIONS as unknown) as Operation[]);
     this._describeOperations = 'describeOperations' in options ? options.describeOperations : true;
+    this._useMongoose = !!options.useMongoose;
   }
 
   /**
@@ -117,12 +120,12 @@ export class Mongo implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     let collection: MongoCollection;
-
+    const moduleName = this._useMongoose ? 'mongoose' : 'mongodb';
     try {
-      const mongodbModule = dynamicRequire(module, 'mongodb') as { Collection: MongoCollection };
+      const mongodbModule = dynamicRequire(module, moduleName) as { Collection: MongoCollection };
       collection = mongodbModule.Collection;
     } catch (e) {
-      logger.error('Mongo Integration was unable to require `mongodb` package.');
+      logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
       return;
     }
 
