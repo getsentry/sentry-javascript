@@ -19,7 +19,6 @@ import {
  * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
  * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
  */
-type objectOfStrings = { [key: string]: string };
 
 describe('GCPFunction', () => {
   afterEach(() => {
@@ -27,8 +26,8 @@ describe('GCPFunction', () => {
     Sentry.resetMocks();
   });
 
-  async function handleHttp(fn: HttpFunction, trace_headers: objectOfStrings | null = null): Promise<void> {
-    let headers: objectOfStrings = { host: 'hostname', 'content-type': 'application/json' };
+  async function handleHttp(fn: HttpFunction, trace_headers: { [key: string]: string } | null = null): Promise<void> {
+    let headers: { [key: string]: string } = { host: 'hostname', 'content-type': 'application/json' };
     if (trace_headers) {
       headers = { ...headers, ...trace_headers };
     }
@@ -130,7 +129,9 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapHttpFunction(handler);
 
-      const trace_headers: objectOfStrings = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
+      const trace_headers: { [key: string]: string } = {
+        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+      };
 
       await handleHttp(wrappedHandler, trace_headers);
       expect(Sentry.startTransaction).toBeCalledWith({
