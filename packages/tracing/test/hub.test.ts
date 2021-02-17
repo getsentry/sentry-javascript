@@ -35,7 +35,7 @@ describe('Hub', () => {
         name: 'dogpark',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
-        metadata: { tracestate: { sentry: 'doGsaREgReaT' } },
+        metadata: { tracestate: { sentry: 'sentry=doGsaREgReaT' } },
       };
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction(transactionContext);
@@ -45,7 +45,7 @@ describe('Hub', () => {
           name: 'dogpark',
           traceId: '12312012123120121231201212312012',
           parentSpanId: '1121201211212012',
-          metadata: expect.objectContaining({ tracestate: { sentry: 'doGsaREgReaT' } }),
+          metadata: expect.objectContaining({ tracestate: { sentry: 'sentry=doGsaREgReaT' } }),
         }),
       );
     });
