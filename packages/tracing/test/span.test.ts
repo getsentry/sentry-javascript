@@ -101,6 +101,26 @@ describe('Span', () => {
     });
   });
 
+  describe('getTraceHeaders', () => {
+    it('returns correct headers', () => {
+      const hub = new Hub(
+        new BrowserClient({
+          dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+          tracesSampleRate: 1,
+          release: 'off.leash.park',
+          environment: 'dogpark',
+        }),
+      );
+      const transaction = hub.startTransaction({ name: 'FETCH /ball' });
+      const span = transaction.startChild({ op: 'dig.hole' });
+
+      const headers = span.getTraceHeaders();
+
+      expect(headers['sentry-trace']).toEqual(span.toTraceparent());
+      expect(headers.tracestate).toEqual(`sentry=${transaction.tracestate}`);
+    });
+  });
+
   describe('toJSON', () => {
     test('simple', () => {
       const span = JSON.parse(

@@ -58,7 +58,20 @@ describe('eventToSentryRequest', () => {
     beforeEach(() => {
       transactionEvent = {
         ...eventBase,
-        debug_meta: { transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 } },
+        debug_meta: {
+          transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 },
+          // This value is hardcoded in its base64 form to avoid a dependency on @sentry/tracing, where the method to
+          // compute the value lives. It's equivalent to
+          // computeTracestateValue({
+          //   trace_id: '1231201211212012',
+          //   environment: 'dogpark',
+          //   release: 'off.leash.park',
+          //   public_key: 'dogsarebadatkeepingsecrets',
+          // }),
+          tracestate:
+            'eyJ0cmFjZV9pZCI6IjEyMzEyMDEyMTEyMTIwMTIiLCJlbnZpcm9ubWVudCI6ImRvZ3BhcmsiLCJyZWxlYXNlIjoib2ZmLmxlYXNo' +
+            'LnBhcmsiLCJwdWJsaWNfa2V5IjoiZG9nc2FyZWJhZGF0a2VlcGluZ3NlY3JldHMifQ',
+        },
         spans: [],
         transaction: '/dogs/are/great/',
         type: 'transaction',
@@ -77,7 +90,7 @@ describe('eventToSentryRequest', () => {
     });
 
     describe('envelope header', () => {
-      it('adds correct data to envelope header', () => {
+      it('adds correct entries to envelope header', () => {
         jest.spyOn(Date.prototype, 'toISOString').mockReturnValueOnce('2012-12-31T09:08:13.000Z');
 
         const result = eventToSentryRequest(transactionEvent, api);
@@ -155,7 +168,7 @@ describe('eventToSentryRequest', () => {
     });
 
     describe('item header', () => {
-      it('adds correct data to item header', () => {
+      it('adds correct entries to item header', () => {
         const result = eventToSentryRequest(transactionEvent, api);
         const envelope = parseEnvelopeRequest(result);
 
