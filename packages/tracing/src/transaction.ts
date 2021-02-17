@@ -15,9 +15,8 @@ import { Span as SpanClass, SpanRecorder } from './span';
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
 
-  public readonly tracestate: string;
 
-  private _metadata: TransactionMetadata = {};
+  public metadata: TransactionMetadata;
 
   private _measurements: Measurements = {};
 
@@ -46,9 +45,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._trimEnd = transactionContext.trimEnd;
 
-    // _getNewTracestate only returns undefined in the absence of a client or dsn, in which case it doesn't matter what
-    // the header values are - nothing can be sent anyway - so the third alternative here is just to make TS happy
-    this.tracestate = transactionContext.tracestate || this._getNewTracestate(this._hub) || 'things are broken';
+    this.metadata = transactionContext.metadata || {};
+    this.metadata.tracestate = this.metadata.tracestate || {};
+    this.metadata.tracestate.sentry = this.metadata.tracestate.sentry || this._getNewTracestate(this._hub);
 
     // this is because transactions are also spans, and spans have a transaction pointer
     this.transaction = this;
@@ -85,7 +84,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @hidden
    */
   public setMetadata(newMetadata: TransactionMetadata): void {
-    this._metadata = { ...this._metadata, ...newMetadata };
+    this.metadata = { ...this.metadata, ...newMetadata };
   }
 
   /**
@@ -122,7 +121,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-    this._metadata.tracestate = this.tracestate;
 
     const transaction: Event = {
       contexts: {
@@ -134,7 +132,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
-      debug_meta: this._metadata,
+      debug_meta: this.metadata,
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;

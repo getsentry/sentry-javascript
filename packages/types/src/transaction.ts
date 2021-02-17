@@ -24,10 +24,9 @@ export interface TransactionContext extends SpanContext {
   parentSampled?: boolean;
 
   /**
-   * The tracestate header value associated with this transaction, potentially inherited from a parent transaction,
-   * which will be propagated across services to all child transactions
+   * Metadata associated with the transaction, for internal SDK use.
    */
-  tracestate?: string;
+  metadata?: TransactionMetadata;
 }
 
 /**
