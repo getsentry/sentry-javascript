@@ -68,22 +68,23 @@ export function secToMs(time: number): number {
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
 export { stripUrlQueryAndFragment } from '@sentry/utils';
 
-/**
- * Compute the value of a tracestate header.
- *
- * @throws SentryError (because using the logger creates a circular dependency)
- * @returns the base64-encoded header value
- */
-// Note: this is here instead of in the tracing package since @sentry/core tests rely on it
-export function computeTracestateValue(tracestateData: {
+type TracestateData = {
   trace_id: string;
   environment: string | undefined | null;
   release: string | undefined | null;
   public_key: string;
-}): string {
+};
+
+/**
+ * Compute the value of a Sentry tracestate header.
+ *
+ * @throws SentryError (because using the logger creates a circular dependency)
+ * @returns the base64-encoded header value
+ */
+export function computeTracestateValue(data: TracestateData): string {
   // `JSON.stringify` will drop keys with undefined values, but not ones with null values
-  tracestateData.environment = tracestateData.environment || null;
-  tracestateData.release = tracestateData.release || null;
+  data.environment = data.environment || null;
+  data.release = data.release || null;
 
   // See https://www.w3.org/TR/trace-context/#tracestate-header-field-values
   // The spec for tracestate header values calls for a string of the form
@@ -94,8 +95,8 @@ export function computeTracestateValue(tracestateData: {
   // used to pad the end of base64 values though, so to avoid confusion, we strip them off. (Most languages' base64
   // decoding functions (including those in JS) are able to function without the padding.)
   try {
-    return unicodeToBase64(JSON.stringify(tracestateData)).replace(/={1,2}$/, '');
+    return unicodeToBase64(JSON.stringify(data)).replace(/={1,2}$/, '');
   } catch (err) {
-    throw new SentryError(`[Tracing] Error creating tracestate header: ${err}`);
+    throw new SentryError(`[Tracing] Error computing tracestate value from data: ${err}\nData: ${data}`);
   }
 }

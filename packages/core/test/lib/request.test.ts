@@ -68,9 +68,11 @@ describe('eventToSentryRequest', () => {
           //   release: 'off.leash.park',
           //   public_key: 'dogsarebadatkeepingsecrets',
           // }),
-          tracestate:
-            'eyJ0cmFjZV9pZCI6IjEyMzEyMDEyMTEyMTIwMTIiLCJlbnZpcm9ubWVudCI6ImRvZ3BhcmsiLCJyZWxlYXNlIjoib2ZmLmxlYXNo' +
-            'LnBhcmsiLCJwdWJsaWNfa2V5IjoiZG9nc2FyZWJhZGF0a2VlcGluZ3NlY3JldHMifQ',
+          tracestate: {
+            sentry:
+              'sentry=eyJ0cmFjZV9pZCI6IjEyMzEyMDEyMTEyMTIwMTIiLCJlbnZpcm9ubWVudCI6ImRvZ3BhcmsiLCJyZWxlYXNlIjoib2ZmLmxlYXNo' +
+              'LnBhcmsiLCJwdWJsaWNfa2V5IjoiZG9nc2FyZWJhZGF0a2VlcGluZ3NlY3JldHMifQ',
+          },
         },
         spans: [],
         transaction: '/dogs/are/great/',

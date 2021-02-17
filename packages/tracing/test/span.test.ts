@@ -117,7 +117,7 @@ describe('Span', () => {
       const headers = span.getTraceHeaders();
 
       expect(headers['sentry-trace']).toEqual(span.toTraceparent());
-      expect(headers.tracestate).toEqual(`sentry=${transaction.tracestate}`);
+      expect(headers.tracestate).toEqual(transaction.metadata?.tracestate?.sentry);
     });
   });
 

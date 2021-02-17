@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/hub';
+import { Span } from '@sentry/types';
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
-import { Span } from '../span';
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];

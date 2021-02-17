@@ -24,10 +24,9 @@ export interface TransactionContext extends SpanContext {
   parentSampled?: boolean;
 
   /**
-   * The tracestate header value associated with this transaction, potentially inherited from a parent transaction,
-   * which will be propagated across services to all child transactions
+   * Metadata associated with the transaction, for internal SDK use.
    */
-  tracestate?: string;
+  metadata?: TransactionMetadata;
 }
 
 /**
@@ -118,4 +117,13 @@ export enum TransactionSamplingMethod {
   Sampler = 'client_sampler',
   Rate = 'client_rate',
   Inheritance = 'inheritance',
+}
+
+export interface TransactionMetadata {
+  transactionSampling?: { rate?: number; method?: string };
+
+  /** The sentry half of a transaction's tracestate header, used for dynamic sampling */
+  tracestate?: {
+    sentry?: string;
+  };
 }

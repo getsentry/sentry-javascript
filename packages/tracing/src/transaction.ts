@@ -1,19 +1,20 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { DebugMeta, Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
+import {
+  Event,
+  Measurements,
+  Transaction as TransactionInterface,
+  TransactionContext,
+  TransactionMetadata,
+} from '@sentry/types';
 import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
-import { computeTracestateValue } from './utils';
-
-type TransactionMetadata = Pick<DebugMeta, 'transactionSampling' | 'tracestate'>;
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
 
-  public readonly tracestate: string;
-
-  private _metadata: TransactionMetadata = {};
+  public metadata: TransactionMetadata;
 
   private _measurements: Measurements = {};
 
@@ -42,9 +43,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._trimEnd = transactionContext.trimEnd;
 
-    // _getNewTracestate only returns undefined in the absence of a client or dsn, in which case it doesn't matter what
-    // the header values are - nothing can be sent anyway - so the third alternative here is just to make TS happy
-    this.tracestate = transactionContext.tracestate || this._getNewTracestate() || 'things are broken';
+    this.metadata = transactionContext.metadata || {};
+    this.metadata.tracestate = this.metadata.tracestate || {};
+    this.metadata.tracestate.sentry = this.metadata.tracestate.sentry || this._getNewTracestate(this._hub);
 
     // this is because transactions are also spans, and spans have a transaction pointer
     this.transaction = this;
@@ -81,7 +82,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @hidden
    */
   public setMetadata(newMetadata: TransactionMetadata): void {
-    this._metadata = { ...this._metadata, ...newMetadata };
+    this.metadata = { ...this.metadata, ...newMetadata };
   }
 
   /**
@@ -118,8 +119,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-    this._metadata.tracestate = this.tracestate;
-
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
@@ -130,7 +129,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
-      debug_meta: this._metadata,
+      debug_meta: this.metadata,
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;
@@ -167,28 +166,5 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._trimEnd = transactionContext.trimEnd;
 
     return this;
-  }
-
-  /**
-   * Create a new tracestate header value
-   *
-   * @returns The new tracestate value, or undefined if there's no client or no dsn
-   */
-  private _getNewTracestate(): string | undefined {
-    const client = this._hub.getClient();
-    const dsn = client?.getDsn();
-
-    if (!client || !dsn) {
-      return;
-    }
-
-    const { environment, release } = client.getOptions() || {};
-
-    // TODO - the only reason we need the non-null assertion on `dsn.publicKey` (below) is because `dsn.publicKey` has
-    // to be optional while we transition from `dsn.user` -> `dsn.publicKey`. Once `dsn.user` is removed, we can make
-    // `dsn.publicKey` required and remove the `!`.
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return computeTracestateValue({ trace_id: this.traceId, environment, release, public_key: dsn.publicKey! });
   }
 }
