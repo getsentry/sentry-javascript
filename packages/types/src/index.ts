@@ -34,6 +34,7 @@ export {
   TraceparentData,
   Transaction,
   TransactionContext,
+  TransactionMetadata,
   TransactionSamplingMethod,
 } from './transaction';
 export { Thread } from './thread';
