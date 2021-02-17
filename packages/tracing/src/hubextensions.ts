@@ -1,5 +1,11 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
-import { CustomSamplingContext, SamplingContext, TransactionContext, TransactionSamplingMethod } from '@sentry/types';
+import {
+  CustomSamplingContext,
+  Options,
+  SamplingContext,
+  TransactionContext,
+  TransactionSamplingMethod,
+} from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
@@ -33,12 +39,9 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  *
  * @returns The given transaction with its `sampled` value set
  */
-function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext: SamplingContext): T {
-  const client = hub.getClient();
-  const options = (client && client.getOptions()) || {};
-
-  // nothing to do if there's no client or if tracing is disabled
-  if (!client || !hasTracingEnabled(options)) {
+function sample<T extends Transaction>(transaction: T, options: Options, samplingContext: SamplingContext): T {
+  // nothing to do if tracing is not enabled
+  if (!hasTracingEnabled(options)) {
     transaction.sampled = false;
     return transaction;
   }
@@ -114,10 +117,6 @@ function sample<T extends Transaction>(hub: Hub, transaction: T, samplingContext
     return transaction;
   }
 
-  // at this point we know we're keeping the transaction, whether because of an inherited decision or because it got
-  // lucky with the dice roll
-  transaction.initSpanRecorder(options._experiments?.maxSpans as number);
-
   logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
   return transaction;
 }
@@ -165,12 +164,18 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const transaction = new Transaction(transactionContext, this);
-  return sample(this, transaction, {
+  const options = this.getClient()?.getOptions() || {};
+
+  let transaction = new Transaction(transactionContext, this);
+  transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
     ...customSamplingContext,
   });
+  if (transaction.sampled) {
+    transaction.initSpanRecorder(options._experiments?.maxSpans as number);
+  }
+  return transaction;
 }
 
 /**
@@ -183,12 +188,18 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
-  const transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
-  return sample(hub, transaction, {
+  const options = hub.getClient()?.getOptions() || {};
+
+  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
+  transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
     ...customSamplingContext,
   });
+  if (transaction.sampled) {
+    transaction.initSpanRecorder(options._experiments?.maxSpans as number);
+  }
+  return transaction;
 }
 
 /**

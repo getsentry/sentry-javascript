@@ -16,32 +16,14 @@ module.exports = {
     },
   },
 
-  getAddonConfig(app) {
-    let config = {};
-    try {
-      config = require(app.options.configPath)(app.env);
-    } catch(_) {
-      // Config not found
-    }
-    return config['@sentry/ember'] || {};
-  },
-
-  included() {
-    this._super.included.apply(this, arguments);
-    const app = this._findHost(this);
-    if (!('@embroider/core' in app.dependencies())) {
-      const addonConfig = this.getAddonConfig(app);
-      const options = Object.assign({}, addonConfig);
-      this.options['@embroider/macros'].setOwnConfig.sentryConfig = options;
-    }
+  config(_, appConfig) {
+    const addonConfig = appConfig['@sentry/ember'];
+    this.options['@embroider/macros'].setOwnConfig.sentryConfig = { ...addonConfig };
+    return this._super(...arguments);
   },
 
   contentFor(type, config) {
     const addonConfig = config['@sentry/ember'] || {};
-    const app = this._findHost(this);
-    this.app = app;
-    const options = Object.assign({}, addonConfig);
-    this.options['@embroider/macros'].setOwnConfig.sentryConfig = options;
 
     const { disablePerformance, disableInitialLoadInstrumentation } = addonConfig;
     if (disablePerformance || disableInitialLoadInstrumentation) {
