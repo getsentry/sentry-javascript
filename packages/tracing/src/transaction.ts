@@ -10,11 +10,9 @@ import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
-
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
-
 
   public metadata: TransactionMetadata;
 
@@ -121,7 +119,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
@@ -170,9 +167,4 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     return this;
   }
-
-
-
-
-
 }

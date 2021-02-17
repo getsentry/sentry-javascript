@@ -5,7 +5,6 @@ import { TransactionMetadata } from './transaction';
  **/
 export type DebugMeta = {
   images?: Array<DebugImage>;
-
 } & TransactionMetadata;
 
 /**
