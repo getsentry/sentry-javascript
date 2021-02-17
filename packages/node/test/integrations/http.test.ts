@@ -64,7 +64,7 @@ describe('tracing', () => {
     expect((spans[0] as Transaction).name).toEqual('dogpark');
   });
 
-  it('attaches the sentry-trace header to outgoing non-sentry requests', async () => {
+  it('attaches tracing headers to outgoing non-sentry requests', async () => {
     nock('http://dogs.are.great')
       .get('/')
       .reply(200);
@@ -72,13 +72,15 @@ describe('tracing', () => {
     createTransactionOnScope();
 
     const request = http.get('http://dogs.are.great/');
-    const sentryTraceHeader = request.getHeader('sentry-trace') as string;
+    const sentryTraceHeader = request.getHeader('sentry-trace');
+    const tracestateHeader = request.getHeader('tracestate');
 
     expect(sentryTraceHeader).toBeDefined();
-    expect(TRACEPARENT_REGEXP.test(sentryTraceHeader)).toBe(true);
+    expect(tracestateHeader).toBeDefined();
+    expect(TRACEPARENT_REGEXP.test(sentryTraceHeader as string)).toBe(true);
   });
 
-  it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {
+  it("doesn't attach tracing headers to outgoing sentry requests", () => {
     nock('http://squirrelchasers.ingest.sentry.io')
       .get('/api/12312012/store/')
       .reply(200);
@@ -87,7 +89,9 @@ describe('tracing', () => {
 
     const request = http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
     const sentryTraceHeader = request.getHeader('sentry-trace');
+    const tracestateHeader = request.getHeader('tracestate');
 
     expect(sentryTraceHeader).not.toBeDefined();
+    expect(tracestateHeader).not.toBeDefined();
   });
 });
