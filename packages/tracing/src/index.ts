@@ -23,6 +23,7 @@ export { addExtensionMethods };
 
 export {
   extractSentrytraceData,
+  extractTracestateData,
   getActiveTransaction,
   hasTracingEnabled,
   SENTRY_TRACE_REGEX,

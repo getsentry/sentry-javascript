@@ -1,4 +1,4 @@
-import { extractSentrytraceData } from '../src/utils';
+import { extractSentrytraceData, extractTracestateData } from '../src/utils';
 
 describe('extractSentrytraceData', () => {
   test('no sample', () => {
@@ -60,5 +60,61 @@ describe('extractSentrytraceData', () => {
 
     // bogus sampling decision
     expect(extractSentrytraceData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
+  });
+});
+
+describe('extractTracestateData', () => {
+  it.each([
+    // sentry only
+    ['sentry only', 'sentry=doGsaREgReaT', 'sentry=doGsaREgReaT', undefined],
+    // sentry only, invalid (`!` isn't a valid base64 character)
+    ['sentry only, invalid', 'sentry=doGsaREgReaT!', undefined, undefined],
+    // stuff before
+    ['stuff before', 'maisey=silly,sentry=doGsaREgReaT', 'sentry=doGsaREgReaT', 'maisey=silly'],
+    // stuff after
+    ['stuff after', 'sentry=doGsaREgReaT,maisey=silly', 'sentry=doGsaREgReaT', 'maisey=silly'],
+    // stuff before and after
+    [
+      'stuff before and after',
+      'charlie=goofy,sentry=doGsaREgReaT,maisey=silly',
+      'sentry=doGsaREgReaT',
+      'charlie=goofy,maisey=silly',
+    ],
+    // multiple before
+    [
+      'multiple before',
+      'charlie=goofy,maisey=silly,sentry=doGsaREgReaT',
+      'sentry=doGsaREgReaT',
+      'charlie=goofy,maisey=silly',
+    ],
+    // multiple after
+    [
+      'multiple after',
+      'sentry=doGsaREgReaT,charlie=goofy,maisey=silly',
+      'sentry=doGsaREgReaT',
+      'charlie=goofy,maisey=silly',
+    ],
+    // multiple before and after
+    [
+      'multiple before and after',
+      'charlie=goofy,maisey=silly,sentry=doGsaREgReaT,bodhi=floppy,cory=loyal',
+      'sentry=doGsaREgReaT',
+      'charlie=goofy,maisey=silly,bodhi=floppy,cory=loyal',
+    ],
+    // only third-party data
+    ['only third-party data', 'maisey=silly', undefined, 'maisey=silly'],
+    // invalid third-party data, valid sentry data
+    [
+      'invalid third-party data, valid sentry data',
+      'maisey_is_silly,sentry=doGsaREgReaT',
+      'sentry=doGsaREgReaT',
+      undefined,
+    ],
+    // valid third party data, invalid sentry data
+    ['valid third-party data, invalid sentry data', 'maisey=silly,sentry=doGsaREgReaT!', undefined, 'maisey=silly'],
+    // nothing valid at all
+    ['nothing valid at all', 'maisey_is_silly,sentry=doGsaREgReaT!', undefined, undefined],
+  ])('%s', (_testTitle: string, header: string, sentry?: string, thirdparty?: string): void => {
+    expect(extractTracestateData(header)).toEqual({ sentry, thirdparty });
   });
 });
