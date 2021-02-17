@@ -79,7 +79,11 @@ export function transactionToSentryRequest(event: Event, api: API): SentryReques
   // so we have to decode and reinflate it
   let reinflatedTracestate;
   try {
-    const encodedSentryValue = (tracestate?.sentry as string).replace('sentry=', '');
+    // Because transaction metadata passes through a number of locations (transactionContext, transaction, event during
+    // processing, event as sent), each with different requirements, all of the parts are typed as optional. That said,
+    // if we get to this point and either `tracestate` or `tracestate.sentry` are undefined, something's gone very wrong.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const encodedSentryValue = tracestate!.sentry!.replace('sentry=', '');
     reinflatedTracestate = JSON.parse(base64ToUnicode(encodedSentryValue));
   } catch (err) {
     logger.warn(err);
