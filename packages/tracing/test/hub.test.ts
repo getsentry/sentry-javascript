@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { BrowserClient } from '@sentry/browser';
-import { Hub } from '@sentry/hub';
+import { BrowserClient, init as initSDK } from '@sentry/browser';
+import { getCurrentHub, Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
 import { TransactionSamplingMethod } from '@sentry/types';
 import * as utilsModule from '@sentry/utils'; // for mocking
@@ -9,7 +9,7 @@ import { logger } from '@sentry/utils';
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
 import { Transaction } from '../src/transaction';
-import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
+import { computeTracestateValue, extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
 import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName, testOnlyIfNodeVersionAtLeast } from './testutils';
 
 addExtensionMethods();
@@ -27,6 +27,61 @@ addDOMPropertiesToGlobal(['XMLHttpRequest', 'Event', 'location', 'document']);
 describe('Hub', () => {
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('transaction creation', () => {
+    it('uses inherited values when given in transaction context', () => {
+      const transactionContext = {
+        name: 'dogpark',
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        tracestate: 'doGsaREgReaT',
+      };
+      const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+      const transaction = hub.startTransaction(transactionContext);
+
+      expect(transaction).toEqual(expect.objectContaining(transactionContext));
+    });
+
+    it('creates a new tracestate value if not given one in transaction context', () => {
+      const environment = 'dogpark';
+      const release = 'off.leash.park';
+      const hub = new Hub(
+        new BrowserClient({
+          dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+          release,
+          environment,
+        }),
+      );
+      const transaction = hub.startTransaction({ name: 'FETCH /ball' });
+
+      const b64Value = computeTracestateValue({
+        trace_id: transaction.traceId,
+        environment,
+        release,
+        public_key: 'dogsarebadatkeepingsecrets',
+      });
+
+      expect(transaction.tracestate).toEqual(b64Value);
+    });
+
+    it('uses default environment if none given', () => {
+      const release = 'off.leash.park';
+      initSDK({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        release,
+      });
+      const transaction = getCurrentHub().startTransaction({ name: 'FETCH /ball' });
+
+      const b64Value = computeTracestateValue({
+        trace_id: transaction.traceId,
+        environment: 'production',
+        release,
+        public_key: 'dogsarebadatkeepingsecrets',
+      });
+
+      expect(transaction.tracestate).toEqual(b64Value);
+    });
   });
 
   describe('getTransaction()', () => {

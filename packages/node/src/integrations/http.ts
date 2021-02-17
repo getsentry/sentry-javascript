@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration, Span } from '@sentry/types';
+import { Integration, Span, TraceHeaders } from '@sentry/types';
 import { fill, logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -115,9 +115,9 @@ function _createWrappedRequestMethodFactory(
             op: 'request',
           });
 
-          const sentryTraceHeader = span.toTraceparent();
-          logger.log(`[Tracing] Adding sentry-trace header to outgoing request: ${sentryTraceHeader}`);
-          requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
+          const traceHeaders = span.getTraceHeaders();
+          logger.log(`[Tracing] Adding sentry-trace and tracestate headers to outgoing request.`);
+          requestOptions.headers = { ...requestOptions.headers, ...(traceHeaders as TraceHeaders) };
         }
       }
 
