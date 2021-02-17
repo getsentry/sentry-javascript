@@ -119,3 +119,12 @@ export enum TransactionSamplingMethod {
   Rate = 'client_rate',
   Inheritance = 'inheritance',
 }
+
+export interface TransactionMetadata {
+  transactionSampling?: { rate?: number; method?: string };
+
+  /** The sentry half of a transaction's tracestate header, used for dynamic sampling */
+  tracestate?: {
+    sentry?: string;
+  };
+}

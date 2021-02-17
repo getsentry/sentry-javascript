@@ -1,11 +1,16 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { DebugMeta, Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
+import {
+  Event,
+  Measurements,
+  Transaction as TransactionInterface,
+  TransactionContext,
+  TransactionMetadata,
+} from '@sentry/types';
 import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 import { computeTracestateValue } from './utils';
 
-type TransactionMetadata = Pick<DebugMeta, 'transactionSampling' | 'tracestate'>;
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
