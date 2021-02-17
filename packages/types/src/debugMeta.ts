@@ -4,6 +4,9 @@
 export interface DebugMeta {
   images?: Array<DebugImage>;
   transactionSampling?: { rate?: number; method?: string };
+
+  /** The Sentry portion of a transaction's tracestate header, used for dynamic sampling */
+  tracestate?: string;
 }
 
 /**

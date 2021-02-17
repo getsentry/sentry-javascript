@@ -195,14 +195,14 @@ export function fetchCallback(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (typeof headers.append === 'function') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        headers.append('sentry-trace', span.toTraceparent());
+        headers.append(Object.entries(span.getTraceHeaders()));
       } else if (Array.isArray(headers)) {
-        headers = [...headers, ['sentry-trace', span.toTraceparent()]];
+        headers = [...headers, ...Object.entries(span.getTraceHeaders())];
       } else {
-        headers = { ...headers, 'sentry-trace': span.toTraceparent() };
+        headers = { ...headers, ...span.getTraceHeaders() };
       }
     } else {
-      headers = { 'sentry-trace': span.toTraceparent() };
+      headers = span.getTraceHeaders();
     }
     options.headers = headers;
   }
@@ -261,7 +261,11 @@ export function xhrCallback(
 
     if (handlerData.xhr.setRequestHeader) {
       try {
-        handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
+        const sentryHeaders = span.getTraceHeaders();
+        handlerData.xhr.setRequestHeader('sentry-trace', sentryHeaders['sentry-trace']);
+        if (sentryHeaders.tracestate) {
+          handlerData.xhr.setRequestHeader('tracestate', sentryHeaders.tracestate);
+        }
       } catch (_) {
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
       }
