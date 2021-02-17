@@ -7,6 +7,14 @@ import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRD
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
 
+// This is a normal base64 regex, modified to reflect that fact that we strip the trailing = or == off
+const stripped_base64 = '([a-zA-Z0-9+/]{4})*([a-zA-Z0-9+/]{2,3})?';
+
+const TRACESTATE_HEADER_REGEX = new RegExp(
+  `sentry=(${stripped_base64})` +  // our part of the header - should be the only part or at least the first part
+    `(,\\w+=\\w+)*`, // any number of copies of a comma followed by `name=value`
+);
+
 beforeAll(() => {
   addExtensionMethods();
   // @ts-ignore need to override global Request because it's not in the jest environment (even with an
@@ -57,7 +65,7 @@ describe('callbacks', () => {
   const fetchHandlerData: FetchData = {
     args: ['http://dogs.are.great/', {}],
     fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
-    startTimestamp: 1356996072000,
+    startTimestamp: 2012112120121231,
   };
   const xhrHandlerData: XHRData = {
     xhr: {
@@ -72,18 +80,27 @@ describe('callbacks', () => {
       // setRequestHeader: XMLHttpRequest.prototype.setRequestHeader,
       setRequestHeader,
     },
-    startTimestamp: 1353501072000,
+    startTimestamp: 2012112120121231,
   };
-  const endTimestamp = 1356996072000;
+  const endTimestamp = 2013041520130908;
 
   beforeAll(() => {
-    hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+    hub = new Hub(
+      new BrowserClient({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        environment: 'dogpark',
+        release: 'off.leash.park',
+
+        tracesSampleRate: 1,
+      }),
+    );
     makeMain(hub);
   });
 
   beforeEach(() => {
-    transaction = hub.startTransaction({ name: 'organizations/users/:userid', op: 'pageload' }) as Transaction;
+    transaction = hub.startTransaction({ name: 'meetNewDogFriend', op: 'wag.tail' }) as Transaction;
     hub.configureScope(scope => scope.setSpan(transaction));
+    jest.clearAllMocks();
   });
 
   describe('fetchCallback()', () => {
@@ -111,20 +128,17 @@ describe('callbacks', () => {
       expect(spans).toEqual({});
     });
 
-    it('does not add fetch request headers if tracing is disabled', () => {
+    it('does not add tracing headers if tracing is disabled', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
 
       // make a local copy so the global one doesn't get mutated
-      const handlerData: FetchData = {
-        args: ['http://dogs.are.great/', {}],
-        fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
-        startTimestamp: 1353501072000,
-      };
+      const handlerData = { ...fetchHandlerData };
 
       fetchCallback(handlerData, alwaysCreateSpan, {});
 
       const headers = (handlerData.args[1].headers as Record<string, string>) || {};
       expect(headers['sentry-trace']).not.toBeDefined();
+      expect(headers['tracestate']).not.toBeDefined();
     });
 
     it('creates and finishes fetch span on active transaction', () => {
@@ -179,8 +193,15 @@ describe('callbacks', () => {
       expect(newSpan!.status).toBe(SpanStatus.fromHttpCode(404));
     });
 
-    it('adds sentry-trace header to fetch requests', () => {
-      // TODO
+    it('adds tracing headers to fetch requests', () => {
+      // make a local copy so the global one doesn't get mutated
+      const handlerData = { ...fetchHandlerData };
+
+      fetchCallback(handlerData, alwaysCreateSpan, {});
+
+      const headers = (handlerData.args[1].headers as Record<string, string>) || {};
+      expect(headers['sentry-trace']).toBeDefined();
+      expect(headers['tracestate']).toBeDefined();
     });
   });
 
@@ -201,7 +222,7 @@ describe('callbacks', () => {
       expect(spans).toEqual({});
     });
 
-    it('does not add xhr request headers if tracing is disabled', () => {
+    it('does not add tracing headers if tracing is disabled', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
 
       xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
@@ -209,13 +230,14 @@ describe('callbacks', () => {
       expect(setRequestHeader).not.toHaveBeenCalled();
     });
 
-    it('adds sentry-trace header to XHR requests', () => {
+    it('adds tracing headers to XHR requests', () => {
       xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
 
       expect(setRequestHeader).toHaveBeenCalledWith(
         'sentry-trace',
         expect.stringMatching(tracingUtils.TRACEPARENT_REGEXP),
       );
+      expect(setRequestHeader).toHaveBeenCalledWith('tracestate', expect.stringMatching(TRACESTATE_HEADER_REGEX));
     });
 
     it('creates and finishes XHR span on active transaction', () => {
