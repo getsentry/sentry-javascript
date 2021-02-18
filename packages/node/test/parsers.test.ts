@@ -40,6 +40,25 @@ describe('parsers.ts', () => {
         });
     });
 
+    test('parseStack with ESM module names', async () => {
+      expect.assertions(1);
+
+      const framesWithFilePath: stacktrace.StackFrame[] = [
+        {
+          columnNumber: 1,
+          fileName: 'file:///var/task/index.js',
+          functionName: 'module.exports../src/index.ts.fxn1',
+          lineNumber: 1,
+          methodName: 'fxn1',
+          native: false,
+          typeName: 'module.exports../src/index.ts',
+        },
+      ];
+      return Parsers.parseStack(framesWithFilePath).then(_ => {
+        expect(spy).toHaveBeenCalledTimes(1);
+      });
+    });
+
     test('parseStack with adding different file', done => {
       expect.assertions(2);
       let mockCalls = 0;
