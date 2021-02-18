@@ -18,6 +18,7 @@
   "dependencies": {
     "@sentry/minimal": "6.1.0",
     "@sentry/node": "6.1.0",
+    "@sentry/tracing": "6.1.0",
     "@sentry/types": "6.1.0",
     "@sentry/utils": "6.1.0",
     "@types/aws-lambda": "^8.10.62",
