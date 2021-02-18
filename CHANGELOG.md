@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.2.0
+
+- [tracing] feat: Mongoose tracing support added to MongoDB (#3252)
+- [tracing] fix: Add missing `find` method from mongo tracing list (#3253)
+- [tracing] fix: Create `spanRecorder` whenever transactions are sampled (#3255)
+- [node] fix: Parse ESM based frames with `file://` protocol (#3264)
+- [react] fix: Remove react-dom peer dependency for RN (#3250)
+- [ember] fix: Fixing fetching config during build step (#3246)
+- [serverless]: fix: Handle incoming `sentry-trace` header (#3261)
+
 ## 6.1.0
 
 We updated the way how we calculate errored and crashed sessions with this update. Please be aware that some numbers might change for you and they now should reflect the actual reality. Visit [our docs](https://docs.sentry.io/platforms/javascript/configuration/releases/#release-health) for more information.
