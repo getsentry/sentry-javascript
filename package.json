@@ -29,6 +29,7 @@
     "packages/hub",
     "packages/integrations",
     "packages/minimal",
+    "packages/nextjs",
     "packages/node",
     "packages/react",
     "packages/serverless",
@@ -36,8 +37,8 @@
     "packages/types",
     "packages/typescript",
     "packages/utils",
-    "packages/wasm",
-    "packages/vue"
+    "packages/vue",
+    "packages/wasm"
   ],
   "devDependencies": {
     "@google-cloud/storage": "^5.7.0",
