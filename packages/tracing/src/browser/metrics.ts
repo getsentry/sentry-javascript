@@ -287,9 +287,9 @@ function addNavigationSpans(transaction: Transaction, entry: Record<string, any>
   addPerformanceNavigationTiming({ transaction, entry, event: 'domContentLoadedEvent', timeOrigin });
   addPerformanceNavigationTiming({ transaction, entry, event: 'loadEvent', timeOrigin });
   addPerformanceNavigationTiming({ transaction, entry, event: 'connect', timeOrigin });
-  addPerformanceNavigationTiming({ transaction, entry, event: 'secureConnection', timeOrigin, eventEnd: 'connectEnd', description: 'secureConnection (TLS)' });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'secureConnection', timeOrigin, eventEnd: 'connectEnd', description: 'TLS/SSL' });
   addPerformanceNavigationTiming({ transaction, entry, event: 'fetch', timeOrigin, eventEnd: 'domainLookupStart', description: 'cache' });
-  addPerformanceNavigationTiming({ transaction, entry, event: 'domainLookup', timeOrigin });
+  addPerformanceNavigationTiming({ transaction, entry, event: 'domainLookup', timeOrigin, description: 'DNS' });
   addRequest(transaction, entry, timeOrigin);
 }
 
