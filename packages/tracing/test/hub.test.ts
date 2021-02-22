@@ -30,46 +30,69 @@ describe('Hub', () => {
   });
 
   describe('transaction creation', () => {
+    const hub = new Hub(
+      new BrowserClient({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        environment: 'dogpark',
+        release: 'off.leash.trail',
+      }),
+    );
+
     it('uses inherited values when given in transaction context', () => {
       const transactionContext = {
-        name: 'dogpark',
+        name: 'FETCH /ball',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
-        metadata: { tracestate: { sentry: 'sentry=doGsaREgReaT' } },
+        metadata: { tracestate: { sentry: 'sentry=doGsaREgReaT', thirdparty: 'maisey=silly;charlie=goofy' } },
       };
-      const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+
       const transaction = hub.startTransaction(transactionContext);
 
-      expect(transaction).toEqual(
-        expect.objectContaining({
-          name: 'dogpark',
-          traceId: '12312012123120121231201212312012',
-          parentSpanId: '1121201211212012',
-          metadata: expect.objectContaining({ tracestate: { sentry: 'sentry=doGsaREgReaT' } }),
-        }),
-      );
+      expect(transaction).toEqual(expect.objectContaining(transactionContext));
     });
 
-    it('creates a new tracestate value if not given one in transaction context', () => {
-      const environment = 'dogpark';
-      const release = 'off.leash.park';
-      const hub = new Hub(
-        new BrowserClient({
-          dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-          release,
-          environment,
-        }),
-      );
+    it('creates a new tracestate value if no tracestate data in transaction context', () => {
       const transaction = hub.startTransaction({ name: 'FETCH /ball' });
 
       const b64Value = computeTracestateValue({
         traceId: transaction.traceId,
-        environment,
-        release,
+        environment: 'dogpark',
+        release: 'off.leash.trail',
         publicKey: 'dogsarebadatkeepingsecrets',
       });
 
       expect(transaction.metadata?.tracestate?.sentry).toEqual(`sentry=${b64Value}`);
+    });
+
+    it('creates a new tracestate value if tracestate data in transaction context only contains third party data', () => {
+      const transactionContext = {
+        name: 'FETCH /ball',
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        metadata: { tracestate: { thirdparty: 'maisey=silly;charlie=goofy' } },
+      };
+
+      const transaction = hub.startTransaction(transactionContext);
+
+      const b64Value = computeTracestateValue({
+        traceId: transaction.traceId,
+        environment: 'dogpark',
+        release: 'off.leash.trail',
+        publicKey: 'dogsarebadatkeepingsecrets',
+      });
+
+      expect(transaction).toEqual(
+        expect.objectContaining({
+          metadata: {
+            tracestate: {
+              // a new value for `sentry` is created
+              sentry: `sentry=${b64Value}`,
+              // the third-party value isn't lost
+              thirdparty: 'maisey=silly;charlie=goofy',
+            },
+          },
+        }),
+      );
     });
 
     it('uses default environment if none given', () => {
