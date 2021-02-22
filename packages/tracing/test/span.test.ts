@@ -124,7 +124,7 @@ describe('Span', () => {
       const transaction = new Transaction({ name: 'FETCH /ball', traceId }, hub);
       const span = transaction.startChild({ op: 'dig.hole' });
 
-      expect(span.toTracestate()).toEqual(computedTracestate);
+      expect(span.getTraceHeaders().tracestate).toEqual(computedTracestate);
     });
 
     test('third-party data', () => {
@@ -132,7 +132,7 @@ describe('Span', () => {
       transaction.setMetadata({ tracestate: { sentry: computedTracestate, thirdparty: thirdpartyData } });
       const span = transaction.startChild({ op: 'dig.hole' });
 
-      expect(span.toTracestate()).toEqual(`${computedTracestate},${thirdpartyData}`);
+      expect(span.getTraceHeaders().tracestate).toEqual(`${computedTracestate},${thirdpartyData}`);
     });
 
     test('orphan span', () => {
@@ -140,7 +140,7 @@ describe('Span', () => {
       const span = new Span({ op: 'dig.hole' });
       span.traceId = traceId;
 
-      expect(span.toTracestate()).toEqual(computedTracestate);
+      expect(span.getTraceHeaders().tracestate).toEqual(computedTracestate);
     });
   });
 

@@ -251,20 +251,6 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public toTracestate(): string | undefined {
-    const sentryTracestate = this.transaction?.metadata?.tracestate?.sentry || this._getNewTracestate();
-    let thirdpartyTracestate = this.transaction?.metadata?.tracestate?.thirdparty;
-
-    // if there's third-party data, add a leading comma; otherwise, convert from `undefined` to the empty string, so the
-    // end result doesn’t come out as `sentry=xxxxxundefined`
-    thirdpartyTracestate = thirdpartyTracestate ? `,${thirdpartyTracestate}` : '';
-
-    return `${sentryTracestate}${thirdpartyTracestate}`;
-  }
-
-  /**
-   * @inheritDoc
-   */
   public toContext(): SpanContext {
     return dropUndefinedKeys({
       data: this.data,
@@ -304,7 +290,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public getTraceHeaders(): TraceHeaders {
-    const tracestate = this.toTracestate();
+    const tracestate = this._toTracestate();
 
     return {
       'sentry-trace': this.toTraceparent(),
@@ -394,5 +380,19 @@ export class Span implements SpanInterface {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       publicKey: dsn.publicKey!,
     })}`;
+  }
+
+  /**
+   * Return a tracestate-compatible header string. Returns undefined if there is no client or no DSN.
+   */
+  private _toTracestate(): string | undefined {
+    const sentryTracestate = this.transaction?.metadata?.tracestate?.sentry || this._getNewTracestate();
+    let thirdpartyTracestate = this.transaction?.metadata?.tracestate?.thirdparty;
+
+    // if there's third-party data, add a leading comma; otherwise, convert from `undefined` to the empty string, so the
+    // end result doesn’t come out as `sentry=xxxxxundefined`
+    thirdpartyTracestate = thirdpartyTracestate ? `,${thirdpartyTracestate}` : '';
+
+    return `${sentryTracestate}${thirdpartyTracestate}`;
   }
 }
