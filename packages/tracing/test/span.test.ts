@@ -95,10 +95,10 @@ describe('Span', () => {
 
   describe('toTraceparent', () => {
     test('simple', () => {
-      expect(new Span().toTraceparent()).toMatch(SENTRY_TRACE_REGEX);
+      expect(new Span().getTraceHeaders()['sentry-trace']).toMatch(SENTRY_TRACE_REGEX);
     });
     test('with sample', () => {
-      expect(new Span({ sampled: true }).toTraceparent()).toMatch(SENTRY_TRACE_REGEX);
+      expect(new Span({ sampled: true }).getTraceHeaders()['sentry-trace']).toMatch(SENTRY_TRACE_REGEX);
     });
   });
 
@@ -159,7 +159,7 @@ describe('Span', () => {
 
       const headers = span.getTraceHeaders();
 
-      expect(headers['sentry-trace']).toEqual(span.toTraceparent());
+      expect(headers['sentry-trace']).toEqual(`${span.traceId}-${span.spanId}-1`);
       expect(headers.tracestate).toEqual(transaction.metadata?.tracestate?.sentry);
     });
   });

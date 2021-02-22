@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/hub';
 import { Hub, Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
-import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
 import { computeTracestateValue } from './utils';
@@ -241,11 +241,9 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    let sampledString = '';
-    if (this.sampled !== undefined) {
-      sampledString = this.sampled ? '-1' : '-0';
-    }
-    return `${this.traceId}-${this.spanId}${sampledString}`;
+    logger.warn('Direct use of `span.toTraceparent` is deprecated. Use `span.getTraceHeaders` instead.');
+
+    return this._toSentrytrace();
   }
 
   /**
@@ -293,7 +291,7 @@ export class Span implements SpanInterface {
     const tracestate = this._toTracestate();
 
     return {
-      'sentry-trace': this.toTraceparent(),
+      'sentry-trace': this._toSentrytrace(),
       ...(tracestate && { tracestate }),
     };
   }
@@ -380,6 +378,17 @@ export class Span implements SpanInterface {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       publicKey: dsn.publicKey!,
     })}`;
+  }
+
+  /**
+   * Return a traceparent-compatible header string.
+   */
+  private _toSentrytrace(): string {
+    let sampledString = '';
+    if (this.sampled !== undefined) {
+      sampledString = this.sampled ? '-1' : '-0';
+    }
+    return `${this.traceId}-${this.spanId}${sampledString}`;
   }
 
   /**
