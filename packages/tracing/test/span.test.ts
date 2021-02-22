@@ -2,7 +2,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, Scope } from '@sentry/hub';
 
 import { Span, SpanStatus, Transaction } from '../src';
-import { TRACEPARENT_REGEXP } from '../src/utils';
+import { SENTRY_TRACE_REGEX } from '../src/utils';
 
 describe('Span', () => {
   let hub: Hub;
@@ -94,10 +94,10 @@ describe('Span', () => {
 
   describe('toTraceparent', () => {
     test('simple', () => {
-      expect(new Span().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
+      expect(new Span().toTraceparent()).toMatch(SENTRY_TRACE_REGEX);
     });
     test('with sample', () => {
-      expect(new Span({ sampled: true }).toTraceparent()).toMatch(TRACEPARENT_REGEXP);
+      expect(new Span({ sampled: true }).toTraceparent()).toMatch(SENTRY_TRACE_REGEX);
     });
   });
 

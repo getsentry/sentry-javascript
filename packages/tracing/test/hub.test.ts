@@ -9,7 +9,7 @@ import { logger } from '@sentry/utils';
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
 import { Transaction } from '../src/transaction';
-import { computeTracestateValue, extractSentrytraceData, TRACEPARENT_REGEXP } from '../src/utils';
+import { computeTracestateValue, extractSentrytraceData, SENTRY_TRACE_REGEX } from '../src/utils';
 import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName, testOnlyIfNodeVersionAtLeast } from './testutils';
 
 addExtensionMethods();
@@ -63,10 +63,10 @@ describe('Hub', () => {
       const transaction = hub.startTransaction({ name: 'FETCH /ball' });
 
       const b64Value = computeTracestateValue({
-        trace_id: transaction.traceId,
+        traceId: transaction.traceId,
         environment,
         release,
-        public_key: 'dogsarebadatkeepingsecrets',
+        publicKey: 'dogsarebadatkeepingsecrets',
       });
 
       expect(transaction.metadata?.tracestate?.sentry).toEqual(`sentry=${b64Value}`);
@@ -81,10 +81,10 @@ describe('Hub', () => {
       const transaction = getCurrentHub().startTransaction({ name: 'FETCH /ball' });
 
       const b64Value = computeTracestateValue({
-        trace_id: transaction.traceId,
+        traceId: transaction.traceId,
         environment: 'production',
         release,
-        public_key: 'dogsarebadatkeepingsecrets',
+        publicKey: 'dogsarebadatkeepingsecrets',
       });
 
       expect(transaction.metadata?.tracestate?.sentry).toEqual(`sentry=${b64Value}`);
@@ -404,7 +404,7 @@ describe('Hub', () => {
 
           // check that sentry-trace header is added to request
           expect(headers).toEqual(
-            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(SENTRY_TRACE_REGEX) }),
           );
 
           // check that sampling decision is passed down correctly
@@ -446,7 +446,7 @@ describe('Hub', () => {
 
           // check that sentry-trace header is added to request
           expect(headers).toEqual(
-            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(SENTRY_TRACE_REGEX) }),
           );
 
           // check that sampling decision is passed down correctly

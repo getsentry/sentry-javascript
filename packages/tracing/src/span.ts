@@ -380,11 +380,11 @@ export class Span implements SpanInterface {
     // `dsn.publicKey` required and remove the `!`.
 
     return `sentry=${computeTracestateValue({
-      trace_id: this.traceId,
+      traceId: this.traceId,
       environment,
       release,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      public_key: dsn.publicKey!,
+      publicKey: dsn.publicKey!,
     })}`;
   }
 }

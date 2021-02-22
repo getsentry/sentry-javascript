@@ -1,7 +1,7 @@
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
-import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
+import { addExtensionMethods, SENTRY_TRACE_REGEX, Span, Transaction } from '@sentry/tracing';
 import * as http from 'http';
 import * as nock from 'nock';
 
@@ -77,7 +77,7 @@ describe('tracing', () => {
 
     expect(sentryTraceHeader).toBeDefined();
     expect(tracestateHeader).toBeDefined();
-    expect(TRACEPARENT_REGEXP.test(sentryTraceHeader as string)).toBe(true);
+    expect(SENTRY_TRACE_REGEX.test(sentryTraceHeader as string)).toBe(true);
   });
 
   it("doesn't attach tracing headers to outgoing sentry requests", () => {

@@ -147,10 +147,10 @@ export function secToMs(time: number): number {
 export { stripUrlQueryAndFragment } from '@sentry/utils';
 
 type SentryTracestateData = {
-  trace_id: string;
+  traceId: string;
   environment: string | undefined | null;
   release: string | undefined | null;
-  public_key: string;
+  publicKey: string;
 };
 
 /**
