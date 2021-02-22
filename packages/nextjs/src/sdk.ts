@@ -1,13 +1,29 @@
 import { ReportDialogOptions } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/node';
+import { dynamicRequire } from '@sentry/utils';
 
 import { NextjsClient } from './common/NextjsClient';
+import { NextjsOptions } from './common/NextjsOptions';
 
 /**
- * TODO
+ * The Sentry NextJS SDK Client.
+ *
+ * TODO: docs, examples...
+ *
  */
-export function init(): void {
-  // TODO
+export function init(initOptions: NextjsOptions): void {
+  if (isRunningInNode()) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    dynamicRequire(module, 'node module').init(initOptions); // TODO: init correct node module
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    dynamicRequire(module, 'browser module').init(initOptions); // TODO: init correct node module
+  }
+}
+
+/** Returns whether this is being run in Node. */
+function isRunningInNode(): boolean {
+  return typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
 }
 
 /**
