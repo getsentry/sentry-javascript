@@ -149,8 +149,11 @@ export interface Span extends SpanContext {
    */
   isSuccess(): boolean;
 
-  /** Return a traceparent compatible header string */
+  /** Return a traceparent-compatible header string */
   toTraceparent(): string;
+
+  /** Return a tracestate-compatible header string. Returns undefined if there is no client or no DSN. */
+  toTracestate(): string | undefined;
 
   /** Returns the current span properties as a `SpanContext` */
   toContext(): SpanContext;

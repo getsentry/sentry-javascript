@@ -1,8 +1,9 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, Scope } from '@sentry/hub';
+import * as hubPackage from '@sentry/hub';
 
 import { Span, SpanStatus, Transaction } from '../src';
-import { SENTRY_TRACE_REGEX } from '../src/utils';
+import { computeTracestateValue, SENTRY_TRACE_REGEX } from '../src/utils';
 
 describe('Span', () => {
   let hub: Hub;
@@ -98,6 +99,48 @@ describe('Span', () => {
     });
     test('with sample', () => {
       expect(new Span({ sampled: true }).toTraceparent()).toMatch(SENTRY_TRACE_REGEX);
+    });
+  });
+
+  describe('toTracestate', () => {
+    const publicKey = 'dogsarebadatkeepingsecrets';
+    const release = 'off.leash.trail';
+    const environment = 'dogpark';
+    const traceId = '12312012123120121231201212312012';
+
+    const computedTracestate = `sentry=${computeTracestateValue({ traceId, environment, release, publicKey })}`;
+    const thirdpartyData = 'maisey=silly,charlie=goofy';
+
+    const hub = new Hub(
+      new BrowserClient({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        tracesSampleRate: 1,
+        release,
+        environment,
+      }),
+    );
+
+    test('no third-party data', () => {
+      const transaction = new Transaction({ name: 'FETCH /ball', traceId }, hub);
+      const span = transaction.startChild({ op: 'dig.hole' });
+
+      expect(span.toTracestate()).toEqual(computedTracestate);
+    });
+
+    test('third-party data', () => {
+      const transaction = new Transaction({ name: 'FETCH /ball' }, hub);
+      transaction.setMetadata({ tracestate: { sentry: computedTracestate, thirdparty: thirdpartyData } });
+      const span = transaction.startChild({ op: 'dig.hole' });
+
+      expect(span.toTracestate()).toEqual(`${computedTracestate},${thirdpartyData}`);
+    });
+
+    test('orphan span', () => {
+      jest.spyOn(hubPackage, 'getCurrentHub').mockReturnValueOnce(hub);
+      const span = new Span({ op: 'dig.hole' });
+      span.traceId = traceId;
+
+      expect(span.toTracestate()).toEqual(computedTracestate);
     });
   });
 
