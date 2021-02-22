@@ -15,8 +15,12 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@sentry/browser": "^6.2.0",
+    "@sentry/node": "^6.2.0"
+  },
   "devDependencies": {
+    "@sentry/types": "^6.2.0",
     "eslint": "^7.20.0",
     "rimraf": "^3.0.2"
   },
