@@ -221,8 +221,11 @@ describe('tracingHandler', () => {
     expect(startTransaction).toHaveBeenCalled();
   });
 
-  it("pulls parent's data from tracing header on the request", () => {
-    req.headers = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
+  it('pulls data from tracing headers on the request', () => {
+    req.headers = {
+      'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+      tracestate: 'sentry=doGsaREgReaT',
+    };
 
     sentryTracingMiddleware(req, res, next);
 
@@ -232,6 +235,7 @@ describe('tracingHandler', () => {
     expect(transaction.traceId).toEqual('12312012123120121231201212312012');
     expect(transaction.parentSpanId).toEqual('1121201211212012');
     expect(transaction.sampled).toEqual(false);
+    expect(transaction.metadata?.tracestate).toEqual({ sentry: 'sentry=doGsaREgReaT' });
   });
 
   it('extracts request data for sampling context', () => {
