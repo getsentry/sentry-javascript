@@ -93,6 +93,7 @@ describe('Span', () => {
     });
   });
 
+  // TODO Once toTraceparent is removed, we obv don't need these tests anymore
   describe('toTraceparent', () => {
     test('simple', () => {
       expect(new Span().getTraceHeaders()['sentry-trace']).toMatch(SENTRY_TRACE_REGEX);
