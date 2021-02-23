@@ -1,9 +1,9 @@
 import { ReportDialogOptions } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/node';
-import { dynamicRequire } from '@sentry/utils';
 
-import { NextjsClient } from './common/NextjsClient';
-import { NextjsOptions } from './common/NextjsOptions';
+import { NextjsClientInterface } from './common/nextjsClient';
+import { NextjsOptions } from './common/nextjsOptions';
+import { dynamicRequireNextjsModule } from './utils';
 
 /**
  * The Sentry NextJS SDK Client.
@@ -12,18 +12,10 @@ import { NextjsOptions } from './common/NextjsOptions';
  *
  */
 export function init(initOptions: NextjsOptions): void {
-  if (isRunningInNode()) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    dynamicRequire(module, 'node module').init(initOptions); // TODO: init correct node module
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    dynamicRequire(module, 'browser module').init(initOptions); // TODO: init correct node module
-  }
-}
-
-/** Returns whether this is being run in Node. */
-function isRunningInNode(): boolean {
-  return typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
+  // eslint-disable-next-line no-console
+  console.log('Initializing NextJS...');
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  dynamicRequireNextjsModule().init(initOptions);
 }
 
 /**
@@ -32,7 +24,7 @@ function isRunningInNode(): boolean {
  * @param dialogOptions Everything is optional, we try to fetch all the info we need from the global scope.
  */
 export function showReportDialog(dialogOptions: ReportDialogOptions = {}): void {
-  const client = getCurrentHub().getClient<NextjsClient>();
+  const client = getCurrentHub().getClient<NextjsClientInterface>();
   if (client) {
     client.showReportDialog(dialogOptions);
   }
@@ -45,7 +37,7 @@ export function showReportDialog(dialogOptions: ReportDialogOptions = {}): void 
  * @param timeout Maximum time in ms the client should wait.
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient<NextjsClient>();
+  const client = getCurrentHub().getClient<NextjsClientInterface>();
   return client ? client.flush(timeout) : Promise.reject(false);
 }
 
@@ -56,6 +48,6 @@ export async function flush(timeout?: number): Promise<boolean> {
  * @param timeout Maximum time in ms the client should wait.
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient<NextjsClient>();
+  const client = getCurrentHub().getClient<NextjsClientInterface>();
   return client ? client.close(timeout) : Promise.reject(false);
 }
