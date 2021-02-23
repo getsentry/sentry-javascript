@@ -5,7 +5,7 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
-import { extractSentrytraceData, secToMs } from '../utils';
+import { extractSentrytraceData, extractTracestateData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
@@ -191,7 +191,7 @@ export class BrowserTracing implements Integration {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
 
-    const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
+    const parentContextFromHeader = context.op === 'pageload' ? extractTraceDataFromMetaTags() : undefined;
 
     const expandedContext = {
       ...context,
@@ -230,14 +230,22 @@ export class BrowserTracing implements Integration {
 }
 
 /**
- * Gets transaction context from a sentry-trace meta.
+ * Gets transaction context data from `sentry-trace` and `tracestate` <meta> tags.
  *
- * @returns Transaction context data from the header or undefined if there's no header or the header is malformed
+ * @returns Transaction context data or undefined neither tag exists or has valid data
  */
-export function getHeaderContext(): Partial<TransactionContext> | undefined {
-  const header = getMetaContent('sentry-trace');
-  if (header) {
-    return extractSentrytraceData(header);
+export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | undefined {
+  const sentrytraceValue = getMetaContent('sentry-trace');
+  const tracestateValue = getMetaContent('tracestate');
+
+  const sentrytraceData = sentrytraceValue ? extractSentrytraceData(sentrytraceValue) : undefined;
+  const tracestateData = tracestateValue ? extractTracestateData(tracestateValue) : undefined;
+
+  if (sentrytraceData || tracestateData?.sentry || tracestateData?.thirdparty) {
+    return {
+      ...sentrytraceData,
+      ...(tracestateData && { metadata: { tracestate: tracestateData } }),
+    };
   }
 
   return undefined;
