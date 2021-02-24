@@ -1,10 +1,10 @@
-import * as SentryBrowser from '@sentry/browser';
+import { init as browserInit } from '@sentry/browser';
 
 import { NextjsOptions } from './options';
 
 /** Inits the Sentry NextJS SDK on the browser. */
 export function init(options: NextjsOptions): any {
-  SentryBrowser.init(options);
+  browserInit(options);
 }
 
 export * from '@sentry/minimal';
