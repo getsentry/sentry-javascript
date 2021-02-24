@@ -6,3 +6,5 @@ import { NextjsOptions } from './options';
 export function init(options: NextjsOptions): any {
   SentryNode.init(options);
 }
+
+export * from '@sentry/minimal';
