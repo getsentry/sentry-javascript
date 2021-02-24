@@ -160,7 +160,8 @@ type SentryTracestateData = {
  * @returns the base64-encoded header value
  */
 export function computeTracestateValue(data: SentryTracestateData): string {
-  // `JSON.stringify` will drop keys with undefined values, but not ones with null values
+  // `JSON.stringify` will drop keys with undefined values, but not ones with null values, so this prevents
+  // `environment` and `release` from being dropped if they haven't been set by `Sentry.init`
   data.environment = data.environment || null;
   data.release = data.release || null;
 
