@@ -9,7 +9,7 @@ import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
 
 describe('tracing', () => {
-  function createTransactionOnScope() {
+  function createTransactionOnScope(): Transaction {
     const hub = new Hub(
       new NodeClient({
         dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
@@ -24,7 +24,10 @@ describe('tracing', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
 
-    const transaction = hub.startTransaction({ name: 'dogpark' });
+    // we have to cast this to a Transaction (the class) because hub.startTransaction only returns a Transaction (the
+    // interface, which doesn't have things like spanRecorder) (and because @sentry/hub can't depend on @sentry/tracing,
+    // we can't fix that)
+    const transaction = hub.startTransaction({ name: 'dogpark' }) as Transaction;
     hub.getScope()?.setSpan(transaction);
 
     return transaction;
@@ -36,7 +39,7 @@ describe('tracing', () => {
       .reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as Span).spanRecorder?.spans as Span[];
+    const spans = transaction.spanRecorder?.spans as Span[];
 
     http.get('http://dogs.are.great/');
 
@@ -55,7 +58,7 @@ describe('tracing', () => {
       .reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as Span).spanRecorder?.spans as Span[];
+    const spans = transaction.spanRecorder?.spans as Span[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
 
