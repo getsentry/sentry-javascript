@@ -17,14 +17,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "^6.2.0",
-    "@sentry/node": "^6.2.0",
-    "@sentry/minimal": "^6.2.0"
+    "@sentry/browser": "6.2.0",
+    "@sentry/node": "6.2.0",
+    "@sentry/minimal": "6.2.0"
   },
   "devDependencies": {
-    "@sentry/types": "^6.2.0",
-    "eslint": "^7.20.0",
-    "rimraf": "^3.0.2"
+    "@sentry/types": "6.2.0",
+    "eslint": "7.20.0",
+    "rimraf": "3.0.2"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
