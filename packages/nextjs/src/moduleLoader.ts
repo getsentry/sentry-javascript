@@ -8,7 +8,8 @@ import { dynamicRequire } from '@sentry/utils';
  */
 export function dynamicRequireNextjsModule(): any {
   if (isRunningInNode()) {
-    return dynamicRequire(module, './module');
+    // return dynamicRequire(module, './module');
+    return dynamicRequire(module, './browser'); // TODO: this should be removed
   } else {
     return dynamicRequire(module, './browser');
   }

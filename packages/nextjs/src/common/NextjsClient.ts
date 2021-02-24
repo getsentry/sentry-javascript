@@ -3,7 +3,7 @@ import { ClientClass } from '@sentry/core';
 import { Event, EventHint, Severity } from '@sentry/node';
 import { Client, Dsn, Integration, IntegrationClass, Scope } from '@sentry/types';
 
-import { dynamicRequireNextjsModule } from '../utils';
+import { dynamicRequireNextjsModule } from '../moduleLoader';
 import { NextjsOptions } from './nextjsOptions';
 
 /** Common interface for NextJS clients. */
@@ -21,6 +21,8 @@ export interface NextjsClientInterface extends Client<NextjsOptions> {
   showReportDialog(dialogOptions: ReportDialogOptions): void;
 }
 
+// This class below is only used when export
+
 /** A wrapper around the actual NextJS client. */
 export class NextjsClientWrapper implements NextjsClientInterface {
   private readonly _actualClient: NextjsClientInterface;
@@ -30,58 +32,58 @@ export class NextjsClientWrapper implements NextjsClientInterface {
     this._actualClient = new clientClass(options);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public captureMinidump(path: string, event?: Event, scope?: Scope): string | undefined {
     return this._actualClient.captureMinidump(path, event, scope);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public showReportDialog(dialogOptions: ReportDialogOptions): void {
     return this._actualClient.showReportDialog(dialogOptions);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     return this._actualClient.captureException(exception, hint, scope);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     return this._actualClient.captureMessage(message, level, hint, scope);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     return this._actualClient.captureEvent(event, hint, scope);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public getDsn(): Dsn | undefined {
     return this._actualClient.getDsn();
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public getOptions(): NextjsOptions {
     return this._actualClient.getOptions();
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public close(timeout?: number): PromiseLike<boolean> {
     return this._actualClient.close(timeout);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public flush(timeout?: number): PromiseLike<boolean> {
     return this._actualClient.flush(timeout);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     return this._actualClient.getIntegration(integration);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public setupIntegrations(): void {
     return this._actualClient.setupIntegrations();
   }

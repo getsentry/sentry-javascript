@@ -8,6 +8,8 @@ export * from './exports';
 /** Initializes the Sentry browser SDK. */
 export function init(initOptions: NextjsOptions): void {
   // TODO: handle integrations
+  // eslint-disable-next-line no-console
+  console.log('initializing browser...');
   initAndBind(NextjsBrowserClient, initOptions);
 }
 

@@ -3,7 +3,7 @@ import { getCurrentHub } from '@sentry/node';
 
 import { NextjsClientInterface } from './common/nextjsClient';
 import { NextjsOptions } from './common/nextjsOptions';
-import { dynamicRequireNextjsModule } from './utils';
+import { dynamicRequireNextjsModule } from './moduleLoader';
 
 /**
  * The Sentry NextJS SDK Client.
@@ -13,7 +13,7 @@ import { dynamicRequireNextjsModule } from './utils';
  */
 export function init(initOptions: NextjsOptions): void {
   // eslint-disable-next-line no-console
-  console.log('Initializing NextJS...');
+  // console.log('Initializing NextJS...');
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   dynamicRequireNextjsModule().init(initOptions);
 }
