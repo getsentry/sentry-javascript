@@ -27,5 +27,7 @@ module.exports = {
   ],
   rules: {
     'max-lines': 'off',
+    '@sentry-internal/sdk/no-async-await': 'off',
+    'jsdoc/require-jsdoc': 0,
   },
 };

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -9,16 +9,22 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/index.js",
-  "module": "esm/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./esm/node.js",
+  "browser": "./esm/browser.js",
+  "types": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@sentry/browser": "6.2.0",
+    "@sentry/node": "6.2.0",
+    "@sentry/minimal": "6.2.0"
+  },
   "devDependencies": {
-    "eslint": "^7.20.0",
-    "rimraf": "^3.0.2"
+    "@sentry/types": "6.2.0",
+    "eslint": "7.20.0",
+    "rimraf": "3.0.2"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
