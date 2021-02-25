@@ -1,4 +1,4 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
@@ -107,18 +107,6 @@ export function init(options: NodeOptions = {}): void {
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }
-
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
-    name: 'sentry.javascript.node',
-    packages: [
-      {
-        name: 'npm:@sentry/node',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {

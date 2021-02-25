@@ -1,4 +1,4 @@
-import { BaseClient, Scope } from '@sentry/core';
+import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
 
 import { NodeBackend, NodeOptions } from './backend';
@@ -15,6 +15,18 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: NodeOptions) {
+    options._metadata = options._metadata || {};
+    options._metadata.sdk = options._metadata.sdk || {
+      name: 'sentry.javascript.node',
+      packages: [
+        {
+          name: 'npm:@sentry/node',
+          version: SDK_VERSION,
+        },
+      ],
+      version: SDK_VERSION,
+    };
+
     super(NodeBackend, options);
   }
 
