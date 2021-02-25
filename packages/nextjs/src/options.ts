@@ -1,6 +1,6 @@
 import { BrowserOptions, SDK_VERSION } from '@sentry/browser';
 import { NodeOptions } from '@sentry/node';
-import { Options, SdkInfo } from '@sentry/types';
+import { Options, Package, SdkInfo } from '@sentry/types';
 
 const SDK_NAME = 'sentry.javascript.nextjs';
 const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
@@ -14,11 +14,11 @@ export interface NextjsOptions extends Options, BrowserOptions, NodeOptions {
  */
 export class MetadataBuilder {
   private _options: NextjsOptions;
-  private _packageName: string;
+  private _packageNames: string[];
 
-  constructor(options: NextjsOptions, packageName: string) {
+  constructor(options: NextjsOptions, packages: string[]) {
     this._options = options;
-    this._packageName = packageName;
+    this._packageNames = packages;
   }
 
   public addSdkMetadata(): void {
@@ -30,16 +30,16 @@ export class MetadataBuilder {
     return {
       name: SDK_NAME,
       version: SDK_VERSION,
-      packages: [
-        {
-          name: this._getPackageName(),
-          version: SDK_VERSION,
-        },
-      ],
+      packages: this._getPackages(),
     };
   }
 
-  private _getPackageName(): string {
-    return PACKAGE_NAME_PREFIX + this._packageName;
+  private _getPackages(): Package[] {
+    return this._packageNames.map((pkgName: string) => {
+      return {
+        name: PACKAGE_NAME_PREFIX + pkgName,
+        version: SDK_VERSION,
+      };
+    });
   }
 }

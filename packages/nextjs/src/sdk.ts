@@ -9,7 +9,7 @@ import { MetadataBuilder, NextjsOptions } from './options';
  *
  */
 export function init(options: NextjsOptions): void {
-  const metadataBuilder = new MetadataBuilder(options, 'nextjs');
+  const metadataBuilder = new MetadataBuilder(options, ['nextjs']);
   metadataBuilder.addSdkMetadata();
   browserInit(options);
 }
