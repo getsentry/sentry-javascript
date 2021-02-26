@@ -1,6 +1,7 @@
 import { init as nodeInit } from '@sentry/node';
 
-import { MetadataBuilder, NextjsOptions } from './options';
+import { MetadataBuilder } from './utils/metadataBuilder';
+import { NextjsOptions } from './utils/nextjsOptions';
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): any {

@@ -1,13 +1,10 @@
-import { BrowserOptions, SDK_VERSION } from '@sentry/browser';
-import { NodeOptions } from '@sentry/node';
-import { Options, Package, SdkInfo } from '@sentry/types';
+import { SDK_VERSION } from '@sentry/core';
+import { Package, SdkInfo } from '@sentry/types';
+
+import { NextjsOptions } from './nextjsOptions';
 
 const SDK_NAME = 'sentry.javascript.nextjs';
 const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
-
-export interface NextjsOptions extends Options, BrowserOptions, NodeOptions {
-  // TODO: options for NextJS
-}
 
 /**
  * A builder for the SDK metadata in the options for the SDK initialization.

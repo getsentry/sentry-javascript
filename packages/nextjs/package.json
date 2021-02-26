@@ -17,9 +17,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "6.2.0",
+    "@sentry/core": "6.2.0",
+    "@sentry/minimal": "6.2.0",
     "@sentry/node": "6.2.0",
-    "@sentry/minimal": "6.2.0"
+    "@sentry/react": "6.2.0"
   },
   "devDependencies": {
     "@sentry/types": "6.2.0",

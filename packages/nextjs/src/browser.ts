@@ -1,12 +1,13 @@
-import { init as browserInit } from '@sentry/browser';
+import { init as reactInit } from '@sentry/react';
 
-import { MetadataBuilder, NextjsOptions } from './options';
+import { MetadataBuilder } from './utils/metadataBuilder';
+import { NextjsOptions } from './utils/nextjsOptions';
 
-/** Inits the Sentry NextJS SDK on the browser. */
+/** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): any {
-  const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'browser']);
+  const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'react']);
   metadataBuilder.addSdkMetadata();
-  browserInit(options);
+  reactInit(options);
 }
 
 export * from '@sentry/minimal';
