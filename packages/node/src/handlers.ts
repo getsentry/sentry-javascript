@@ -69,7 +69,7 @@ export function tracingHandler(): (
         name: extractExpressTransactionName(req, { path: true, method: true }),
         op: 'http.server',
         ...traceparentData,
-        metadata: { tracestate: tracestateData },
+        ...(tracestateData && { metadata: { tracestate: tracestateData } }),
       },
       { request: extractRequestData(req) },
     );

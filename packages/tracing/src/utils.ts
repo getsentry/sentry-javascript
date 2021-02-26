@@ -10,15 +10,19 @@ export const SENTRY_TRACE_REGEX = new RegExp(
     '[ \\t]*$', // whitespace
 );
 
-// This is a normal base64 regex, modified to reflect that fact that we strip the
-// trailing = or == off
-const base64Stripped =
-  // any of the characters in the base64 "alphabet", in multiples of 4
-  '([a-zA-Z0-9+/]{4})*' +
-  // either nothing or 2 or 3 base64-alphabet characters (see
-  // https://en.wikipedia.org/wiki/Base64#Decoding_Base64_without_padding
-  // forwhy there's never only 1 extra character)
-  '([a-zA-Z0-9+/]{2,3})?';
+// This is a normal base64 regex, modified to reflect that fact that we strip the trailing = or == off
+const BASE64_STRIPPED_REGEX = new RegExp(
+  // for our purposes, we want to test against the entire string, so enforce that there's nothing before the main regex
+  `^` +
+    // any of the characters in the base64 "alphabet", in multiples of 4
+    '([a-zA-Z0-9+/]{4})*' +
+    // either nothing or 2 or 3 base64-alphabet characters (see
+    // https://en.wikipedia.org/wiki/Base64#Decoding_Base64_without_padding
+    // for why there's never only 1 extra character)
+    '([a-zA-Z0-9+/]{2,3})?' +
+    // see above re: matching entire string
+    `$`,
+);
 
 // comma-delimited list of entries of the form `xxx=yyy`
 const tracestateEntry = '[^=]+=[^=]+';
@@ -31,8 +35,8 @@ const TRACESTATE_ENTRIES_REGEX = new RegExp(
 
 // this doesn't check that the value is valid, just that there's something there of the form `sentry=xxxx`
 const SENTRY_TRACESTATE_ENTRY_REGEX = new RegExp(
-  // either sentry is the first entry or there's stuff immediately before it,
-  // ending in a commma (this prevents matching something like `coolsentry=xxx`)
+  // either sentry is the first entry or there's stuff immediately before it, ending in a commma (this prevents matching
+  // something like `coolsentry=xxx`)
   '(?:^|.+,)' +
     // sentry's part, not including the potential comma
     '(sentry=[^,]*)' +
@@ -85,38 +89,34 @@ type TracestateHeaderData = { sentry?: string; thirdparty?: string };
  * @returns Object containing data from the header
  */
 export function extractTracestateData(header: string): TracestateHeaderData {
-  let sentryEntry, thirdPartyEntry;
+  let sentryEntry, thirdPartyEntry, before, after;
 
-  if (header) {
-    let before, after;
+  // find sentry's entry, if any
+  const sentryMatch = SENTRY_TRACESTATE_ENTRY_REGEX.exec(header);
 
-    // find sentry's entry, if any
-    const sentryMatch = SENTRY_TRACESTATE_ENTRY_REGEX.exec(header);
+  if (sentryMatch !== null) {
+    sentryEntry = sentryMatch[1];
 
-    if (sentryMatch !== null) {
-      sentryEntry = sentryMatch[1];
+    // remove the commas after the split so we don't end up with `xxx=yyy,,zzz=qqq` (double commas) when we put them
+    // back together
+    [before, after] = header.split(sentryEntry).map(s => s.replace(/^,*|,*$/g, ''));
 
-      // remove the commas after the split so we don't end up with `xxx=yyy,,zzz=qqq` (double commas) when we put them
-      // back together
-      [before, after] = header.split(sentryEntry).map(s => s.replace(/^,*|,*$/g, ''));
-
-      // extract sentry's value from its entry and test to make sure it's valid; if it isn't, discard the entire entry
-      // so that a new one will be created by the Transaction contrcutor
-      const sentryValue = sentryEntry.replace('sentry=', '');
-      if (!new RegExp(`^${base64Stripped}$`).test(sentryValue)) {
-        sentryEntry = undefined;
-      }
-    } else {
-      // this could just as well be `before`; we just need to get the thirdparty data into one or the other since
-      // there's no valid Sentry entry
-      after = header;
+    // extract sentry's value from its entry and test to make sure it's valid; if it isn't, discard the entire entry
+    // so that a new one will be created by the Transaction constructor
+    const sentryValue = sentryEntry.replace('sentry=', '');
+    if (!BASE64_STRIPPED_REGEX.test(sentryValue)) {
+      sentryEntry = undefined;
     }
+  } else {
+    // this could just as well be `before`; we just need to get the thirdparty data into one or the other since
+    // there's no valid Sentry entry
+    after = header;
+  }
 
-    // if either thirdparty part is invalid or empty, remove it before gluing them together
-    const validThirdpartyEntries = [before, after].filter(x => TRACESTATE_ENTRIES_REGEX.test(x || ''));
-    if (validThirdpartyEntries.length) {
-      thirdPartyEntry = validThirdpartyEntries.join(',');
-    }
+  // if either thirdparty part is invalid or empty, remove it before gluing them together
+  const validThirdpartyEntries = [before, after].filter(x => TRACESTATE_ENTRIES_REGEX.test(x || ''));
+  if (validThirdpartyEntries.length) {
+    thirdPartyEntry = validThirdpartyEntries.join(',');
   }
 
   return { sentry: sentryEntry, thirdparty: thirdPartyEntry };
