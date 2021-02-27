@@ -9,9 +9,9 @@ import {
   withScope,
 } from '@sentry/node';
 import * as Sentry from '@sentry/node';
-import { extractTraceparentData } from '@sentry/tracing';
+import { extractSentrytraceData, extractTracestateData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isString, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -192,7 +192,7 @@ export function wrapHandler<TEvent, TResult>(
   };
   let timeoutWarningTimer: NodeJS.Timeout;
 
-  // AWSLambda is like Express. It makes a distinction about handlers based on it's last argument
+  // AWSLambda is like Express. It makes a distinction about handlers based on its last argument
   // async (event) => async handler
   // async (event, context) => async handler
   // (event, context, callback) => sync handler
@@ -243,16 +243,22 @@ export function wrapHandler<TEvent, TResult>(
       }, timeoutWarningDelay);
     }
 
-    // Applying `sentry-trace` to context
-    let traceparentData;
+    // Extract tracing data from headers
+    let traceparentData, tracestateData;
     const eventWithHeaders = event as { headers?: { [key: string]: string } };
-    if (eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace'] as string);
+
+    if (eventWithHeaders.headers?.['sentry-trace']) {
+      traceparentData = extractSentrytraceData(eventWithHeaders.headers['sentry-trace'] as string);
     }
+    if (eventWithHeaders.headers?.tracestate) {
+      tracestateData = extractTracestateData(eventWithHeaders.headers.tracestate as string);
+    }
+
     const transaction = startTransaction({
       name: context.functionName,
       op: 'awslambda.handler',
       ...traceparentData,
+      ...(tracestateData && { metadata: { tracestate: tracestateData } }),
     });
 
     const hub = getCurrentHub();

@@ -1,6 +1,6 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
-import { extractTraceparentData } from '@sentry/tracing';
-import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { extractSentrytraceData, extractTracestateData } from '@sentry/tracing';
+import { logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
@@ -49,16 +49,22 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
 
-    // Applying `sentry-trace` to context
-    let traceparentData;
+    // Extract tracing data from headers
+    let traceparentData, tracestateData;
     const reqWithHeaders = req as { headers?: { [key: string]: string } };
-    if (reqWithHeaders.headers && isString(reqWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(reqWithHeaders.headers['sentry-trace'] as string);
+
+    if (reqWithHeaders.headers?.['sentry-trace']) {
+      traceparentData = extractSentrytraceData(reqWithHeaders.headers['sentry-trace'] as string);
     }
+    if (reqWithHeaders.headers?.tracestate) {
+      tracestateData = extractTracestateData(reqWithHeaders.headers.tracestate as string);
+    }
+
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,
       op: 'gcp.function.http',
       ...traceparentData,
+      ...(tracestateData && { metadata: { tracestate: tracestateData } }),
     });
 
     // getCurrentHub() is expected to use current active domain as a carrier

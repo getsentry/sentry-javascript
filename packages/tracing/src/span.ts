@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/hub';
 import { Hub, Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
-import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
 import { computeTracestateValue } from './utils';
@@ -241,11 +241,9 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    let sampledString = '';
-    if (this.sampled !== undefined) {
-      sampledString = this.sampled ? '-1' : '-0';
-    }
-    return `${this.traceId}-${this.spanId}${sampledString}`;
+    logger.warn('Direct use of `span.toTraceparent` is deprecated. Use `span.getTraceHeaders` instead.');
+
+    return this._toSentrytrace();
   }
 
   /**
@@ -290,16 +288,10 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public getTraceHeaders(): TraceHeaders {
-    // tracestates live on the transaction, so if this is a free-floating span, there won't be one
-    let tracestate;
-    if (this.transaction) {
-      tracestate = this.transaction.metadata?.tracestate?.sentry;
-    } else {
-      tracestate = this._getNewTracestate();
-    }
+    const tracestate = this._toTracestate();
 
     return {
-      'sentry-trace': this.toTraceparent(),
+      'sentry-trace': this._toSentrytrace(),
       ...(tracestate && { tracestate }),
     };
   }
@@ -380,11 +372,36 @@ export class Span implements SpanInterface {
     // `dsn.publicKey` required and remove the `!`.
 
     return `sentry=${computeTracestateValue({
-      trace_id: this.traceId,
+      traceId: this.traceId,
       environment,
       release,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      public_key: dsn.publicKey!,
+      publicKey: dsn.publicKey!,
     })}`;
+  }
+
+  /**
+   * Return a traceparent-compatible header string.
+   */
+  private _toSentrytrace(): string {
+    let sampledString = '';
+    if (this.sampled !== undefined) {
+      sampledString = this.sampled ? '-1' : '-0';
+    }
+    return `${this.traceId}-${this.spanId}${sampledString}`;
+  }
+
+  /**
+   * Return a tracestate-compatible header string. Returns undefined if there is no client or no DSN.
+   */
+  private _toTracestate(): string | undefined {
+    const sentryTracestate = this.transaction?.metadata?.tracestate?.sentry || this._getNewTracestate();
+    let thirdpartyTracestate = this.transaction?.metadata?.tracestate?.thirdparty;
+
+    // if there's third-party data, add a leading comma; otherwise, convert from `undefined` to the empty string, so the
+    // end result doesn’t come out as `sentry=xxxxxundefined`
+    thirdpartyTracestate = thirdpartyTracestate ? `,${thirdpartyTracestate}` : '';
+
+    return `${sentryTracestate}${thirdpartyTracestate}`;
   }
 }
