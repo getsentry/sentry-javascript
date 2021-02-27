@@ -40,12 +40,13 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
 
     this.name = transactionContext.name || '';
-
+    this.metadata = transactionContext.metadata || {};
     this._trimEnd = transactionContext.trimEnd;
 
-    this.metadata = transactionContext.metadata || {};
-    this.metadata.tracestate = this.metadata.tracestate || {};
-    this.metadata.tracestate.sentry = this.metadata.tracestate.sentry || this._getNewTracestate(this._hub);
+    // create a new sentry tracestate value if we didn't inherit one
+    if (!this.metadata.tracestate?.sentry) {
+      this.metadata.tracestate = { ...this.metadata.tracestate, sentry: this._getNewTracestate(this._hub) };
+    }
 
     // this is because transactions are also spans, and spans have a transaction pointer
     this.transaction = this;

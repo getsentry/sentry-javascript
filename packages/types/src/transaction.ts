@@ -122,8 +122,9 @@ export enum TransactionSamplingMethod {
 export interface TransactionMetadata {
   transactionSampling?: { rate?: number; method?: string };
 
-  /** The sentry half of a transaction's tracestate header, used for dynamic sampling */
+  /** The two halves (sentry and third-party) of a transaction's tracestate header, used for dynamic sampling */
   tracestate?: {
     sentry?: string;
+    thirdparty?: string;
   };
 }
