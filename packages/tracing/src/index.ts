@@ -23,9 +23,10 @@ addExtensionMethods();
 export { addExtensionMethods };
 
 export {
-  extractTraceparentData,
+  extractSentrytraceData,
+  extractTracestateData,
   getActiveTransaction,
   hasTracingEnabled,
+  SENTRY_TRACE_REGEX,
   stripUrlQueryAndFragment,
-  TRACEPARENT_REGEXP,
 } from './utils';
