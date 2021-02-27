@@ -241,7 +241,7 @@ describe('callbacks', () => {
 
       expect(setRequestHeader).toHaveBeenCalledWith(
         'sentry-trace',
-        expect.stringMatching(tracingUtils.TRACEPARENT_REGEXP),
+        expect.stringMatching(tracingUtils.SENTRY_TRACE_REGEX),
       );
       expect(setRequestHeader).toHaveBeenCalledWith('tracestate', expect.stringMatching(TRACESTATE_HEADER_REGEX));
     });
