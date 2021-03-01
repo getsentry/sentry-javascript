@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.2.1
+
+- [node] fix: Moves that data-setting into the constructors of NodeClient to
+- [browser] fix:  Moves that data-setting into the constructors of BrowserClient
+
 ## 6.2.0
 
 - [tracing] feat: Mongoose tracing support added to MongoDB (#3252)
