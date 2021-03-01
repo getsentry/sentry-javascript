@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.0-beta.0
+
+- [tracing] feat: Add `tracestate` header handling
+
 ## 6.2.5
 
 - [utils] fix: Avoid performance.timeOrigin if too skewed (#3356)
