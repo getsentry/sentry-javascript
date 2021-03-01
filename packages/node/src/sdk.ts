@@ -1,5 +1,6 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import { SdkInfo } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -109,7 +110,8 @@ export function init(options: NodeOptions = {}): void {
   }
 
   options._metadata = options._metadata || {};
-  options._metadata.sdk = {
+
+  const sdkMetadata: SdkInfo = {
     name: 'sentry.javascript.node',
     packages: [
       {
@@ -119,6 +121,12 @@ export function init(options: NodeOptions = {}): void {
     ],
     version: SDK_VERSION,
   };
+
+  if (options._metadata.sdk) {
+    options._metadata.sdk = { ...sdkMetadata, ...options._metadata.sdk };
+  } else {
+    options._metadata.sdk = sdkMetadata;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {

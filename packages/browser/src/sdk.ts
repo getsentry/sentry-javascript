@@ -1,4 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
+import { SdkInfo } from '@sentry/types';
 import { addInstrumentationHandler, getGlobalObject, logger, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
@@ -89,7 +90,8 @@ export function init(options: BrowserOptions = {}): void {
   }
 
   options._metadata = options._metadata || {};
-  options._metadata.sdk = {
+
+  const sdkMetadata: SdkInfo = {
     name: 'sentry.javascript.browser',
     packages: [
       {
@@ -99,6 +101,12 @@ export function init(options: BrowserOptions = {}): void {
     ],
     version: SDK_VERSION,
   };
+
+  if (options._metadata.sdk) {
+    options._metadata.sdk = { ...sdkMetadata, ...options._metadata.sdk };
+  } else {
+    options._metadata.sdk = sdkMetadata;
+  }
 
   initAndBind(BrowserClient, options);
 
