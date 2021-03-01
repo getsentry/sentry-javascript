@@ -68,7 +68,5 @@
   "resolutions": {
     "**/agent-base": "5",
     "**/jest-environment-node": "24"
-  },
-  "version": "0.0.0",
-  "dependencies": {}
+  }
 }
