@@ -80,15 +80,13 @@ export function extractSentrytraceData(header: string): TraceparentData | undefi
   return undefined;
 }
 
-type TracestateHeaderData = { sentry?: string; thirdparty?: string };
-
 /**
  * Extract data from an incoming `tracestate` header
  *
  * @param header
  * @returns Object containing data from the header
  */
-export function extractTracestateData(header: string): TracestateHeaderData {
+export function extractTracestateData(header: string): { sentry?: string; thirdparty?: string } {
   let sentryEntry, thirdPartyEntry, before, after;
 
   // find sentry's entry, if any
