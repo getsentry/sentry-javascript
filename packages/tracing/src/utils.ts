@@ -80,15 +80,13 @@ export function extractSentrytraceData(header: string): TraceparentData | undefi
   return undefined;
 }
 
-type TracestateHeaderData = { sentry?: string; thirdparty?: string };
-
 /**
  * Extract data from an incoming `tracestate` header
  *
  * @param header
  * @returns Object containing data from the header
  */
-export function extractTracestateData(header: string): TracestateHeaderData {
+export function extractTracestateData(header: string): { sentry?: string; thirdparty?: string } {
   let sentryEntry, thirdPartyEntry, before, after;
 
   // find sentry's entry, if any
@@ -160,7 +158,8 @@ type SentryTracestateData = {
  * @returns the base64-encoded header value
  */
 export function computeTracestateValue(data: SentryTracestateData): string {
-  // `JSON.stringify` will drop keys with undefined values, but not ones with null values
+  // `JSON.stringify` will drop keys with undefined values, but not ones with null values, so this prevents
+  // `environment` and `release` from being dropped if they haven't been set by `Sentry.init`
   data.environment = data.environment || null;
   data.release = data.release || null;
 

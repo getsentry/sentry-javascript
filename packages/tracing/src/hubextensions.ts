@@ -13,20 +13,6 @@ import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
 import { hasTracingEnabled } from './utils';
 
-/** Returns all trace headers that are currently on the top scope. */
-function traceHeaders(this: Hub): { [key: string]: string } {
-  const scope = this.getScope();
-  if (scope) {
-    const span = scope.getSpan();
-    if (span) {
-      return {
-        'sentry-trace': span.toTraceparent(),
-      };
-    }
-  }
-  return {};
-}
-
 /**
  * Makes a sampling decision for the given transaction and stores it on the transaction.
  *
@@ -211,9 +197,6 @@ export function _addTracingExtensions(): void {
     carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
     if (!carrier.__SENTRY__.extensions.startTransaction) {
       carrier.__SENTRY__.extensions.startTransaction = _startTransaction;
-    }
-    if (!carrier.__SENTRY__.extensions.traceHeaders) {
-      carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
     }
   }
 }
