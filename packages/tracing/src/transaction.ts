@@ -6,7 +6,7 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -21,7 +21,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
+  private readonly _hub: Hub;
 
   private _trimEnd?: boolean;
 
@@ -35,13 +35,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
 
-    if (isInstanceOf(hub, Hub)) {
-      this._hub = hub as Hub;
-    }
-
     this.name = transactionContext.name || '';
     this.metadata = transactionContext.metadata || {};
     this._trimEnd = transactionContext.trimEnd;
+    this._hub = hub || getCurrentHub();
 
     // create a new sentry tracestate value if we didn't inherit one
     if (!this.metadata.tracestate?.sentry) {
