@@ -4,8 +4,9 @@ import { Options } from '@sentry/types';
 
 export interface NextjsOptions extends Options, BrowserOptions, NodeOptions {
   /**
-   * A flag forcing the initialization of the SDK.
-   * By default, the SDK is only initialised in production.
+   * A flag enabling the initialization of the SDK in development and other
+   * non-production environments. By default, the SDK is only initialised in
+   * production.
    */
-  forceInit?: boolean;
+  dev?: boolean;
 }

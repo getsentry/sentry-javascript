@@ -13,12 +13,12 @@ function getEmptyOptions(): NextjsOptions {
   return {};
 }
 
-function getForceInitTrueOptions(): NextjsOptions {
-  return { forceInit: true };
+function getDevTrueOptions(): NextjsOptions {
+  return { dev: true };
 }
 
-function getForceInitFalseOptions(): NextjsOptions {
-  return { forceInit: false };
+function getDevFalseOptions(): NextjsOptions {
+  return { dev: false };
 }
 
 describe('decide initialization in development', () => {
@@ -29,13 +29,13 @@ describe('decide initialization in development', () => {
     expect(initDecider.shouldInitSentry()).toBeFalsy();
   });
 
-  test('without forcing init', () => {
-    const initDecider = new InitDecider(getForceInitFalseOptions());
+  test('without development', () => {
+    const initDecider = new InitDecider(getDevFalseOptions());
     expect(initDecider.shouldInitSentry()).toBeFalsy();
   });
 
-  test('forcing init', () => {
-    const initDecider = new InitDecider(getForceInitTrueOptions());
+  test('with development', () => {
+    const initDecider = new InitDecider(getDevTrueOptions());
     expect(initDecider.shouldInitSentry()).toBeTruthy();
   });
 });
@@ -48,13 +48,13 @@ describe('decide initialization in production', () => {
     expect(initDecider.shouldInitSentry()).toBeTruthy();
   });
 
-  test('without forcing init', () => {
-    const initDecider = new InitDecider(getForceInitFalseOptions());
+  test('without development', () => {
+    const initDecider = new InitDecider(getDevFalseOptions());
     expect(initDecider.shouldInitSentry()).toBeTruthy();
   });
 
-  test('forcing init', () => {
-    const initDecider = new InitDecider(getForceInitTrueOptions());
+  test('with development', () => {
+    const initDecider = new InitDecider(getDevTrueOptions());
     expect(initDecider.shouldInitSentry()).toBeTruthy();
   });
 });
