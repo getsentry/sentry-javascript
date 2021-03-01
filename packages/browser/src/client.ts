@@ -1,4 +1,4 @@
-import { BaseClient, Scope } from '@sentry/core';
+import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
@@ -19,6 +19,18 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserOptions = {}) {
+    options._metadata = options._metadata || {};
+    options._metadata.sdk = options._metadata.sdk || {
+      name: 'sentry.javascript.browser',
+      packages: [
+        {
+          name: 'npm:@sentry/browser',
+          version: SDK_VERSION,
+        },
+      ],
+      version: SDK_VERSION,
+    };
+
     super(BrowserBackend, options);
   }
 
