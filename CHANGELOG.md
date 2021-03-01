@@ -6,8 +6,8 @@
 
 ## 6.2.1
 
-- [node] fix: Moves that data-setting into the constructors of NodeClient to
-- [browser] fix:  Moves that data-setting into the constructors of BrowserClient
+- [node] fix: Moves that data-setting into the constructors of NodeClient to protect the data that's set in wrapper classes from being overridden like @sentry/serverless # 3279
+- [browser] fix: Moves that data-setting into the constructors of BrowserClient protect the data that's set in wrapper classes from being overridden like @sentry/react #3279
 
 ## 6.2.0
 
