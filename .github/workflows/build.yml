@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - release/**
+      - kmclb-*
   pull_request:
 
 env:
