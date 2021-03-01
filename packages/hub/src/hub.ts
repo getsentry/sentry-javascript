@@ -354,13 +354,6 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public traceHeaders(): { [key: string]: string } {
-    return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
-  }
-
-  /**
-   * @inheritDoc
-   */
   public captureSession(endSession: boolean = false): void {
     // both send the update and pull the session from the scope
     if (endSession) {
