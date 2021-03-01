@@ -1,5 +1,6 @@
 import { SdkMetadata } from '@sentry/types';
-import { init, getCurrentHub } from '../src';
+
+import { getCurrentHub, init } from '../src';
 
 describe('init()', () => {
   test('Ensure that with server side integrations, the sdk metadata options passed are not overidden on init', () => {

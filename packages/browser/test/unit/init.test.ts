@@ -1,7 +1,7 @@
+import { SdkMetadata } from '@sentry/types';
 import { expect } from 'chai';
 
-import { SdkMetadata } from '@sentry/types';
-import { init, getCurrentHub } from '../../src';
+import { getCurrentHub, init } from '../../src';
 
 describe('init()', () => {
   it('Ensure that with browser side integrations, the sdk metadata options passed are not overidden on init', () => {
