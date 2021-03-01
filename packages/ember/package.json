@@ -1,6 +1,6 @@
 {
   "name": "@sentry/ember",
-  "version": "6.2.5",
+  "version": "6.3.0-beta.0",
   "description": "Offical Sentry SDK for Ember.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
@@ -33,10 +33,10 @@
   "dependencies": {
     "@embroider/macros": ">=0.25.0",
     "@embroider/test-setup": "^0.35.1",
-    "@sentry/browser": "6.2.5",
-    "@sentry/tracing": "6.2.5",
-    "@sentry/types": "6.2.5",
-    "@sentry/utils": "6.2.5",
+    "@sentry/browser": "6.3.0-beta.0",
+    "@sentry/tracing": "6.3.0-beta.0",
+    "@sentry/types": "6.3.0-beta.0",
+    "@sentry/utils": "6.3.0-beta.0",
     "ember-auto-import": "^1.6.0",
     "ember-cli-babel": "^7.20.5",
     "ember-cli-htmlbars": "^5.1.2",
