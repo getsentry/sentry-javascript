@@ -24,12 +24,11 @@ It's assumed that `@sentry/nextjs` is running in the project.
 Configuring sourcemaps with the NextJS SDK only takes a few steps.
 
 1. If you're using TypeScript, make sure sourcemaps are generated.
-2. Create the `.sentryclirc` file in the root of your project directory.
-3. [Install](https://docs.sentry.io/product/cli/installation/)
+2. [Install](https://docs.sentry.io/product/cli/installation/)
 and [configure](https://docs.sentry.io/product/cli/configuration/)
 [`sentry-cli`](https://github.com/getsentry/sentry-cli).
-4. Add the Sentry organization name and project name as environment variables.
-5. Install and configure the  [`sentry-webpack-plugin`](https://docs.sentry.io/platforms/javascript/sourcemaps/tools/webpack/),
+3. Add the Sentry organization name and project name as environment variables.
+4. Install and configure the  [`sentry-webpack-plugin`](https://docs.sentry.io/platforms/javascript/sourcemaps/tools/webpack/),
 by creating the following `next.config.js` in the root of your project directory:
 
 ```js
