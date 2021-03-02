@@ -46,8 +46,7 @@
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "pack": "npm pack",
-    "postinstall": "sentry-wizard nextjs"
+    "pack": "npm pack"
   },
   "volta": {
     "extends": "../../package.json"
