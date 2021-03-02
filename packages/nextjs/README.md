@@ -18,7 +18,7 @@ TODO: npm version, npm dm, npm dt, typedoc
 
 TODO
 
-## Sourcemaps
+## Manual sourcemap configuration
 
 It's assumed that `@sentry/nextjs` is running in the project.
 Configuring sourcemaps with the NextJS SDK only takes a few steps.
@@ -48,8 +48,6 @@ module.exports = {
         urlPrefix: "~/_next/",
         include: ".next/",
         ignore: ["node_modules", "webpack.config.js"],
-
-        dryRun: true, // useful for dev environments; set to false in production
       })
     );
 

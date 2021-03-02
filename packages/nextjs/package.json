@@ -20,7 +20,9 @@
     "@sentry/core": "6.2.0",
     "@sentry/minimal": "6.2.0",
     "@sentry/node": "6.2.0",
-    "@sentry/react": "6.2.0"
+    "@sentry/react": "6.2.0",
+    "@sentry/wizard": "^1.1.4",
+    "@sentry/webpack-plugin": "1.14.1"
   },
   "devDependencies": {
     "@sentry/types": "6.2.0",
@@ -44,7 +46,8 @@
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "postinstall": "sentry-wizard nextjs"
   },
   "volta": {
     "extends": "../../package.json"
