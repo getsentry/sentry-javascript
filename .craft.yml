@@ -66,4 +66,5 @@ targets:
         versions:
           - nodejs10.x
           - nodejs12.x
+          - nodejs14.x
     license: MIT
