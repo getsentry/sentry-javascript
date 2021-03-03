@@ -9,7 +9,6 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "./dist/index.js",
   "module": "./esm/node.js",
   "browser": "./esm/browser.js",
   "types": "./dist/index.d.ts",
@@ -21,6 +20,7 @@
     "@sentry/minimal": "6.2.1",
     "@sentry/node": "6.2.1",
     "@sentry/react": "6.2.1",
+    "@sentry/next-plugin-sentry": "6.2.1",
     "@sentry/wizard": "1.2.0",
     "@sentry/webpack-plugin": "1.14.1"
   },
