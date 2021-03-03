@@ -3317,6 +3317,16 @@
     "@sentry/utils" "6.2.1"
     tslib "^1.9.3"
 
+"@sentry/integrations@6.2.1":
+  version "6.2.1"
+  resolved "https://registry.yarnpkg.com/@sentry/integrations/-/integrations-6.2.1.tgz#caa9b49de29523698668d45827633be86b2268ff"
+  integrity sha512-UBvuil/b9M5HGH6aBDzTiIVRsmpC/wqwDKy28IO05XLdalmKgJ9C1EQhoyN6xw+1lINpXXFtfq4NhfgZgWbc7Q==
+  dependencies:
+    "@sentry/types" "6.2.1"
+    "@sentry/utils" "6.2.1"
+    localforage "^1.8.1"
+    tslib "^1.9.3"
+
 "@sentry/minimal@6.2.1":
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/@sentry/minimal/-/minimal-6.2.1.tgz#8f01480e1b56bc7dd54adf925e5317f233e19384"
