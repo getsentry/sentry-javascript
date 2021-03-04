@@ -10,8 +10,8 @@
     "node": ">=6"
   },
   "module": "./esm/node.js",
-  "browser": "./esm/browser.js",
-  "types": "./dist/index.d.ts",
+  "browser": "./esm/react.js",
+  "types": "./esm/react.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -30,11 +30,9 @@
     "rimraf": "3.0.2"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm",
-    "build:es5": "tsc -p tsconfig.build.json",
+    "build": "run-p build:esm",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:watch:es5 build:watch:esm",
-    "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:watch": "run-p build:watch:esm",
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "clean": "rimraf dist esm coverage *.js *.js.map *.d.ts",
     "link:yarn": "yarn link",

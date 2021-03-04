@@ -9,23 +9,22 @@ export default async function onErrorServer(err) {
 
   withScope(scope => {
     if (typeof err.req !== 'undefined') {
-      scope.addEventProcessor((event, hint) => {
-        console.log(hint);
+      scope.addEventProcessor(event => {
         return parseRequest(event, err.req, {
           // 'cookies' and 'query_string' use `dynamicRequire` which has a bug in SSR envs right now — Kamil
           request: ['data', 'headers', 'method', 'url'],
         });
       });
     }
-    
+
     const toCapture = err instanceof Error ? err : err.err;
-    
+
     scope.addEventProcessor((event, hint) => {
       if (hint.originalException === toCapture) {
         event.exception.values[0].mechanism = {
           handled: false,
-          type: "onErrorServer"
-        }
+          type: 'onErrorServer',
+        };
       }
       return event;
     });
