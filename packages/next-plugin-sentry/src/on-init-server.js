@@ -11,6 +11,7 @@ export default async function initServer() {
 
   init({
     dsn: getDsn(),
+    frameContextLines: 0,
     ...(getRelease() && { release: getRelease() }),
     ...runtimeConfig,
     ...serverConfig,
