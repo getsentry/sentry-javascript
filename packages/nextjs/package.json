@@ -21,8 +21,8 @@
     "@sentry/node": "6.2.1",
     "@sentry/react": "6.2.1",
     "@sentry/next-plugin-sentry": "6.2.1",
-    "@sentry/wizard": "1.2.0",
-    "@sentry/webpack-plugin": "1.14.1"
+    "@sentry/wizard": "^1.2.1",
+    "@sentry/webpack-plugin": "^1.14.1"
   },
   "devDependencies": {
     "@sentry/types": "6.2.1",

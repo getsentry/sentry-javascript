@@ -3387,17 +3387,17 @@
     "@sentry/types" "6.2.1"
     tslib "^1.9.3"
 
-"@sentry/webpack-plugin@1.14.1":
+"@sentry/webpack-plugin@^1.14.1":
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.14.1.tgz#f7aceac17820677f6064293d1f5d01ac72012d14"
   integrity sha512-Elxs21Z9hHNd+s9dCFVkbr/xLa+7Pb8zfqSCzvPOraHCBseE2onyzM7gostmxLtInboEwO0yRTQ5ohmfhhpa2A==
   dependencies:
     "@sentry/cli" "^1.58.0"
 
-"@sentry/wizard@1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@sentry/wizard/-/wizard-1.2.0.tgz#9ed9e0eb8501ef1b94ff6fbea57fffb6ed6a08ae"
-  integrity sha512-VxtRO8k4hL1pZ1Nfv9ps5GmMMoKH8b6gMmicrAbXUeO8BHSJ6EOW24OtvRDShvZJ5bxY1lR6f/dUaC7qt1E+MA==
+"@sentry/wizard@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@sentry/wizard/-/wizard-1.2.1.tgz#693da78bb9f2006e35ea1ec96979a657d57d8e72"
+  integrity sha512-LcXuhNneg43ecsASXtdQD0fvimCN2VOuB02OQRCLfZbwXZCMSr5qbneL8Umt9Hv3OyW2Ub0K8+KbDN9jzmyLSA==
   dependencies:
     "@sentry/cli" "^1.52.4"
     chalk "^2.4.1"
