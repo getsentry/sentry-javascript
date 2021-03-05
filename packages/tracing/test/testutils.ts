@@ -56,3 +56,16 @@ export const testOnlyIfNodeVersionAtLeast = (minVersion: number): jest.It => {
 
   return it;
 };
+
+/** Polyfill for `Object.fromEntries`, for Node < 12 */
+export const objectFromEntries =
+  'fromEntries' in Object
+    ? (Object as { fromEntries: any }).fromEntries
+    : (entries: Array<[string, any]>): Record<string, any> => {
+        const result: Record<string, any> = {};
+        entries.forEach(entry => {
+          const [key, value] = entry;
+          result[key] = value;
+        });
+        return result;
+      };
