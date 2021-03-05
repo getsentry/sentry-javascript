@@ -58,6 +58,16 @@ export interface FetchData {
   endTimestamp?: number;
 }
 
+type PolymorphicRequestHeaders =
+  | Record<string, string>
+  | Array<[string, string]>
+  // the below is not preicsely the Header type used in Request, but it'll pass duck-typing
+  | {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: any;
+      append: (key: string, value: string) => void;
+    };
+
 /** Data returned from XHR request */
 export interface XHRData {
   xhr?: {
@@ -187,22 +197,26 @@ export function fetchCallback(
     const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
-    let headers = options.headers;
+    let headers: PolymorphicRequestHeaders = options.headers;
     if (isInstanceOf(request, Request)) {
       headers = (request as Request).headers;
     }
+    const traceHeaders = span.getTraceHeaders() as Record<string, string>;
     if (headers) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (typeof headers.append === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        headers.append(Object.entries(span.getTraceHeaders()));
+      if ('append' in headers && typeof headers.append === 'function') {
+        headers.append('sentry-trace', traceHeaders['sentry-trace']);
+        if (traceHeaders.tracestate) {
+          headers.append('tracestate', traceHeaders.tracestate);
+        }
       } else if (Array.isArray(headers)) {
-        headers = [...headers, ...Object.entries(span.getTraceHeaders())];
+        // TODO use the nicer version below once we stop supporting Node 6
+        // headers = [...headers, ...Object.entries(traceHeaders)];
+        headers = [...headers, ['sentry-trace', traceHeaders['sentry-trace']], ['tracestate', traceHeaders.tracestate]];
       } else {
-        headers = { ...headers, ...span.getTraceHeaders() };
+        headers = { ...headers, ...traceHeaders };
       }
     } else {
-      headers = span.getTraceHeaders();
+      headers = traceHeaders;
     }
     options.headers = headers;
   }
