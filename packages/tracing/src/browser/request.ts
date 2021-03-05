@@ -209,7 +209,9 @@ export function fetchCallback(
           headers.append('tracestate', traceHeaders.tracestate);
         }
       } else if (Array.isArray(headers)) {
-        headers = [...headers, ...Object.entries(traceHeaders)];
+        // TODO use the nicer version below once we stop supporting Node 6
+        // headers = [...headers, ...Object.entries(traceHeaders)];
+        headers = [...headers, ['sentry-trace', traceHeaders['sentry-trace']], ['tracestate', traceHeaders.tracestate]];
       } else {
         headers = { ...headers, ...traceHeaders };
       }
