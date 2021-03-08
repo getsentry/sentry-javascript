@@ -189,15 +189,23 @@ function startSessionTracking(): void {
 
   const hub = getCurrentHub();
 
-  hub.startSession();
-  hub.captureSession();
+  if ('startSession' in hub) {
+    // The only way for this to be false is for there to be a version mismatch between @sentry/browser (>= 6.0.0) and
+    // @sentry/hub (< 5.27.0). In the simple case, there won't ever be such a mismatch, because the two packages are
+    // pinned at the same version in package.json, but there are edge cases where it's possible'. See
+    // https://github.com/getsentry/sentry-javascript/issues/3234 and
+    // https://github.com/getsentry/sentry-javascript/issues/3207.
 
-  // We want to create a session for every navigation as well
-  addInstrumentationHandler({
-    callback: () => {
-      hub.startSession();
-      hub.captureSession();
-    },
-    type: 'history',
-  });
+    hub.startSession();
+    hub.captureSession();
+
+    // We want to create a session for every navigation as well
+    addInstrumentationHandler({
+      callback: () => {
+        hub.startSession();
+        hub.captureSession();
+      },
+      type: 'history',
+    });
+  }
 }
