@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.2.2
+
+- [hub] fix: Only create sessions if the correct methods are defined (#3281)
+- [core] fix: Don't override SDK metadata (#3304)
+- [browser] fix: Prevent fetch errors loops with invalid fetch implementations (#3318)
+- [serverless] ref: Add compatible runtime nodejs14.x to building awslambda layer (#3303)
+- [ember] fix: Keep route hook context when performance-wrapping (#3274)
+- [integrations] fix: Normalized Event before caching. (#3305)
+
 ## 6.2.1
 
 - [core] fix: Moves SDK metadata-setting into the `NodeClient/BrowserClient` to protect it from being overwritten by other classes extending `BaseClient` like @sentry/serverless (#3279)
