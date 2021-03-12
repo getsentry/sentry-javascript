@@ -1,7 +1,11 @@
-import { withScope, captureException } from '@sentry/nextjs';
+import { withScope, captureException, captureMessage } from '@sentry/nextjs';
 
 export default async function onErrorClient({ err }) {
   withScope(scope => {
-    captureException(err);
+    if (err instanceof Error) {
+      captureException(toCapture);
+    } else {
+      captureMessage(err.message);
+    }
   });
 }
