@@ -1,4 +1,4 @@
-import { init as reactInit } from '@sentry/react';
+import { configureScope, init as reactInit } from '@sentry/react';
 
 import { InitDecider } from './utils/initDecider';
 import { MetadataBuilder } from './utils/metadataBuilder';
@@ -13,6 +13,9 @@ export function init(options: NextjsOptions): any {
   const initDecider = new InitDecider(options);
   if (initDecider.shouldInitSentry()) {
     reactInit(options);
+    configureScope(scope => {
+      scope.setTag('runtime', 'browser');
+    });
   } else {
     // eslint-disable-next-line no-console
     console.warn('[Sentry] Detected a non-production environment. Not initializing Sentry.');
