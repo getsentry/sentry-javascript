@@ -223,7 +223,7 @@ describe('FetchTransport', () => {
           .returns(afterLimit);
 
         const headers = new Headers();
-        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:event:scope`);
+        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:error:scope`);
         fetch.returns(Promise.resolve({ status: 429, headers }));
 
         try {
