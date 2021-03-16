@@ -202,7 +202,7 @@ describe('XHRTransport', () => {
 
         server.respondWith('POST', storeUrl, [
           429,
-          { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:event;transaction:scope` },
+          { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:error;transaction:scope` },
           '',
         ]);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
