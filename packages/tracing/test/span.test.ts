@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, makeMain, Scope } from '@sentry/hub';
 
 import { Span, SpanStatus, Transaction } from '../src';
 import { TRACEPARENT_REGEXP } from '../src/utils';
@@ -385,35 +385,42 @@ describe('Span', () => {
 
 // TODO pull this and other transaction-related tests into their own file
 describe('Transaction', () => {
-  it('pops finished transaction off of scope', () => {
-    const scope = new Scope();
-    const transaction = new Transaction({ name: 'dogpark' });
-    scope.setSpan(transaction);
+  let hub, scope: Scope, dogParkTransaction: Transaction;
 
-    expect(scope.getSpan()).toBe(transaction);
-    transaction.finish();
-    expect(scope.getSpan()).toBeUndefined;
+  beforeEach(() => {
+    hub = new Hub(
+      new BrowserClient({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      }),
+    );
+    makeMain(hub);
+    scope = hub.getScope() as Scope;
+    dogParkTransaction = new Transaction({ name: 'dogpark', sampled: true });
+  });
+
+  it('pops finished transaction off of scope', () => {
+    scope.setSpan(dogParkTransaction);
+
+    expect(scope.getSpan()).toBe(dogParkTransaction);
+    dogParkTransaction.finish();
+    expect(scope.getSpan()).toBeUndefined();
   });
 
   it("pops finished transaction's descendant off of scope", () => {
-    const scope = new Scope();
-    const transaction = new Transaction({ name: 'dogpark' });
-    const childSpan = transaction.startChild();
+    const childSpan = dogParkTransaction.startChild();
     scope.setSpan(childSpan);
 
     expect(scope.getSpan()).toBe(childSpan);
-    transaction.finish();
-    expect(scope.getSpan()).toBeUndefined;
+    dogParkTransaction.finish();
+    expect(scope.getSpan()).toBeUndefined();
   });
 
   it('does not pop other transactions off of scope', () => {
-    const scope = new Scope();
-    const dogparkTransaction = new Transaction({ name: 'dogpark' });
     const fetchBallTransaction = new Transaction({ name: 'FETCH /ball' });
     scope.setSpan(fetchBallTransaction);
 
     expect(scope.getSpan()).toBe(fetchBallTransaction);
-    dogparkTransaction.finish();
+    dogParkTransaction.finish();
     expect(scope.getSpan()).toBe(fetchBallTransaction);
   });
 });
