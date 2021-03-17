@@ -382,3 +382,38 @@ describe('Span', () => {
     });
   });
 });
+
+// TODO pull this and other transaction-related tests into their own file
+describe('Transaction', () => {
+  it('pops finished transaction off of scope', () => {
+    const scope = new Scope();
+    const transaction = new Transaction({ name: 'dogpark' });
+    scope.setSpan(transaction);
+
+    expect(scope.getSpan()).toBe(transaction);
+    transaction.finish();
+    expect(scope.getSpan()).toBeUndefined;
+  });
+
+  it("pops finished transaction's descendant off of scope", () => {
+    const scope = new Scope();
+    const transaction = new Transaction({ name: 'dogpark' });
+    const childSpan = transaction.startChild();
+    scope.setSpan(childSpan);
+
+    expect(scope.getSpan()).toBe(childSpan);
+    transaction.finish();
+    expect(scope.getSpan()).toBeUndefined;
+  });
+
+  it('does not pop other transactions off of scope', () => {
+    const scope = new Scope();
+    const dogparkTransaction = new Transaction({ name: 'dogpark' });
+    const fetchBallTransaction = new Transaction({ name: 'FETCH /ball' });
+    scope.setSpan(fetchBallTransaction);
+
+    expect(scope.getSpan()).toBe(fetchBallTransaction);
+    dogparkTransaction.finish();
+    expect(scope.getSpan()).toBe(fetchBallTransaction);
+  });
+});
