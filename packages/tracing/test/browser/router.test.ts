@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
 
-import { defaultRoutingInstrumentation } from '../../src/browser/router';
+import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
 let addInstrumentationHandlerType: string = '';
@@ -15,7 +15,7 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-describe('defaultRoutingInstrumentation', () => {
+describe('instrumentRoutingWithDefaults', () => {
   const mockFinish = jest.fn();
   const customStartTransaction = jest.fn().mockReturnValue({ finish: mockFinish });
   beforeEach(() => {
@@ -34,18 +34,18 @@ describe('defaultRoutingInstrumentation', () => {
   it('does not start transactions if global location is undefined', () => {
     // @ts-ignore need to override global document
     global.location = undefined;
-    defaultRoutingInstrumentation(customStartTransaction);
+    instrumentRoutingWithDefaults(customStartTransaction);
     expect(customStartTransaction).toHaveBeenCalledTimes(0);
   });
 
   it('starts a pageload transaction', () => {
-    defaultRoutingInstrumentation(customStartTransaction);
+    instrumentRoutingWithDefaults(customStartTransaction);
     expect(customStartTransaction).toHaveBeenCalledTimes(1);
     expect(customStartTransaction).toHaveBeenLastCalledWith({ name: 'blank', op: 'pageload' });
   });
 
   it('does not start a pageload transaction if startTransactionOnPageLoad is false', () => {
-    defaultRoutingInstrumentation(customStartTransaction, false);
+    instrumentRoutingWithDefaults(customStartTransaction, false);
     expect(customStartTransaction).toHaveBeenCalledTimes(0);
   });
 
@@ -56,12 +56,12 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('it is not created automatically', () => {
-      defaultRoutingInstrumentation(customStartTransaction);
+      instrumentRoutingWithDefaults(customStartTransaction);
       expect(customStartTransaction).not.toHaveBeenLastCalledWith({ name: 'blank', op: 'navigation' });
     });
 
     it('is created on location change', () => {
-      defaultRoutingInstrumentation(customStartTransaction);
+      instrumentRoutingWithDefaults(customStartTransaction);
       mockChangeHistory({ to: 'here', from: 'there' });
       expect(addInstrumentationHandlerType).toBe('history');
 
@@ -70,7 +70,7 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('is not created if startTransactionOnLocationChange is false', () => {
-      defaultRoutingInstrumentation(customStartTransaction, true, false);
+      instrumentRoutingWithDefaults(customStartTransaction, true, false);
       mockChangeHistory({ to: 'here', from: 'there' });
       expect(addInstrumentationHandlerType).toBe('');
 
@@ -78,7 +78,7 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('finishes the last active transaction', () => {
-      defaultRoutingInstrumentation(customStartTransaction);
+      instrumentRoutingWithDefaults(customStartTransaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
       mockChangeHistory({ to: 'here', from: 'there' });
@@ -86,7 +86,7 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('will finish active transaction multiple times', () => {
-      defaultRoutingInstrumentation(customStartTransaction);
+      instrumentRoutingWithDefaults(customStartTransaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
       mockChangeHistory({ to: 'here', from: 'there' });
@@ -98,7 +98,7 @@ describe('defaultRoutingInstrumentation', () => {
     });
 
     it('not created if `from` is equal to `to`', () => {
-      defaultRoutingInstrumentation(customStartTransaction);
+      instrumentRoutingWithDefaults(customStartTransaction);
       mockChangeHistory({ to: 'first/path', from: 'first/path' });
       expect(addInstrumentationHandlerType).toBe('history');
 

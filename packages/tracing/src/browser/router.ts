@@ -6,7 +6,7 @@ const global = getGlobalObject<Window>();
 /**
  * Default function implementing pageload and navigation transactions
  */
-export function defaultRoutingInstrumentation<T extends Transaction>(
+export function instrumentRoutingWithDefaults<T extends Transaction>(
   customStartTransaction: (context: TransactionContext) => T | undefined,
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,

@@ -12,7 +12,7 @@ import {
   getMetaContent,
 } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
-import { defaultRoutingInstrumentation } from '../../src/browser/router';
+import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 import { getActiveTransaction, secToMs } from '../../src/utils';
@@ -83,7 +83,7 @@ describe('BrowserTracing', () => {
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       markBackgroundTransactions: true,
       maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
-      routingInstrumentation: defaultRoutingInstrumentation,
+      routingInstrumentation: instrumentRoutingWithDefaults,
       startTransactionOnLocationChange: true,
       startTransactionOnPageLoad: true,
       ...defaultRequestInstrumentationOptions,

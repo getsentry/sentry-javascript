@@ -13,7 +13,7 @@ import {
   instrumentOutgoingRequests,
   RequestInstrumentationOptions,
 } from './request';
-import { defaultRoutingInstrumentation } from './router';
+import { instrumentRoutingWithDefaults } from './router';
 
 export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
 
@@ -87,7 +87,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS = {
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
   markBackgroundTransactions: true,
   maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
-  routingInstrumentation: defaultRoutingInstrumentation,
+  routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
   ...defaultRequestInstrumentationOptions,
