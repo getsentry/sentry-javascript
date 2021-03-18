@@ -10,7 +10,7 @@ import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
-  registerRequestInstrumentation,
+  instrumentOutgoingRequests,
   RequestInstrumentationOptions,
 } from './request';
 import { defaultRoutingInstrumentation } from './router';
@@ -178,7 +178,7 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    registerRequestInstrumentation({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
+    instrumentOutgoingRequests({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
   }
 
   /** Create routing idle transaction. */

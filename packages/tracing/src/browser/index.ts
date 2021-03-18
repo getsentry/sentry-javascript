@@ -1,6 +1,6 @@
 export { BrowserTracing } from './browsertracing';
 export {
-  registerRequestInstrumentation,
+  instrumentOutgoingRequests,
   RequestInstrumentationOptions,
   defaultRequestInstrumentationOptions,
 } from './request';
