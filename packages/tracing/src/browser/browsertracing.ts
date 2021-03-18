@@ -158,7 +158,7 @@ export class BrowserTracing implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const {
-      routingInstrumentation,
+      routingInstrumentation: instrumentRouting,
       startTransactionOnLocationChange,
       startTransactionOnPageLoad,
       markBackgroundTransactions,
@@ -168,7 +168,7 @@ export class BrowserTracing implements Integration {
       shouldCreateSpanForRequest,
     } = this.options;
 
-    routingInstrumentation(
+    instrumentRouting(
       (context: TransactionContext) => this._createRouteTransaction(context),
       startTransactionOnPageLoad,
       startTransactionOnLocationChange,
