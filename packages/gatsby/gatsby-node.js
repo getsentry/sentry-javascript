@@ -7,8 +7,6 @@ const sentryRelease = JSON.stringify(
     process.env.COMMIT_REF ||
     // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
     process.env.VERCEL_GIT_COMMIT_SHA ||
-    process.env.VERCEL_GITLAB_COMMIT_SHA ||
-    process.env.VERCEL_BITBUCKET_COMMIT_SHA ||
     // Zeit (now known as Vercel)
     process.env.ZEIT_GITHUB_COMMIT_SHA ||
     process.env.ZEIT_GITLAB_COMMIT_SHA ||
