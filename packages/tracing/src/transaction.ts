@@ -118,7 +118,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const currentScope = this._hub.getScope();
     const spanOnScope = currentScope?.getSpan();
     if (currentScope && spanOnScope?.transaction === this) {
-      currentScope!.setSpan(undefined);
+      currentScope.setSpan(undefined);
     }
 
     const transaction: Event = {
