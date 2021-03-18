@@ -6,8 +6,9 @@
   "module": "dist/index.es.js",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "yarn clean && rollup -c",
-    "watch": "yarn clean && rollup -cw"
+    "build": "npm install && rollup -c",
+    "watch": "npm install && rollup -cw",
+    "test": "node_modules/.bin/jest"
   },
   "files": [
     "dist"
@@ -26,16 +27,21 @@
     "rrweb": ">=0.7.0",
     "@sentry/browser": ">=4.0.0"
   },
-  "dependencies": {},
+  "volta": {
+    "node": "14.16.0"
+  },
   "devDependencies": {
     "@babel/core": "^7.7.2",
-    "rrweb": "^0.7.33",
     "@sentry/browser": "^5.10.2",
     "@sentry/types": "^5.10.0",
+    "@types/jest": "^26.0.21",
+    "jest": "^26.6.3",
     "rimraf": "^3.0.0",
     "rollup": "^1.26.3",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-typescript2": "^0.25.3",
-    "typescript": "^3.7.3"
+    "rrweb": "^0.7.33",
+    "ts-jest": "^26.5.4",
+    "typescript": "^3.9.9"
   }
 }

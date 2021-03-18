@@ -1,45 +1,39 @@
-import * as rrweb from 'rrweb';
+import { record, EventType } from 'rrweb';
 import * as Sentry from '@sentry/browser';
 import { Dsn, Event } from '@sentry/types';
 
 type RRWebEvent = {
-  type: rrweb.EventType;
+  type: EventType;
   data: {};
   timestamp: number;
   delay?: number;
 };
+
+type RRWebOptions = Parameters<typeof record>[0];
 
 export default class SentryRRWeb {
   public readonly name: string = SentryRRWeb.id;
   public static id: string = 'SentryRRWeb';
 
   public events: Array<RRWebEvent> = [];
-  private readonly checkoutEveryNms: number;
-  private readonly checkoutEveryNth: number;
 
-  // defaults to true
-  private readonly maskAllInputs: boolean;
+  private readonly recordOptions: RRWebOptions;
 
   public constructor({
-    checkoutEveryNms,
-    checkoutEveryNth,
+    checkoutEveryNms = 5 * 60 * 1000,
     maskAllInputs = true,
-  }: {
-    checkoutEveryNms?: number;
-    checkoutEveryNth?: number;
-    maskAllInputs?: boolean;
-  } = {}) {
+    ...recordOptions
+  }: RRWebOptions = {}) {
     // default checkout time of 5 minutes
-    this.checkoutEveryNms = checkoutEveryNms || 5 * 60 * 1000;
-    this.checkoutEveryNth = checkoutEveryNth;
-    this.maskAllInputs = maskAllInputs;
-
+    this.recordOptions = {
+      checkoutEveryNms,
+      maskAllInputs,
+      ...recordOptions,
+    }
     this.events = [];
 
-    rrweb.record({
-      checkoutEveryNms: this.checkoutEveryNms,
-      checkoutEveryNth: this.checkoutEveryNth,
-      maskAllInputs: this.maskAllInputs,
+    record({
+      ...this.recordOptions,
       emit: (event: RRWebEvent, isCheckout?: boolean) => {
         if (isCheckout) {
           this.events = [event];

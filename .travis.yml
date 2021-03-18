@@ -6,7 +6,7 @@ branches:
 language: node_js
 
 cache:
-  yarn: true
+  npm: true
   directories:
     - node_modules
 
@@ -15,11 +15,10 @@ matrix:
     - name: 'deploy'
       node_js: '10'
       script:
-        - yarn
-        - yarn build
-        - yarn pack
+        - npm build
+        - npm pack
       after_success:
-        - yarn global add @zeus-ci/cli
+        - npm global add @zeus-ci/cli
         - zeus upload -t "application/tar+npm" *.tgz
 
 notifications:
