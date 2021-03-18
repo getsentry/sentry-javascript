@@ -92,17 +92,17 @@ describe('BrowserTracing', () => {
 
   /**
    * All of these tests under `describe('route transaction')` are tested with
-   * `browserTracing.options = { routingInstrumentation: customRoutingInstrumentation }`,
+   * `browserTracing.options = { routingInstrumentation: customInstrumentRouting }`,
    * so that we can show this functionality works independent of the default routing integration.
    */
   describe('route transaction', () => {
-    const customRoutingInstrumentation = (customStartTransaction: (obj: any) => void) => {
+    const customInstrumentRouting = (customStartTransaction: (obj: any) => void) => {
       customStartTransaction({ name: 'a/path', op: 'pageload' });
     };
 
     it('calls custom routing instrumenation', () => {
       createBrowserTracing(true, {
-        routingInstrumentation: customRoutingInstrumentation,
+        routingInstrumentation: customInstrumentRouting,
       });
 
       const transaction = getActiveTransaction(hub) as IdleTransaction;
@@ -113,7 +113,7 @@ describe('BrowserTracing', () => {
 
     it('trims all transactions', () => {
       createBrowserTracing(true, {
-        routingInstrumentation: customRoutingInstrumentation,
+        routingInstrumentation: customInstrumentRouting,
       });
 
       const transaction = getActiveTransaction(hub) as IdleTransaction;
@@ -129,7 +129,7 @@ describe('BrowserTracing', () => {
     describe('tracingOrigins', () => {
       it('warns and uses default tracing origins if none are provided', () => {
         const inst = createBrowserTracing(true, {
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
         });
 
         expect(warnSpy).toHaveBeenCalledTimes(2);
@@ -138,7 +138,7 @@ describe('BrowserTracing', () => {
 
       it('warns and uses default tracing origins if empty array given', () => {
         const inst = createBrowserTracing(true, {
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
           tracingOrigins: [],
         });
 
@@ -148,7 +148,7 @@ describe('BrowserTracing', () => {
 
       it('warns and uses default tracing origins if tracing origins are not defined', () => {
         const inst = createBrowserTracing(true, {
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
           tracingOrigins: undefined,
         });
 
@@ -158,7 +158,7 @@ describe('BrowserTracing', () => {
 
       it('sets tracing origins if provided and does not warn', () => {
         const inst = createBrowserTracing(true, {
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
           tracingOrigins: ['something'],
         });
 
@@ -172,7 +172,7 @@ describe('BrowserTracing', () => {
         const mockBeforeNavigation = jest.fn().mockReturnValue({ name: 'here/is/my/path' });
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction).toBeDefined();
@@ -184,7 +184,7 @@ describe('BrowserTracing', () => {
         const mockBeforeNavigation = jest.fn().mockReturnValue(undefined);
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction.sampled).toBe(false);
@@ -199,7 +199,7 @@ describe('BrowserTracing', () => {
         }));
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction).toBeDefined();
@@ -215,7 +215,7 @@ describe('BrowserTracing', () => {
       document.head.innerHTML = `<meta name="${name}" content="${content}">`;
       const startIdleTransaction = jest.spyOn(hubExtensions, 'startIdleTransaction');
 
-      createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+      createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
 
       expect(startIdleTransaction).toHaveBeenCalledWith(
         expect.any(Object),
@@ -232,7 +232,7 @@ describe('BrowserTracing', () => {
 
     describe('idleTimeout', () => {
       it('is created by default', () => {
-        createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+        createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         transaction.finish = mockFinish;
@@ -246,7 +246,7 @@ describe('BrowserTracing', () => {
       });
 
       it('can be a custom value', () => {
-        createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customRoutingInstrumentation });
+        createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         transaction.finish = mockFinish;
@@ -262,7 +262,7 @@ describe('BrowserTracing', () => {
 
     describe('maxTransactionDuration', () => {
       it('cancels a transaction if exceeded', () => {
-        createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+        createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS) + 1);
 
@@ -271,7 +271,7 @@ describe('BrowserTracing', () => {
       });
 
       it('does not cancel a transaction if not exceeded', () => {
-        createBrowserTracing(true, { routingInstrumentation: customRoutingInstrumentation });
+        createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS));
 
@@ -285,7 +285,7 @@ describe('BrowserTracing', () => {
         expect(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS < customMaxTransactionDuration).toBe(true);
         createBrowserTracing(true, {
           maxTransactionDuration: customMaxTransactionDuration,
-          routingInstrumentation: customRoutingInstrumentation,
+          routingInstrumentation: customInstrumentRouting,
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
 
