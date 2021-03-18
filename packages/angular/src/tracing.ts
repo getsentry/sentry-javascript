@@ -30,6 +30,8 @@ export function routingInstrumentation(
   }
 }
 
+export const instrumentAngularRouting = routingInstrumentation;
+
 /**
  * Grabs active transaction off scope
  */

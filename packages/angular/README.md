@@ -82,7 +82,7 @@ Registering a Trace Service is a 3-step process.
    instrumentation:
 
 ```javascript
-import { init, routingInstrumentation } from '@sentry/angular';
+import { init, instrumentAngularRouting } from '@sentry/angular';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 
 init({
@@ -90,7 +90,7 @@ init({
   integrations: [
     new TracingIntegrations.BrowserTracing({
       tracingOrigins: ['localhost', 'https://yourserver.io/api'],
-      routingInstrumentation: routingInstrumentation,
+      routingInstrumentation: instrumentAngularRouting,
     }),
   ],
   tracesSampleRate: 1,
