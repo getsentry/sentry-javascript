@@ -47,7 +47,7 @@ export function reactRouterV4Instrumentation(
   routes?: RouteConfig[],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
-  return reactRouterInstrumentation(history, 'react-router-v4', routes, matchPath);
+  return createReactRouterInstrumentation(history, 'react-router-v4', routes, matchPath);
 }
 
 export function reactRouterV5Instrumentation(
@@ -55,10 +55,10 @@ export function reactRouterV5Instrumentation(
   routes?: RouteConfig[],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
-  return reactRouterInstrumentation(history, 'react-router-v5', routes, matchPath);
+  return createReactRouterInstrumentation(history, 'react-router-v5', routes, matchPath);
 }
 
-function reactRouterInstrumentation(
+function createReactRouterInstrumentation(
   history: RouterHistory,
   name: string,
   allRoutes: RouteConfig[] = [],
