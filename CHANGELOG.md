@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.2.3
+
+- [gatsby] fix: Update Vercel environment variables to match their current system variables (#3337)
+
 ## 6.2.2
 
 - [hub] fix: Only create sessions if the correct methods are defined (#3281)
