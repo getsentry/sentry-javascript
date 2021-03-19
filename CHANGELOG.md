@@ -6,7 +6,7 @@
 
 ## 6.2.3
 
--[gatsby] fix: Update Vercel environment variables to match their current system variables (#3337)
+- [gatsby] fix: Update Vercel environment variables to match their current system variables (#3337)
 
 ## 6.2.2
 
