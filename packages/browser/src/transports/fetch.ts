@@ -1,6 +1,6 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
 import { Event, Response, SentryRequest, Session, TransportOptions } from '@sentry/types';
-import { getGlobalObject, logger, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
+import { getGlobalObject, isNativeFetch, logger, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
@@ -45,8 +45,13 @@ type FetchImpl = typeof fetch;
  * Safari:  resource blocked by content blocker
  */
 function getNativeFetchImplementation(): FetchImpl {
-  // Make sure that the fetch we use is always the native one.
+  // Fast path to avoid DOM I/O
   const global = getGlobalObject<Window>();
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  if (isNativeFetch(global.fetch)) {
+    return global.fetch.bind(global);
+  }
+
   const document = global.document;
   // eslint-disable-next-line deprecation/deprecation
   if (typeof document?.createElement === `function`) {
