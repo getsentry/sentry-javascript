@@ -45,14 +45,16 @@ type FetchImpl = typeof fetch;
  * Safari:  resource blocked by content blocker
  */
 function getNativeFetchImplementation(): FetchImpl {
+  /* eslint-disable @typescript-eslint/unbound-method */
+
   // Fast path to avoid DOM I/O
   const global = getGlobalObject<Window>();
-  // eslint-disable-next-line @typescript-eslint/unbound-method
   if (isNativeFetch(global.fetch)) {
     return global.fetch.bind(global);
   }
 
   const document = global.document;
+  let fetchImpl = global.fetch;
   // eslint-disable-next-line deprecation/deprecation
   if (typeof document?.createElement === `function`) {
     try {
@@ -60,14 +62,16 @@ function getNativeFetchImplementation(): FetchImpl {
       sandbox.hidden = true;
       document.head.appendChild(sandbox);
       if (sandbox.contentWindow?.fetch) {
-        return sandbox.contentWindow.fetch.bind(global);
+        fetchImpl = sandbox.contentWindow.fetch;
       }
       document.head.removeChild(sandbox);
     } catch (e) {
       logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', e);
     }
   }
-  return global.fetch.bind(global);
+
+  return fetchImpl.bind(global);
+  /* eslint-enable @typescript-eslint/unbound-method */
 }
 
 /** `fetch` based transport */
