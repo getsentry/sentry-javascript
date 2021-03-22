@@ -124,9 +124,7 @@ function extractExpressTransactionName(
 
   let path = '';
   if (req.route) {
-    // if the mountpoint is `/`, req.baseUrl is '' (not undefined), so it's safe to include it here
-    // see https://github.com/expressjs/express/blob/508936853a6e311099c9985d4c11a4b1b8f6af07/test/req.baseUrl.js#L7
-    path = `${req.baseUrl}${req.route.path}`;
+    path = `${req.baseUrl || ''}${req.route.path}`;
   } else if (req.originalUrl || req.url) {
     path = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
   }
