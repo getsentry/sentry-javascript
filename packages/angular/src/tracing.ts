@@ -14,21 +14,23 @@ let stashedStartTransactionOnLocationChange: boolean;
  * Creates routing instrumentation for Angular Router.
  */
 export function routingInstrumentation(
-  startTransaction: (context: TransactionContext) => Transaction | undefined,
+  customStartTransaction: (context: TransactionContext) => Transaction | undefined,
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
   instrumentationInitialized = true;
-  stashedStartTransaction = startTransaction;
+  stashedStartTransaction = customStartTransaction;
   stashedStartTransactionOnLocationChange = startTransactionOnLocationChange;
 
   if (startTransactionOnPageLoad) {
-    startTransaction({
+    customStartTransaction({
       name: window.location.pathname,
       op: 'pageload',
     });
   }
 }
+
+export const instrumentAngularRouting = routingInstrumentation;
 
 /**
  * Grabs active transaction off scope

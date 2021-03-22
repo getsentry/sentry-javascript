@@ -337,10 +337,10 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   sentryConfig['integrations'] = [
     ...existingIntegrations,
     new tracing.Integrations.BrowserTracing({
-      routingInstrumentation: (startTransaction, startTransactionOnPageLoad) => {
+      routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
         const routerMain = appInstance.lookup('router:main');
         const routerService = appInstance.lookup('service:router');
-        _instrumentEmberRouter(routerService, routerMain, config, startTransaction, startTransactionOnPageLoad);
+        _instrumentEmberRouter(routerService, routerMain, config, customStartTransaction, startTransactionOnPageLoad);
       },
       idleTimeout,
     }),

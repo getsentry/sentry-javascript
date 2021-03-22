@@ -3,13 +3,7 @@ import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
 import { Span, SpanStatus, Transaction } from '../../src';
-import {
-  fetchCallback,
-  FetchData,
-  registerRequestInstrumentation,
-  xhrCallback,
-  XHRData,
-} from '../../src/browser/request';
+import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
 
@@ -24,13 +18,13 @@ const hasTracingEnabled = jest.spyOn(tracingUtils, 'hasTracingEnabled');
 const addInstrumentationHandler = jest.spyOn(utils, 'addInstrumentationHandler');
 const setRequestHeader = jest.fn();
 
-describe('registerRequestInstrumentation', () => {
+describe('instrumentOutgoingRequests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('instruments fetch and xhr requests', () => {
-    registerRequestInstrumentation();
+    instrumentOutgoingRequests();
 
     expect(addInstrumentationHandler).toHaveBeenCalledWith({
       callback: expect.any(Function),
@@ -43,13 +37,13 @@ describe('registerRequestInstrumentation', () => {
   });
 
   it('does not instrument fetch requests if traceFetch is false', () => {
-    registerRequestInstrumentation({ traceFetch: false });
+    instrumentOutgoingRequests({ traceFetch: false });
 
     expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'fetch' });
   });
 
   it('does not instrument xhr requests if traceXHR is false', () => {
-    registerRequestInstrumentation({ traceXHR: false });
+    instrumentOutgoingRequests({ traceXHR: false });
 
     expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'xhr' });
   });
