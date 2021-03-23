@@ -9,6 +9,14 @@ import {
 } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 
+const CATEGORY_MAPPING: {
+  [key in SentryRequestType]: string;
+} = {
+  event: 'error',
+  transaction: 'transaction',
+  session: 'session',
+};
+
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /**
@@ -80,15 +88,16 @@ export abstract class BaseTransport implements Transport {
   /**
    * Gets the time that given category is disabled until for rate limiting
    */
-  protected _disabledUntil(category: string): Date {
+  protected _disabledUntil(requestType: SentryRequestType): Date {
+    const category = CATEGORY_MAPPING[requestType];
     return this._rateLimits[category] || this._rateLimits.all;
   }
 
   /**
    * Checks if a category is rate limited
    */
-  protected _isRateLimited(category: string): boolean {
-    return this._disabledUntil(category) > new Date(Date.now());
+  protected _isRateLimited(requestType: SentryRequestType): boolean {
+    return this._disabledUntil(requestType) > new Date(Date.now());
   }
 
   /**
