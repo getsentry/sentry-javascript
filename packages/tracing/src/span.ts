@@ -408,7 +408,7 @@ export class Span implements SpanInterface {
    * undefined if there is no client or no DSN.
    */
   private _toTracestate(): string | undefined {
-    // if this is an orphan span, crate a new tracestate value
+    // if this is an orphan span, create a new tracestate value
     const sentryTracestate = this.transaction?.metadata?.tracestate?.sentry || this._getNewTracestate();
     let thirdpartyTracestate = this.transaction?.metadata?.tracestate?.thirdparty;
 
