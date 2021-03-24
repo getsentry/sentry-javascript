@@ -365,7 +365,9 @@ export class Span implements SpanInterface {
    *
    * @returns The new Sentry tracestate entry, or undefined if there's no client or no dsn
    */
-  protected _getNewTracestate(hub: Hub = getCurrentHub()): string | undefined {
+  protected _getNewTracestate(): string | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const hub = ((this.transaction as any)?._hub as Hub) || getCurrentHub();
     const client = hub.getClient();
     const { id: userId, segment: userSegment } = hub.getScope()?.getUser() || {};
     const dsn = client?.getDsn();
