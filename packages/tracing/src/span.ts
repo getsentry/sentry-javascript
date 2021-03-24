@@ -288,6 +288,14 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public getTraceHeaders(): TraceHeaders {
+    // if this span is part of a transaction, but that transaction doesn't yet have a tracestate value, create one
+    if (this.transaction && !this.transaction?.metadata.tracestate?.sentry) {
+      this.transaction.metadata.tracestate = {
+        ...this.transaction.metadata.tracestate,
+        sentry: this._getNewTracestate(),
+      };
+    }
+
     const tracestate = this._toTracestate();
 
     return {
@@ -392,9 +400,11 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * Return a tracestate-compatible header string. Returns undefined if there is no client or no DSN.
+   * Return a tracestate-compatible header string, including both sentry and third-party data (if any). Returns
+   * undefined if there is no client or no DSN.
    */
   private _toTracestate(): string | undefined {
+    // if this is an orphan span, crate a new tracestate value
     const sentryTracestate = this.transaction?.metadata?.tracestate?.sentry || this._getNewTracestate();
     let thirdpartyTracestate = this.transaction?.metadata?.tracestate?.thirdparty;
 
