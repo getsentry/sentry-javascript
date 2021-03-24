@@ -144,7 +144,7 @@ export function secToMs(time: number): number {
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
 export { stripUrlQueryAndFragment } from '@sentry/utils';
 
-type SentryTracestateData = {
+export type SentryTracestateData = {
   traceId: string;
   environment: string | undefined | null;
   release: string | undefined | null;

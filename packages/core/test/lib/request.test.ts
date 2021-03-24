@@ -28,7 +28,7 @@ describe('eventToSentryRequest', () => {
     environment: 'dogpark',
     event_id: '0908201304152013',
     release: 'off.leash.park',
-    user: { id: '1121', username: 'CharlieDog', ip_address: '11.21.20.12' },
+    user: { id: '1121', username: 'CharlieDog', ip_address: '11.21.20.12', segment: 'bigs' },
   };
 
   describe('error/message events', () => {
@@ -65,13 +65,15 @@ describe('eventToSentryRequest', () => {
           // computeTracestateValue({
           //   trace_id: '1231201211212012',
           //   environment: 'dogpark',
-          //   release: 'off.leash.park',
           //   public_key: 'dogsarebadatkeepingsecrets',
+          //   release: 'off.leash.park',
+          //   user: { id: '1121', segment: 'bigs' },
           // }),
           tracestate: {
             sentry:
-              'sentry=eyJ0cmFjZV9pZCI6IjEyMzEyMDEyMTEyMTIwMTIiLCJlbnZpcm9ubWVudCI6ImRvZ3BhcmsiLCJyZWxlYXNlIjoib2ZmLmxlYXNo' +
-              'LnBhcmsiLCJwdWJsaWNfa2V5IjoiZG9nc2FyZWJhZGF0a2VlcGluZ3NlY3JldHMifQ',
+              'sentry=eyJ0cmFjZV9pZCI6IjEyMzEyMDEyMTEyMTIwMTIiLCJlbnZpcm9ubWVudCI6ImRvZ3BhcmsiLCJwdWJsaWNfa2V5Ijo' +
+              'iZG9nc2FyZWJhZGF0a2VlcGluZ3NlY3JldHMiLCJyZWxlYXNlIjoib2ZmLmxlYXNoLnBhcmsiLCJ1c2VyIjp7ImlkIjoiMTEyM' +
+              'SIsInNlZ21lbnQiOiJiaWdzIn19',
           },
         },
         spans: [],
@@ -160,10 +162,11 @@ describe('eventToSentryRequest', () => {
 
           expect(envelope.envelopeHeader.trace).toBeDefined();
           expect(envelope.envelopeHeader.trace).toEqual({
+            trace_id: '1231201211212012',
             environment: 'dogpark',
             public_key: 'dogsarebadatkeepingsecrets',
             release: 'off.leash.park',
-            trace_id: '1231201211212012',
+            user: { id: '1121', segment: 'bigs' },
           });
         });
       });
