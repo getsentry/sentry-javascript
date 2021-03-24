@@ -25,7 +25,7 @@
     "start": "ember serve",
     "test": "bash ./scripts/run_tests.sh",
     "test:ember": "ember test",
-    "test:ember-compatibility": "ember try:each",
+    "test:ember-compatibility": "ember try:each --silent",
     "prepublishOnly": "ember ts:precompile",
     "postpublish": "ember ts:clean",
     "pack": "npm pack"
