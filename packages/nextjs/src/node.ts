@@ -1,4 +1,4 @@
-import { init as nodeInit } from '@sentry/node';
+import { configureScope, init as nodeInit } from '@sentry/node';
 
 import { InitDecider } from './utils/initDecider';
 import { MetadataBuilder } from './utils/metadataBuilder';
@@ -17,6 +17,9 @@ export function init(options: NextjsOptions): any {
   const initDecider = new InitDecider(options);
   if (initDecider.shouldInitSentry()) {
     nodeInit(options);
+    configureScope(scope => {
+      scope.setTag('runtime', 'node');
+    });
   } else {
     // eslint-disable-next-line no-console
     console.warn('[Sentry] Detected a non-production environment. Not initializing Sentry.');
