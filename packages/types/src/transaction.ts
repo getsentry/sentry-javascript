@@ -64,6 +64,11 @@ export interface Transaction extends TransactionContext, Span {
   data: { [key: string]: any };
 
   /**
+   * Metadata about the transaction
+   */
+  metadata: TransactionMetadata;
+
+  /**
    * Set the name of the transaction
    */
   setName(name: string): void;
