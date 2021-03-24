@@ -7,7 +7,7 @@ import { base64ToUnicode } from '@sentry/utils';
 
 import { Span } from '../src/span';
 import { Transaction } from '../src/transaction';
-import { computeTracestateValue, SentryTracestateData } from '../src/utils';
+import { computeTracestateValue } from '../src/utils';
 
 // TODO gather sentry-trace and tracestate tests here
 
@@ -169,11 +169,12 @@ describe('tracestate', () => {
         expect.assertions(2);
 
         const inheritedTracestate = `sentry=${computeTracestateValue({
-          traceId: '12312012090820131231201209082013',
+          trace_id: '12312012090820131231201209082013',
           environment: 'dogpark',
           release: 'off.leash.trail',
-          publicKey: 'dogsarebadatkeepingsecrets',
-        } as SentryTracestateData)}`;
+          public_key: 'dogsarebadatkeepingsecrets',
+          user: { id: undefined, segment: undefined },
+        })}`;
 
         const transaction = new Transaction(
           {
@@ -193,8 +194,8 @@ describe('tracestate', () => {
           const tracestateValue = (transaction as any)._toTracestate().replace('sentry=', '');
           const reinflatedTracestate = JSON.parse(base64ToUnicode(tracestateValue));
 
-          expect(reinflatedTracestate.userId).toBeNull();
-          expect(reinflatedTracestate.userSegment).toBeNull();
+          expect(reinflatedTracestate.user.id).toBeNull();
+          expect(reinflatedTracestate.user.segment).toBeNull();
         });
       });
 
@@ -214,8 +215,8 @@ describe('tracestate', () => {
           const tracestateValue = (transaction as any)._toTracestate().replace('sentry=', '');
           const reinflatedTracestate = JSON.parse(base64ToUnicode(tracestateValue));
 
-          expect(reinflatedTracestate.userId).toEqual('1121');
-          expect(reinflatedTracestate.userSegment).toEqual('bigs');
+          expect(reinflatedTracestate.user.id).toEqual('1121');
+          expect(reinflatedTracestate.user.segment).toEqual('bigs');
         });
       });
 
@@ -237,8 +238,8 @@ describe('tracestate', () => {
           const tracestateValue = (transaction as any)._toTracestate().replace('sentry=', '');
           const reinflatedTracestate = JSON.parse(base64ToUnicode(tracestateValue));
 
-          expect(reinflatedTracestate.userId).toBeNull();
-          expect(reinflatedTracestate.userSegment).toBeNull();
+          expect(reinflatedTracestate.user.id).toBeNull();
+          expect(reinflatedTracestate.user.segment).toBeNull();
         });
       });
     });

@@ -144,13 +144,12 @@ export function secToMs(time: number): number {
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
 export { stripUrlQueryAndFragment } from '@sentry/utils';
 
-export type SentryTracestateData = {
-  traceId: string;
+type SentryTracestateData = {
+  trace_id: string;
   environment: string | undefined | null;
   release: string | undefined | null;
-  publicKey: string;
-  userId: string | undefined | null;
-  userSegment: string | undefined | null;
+  public_key: string;
+  user: { id: string | undefined | null; segment: string | undefined | null };
 };
 
 /**
@@ -164,8 +163,8 @@ export function computeTracestateValue(data: SentryTracestateData): string {
   // these values from being dropped if they haven't been set by `Sentry.init`
   data.environment = data.environment || null;
   data.release = data.release || null;
-  data.userId = data.userId || null;
-  data.userSegment = data.userSegment || null;
+  data.user.id = data.user.id || null;
+  data.user.segment = data.user.segment || null;
 
   // See https://www.w3.org/TR/trace-context/#tracestate-header-field-values
   // The spec for tracestate header values calls for a string of the form
