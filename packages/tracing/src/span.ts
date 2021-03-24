@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/hub';
-import { Hub, Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
+import { getCurrentHub, Hub } from '@sentry/hub';
+import { Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
@@ -367,6 +367,7 @@ export class Span implements SpanInterface {
    */
   protected _getNewTracestate(hub: Hub = getCurrentHub()): string | undefined {
     const client = hub.getClient();
+    const { id: userId, segment: userSegment } = hub.getScope()?.getUser() || {};
     const dsn = client?.getDsn();
 
     if (!client || !dsn) {
@@ -385,6 +386,8 @@ export class Span implements SpanInterface {
       release,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       publicKey: dsn.publicKey!,
+      userId,
+      userSegment,
     })}`;
   }
 

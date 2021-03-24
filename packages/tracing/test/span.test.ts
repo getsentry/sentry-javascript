@@ -108,6 +108,7 @@ describe('Span', () => {
     const release = 'off.leash.trail';
     const environment = 'dogpark';
     const traceId = '12312012123120121231201212312012';
+    const user = { id: '1121', segment: 'bigs' };
 
     const computedTracestate = `sentry=${computeTracestateValue({ traceId, environment, release, publicKey })}`;
     const thirdpartyData = 'maisey=silly,charlie=goofy';
@@ -120,6 +121,10 @@ describe('Span', () => {
         environment,
       }),
     );
+
+    hub.configureScope(scope => {
+      scope.setUser(user);
+    });
 
     test('no third-party data', () => {
       const transaction = new Transaction({ name: 'FETCH /ball', traceId }, hub);
