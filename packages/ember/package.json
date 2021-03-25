@@ -25,7 +25,7 @@
     "start": "ember serve",
     "test": "bash ./scripts/run_tests.sh",
     "test:ember": "ember test",
-    "test:ember-compatibility": "ember try:each --silent",
+    "test:ember-compatibility": "ember try:each",
     "prepublishOnly": "ember ts:precompile",
     "postpublish": "ember ts:clean",
     "pack": "npm pack"
@@ -71,7 +71,7 @@
     "ember-source": "^3.24.0",
     "ember-source-channel-url": "^2.0.1",
     "ember-template-lint": "^2.9.1",
-    "ember-test-selectors": "^4.1.0",
+    "ember-test-selectors": "5.0.0",
     "ember-try": "^1.4.0",
     "ember-window-mock": "^0.7.1",
     "eslint": "7.6.0",
