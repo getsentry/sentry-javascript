@@ -23,7 +23,11 @@ function assertSentryCall(assert, callNumber, options) {
   }
   if (options.spans) {
     assert.deepEqual(
-      event.spans.map(s => `${s.op} | ${s.description}`),
+      event.spans.map(s => {
+        // Normalize span descriptions for internal components so tests work on either side of updated Ember versions
+        const normalizedDescription = s.description === 'component:-link-to' ? 'component:link-to' : s.description;
+        `${s.op} | ${normalizedDescription}`;
+      }),
       options.spans,
       `Has correct spans`,
     );
