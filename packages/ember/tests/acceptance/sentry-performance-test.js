@@ -26,7 +26,7 @@ function assertSentryCall(assert, callNumber, options) {
       event.spans.map(s => {
         // Normalize span descriptions for internal components so tests work on either side of updated Ember versions
         const normalizedDescription = s.description === 'component:-link-to' ? 'component:link-to' : s.description;
-        `${s.op} | ${normalizedDescription}`;
+        return `${s.op} | ${normalizedDescription}`;
       }),
       options.spans,
       `Has correct spans`,
