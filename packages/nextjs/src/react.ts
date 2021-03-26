@@ -20,6 +20,9 @@ export function init(options: NextjsOptions): any {
     // eslint-disable-next-line no-console
     console.warn('[Sentry] Detected a non-production environment. Not initializing Sentry.');
     // eslint-disable-next-line no-console
-    console.warn('[Sentry] To use Sentry also in development set `dev: true` in the options.');
+    console.warn(
+      '[Sentry] To use Sentry in development set `enableInDev: true` in next.config.js -> ' +
+        '`module.exports.publicRuntimeConfig.sentry` and `module.exports.serverRuntimeConfig.sentry`',
+    );
   }
 }

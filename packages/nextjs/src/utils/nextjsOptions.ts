@@ -8,5 +8,5 @@ export interface NextjsOptions extends Options, BrowserOptions, NodeOptions {
    * non-production environments. By default, the SDK is only initialised in
    * production.
    */
-  dev?: boolean;
+  enableInDev?: boolean;
 }

@@ -10,8 +10,8 @@ export class InitDecider {
   /**
    * Returns a boolean representing whether the NextJS SDK should be initialised.
    *
-   * The SDK should be initialised if the `dev` option is set to true.
-   * `dev` is optional, so if it isn't set or is set to false, the SDK will only
+   * The SDK should be initialised if the `enableInDev` option is set to true.
+   * `enableInDev` is optional, so if it isn't set or is set to false, the SDK will only
    * be initialised in a production environment.
    */
   public shouldInitSentry(): boolean {
@@ -22,10 +22,10 @@ export class InitDecider {
   }
 
   /**
-   * Returns true if the option `dev` is true, and false otherwise.
+   * Returns true if the option `enableInDev` is true, and false otherwise.
    */
   private _isEnabledInDev(): boolean {
-    return this._options.dev || false;
+    return this._options.enableInDev || false;
   }
 
   /**

@@ -9,6 +9,7 @@
   "engines": {
     "node": ">=6"
   },
+  "main": "./esm/node.js",
   "module": "./esm/node.js",
   "browser": "./esm/react.js",
   "types": "./esm/react.d.ts",

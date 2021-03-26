@@ -14,11 +14,11 @@ function getEmptyOptions(): NextjsOptions {
 }
 
 function getDevTrueOptions(): NextjsOptions {
-  return { dev: true };
+  return { enableInDev: true };
 }
 
 function getDevFalseOptions(): NextjsOptions {
-  return { dev: false };
+  return { enableInDev: false };
 }
 
 describe('decide initialization in development', () => {
