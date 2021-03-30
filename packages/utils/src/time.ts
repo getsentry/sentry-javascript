@@ -139,10 +139,11 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   const THRESHOLD = 3600 * 1000;
   // eslint-disable-next-line deprecation/deprecation
   const performanceTiming = performance.timing && performance.timing.navigationStart;
-  if (performance.timeOrigin && (
-    Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD ||
-    performanceTiming && Math.abs(performance.timeOrigin - performanceTiming) < THRESHOLD
-  )) {
+  if (
+    performance.timeOrigin &&
+    (Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD ||
+      (performanceTiming && Math.abs(performance.timeOrigin - performanceTiming) < THRESHOLD))
+  ) {
     return performance.timeOrigin;
   }
   // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
@@ -150,9 +151,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // Also as of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
-  if (performanceTiming &&
-    Math.abs(performanceTiming + performance.now() - Date.now()) < THRESHOLD
-  ) {
+  if (performanceTiming && Math.abs(performanceTiming + performance.now() - Date.now()) < THRESHOLD) {
     return performanceTiming;
   }
   // Both performance functions are skewed, fallback to Date
