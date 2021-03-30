@@ -139,12 +139,15 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   const THRESHOLD = 3600 * 1000;
   // eslint-disable-next-line deprecation/deprecation
   const navigationStart = performance.timing && performance.timing.navigationStart;
-  // Unfortunately browsers may report an inaccurate timeOrigin, which results in poor results in performance data. We
-  // treat timeOrigin as reliable if they are within a reasonable threshold of the current time, or if both
-  // performance APIs are consistent with each other
-  const timeOriginIsReliable =
-    Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD ||
-    (navigationStart && Math.abs(performance.timeOrigin - navigationStart) < THRESHOLD);
+  const hasNavigationStart = typeof navigationStart === 'number';
+  // Unfortunately browsers may report an inaccurate time origin data, which results in poor results in performance
+  // data. We treat time origin data as reliable if they are either within a reasonable threshold of the current time,
+  // or if both timeOrigin and navigationStart are within the same threshold
+
+  const timeOriginIsReliableWithDate = Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
+  const timeOriginIsReliableWithNavigation =
+    hasNavigationStart && Math.abs(performance.timeOrigin - navigationStart) < THRESHOLD;
+  const timeOriginIsReliable = timeOriginIsReliableWithDate || timeOriginIsReliableWithNavigation;
   if (performance.timeOrigin && timeOriginIsReliable) {
     return performance.timeOrigin;
   }
@@ -153,7 +156,8 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // Also as of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
-  if (navigationStart && Math.abs(navigationStart + performance.now() - Date.now()) < THRESHOLD) {
+  const navigationStartIsReliable = Math.abs(navigationStart + performance.now() - Date.now()) < THRESHOLD;
+  if (hasNavigationStart && navigationStartIsReliable) {
     return navigationStart;
   }
   // Both performance functions are skewed, fallback to Date
