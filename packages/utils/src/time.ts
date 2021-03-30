@@ -141,7 +141,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
   // data as reliable if they are within a reasonable threshold of the current time.
 
-  const timeOriginIsReliable = Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
+  const timeOriginIsReliable = performance.timeOrigin && Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
   if (performance.timeOrigin && timeOriginIsReliable) {
     return performance.timeOrigin;
   }
@@ -157,6 +157,6 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   if (hasNavigationStart && navigationStartIsReliable) {
     return navigationStart;
   }
-  // Both performance functions are skewed, fallback to Date
+  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
   return Date.now();
 })();
