@@ -142,12 +142,8 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   const hasNavigationStart = typeof navigationStart === 'number';
   // Unfortunately browsers may report an inaccurate time origin data, which results in poor results in performance
   // data. We treat time origin data as reliable if they are either within a reasonable threshold of the current time,
-  // or if both timeOrigin and navigationStart are within the same threshold
 
-  const timeOriginIsReliableWithDate = Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
-  const timeOriginIsReliableWithNavigation =
-    hasNavigationStart && Math.abs(performance.timeOrigin - navigationStart) < THRESHOLD;
-  const timeOriginIsReliable = timeOriginIsReliableWithDate || timeOriginIsReliableWithNavigation;
+  const timeOriginIsReliable = Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
   if (performance.timeOrigin && timeOriginIsReliable) {
     return performance.timeOrigin;
   }
