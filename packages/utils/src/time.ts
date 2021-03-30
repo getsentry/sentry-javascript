@@ -137,11 +137,9 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   }
   // If performance APIs are over an hour skewed don't use them
   const THRESHOLD = 3600 * 1000;
-  // eslint-disable-next-line deprecation/deprecation
-  const navigationStart = performance.timing && performance.timing.navigationStart;
-  const hasNavigationStart = typeof navigationStart === 'number';
-  // Unfortunately browsers may report an inaccurate time origin data, which results in poor results in performance
-  // data. We treat time origin data as reliable if they are either within a reasonable threshold of the current time,
+  // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
+  // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
+  // data as reliable if they are within a reasonable threshold of the current time.
 
   const timeOriginIsReliable = Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
   if (performance.timeOrigin && timeOriginIsReliable) {
@@ -152,6 +150,9 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // Also as of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
+  // eslint-disable-next-line deprecation/deprecation
+  const navigationStart = performance.timing && performance.timing.navigationStart;
+  const hasNavigationStart = typeof navigationStart === 'number';
   const navigationStartIsReliable = Math.abs(navigationStart + performance.now() - Date.now()) < THRESHOLD;
   if (hasNavigationStart && navigationStartIsReliable) {
     return navigationStart;
