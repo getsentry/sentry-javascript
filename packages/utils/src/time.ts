@@ -156,6 +156,6 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   if (hasNavigationStart && navigationStartIsReliable) {
     return navigationStart;
   }
-  // Both performance functions are skewed, fallback to Date
+  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
   return Date.now();
 })();
