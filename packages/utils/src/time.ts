@@ -141,7 +141,8 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
   // data as reliable if they are within a reasonable threshold of the current time.
 
-  const timeOriginIsReliable = performance.timeOrigin && Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
+  const timeOriginIsReliable =
+    performance.timeOrigin && Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
   if (performance.timeOrigin && timeOriginIsReliable) {
     return performance.timeOrigin;
   }
@@ -153,8 +154,9 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // eslint-disable-next-line deprecation/deprecation
   const navigationStart = performance.timing && performance.timing.navigationStart;
   const hasNavigationStart = typeof navigationStart === 'number';
-  const navigationStartIsReliable = Math.abs(navigationStart + performance.now() - Date.now()) < THRESHOLD;
-  if (hasNavigationStart && navigationStartIsReliable) {
+  const navigationStartIsReliable =
+    hasNavigationStart && Math.abs(navigationStart + performance.now() - Date.now()) < THRESHOLD;
+  if (navigationStartIsReliable) {
     return navigationStart;
   }
   // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
