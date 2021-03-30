@@ -138,12 +138,14 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // If performance APIs are over an hour skewed don't use them
   const THRESHOLD = 3600 * 1000;
   // eslint-disable-next-line deprecation/deprecation
-  const performanceTiming = performance.timing && performance.timing.navigationStart;
-  if (
-    performance.timeOrigin &&
-    (Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD ||
-      (performanceTiming && Math.abs(performance.timeOrigin - performanceTiming) < THRESHOLD))
-  ) {
+  const navigationStart = performance.timing && performance.timing.navigationStart;
+  // Unfortunately browsers may report an inaccurate timeOrigin, which results in poor results in performance data. We
+  // treat timeOrigin as reliable if they are within a reasonable threshold of the current time, or if both
+  // performance APIs are consistent with each other
+  const timeOriginIsReliable =
+    Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD ||
+    (navigationStart && Math.abs(performance.timeOrigin - navigationStart) < THRESHOLD);
+  if (performance.timeOrigin && timeOriginIsReliable) {
     return performance.timeOrigin;
   }
   // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
@@ -151,8 +153,8 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // Also as of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
-  if (performanceTiming && Math.abs(performanceTiming + performance.now() - Date.now()) < THRESHOLD) {
-    return performanceTiming;
+  if (navigationStart && Math.abs(navigationStart + performance.now() - Date.now()) < THRESHOLD) {
+    return navigationStart;
   }
   // Both performance functions are skewed, fallback to Date
   return Date.now();
