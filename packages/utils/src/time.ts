@@ -143,7 +143,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // Unfortunately browsers may report an inaccurate time origin data, which results in poor results in performance
   // data. We treat time origin data as reliable if they are either within a reasonable threshold of the current time,
 
-  const timeOriginIsReliable = Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
+  const timeOriginIsReliable = performance.timeOrigin && Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
   if (performance.timeOrigin && timeOriginIsReliable) {
     return performance.timeOrigin;
   }
