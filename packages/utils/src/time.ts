@@ -143,7 +143,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
 
   const timeOriginIsReliable =
     performance.timeOrigin && Math.abs(performance.timeOrigin + performance.now() - Date.now()) < THRESHOLD;
-  if (performance.timeOrigin && timeOriginIsReliable) {
+  if (timeOriginIsReliable) {
     return performance.timeOrigin;
   }
   // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
