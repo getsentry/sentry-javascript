@@ -1,14 +1,6 @@
 declare global {
   interface Window {
     __SENTRY__: {
-      // Where actual SDK options are
-      hub: {
-        getClient: () => {
-          _backend: {
-            _options: unknown;
-          };
-        };
-      };
       // Where tmp options are
       // Options for Next.js SDK are defined before the SDK can be initialized,
       // so they are stored in a tmp global variable, where the SDK can take them.
