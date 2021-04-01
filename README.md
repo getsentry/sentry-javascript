@@ -5,6 +5,8 @@
   <br />
 </p>
 
+_Bad software is everywhere, and we're tired of it. Sentry is on a mission to help developers write better software faster, so we can get back to enjoying technology. If you want to join us [<kbd>**Check out our open positions**</kbd>](https://sentry.io/careers/)_
+
 ![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/Build%20&%20Test/badge.svg)
 [![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
@@ -37,14 +39,14 @@ convenient interface and improved consistency between various JavaScript environ
 For each major JavaScript platform, there is a specific high-level SDK that provides all the tools you need in a single
 package. Please refer to the README and instructions of those SDKs for more detailed information:
 
-- [`@sentry/browser`](https://github.com/getsentry/sentry-javascript/tree/master/packages/browser): SDK for Browsers,
-  including integrations for React, Angular, Ember, Vue and Backbone
+- [`@sentry/browser`](https://github.com/getsentry/sentry-javascript/tree/master/packages/browser): SDK for Browsers
+  including integrations for Backbone
 - [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node, including
   integrations for Express, Koa, Loopback, Sails and Connect
-- [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): SDK for Angular
-- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): SDK for ReactJS
-- [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): SDK for Ember
-- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): SDK for Vue.js
+- [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): browser SDK with Angular integration enabled
+- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): browser SDK with React integration enabled 
+- [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): browser SDK with Ember integration enabled
+- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): browser SDK with Vue integration enabled
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
 - [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for native crashes
 - [`@sentry/integrations`](https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations): Pluggable

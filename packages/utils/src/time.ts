@@ -127,22 +127,50 @@ export const timestampWithMs = timestampInSeconds;
 export const usingPerformanceAPI = platformPerformance !== undefined;
 
 /**
+ * Internal helper to store what is the source of browserPerformanceTimeOrigin below. For debugging only.
+ */
+export let _browserPerformanceTimeOriginMode: string;
+
+/**
  * The number of milliseconds since the UNIX epoch. This value is only usable in a browser, and only when the
  * performance API is available.
  */
 export const browserPerformanceTimeOrigin = ((): number | undefined => {
+  // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
+  // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
+  // data as reliable if they are within a reasonable threshold of the current time.
+
   const { performance } = getGlobalObject<Window>();
   if (!performance) {
+    _browserPerformanceTimeOriginMode = 'none';
     return undefined;
   }
-  if (performance.timeOrigin) {
+
+  const threshold = 3600 * 1000;
+
+  const timeOriginIsReliable =
+    performance.timeOrigin && Math.abs(performance.timeOrigin + performance.now() - Date.now()) < threshold;
+  if (timeOriginIsReliable) {
+    _browserPerformanceTimeOriginMode = 'timeOrigin';
     return performance.timeOrigin;
   }
+
   // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
   // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
   // Also as of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
   // eslint-disable-next-line deprecation/deprecation
-  return (performance.timing && performance.timing.navigationStart) || Date.now();
+  const navigationStart = performance.timing && performance.timing.navigationStart;
+  const hasNavigationStart = typeof navigationStart === 'number';
+  const navigationStartIsReliable =
+    hasNavigationStart && Math.abs(navigationStart + performance.now() - Date.now()) < threshold;
+  if (navigationStartIsReliable) {
+    _browserPerformanceTimeOriginMode = 'navigationStart';
+    return navigationStart;
+  }
+
+  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
+  _browserPerformanceTimeOriginMode = 'dateNow';
+  return Date.now();
 })();
