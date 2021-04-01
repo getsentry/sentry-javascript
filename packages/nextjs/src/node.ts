@@ -27,3 +27,8 @@ export function init(options: NextjsOptions): any {
     console.warn('[Sentry] To use Sentry also in development set `dev: true` in the options.');
   }
 }
+
+/** Does nothing, added for compatibility reasons. */
+export function addBrowserConfig(_options: any): void {
+  // NOOP
+}
