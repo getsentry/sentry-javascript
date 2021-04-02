@@ -11,7 +11,7 @@ export * from '@sentry/node';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 
 /** Inits the Sentry NextJS SDK on node. */
-export function init(options: NextjsOptions): any {
+export function init(options: NextjsOptions): void {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
   metadataBuilder.addSdkMetadata();
   const initDecider = new InitDecider(options);
