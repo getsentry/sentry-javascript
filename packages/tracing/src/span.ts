@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/hub';
-import { Hub, Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
+import { getCurrentHub, Hub } from '@sentry/hub';
+import { Primitive, Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
@@ -288,6 +288,14 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public getTraceHeaders(): TraceHeaders {
+    // if this span is part of a transaction, but that transaction doesn't yet have a tracestate value, create one
+    if (this.transaction && !this.transaction?.metadata.tracestate?.sentry) {
+      this.transaction.metadata.tracestate = {
+        ...this.transaction.metadata.tracestate,
+        sentry: this._getNewTracestate(),
+      };
+    }
+
     const tracestate = this._toTracestate();
 
     return {
@@ -357,8 +365,11 @@ export class Span implements SpanInterface {
    *
    * @returns The new Sentry tracestate entry, or undefined if there's no client or no dsn
    */
-  protected _getNewTracestate(hub: Hub = getCurrentHub()): string | undefined {
+  protected _getNewTracestate(): string | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const hub = ((this.transaction as any)?._hub as Hub) || getCurrentHub();
     const client = hub.getClient();
+    const { id: userId, segment: userSegment } = hub.getScope()?.getUser() || {};
     const dsn = client?.getDsn();
 
     if (!client || !dsn) {
@@ -372,11 +383,12 @@ export class Span implements SpanInterface {
     // `dsn.publicKey` required and remove the `!`.
 
     return `sentry=${computeTracestateValue({
-      traceId: this.traceId,
+      trace_id: this.traceId,
       environment,
       release,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      publicKey: dsn.publicKey!,
+      public_key: dsn.publicKey!,
+      user: { id: userId, segment: userSegment },
     })}`;
   }
 
@@ -392,9 +404,11 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * Return a tracestate-compatible header string. Returns undefined if there is no client or no DSN.
+   * Return a tracestate-compatible header string, including both sentry and third-party data (if any). Returns
+   * undefined if there is no client or no DSN.
    */
   private _toTracestate(): string | undefined {
+    // if this is an orphan span, create a new tracestate value
     const sentryTracestate = this.transaction?.metadata?.tracestate?.sentry || this._getNewTracestate();
     let thirdpartyTracestate = this.transaction?.metadata?.tracestate?.thirdparty;
 
