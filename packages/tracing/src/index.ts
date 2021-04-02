@@ -8,7 +8,8 @@ export { Integrations };
 export { Span } from './span';
 export { Transaction } from './transaction';
 export {
-  registerRequestInstrumentation,
+  // TODO deprecate old name in v7
+  instrumentOutgoingRequests as registerRequestInstrumentation,
   RequestInstrumentationOptions,
   defaultRequestInstrumentationOptions,
 } from './browser';

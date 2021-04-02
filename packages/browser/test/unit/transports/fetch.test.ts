@@ -19,7 +19,7 @@ let transport: Transports.BaseTransport;
 describe('FetchTransport', () => {
   beforeEach(() => {
     fetch = (stub(window, 'fetch') as unknown) as SinonStub;
-    transport = new Transports.FetchTransport({ dsn: testDsn });
+    transport = new Transports.FetchTransport({ dsn: testDsn }, window.fetch);
   });
 
   afterEach(() => {
@@ -83,12 +83,15 @@ describe('FetchTransport', () => {
     });
 
     it('passes in headers', async () => {
-      transport = new Transports.FetchTransport({
-        dsn: testDsn,
-        headers: {
-          Authorization: 'Basic GVzdDp0ZXN0Cg==',
+      transport = new Transports.FetchTransport(
+        {
+          dsn: testDsn,
+          headers: {
+            Authorization: 'Basic GVzdDp0ZXN0Cg==',
+          },
         },
-      });
+        window.fetch,
+      );
       const response = { status: 200, headers: new Headers() };
 
       fetch.returns(Promise.resolve(response));
@@ -109,12 +112,15 @@ describe('FetchTransport', () => {
     });
 
     it('passes in fetch parameters', async () => {
-      transport = new Transports.FetchTransport({
-        dsn: testDsn,
-        fetchParameters: {
-          credentials: 'include',
+      transport = new Transports.FetchTransport(
+        {
+          dsn: testDsn,
+          fetchParameters: {
+            credentials: 'include',
+          },
         },
-      });
+        window.fetch,
+      );
       const response = { status: 200, headers: new Headers() };
 
       fetch.returns(Promise.resolve(response));
@@ -217,7 +223,7 @@ describe('FetchTransport', () => {
           .returns(afterLimit);
 
         const headers = new Headers();
-        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:event:scope`);
+        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:error:scope`);
         fetch.returns(Promise.resolve({ status: 429, headers }));
 
         try {
@@ -284,7 +290,7 @@ describe('FetchTransport', () => {
           .returns(afterLimit);
 
         const headers = new Headers();
-        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:event;transaction:scope`);
+        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:error;transaction:scope`);
         fetch.returns(Promise.resolve({ status: 429, headers }));
 
         try {
@@ -360,7 +366,7 @@ describe('FetchTransport', () => {
           .returns(afterLimit);
 
         const headers = new Headers();
-        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:event;transaction:scope`);
+        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:error;transaction:scope`);
         fetch.returns(Promise.resolve({ status: 429, headers }));
 
         try {
@@ -427,7 +433,7 @@ describe('FetchTransport', () => {
           .returns(afterLimit);
 
         const headers = new Headers();
-        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:event;transaction:scope`);
+        headers.set('X-Sentry-Rate-Limits', `${retryAfterSeconds}:error;transaction:scope`);
         fetch.returns(Promise.resolve({ status: 200, headers }));
 
         let eventRes = await transport.sendEvent(eventPayload);

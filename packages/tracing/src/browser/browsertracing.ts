@@ -10,10 +10,10 @@ import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
-  registerRequestInstrumentation,
+  instrumentOutgoingRequests,
   RequestInstrumentationOptions,
 } from './request';
-import { defaultRoutingInstrumentation } from './router';
+import { instrumentRoutingWithDefaults } from './router';
 
 export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
 
@@ -77,7 +77,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * pageload and navigation transactions.
    */
   routingInstrumentation<T extends Transaction>(
-    startTransaction: (context: TransactionContext) => T | undefined,
+    customStartTransaction: (context: TransactionContext) => T | undefined,
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
   ): void;
@@ -87,7 +87,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS = {
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
   markBackgroundTransactions: true,
   maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
-  routingInstrumentation: defaultRoutingInstrumentation,
+  routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
   ...defaultRequestInstrumentationOptions,
@@ -158,7 +158,7 @@ export class BrowserTracing implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const {
-      routingInstrumentation,
+      routingInstrumentation: instrumentRouting,
       startTransactionOnLocationChange,
       startTransactionOnPageLoad,
       markBackgroundTransactions,
@@ -168,7 +168,7 @@ export class BrowserTracing implements Integration {
       shouldCreateSpanForRequest,
     } = this.options;
 
-    routingInstrumentation(
+    instrumentRouting(
       (context: TransactionContext) => this._createRouteTransaction(context),
       startTransactionOnPageLoad,
       startTransactionOnLocationChange,
@@ -178,7 +178,7 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    registerRequestInstrumentation({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
+    instrumentOutgoingRequests({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
   }
 
   /** Create routing idle transaction. */
