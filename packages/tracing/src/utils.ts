@@ -145,10 +145,11 @@ export function secToMs(time: number): number {
 export { stripUrlQueryAndFragment } from '@sentry/utils';
 
 type SentryTracestateData = {
-  traceId: string;
+  trace_id: string;
   environment: string | undefined | null;
   release: string | undefined | null;
-  publicKey: string;
+  public_key: string;
+  user: { id: string | undefined | null; segment: string | undefined | null };
 };
 
 /**
@@ -159,9 +160,11 @@ type SentryTracestateData = {
  */
 export function computeTracestateValue(data: SentryTracestateData): string {
   // `JSON.stringify` will drop keys with undefined values, but not ones with null values, so this prevents
-  // `environment` and `release` from being dropped if they haven't been set by `Sentry.init`
+  // these values from being dropped if they haven't been set by `Sentry.init`
   data.environment = data.environment || null;
   data.release = data.release || null;
+  data.user.id = data.user.id || null;
+  data.user.segment = data.user.segment || null;
 
   // See https://www.w3.org/TR/trace-context/#tracestate-header-field-values
   // The spec for tracestate header values calls for a string of the form
