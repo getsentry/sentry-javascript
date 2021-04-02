@@ -146,7 +146,7 @@ app.use((err, req, res, next) => {
   return res.status(500).send('oh no there was an error: ' + err.message);
 });
 
-const server = app.listen(3000, () => {
-  process._rawDebug('patient is waiting to be poked on port 3000');
+const server = app.listen(5140, () => {
+  process._rawDebug('patient is waiting to be poked on port 5140');
   memwatch.gc();
 });
