@@ -40,7 +40,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._trimEnd = transactionContext.trimEnd;
     this._hub = hub || getCurrentHub();
 
-    // this is because transactions are also spans, and spans have a transaction pointer
+    // this is because transactions are also spans, and spans have a transaction pointer (it doesn't get set in `super`
+    // because theoretically you can create a span without a transaction, though it does you no good)
     this.transaction = this;
   }
 

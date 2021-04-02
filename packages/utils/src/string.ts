@@ -143,7 +143,7 @@ export function unicodeToBase64(plaintext: string): string {
       return bytes.toString('base64');
     }
   } catch (err) {
-    throw new SentryError(`${errMsg} Got error: ${err}`);
+    throw new SentryError(`${errMsg}\nGot error: ${err}`);
   }
 
   // we shouldn't ever get here, because one of `btoa` and `Buffer` should exist, but just in case...
@@ -189,7 +189,7 @@ export function base64ToUnicode(base64String: string): string {
       return bytes.toString('utf-8');
     }
   } catch (err) {
-    throw new SentryError(`${errMsg} Got error: ${err}`);
+    throw new SentryError(`${errMsg}\nGot error: ${err}`);
   }
 
   // we shouldn't ever get here, because one of `atob` and `Buffer` should exist, but just in case...

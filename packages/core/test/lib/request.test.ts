@@ -82,7 +82,7 @@ describe('eventToSentryRequest', () => {
       };
     });
 
-    it('ads correct type, url, and event data', () => {
+    it('adds correct type, url, and event data', () => {
       const result = eventToSentryRequest(transactionEvent, api);
       const envelope = parseEnvelopeRequest(result);
 

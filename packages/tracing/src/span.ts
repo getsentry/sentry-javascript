@@ -126,7 +126,7 @@ export class Span implements SpanInterface {
     if (spanContext.parentSpanId) {
       this.parentSpanId = spanContext.parentSpanId;
     }
-    // We want to include booleans as well here
+    // check this way instad of the normal way to make sure we don't miss cases where sampled = false
     if ('sampled' in spanContext) {
       this.sampled = spanContext.sampled;
     }

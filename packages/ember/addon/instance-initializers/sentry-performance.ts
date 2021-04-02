@@ -24,7 +24,7 @@ export function initialize(appInstance: ApplicationInstance): void {
   }
 }
 
-function getTransitionInformation(transition: any, router: any) {
+function getTransitionInformation(transition: any, router: any): { [key: string]: any } {
   const fromRoute = transition?.from?.name;
   const toRoute = transition && transition.to ? transition.to.name : router.currentRouteName;
   return {
