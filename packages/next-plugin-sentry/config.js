@@ -1,2 +1,0 @@
-exports.serverConfig = {};
-exports.clientConfig = {};
