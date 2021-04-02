@@ -9,8 +9,8 @@
   "engines": {
     "node": ">=6"
   },
-  "module": "./esm/node.js",
-  "browser": "./esm/react.js",
+  "module": "./esm/index.server.js",
+  "browser": "./esm/index.client.js",
   "types": "./esm/react.d.ts",
   "publishConfig": {
     "access": "public"
