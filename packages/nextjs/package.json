@@ -16,15 +16,16 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "6.2.1",
-    "@sentry/next-plugin-sentry": "6.2.1",
-    "@sentry/node": "6.2.1",
-    "@sentry/react": "6.2.1",
+    "@sentry/core": "6.2.5",
+    "@sentry/integrations": "6.2.5",
+    "@sentry/next-plugin-sentry": "6.2.5",
+    "@sentry/node": "6.2.5",
+    "@sentry/react": "6.2.5",
     "@sentry/webpack-plugin": "^1.14.1",
     "@sentry/wizard": "^1.2.1"
   },
   "devDependencies": {
-    "@sentry/types": "6.2.1",
+    "@sentry/types": "6.2.5",
     "eslint": "7.20.0",
     "rimraf": "3.0.2"
   },
