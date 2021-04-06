@@ -137,7 +137,7 @@ describe('XHRTransport', () => {
         const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
         const afterLimit = beforeLimit + retryAfterSeconds * 1000;
 
-        server.respondWith('POST', storeUrl, [429, { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:event:scope` }, '']);
+        server.respondWith('POST', storeUrl, [429, { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:error:scope` }, '']);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
         const dateStub = stub(Date, 'now')
@@ -202,7 +202,7 @@ describe('XHRTransport', () => {
 
         server.respondWith('POST', storeUrl, [
           429,
-          { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:event;transaction:scope` },
+          { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:error;transaction:scope` },
           '',
         ]);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
@@ -356,7 +356,7 @@ describe('XHRTransport', () => {
         const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
         const afterLimit = beforeLimit + retryAfterSeconds * 1000;
 
-        server.respondWith('POST', storeUrl, [200, { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:event:scope` }, '']);
+        server.respondWith('POST', storeUrl, [200, { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:error:scope` }, '']);
 
         const dateStub = stub(Date, 'now')
           // 1st event - _isRateLimited - false

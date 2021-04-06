@@ -2,7 +2,7 @@ import { getCurrentHub, Scope } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
-import { logAndExitProcess } from '../handlers';
+import { logAndExitProcess } from './utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
 

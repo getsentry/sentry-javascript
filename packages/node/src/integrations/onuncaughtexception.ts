@@ -3,7 +3,7 @@ import { Integration, Severity } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { NodeClient } from '../client';
-import { logAndExitProcess } from '../handlers';
+import { logAndExitProcess } from './utils/errorhandling';
 
 /** Global Promise Rejection handler */
 export class OnUncaughtException implements Integration {

@@ -51,10 +51,20 @@ Similar to building and testing, linting can be done in the project root or in i
 
 Note: you must run `yarn build` before `yarn lint` will work.
 
-## Final Notes
+## Considerations Before Sending Your First PR
 
-When contributing to the codebase, please make note of the following:
+When contributing to the codebase, please note:
 
 - Non-trivial PRs will not be accepted without tests (see above).
 - Please do not bump version numbers yourself. 
 - [`raven-js`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-js) and [`raven-node`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-node) are deprecated, and only bug and security fix PRs will be accepted targeting the [3.x branch](https://github.com/getsentry/sentry-javascript/tree/3.x). Any new features and improvements should be to our new SDKs (`browser` and `node`) and the packages (`core`, `hub`, `integrations`, and the like) which support them.
+
+## Publishing a Release
+
+_These steps are only relevant to Sentry employees when preparing and publishing a new SDK release._
+
+1. Determine what version will be released (we use [semver](https://semver.org)).
+2. Update [`CHANGELOG.md`](https://github.com/getsentry/sentry-javascript/edit/master/CHANGELOG.md) to add an entry to the next release number and a list of changes since the last release.
+3. Run the [Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) workflow.
+4. A new issue should appear in https://github.com/getsentry/publish/issues.
+5. Ask a member of the [@getsentry/releases team](https://github.com/orgs/getsentry/teams/releases/members) to approve the release.

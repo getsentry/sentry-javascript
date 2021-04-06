@@ -71,22 +71,22 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
   return {
     [BaseRoute.name]: class extends BaseRoute {
       beforeModel(...args: any[]) {
-        return instrumentFunction('ember.route.beforeModel', (<any>this).fullRouteName, super.beforeModel, args);
+        return instrumentFunction('ember.route.beforeModel', (<any>this).fullRouteName, super.beforeModel.bind(this), args);
       }
 
       async model(...args: any[]) {
-        return instrumentFunction('ember.route.model', (<any>this).fullRouteName, super.model, args);
+        return instrumentFunction('ember.route.model', (<any>this).fullRouteName, super.model.bind(this), args);
       }
 
       async afterModel(...args: any[]) {
-        return instrumentFunction('ember.route.afterModel', (<any>this).fullRouteName, super.afterModel, args);
+        return instrumentFunction('ember.route.afterModel', (<any>this).fullRouteName, super.afterModel.bind(this), args);
       }
 
       async setupController(...args: any[]) {
         return instrumentFunction(
           'ember.route.setupController',
           (<any>this).fullRouteName,
-          super.setupController,
+          super.setupController.bind(this),
           args,
         );
       }
