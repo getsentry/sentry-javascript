@@ -5,7 +5,7 @@
   <br />
 </p>
 
-# Official Sentry SDK for NextJS
+# Official Sentry SDK for Next.js
 
 ## Links
 
@@ -14,7 +14,7 @@
 
 ## General
 
-This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to NextJS.
+This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Next.js.
 
 To use this SDK, init it in the Sentry config files and import it in your code.
 
