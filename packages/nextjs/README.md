@@ -16,21 +16,38 @@
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to NextJS.
 
-To use this SDK, call `Sentry.init(options)` as early as possible in the server and the client;
-this will initialize the SDK and hook into the environment.
-
+To use this SDK, init it in the Sentry config files and import it in your code.
 
 ```javascript
+// sentry.client.config.js
+
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
-  dsn: '__DSN__',
+  dsn: "__DSN__",
   // ...
 });
 ```
 
-To set context information or send manual events, use the exported functions of `@sentry/minimal`.
-Note that these functions will not perform any action before you have called `Sentry.init()`:
+```javascript
+// sentry.server.config.js
+
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: "__DSN__",
+  // ...
+});
+```
+
+```javascript
+// pages/index.js
+
+import * as Sentry from '@sentry/nextjs';
+```
+
+To set context information or send manual events, use the exported functions of `@sentry/nextjs`.
+Note that these functions will not perform any action before you have imported the SDK:
 
 ```javascript
 import * as Sentry from '@sentry/nextjs';
@@ -57,4 +74,5 @@ Sentry.captureEvent({
   stacktrace: [
     // ...
   ],
-});```
+});
+```
