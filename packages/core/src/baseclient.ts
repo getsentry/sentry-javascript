@@ -482,7 +482,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const { beforeSend, sampleRate } = this.getOptions();
+    const { beforeSend, sampleRate, passTransactionsToBeforeSend } = this.getOptions();
 
     if (!this._isEnabled()) {
       return SyncPromise.reject(new SentryError('SDK not enabled, will not send event.'));
@@ -507,7 +507,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
 
         const isInternalException = hint && hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-        if (isInternalException || isTransaction || !beforeSend) {
+        if (isInternalException || (!passTransactionsToBeforeSend && isTransaction) || !beforeSend) {
           return prepared;
         }
 

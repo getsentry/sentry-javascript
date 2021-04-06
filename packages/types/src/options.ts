@@ -118,6 +118,12 @@ export interface Options {
    */
   tracesSampleRate?: number;
 
+  /** Enable passing transactions to beforeSend callback.
+   *
+   * Without this option only exception events are passed, excluding regular transactions.
+   */
+  passTransactionsToBeforeSend?: boolean;
+
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
