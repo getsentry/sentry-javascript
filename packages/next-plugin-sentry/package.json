@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@sentry/nextjs": "6.2.1",
-    "@sentry/integrations": "6.2.1"
+    "@sentry/integrations": "6.2.5"
   },
   "devDependencies": {
     "eslint": "7.20.0",
