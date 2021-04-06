@@ -5,9 +5,7 @@
   <br />
 </p>
 
-# Official Sentry SDK for NextJS
-
-TODO: npm version, npm dm, npm dt, typedoc
+# Official Sentry plugin for Next.js
 
 ## Links
 
@@ -16,4 +14,4 @@ TODO: npm version, npm dm, npm dt, typedoc
 
 ## Usage
 
-TODO
+You don't have to interact with this plugin to use Sentry with your application, see [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs) instead.
