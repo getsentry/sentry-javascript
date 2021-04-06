@@ -9,17 +9,8 @@ export * from '@sentry/react';
 export function init(options: NextjsOptions): any {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'react']);
   metadataBuilder.addSdkMetadata();
-  if (isProdEnv()) {
-    reactInit(options);
-    configureScope(scope => {
-      scope.setTag('runtime', 'browser');
-    });
-  } else {
-    // eslint-disable-next-line no-console
-    console.warn('[Sentry] Detected a non-production environment. Not initializing Sentry.');
-  }
-}
-
-function isProdEnv(): boolean {
-  return process.env.NODE_ENV !== undefined && process.env.NODE_ENV === 'production';
+  reactInit(options);
+  configureScope(scope => {
+    scope.setTag('runtime', 'browser');
+  });
 }
