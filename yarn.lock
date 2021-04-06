@@ -2675,10 +2675,10 @@
   dependencies:
     "@sentry/cli" "^1.58.0"
 
-"@sentry/wizard@^1.2.1":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@sentry/wizard/-/wizard-1.2.1.tgz#693da78bb9f2006e35ea1ec96979a657d57d8e72"
-  integrity sha512-LcXuhNneg43ecsASXtdQD0fvimCN2VOuB02OQRCLfZbwXZCMSr5qbneL8Umt9Hv3OyW2Ub0K8+KbDN9jzmyLSA==
+"@sentry/wizard@^1.2.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@sentry/wizard/-/wizard-1.2.3.tgz#73537f9e5b71e712a6577568c83ddff8c7a5aab3"
+  integrity sha512-XS2X+0dBSIEzDh3K76Z4uz+CsZUNMpCVvhv6R1CWvhtHCor9yD/LNwIDF3zy323vIHyN9QTauNKiUUkT7Pk5ng==
   dependencies:
     "@sentry/cli" "^1.52.4"
     chalk "^2.4.1"

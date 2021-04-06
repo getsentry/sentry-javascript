@@ -22,7 +22,7 @@
     "@sentry/node": "6.2.5",
     "@sentry/react": "6.2.5",
     "@sentry/webpack-plugin": "^1.14.1",
-    "@sentry/wizard": "^1.2.1"
+    "@sentry/wizard": "^1.2.3"
   },
   "devDependencies": {
     "@sentry/types": "6.2.5",
