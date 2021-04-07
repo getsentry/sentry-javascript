@@ -1,6 +1,5 @@
 import { configureScope, init as nodeInit } from '@sentry/node';
 
-import { InitDecider } from './utils/initDecider';
 import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { getFinalServerIntegrations, REWRITE_FRAMES_INTEGRATION } from './utils/serverIntegrations';
@@ -15,22 +14,14 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export function init(options: NextjsOptions): void {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
   metadataBuilder.addSdkMetadata();
-  const initDecider = new InitDecider(options);
-  if (initDecider.shouldInitSentry()) {
-    if (options.integrations) {
-      options.integrations = getFinalServerIntegrations(options.integrations);
-    } else {
-      options.integrations = [REWRITE_FRAMES_INTEGRATION];
-    }
-
-    nodeInit(options);
-    configureScope(scope => {
-      scope.setTag('runtime', 'node');
-    });
+  if (options.integrations) {
+    options.integrations = getFinalServerIntegrations(options.integrations);
   } else {
-    // eslint-disable-next-line no-console
-    console.warn('[Sentry] Detected a non-production environment. Not initializing Sentry.');
-    // eslint-disable-next-line no-console
-    console.warn('[Sentry] To use Sentry also in development set `dev: true` in the options.');
+    options.integrations = [REWRITE_FRAMES_INTEGRATION];
   }
+
+  nodeInit(options);
+  configureScope(scope => {
+    scope.setTag('runtime', 'node');
+  });
 }
