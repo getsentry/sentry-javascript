@@ -1,6 +1,6 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Options, TraceparentData, Transaction } from '@sentry/types';
-import { SentryError, unicodeToBase64 } from '@sentry/utils';
+import { dropUndefinedKeys, SentryError, unicodeToBase64 } from '@sentry/utils';
 
 export const SENTRY_TRACE_REGEX = new RegExp(
   '^[ \\t]*' + // whitespace
@@ -146,10 +146,10 @@ export { stripUrlQueryAndFragment } from '@sentry/utils';
 
 type SentryTracestateData = {
   trace_id: string;
-  environment: string | undefined | null;
-  release: string | undefined | null;
+  environment?: string;
+  release?: string;
   public_key: string;
-  user: { id: string | undefined | null; segment: string | undefined | null };
+  user?: { id?: string; segment?: string };
 };
 
 /**
@@ -161,10 +161,6 @@ type SentryTracestateData = {
 export function computeTracestateValue(data: SentryTracestateData): string {
   // `JSON.stringify` will drop keys with undefined values, but not ones with null values, so this prevents
   // these values from being dropped if they haven't been set by `Sentry.init`
-  data.environment = data.environment || null;
-  data.release = data.release || null;
-  data.user.id = data.user.id || null;
-  data.user.segment = data.user.segment || null;
 
   // See https://www.w3.org/TR/trace-context/#tracestate-header-field-values
   // The spec for tracestate header values calls for a string of the form
@@ -175,7 +171,7 @@ export function computeTracestateValue(data: SentryTracestateData): string {
   // used to pad the end of base64 values though, so to avoid confusion, we strip them off. (Most languages' base64
   // decoding functions (including those in JS) are able to function without the padding.)
   try {
-    return unicodeToBase64(JSON.stringify(data)).replace(/={1,2}$/, '');
+    return unicodeToBase64(JSON.stringify(dropUndefinedKeys(data))).replace(/={1,2}$/, '');
   } catch (err) {
     throw new SentryError(`[Tracing] Error computing tracestate value from data: ${err}\nData: ${data}`);
   }

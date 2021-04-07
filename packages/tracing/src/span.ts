@@ -378,6 +378,9 @@ export class Span implements SpanInterface {
 
     const { environment, release } = client.getOptions() || {};
 
+    // only define a `user` object if there's going to be something in it
+    const user = userId || userSegment ? { id: userId, segment: userSegment } : undefined;
+
     // TODO - the only reason we need the non-null assertion on `dsn.publicKey` (below) is because `dsn.publicKey` has
     // to be optional while we transition from `dsn.user` -> `dsn.publicKey`. Once `dsn.user` is removed, we can make
     // `dsn.publicKey` required and remove the `!`.
@@ -388,7 +391,7 @@ export class Span implements SpanInterface {
       release,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       public_key: dsn.publicKey!,
-      user: { id: userId, segment: userSegment },
+      user,
     })}`;
   }
 

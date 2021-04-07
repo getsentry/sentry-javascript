@@ -166,14 +166,13 @@ describe('tracestate', () => {
 
     describe('mutibility', () => {
       it("won't include data set after transaction is created if there's an inherited value", () => {
-        expect.assertions(2);
+        expect.assertions(1);
 
         const inheritedTracestate = `sentry=${computeTracestateValue({
           trace_id: '12312012090820131231201209082013',
           environment: 'dogpark',
           release: 'off.leash.trail',
           public_key: 'dogsarebadatkeepingsecrets',
-          user: { id: undefined, segment: undefined },
         })}`;
 
         const transaction = new Transaction(
@@ -194,8 +193,7 @@ describe('tracestate', () => {
           const tracestateValue = (transaction as any)._toTracestate().replace('sentry=', '');
           const reinflatedTracestate = JSON.parse(base64ToUnicode(tracestateValue));
 
-          expect(reinflatedTracestate.user.id).toBeNull();
-          expect(reinflatedTracestate.user.segment).toBeNull();
+          expect(reinflatedTracestate.user).toBeUndefined();
         });
       });
 
@@ -221,7 +219,7 @@ describe('tracestate', () => {
       });
 
       it("won't include data set after first call to `getTraceHeaders`", () => {
-        expect.assertions(2);
+        expect.assertions(1);
 
         const transaction = new Transaction(
           {
@@ -238,8 +236,7 @@ describe('tracestate', () => {
           const tracestateValue = (transaction as any)._toTracestate().replace('sentry=', '');
           const reinflatedTracestate = JSON.parse(base64ToUnicode(tracestateValue));
 
-          expect(reinflatedTracestate.user.id).toBeNull();
-          expect(reinflatedTracestate.user.segment).toBeNull();
+          expect(reinflatedTracestate.user).toBeUndefined();
         });
       });
     });
