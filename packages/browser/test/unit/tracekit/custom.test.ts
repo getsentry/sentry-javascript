@@ -24,6 +24,60 @@ describe('Tracekit - Custom Tests', () => {
     ]);
   });
 
+  it('should parse exceptions for safari-extension', () => {
+    const SAFARI_EXTENSION_EXCEPTION = {
+      message: 'wat',
+      name: 'Error',
+      stack: `Error: wat
+      at ClipperError@safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js:223036:10)
+      at safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
+    };
+    const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+    expect(stacktrace.stack).deep.equal([
+      {
+        url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+        func: 'ClipperError',
+        args: [],
+        line: 223036,
+        column: 10,
+      },
+      {
+        url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+        func: '?',
+        args: [],
+        line: 3313,
+        column: 26,
+      },
+    ]);
+  });
+
+  it('should parse exceptions for safari-web-extension', () => {
+    const SAFARI_WEB_EXTENSION_EXCEPTION = {
+      message: 'wat',
+      name: 'Error',
+      stack: `Error: wat
+      at ClipperError@safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js:223036:10)
+      at safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
+    };
+    const stacktrace = computeStackTrace(SAFARI_WEB_EXTENSION_EXCEPTION);
+    expect(stacktrace.stack).deep.equal([
+      {
+        url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+        func: 'ClipperError',
+        args: [],
+        line: 223036,
+        column: 10,
+      },
+      {
+        url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+        func: '?',
+        args: [],
+        line: 3313,
+        column: 26,
+      },
+    ]);
+  });
+
   it('should parse exceptions for react-native-v8', () => {
     const REACT_NATIVE_V8_EXCEPTION = {
       message: 'Manually triggered crash to test Sentry reporting',
