@@ -125,6 +125,10 @@ export function unicodeToBase64(plaintext: string): string {
   // To account for the fact that different platforms use different character encodings natively, our `tracestate`
   // spec calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder.
   try {
+    if (typeof plaintext !== 'string') {
+      throw new Error(`Input must be a string. Received input of type ${typeof plaintext}.`);
+    }
+
     // browser
     if ('btoa' in globalObject) {
       // encode using UTF-8
@@ -175,6 +179,10 @@ export function base64ToUnicode(base64String: string): string {
   // calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder. So to reverse
   // the process, decode from base64 to bytes, then feed those bytes to a UTF-8 decoder.
   try {
+    if (typeof base64String !== 'string') {
+      throw new Error(`Input must be a string. Received input of type ${typeof base64String}.`);
+    }
+
     // browser
     if ('atob' in globalObject) {
       // `atob` returns a string rather than bytes, so we first need to encode using the native encoding (UTF-16)
