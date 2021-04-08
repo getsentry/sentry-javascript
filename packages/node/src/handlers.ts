@@ -3,17 +3,14 @@
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
-import { forget, isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
+import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
 
-import { NodeClient } from './client';
 import { flush } from './sdk';
-
-const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
 export interface ExpressRequest {
   baseUrl?: string;
@@ -470,33 +467,4 @@ export function errorHandler(options?: {
 
     next(error);
   };
-}
-
-/**
- * @hidden
- */
-export function logAndExitProcess(error: Error): void {
-  // eslint-disable-next-line no-console
-  console.error(error && error.stack ? error.stack : error);
-
-  const client = getCurrentHub().getClient<NodeClient>();
-
-  if (client === undefined) {
-    logger.warn('No NodeClient was defined, we are exiting the process now.');
-    global.process.exit(1);
-    return;
-  }
-
-  const options = client.getOptions();
-  const timeout =
-    (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) ||
-    DEFAULT_SHUTDOWN_TIMEOUT;
-  forget(
-    client.close(timeout).then((result: boolean) => {
-      if (!result) {
-        logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
-      }
-      global.process.exit(1);
-    }),
-  );
 }

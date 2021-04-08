@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.2.5
+
+- [utils] fix: Avoid performance.timeOrigin if too skewed (#3356)
+
+## 6.2.4
+
+- [browser] fix: Add `SentryRequestType` to `RateLimitingCategory` mapping (#3328)
+- [browser] ref: Add fast-path to `fetchImpl` and cleanup redundant iframe (#3341)
+- [node] fix: Fallback to empty string if `req.baseUrl` is empty (#3329)
+- [node] ref: Remove circular dependency in `@sentry/node` (#3335)
+- [tracing] fix: Attach mysql tracing to `Connection.createQuery` instead of `Connection.prototype.query` (#3353)
+- [tracing] ref: Clarify naming in `BrowserTracing` integration (#3338)
+- [ember] ref: Fix tests to be forward compatible with component changes (#3347)
+- [ember] ref: Silence deprecation warnings in beta (#3346)
+
 ## 6.2.3
 
 - [gatsby] fix: Update Vercel environment variables to match their current system variables (#3337)

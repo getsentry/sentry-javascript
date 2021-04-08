@@ -120,11 +120,24 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
         parts[3] = submatch[2]; // line
         parts[4] = submatch[3]; // column
       }
+
+      // Arpad: Working with the regexp above is super painful. it is quite a hack, but just stripping the `address at `
+      // prefix here seems like the quickest solution for now.
+      let url = parts[2] && parts[2].indexOf('address at ') === 0 ? parts[2].substr('address at '.length) : parts[2];
+
+      // Kamil: One more hack won't hurt us right? Understanding and adding more rules on top of these regexps right now
+      // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
+      let func = parts[1] || UNKNOWN_FUNCTION;
+      const isSafariExtension = func.indexOf('safari-extension') !== -1;
+      const isSafariWebExtension = func.indexOf('safari-web-extension') !== -1;
+      if (isSafariExtension || isSafariWebExtension) {
+        func = func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION;
+        url = isSafariExtension ? `safari-extension:${url}` : `safari-web-extension:${url}`;
+      }
+
       element = {
-        // working with the regexp above is super painful. it is quite a hack, but just stripping the `address at `
-        // prefix here seems like the quickest solution for now.
-        url: parts[2] && parts[2].indexOf('address at ') === 0 ? parts[2].substr('address at '.length) : parts[2],
-        func: parts[1] || UNKNOWN_FUNCTION,
+        url,
+        func,
         args: isNative ? [parts[2]] : [],
         line: parts[3] ? +parts[3] : null,
         column: parts[4] ? +parts[4] : null,
