@@ -7,9 +7,7 @@ const SOURCEMAP_FILENAME_REGEX = /^.*\/.next\//;
 export const REWRITE_FRAMES_INTEGRATION = new RewriteFrames({
   iteratee: frame => {
     try {
-      if (frame.filename) {
-        frame.filename = frame.filename.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next/');
-      }
+      frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next/');
     } catch {
       // NOOP
     }
