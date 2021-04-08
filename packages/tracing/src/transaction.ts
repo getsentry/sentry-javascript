@@ -132,7 +132,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(this._measurements, undefined, 2));
       transaction.measurements = this._measurements;
     }
-    logger.log(`[Tracing] finishing ${this.op} transaction - ${this.name}`);
+
+    logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
     return this._hub.captureEvent(transaction);
   }
