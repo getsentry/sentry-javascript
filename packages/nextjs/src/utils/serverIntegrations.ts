@@ -6,11 +6,7 @@ const SOURCEMAP_FILENAME_REGEX = /^.*\/.next\//;
 /** Default RewriteFrames integration to match filenames in Sentry. */
 export const REWRITE_FRAMES_INTEGRATION = new RewriteFrames({
   iteratee: frame => {
-    try {
-      frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next/');
-    } catch {
-      // NOOP
-    }
+    frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next/');
     return frame;
   },
 });
