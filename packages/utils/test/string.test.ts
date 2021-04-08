@@ -50,6 +50,9 @@ describe('isMatchingPattern()', () => {
   });
 });
 
+// NOTE: These tests are copied (and adapted for chai syntax) to `string.test.ts` in `@sentry/browser`. The
+// base64-conversion functions have a different implementation in browser and node, so they're copied there to prove
+// they work in a real live browser. If you make changes here, make sure to also port them over to that copy.
 describe('base64ToUnicode/unicodeToBase64', () => {
   const unicodeString = 'Dogs are great!';
   const base64String = 'RG9ncyBhcmUgZ3JlYXQh';
