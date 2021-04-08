@@ -83,8 +83,8 @@ app.get('/baz', req => {
 
 app.use(Sentry.Handlers.errorHandler());
 
-app.listen(3000);
+app.listen(1121);
 
-http.get('http://localhost:3000/foo');
-http.get('http://localhost:3000/bar');
-http.get('http://localhost:3000/baz');
+http.get('http://localhost:1121/foo');
+http.get('http://localhost:1121/bar');
+http.get('http://localhost:1121/baz');
