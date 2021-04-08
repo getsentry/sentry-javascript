@@ -4,7 +4,7 @@ import { Integration } from '@sentry/types';
 const SOURCEMAP_FILENAME_REGEX = /^.*\/.next\//;
 
 /** Default RewriteFrames integration to match filenames in Sentry. */
-export const REWRITE_FRAMES_INTEGRATION = new RewriteFrames({
+export const defaultRewriteFrames = new RewriteFrames({
   iteratee: frame => {
     frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next/');
     return frame;
@@ -33,7 +33,7 @@ export function getFinalServerIntegrations(
 
 /** Returns the patched integrations array. */
 function getFinalIntegrationArray(userIntegrations: Integration[]): Integration[] {
-  const rewriteFramesIntegration = REWRITE_FRAMES_INTEGRATION;
+  const rewriteFramesIntegration = defaultRewriteFrames;
   if (userIntegrations.map(integration => integration.name).includes(rewriteFramesIntegration.name)) {
     return userIntegrations;
   } else {

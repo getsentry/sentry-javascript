@@ -2,7 +2,7 @@ import { configureScope, init as nodeInit } from '@sentry/node';
 
 import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { getFinalServerIntegrations, REWRITE_FRAMES_INTEGRATION } from './utils/serverIntegrations';
+import { defaultRewriteFrames, getFinalServerIntegrations } from './utils/serverIntegrations';
 
 export * from '@sentry/node';
 
@@ -17,7 +17,7 @@ export function init(options: NextjsOptions): void {
   if (options.integrations) {
     options.integrations = getFinalServerIntegrations(options.integrations);
   } else {
-    options.integrations = [REWRITE_FRAMES_INTEGRATION];
+    options.integrations = [defaultRewriteFrames];
   }
 
   nodeInit(options);

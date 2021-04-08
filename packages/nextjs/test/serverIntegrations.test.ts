@@ -1,7 +1,7 @@
 import { RewriteFrames } from '@sentry/integrations';
 import { Integration } from '@sentry/types';
 
-import { getFinalServerIntegrations, REWRITE_FRAMES_INTEGRATION } from '../src/utils/serverIntegrations';
+import { defaultRewriteFrames, getFinalServerIntegrations } from '../src/utils/serverIntegrations';
 
 interface IntegrationFunction {
   (integrations: Integration[]): Integration[];
@@ -15,7 +15,7 @@ describe('integrations without RewriteFrames', () => {
     expect(Array.isArray(finalIntegrations)).toBeTruthy();
     finalIntegrations = finalIntegrations as Integration[];
     expect(finalIntegrations.length === 1).toBeTruthy();
-    expect(finalIntegrations[0]).toMatchObject(REWRITE_FRAMES_INTEGRATION);
+    expect(finalIntegrations[0]).toMatchObject(defaultRewriteFrames);
   });
 
   test('as a function', () => {
@@ -27,7 +27,7 @@ describe('integrations without RewriteFrames', () => {
     expect(typeof integrationWrapper === 'function').toBeTruthy();
     const finalIntegrations = (integrationWrapper as IntegrationFunction)([]);
     expect(finalIntegrations.length === 1).toBeTruthy();
-    expect(finalIntegrations[0]).toMatchObject(REWRITE_FRAMES_INTEGRATION);
+    expect(finalIntegrations[0]).toMatchObject(defaultRewriteFrames);
   });
 });
 
