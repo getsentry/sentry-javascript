@@ -114,12 +114,6 @@ export function isMatchingPattern(value: string, pattern: RegExp | string): bool
 export function unicodeToBase64(plaintext: string): string {
   const global = getGlobalObject();
 
-  // Cast to a string just in case we're given something else
-  const stringifiedInput = String(plaintext);
-  const errMsg = `Unable to convert to base64: ${
-    stringifiedInput.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
-  }`;
-
   // To account for the fact that different platforms use different character encodings natively, our `tracestate`
   // spec calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder.
   try {
@@ -142,12 +136,17 @@ export function unicodeToBase64(plaintext: string): string {
       // unlike the browser, Node can go straight from bytes to base64
       return bytes.toString('base64');
     }
+
+    // we shouldn't ever get here, because one of `btoa` and `Buffer` should exist, but just in case...
+    throw new SentryError('Neither `window.btoa` nor `global.Buffer` is defined.');
   } catch (err) {
+    // Cast to a string just in case we're given something else
+    const stringifiedInput = String(plaintext);
+    const errMsg = `Unable to convert to base64: ${
+      stringifiedInput.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
+    }`;
     throw new SentryError(`${errMsg}\nGot error: ${err}`);
   }
-
-  // we shouldn't ever get here, because one of `btoa` and `Buffer` should exist, but just in case...
-  throw new SentryError(errMsg);
 }
 
 /**
@@ -159,12 +158,6 @@ export function unicodeToBase64(plaintext: string): string {
  */
 export function base64ToUnicode(base64String: string): string {
   const globalObject = getGlobalObject();
-
-  // we cast to a string just in case we're given something else
-  const stringifiedInput = String(base64String);
-  const errMsg = `Unable to convert from base64: ${
-    stringifiedInput.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
-  }`;
 
   // To account for the fact that different platforms use different character encodings natively, our `tracestate` spec
   // calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder. So to reverse
@@ -188,10 +181,15 @@ export function base64ToUnicode(base64String: string): string {
       // decode using UTF-8
       return bytes.toString('utf-8');
     }
+
+    // we shouldn't ever get here, because one of `atob` and `Buffer` should exist, but just in case...
+    throw new SentryError('Neither `window.atob` nor `global.Buffer` is defined.');
   } catch (err) {
+    // we cast to a string just in case we're given something else
+    const stringifiedInput = String(base64String);
+    const errMsg = `Unable to convert from base64: ${
+      stringifiedInput.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
+    }`;
     throw new SentryError(`${errMsg}\nGot error: ${err}`);
   }
-
-  // we shouldn't ever get here, because one of `atob` and `Buffer` should exist, but just in case...
-  throw new SentryError(errMsg);
 }
