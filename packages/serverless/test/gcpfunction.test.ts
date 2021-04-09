@@ -26,17 +26,13 @@ describe('GCPFunction', () => {
     Sentry.resetMocks();
   });
 
-  async function handleHttp(fn: HttpFunction, trace_headers: { [key: string]: string } | null = null): Promise<void> {
-    let headers: { [key: string]: string } = { host: 'hostname', 'content-type': 'application/json' };
-    if (trace_headers) {
-      headers = { ...headers, ...trace_headers };
-    }
+  async function handleHttp(fn: HttpFunction): Promise<void> {
     return new Promise((resolve, _reject) => {
       const d = domain.create();
       const req = {
         method: 'POST',
         url: '/path?q=query',
-        headers: headers,
+        headers: { host: 'hostname', 'content-type': 'application/json' },
         body: { foo: 'bar' },
       } as Request;
       const res = { end: resolve } as Response;
@@ -128,19 +124,8 @@ describe('GCPFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapHttpFunction(handler);
-
-      const trace_headers: { [key: string]: string } = {
-        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
-      };
-
-      await handleHttp(wrappedHandler, trace_headers);
-      expect(Sentry.startTransaction).toBeCalledWith({
-        name: 'POST /path',
-        op: 'gcp.function.http',
-        traceId: '12312012123120121231201212312012',
-        parentSpanId: '1121201211212012',
-        parentSampled: false,
-      });
+      await handleHttp(wrappedHandler);
+      expect(Sentry.startTransaction).toBeCalledWith({ name: 'POST /path', op: 'gcp.function.http' });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);

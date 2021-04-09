@@ -1,4 +1,3 @@
-import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'chai';
 import { SinonSpy, spy } from 'sinon';
 
@@ -178,66 +177,10 @@ describe('SentryBrowser initialization', () => {
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).to.equal('foobar');
     delete global.SENTRY_RELEASE;
   });
-
   it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {
     // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
     init({ dsn });
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).to.be.undefined;
-  });
-
-  describe('SDK metadata', () => {
-    it('should set SDK data when Sentry.init() is called', () => {
-      init({ dsn });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
-
-      expect(sdkData.name).to.equal('sentry.javascript.browser');
-      expect(sdkData.packages[0].name).to.equal('npm:@sentry/browser');
-      expect(sdkData.packages[0].version).to.equal(SDK_VERSION);
-      expect(sdkData.version).to.equal(SDK_VERSION);
-    });
-
-    it('should set SDK data when instantiating a client directly', () => {
-      const client = new BrowserClient({ dsn });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (client as any)._backend._transport._api.metadata?.sdk;
-
-      expect(sdkData.name).to.equal('sentry.javascript.browser');
-      expect(sdkData.packages[0].name).to.equal('npm:@sentry/browser');
-      expect(sdkData.packages[0].version).to.equal(SDK_VERSION);
-      expect(sdkData.version).to.equal(SDK_VERSION);
-    });
-
-    // wrapper packages (like @sentry/angular and @sentry/react) set their SDK data in their `init` methods, which are
-    // called before the client is instantiated, and we don't want to clobber that data
-    it("shouldn't overwrite SDK data that's already there", () => {
-      init({
-        dsn,
-        // this would normally be set by the wrapper SDK in init()
-        _metadata: {
-          sdk: {
-            name: 'sentry.javascript.angular',
-            packages: [
-              {
-                name: 'npm:@sentry/angular',
-                version: SDK_VERSION,
-              },
-            ],
-            version: SDK_VERSION,
-          },
-        },
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
-
-      expect(sdkData.name).to.equal('sentry.javascript.angular');
-      expect(sdkData.packages[0].name).to.equal('npm:@sentry/angular');
-      expect(sdkData.packages[0].version).to.equal(SDK_VERSION);
-      expect(sdkData.version).to.equal(SDK_VERSION);
-    });
   });
 });
 

@@ -7,6 +7,7 @@ import {
   Integration,
   IntegrationClass,
   Options,
+  RequestSessionStatus,
   SessionStatus,
   Severity,
 } from '@sentry/types';
@@ -100,6 +101,19 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
+    if (this._options.autoSessionTracking && scope) {
+      const requestSession = scope.getRequestSession();
+      // Necessary check to ensure this is code block is executed only within a request
+      if (requestSession.status !== undefined) {
+        const scopeExtras = scope.getExtras();
+        if (scopeExtras.unhandledPromiseRejection || scopeExtras.onUncaughtException) {
+          requestSession.status = RequestSessionStatus.Crashed;
+        } else {
+          requestSession.status = RequestSessionStatus.Errored;
+        }
+      }
+    }
+
     this._process(
       this._getBackend()
         .eventFromException(exception, hint)
@@ -138,6 +152,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
+
+    if (this._options.autoSessionTracking) {
+      const isTransaction = event.type === 'transaction';
+
+      if (!isTransaction && scope) {
+        const requestSession = scope.getRequestSession();
+        if (requestSession.status === RequestSessionStatus.Ok) {
+          requestSession.status = RequestSessionStatus.Errored;
+        }
+      }
+    }
 
     this._process(
       this._captureEvent(event, hint, scope).then(result => {

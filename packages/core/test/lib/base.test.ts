@@ -1,5 +1,5 @@
 import { Hub, Scope } from '@sentry/hub';
-import { Event, Severity, Span } from '@sentry/types';
+import { Event, RequestSessionStatus, Severity, Span } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { TestBackend } from '../mocks/backend';
@@ -238,6 +238,63 @@ describe('BaseClient', () => {
         }),
       );
     });
+
+    test('when autoSessionTracking is disabled, does not set requestSession status', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: false });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Ok);
+      client.captureException(new Error('test exception'), {}, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+    });
+
+    test('Does not set requestSession status when an exception occurs outside of a request', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      client.captureException(new Error('test exception'), {}, scope);
+      expect(scope.getRequestSession()).toEqual({});
+    });
+
+    test('Sets requestSession status to Errored when an exception occurs within a request', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Ok);
+      client.captureException(new Error('test exception'), {}, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Errored });
+    });
+
+    test('Sets requestSession status to Crashed when an onuncaughtexception occurs within a request', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Ok);
+      scope.setExtra('onUncaughtException', true);
+      client.captureException(new Error('test exception'), {}, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Crashed });
+    });
+
+    test('Does not set requestSession status when an onunhandledrejection occurs outside a request', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Ok);
+      scope.setExtra('unhandledPromiseRejection', true);
+      client.captureException(new Error('test exception'), {}, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Crashed });
+    });
+
+    test('Does not set requestSession status when an onuncaughtexception occurs outside a request', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setExtra('onUncaughtException', true);
+      client.captureException(new Error('test exception'), {}, scope);
+      expect(scope.getRequestSession()).toEqual({});
+    });
+
+    test('Sets requestSession status to Crashed when an onunhandledrejection occurs within a request', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setExtra('unhandledPromiseRejection', true);
+      client.captureException(new Error('test exception'), {}, scope);
+      expect(scope.getRequestSession()).toEqual({});
+    });
   });
 
   describe('captureMessage', () => {
@@ -475,6 +532,45 @@ describe('BaseClient', () => {
         message: 'message',
         timestamp: 2020,
       });
+    });
+
+    test('If autoSessionTracking is disabled, requestSession status should not be set', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: false });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Ok);
+      client.captureEvent({ message: 'message' }, undefined, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+    });
+
+    test('When captureEvent is called with an exception, requestSession status should be set to Errored', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Ok);
+      client.captureEvent({ message: 'message' }, undefined, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Errored });
+    });
+
+    test('When captureEvent is called with an exception and, requestSession status is Crashed, it should not be overridden', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Crashed);
+      client.captureEvent({ message: 'message' }, undefined, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Crashed });
+    });
+
+    test('When captureEvent is called with an exception but outside of a request, then requestStatus should not be set', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      client.captureEvent({ message: 'message' }, undefined, scope);
+      expect(scope.getRequestSession()).toEqual({});
+    });
+
+    test('When captureEvent is called with a transaction, then requestStatus should not be set', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Ok);
+      client.captureEvent({ message: 'message', type: 'transaction' }, undefined, scope);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
     });
 
     test('normalizes event with default depth of 3', () => {

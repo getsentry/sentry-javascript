@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 
 import { NodeClient } from '../client';
 import { logAndExitProcess } from '../handlers';
+import { isAutosessionTrackingEnabled } from '../sdk';
 
 /** Global Promise Rejection handler */
 export class OnUncaughtException implements Integration {
@@ -78,7 +79,14 @@ export class OnUncaughtException implements Integration {
         if (hub.getIntegration(OnUncaughtException)) {
           hub.withScope((scope: Scope) => {
             scope.setLevel(Severity.Fatal);
+            scope.setExtra('onUncaughtException', true);
+
             hub.captureException(error, { originalException: error });
+
+            if (isAutosessionTrackingEnabled() && client) {
+              client.captureRequestSession();
+            }
+
             if (!calledFatalError) {
               calledFatalError = true;
               onFatalError(error);

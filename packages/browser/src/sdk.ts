@@ -1,4 +1,4 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
 import { addInstrumentationHandler, getGlobalObject, logger, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
@@ -87,6 +87,18 @@ export function init(options: BrowserOptions = {}): void {
   if (options.autoSessionTracking === undefined) {
     options.autoSessionTracking = true;
   }
+
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = {
+    name: 'sentry.javascript.browser',
+    packages: [
+      {
+        name: 'npm:@sentry/browser',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   initAndBind(BrowserClient, options);
 
@@ -189,23 +201,15 @@ function startSessionTracking(): void {
 
   const hub = getCurrentHub();
 
-  if ('startSession' in hub) {
-    // The only way for this to be false is for there to be a version mismatch between @sentry/browser (>= 6.0.0) and
-    // @sentry/hub (< 5.27.0). In the simple case, there won't ever be such a mismatch, because the two packages are
-    // pinned at the same version in package.json, but there are edge cases where it's possible'. See
-    // https://github.com/getsentry/sentry-javascript/issues/3234 and
-    // https://github.com/getsentry/sentry-javascript/issues/3207.
+  hub.startSession();
+  hub.captureSession();
 
-    hub.startSession();
-    hub.captureSession();
-
-    // We want to create a session for every navigation as well
-    addInstrumentationHandler({
-      callback: () => {
-        hub.startSession();
-        hub.captureSession();
-      },
-      type: 'history',
-    });
-  }
+  // We want to create a session for every navigation as well
+  addInstrumentationHandler({
+    callback: () => {
+      hub.startSession();
+      hub.captureSession();
+    },
+    type: 'history',
+  });
 }

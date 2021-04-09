@@ -4,11 +4,11 @@
     "build": "node ./scripts/verify-packages-versions.js && lerna run --stream --concurrency 1 --sort build",
     "build:es5": "lerna run --stream --concurrency 1 --sort build:es5",
     "build:esm": "lerna run --stream --concurrency 1 --sort build:esm",
-    "build:watch": "lerna run --parallel build:watch",
-    "clean": "lerna run --parallel clean && lerna clean --yes",
-    "fix": "lerna run --parallel fix",
+    "build:watch": "lerna run build:watch --stream --no-sort --concurrency 9999",
+    "clean": "lerna run --stream clean && lerna clean --yes",
+    "fix": "lerna run --stream --concurrency 1 fix",
     "link:yarn": "lerna run --stream --concurrency 1 link:yarn",
-    "lint": "lerna run --parallel lint",
+    "lint": "lerna run --stream --concurrency 1 lint",
     "test": "lerna run --stream --concurrency 1 --sort test",
     "codecov": "codecov",
     "pack:changed": "lerna run pack --since",
@@ -69,6 +69,5 @@
     "**/agent-base": "5",
     "**/jest-environment-node": "24"
   },
-  "version": "0.0.0",
-  "dependencies": {}
+  "version": "0.0.0"
 }

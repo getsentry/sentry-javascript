@@ -1,3 +1,4 @@
+import { Event } from '@sentry/types';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Callback, Handler } from 'aws-lambda';
@@ -15,7 +16,9 @@ const { wrapHandler } = Sentry.AWSLambda;
 
 // Default `timeoutWarningLimit` is 500ms so leaving some space for it to trigger when necessary
 const DEFAULT_EXECUTION_TIME = 100;
-let fakeEvent: { [key: string]: unknown };
+const fakeEvent = {
+  fortySix: 'o_O',
+};
 const fakeContext = {
   callbackWaitsForEmptyEventLoop: false,
   functionName: 'functionName',
@@ -69,12 +72,6 @@ function expectScopeSettings() {
 }
 
 describe('AWSLambda', () => {
-  beforeEach(() => {
-    fakeEvent = {
-      fortySix: 'o_O',
-    };
-  });
-
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note
     Sentry.resetMocks();
@@ -231,16 +228,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
 
       try {
-        fakeEvent.headers = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
-        expect(Sentry.startTransaction).toBeCalledWith({
-          name: 'functionName',
-          op: 'awslambda.handler',
-          traceId: '12312012123120121231201212312012',
-          parentSpanId: '1121201211212012',
-          parentSampled: false,
-        });
+        expect(Sentry.startTransaction).toBeCalledWith({ name: 'functionName', op: 'awslambda.handler' });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(e);
         // @ts-ignore see "Why @ts-ignore" note

@@ -1,4 +1,4 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
@@ -102,11 +102,30 @@ export function init(options: NodeOptions = {}): void {
     else if (global.SENTRY_RELEASE && global.SENTRY_RELEASE.id) {
       options.release = global.SENTRY_RELEASE.id;
     }
+
+    // If release is not provided, then we should disable autoSessionTracking
+    options.autoSessionTracking = false;
   }
 
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }
+
+  if (options.autoSessionTracking === undefined) {
+    options.autoSessionTracking = true;
+  }
+
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = {
+    name: 'sentry.javascript.node',
+    packages: [
+      {
+        name: 'npm:@sentry/node',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {
@@ -151,4 +170,17 @@ export async function close(timeout?: number): Promise<boolean> {
     return client.close(timeout);
   }
   return Promise.reject(false);
+}
+
+/**
+ *  Function that checks if autoSessionTracking option is enabled
+ */
+export function isAutosessionTrackingEnabled(): boolean {
+  // Also add the checks that makes sure in case when you stop session tracking or resume
+  const client = getCurrentHub().getClient<NodeClient>();
+  const clientOptions: NodeOptions | null = client ? client.getOptions() : null;
+  if (clientOptions && clientOptions.autoSessionTracking !== undefined) {
+    return clientOptions.autoSessionTracking;
+  }
+  return false;
 }

@@ -1,5 +1,16 @@
-import { Session as SessionInterface, SessionContext, SessionStatus } from '@sentry/types';
-import { dropUndefinedKeys, uuid4 } from '@sentry/utils';
+import {
+  AggregatedSessions,
+  AggregationCounts,
+  RequestSessionStatus,
+  Session as SessionInterface,
+  SessionContext,
+  SessionFlusher as SessionFlusherInterface,
+  SessionStatus,
+  Transport,
+} from '@sentry/types';
+import { dropUndefinedKeys, logger, uuid4 } from '@sentry/utils';
+
+import { getCurrentHub } from './hub';
 
 /**
  * @inheritdoc
@@ -121,5 +132,118 @@ export class Session implements SessionInterface {
         user_agent: this.userAgent,
       }),
     });
+  }
+}
+
+type releaseHealthAttributes = {
+  environment?: string;
+  release: string;
+};
+
+/**
+ * @inheritdoc
+ */
+export class SessionFlusher implements SessionFlusherInterface {
+  public readonly flushTimeout: number = 60;
+  private _pendingAggregates: { [key: number]: AggregationCounts } = {};
+  private _sessionAttrs: releaseHealthAttributes;
+  private _intervalId: ReturnType<typeof setInterval>;
+  private _isEnabled: boolean = true;
+  private _transport: Transport;
+
+  constructor(transport: Transport, attrs: releaseHealthAttributes) {
+    this._transport = transport;
+    this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
+    this._sessionAttrs = attrs;
+  }
+
+  /** JSDoc */
+  public getEnabled(): boolean {
+    return this._isEnabled;
+  }
+
+  /** JSDoc */
+  public sendSessions(aggregatedSession: AggregatedSessions): void {
+    if (!this._transport.sendSessions) {
+      logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      return;
+    }
+    this._transport.sendSessions(aggregatedSession).then(null, reason => {
+      logger.error(`Error while sending session: ${reason}`);
+    });
+  }
+
+  /** JSDoc */
+  flush(): void {
+    const aggregatedSessions = this.getPendingAggregates();
+    if (aggregatedSessions.aggregates.length === 0) {
+      return;
+    }
+    this._pendingAggregates = {};
+    this.sendSessions(aggregatedSessions);
+  }
+
+  /** JSDoc */
+  getPendingAggregates(): AggregatedSessions {
+    const aggregates: AggregationCounts[] = Object.keys(this._pendingAggregates).map((key: string) => {
+      return this._pendingAggregates[parseInt(key)];
+    });
+
+    const aggregatedSessions: AggregatedSessions = {
+      attrs: this._sessionAttrs,
+      aggregates: aggregates,
+    };
+    return dropUndefinedKeys(aggregatedSessions);
+  }
+
+  /** JSDoc */
+  close(): void {
+    clearTimeout(this._intervalId);
+    this._isEnabled = false;
+    this.flush();
+  }
+
+  /** JSDoc */
+  public incrementSessionCount(): void {
+    if (!this._isEnabled) {
+      return;
+    }
+    const requestSession = getCurrentHub()
+      .getScope()
+      ?.getRequestSession();
+
+    if (requestSession && requestSession.status) {
+      this._incrementSessionCount(requestSession.status, new Date());
+      // This is not entirely necessarily but is added as a safe guard since `onunhandledrejection` handler and
+      // `onuncaughtexception` handler also capture sessions, and so in case captureRequestSession is called more than
+      // once to prevent double count
+      requestSession.status = undefined;
+    }
+  }
+
+  /** Increments pendingAggregates buffer (internal state) with the corresponding session status */
+  private _incrementSessionCount(status: RequestSessionStatus, date: Date): number {
+    // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
+    const sessionStartedTrunc: number = new Date(date).setSeconds(0, 0);
+    this._pendingAggregates[sessionStartedTrunc] = this._pendingAggregates[sessionStartedTrunc] || {};
+
+    // corresponds to aggregated sessions in one specific minute bucket
+    // for example, {"started":"2021-03-16T08:00:00.000Z","exited":4, "errored": 1}
+    const aggregationCounts: AggregationCounts = this._pendingAggregates[sessionStartedTrunc];
+    if (!aggregationCounts.started) {
+      aggregationCounts.started = new Date(sessionStartedTrunc).toISOString();
+    }
+
+    switch (status) {
+      case RequestSessionStatus.Errored:
+        aggregationCounts.errored = aggregationCounts.errored !== undefined ? aggregationCounts.errored + 1 : 1;
+        return aggregationCounts.errored;
+      case RequestSessionStatus.Crashed:
+        aggregationCounts.crashed = aggregationCounts.crashed !== undefined ? aggregationCounts.crashed + 1 : 1;
+        return aggregationCounts.crashed;
+      case RequestSessionStatus.Ok:
+        aggregationCounts.exited = aggregationCounts.exited !== undefined ? aggregationCounts.exited + 1 : 1;
+        return aggregationCounts.exited;
+    }
   }
 }
