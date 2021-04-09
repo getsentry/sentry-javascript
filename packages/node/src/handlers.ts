@@ -3,7 +3,7 @@
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event, ExtractedNodeRequestData, RequestSessionStatus, Transaction } from '@sentry/types';
-import { forget, isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
+import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -423,7 +423,7 @@ export function requestHandler(
       res.once('finish', () => {
         setImmediate(() => {
           if (isAutosessionTrackingEnabled()) {
-            const client = currentHub.getClient();
+            const client = currentHub.getClient<NodeClient>();
 
             if (client && client.captureRequestSession) {
               client.captureRequestSession();

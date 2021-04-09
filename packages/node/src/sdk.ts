@@ -1,4 +1,4 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
