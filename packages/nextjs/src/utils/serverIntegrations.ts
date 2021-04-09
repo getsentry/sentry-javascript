@@ -30,20 +30,19 @@ export function getFinalServerIntegrations(
 ): Integration[] | IntegrationFunction {
   if (Array.isArray(userIntegrations)) {
     return getFinalIntegrationArray(userIntegrations);
-  } else {
-    return getFinalIntegrationFunction(userIntegrations);
   }
+
+  return getFinalIntegrationFunction(userIntegrations);
 }
 
 /** Returns the patched integrations array. */
 function getFinalIntegrationArray(userIntegrations: Integration[]): Integration[] {
-  const rewriteFramesIntegration = defaultRewriteFrames;
-  if (userIntegrations.map(integration => integration.name).includes(rewriteFramesIntegration.name)) {
-    return userIntegrations;
-  } else {
-    userIntegrations.push(rewriteFramesIntegration);
+  if (userIntegrations.map(integration => integration.name).includes(defaultRewriteFrames.name)) {
     return userIntegrations;
   }
+
+  userIntegrations.push(defaultRewriteFrames);
+  return userIntegrations;
 }
 
 /** Returns a function, patching the user's integrations function. */
