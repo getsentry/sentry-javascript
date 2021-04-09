@@ -22,8 +22,8 @@ export const defaultRewriteFrames = new RewriteFrames({
  * If the user has defined one, there's nothing to patch.
  * If not, the default RewriteFrames integration is used.
  *
- * @param userIntegrations integrations defined by the user.
- * @returns final integrations, patched if necessary.
+ * @param userIntegrations Integrations defined by the user.
+ * @returns Final integrations, patched if necessary.
  */
 export function getFinalServerIntegrations(
   userIntegrations: Integration[] | IntegrationFunction,
