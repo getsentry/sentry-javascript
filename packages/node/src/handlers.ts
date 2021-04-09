@@ -2,15 +2,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
-import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
+import { Event, ExtractedNodeRequestData, RequestSessionStatus, Transaction } from '@sentry/types';
+import { forget, isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
 
-import { flush } from './sdk';
+import { NodeClient } from './client';
+import { flush, isAutosessionTrackingEnabled } from './sdk';
 
 export interface ExpressRequest {
   baseUrl?: string;
@@ -391,11 +392,45 @@ export function requestHandler(
     const local = domain.create();
     local.add(req);
     local.add(res);
-    local.on('error', next);
+    local.on('error', err => {
+      if (isAutosessionTrackingEnabled()) {
+        const scope = getCurrentHub().getStackTop().scope;
+        if (scope) {
+          const requestSession = scope.getRequestSession();
+          if (
+            requestSession.status !== undefined &&
+            !(requestSession.status in [RequestSessionStatus.Errored, RequestSessionStatus.Crashed])
+          ) {
+            requestSession.status = RequestSessionStatus.Errored;
+          }
+        }
+      }
+      next(err);
+    });
+
     local.run(() => {
-      getCurrentHub().configureScope(scope =>
-        scope.addEventProcessor((event: Event) => parseRequest(event, req, options)),
-      );
+      const currentHub = getCurrentHub();
+      currentHub.configureScope(scope => scope.addEventProcessor((event: Event) => parseRequest(event, req, options)));
+
+      if (isAutosessionTrackingEnabled()) {
+        const scope = currentHub.getStackTop().scope;
+        if (scope) {
+          const requestSession = scope.getRequestSession();
+          requestSession.status = RequestSessionStatus.Ok;
+        }
+      }
+
+      res.once('finish', () => {
+        setImmediate(() => {
+          if (isAutosessionTrackingEnabled()) {
+            const client = currentHub.getClient();
+
+            if (client && client.captureRequestSession) {
+              client.captureRequestSession();
+            }
+          }
+        });
+      });
       next();
     });
   };

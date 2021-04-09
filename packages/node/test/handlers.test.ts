@@ -2,13 +2,13 @@ import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
 import { SpanStatus, Transaction } from '@sentry/tracing';
-import { Runtime } from '@sentry/types';
+import { RequestSessionStatus, Runtime } from '@sentry/types';
 import * as http from 'http';
 import * as net from 'net';
 
 import { Event, Request, User } from '../src';
 import { NodeClient } from '../src/client';
-import { ExpressRequest, extractRequestData, parseRequest, tracingHandler } from '../src/handlers';
+import { ExpressRequest, extractRequestData, parseRequest, requestHandler, tracingHandler } from '../src/handlers';
 
 describe('parseRequest', () => {
   let mockReq: { [key: string]: any };
@@ -175,6 +175,155 @@ describe('parseRequest', () => {
     test('can extract handler name instead if configured', () => {
       const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest, { transaction: 'handler' });
       expect(parsedRequest.transaction).toEqual('parameterNameRouteHandler');
+    });
+  });
+});
+
+describe('requestHandler', () => {
+  const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
+  const method = 'wagging';
+  const protocol = 'mutualsniffing';
+  const hostname = 'the.dog.park';
+  const path = '/by/the/trees/';
+  const queryString = 'chase=me&please=thankyou';
+
+  const sentryRequestMiddleware = requestHandler();
+
+  let req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
+
+  function createNoOpSpy() {
+    const noop = { noop: () => undefined }; // this is wrapped in an object so jest can spy on it
+    return jest.spyOn(noop, 'noop') as any;
+  }
+
+  beforeEach(() => {
+    req = ({
+      headers,
+      method,
+      protocol,
+      hostname,
+      originalUrl: `${path}?${queryString}`,
+    } as unknown) as http.IncomingMessage;
+    res = new http.ServerResponse(req);
+    next = createNoOpSpy();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('autoSessionTracking is enabled, sets requestSession status to ok, when handling a request', () => {
+    const hub = new Hub(new NodeClient({ autoSessionTracking: true }));
+
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    sentryRequestMiddleware(req, res, next);
+
+    const scope = sentryCore.getCurrentHub().getScope();
+    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+  });
+
+  it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
+    const hub = new Hub(new NodeClient({ autoSessionTracking: false }));
+
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    sentryRequestMiddleware(req, res, next);
+
+    const scope = sentryCore.getCurrentHub().getScope();
+    expect(scope?.getRequestSession()).toEqual({});
+  });
+
+  it('autoSessionTracking is enabled, calls captureRequestSession, on response finish', done => {
+    const client = new NodeClient({ autoSessionTracking: true });
+    const hub = new Hub(client);
+
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    const captureRequestSession = jest.spyOn(client, 'captureRequestSession');
+
+    sentryRequestMiddleware(req, res, next);
+
+    const scope = sentryCore.getCurrentHub().getScope();
+    res.emit('finish');
+
+    setImmediate(() => {
+      expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+      expect(captureRequestSession).toHaveBeenCalled();
+      done();
+    });
+  });
+
+  it('autoSessionTracking is disabled, calls captureRequestSession, on response finish', done => {
+    const client = new NodeClient({ autoSessionTracking: false });
+    const hub = new Hub(client);
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    const captureRequestSession = jest.spyOn(client, 'captureRequestSession');
+
+    sentryRequestMiddleware(req, res, next);
+    res.emit('finish');
+
+    setImmediate(() => {
+      expect(captureRequestSession).not.toHaveBeenCalled();
+      done();
+    });
+  });
+
+  it('autoSessionTracking is enabled, calls captureRequestSession, on response error', done => {
+    const client = new NodeClient({ autoSessionTracking: true });
+    const hub = new Hub(client);
+
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    const captureRequestSession = jest.spyOn(client, 'captureRequestSession');
+
+    sentryRequestMiddleware(req, res, next);
+
+    const scope = sentryCore.getCurrentHub().getScope();
+    res.emit('error');
+    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Errored });
+    res.emit('finish');
+
+    setImmediate(() => {
+      expect(captureRequestSession).toHaveBeenCalled();
+      done();
+    });
+  });
+
+  it('autoSessionTracking is enabled, crashed session status is not overridden, on response error', () => {
+    const client = new NodeClient({ autoSessionTracking: true });
+    const hub = new Hub(client);
+    const scope = new sentryCore.Scope();
+
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(hub, 'getScope').mockReturnValue(scope);
+
+    sentryRequestMiddleware(req, res, next);
+
+    scope?.setRequestSession(RequestSessionStatus.Crashed);
+    res.emit('error');
+    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Crashed });
+  });
+
+  it('autoSessionTracking is disabled, calls captureRequestSession, on response error', done => {
+    const client = new NodeClient({ autoSessionTracking: false });
+    const hub = new Hub(client);
+
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    const captureRequestSession = jest.spyOn(client, 'captureRequestSession');
+
+    sentryRequestMiddleware(req, res, next);
+
+    const scope = sentryCore.getCurrentHub().getScope();
+    res.emit('error');
+    expect(scope?.getRequestSession()).toEqual({});
+    res.emit('finish');
+
+    setImmediate(() => {
+      expect(captureRequestSession).not.toHaveBeenCalled();
+      done();
     });
   });
 });

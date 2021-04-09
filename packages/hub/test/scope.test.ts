@@ -1,4 +1,4 @@
-import { Event, EventHint, Severity } from '@sentry/types';
+import { Event, EventHint, RequestSessionStatus, Severity } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';
@@ -15,6 +15,12 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setFingerprint(['abcd']);
       expect((scope as any)._fingerprint).toEqual(['abcd']);
+    });
+
+    test('getExtra', () => {
+      const scope = new Scope();
+      scope.setExtra('b', 3);
+      expect(scope.getExtras()).toEqual({ b: 3 });
     });
 
     test('setExtra', () => {
@@ -119,6 +125,18 @@ describe('Scope', () => {
       expect((scope as any)._level).toEqual(Severity.Critical);
       expect((scope as any)._user).toEqual({ id: '1' });
     });
+
+    test('setRequestSession', () => {
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Crashed);
+      expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
+    });
+
+    test('getRequestSession', () => {
+      const scope = new Scope();
+      scope.setRequestSession(RequestSessionStatus.Crashed);
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Crashed });
+    });
   });
 
   describe('clone', () => {
@@ -127,6 +145,13 @@ describe('Scope', () => {
       parentScope.setExtra('a', 1);
       const scope = Scope.clone(parentScope);
       expect((parentScope as any)._extra).toEqual((scope as any)._extra);
+    });
+
+    test('_requestSession clone', () => {
+      const parentScope = new Scope();
+      parentScope.setRequestSession(RequestSessionStatus.Errored);
+      const scope = Scope.clone(parentScope);
+      expect((parentScope as any)._requestSession).toEqual((scope as any)._requestSession);
     });
 
     test('parent changed inheritance', () => {
@@ -145,6 +170,18 @@ describe('Scope', () => {
       scope.setExtra('a', 2);
       expect((parentScope as any)._extra).toEqual({ a: 1 });
       expect((scope as any)._extra).toEqual({ a: 2 });
+    });
+
+    test('child override inheritance for _requestSession', () => {
+      // Test that ensures if the Request Session Status is changed in a child scope
+      // that change should also be reflected in parent scope
+      const parentScope = new Scope();
+      parentScope.setRequestSession(RequestSessionStatus.Errored);
+
+      const scope = Scope.clone(parentScope);
+      scope.setRequestSession(RequestSessionStatus.Crashed);
+      expect((parentScope as any)._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
+      expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
     });
   });
 
@@ -336,9 +373,11 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
+    scope.setRequestSession(RequestSessionStatus.Ok);
     expect((scope as any)._extra).toEqual({ a: 2 });
     scope.clear();
     expect((scope as any)._extra).toEqual({});
+    expect((scope as any)._requestSession).toEqual({});
   });
 
   test('clearBreadcrumbs', () => {
@@ -361,6 +400,7 @@ describe('Scope', () => {
       scope.setUser({ id: '1337' });
       scope.setLevel(Severity.Info);
       scope.setFingerprint(['foo']);
+      scope.setRequestSession(RequestSessionStatus.Ok);
     });
 
     test('given no data, returns the original scope', () => {
@@ -408,6 +448,7 @@ describe('Scope', () => {
       localScope.setUser({ id: '42' });
       localScope.setLevel(Severity.Warning);
       localScope.setFingerprint(['bar']);
+      localScope.setRequestSession(RequestSessionStatus.Crashed);
 
       const updatedScope = scope.update(localScope) as any;
 
@@ -429,6 +470,7 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '42' });
       expect(updatedScope._level).toEqual(Severity.Warning);
       expect(updatedScope._fingerprint).toEqual(['bar']);
+      expect(updatedScope._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
     });
 
     test('given an empty instance of Scope, it should preserve all the original scope data', () => {
@@ -449,6 +491,7 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '1337' });
       expect(updatedScope._level).toEqual(Severity.Info);
       expect(updatedScope._fingerprint).toEqual(['foo']);
+      expect(updatedScope._requestSession).toEqual({ status: RequestSessionStatus.Ok });
     });
 
     test('given a plain object, it should merge two together, with the passed object having priority', () => {
@@ -459,6 +502,7 @@ describe('Scope', () => {
         level: Severity.Warning,
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
+        requestSession: { status: RequestSessionStatus.Crashed },
       };
       const updatedScope = scope.update(localAttributes) as any;
 
@@ -480,6 +524,7 @@ describe('Scope', () => {
       expect(updatedScope._user).toEqual({ id: '42' });
       expect(updatedScope._level).toEqual(Severity.Warning);
       expect(updatedScope._fingerprint).toEqual(['bar']);
+      expect(updatedScope._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
     });
   });
 

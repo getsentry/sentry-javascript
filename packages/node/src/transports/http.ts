@@ -1,4 +1,5 @@
-import { Event, Response, TransportOptions } from '@sentry/types';
+import { aggregateSessionsToSentryRequest, eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
+import { AggregatedSessions, Event, Response, Session, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 
@@ -23,6 +24,30 @@ export class HTTPTransport extends BaseTransport {
     if (!this.module) {
       throw new SentryError('No module available in HTTPTransport');
     }
-    return this._sendWithModule(this.module, event);
+    return this._sendWithModule(this.module, eventToSentryRequest(event, this._api), event);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): PromiseLike<Response> {
+    if (!this.module) {
+      throw new SentryError('No module available in HTTPTransport');
+    }
+    return this._sendWithModule(this.module, sessionToSentryRequest(session, this._api), session);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSessions(aggregatedSessions: AggregatedSessions): PromiseLike<Response> {
+    if (!this.module) {
+      throw new SentryError('No module available in HTTPTransport');
+    }
+    return this._sendWithModule(
+      this.module,
+      aggregateSessionsToSentryRequest(aggregatedSessions, this._api),
+      aggregatedSessions,
+    );
   }
 }

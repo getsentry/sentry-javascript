@@ -10,6 +10,7 @@ import {
   Extra,
   Extras,
   Primitive,
+  RequestSessionStatus,
   Scope as ScopeInterface,
   ScopeContext,
   Severity,
@@ -65,6 +66,9 @@ export class Scope implements ScopeInterface {
   /** Session */
   protected _session?: Session;
 
+  /** Request Mode Session Status */
+  protected _requestSession: { status?: RequestSessionStatus } = {};
+
   /**
    * Inherit values from the parent scope.
    * @param scope to clone.
@@ -83,6 +87,9 @@ export class Scope implements ScopeInterface {
       newScope._transactionName = scope._transactionName;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
+      if (scope._requestSession) {
+        newScope._requestSession = scope._requestSession;
+      }
     }
     return newScope;
   }
@@ -153,6 +160,13 @@ export class Scope implements ScopeInterface {
     };
     this._notifyScopeListeners();
     return this;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public getExtras(): Extras {
+    return this._extra;
   }
 
   /**
@@ -274,6 +288,22 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public setRequestSession(status: RequestSessionStatus): this {
+    this._requestSession.status = status;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getRequestSession(): { status?: RequestSessionStatus } {
+    return this._requestSession;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public update(captureContext?: CaptureContext): this {
     if (!captureContext) {
       return this;
@@ -288,6 +318,7 @@ export class Scope implements ScopeInterface {
       this._tags = { ...this._tags, ...captureContext._tags };
       this._extra = { ...this._extra, ...captureContext._extra };
       this._contexts = { ...this._contexts, ...captureContext._contexts };
+      this._requestSession = { ...this._requestSession, ...captureContext._requestSession };
       if (captureContext._user && Object.keys(captureContext._user).length) {
         this._user = captureContext._user;
       }
@@ -312,6 +343,9 @@ export class Scope implements ScopeInterface {
       if (captureContext.fingerprint) {
         this._fingerprint = captureContext.fingerprint;
       }
+      if (captureContext.requestSession) {
+        this._requestSession = captureContext.requestSession;
+      }
     }
 
     return this;
@@ -326,6 +360,7 @@ export class Scope implements ScopeInterface {
     this._extra = {};
     this._user = {};
     this._contexts = {};
+    this._requestSession = {};
     this._level = undefined;
     this._transactionName = undefined;
     this._fingerprint = undefined;

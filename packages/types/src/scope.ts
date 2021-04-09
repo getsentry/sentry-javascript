@@ -3,7 +3,7 @@ import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
 import { Primitive } from './misc';
-import { Session } from './session';
+import { RequestSessionStatus, Session } from './session';
 import { Severity } from './severity';
 import { Span } from './span';
 import { Transaction } from './transaction';
@@ -20,6 +20,7 @@ export interface ScopeContext {
   contexts: Contexts;
   tags: { [key: string]: Primitive };
   fingerprint: string[];
+  requestSession: { status: RequestSessionStatus };
 }
 
 /**
@@ -57,6 +58,11 @@ export interface Scope {
    * @param value Value of tag
    */
   setTag(key: string, value: Primitive): this;
+
+  /**
+   * Returns the `extra` object
+   */
+  getExtras(): Extras;
 
   /**
    * Set an object that will be merged sent as extra data with the event.
@@ -120,6 +126,17 @@ export interface Scope {
    * Returns the `Session` if there is one
    */
   getSession(): Session | undefined;
+
+  /**
+   * Sets the status for a `request` mode `Session`
+   * @param status
+   */
+  setRequestSession(status: RequestSessionStatus): this;
+
+  /**
+   * Returns an instance of `request` mode `Session`
+   */
+  getRequestSession(): { status?: RequestSessionStatus };
 
   /**
    * Updates the scope with provided data. Can work in three variations:

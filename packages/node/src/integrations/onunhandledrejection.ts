@@ -2,6 +2,8 @@ import { getCurrentHub, Scope } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
+import { NodeClient } from '../client';
+import { isAutosessionTrackingEnabled } from '../sdk';
 import { logAndExitProcess } from './utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
@@ -70,6 +72,13 @@ export class OnUnhandledRejection implements Integration {
       }
 
       hub.captureException(reason, { originalException: promise });
+
+      if (isAutosessionTrackingEnabled()) {
+        const client = getCurrentHub().getClient<NodeClient>();
+        if (client) {
+          client.captureRequestSession();
+        }
+      }
     });
     /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 

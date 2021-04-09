@@ -17,7 +17,7 @@ export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMai
 export { API } from './api';
 export { BaseClient } from './baseclient';
 export { BackendClass, BaseBackend } from './basebackend';
-export { eventToSentryRequest, sessionToSentryRequest } from './request';
+export { eventToSentryRequest, sessionToSentryRequest, aggregateSessionsToSentryRequest } from './request';
 export { initAndBind, ClientClass } from './sdk';
 export { NoopTransport } from './transports/noop';
 export { SDK_VERSION } from './version';
