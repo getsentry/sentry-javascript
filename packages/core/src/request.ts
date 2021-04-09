@@ -1,5 +1,4 @@
 import { AggregatedSessions, Event, SdkInfo, SentryRequest, Session } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { API } from './api';
 
