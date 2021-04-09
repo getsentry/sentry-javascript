@@ -3,6 +3,10 @@ import { Integration } from '@sentry/types';
 
 const SOURCEMAP_FILENAME_REGEX = /^.*\/.next\//;
 
+export interface IntegrationFunction {
+  (integrations: Integration[]): Integration[];
+}
+
 /** Default RewriteFrames integration to match filenames in Sentry. */
 export const defaultRewriteFrames = new RewriteFrames({
   iteratee: frame => {
@@ -22,8 +26,8 @@ export const defaultRewriteFrames = new RewriteFrames({
  * @returns final integrations, patched if necessary.
  */
 export function getFinalServerIntegrations(
-  userIntegrations: Integration[] | ((integrations: Integration[]) => Integration[]),
-): Integration[] | ((integrations: Integration[]) => Integration[]) {
+  userIntegrations: Integration[] | IntegrationFunction,
+): Integration[] | IntegrationFunction {
   if (Array.isArray(userIntegrations)) {
     return getFinalIntegrationArray(userIntegrations);
   } else {
@@ -43,10 +47,8 @@ function getFinalIntegrationArray(userIntegrations: Integration[]): Integration[
 }
 
 /** Returns a function, patching the user's integrations function. */
-function getFinalIntegrationFunction(
-  userIntegrationsFunc: (integrations: Integration[]) => Integration[],
-): (integrations: Integration[]) => Integration[] {
-  const integrationWrapper = (defaultIntegrations: Integration[]): Integration[] => {
+function getFinalIntegrationFunction(userIntegrationsFunc: IntegrationFunction): IntegrationFunction {
+  const integrationWrapper: IntegrationFunction = defaultIntegrations => {
     const userIntegrations = userIntegrationsFunc(defaultIntegrations);
     return getFinalIntegrationArray(userIntegrations);
   };

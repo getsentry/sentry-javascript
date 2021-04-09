@@ -1,11 +1,7 @@
 import { RewriteFrames } from '@sentry/integrations';
 import { Integration } from '@sentry/types';
 
-import { defaultRewriteFrames, getFinalServerIntegrations } from '../src/utils/serverIntegrations';
-
-interface IntegrationFunction {
-  (integrations: Integration[]): Integration[];
-}
+import { defaultRewriteFrames, getFinalServerIntegrations, IntegrationFunction } from '../src/utils/serverIntegrations';
 
 describe('user integrations without RewriteFrames', () => {
   test('as an array', () => {
