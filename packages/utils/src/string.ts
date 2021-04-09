@@ -120,13 +120,13 @@ type GlobalWithBase64Helpers = {
  * @returns A base64-encoded version of the string
  */
 export function unicodeToBase64(plaintext: string): string {
-  const globalObject = getGlobalObject() as GlobalWithBase64Helpers;
+  const globalObject = getGlobalObject<GlobalWithBase64Helpers>();
 
   // To account for the fact that different platforms use different character encodings natively, our `tracestate`
   // spec calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder.
   try {
     if (typeof plaintext !== 'string') {
-      throw new Error(`Input must be a string. Received input of type ${typeof plaintext}.`);
+      throw new Error(`Input must be a string. Received input of type '${typeof plaintext}'.`);
     }
 
     // browser
@@ -157,10 +157,10 @@ export function unicodeToBase64(plaintext: string): string {
     throw new SentryError('Neither `window.btoa` nor `global.Buffer` is defined.');
   } catch (err) {
     // Cast to a string just in case we're given something else
-    const stringifiedInput = String(plaintext);
+    const stringifiedInput = JSON.stringify(plaintext);
     const errMsg = `Unable to convert to base64: ${
-      stringifiedInput.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
-    }`;
+      stringifiedInput?.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
+    }.`;
     throw new SentryError(`${errMsg}\nGot error: ${err}`);
   }
 }
@@ -173,14 +173,14 @@ export function unicodeToBase64(plaintext: string): string {
  * @returns A Unicode string
  */
 export function base64ToUnicode(base64String: string): string {
-  const globalObject = getGlobalObject() as GlobalWithBase64Helpers;
+  const globalObject = getGlobalObject<GlobalWithBase64Helpers>();
 
   // To account for the fact that different platforms use different character encodings natively, our `tracestate` spec
   // calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder. So to reverse
   // the process, decode from base64 to bytes, then feed those bytes to a UTF-8 decoder.
   try {
     if (typeof base64String !== 'string') {
-      throw new Error(`Input must be a string. Received input of type ${typeof base64String}.`);
+      throw new Error(`Input must be a string. Received input of type '${typeof base64String}'.`);
     }
 
     // browser
@@ -210,10 +210,10 @@ export function base64ToUnicode(base64String: string): string {
     throw new SentryError('Neither `window.atob` nor `global.Buffer` is defined.');
   } catch (err) {
     // we cast to a string just in case we're given something else
-    const stringifiedInput = String(base64String);
+    const stringifiedInput = JSON.stringify(base64String);
     const errMsg = `Unable to convert from base64: ${
-      stringifiedInput.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
-    }`;
+      stringifiedInput?.length > 256 ? `${stringifiedInput.slice(0, 256)}...` : stringifiedInput
+    }.`;
     throw new SentryError(`${errMsg}\nGot error: ${err}`);
   }
 }
