@@ -7,11 +7,11 @@ interface IntegrationFunction {
   (integrations: Integration[]): Integration[];
 }
 
-describe('integrations without RewriteFrames', () => {
+describe('user integrations without RewriteFrames', () => {
   test('as an array', () => {
-    const integrations: Integration[] = [];
+    const userIntegrations: Integration[] = [];
     // Should get a single integration: RewriteFrames
-    let finalIntegrations = getFinalServerIntegrations(integrations);
+    let finalIntegrations = getFinalServerIntegrations(userIntegrations);
     expect(Array.isArray(finalIntegrations)).toBeTruthy();
     finalIntegrations = finalIntegrations as Integration[];
     expect(finalIntegrations.length === 1).toBeTruthy();
@@ -19,11 +19,11 @@ describe('integrations without RewriteFrames', () => {
   });
 
   test('as a function', () => {
-    const integrations: IntegrationFunction = (): Integration[] => {
+    const userIntegrationFnc: IntegrationFunction = (): Integration[] => {
       return [];
     };
     // Should get a single integration: RewriteFrames
-    const integrationWrapper = getFinalServerIntegrations(integrations);
+    const integrationWrapper = getFinalServerIntegrations(userIntegrationFnc);
     expect(typeof integrationWrapper === 'function').toBeTruthy();
     const finalIntegrations = (integrationWrapper as IntegrationFunction)([]);
     expect(finalIntegrations.length === 1).toBeTruthy();
@@ -31,24 +31,24 @@ describe('integrations without RewriteFrames', () => {
   });
 });
 
-describe('integrations with RewriteFrames', () => {
+describe('user integrations with RewriteFrames', () => {
   test('as an array', () => {
     const rewriteFramesIntegration = new RewriteFrames();
-    const integrations = [rewriteFramesIntegration];
+    const userIntegrations = [rewriteFramesIntegration];
     // Should get the same array (with no patches)
-    const finalIntegrations = getFinalServerIntegrations(integrations);
-    expect(finalIntegrations).toMatchObject(integrations);
+    const finalIntegrations = getFinalServerIntegrations(userIntegrations);
+    expect(finalIntegrations).toMatchObject(userIntegrations);
   });
 
   test('as a function', () => {
-    const integrations = [new RewriteFrames()];
+    const userIntegrations = [new RewriteFrames()];
     const integrationsFnc: IntegrationFunction = (_integrations: Integration[]): Integration[] => {
-      return integrations;
+      return userIntegrations;
     };
     // Should get a function that returns the RewriteFramesIntegration
     let finalIntegrations = getFinalServerIntegrations(integrationsFnc);
     expect(typeof finalIntegrations === 'function').toBeTruthy();
     finalIntegrations = finalIntegrations as IntegrationFunction;
-    expect(finalIntegrations([])).toMatchObject(integrations);
+    expect(finalIntegrations([])).toMatchObject(userIntegrations);
   });
 });
