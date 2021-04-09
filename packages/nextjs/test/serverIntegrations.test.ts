@@ -29,8 +29,7 @@ describe('user integrations without RewriteFrames', () => {
 
 describe('user integrations with RewriteFrames', () => {
   test('as an array', () => {
-    const rewriteFramesIntegration = new RewriteFrames();
-    const userIntegrations = [rewriteFramesIntegration];
+    const userIntegrations = [new RewriteFrames()];
     // Should get the same array (with no patches)
     const finalIntegrations = getFinalServerIntegrations(userIntegrations);
     expect(finalIntegrations).toMatchObject(userIntegrations);
