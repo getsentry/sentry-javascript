@@ -106,10 +106,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       // Necessary check to ensure this is code block is executed only within a request
       if (requestSession.status !== undefined) {
         const scopeExtras = scope.getExtras();
+        // Set status to crashed, if captureException call is made from either onunhandledrejection handler
+        // or the onuncaughtexception handler
         if (scopeExtras.unhandledPromiseRejection || scopeExtras.onUncaughtException) {
-          requestSession.status = RequestSessionStatus.Crashed;
+          scope.setRequestSession(RequestSessionStatus.Crashed);
         } else {
-          requestSession.status = RequestSessionStatus.Errored;
+          scope.setRequestSession(RequestSessionStatus.Errored);
         }
       }
     }
@@ -156,10 +158,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     if (this._options.autoSessionTracking) {
       const isTransaction = event.type === 'transaction';
 
+      // If the event is of type Exception, then a request session should be captured
       if (!isTransaction && scope) {
         const requestSession = scope.getRequestSession();
+        // Ensure that this is happening within a request, and make sure not to override if Errored/Crashed
         if (requestSession.status === RequestSessionStatus.Ok) {
-          requestSession.status = RequestSessionStatus.Errored;
+          scope.setRequestSession(RequestSessionStatus.Errored);
         }
       }
     }
