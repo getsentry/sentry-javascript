@@ -10,7 +10,7 @@ describe('user integrations without RewriteFrames', () => {
     let finalIntegrations = getFinalServerIntegrations(userIntegrations);
     expect(Array.isArray(finalIntegrations)).toBeTruthy();
     finalIntegrations = finalIntegrations as Integration[];
-    expect(finalIntegrations.length === 1).toBeTruthy();
+    expect(finalIntegrations.length).toEqual(1);
     expect(finalIntegrations[0]).toMatchObject(defaultRewriteFrames);
   });
 
@@ -22,7 +22,7 @@ describe('user integrations without RewriteFrames', () => {
     const integrationWrapper = getFinalServerIntegrations(userIntegrationFnc);
     expect(typeof integrationWrapper === 'function').toBeTruthy();
     const finalIntegrations = (integrationWrapper as IntegrationFunction)([]);
-    expect(finalIntegrations.length === 1).toBeTruthy();
+    expect(finalIntegrations.length).toEqual(1);
     expect(finalIntegrations[0]).toMatchObject(defaultRewriteFrames);
   });
 });
