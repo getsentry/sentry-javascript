@@ -3,10 +3,10 @@ import { getCurrentHub } from '@sentry/core';
 import { init, Integrations, NodeClient, Scope } from '../src';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
-const mockedOnFatalError = jest.fn(() => {
+const mockedOnFatalError = jest.fn(async () => {
   const client = getCurrentHub().getClient<NodeClient>();
   if (client !== undefined) {
-    void client.close();
+    await client.close();
   }
 });
 
@@ -32,7 +32,7 @@ describe('onuncaught exceptions', () => {
     // Ensure when autoSessionTracking is enabled, captureRequestSession is called
     expect(captureRequestSession).toHaveBeenCalledTimes(1);
     expect(setExtra.mock.calls[0]).toEqual(['onUncaughtException', true]);
-    // expect(mockedOnFatalError).toHaveBeenCalledTimes(1);
+    expect(mockedOnFatalError).toHaveBeenCalledTimes(1);
   });
 
   test('send onUncaughtException, when autoSessionTracking is enabled and no release exists', () => {

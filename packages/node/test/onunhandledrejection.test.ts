@@ -40,7 +40,7 @@ describe('unhandled promises', () => {
     expect(setTags.mock.calls[0]).toEqual([{ tag: '2' }]);
   });
 
-  test('when release exists, and autoSessionTracking is enabled, captureRequestSession should be called', () => {
+  test('when release exists, and autoSessionTracking is enabled, captureRequestSession should be called', async () => {
     init({ dsn, release: '1.0.x', autoSessionTracking: true });
     const integration = new Integrations.OnUnhandledRejection();
 
@@ -55,7 +55,8 @@ describe('unhandled promises', () => {
     expect(captureRequestSession).toHaveBeenCalledTimes(1);
     expect(setExtra.mock.calls[0]).toEqual(['unhandledPromiseRejection', true]);
 
-    void getCurrentHub()
+    // Client needs to be closed so that it
+    await getCurrentHub()
       .getClient<NodeClient>()
       ?.close();
   });
