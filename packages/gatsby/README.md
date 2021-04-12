@@ -7,10 +7,10 @@
 
 # Official Sentry SDK for GatsbyJS
 
-Register the package as a plugin in `gastby-config.js`:
+Register the package as a plugin in `gatsby-config.js`:
 
 ```javascript
-{
+module.exports = {
   // ...
   plugins: [
     {
@@ -43,7 +43,7 @@ To automatically capture the `release` value on Vercel you will need to register
 To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the options and make sure you have installed the `@sentry/tracing` package. This will also turn on the `BrowserTracing` integration for automatic instrumentation of pageloads and navigations.
 
 ```javascript
-{
+module.exports = {
   // ...
   plugins: [
     {
@@ -84,7 +84,7 @@ To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the op
 If you want to supply options to the `BrowserTracing` integration, use the `browserTracingOptions` parameter.
 
 ```javascript
-{
+module.exports = {
   // ...
   plugins: [
     {
