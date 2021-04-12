@@ -30,7 +30,7 @@
     "@sentry/tracing": "6.2.5"
   },
   "peerDependencies": {
-    "gatsby": "*"
+    "gatsby": "^2.0.0 || ^3.0.0"
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "6.2.5",
