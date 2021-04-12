@@ -1,4 +1,4 @@
-import { Hub, init, Integrations, NodeClient, Scope } from '../src';
+import { Hub, init, Integrations, NodeClient, Scope, getCurrentHub } from '../src';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
@@ -54,6 +54,10 @@ describe('unhandled promises', () => {
     // Ensure when autoSessionTracking is enabled, captureRequestSession is called
     expect(captureRequestSession).toHaveBeenCalledTimes(1);
     expect(setExtra.mock.calls[0]).toEqual(['unhandledPromiseRejection', true]);
+
+    void getCurrentHub()
+      .getClient<NodeClient>()
+      ?.close();
   });
 
   test('when no release exists and autoSessionTracking is enabled, captureRequestSession should not be called', () => {
