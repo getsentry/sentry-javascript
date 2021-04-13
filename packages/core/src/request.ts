@@ -56,6 +56,8 @@ export function aggregateSessionsToSentryRequest(aggregatedSessions: AggregatedS
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
   });
+  // The server expects the headers for request mode sessions to be `sessions` while the SDK considers
+  // request mode sessions to be of type `session`
   const itemHeaders = JSON.stringify({
     type: 'sessions',
   });
