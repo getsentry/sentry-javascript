@@ -102,16 +102,21 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     if (this._options.autoSessionTracking && scope) {
-      const requestSession = scope.getRequestSession();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const requestSession = (scope as any)._requestSession;
+
       // Necessary check to ensure this is code block is executed only within a request
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (requestSession.status !== undefined) {
         const scopeExtras = scope.getExtras();
         // Set status to crashed, if captureException call is made from either onunhandledrejection handler
         // or the onuncaughtexception handler
         if (scopeExtras.unhandledPromiseRejection || scopeExtras.onUncaughtException) {
-          scope.setRequestSession(RequestSessionStatus.Crashed);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          requestSession.status = RequestSessionStatus.Crashed;
         } else {
-          scope.setRequestSession(RequestSessionStatus.Errored);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          requestSession.status = RequestSessionStatus.Errored;
         }
       }
     }
@@ -161,10 +166,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
       // If the event is of type Exception, then a request session should be captured
       if (isException && scope) {
-        const requestSession = scope.getRequestSession();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const requestSession = (scope as any)._requestSession;
+
         // Ensure that this is happening within a request, and make sure not to override if Errored/Crashed
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (requestSession.status === RequestSessionStatus.Ok) {
-          scope.setRequestSession(RequestSessionStatus.Errored);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          requestSession.status = RequestSessionStatus.Errored;
         }
       }
     }

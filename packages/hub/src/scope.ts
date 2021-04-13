@@ -288,22 +288,6 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setRequestSession(status: RequestSessionStatus): this {
-    this._requestSession.status = status;
-    this._notifyScopeListeners();
-    return this;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getRequestSession(): { status?: RequestSessionStatus } {
-    return this._requestSession;
-  }
-
-  /**
-   * @inheritDoc
-   */
   public update(captureContext?: CaptureContext): this {
     if (!captureContext) {
       return this;

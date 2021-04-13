@@ -128,17 +128,6 @@ export interface Scope {
   getSession(): Session | undefined;
 
   /**
-   * Sets the status for a `request` mode `Session`
-   * @param status
-   */
-  setRequestSession(status: RequestSessionStatus): this;
-
-  /**
-   * Returns an instance of `request` mode `Session`
-   */
-  getRequestSession(): { status?: RequestSessionStatus };
-
-  /**
    * Updates the scope with provided data. Can work in three variations:
    * - plain object containing updatable attributes
    * - Scope instance that'll extract the attributes from

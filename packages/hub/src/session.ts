@@ -208,9 +208,9 @@ export class SessionFlusher implements SessionFlusherInterface {
     if (!this._isEnabled) {
       return;
     }
-    const requestSession = getCurrentHub()
-      .getScope()
-      ?.getRequestSession();
+    const scope = getCurrentHub().getScope();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const requestSession = (scope as any)._requestSession;
 
     if (requestSession && requestSession.status) {
       this._incrementSessionCount(requestSession.status, new Date());

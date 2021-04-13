@@ -125,18 +125,6 @@ describe('Scope', () => {
       expect((scope as any)._level).toEqual(Severity.Critical);
       expect((scope as any)._user).toEqual({ id: '1' });
     });
-
-    test('setRequestSession', () => {
-      const scope = new Scope();
-      scope.setRequestSession(RequestSessionStatus.Crashed);
-      expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
-    });
-
-    test('getRequestSession', () => {
-      const scope = new Scope();
-      scope.setRequestSession(RequestSessionStatus.Crashed);
-      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Crashed });
-    });
   });
 
   describe('clone', () => {
@@ -149,9 +137,10 @@ describe('Scope', () => {
 
     test('_requestSession clone', () => {
       const parentScope = new Scope();
-      parentScope.setRequestSession(RequestSessionStatus.Errored);
+      const requestSession = (parentScope as any)._requestSession;
+      requestSession.status = RequestSessionStatus.Errored;
       const scope = Scope.clone(parentScope);
-      expect((parentScope as any)._requestSession).toEqual((scope as any)._requestSession);
+      expect(requestSession).toEqual((scope as any)._requestSession);
     });
 
     test('parent changed inheritance', () => {
@@ -176,12 +165,15 @@ describe('Scope', () => {
       // Test that ensures if the Request Session Status is changed in a child scope
       // that change should also be reflected in parent scope
       const parentScope = new Scope();
-      parentScope.setRequestSession(RequestSessionStatus.Errored);
+      const parentRequestSession = (parentScope as any)._requestSession;
+      parentRequestSession.status = RequestSessionStatus.Errored;
 
       const scope = Scope.clone(parentScope);
-      scope.setRequestSession(RequestSessionStatus.Crashed);
-      expect((parentScope as any)._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
-      expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Crashed });
+
+      const requestSession = (scope as any)._requestSession;
+      requestSession.status = RequestSessionStatus.Crashed;
+      expect(parentRequestSession).toEqual({ status: RequestSessionStatus.Crashed });
+      expect(requestSession).toEqual({ status: RequestSessionStatus.Crashed });
     });
   });
 
@@ -373,7 +365,7 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
-    scope.setRequestSession(RequestSessionStatus.Ok);
+    (scope as any)._requestSession.status = RequestSessionStatus.Ok;
     expect((scope as any)._extra).toEqual({ a: 2 });
     scope.clear();
     expect((scope as any)._extra).toEqual({});
@@ -400,7 +392,7 @@ describe('Scope', () => {
       scope.setUser({ id: '1337' });
       scope.setLevel(Severity.Info);
       scope.setFingerprint(['foo']);
-      scope.setRequestSession(RequestSessionStatus.Ok);
+      (scope as any)._requestSession.status = RequestSessionStatus.Ok;
     });
 
     test('given no data, returns the original scope', () => {
@@ -448,7 +440,7 @@ describe('Scope', () => {
       localScope.setUser({ id: '42' });
       localScope.setLevel(Severity.Warning);
       localScope.setFingerprint(['bar']);
-      localScope.setRequestSession(RequestSessionStatus.Crashed);
+      (localScope as any)._requestSession.status = RequestSessionStatus.Crashed;
 
       const updatedScope = scope.update(localScope) as any;
 

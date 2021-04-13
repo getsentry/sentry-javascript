@@ -220,7 +220,7 @@ describe('requestHandler', () => {
     sentryRequestMiddleware(req, res, next);
 
     const scope = sentryCore.getCurrentHub().getScope();
-    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+    expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Ok });
   });
 
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
@@ -231,7 +231,7 @@ describe('requestHandler', () => {
     sentryRequestMiddleware(req, res, next);
 
     const scope = sentryCore.getCurrentHub().getScope();
-    expect(scope?.getRequestSession()).toEqual({});
+    expect((scope as any)._requestSession).toEqual({});
   });
 
   it('autoSessionTracking is enabled, calls captureRequestSession, on response finish', done => {
@@ -248,7 +248,7 @@ describe('requestHandler', () => {
     res.emit('finish');
 
     setImmediate(() => {
-      expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+      expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Ok });
       expect(captureRequestSession).toHaveBeenCalled();
       done();
     });
@@ -282,7 +282,7 @@ describe('requestHandler', () => {
 
     const scope = sentryCore.getCurrentHub().getScope();
     res.emit('error');
-    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Errored });
+    expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Errored });
     res.emit('finish');
 
     setImmediate(() => {
@@ -300,10 +300,10 @@ describe('requestHandler', () => {
     jest.spyOn(hub, 'getScope').mockReturnValue(scope);
 
     sentryRequestMiddleware(req, res, next);
-
-    scope?.setRequestSession(RequestSessionStatus.Crashed);
+    const requestSession = (scope as any)._requestSession;
+    requestSession.status = RequestSessionStatus.Crashed;
     res.emit('error');
-    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Crashed });
+    expect(requestSession).toEqual({ status: RequestSessionStatus.Crashed });
   });
 
   it('autoSessionTracking is disabled, calls captureRequestSession, on response error', done => {
@@ -318,7 +318,7 @@ describe('requestHandler', () => {
 
     const scope = sentryCore.getCurrentHub().getScope();
     res.emit('error');
-    expect(scope?.getRequestSession()).toEqual({});
+    expect((scope as any)._requestSession).toEqual({});
     res.emit('finish');
 
     setImmediate(() => {

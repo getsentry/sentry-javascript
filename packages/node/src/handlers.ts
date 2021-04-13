@@ -396,11 +396,15 @@ export function requestHandler(
       if (isAutosessionTrackingEnabled()) {
         const scope = getCurrentHub().getStackTop().scope;
         if (scope) {
-          const requestSession = scope.getRequestSession();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const requestSession = (scope as any)._requestSession;
           if (
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             requestSession.status !== undefined &&
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             !(requestSession.status in [RequestSessionStatus.Errored, RequestSessionStatus.Crashed])
           ) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             requestSession.status = RequestSessionStatus.Errored;
           }
         }
@@ -415,7 +419,10 @@ export function requestHandler(
       if (isAutosessionTrackingEnabled()) {
         const scope = currentHub.getStackTop().scope;
         if (scope) {
-          const requestSession = scope.getRequestSession();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const requestSession = (scope as any)._requestSession;
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           requestSession.status = RequestSessionStatus.Ok;
         }
       }
