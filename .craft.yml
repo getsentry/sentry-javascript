@@ -12,5 +12,3 @@ targets:
     access: public
 statusProvider:
   name: github
-artifactProvider:
-  name: github
