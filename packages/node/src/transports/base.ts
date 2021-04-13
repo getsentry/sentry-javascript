@@ -50,7 +50,6 @@ const CATEGORY_MAPPING: {
   event: 'error',
   transaction: 'transaction',
   session: 'session',
-  sessions: 'sessions',
 };
 
 /** Base Transport class implementation */

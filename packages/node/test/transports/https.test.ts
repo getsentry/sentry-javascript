@@ -261,7 +261,7 @@ describe('HTTPSTransport', () => {
     const retryAfterSeconds = 10;
     mockReturnCode = 429;
     mockHeaders = {
-      'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction;sessions:scope`,
+      'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction;session:scope`,
     };
     const transport = createTransport({ dsn });
     const now = Date.now();
@@ -315,7 +315,7 @@ describe('HTTPSTransport', () => {
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
       expect(e.event).toEqual(sessionsPayload);
-      expect(e.type).toEqual('sessions');
+      expect(e.type).toEqual('session');
     }
 
     try {

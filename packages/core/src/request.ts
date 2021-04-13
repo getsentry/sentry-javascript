@@ -62,7 +62,7 @@ export function aggregateSessionsToSentryRequest(aggregatedSessions: AggregatedS
 
   return {
     body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(aggregatedSessions)}`,
-    type: 'sessions',
+    type: 'session',
     url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
   };
 }
