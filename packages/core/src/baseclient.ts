@@ -164,15 +164,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
       // If the event is of type Exception, then a request session should be captured
       if (isException && scope) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
         const requestSession = (scope as any)._requestSession;
 
         // Ensure that this is happening within a request, and make sure not to override if Errored/Crashed
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (requestSession.status === RequestSessionStatus.Ok) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           requestSession.status = RequestSessionStatus.Errored;
         }
+
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
       }
     }
 
