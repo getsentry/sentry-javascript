@@ -209,7 +209,7 @@ export class SessionFlusher implements SessionFlusherInterface {
       return;
     }
     const scope = getCurrentHub().getScope();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const requestSession = (scope as any)._requestSession;
 
     if (requestSession && requestSession.status) {
@@ -218,6 +218,8 @@ export class SessionFlusher implements SessionFlusherInterface {
       // `onuncaughtexception` handler also capture sessions, and so in case captureRequestSession is called more than
       // once to prevent double count
       requestSession.status = undefined;
+
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     }
   }
 
