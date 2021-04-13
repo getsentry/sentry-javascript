@@ -10,3 +10,7 @@ targets:
   - name: github
     tagPrefix: v
     access: public
+statusProvider:
+  name: github
+artifactProvider:
+  name: github
