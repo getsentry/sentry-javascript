@@ -104,5 +104,4 @@ export interface AggregationCounts {
   errored?: number;
   exited?: number;
   crashed?: number;
-  abnormal?: number;
 }
