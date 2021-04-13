@@ -69,9 +69,6 @@ export abstract class BaseTransport implements Transport {
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
 
-  // /** Locks transport after receiving 429 response */
-  // private _disabledUntil: Date = new Date(Date.now());
-
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn, options._metadata);
