@@ -156,10 +156,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     if (this._options.autoSessionTracking) {
-      const isTransaction = event.type === 'transaction';
+      const eventType = event.type || 'event';
+      const isException = eventType === 'event';
 
       // If the event is of type Exception, then a request session should be captured
-      if (!isTransaction && scope) {
+      if (isException && scope) {
         const requestSession = scope.getRequestSession();
         // Ensure that this is happening within a request, and make sure not to override if Errored/Crashed
         if (requestSession.status === RequestSessionStatus.Ok) {
