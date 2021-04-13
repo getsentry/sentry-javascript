@@ -163,13 +163,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
-   */
-  public getExtras(): Extras {
-    return this._extra;
-  }
-
-  /**
    * @inheritDoc
    */
   public setExtra(key: string, extra: Extra): this {

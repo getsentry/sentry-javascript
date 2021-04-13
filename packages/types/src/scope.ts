@@ -60,11 +60,6 @@ export interface Scope {
   setTag(key: string, value: Primitive): this;
 
   /**
-   * Returns the `extra` object
-   */
-  getExtras(): Extras;
-
-  /**
    * Set an object that will be merged sent as extra data with the event.
    * @param extras Extras object to merge into current context.
    */

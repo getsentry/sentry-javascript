@@ -17,12 +17,6 @@ describe('Scope', () => {
       expect((scope as any)._fingerprint).toEqual(['abcd']);
     });
 
-    test('getExtra', () => {
-      const scope = new Scope();
-      scope.setExtra('b', 3);
-      expect(scope.getExtras()).toEqual({ b: 3 });
-    });
-
     test('setExtra', () => {
       const scope = new Scope();
       scope.setExtra('a', 1);

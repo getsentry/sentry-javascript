@@ -101,25 +101,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     if (this._options.autoSessionTracking && scope) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const requestSession = (scope as any)._requestSession;
 
       // Necessary check to ensure this is code block is executed only within a request
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (requestSession.status !== undefined) {
-        const scopeExtras = scope.getExtras();
+        const scopeExtras = (scope as any)._extra;
         // Set status to crashed, if captureException call is made from either onunhandledrejection handler
         // or the onuncaughtexception handler
         if (scopeExtras.unhandledPromiseRejection || scopeExtras.onUncaughtException) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           requestSession.status = RequestSessionStatus.Crashed;
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           requestSession.status = RequestSessionStatus.Errored;
         }
       }
     }
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     this._process(
       this._getBackend()
