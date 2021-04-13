@@ -4,7 +4,9 @@ export { init } from './sdk';
 export { createErrorHandler, ErrorHandlerOptions } from './errorhandler';
 export {
   getActiveTransaction,
-  routingInstrumentation,
+  // TODO `instrumentAngularRouting` is just an alias for `routingInstrumentation`; deprecate the latter at some point
+  instrumentAngularRouting, // new name
+  routingInstrumentation, // legacy name
   TraceClassDecorator,
   TraceMethodDecorator,
   TraceDirective,

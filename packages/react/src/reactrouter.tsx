@@ -47,7 +47,7 @@ export function reactRouterV4Instrumentation(
   routes?: RouteConfig[],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
-  return reactRouterInstrumentation(history, 'react-router-v4', routes, matchPath);
+  return createReactRouterInstrumentation(history, 'react-router-v4', routes, matchPath);
 }
 
 export function reactRouterV5Instrumentation(
@@ -55,16 +55,16 @@ export function reactRouterV5Instrumentation(
   routes?: RouteConfig[],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
-  return reactRouterInstrumentation(history, 'react-router-v5', routes, matchPath);
+  return createReactRouterInstrumentation(history, 'react-router-v5', routes, matchPath);
 }
 
-function reactRouterInstrumentation(
+function createReactRouterInstrumentation(
   history: RouterHistory,
   name: string,
   allRoutes: RouteConfig[] = [],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
-  function getName(pathname: string): string {
+  function getTransactionName(pathname: string): string {
     if (allRoutes === [] || !matchPath) {
       return pathname;
     }
@@ -80,10 +80,10 @@ function reactRouterInstrumentation(
     return pathname;
   }
 
-  return (startTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
+  return (customStartTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
     if (startTransactionOnPageLoad && global && global.location) {
-      activeTransaction = startTransaction({
-        name: getName(global.location.pathname),
+      activeTransaction = customStartTransaction({
+        name: getTransactionName(global.location.pathname),
         op: 'pageload',
         tags: {
           'routing.instrumentation': name,
@@ -101,8 +101,8 @@ function reactRouterInstrumentation(
             'routing.instrumentation': name,
           };
 
-          activeTransaction = startTransaction({
-            name: getName(location.pathname),
+          activeTransaction = customStartTransaction({
+            name: getTransactionName(location.pathname),
             op: 'navigation',
             tags,
           });

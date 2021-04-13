@@ -3,9 +3,7 @@ import { EventProcessor, Integration } from '@sentry/types';
 import { dynamicRequire, fill, logger } from '@sentry/utils';
 
 interface MysqlConnection {
-  prototype: {
-    query: () => void;
-  };
+  createQuery: () => void;
 }
 
 /** Tracing integration for node-mysql package */
@@ -38,7 +36,7 @@ export class Mysql implements Integration {
     //    function (callback) => void
     //    function (options, callback) => void
     //    function (options, values, callback) => void
-    fill(connection.prototype, 'query', function(orig: () => void) {
+    fill(connection, 'createQuery', function(orig: () => void) {
       return function(this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
