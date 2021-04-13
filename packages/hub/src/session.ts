@@ -153,16 +153,17 @@ export class SessionFlusher implements SessionFlusherInterface {
 
   constructor(transport: Transport, attrs: releaseHealthAttributes) {
     this._transport = transport;
+    // Call to setInterval, so that flush is called every 60 seconds
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
     this._sessionAttrs = attrs;
   }
 
-  /** JSDoc */
+  /** Checks if the instance of SessionFlusher is enabled */
   public getEnabled(): boolean {
     return this._isEnabled;
   }
 
-  /** JSDoc */
+  /** Sends aggregated sessions to Transport */
   public sendSessions(aggregatedSession: AggregatedSessions): void {
     if (!this._transport.sendSessions) {
       logger.warn("Dropping session because custom transport doesn't implement sendSession");
@@ -173,9 +174,9 @@ export class SessionFlusher implements SessionFlusherInterface {
     });
   }
 
-  /** JSDoc */
+  /** Checks if `pendingAggregates` has entries, and if it does flushes them by calling `sendSessions` */
   flush(): void {
-    const aggregatedSessions = this.getPendingAggregates();
+    const aggregatedSessions = this.getAggregatedSessions();
     if (aggregatedSessions.aggregates.length === 0) {
       return;
     }
@@ -183,8 +184,8 @@ export class SessionFlusher implements SessionFlusherInterface {
     this.sendSessions(aggregatedSessions);
   }
 
-  /** JSDoc */
-  getPendingAggregates(): AggregatedSessions {
+  /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
+  getAggregatedSessions(): AggregatedSessions {
     const aggregates: AggregationCounts[] = Object.keys(this._pendingAggregates).map((key: string) => {
       return this._pendingAggregates[parseInt(key)];
     });
@@ -203,7 +204,11 @@ export class SessionFlusher implements SessionFlusherInterface {
     this.flush();
   }
 
-  /** JSDoc */
+  /**
+   * Wrapper function for _incrementSessionCount that checks if the instance of SessionFlusher is enabled then fetches
+   * the session status of the request from `_requestSession` on the scope and passes them to `_incrementSessionCount`
+   * along with the start date
+   */
   public incrementSessionCount(): void {
     if (!this._isEnabled) {
       return;
@@ -223,7 +228,10 @@ export class SessionFlusher implements SessionFlusherInterface {
     }
   }
 
-  /** Increments pendingAggregates buffer (internal state) with the corresponding session status */
+  /**
+   * Increments status bucket in pendingAggregates buffer (internal state) corresponding to status of
+   * the session received
+   */
   private _incrementSessionCount(status: RequestSessionStatus, date: Date): number {
     // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
     const sessionStartedTrunc: number = new Date(date).setSeconds(0, 0);

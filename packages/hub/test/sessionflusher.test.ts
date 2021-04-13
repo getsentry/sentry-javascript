@@ -40,11 +40,11 @@ describe('Session Flusher', () => {
     count = (flusher as any)._incrementSessionCount(RequestSessionStatus.Errored, date);
     expect(count).toEqual(1);
 
-    expect(flusher.getPendingAggregates().aggregates).toEqual([
+    expect(flusher.getAggregatedSessions().aggregates).toEqual([
       { crashed: 1, exited: 2, started: '2021-04-08T12:18:00.000Z' },
       { errored: 1, exited: 1, started: '2021-04-08T12:19:00.000Z' },
     ]);
-    expect(flusher.getPendingAggregates().attrs).toEqual({ release: '1.0.0', environment: 'dev' });
+    expect(flusher.getAggregatedSessions().attrs).toEqual({ release: '1.0.0', environment: 'dev' });
   });
 
   test('test undefined attributes are excluded, on incrementSessionCount call', () => {
@@ -54,7 +54,7 @@ describe('Session Flusher', () => {
     (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
     (flusher as any)._incrementSessionCount(RequestSessionStatus.Crashed, date);
 
-    expect(flusher.getPendingAggregates()).toEqual({
+    expect(flusher.getAggregatedSessions()).toEqual({
       aggregates: [{ crashed: 1, exited: 1, started: '2021-04-08T12:18:00.000Z' }],
       attrs: { release: '1.0.0' },
     });
