@@ -393,20 +393,20 @@ export function requestHandler(
     local.add(req);
     local.add(res);
     local.on('error', err => {
+      // Request mode session capturing functionality is added here so that we are able to catch errors even if Sentry's
+      // error handler is not used
       if (isAutosessionTrackingEnabled()) {
         const scope = getCurrentHub().getStackTop().scope;
         if (scope) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           const requestSession = (scope as any)._requestSession;
           if (
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             requestSession.status !== undefined &&
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             !(requestSession.status in [RequestSessionStatus.Errored, RequestSessionStatus.Crashed])
           ) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             requestSession.status = RequestSessionStatus.Errored;
           }
+          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
         }
       }
       next(err);
@@ -416,18 +416,21 @@ export function requestHandler(
       const currentHub = getCurrentHub();
       currentHub.configureScope(scope => scope.addEventProcessor((event: Event) => parseRequest(event, req, options)));
 
+      // Set `_requestSession` status to Ok, at the beginning of the request.
       if (isAutosessionTrackingEnabled()) {
         const scope = currentHub.getStackTop().scope;
         if (scope) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const requestSession = (scope as any)._requestSession;
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const requestSession = (scope as any)._requestSession;
           requestSession.status = RequestSessionStatus.Ok;
+
+          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
         }
       }
 
       res.once('finish', () => {
+        // Calling captureRequestSession to capture request mode session at the end of the request
         setImmediate(() => {
           if (isAutosessionTrackingEnabled()) {
             const client = currentHub.getClient<NodeClient>();
