@@ -1,4 +1,4 @@
----
+minVersion: '0.20.0'
 github:
   owner: getsentry
   repo: sentry-rrweb
@@ -11,4 +11,6 @@ targets:
     tagPrefix: v
     access: public
 statusProvider:
+  name: github
+artifactProvider:
   name: github
