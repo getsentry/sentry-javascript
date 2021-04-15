@@ -161,7 +161,6 @@ export function getSentryRelease(): string {
   }
 
   return (
-    // This supports the variable that sentry-webpack-plugin injects
     // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
     process.env.GITHUB_SHA ||
     // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
