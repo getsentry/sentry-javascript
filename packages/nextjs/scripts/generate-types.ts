@@ -43,24 +43,29 @@ type PlainObject = { [key: string]: any };
 
 // TODO - combine these (only store values for collections?)
 const mergedExports: PlainObject = {};
-const mergedExportsWithSource: Array<{ name: string; source: string }> = [];
+const mergedExportsWithSources: Array<{
+  exportName: string;
+  source: string;
+  // elementSources?: Array<{ elementName: string; source: string }>;
+  elementSources?: { node: string[]; react: string[] };
+}> = [];
 
-const allNames = new Set([...Object.keys(nodeSDK), ...Object.keys(reactSDK)]);
+const allExportNames = new Set([...Object.keys(nodeSDK), ...Object.keys(reactSDK)]);
 
-allNames.forEach(name => {
-  const nodeExport = (nodeSDK as PlainObject)[name];
-  const reactExport = (reactSDK as PlainObject)[name];
+allExportNames.forEach(exportName => {
+  const nodeExport = (nodeSDK as PlainObject)[exportName];
+  const reactExport = (reactSDK as PlainObject)[exportName];
 
   // First, the easy stuff - things that only appear in one or the other package.
   if (nodeExport && !reactExport) {
-    mergedExports[name] = nodeExport;
-    mergedExportsWithSource.push({ name, source: '@sentry/node' });
+    mergedExports[exportName] = nodeExport;
+    mergedExportsWithSources.push({ exportName, source: "'@sentry/node'" });
     return;
   }
 
   if (reactExport && !nodeExport) {
-    mergedExports[name] = reactExport;
-    mergedExportsWithSource.push({ name, source: '@sentry/react' });
+    mergedExports[exportName] = reactExport;
+    mergedExportsWithSources.push({ exportName, source: "'@sentry/react'" });
     return;
   }
 
@@ -68,8 +73,8 @@ allNames.forEach(name => {
   // they're literally exporting the same thing (a type imported from `@sentry/types`, for example). If so, there's no
   // actual clash, so just copy over node's copy since it's equal to react's copy.
   if (nodeExport === reactExport) {
-    mergedExports[name] = nodeExport;
-    mergedExportsWithSource.push({ name, source: '@sentry/node' });
+    mergedExports[exportName] = nodeExport;
+    mergedExportsWithSources.push({ exportName, source: "'@sentry/node'" });
     return;
   }
 
@@ -83,9 +88,9 @@ allNames.forEach(name => {
   // In theory there are other collections besides objects and arrays, but thankfully we don't have any in this case.
   if (!Array.isArray(nodeExport) && !isPlainObject(nodeExport)) {
     // can't leave this out, so use the node version for now
-    if (name === 'init') {
-      mergedExports[name] = nodeExport;
-      mergedExportsWithSource.push({ name, source: '@sentry/node' });
+    if (exportName === 'init') {
+      mergedExports[exportName] = nodeExport;
+      mergedExportsWithSources.push({ exportName, source: "'@sentry/node'" });
     }
     // otherwise, bail
     return;
@@ -113,7 +118,14 @@ allNames.forEach(name => {
   // And now we do it all again, in miniature
   const allCollectionNames = new Set([...Object.keys(nodeCollection), ...Object.keys(reactCollection)]);
   const mergedCollection: PlainObject = {};
-  const mergedCollectionWithSource: PlainObject = [];
+  const mergedCollectionBySource: {
+    node: string[];
+    react: string[];
+  } = { node: [], react: [] };
+  // const mergedCollectionWithSources: Array<{
+  //   elementName: string;
+  //   source: string;
+  // }> = [];
 
   allCollectionNames.forEach(elementName => {
     const nodeCollectionElement = nodeCollection[elementName];
@@ -122,14 +134,16 @@ allNames.forEach(name => {
     // grab everything that's only in node...
     if (nodeCollectionElement && !reactCollectionElement) {
       mergedCollection[elementName] = nodeCollectionElement;
-      mergedCollectionWithSource.push({ elementName, source: '@sentry/node' });
+      mergedCollectionBySource.node.push(elementName);
+      // mergedCollectionWithSources.push({ elementName, source: 'nodeSDK' });
       return;
     }
 
     // ... and everything that's only in react
     if (reactCollectionElement && !nodeCollectionElement) {
       mergedCollection[elementName] = reactCollectionElement;
-      mergedCollectionWithSource.push({ elementName, source: '@senty/react' });
+      mergedCollectionBySource.react.push(elementName);
+      // mergedCollectionWithSources.push({ elementName, source: 'reactSDK' });
       return;
     }
 
@@ -142,7 +156,8 @@ allNames.forEach(name => {
         Object.getPrototypeOf(nodeCollectionElement) === Object.getPrototypeOf(reactCollectionElement))
     ) {
       mergedCollection[elementName] = nodeCollectionElement;
-      mergedCollectionWithSource.push({ elementName, source: '@sentry/node' });
+      mergedCollectionBySource.node.push(elementName);
+      // mergedCollectionWithSources.push({ elementName, source: 'nodeSDK' });
       return;
     }
 
@@ -152,18 +167,19 @@ allNames.forEach(name => {
 
   // having merged the two collections, if we started with an array, convert back to one
   if (Array.isArray(nodeExport)) {
-    mergedExports[name] = Object.values(mergedCollection);
-    mergedExportsWithSource.push({ name, source: 'array' }); // TODO have to build the collection as a string
+    mergedExports[exportName] = Object.values(mergedCollection);
+    mergedExportsWithSources.push({ exportName, source: 'array', elementSources: mergedCollectionBySource }); // TODO have to build the collection as a string
   }
   // otherwise, just use the merged object
   else {
-    mergedExports[name] = mergedCollection;
-    mergedExportsWithSource.push({ name, source: 'object' });
+    mergedExports[exportName] = mergedCollection;
+    mergedExportsWithSources.push({ exportName, source: 'object', elementSources: mergedCollectionBySource });
   }
 });
 
 // TODO - should we be importing from the two index files instead?
 // TODO - export correct SDK name value
+// TODO - call prettier from here? clean up package.json
 
 // This is here as a real comment (rather than an array of strings) because it's easier to edit that way if we ever need
 // to. (TODO: Convert to a string per line automatically)
@@ -181,25 +197,76 @@ const outputLines = [
   ' * More detail can be found in the script that (compiles to the script that) generated this file,',
   ' * `/scripts/generate-types.ts`.',
   ' */',
+  '',
+  "import * as nodeSDK from '@sentry/node'",
+  "import * as reactSDK from '@sentry/react'",
+  '',
 ];
 
-mergedExportsWithSource.forEach(element => {
-  const { name, source } = element;
+mergedExportsWithSources.forEach(element => {
+  const { exportName, source, elementSources } = element;
 
-  if (source === '@sentry/node' || source === '@sentry/react') {
-    outputLines.push(`export { ${name} } from '${source}';`);
+  if (source === "'@sentry/node'" || source === "'@sentry/react'") {
+    outputLines.push(`export { ${exportName} } from ${source};`);
     return;
   }
 
   if (source === 'array') {
-    // TODO
+    const titleCaseExportName = exportName.replace(exportName[0], exportName[0].toUpperCase());
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { node: nodeElementNames, react: reactElementNames } = elementSources!;
+
+    outputLines.push(`const node${titleCaseExportName}Names = ${JSON.stringify(nodeElementNames)}`);
+    outputLines.push(`const react${titleCaseExportName}Names = ${JSON.stringify(reactElementNames)}`);
+    outputLines.push(
+      `const node${titleCaseExportName} = nodeSDK.${exportName}.filter(element => element.name in node${titleCaseExportName}Names)`,
+    );
+    outputLines.push(
+      `const react${titleCaseExportName} = reactSDK.${exportName}.filter(element => element.name in react${titleCaseExportName}Names)`,
+    );
+    outputLines.push(`export const ${exportName} = [ ...node${titleCaseExportName}, ...react${titleCaseExportName} ]`);
+
+    return;
+
+    // outputLines.push(`const react${titleCaseExportName} = ${JSON.stringify(reactElements)}`);
+
+    // outputLines.push(`export const ${exportName} = [ ${namespacedElements?.join(', ')} ]`);
+
+    // outputLines.push(`const node${titleCaseExportName} = nodeSDK.${exportName}.filter(element => element.name in ${JSON.stringify(nodeElements)})`);
+    // const namespacedElements = elementSources?.map(
+    //   ({ elementName, source }) => `${source}.${exportName}.${elementName}`,
+    // );
+    // outputLines.push(`export const ${exportName} = [ ${namespacedElements?.join(', ')} ]`);
   }
 
   if (source === 'object') {
-    // TODO
+    const titleCaseExportName = exportName.replace(exportName[0], exportName[0].toUpperCase());
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { node: nodeElementNames, react: reactElementNames } = elementSources!;
+
+    outputLines.push(`const node${titleCaseExportName}Names = ${JSON.stringify(nodeElementNames)}`);
+    outputLines.push(`const react${titleCaseExportName}Names = ${JSON.stringify(reactElementNames)}`);
+    outputLines.push(`const node${titleCaseExportName} = { } as { [key: string]: any };`);
+    outputLines.push(`const react${titleCaseExportName} = { } as { [key: string]: any };`);
+    outputLines.push(
+      `node${titleCaseExportName}Names.forEach(elementName => { node${titleCaseExportName}[elementName] = nodeSDK.${exportName}[elementName as keyof typeof nodeSDK.${exportName}]});`,
+    );
+    outputLines.push(
+      `react${titleCaseExportName}Names.forEach(elementName => { react${titleCaseExportName}[elementName] = reactSDK.${exportName}[elementName as keyof typeof reactSDK.${exportName}]});`,
+    );
+    outputLines.push(`export const ${exportName} = { ...node${titleCaseExportName}, ...react${titleCaseExportName} }`);
+
+    // nodeElementNames.forEach(elementName => { x[elementName] = nodeSDK.y[elementName] });
+    return;
   }
 });
 
+// export const ${collectionName} = [nodeSDK.Http, ${source}.${elementName}, etc]
+// export const ${collectionName} = {Http: nodeSDK.Http, ${elementName}: ${source}.${elementName}, etc}
+
+// nodeSDK.defaultIntegrations.filter(integration => nodeElements.includes(integration.name));
+
+console.log(outputLines);
 // eslint-disable-next-line no-console
 console.log('Generating `types.ts`...');
 

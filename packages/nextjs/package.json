@@ -35,7 +35,7 @@
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:scripts": "tsc -p tsconfig.scripts.json",
-    "build:types": "yarn build:scripts && node scripts/build/generate-types.js",
+    "build:types": "yarn build:scripts && node scripts/build/generate-types.js && prettier --write \"src/types.ts\"",
     "build:watch": "yarn build:types && run-p build:watch:esm build:watch:scripts",
     "build:watch:esm": "yarn build:types && tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "build:watch:scripts": "yarn build:types && tsc -p tsconfig.scripts.json -w --preserveWatchOutput",

@@ -4,6 +4,10 @@
  * More detail can be found in the script that (compiles to the script that) generated this file,
  * `/scripts/generate-types.ts`.
  */
+
+import * as nodeSDK from '@sentry/node';
+import * as reactSDK from '@sentry/react';
+
 export { Severity } from '@sentry/node';
 export { Status } from '@sentry/node';
 export { addGlobalEventProcessor } from '@sentry/node';
@@ -28,8 +32,55 @@ export { setUser } from '@sentry/node';
 export { withScope } from '@sentry/node';
 export { NodeBackend } from '@sentry/node';
 export { NodeClient } from '@sentry/node';
+const nodeDefaultIntegrationsNames = [
+  'InboundFilters',
+  'FunctionToString',
+  'Console',
+  'Http',
+  'OnUncaughtException',
+  'OnUnhandledRejection',
+];
+const reactDefaultIntegrationsNames = ['TryCatch', 'Breadcrumbs', 'GlobalHandlers', 'UserAgent'];
+const nodeDefaultIntegrations = nodeSDK.defaultIntegrations.filter(
+  element => element.name in nodeDefaultIntegrationsNames,
+);
+const reactDefaultIntegrations = reactSDK.defaultIntegrations.filter(
+  element => element.name in reactDefaultIntegrationsNames,
+);
+export const defaultIntegrations = [...nodeDefaultIntegrations, ...reactDefaultIntegrations];
 export { init } from '@sentry/node';
 export { Handlers } from '@sentry/node';
+const nodeTransportsNames = ['BaseTransport', 'HTTPTransport', 'HTTPSTransport'];
+const reactTransportsNames = ['FetchTransport', 'XHRTransport'];
+const nodeTransports = {} as { [key: string]: any };
+const reactTransports = {} as { [key: string]: any };
+nodeTransportsNames.forEach(elementName => {
+  nodeTransports[elementName] = nodeSDK.Transports[elementName as keyof typeof nodeSDK.Transports];
+});
+reactTransportsNames.forEach(elementName => {
+  reactTransports[elementName] = reactSDK.Transports[elementName as keyof typeof reactSDK.Transports];
+});
+export const Transports = { ...nodeTransports, ...reactTransports };
+const nodeIntegrationsNames = [
+  'FunctionToString',
+  'InboundFilters',
+  'Console',
+  'Http',
+  'OnUncaughtException',
+  'OnUnhandledRejection',
+  'LinkedErrors',
+  'Modules',
+];
+const reactIntegrationsNames = ['GlobalHandlers', 'TryCatch', 'Breadcrumbs', 'UserAgent'];
+const nodeIntegrations = {} as { [key: string]: any };
+const reactIntegrations = {} as { [key: string]: any };
+nodeIntegrationsNames.forEach(elementName => {
+  nodeIntegrations[elementName] = nodeSDK.Integrations[elementName as keyof typeof nodeSDK.Integrations];
+});
+reactIntegrationsNames.forEach(elementName => {
+  reactIntegrations[elementName] = reactSDK.Integrations[elementName as keyof typeof reactSDK.Integrations];
+});
+export const Integrations = { ...nodeIntegrations, ...reactIntegrations };
 export { BrowserClient } from '@sentry/react';
 export { injectReportDialog } from '@sentry/react';
 export { eventFromException } from '@sentry/react';
