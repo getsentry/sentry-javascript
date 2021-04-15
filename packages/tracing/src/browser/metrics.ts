@@ -236,13 +236,11 @@ export class MetricsInstrumentation {
         return;
       }
 
+      const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
       const startTime = msToSec(entry.startTime as number);
       logger.log('[Measurements] Adding LCP');
       this._measurements['lcp'] = { value: metric.value };
-      if (browserPerformanceTimeOrigin !== undefined) {
-        const timeOrigin = msToSec(browserPerformanceTimeOrigin);
-        this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
-      }
+      this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
     });
   }
 
@@ -255,13 +253,11 @@ export class MetricsInstrumentation {
         return;
       }
 
+      const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
       const startTime = msToSec(entry.startTime as number);
       logger.log('[Measurements] Adding FID');
       this._measurements['fid'] = { value: metric.value };
-      if (browserPerformanceTimeOrigin !== undefined) {
-        const timeOrigin = msToSec(browserPerformanceTimeOrigin);
-        this._measurements['mark.fid'] = { value: timeOrigin + startTime };
-      }
+      this._measurements['mark.fid'] = { value: timeOrigin + startTime };
     });
   }
 
