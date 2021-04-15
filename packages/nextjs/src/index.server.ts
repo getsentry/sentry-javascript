@@ -1,7 +1,6 @@
 import { configureScope, init as nodeInit } from '@sentry/node';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const types = require('./types');
 import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { defaultRewriteFrames, getFinalServerIntegrations } from './utils/serverIntegrations';
@@ -27,6 +26,4 @@ export function init(options: NextjsOptions): void {
     scope.setTag('runtime', 'node');
   });
 }
-debugger;
-
-console.log(types.hi);
+// debugger;

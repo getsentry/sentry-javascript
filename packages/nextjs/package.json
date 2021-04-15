@@ -11,6 +11,7 @@
   },
   "module": "./esm/index.server.js",
   "browser": "./esm/index.client.js",
+  "types": "./esm/blah.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -30,11 +31,14 @@
     "rimraf": "3.0.2"
   },
   "scripts": {
-    "build": "run-p build:esm",
+    "build": "run-s build:types build:esm",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:watch:esm",
-    "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "build:scripts": "tsc -p tsconfig.scripts.json",
+    "build:types": "yarn build:scripts && node scripts/build/generate-types.js",
+    "build:watch": "yarn build:types && run-p build:watch:esm build:watch:scripts",
+    "build:watch:esm": "yarn build:types && tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "build:watch:scripts": "yarn build:types && tsc -p tsconfig.scripts.json -w --preserveWatchOutput",
     "clean": "rimraf dist esm coverage *.js *.js.map *.d.ts",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
