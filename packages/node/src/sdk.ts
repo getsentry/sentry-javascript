@@ -148,7 +148,7 @@ export async function close(timeout?: number): Promise<boolean> {
 /**
  * A function that returns a Sentry release string dynamically from env variables
  */
-export function getSentryRelease(): string {
+function getSentryRelease(): string {
   // Always read first as Sentry takes this as precedence
   if (process.env.SENTRY_RELEASE) {
     return process.env.SENTRY_RELEASE;
