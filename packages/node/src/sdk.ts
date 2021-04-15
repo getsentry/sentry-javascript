@@ -149,29 +149,29 @@ export async function close(timeout?: number): Promise<boolean> {
  * A function that returns a Sentry release string dynamically from env variables
  */
 export function getSentryRelease(): string {
-  // Fetches the variable that sentry-webpack-plugin injects
-  const global = getGlobalObject<Window>();
-  let globalSentryRelease = undefined;
-  if (global.SENTRY_RELEASE && global.SENTRY_RELEASE.id) {
-    globalSentryRelease = global.SENTRY_RELEASE.id;
+  // Always read first as Sentry takes this as precedence
+  if (process.env.SENTRY_RELEASE) {
+    return process.env.SENTRY_RELEASE;
   }
 
-  const sentryRelease = JSON.stringify(
-    // Always read first as Sentry takes this as precedence
-    process.env.SENTRY_RELEASE ||
-      // This supports the variable that sentry-webpack-plugin injects
-      globalSentryRelease ||
-      // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
-      process.env.GITHUB_SHA ||
-      // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
-      process.env.COMMIT_REF ||
-      // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
-      process.env.VERCEL_GIT_COMMIT_SHA ||
-      // Zeit (now known as Vercel)
-      process.env.ZEIT_GITHUB_COMMIT_SHA ||
-      process.env.ZEIT_GITLAB_COMMIT_SHA ||
-      process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
-      '',
+  // This supports the variable that sentry-webpack-plugin injects
+  const global = getGlobalObject();
+  if (global.SENTRY_RELEASE && global.SENTRY_RELEASE.id) {
+    return global.SENTRY_RELEASE.id;
+  }
+
+  return (
+    // This supports the variable that sentry-webpack-plugin injects
+    // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
+    process.env.GITHUB_SHA ||
+    // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
+    process.env.COMMIT_REF ||
+    // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    // Zeit (now known as Vercel)
+    process.env.ZEIT_GITHUB_COMMIT_SHA ||
+    process.env.ZEIT_GITLAB_COMMIT_SHA ||
+    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
+    ''
   );
-  return sentryRelease;
 }
