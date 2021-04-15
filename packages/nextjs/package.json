@@ -11,7 +11,7 @@
   },
   "module": "./esm/index.server.js",
   "browser": "./esm/index.client.js",
-  "types": "./esm/blah.d.ts",
+  "types": "./esm/types.d.ts",
   "publishConfig": {
     "access": "public"
   },
