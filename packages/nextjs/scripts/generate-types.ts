@@ -23,7 +23,7 @@
  *    from this file. The correct methods are stil exported in their respective environments - the JS works, in other
  *    words - but they won't appear in the types. The one exception to this is the `init` method, because it's too
  *    important to leave out. For the moment, it's using the node version as the type in both environments. (TODO: Make
- *    a generic version.)
+ *    a generic version of `init`, and possibly the other clashes, just for use in types.)
  *
  * - Currently, though this script gets built with the SDK, running `build:watch` will only *run* it once, before the
  *   initial SDK build starts its watch mode. This means that the `types.ts` file only gets generated once per
@@ -38,45 +38,28 @@ import * as nodeSDK from '@sentry/node';
 import * as reactSDK from '@sentry/react';
 import { isPlainObject } from '@sentry/utils';
 import * as fs from 'fs';
-// import * as path from 'path';
 
 type PlainObject = { [key: string]: any };
 
 const mergedExports: PlainObject = {};
 const mergedExportsWithSource: Array<{ name: string; source: string }> = [];
 
-const nodeOnly: any[] = [];
-const reactOnly: any[] = [];
-const equal: any[] = [];
-const nodeMerged: any[] = [];
-const reactMerged: any[] = [];
-const equalMerged: any[] = [];
-const skipped: any[] = [];
-const merged: any[] = [];
-const clash: any[] = [];
-
-// const check = { nodeOnly, reactOnly, equal, nodeMerged, reactMerged, equalMerged, skipped, merged, clash };
-
 const allNames = new Set([...Object.keys(nodeSDK), ...Object.keys(reactSDK)]);
 
 allNames.forEach(name => {
-  // debugger;
   const nodeExport = (nodeSDK as PlainObject)[name];
   const reactExport = (reactSDK as PlainObject)[name];
 
+  // First, the easy stuff - things that only appear in one or the other package.
   if (nodeExport && !reactExport) {
     mergedExports[name] = nodeExport;
     mergedExportsWithSource.push({ name, source: '@sentry/node' });
-    nodeOnly.push(name);
-    // debugger;
     return;
   }
 
   if (reactExport && !nodeExport) {
     mergedExports[name] = reactExport;
     mergedExportsWithSource.push({ name, source: '@sentry/react' });
-    reactOnly.push(name);
-    // debugger;
     return;
   }
 
@@ -86,8 +69,6 @@ allNames.forEach(name => {
   if (nodeExport === reactExport) {
     mergedExports[name] = nodeExport;
     mergedExportsWithSource.push({ name, source: '@sentry/node' });
-    equal.push(name);
-    // debugger;
     return;
   }
 
@@ -104,9 +85,7 @@ allNames.forEach(name => {
     if (name === 'init') {
       mergedExports[name] = nodeExport;
       mergedExportsWithSource.push({ name, source: '@sentry/node' });
-      clash.push({ name, node: nodeExport, react: reactExport });
     }
-    // debugger;
     // otherwise, bail
     return;
   }
@@ -143,8 +122,6 @@ allNames.forEach(name => {
     if (nodeCollectionElement && !reactCollectionElement) {
       mergedCollection[elementName] = nodeCollectionElement;
       mergedCollectionWithSource.push({ elementName, source: '@sentry/node' });
-      nodeMerged.push({ name, elementName });
-      // debugger;
       return;
     }
 
@@ -152,8 +129,6 @@ allNames.forEach(name => {
     if (reactCollectionElement && !nodeCollectionElement) {
       mergedCollection[elementName] = reactCollectionElement;
       mergedCollectionWithSource.push({ elementName, source: '@senty/react' });
-      reactMerged.push({ name, elementName });
-      // debugger;
       return;
     }
 
@@ -167,12 +142,8 @@ allNames.forEach(name => {
     ) {
       mergedCollection[elementName] = nodeCollectionElement;
       mergedCollectionWithSource.push({ elementName, source: '@sentry/node' });
-      equalMerged.push({ name, elementName, nodeCollectionElement });
-      // debugger;
       return;
     }
-
-    skipped.push({ name, elementName, nodeCollectionElement, reactCollectionElement });
 
     // at this point, in a general case, we'd recurse, but we're assuming type match and we know we don't have any
     // nested collections, so we're done with this pair of collection elements
@@ -188,19 +159,13 @@ allNames.forEach(name => {
     mergedExports[name] = mergedCollection;
     mergedExportsWithSource.push({ name, source: 'object' });
   }
-  merged.push({ name, value: mergedExports[name] });
 });
-
-// console.log(Object.keys(mergedExports));
-// console.log(mergedExports);
-// console.log(check);
-console.log(clash);
-// debugger;
 
 // TODO - should we be importing from the two index files instead?
 // TODO - export correct SDK name value
-// TODO - clear out logs and debuggers
 
+// This is here as a real comment (rather than an array of strings) because it's easier to edit that way if we ever need
+// to. (TODO: Convert to a string per line automatically)
 /**
  * THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.
  *
@@ -208,7 +173,6 @@ console.log(clash);
  * `/scripts/generate-types.ts`.
  */
 
-// TODO - include the above where "..." is
 const outputLines = [
   '/**',
   '* THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.',
@@ -236,97 +200,11 @@ mergedExportsWithSource.forEach(element => {
   }
 });
 
-console.log('Generating types.ts');
+// eslint-disable-next-line no-console
+console.log('Generating `types.ts`...');
 
 const output = outputLines.join('\n');
-// console.log(output);
-
 fs.writeFileSync('./src/types.ts', output);
-console.log('Done writing file');
-// const mergedExportsNames = Object.keys(mergedExports)
-// const exportLines: string[] = mergedExportsNames.map(name => {
-//   const exportLine = `export const ${name} = `
-// })
 
-// const output = `
-//     ${mergedExports
-//       .map((plugin) => {
-//         const pluginId = getPluginId(plugin.pkgName)
-//         pluginIds.push(pluginId)
-//         pluginConfigs.push(plugin.config || {})
-// debugger
-// return `import ${pluginId} from '${plugin.directory}/src/${middleware}'`
-//       })
-//       .join('\n')}
-
-//     export default function (ctx) {
-// debugger
-// return Promise.all([${pluginIds
-//         .map((id, idx) => `${id}(ctx, ${JSON.stringify(pluginConfigs[idx])})`)
-//         .join(',')}])
-//     }
-//   `
-
-// function splitVennDiagram(arrA: unknown[], arrB: unknown[]): unknown[][] {
-//   const onlyA = arrA.filter(element => !arrB.includes(element));
-//   const onlyB = arrB.filter(element => !arrA.includes(element));
-//   const intersection = arrA.filter(element => arrB.includes(element));
-// debugger
-// return [onlyA, onlyB, intersection];
-// }
-
-// // const nodeOnlyExports = nodeExportNames.filter(type => !reactExportNames.includes(type));
-// // const reactOnlyExports = reactExportNames.filter(type => !nodeExportNames.includes(type));
-// // const intersection = nodeExportNames.filter(type => reactExportNames.includes(type));
-
-// const [nodeOnlyExportNames, reactOnlyExportNames, intersectionExportNames] = splitVennDiagram(
-//   Object.keys(nodeSDK),
-//   Object.keys(reactSDK),
-// );
-
-// // const equalIntersectionExportNames =
-
-// console.log(nodeOnlyExportNames);
-// console.log(reactOnlyExportNames);
-// console.log(intersectionExportNames);
-
-// const nodeOnlyExports: Partial<typeof nodeSDK> = {};
-// const reactOnlyExports: Partial<typeof reactSDK> = {};
-// nodeOnlyExportNames.forEach(name => {
-//   // @ts-ignor You can too use a string to get a method from a module, TS
-//   nodeOnlyExports[name] = nodeSDK[name];
-// });
-// reactOnlyExportNames.forEach(name => {
-//   // @ts-ignor You can too use a string to get a method from a module, TS
-//   reactOnlyExports[name] = reactSDK[name];
-// });
-// // intersectionExportNames.forEach(name => {
-// //   // @ts-ignor You can too use a string to get a method from a module, TS
-// //   intersectionExports[name] = reactSDK[name];
-// // });
-
-// console.log(nodeSDK.Integrations);
-// console.log(reactSDK.Integrations);
-// console.log(nodeSDK.SDK_NAME);
-// console.log(reactSDK.SDK_NAME);
-// console.log(nodeSDK.Transports);
-// console.log(reactSDK.Transports);
-// console.log(nodeSDK.close);
-// console.log(reactSDK.close);
-// console.log(nodeSDK.defaultIntegrations);
-// console.log(reactSDK.defaultIntegrations);
-// console.log(nodeSDK.flush);
-// console.log(reactSDK.flush);
-// console.log(nodeSDK.init);
-// console.log(reactSDK.init);
-// console.log(nodeSDK.lastEventId);
-// console.log(reactSDK.lastEventId);
-
-// const nodeIntegrationNames = Object.keys(nodeSDK.)
-// console.log(nodeSDK.Hub === reactSDK.Hub);
-// const nodeOnlyIntegrations = Object.keys(nodeSDK.Integrations).filter(type => !reactSDK.Integrations.includes(type));
-// const allIntegrations =
-// debugger;
-
-// export * from '@sentry/react';
-// export * from '@sentry/node';
+// eslint-disable-next-line no-console
+console.log('Done writing file.');
