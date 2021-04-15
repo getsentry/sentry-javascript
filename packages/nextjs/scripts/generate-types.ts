@@ -176,19 +176,18 @@ allNames.forEach(name => {
 
 const outputLines = [
   '/**',
-  '* THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.',
-  '*',
-  '* More detail can be found in the script that (compiles to the script that) generated this file,',
-  '* `/scripts/generate-types.ts`.',
-  '*/',
-  '\n',
+  ' * THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.',
+  ' *',
+  ' * More detail can be found in the script that (compiles to the script that) generated this file,',
+  ' * `/scripts/generate-types.ts`.',
+  ' */',
 ];
 
 mergedExportsWithSource.forEach(element => {
   const { name, source } = element;
 
   if (source === '@sentry/node' || source === '@sentry/react') {
-    outputLines.push(`export { ${name} } from "${source}";`);
+    outputLines.push(`export { ${name} } from '${source}';`);
     return;
   }
 
@@ -204,7 +203,8 @@ mergedExportsWithSource.forEach(element => {
 // eslint-disable-next-line no-console
 console.log('Generating `types.ts`...');
 
-const output = outputLines.join('\n');
+// add a newline at the end of the file to make Prettier happy
+const output = `${outputLines.join('\n')}\n`;
 fs.writeFileSync('./src/types.ts', output);
 
 // eslint-disable-next-line no-console
