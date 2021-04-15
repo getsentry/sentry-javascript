@@ -41,6 +41,7 @@ import * as fs from 'fs';
 
 type PlainObject = { [key: string]: any };
 
+// TODO - combine these (only store values for collections?)
 const mergedExports: PlainObject = {};
 const mergedExportsWithSource: Array<{ name: string; source: string }> = [];
 
