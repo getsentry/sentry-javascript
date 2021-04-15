@@ -11,7 +11,6 @@
   },
   "module": "./esm/index.server.js",
   "browser": "./esm/index.client.js",
-  "types": "./esm/react.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -25,12 +24,14 @@
     "@sentry/wizard": "^1.2.3"
   },
   "devDependencies": {
+    "@sentry/utils": "6.2.5",
     "@sentry/types": "6.2.5",
     "eslint": "7.20.0",
     "rimraf": "3.0.2"
   },
   "scripts": {
     "build": "run-p build:esm",
+    "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "run-p build:watch:esm",
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
