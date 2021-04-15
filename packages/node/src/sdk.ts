@@ -93,7 +93,10 @@ export function init(options: NodeOptions = {}): void {
   }
 
   if (options.release === undefined) {
-    options.release = getSentryRelease();
+    const detectedRelease = getSentryRelease();
+    if (detectedRelease !== undefined) {
+      options.release = detectedRelease;
+    }
   }
 
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
@@ -148,7 +151,7 @@ export async function close(timeout?: number): Promise<boolean> {
 /**
  * A function that returns a Sentry release string dynamically from env variables
  */
-function getSentryRelease(): string {
+function getSentryRelease(): string | undefined {
   // Always read first as Sentry takes this as precedence
   if (process.env.SENTRY_RELEASE) {
     return process.env.SENTRY_RELEASE;
@@ -170,7 +173,6 @@ function getSentryRelease(): string {
     // Zeit (now known as Vercel)
     process.env.ZEIT_GITHUB_COMMIT_SHA ||
     process.env.ZEIT_GITLAB_COMMIT_SHA ||
-    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
-    ''
+    process.env.ZEIT_BITBUCKET_COMMIT_SHA
   );
 }
