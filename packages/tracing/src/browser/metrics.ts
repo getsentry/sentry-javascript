@@ -236,7 +236,7 @@ export class MetricsInstrumentation {
         return;
       }
 
-      const timeOrigin = msToSec(performance.timeOrigin);
+      const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
       const startTime = msToSec(entry.startTime as number);
       logger.log('[Measurements] Adding LCP');
       this._measurements['lcp'] = { value: metric.value };
@@ -253,7 +253,7 @@ export class MetricsInstrumentation {
         return;
       }
 
-      const timeOrigin = msToSec(performance.timeOrigin);
+      const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
       const startTime = msToSec(entry.startTime as number);
       logger.log('[Measurements] Adding FID');
       this._measurements['fid'] = { value: metric.value };
