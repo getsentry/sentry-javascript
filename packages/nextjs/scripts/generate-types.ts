@@ -34,12 +34,20 @@
  * The file that this script's compiled version generates is `/src/types.ts`.
  */
 
+// TODO - should we be importing from the two index files instead?
+// TODO - call prettier from here? clean up package.json
+
 import * as nodeSDK from '@sentry/node';
 import * as reactSDK from '@sentry/react';
 import { isPlainObject } from '@sentry/utils';
 import * as fs from 'fs';
 
 type PlainObject = { [key: string]: any };
+
+// eslint-disable-next-line no-console
+console.log('Generating `types.ts`...');
+
+/** Create the merged set of exports, also merging any array- or object-type exports */
 
 // TODO - combine these (only store values for collections?)
 const mergedExports: PlainObject = {};
@@ -177,9 +185,7 @@ allExportNames.forEach(exportName => {
   }
 });
 
-// TODO - should we be importing from the two index files instead?
-// TODO - export correct SDK name value
-// TODO - call prettier from here? clean up package.json
+/** Convert the data into lines of export code and write it to disk */
 
 // This is here as a real comment (rather than an array of strings) because it's easier to edit that way if we ever need
 // to. (TODO: Convert to a string per line automatically)
@@ -191,6 +197,8 @@ allExportNames.forEach(exportName => {
  */
 
 const outputLines = [
+  '/* eslint-disable @typescript-eslint/no-explicit-any */',
+  '',
   '/**',
   ' * THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.',
   ' *',
@@ -203,73 +211,64 @@ const outputLines = [
   '',
   "export const SDK_NAME = 'sentry.javascript.nextjs';",
 ];
+const basicExportLines = ['', '// Basic exports', ''];
+const collectionExportLines = ['', `// Merged arrays and objects`, ''];
 
 mergedExportsWithSources.forEach(element => {
   const { exportName, source, elementSources } = element;
 
   if (source === "'@sentry/node'" || source === "'@sentry/react'") {
-    outputLines.push(`export { ${exportName} } from ${source};`);
+    basicExportLines.push(`export { ${exportName} } from ${source};`);
     return;
   }
 
-  if (source === 'array') {
-    const titleCaseExportName = exportName.replace(exportName[0], exportName[0].toUpperCase());
+  if (source === 'array' || source === 'object') {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const { node: nodeElementNames, react: reactElementNames } = elementSources!;
 
-    outputLines.push(`const node${titleCaseExportName}Names = ${JSON.stringify(nodeElementNames)}`);
-    outputLines.push(`const react${titleCaseExportName}Names = ${JSON.stringify(reactElementNames)}`);
-    outputLines.push(
-      `const node${titleCaseExportName} = nodeSDK.${exportName}.filter(element => element.name in node${titleCaseExportName}Names)`,
-    );
-    outputLines.push(
-      `const react${titleCaseExportName} = reactSDK.${exportName}.filter(element => element.name in react${titleCaseExportName}Names)`,
-    );
-    outputLines.push(`export const ${exportName} = [ ...node${titleCaseExportName}, ...react${titleCaseExportName} ]`);
-
-    return;
-
-    // outputLines.push(`const react${titleCaseExportName} = ${JSON.stringify(reactElements)}`);
-
-    // outputLines.push(`export const ${exportName} = [ ${namespacedElements?.join(', ')} ]`);
-
-    // outputLines.push(`const node${titleCaseExportName} = nodeSDK.${exportName}.filter(element => element.name in ${JSON.stringify(nodeElements)})`);
-    // const namespacedElements = elementSources?.map(
-    //   ({ elementName, source }) => `${source}.${exportName}.${elementName}`,
-    // );
-    // outputLines.push(`export const ${exportName} = [ ${namespacedElements?.join(', ')} ]`);
-  }
-
-  if (source === 'object') {
     const titleCaseExportName = exportName.replace(exportName[0], exportName[0].toUpperCase());
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const { node: nodeElementNames, react: reactElementNames } = elementSources!;
-
-    outputLines.push(`const node${titleCaseExportName}Names = ${JSON.stringify(nodeElementNames)}`);
-    outputLines.push(`const react${titleCaseExportName}Names = ${JSON.stringify(reactElementNames)}`);
-    outputLines.push(`const node${titleCaseExportName} = { } as { [key: string]: any };`);
-    outputLines.push(`const react${titleCaseExportName} = { } as { [key: string]: any };`);
-    outputLines.push(
-      `node${titleCaseExportName}Names.forEach(elementName => { node${titleCaseExportName}[elementName] = nodeSDK.${exportName}[elementName as keyof typeof nodeSDK.${exportName}]});`,
+    const nodeExportName = `node${titleCaseExportName}`;
+    const reactExportName = `react${titleCaseExportName}`;
+    collectionExportLines.push(
+      `// ${exportName}`,
+      '',
+      `const ${nodeExportName}Names = ${JSON.stringify(nodeElementNames)}`,
+      `const ${reactExportName}Names = ${JSON.stringify(reactElementNames)}`,
     );
-    outputLines.push(
-      `react${titleCaseExportName}Names.forEach(elementName => { react${titleCaseExportName}[elementName] = reactSDK.${exportName}[elementName as keyof typeof reactSDK.${exportName}]});`,
-    );
-    outputLines.push(`export const ${exportName} = { ...node${titleCaseExportName}, ...react${titleCaseExportName} }`);
 
-    // nodeElementNames.forEach(elementName => { x[elementName] = nodeSDK.y[elementName] });
-    return;
+    if (source === 'array') {
+      collectionExportLines.push(
+        `const ${nodeExportName} = nodeSDK.${exportName}.filter(`,
+        `  element => element.name in ${nodeExportName}Names`,
+        `)`,
+        `const ${reactExportName} = reactSDK.${exportName}.filter(`,
+        `  element => element.name in ${reactExportName}Names`,
+        `)`,
+        `export const ${exportName} = [ ...${nodeExportName}, ...${reactExportName} ]`,
+        '',
+      );
+      return;
+    }
+    // must be an object
+    else {
+      collectionExportLines.push(
+        `const ${nodeExportName} = { } as { [key: string]: any };`,
+        `const ${reactExportName} = { } as { [key: string]: any };`,
+        `${nodeExportName}Names.forEach(elementName => { `,
+        `  ${nodeExportName}[elementName] = nodeSDK.${exportName}[elementName as keyof typeof nodeSDK.${exportName}]`,
+        `});`,
+        `${reactExportName}Names.forEach(elementName => { `,
+        `  ${reactExportName}[elementName] = reactSDK.${exportName}[elementName as keyof typeof reactSDK.${exportName}]`,
+        `});`,
+        `export const ${exportName} = { ...${nodeExportName}, ...${reactExportName} }`,
+        '',
+      );
+      return;
+    }
   }
 });
 
-// export const ${collectionName} = [nodeSDK.Http, ${source}.${elementName}, etc]
-// export const ${collectionName} = {Http: nodeSDK.Http, ${elementName}: ${source}.${elementName}, etc}
-
-// nodeSDK.defaultIntegrations.filter(integration => nodeElements.includes(integration.name));
-
-console.log(outputLines);
-// eslint-disable-next-line no-console
-console.log('Generating `types.ts`...');
+outputLines.push(...basicExportLines, ...collectionExportLines);
 
 // add a newline at the end of the file to make Prettier happy
 const output = `${outputLines.join('\n')}\n`;

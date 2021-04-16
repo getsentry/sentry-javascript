@@ -25,8 +25,8 @@
     "@sentry/wizard": "^1.2.3"
   },
   "devDependencies": {
-    "@sentry/utils": "6.2.5",
     "@sentry/types": "6.2.5",
+    "@sentry/utils": "6.2.5",
     "eslint": "7.20.0",
     "rimraf": "3.0.2"
   },

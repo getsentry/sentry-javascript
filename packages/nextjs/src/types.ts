@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.
  *
@@ -7,6 +9,10 @@
 
 import * as nodeSDK from '@sentry/node';
 import * as reactSDK from '@sentry/react';
+
+export const SDK_NAME = 'sentry.javascript.nextjs';
+
+// Basic exports
 
 export { Severity } from '@sentry/node';
 export { Status } from '@sentry/node';
@@ -32,6 +38,31 @@ export { setUser } from '@sentry/node';
 export { withScope } from '@sentry/node';
 export { NodeBackend } from '@sentry/node';
 export { NodeClient } from '@sentry/node';
+export { init } from '@sentry/node';
+export { Handlers } from '@sentry/node';
+export { BrowserClient } from '@sentry/react';
+export { injectReportDialog } from '@sentry/react';
+export { eventFromException } from '@sentry/react';
+export { eventFromMessage } from '@sentry/react';
+export { forceLoad } from '@sentry/react';
+export { onLoad } from '@sentry/react';
+export { showReportDialog } from '@sentry/react';
+export { wrap } from '@sentry/react';
+export { Profiler } from '@sentry/react';
+export { withProfiler } from '@sentry/react';
+export { useProfiler } from '@sentry/react';
+export { ErrorBoundary } from '@sentry/react';
+export { withErrorBoundary } from '@sentry/react';
+export { createReduxEnhancer } from '@sentry/react';
+export { reactRouterV3Instrumentation } from '@sentry/react';
+export { reactRouterV4Instrumentation } from '@sentry/react';
+export { reactRouterV5Instrumentation } from '@sentry/react';
+export { withSentryRouting } from '@sentry/react';
+
+// Merged arrays and objects
+
+// defaultIntegrations
+
 const nodeDefaultIntegrationsNames = [
   'InboundFilters',
   'FunctionToString',
@@ -48,8 +79,9 @@ const reactDefaultIntegrations = reactSDK.defaultIntegrations.filter(
   element => element.name in reactDefaultIntegrationsNames,
 );
 export const defaultIntegrations = [...nodeDefaultIntegrations, ...reactDefaultIntegrations];
-export { init } from '@sentry/node';
-export { Handlers } from '@sentry/node';
+
+// Transports
+
 const nodeTransportsNames = ['BaseTransport', 'HTTPTransport', 'HTTPSTransport'];
 const reactTransportsNames = ['FetchTransport', 'XHRTransport'];
 const nodeTransports = {} as { [key: string]: any };
@@ -61,6 +93,9 @@ reactTransportsNames.forEach(elementName => {
   reactTransports[elementName] = reactSDK.Transports[elementName as keyof typeof reactSDK.Transports];
 });
 export const Transports = { ...nodeTransports, ...reactTransports };
+
+// Integrations
+
 const nodeIntegrationsNames = [
   'FunctionToString',
   'InboundFilters',
@@ -81,21 +116,3 @@ reactIntegrationsNames.forEach(elementName => {
   reactIntegrations[elementName] = reactSDK.Integrations[elementName as keyof typeof reactSDK.Integrations];
 });
 export const Integrations = { ...nodeIntegrations, ...reactIntegrations };
-export { BrowserClient } from '@sentry/react';
-export { injectReportDialog } from '@sentry/react';
-export { eventFromException } from '@sentry/react';
-export { eventFromMessage } from '@sentry/react';
-export { forceLoad } from '@sentry/react';
-export { onLoad } from '@sentry/react';
-export { showReportDialog } from '@sentry/react';
-export { wrap } from '@sentry/react';
-export { Profiler } from '@sentry/react';
-export { withProfiler } from '@sentry/react';
-export { useProfiler } from '@sentry/react';
-export { ErrorBoundary } from '@sentry/react';
-export { withErrorBoundary } from '@sentry/react';
-export { createReduxEnhancer } from '@sentry/react';
-export { reactRouterV3Instrumentation } from '@sentry/react';
-export { reactRouterV4Instrumentation } from '@sentry/react';
-export { reactRouterV5Instrumentation } from '@sentry/react';
-export { withSentryRouting } from '@sentry/react';
