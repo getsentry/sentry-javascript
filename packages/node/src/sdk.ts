@@ -97,10 +97,17 @@ export function init(options: NodeOptions = {}): void {
     if (detectedRelease !== undefined) {
       options.release = detectedRelease;
     }
+
+    // If release is not provided, then we should disable autoSessionTracking
+    options.autoSessionTracking = false;
   }
 
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
     options.environment = process.env.SENTRY_ENVIRONMENT;
+  }
+
+  if (options.autoSessionTracking === undefined) {
+    options.autoSessionTracking = true;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -149,7 +156,20 @@ export async function close(timeout?: number): Promise<boolean> {
 }
 
 /**
- * A function that returns a Sentry release string dynamically from env variables
+ * Function that checks if autoSessionTracking option is enabled
+ */
+export function isAutosessionTrackingEnabled(): boolean {
+  // Also add the checks that makes sure in case when you stop session tracking or resume
+  const client = getCurrentHub().getClient<NodeClient>();
+  const clientOptions: NodeOptions | null = client ? client.getOptions() : null;
+  if (clientOptions && clientOptions.autoSessionTracking !== undefined) {
+    return clientOptions.autoSessionTracking;
+  }
+  return false;
+}
+
+/**
+ * Function that returns a Sentry release string dynamically from env variables
  */
 function getSentryRelease(): string | undefined {
   // Always read first as Sentry takes this as precedence

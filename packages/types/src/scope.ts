@@ -3,7 +3,7 @@ import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
 import { Primitive } from './misc';
-import { Session } from './session';
+import { RequestSessionStatus, Session } from './session';
 import { Severity } from './severity';
 import { Span } from './span';
 import { Transaction } from './transaction';
@@ -20,6 +20,7 @@ export interface ScopeContext {
   contexts: Contexts;
   tags: { [key: string]: Primitive };
   fingerprint: string[];
+  requestSessionStatus: RequestSessionStatus;
 }
 
 /**

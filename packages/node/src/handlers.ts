@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, RequestSessionStatus, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
@@ -10,7 +10,8 @@ import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
 
-import { flush } from './sdk';
+import { NodeClient } from './client';
+import { flush, isAutosessionTrackingEnabled } from './sdk';
 
 export interface ExpressRequest {
   baseUrl?: string;
@@ -391,11 +392,55 @@ export function requestHandler(
     const local = domain.create();
     local.add(req);
     local.add(res);
-    local.on('error', next);
+    local.on('error', err => {
+      // Request mode session capturing functionality is added here so that we are able to catch errors even if Sentry's
+      // error handler is not used
+      if (isAutosessionTrackingEnabled()) {
+        const scope = getCurrentHub().getStackTop().scope;
+        if (scope) {
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+          const requestSessionStatus = (scope as any)._requestSessionStatus;
+          if (requestSessionStatus !== undefined) {
+            (scope as any)._requestSessionStatus = RequestSessionStatus.Errored;
+          }
+          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+        }
+      }
+      next(err);
+    });
+
     local.run(() => {
-      getCurrentHub().configureScope(scope =>
-        scope.addEventProcessor((event: Event) => parseRequest(event, req, options)),
-      );
+      const currentHub = getCurrentHub();
+      currentHub.configureScope(scope => {
+        scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
+        if (isAutosessionTrackingEnabled()) {
+          const scope = currentHub.getScope();
+          if (scope) {
+            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
+            // Set `_requestSessionStatus` to Ok, at the beginning of the request and it is required to place it
+            // on the response as well because for some reason the scope is cleared in the `errorHandler`
+            // ToDo: Investigate why the scope does not propagate to the errorHandler
+            (scope as any)._requestSessionStatus = RequestSessionStatus.Ok;
+            (res as any).__sentry_requestSessionStatus = RequestSessionStatus.Ok;
+
+            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+          }
+        }
+      });
+
+      res.once('finish', () => {
+        // Calling captureRequestSession to capture request mode session at the end of the request
+        setImmediate(() => {
+          if (isAutosessionTrackingEnabled()) {
+            const client = currentHub.getClient<NodeClient>();
+
+            if (client && client.captureRequestSession) {
+              client.captureRequestSession();
+            }
+          }
+        });
+      });
       next();
     });
   };
@@ -449,6 +494,19 @@ export function errorHandler(options?: {
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
+      if (isAutosessionTrackingEnabled()) {
+        getCurrentHub().configureScope(scope => {
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+          (scope as any)._requestSessionStatus = (res as any).__sentry_requestSessionStatus || undefined;
+          const requestSessionStatus = (scope as any)._requestSessionStatus;
+          // Necessary check to ensure this is code block is executed only within a request
+          if (requestSessionStatus !== undefined) {
+            (scope as any)._requestSessionStatus = RequestSessionStatus.Errored;
+          }
+          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+        });
+      }
+
       withScope(_scope => {
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

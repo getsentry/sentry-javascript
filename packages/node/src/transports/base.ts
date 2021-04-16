@@ -1,5 +1,15 @@
-import { API, eventToSentryRequest, SDK_VERSION } from '@sentry/core';
-import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
+import { API, SDK_VERSION } from '@sentry/core';
+import {
+  AggregatedSessions,
+  Event,
+  Response,
+  SentryRequest,
+  SentryRequestType,
+  Session,
+  Status,
+  Transport,
+  TransportOptions,
+} from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -34,6 +44,14 @@ export interface HTTPModule {
   // ): http.ClientRequest;
 }
 
+const CATEGORY_MAPPING: {
+  [key in SentryRequestType]: string;
+} = {
+  event: 'error',
+  transaction: 'transaction',
+  session: 'session',
+};
+
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /** The Agent used for corresponding transport */
@@ -48,8 +66,8 @@ export abstract class BaseTransport implements Transport {
   /** A simple buffer holding all requests. */
   protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
-  /** Locks transport after receiving 429 response */
-  private _disabledUntil: Date = new Date(Date.now());
+  /** Locks transport after receiving rate limits in a response */
+  protected readonly _rateLimits: Record<string, Date> = {};
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
@@ -61,6 +79,20 @@ export abstract class BaseTransport implements Transport {
    */
   public sendEvent(_: Event): PromiseLike<Response> {
     throw new SentryError('Transport Class has to implement `sendEvent` method.');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSession(_: Session): PromiseLike<Response> {
+    throw new SentryError('Transport Class has to implement `sendSession` method.');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSessions(_: AggregatedSessions): PromiseLike<Response> {
+    throw new SentryError('Transport Class has to implement `sendSessions` method.');
   }
 
   /**
@@ -95,10 +127,69 @@ export abstract class BaseTransport implements Transport {
     };
   }
 
+  /**
+   * Gets the time that given category is disabled until for rate limiting
+   */
+  protected _disabledUntil(requestType: SentryRequestType): Date {
+    const category = CATEGORY_MAPPING[requestType];
+    return this._rateLimits[category] || this._rateLimits.all;
+  }
+
+  /**
+   * Checks if a category is rate limited
+   */
+  protected _isRateLimited(requestType: SentryRequestType): boolean {
+    return this._disabledUntil(requestType) > new Date(Date.now());
+  }
+
+  /**
+   * Sets internal _rateLimits from incoming headers. Returns true if headers contains a non-empty rate limiting header.
+   */
+  protected _handleRateLimit(headers: Record<string, string | null>): boolean {
+    const now = Date.now();
+    const rlHeader = headers['x-sentry-rate-limits'];
+    const raHeader = headers['retry-after'];
+
+    if (rlHeader) {
+      // rate limit headers are of the form
+      //     <header>,<header>,..
+      // where each <header> is of the form
+      //     <retry_after>: <categories>: <scope>: <reason_code>
+      // where
+      //     <retry_after> is a delay in ms
+      //     <categories> is the event type(s) (error, transaction, etc) being rate limited and is of the form
+      //         <category>;<category>;...
+      //     <scope> is what's being limited (org, project, or key) - ignored by SDK
+      //     <reason_code> is an arbitrary string like "org_quota" - ignored by SDK
+      for (const limit of rlHeader.trim().split(',')) {
+        const parameters = limit.split(':', 2);
+        const headerDelay = parseInt(parameters[0], 10);
+        const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
+        for (const category of parameters[1].split(';')) {
+          this._rateLimits[category || 'all'] = new Date(now + delay);
+        }
+      }
+      return true;
+    } else if (raHeader) {
+      this._rateLimits.all = new Date(now + parseRetryAfterHeader(now, raHeader));
+      return true;
+    }
+    return false;
+  }
+
   /** JSDoc */
-  protected async _sendWithModule(httpModule: HTTPModule, event: Event): Promise<Response> {
-    if (new Date(Date.now()) < this._disabledUntil) {
-      return Promise.reject(new SentryError(`Transport locked till ${this._disabledUntil} due to too many requests.`));
+  protected async _sendWithModule(
+    httpModule: HTTPModule,
+    sentryReq: SentryRequest,
+    originalPayload: Event | Session | AggregatedSessions,
+  ): Promise<Response> {
+    if (this._isRateLimited(sentryReq.type)) {
+      return Promise.reject({
+        event: originalPayload,
+        type: sentryReq.type,
+        reason: `Transport locked till ${this._disabledUntil(sentryReq.type)} due to too many requests.`,
+        status: 429,
+      });
     }
 
     if (!this._buffer.isReady()) {
@@ -106,7 +197,6 @@ export abstract class BaseTransport implements Transport {
     }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
-        const sentryReq = eventToSentryRequest(event, this._api);
         const options = this._getRequestOptions(new url.URL(sentryReq.url));
 
         const req = httpModule.request(options, (res: http.IncomingMessage) => {
@@ -115,28 +205,34 @@ export abstract class BaseTransport implements Transport {
 
           res.setEncoding('utf8');
 
+          /**
+           * "Key-value pairs of header names and values. Header names are lower-cased."
+           * https://nodejs.org/api/http.html#http_message_headers
+           */
+          let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
+          retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
+
+          let rlHeader = res.headers ? res.headers['x-sentry-rate-limits'] : '';
+          rlHeader = (Array.isArray(rlHeader) ? rlHeader[0] : rlHeader) as string;
+
+          const headers = {
+            'x-sentry-rate-limits': rlHeader,
+            'retry-after': retryAfterHeader,
+          };
+
+          const limited = this._handleRateLimit(headers);
+          if (limited) logger.warn(`Too many requests, backing off until: ${this._disabledUntil(sentryReq.type)}`);
+
+          let rejectionMessage = `HTTP Error (${statusCode})`;
+          if (res.headers && res.headers['x-sentry-error']) {
+            rejectionMessage += `: ${res.headers['x-sentry-error']}`;
+          }
+
           if (status === Status.Success) {
             resolve({ status });
-          } else {
-            if (status === Status.RateLimit) {
-              const now = Date.now();
-              /**
-               * "Key-value pairs of header names and values. Header names are lower-cased."
-               * https://nodejs.org/api/http.html#http_message_headers
-               */
-              let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
-              retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
-              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, retryAfterHeader));
-              logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
-            }
-
-            let rejectionMessage = `HTTP Error (${statusCode})`;
-            if (res.headers && res.headers['x-sentry-error']) {
-              rejectionMessage += `: ${res.headers['x-sentry-error']}`;
-            }
-
-            reject(new SentryError(rejectionMessage));
           }
+
+          reject(new SentryError(rejectionMessage));
 
           // Force the socket to drain
           res.on('data', () => {
