@@ -14,14 +14,14 @@
 
 ## Links
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Next.js.
 
-To use this SDK, init it in the Sentry config files and import it in your code.
+To use this SDK, init it in the Sentry config files.
 
 ```javascript
 // sentry.client.config.js
@@ -45,14 +45,7 @@ Sentry.init({
 });
 ```
 
-```javascript
-// pages/index.js
-
-import * as Sentry from '@sentry/nextjs';
-```
-
 To set context information or send manual events, use the exported functions of `@sentry/nextjs`.
-Note that these functions will not perform any action before you have imported the SDK:
 
 ```javascript
 import * as Sentry from '@sentry/nextjs';
