@@ -118,6 +118,10 @@ export function init(options: NodeOptions = {}): void {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }
 
+  if (options.autoSessionTracking === undefined) {
+    options.autoSessionTracking = true;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {
     setHubOnCarrier(carrier, getCurrentHub());

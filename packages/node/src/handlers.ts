@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, RequestSessionStatus, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
@@ -10,7 +10,8 @@ import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
 
-import { flush } from './sdk';
+import { NodeClient } from './client';
+import { flush, isAutoSessionTrackingEnabled } from './sdk';
 
 export interface ExpressRequest {
   baseUrl?: string;
@@ -370,6 +371,20 @@ export type RequestHandlerOptions = ParseRequestOptions & {
 export function requestHandler(
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
+  const currentHub = getCurrentHub();
+  const client = currentHub.getClient<NodeClient>();
+  // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
+  // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
+  if (client && isAutoSessionTrackingEnabled(client)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (client as any)._initSessionFlusher();
+
+    // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
+    const scope = currentHub.getScope();
+    if (scope && scope.getSession()) {
+      scope.setSession();
+    }
+  }
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
@@ -392,10 +407,36 @@ export function requestHandler(
     local.add(req);
     local.add(res);
     local.on('error', next);
+
     local.run(() => {
-      getCurrentHub().configureScope(scope =>
-        scope.addEventProcessor((event: Event) => parseRequest(event, req, options)),
-      );
+      const currentHub = getCurrentHub();
+
+      currentHub.configureScope(scope => {
+        scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
+        const client = currentHub.getClient<NodeClient>();
+        if (isAutoSessionTrackingEnabled(client)) {
+          const scope = currentHub.getScope();
+          if (scope) {
+            // Set `status` of `_requestSession` to Ok, at the beginning of the request
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            (scope as any)._requestSession = { status: RequestSessionStatus.Ok };
+          }
+        }
+      });
+
+      res.once('finish', () => {
+        const client = currentHub.getClient<NodeClient>();
+        if (isAutoSessionTrackingEnabled(client)) {
+          setImmediate(() => {
+            if (client) {
+              // Calling _captureRequestSession to capture request session at the end of the request by incrementing
+              // the correct SessionAggregates bucket i.e. crashed, errored or exited
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (client as any)._captureRequestSession();
+            }
+          });
+        }
+      });
       next();
     });
   };
@@ -456,6 +497,26 @@ export function errorHandler(options?: {
         if (transaction && _scope.getSpan() === undefined) {
           _scope.setSpan(transaction);
         }
+
+        const client = getCurrentHub().getClient<NodeClient>();
+        if (client && isAutoSessionTrackingEnabled(client)) {
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+          // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
+          // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
+          // instantiated when the the`requestHandler` middleware is initialised, which indicates that we should be
+          // running in SessionAggregates mode
+          const isSessionAggregatesMode = (client as any)._sessionFlusher !== undefined;
+          if (isSessionAggregatesMode) {
+            const requestSession = (_scope as any)._requestSession;
+            // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
+            // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
+            // the bounds of a request, and if so the status is updated
+            if (requestSession && requestSession.status !== undefined)
+              requestSession.status = RequestSessionStatus.Crashed;
+          }
+        }
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+
         const eventId = captureException(error);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (res as any).sentry = eventId;

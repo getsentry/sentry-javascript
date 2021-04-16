@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { Event, SessionStatus, Status, TransportOptions } from '@sentry/types';
+import { Event, SessionAggregates, SessionStatus, Status, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -30,6 +30,10 @@ const sessionPayload: Session = {
   update: jest.fn(),
   close: jest.fn(),
   toJSON: jest.fn(),
+};
+const sessionsPayload: SessionAggregates = {
+  attrs: { environment: 'test', release: '1.0' },
+  aggregates: [{ started: '2021-03-17T16:00:00.000Z', exited: 1 }],
 };
 let mockReturnCode = 200;
 let mockHeaders = {};
@@ -108,6 +112,28 @@ describe('HTTPTransport', () => {
 
     try {
       await transport.sendSession(new Session());
+    } catch (e) {
+      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+      assertBasicOptions(requestOptions, true);
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    }
+  });
+
+  test('send 200 request mode sessions', async () => {
+    const transport = createTransport({ dsn });
+    await transport.sendSessionAggregates(sessionsPayload);
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    assertBasicOptions(requestOptions, true);
+    expect(mockSetEncoding).toHaveBeenCalled();
+  });
+
+  test('send 400 request mode session', async () => {
+    mockReturnCode = 400;
+    const transport = createTransport({ dsn });
+
+    try {
+      await transport.sendSessionAggregates(sessionsPayload);
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions, true);
