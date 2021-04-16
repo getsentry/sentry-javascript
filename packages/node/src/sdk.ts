@@ -93,14 +93,9 @@ export function init(options: NodeOptions = {}): void {
   }
 
   if (options.release === undefined) {
-    const global = getGlobalObject<Window>();
-    // Prefer env var over global
-    if (process.env.SENTRY_RELEASE) {
-      options.release = process.env.SENTRY_RELEASE;
-    }
-    // This supports the variable that sentry-webpack-plugin injects
-    else if (global.SENTRY_RELEASE && global.SENTRY_RELEASE.id) {
-      options.release = global.SENTRY_RELEASE.id;
+    const detectedRelease = getSentryRelease();
+    if (detectedRelease !== undefined) {
+      options.release = detectedRelease;
     }
   }
 
@@ -151,4 +146,33 @@ export async function close(timeout?: number): Promise<boolean> {
     return client.close(timeout);
   }
   return Promise.reject(false);
+}
+
+/**
+ * A function that returns a Sentry release string dynamically from env variables
+ */
+function getSentryRelease(): string | undefined {
+  // Always read first as Sentry takes this as precedence
+  if (process.env.SENTRY_RELEASE) {
+    return process.env.SENTRY_RELEASE;
+  }
+
+  // This supports the variable that sentry-webpack-plugin injects
+  const global = getGlobalObject();
+  if (global.SENTRY_RELEASE && global.SENTRY_RELEASE.id) {
+    return global.SENTRY_RELEASE.id;
+  }
+
+  return (
+    // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
+    process.env.GITHUB_SHA ||
+    // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
+    process.env.COMMIT_REF ||
+    // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    // Zeit (now known as Vercel)
+    process.env.ZEIT_GITHUB_COMMIT_SHA ||
+    process.env.ZEIT_GITLAB_COMMIT_SHA ||
+    process.env.ZEIT_BITBUCKET_COMMIT_SHA
+  );
 }

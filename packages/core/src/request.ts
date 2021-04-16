@@ -31,7 +31,7 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   return event;
 }
 
-/** Creates a SentryRequest from an event. */
+/** Creates a SentryRequest from a Session. */
 export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({

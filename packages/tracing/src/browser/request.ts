@@ -2,6 +2,7 @@ import { getCurrentHub } from '@sentry/hub';
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
+import { SpanStatus } from '../spanstatus';
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
@@ -53,6 +54,7 @@ export interface FetchData {
   // TODO Should this be unknown instead? If we vendor types, make it a Response
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   response?: any;
+  error?: unknown;
 
   startTimestamp: number;
   endTimestamp?: number;
@@ -156,11 +158,12 @@ export function fetchCallback(
   if (handlerData.endTimestamp && handlerData.fetchData.__span) {
     const span = spans[handlerData.fetchData.__span];
     if (span) {
-      const response = handlerData.response;
-      if (response) {
+      if (handlerData.response) {
         // TODO (kmclb) remove this once types PR goes through
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        span.setHttpStatus(response.status);
+        span.setHttpStatus(handlerData.response.status);
+      } else if (handlerData.error) {
+        span.setStatus(SpanStatus.InternalError);
       }
       span.finish();
 
