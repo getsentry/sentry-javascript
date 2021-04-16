@@ -1,7 +1,7 @@
 import { RewriteFrames } from '@sentry/integrations';
 import { Integration } from '@sentry/types';
 
-const SOURCEMAP_FILENAME_REGEX = /^.*\/.next\//;
+const SOURCEMAP_FILENAME_REGEX = /^.*\/\.next\//;
 
 export interface IntegrationFunction {
   (integrations: Integration[]): Integration[];
