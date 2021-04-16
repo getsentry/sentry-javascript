@@ -64,7 +64,7 @@ describe('XHRTransport', () => {
       transport = new Transports.XHRTransport({
         dsn: testDsn,
         headers: {
-          Authorization: 'Basic GVzdDp0ZXN0Cg==',
+          Accept: 'application/json',
         },
       });
 
@@ -74,8 +74,7 @@ describe('XHRTransport', () => {
 
       expect(res.status).equal(Status.Success);
       const requestHeaders: { [key: string]: string } = request.requestHeaders as { [key: string]: string };
-      const authHeaderLabel = 'Authorization';
-      expect(requestHeaders[authHeaderLabel]).equal('Basic GVzdDp0ZXN0Cg==');
+      expect(requestHeaders['Accept']).equal('application/json');
     });
 
     describe('Rate-limiting', () => {
