@@ -152,8 +152,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public captureSession(session: Session): void {
-    if (!session.release) {
-      logger.warn('Discarded session because of missing release');
+    if (!(typeof session.release === 'string')) {
+      logger.warn('Discarded session because of missing or non-string release');
     } else {
       this._sendSession(session);
       // After sending, we set init false to inidcate it's not the first occurence
