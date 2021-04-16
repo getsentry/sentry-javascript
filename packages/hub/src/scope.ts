@@ -10,6 +10,7 @@ import {
   Extra,
   Extras,
   Primitive,
+  RequestSessionStatus,
   Scope as ScopeInterface,
   ScopeContext,
   Severity,
@@ -65,6 +66,9 @@ export class Scope implements ScopeInterface {
   /** Session */
   protected _session?: Session;
 
+  /** Request Mode Session Status */
+  protected _requestSessionStatus?: RequestSessionStatus;
+
   /**
    * Inherit values from the parent scope.
    * @param scope to clone.
@@ -83,6 +87,7 @@ export class Scope implements ScopeInterface {
       newScope._transactionName = scope._transactionName;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
+      newScope._requestSessionStatus = scope._requestSessionStatus;
     }
     return newScope;
   }
@@ -297,6 +302,9 @@ export class Scope implements ScopeInterface {
       if (captureContext._fingerprint) {
         this._fingerprint = captureContext._fingerprint;
       }
+      if (captureContext._requestSessionStatus) {
+        this._requestSessionStatus = captureContext._requestSessionStatus;
+      }
     } else if (isPlainObject(captureContext)) {
       // eslint-disable-next-line no-param-reassign
       captureContext = captureContext as ScopeContext;
@@ -311,6 +319,9 @@ export class Scope implements ScopeInterface {
       }
       if (captureContext.fingerprint) {
         this._fingerprint = captureContext.fingerprint;
+      }
+      if (captureContext.requestSessionStatus) {
+        this._requestSessionStatus = captureContext.requestSessionStatus;
       }
     }
 
@@ -329,6 +340,7 @@ export class Scope implements ScopeInterface {
     this._level = undefined;
     this._transactionName = undefined;
     this._fingerprint = undefined;
+    this._requestSessionStatus = undefined;
     this._span = undefined;
     this._session = undefined;
     this._notifyScopeListeners();

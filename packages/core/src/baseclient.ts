@@ -7,6 +7,7 @@ import {
   Integration,
   IntegrationClass,
   Options,
+  RequestSessionStatus,
   SessionStatus,
   Severity,
 } from '@sentry/types';
@@ -138,6 +139,24 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
+
+    if (this._options.autoSessionTracking) {
+      const eventType = event.type || 'event';
+      const isException = eventType === 'event';
+
+      // If the event is of type Exception, then a request session should be captured
+      if (isException && scope) {
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+        const requestSessionStatus = (scope as any)._requestSessionStatus;
+
+        // Ensure that this is happening within a request, and make sure not to override if Errored/Crashed
+        if (requestSessionStatus !== undefined) {
+          (scope as any)._requestSessionStatus = RequestSessionStatus.Errored;
+        }
+
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+      }
+    }
 
     this._process(
       this._captureEvent(event, hint, scope).then(result => {

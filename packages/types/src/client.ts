@@ -53,6 +53,11 @@ export interface Client<O extends Options = Options> {
    */
   captureSession?(session: Session): void;
 
+  /**
+   * Captures a `request` mode `Session`
+   */
+  captureRequestSession?(): void;
+
   /** Returns the current Dsn. */
   getDsn(): Dsn | undefined;
 

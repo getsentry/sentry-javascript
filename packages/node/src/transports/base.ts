@@ -1,5 +1,5 @@
-import { API, eventToSentryRequest, SDK_VERSION } from '@sentry/core';
-import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
+import { API, SDK_VERSION } from '@sentry/core';
+import { Event, Response, SentryRequest, SessionAggregate, Status, Transport, TransportOptions } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -66,6 +66,13 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
+  public sendSessionAggregate(_: SessionAggregate): PromiseLike<Response> {
+    throw new SentryError('Transport Class has to implement `sendSessionAggregate` method.');
+  }
+
+  /**
+   * @inheritDoc
+   */
   public close(timeout?: number): PromiseLike<boolean> {
     return this._buffer.drain(timeout);
   }
@@ -96,7 +103,7 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async _sendWithModule(httpModule: HTTPModule, event: Event): Promise<Response> {
+  protected async _sendWithModule(httpModule: HTTPModule, sentryReq: SentryRequest): Promise<Response> {
     if (new Date(Date.now()) < this._disabledUntil) {
       return Promise.reject(new SentryError(`Transport locked till ${this._disabledUntil} due to too many requests.`));
     }
@@ -106,7 +113,6 @@ export abstract class BaseTransport implements Transport {
     }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
-        const sentryReq = eventToSentryRequest(event, this._api);
         const options = this._getRequestOptions(new url.URL(sentryReq.url));
 
         const req = httpModule.request(options, (res: http.IncomingMessage) => {

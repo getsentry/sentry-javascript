@@ -61,3 +61,47 @@ export enum SessionStatus {
   /** JSDoc */
   Abnormal = 'abnormal',
 }
+
+export enum RequestSessionStatus {
+  /** JSDoc */
+  Ok = 'ok',
+  /** JSDoc */
+  Errored = 'errored',
+}
+
+/** JSDoc */
+export interface SessionAggregate {
+  attrs?: {
+    environment?: string;
+    release?: string;
+  };
+  aggregates: Array<AggregationCounts>;
+}
+
+export interface SessionFlusher {
+  readonly flushTimeout: number;
+
+  /** Getter function that returns a boolean flag that indicater whether an instance of Session Flusher is enabled */
+  getEnabled(): void;
+
+  /**
+   * Increments the Session Status bucket in SessionAggregate Object corresponding to the status of the session
+   * captured
+   */
+  incrementSessionStatusCount(): void;
+
+  /** Submits the aggregates request mode sessions to Sentry */
+  sendSessionAggregate(sessionAggregate: SessionAggregate): void;
+
+  /** Empties Aggregate Buckets and Sends them to Transport Buffer */
+  flush(): void;
+
+  /** Clears setInterval and calls flush */
+  close(): void;
+}
+
+export interface AggregationCounts {
+  started: string;
+  errored?: number;
+  exited?: number;
+}

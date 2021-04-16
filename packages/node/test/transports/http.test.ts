@@ -1,4 +1,4 @@
-import { TransportOptions } from '@sentry/types';
+import { AggregatedSessions, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 
@@ -7,6 +7,11 @@ import { HTTPTransport } from '../../src/transports/http';
 const mockSetEncoding = jest.fn();
 const dsn = 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
 const transportPath = '/mysubpath/api/50622/store/';
+const envelopePath = '/mysubpath/api/50622/envelope/';
+const sessionsPayload: AggregatedSessions = {
+  attrs: { environment: 'test', release: '1.0' },
+  aggregates: [{ started: '2021-03-17T16:00:00.000Z', exited: 1 }],
+};
 let mockReturnCode = 200;
 let mockHeaders = {};
 
@@ -27,12 +32,12 @@ function createTransport(options: TransportOptions): HTTPTransport {
   return transport;
 }
 
-function assertBasicOptions(options: any): void {
+function assertBasicOptions(options: any, useEnvelope: boolean = false): void {
   expect(options.headers['X-Sentry-Auth']).toContain('sentry_version');
   expect(options.headers['X-Sentry-Auth']).toContain('sentry_client');
   expect(options.headers['X-Sentry-Auth']).toContain('sentry_key');
   expect(options.port).toEqual('8989');
-  expect(options.path).toEqual(transportPath);
+  expect(options.path).toEqual(useEnvelope ? envelopePath : transportPath);
   expect(options.hostname).toEqual('sentry.io');
 }
 
@@ -65,6 +70,28 @@ describe('HTTPTransport', () => {
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions);
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    }
+  });
+
+  test('send 200 aggregate sessions', async () => {
+    const transport = createTransport({ dsn });
+    await transport.sendSessionAggregate(sessionsPayload);
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    assertBasicOptions(requestOptions, true);
+    expect(mockSetEncoding).toHaveBeenCalled();
+  });
+
+  test('send 400 aggregate session', async () => {
+    mockReturnCode = 400;
+    const transport = createTransport({ dsn });
+
+    try {
+      await transport.sendSessionAggregate(sessionsPayload);
+    } catch (e) {
+      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+      assertBasicOptions(requestOptions, true);
       expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
     }
   });

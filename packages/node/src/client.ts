@@ -1,5 +1,7 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { NodeBackend, NodeOptions } from './backend';
 
@@ -10,6 +12,7 @@ import { NodeBackend, NodeOptions } from './backend';
  * @see SentryClient for usage documentation.
  */
 export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
+  protected _sessionFlusher: SessionFlusher | undefined;
   /**
    * Creates a new Node SDK instance.
    * @param options Configuration options for this SDK.
@@ -28,6 +31,36 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     };
 
     super(NodeBackend, options);
+    if (options.autoSessionTracking) {
+      const { release, environment } = this._options;
+      if (release) {
+        this._sessionFlusher = new SessionFlusher(this._backend.getTransport(), {
+          release,
+          environment,
+        });
+      }
+    }
+  }
+
+  /**
+   *
+   * @inheritDoc
+   */
+  public captureRequestSession(): void {
+    if (!this._sessionFlusher) {
+      logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
+    } else {
+      this._sessionFlusher.incrementSessionStatusCount();
+    }
+  }
+
+  /**
+   *
+   * @inheritdoc
+   */
+  public close(timeout?: number): PromiseLike<boolean> {
+    this._sessionFlusher?.close();
+    return super.close(timeout);
   }
 
   /**

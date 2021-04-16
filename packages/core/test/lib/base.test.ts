@@ -1,5 +1,5 @@
 import { Hub, Scope } from '@sentry/hub';
-import { Event, Severity, Span } from '@sentry/types';
+import { Event, RequestSessionStatus, Severity, Span } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { TestBackend } from '../mocks/backend';
@@ -475,6 +475,45 @@ describe('BaseClient', () => {
         message: 'message',
         timestamp: 2020,
       });
+    });
+
+    test('If autoSessionTracking is disabled, requestSession status should not be set', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: false });
+      const scope = new Scope();
+      (scope as any)._requestSessionStatus = RequestSessionStatus.Ok;
+      client.captureEvent({ message: 'message' }, undefined, scope);
+
+      const requestSessionStatus = (scope as any)._requestSessionStatus;
+      expect(requestSessionStatus).toEqual(RequestSessionStatus.Ok);
+    });
+
+    test('When captureEvent is called with an exception, requestSession status should be set to Errored', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      (scope as any)._requestSessionStatus = RequestSessionStatus.Ok;
+      client.captureEvent({ message: 'message' }, undefined, scope);
+
+      const requestSessionStatus = (scope as any)._requestSessionStatus;
+      expect(requestSessionStatus).toEqual(RequestSessionStatus.Errored);
+    });
+
+    test('When captureEvent is called with an exception but outside of a request, then requestStatus should not be set', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+
+      client.captureEvent({ message: 'message' }, undefined, scope);
+
+      expect((scope as any)._requestSessionStatus).toEqual(undefined);
+    });
+
+    test('When captureEvent is called with a transaction, then requestStatus should not be set', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, autoSessionTracking: true });
+      const scope = new Scope();
+      (scope as any)._requestSessionStatus = RequestSessionStatus.Ok;
+      client.captureEvent({ message: 'message', type: 'transaction' }, undefined, scope);
+
+      const requestSessionStatus = (scope as any)._requestSessionStatus;
+      expect(requestSessionStatus).toEqual(RequestSessionStatus.Ok);
     });
 
     test('normalizes event with default depth of 3', () => {
