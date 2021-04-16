@@ -6,9 +6,9 @@
   "module": "dist/index.es.js",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm install && rollup -c",
-    "watch": "npm install && rollup -cw",
-    "test": "node_modules/.bin/jest"
+    "build": "rollup -c",
+    "watch": "rollup -cw",
+    "test": "jest"
   },
   "files": [
     "dist"
@@ -28,7 +28,8 @@
     "@sentry/browser": ">=4.0.0"
   },
   "volta": {
-    "node": "14.16.0"
+    "node": "14.16.0",
+    "yarn": "1.22.5"
   },
   "devDependencies": {
     "@babel/core": "^7.7.2",

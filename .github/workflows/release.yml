@@ -20,21 +20,6 @@ jobs:
           token: ${{ secrets.GH_RELEASE_PAT }}
           fetch-depth: 0
 
-      - uses: volta-cli/action@v1
-
-      - uses: actions/cache@v2
-        id: cache
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ hashFiles('package.json', 'package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: npm ci
-      - run: npm test
-      - run: npm run build
-      - run: npm pack
-
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1
         env:
