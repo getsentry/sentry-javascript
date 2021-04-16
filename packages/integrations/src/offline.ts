@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, normalize, uuid4 } from '@sentry/utils';
-import * as localForageType from 'localforage';
+import localForage from 'localforage';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const localForage = require('localforage');
 /**
  * cache offline errors and send when connected
  */
@@ -38,7 +36,7 @@ export class Offline implements Integration {
   /**
    * event cache
    */
-  public offlineEventStore: typeof localForageType; // type imported from localforage
+  public offlineEventStore: typeof localForage;
 
   /**
    * @inheritDoc
