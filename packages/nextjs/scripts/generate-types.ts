@@ -25,12 +25,6 @@
  *    important to leave out. For the moment, it's using the node version as the type in both environments. (TODO: Make
  *    a generic version of `init`, and possibly the other clashes, just for use in types.)
  *
- * - Currently, though this script gets built with the SDK, running `build:watch` will only *run* it once, before the
- *   initial SDK build starts its watch mode. This means that the `types.ts` file only gets generated once per
- *   invocation of `build:watch`, and can get stale if its dependencies change in meaningful (to it) ways. This is a
- *   pain for development but won't affect releases/CI, because in those cases the build only happens once. (TODO: Fix
- *   this somehow.)
- *
  * The file that this script's compiled version generates is `/src/types.ts`.
  */
 
