@@ -147,10 +147,12 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   }
 
   const threshold = 3600 * 1000;
+  const performanceNow = performance.now();
+  const dateNow = Date.now();
 
   // if timeOrigin isn't available set delta to threshold so it isn't used
   const timeOriginDelta = performance.timeOrigin
-    ? Math.abs(performance.timeOrigin + performance.now() - Date.now())
+    ? Math.abs(performance.timeOrigin + performanceNow - dateNow)
     : threshold;
   const timeOriginIsReliable = timeOriginDelta < threshold;
 
@@ -164,7 +166,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   const hasNavigationStart = typeof navigationStart === 'number';
   // if navigationStart isn't available set delta to threshold so it isn't used
   const navigationStartDelta = hasNavigationStart
-    ? Math.abs(navigationStart + performance.now() - Date.now())
+    ? Math.abs(navigationStart + performanceNow - dateNow)
     : threshold;
   const navigationStartIsReliable = navigationStartDelta < threshold;
 
@@ -181,5 +183,5 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
 
   // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
   _browserPerformanceTimeOriginMode = 'dateNow';
-  return Date.now();
+  return dateNow;
 })();
