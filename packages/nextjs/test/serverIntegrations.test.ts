@@ -8,9 +8,9 @@ describe('user integrations without RewriteFrames', () => {
     const userIntegrations: Integration[] = [];
     // Should get a single integration: RewriteFrames
     let finalIntegrations = getFinalServerIntegrations(userIntegrations);
-    expect(Array.isArray(finalIntegrations)).toBeTruthy();
+    expect(finalIntegrations).toBeInstanceOf(Array);
     finalIntegrations = finalIntegrations as Integration[];
-    expect(finalIntegrations.length).toEqual(1);
+    expect(finalIntegrations).toHaveLength(1);
     expect(finalIntegrations[0]).toMatchObject(defaultRewriteFrames);
   });
 
@@ -22,7 +22,7 @@ describe('user integrations without RewriteFrames', () => {
     const integrationWrapper = getFinalServerIntegrations(userIntegrationFnc);
     expect(typeof integrationWrapper === 'function').toBeTruthy();
     const finalIntegrations = (integrationWrapper as IntegrationFunction)([]);
-    expect(finalIntegrations.length).toEqual(1);
+    expect(finalIntegrations).toHaveLength(1);
     expect(finalIntegrations[0]).toMatchObject(defaultRewriteFrames);
   });
 });
