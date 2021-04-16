@@ -201,6 +201,7 @@ const outputLines = [
   "import * as nodeSDK from '@sentry/node'",
   "import * as reactSDK from '@sentry/react'",
   '',
+  "export const SDK_NAME = 'sentry.javascript.nextjs';",
 ];
 
 mergedExportsWithSources.forEach(element => {

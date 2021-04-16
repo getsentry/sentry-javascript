@@ -1,6 +1,6 @@
 import { configureScope, init as reactInit } from '@sentry/react';
 
-import { MetadataBuilder } from './utils/metadataBuilder';
+import { MetadataBuilder, SDK_NAME } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 
 export * from '@sentry/react';
@@ -14,3 +14,5 @@ export function init(options: NextjsOptions): void {
     scope.setTag('runtime', 'browser');
   });
 }
+
+export { SDK_NAME };

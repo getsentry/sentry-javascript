@@ -1,6 +1,6 @@
 import { configureScope, init as nodeInit } from '@sentry/node';
 
-import { MetadataBuilder } from './utils/metadataBuilder';
+import { MetadataBuilder, SDK_NAME } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { defaultRewriteFrames, getFinalServerIntegrations } from './utils/serverIntegrations';
 
@@ -25,3 +25,5 @@ export function init(options: NextjsOptions): void {
     scope.setTag('runtime', 'node');
   });
 }
+
+export { SDK_NAME };
