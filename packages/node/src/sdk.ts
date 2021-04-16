@@ -96,10 +96,10 @@ export function init(options: NodeOptions = {}): void {
     const detectedRelease = getSentryRelease();
     if (detectedRelease !== undefined) {
       options.release = detectedRelease;
+    } else {
+      // If release is not provided, then we should disable autoSessionTracking
+      options.autoSessionTracking = false;
     }
-
-    // If release is not provided, then we should disable autoSessionTracking
-    options.autoSessionTracking = false;
   }
 
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
