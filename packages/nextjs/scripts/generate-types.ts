@@ -35,12 +35,12 @@
  */
 
 // TODO - should we be importing from the two index files instead?
-// TODO - call prettier from here? clean up package.json
 
 import * as nodeSDK from '@sentry/node';
 import * as reactSDK from '@sentry/react';
 import { isPlainObject } from '@sentry/utils';
 import * as fs from 'fs';
+import * as prettier from 'prettier';
 
 type PlainObject = { [key: string]: any };
 
@@ -269,10 +269,19 @@ mergedExportsWithSources.forEach(element => {
 });
 
 outputLines.push(...basicExportLines, ...collectionExportLines);
+const rawOutput = `${outputLines.join('\n')}`;
 
-// add a newline at the end of the file to make Prettier happy
-const output = `${outputLines.join('\n')}\n`;
-fs.writeFileSync('./src/types.ts', output);
-
-// eslint-disable-next-line no-console
-console.log('Done writing file.');
+prettier
+  .resolveConfigFile()
+  .then(configFilepath => prettier.resolveConfig(configFilepath as string))
+  .then(options => prettier.format(rawOutput, { ...options, parser: 'typescript' } as prettier.Options))
+  .then(finalOutput =>
+    fs.writeFile('./src/types.ts', finalOutput, () => {
+      // eslint-disable-next-line no-console
+      console.log('Done writing file.');
+    }),
+  )
+  .catch(err => {
+    // eslint-disable-next-line no-console
+    console.log(`Error formatting types file: ${err}`);
+  });
