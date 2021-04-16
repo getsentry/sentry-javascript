@@ -32,7 +32,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci
       - run: npm test
-      - run: npm build
+      - run: npm run build
       - run: npm pack
 
       - name: Prepare release
