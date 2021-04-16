@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/browser';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
-import { timestampWithMs } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, timestampWithMs } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, OwnConfig } from '../types';
 
@@ -299,7 +299,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
 
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
   const HAS_PERFORMANCE_TIMING =
-    performance.measure && performance.getEntriesByName && performance.timeOrigin !== undefined;
+    performance.measure && performance.getEntriesByName && browserPerformanceTimeOrigin !== undefined;
   if (!HAS_PERFORMANCE_TIMING) {
     return;
   }
@@ -309,7 +309,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   const measures = performance.getEntriesByName(measureName);
   const measure = measures[0];
 
-  const startTimestamp = (measure.startTime + performance.timeOrigin) / 1000;
+  const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin!) / 1000;
   const endTimestamp = startTimestamp + measure.duration / 1000;
 
   const transaction = getActiveTransaction();
