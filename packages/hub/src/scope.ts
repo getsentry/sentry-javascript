@@ -293,9 +293,6 @@ export class Scope implements ScopeInterface {
       this._tags = { ...this._tags, ...captureContext._tags };
       this._extra = { ...this._extra, ...captureContext._extra };
       this._contexts = { ...this._contexts, ...captureContext._contexts };
-      if (captureContext._requestSessionStatus) {
-        this._requestSessionStatus = captureContext._requestSessionStatus;
-      }
       if (captureContext._user && Object.keys(captureContext._user).length) {
         this._user = captureContext._user;
       }
@@ -304,6 +301,9 @@ export class Scope implements ScopeInterface {
       }
       if (captureContext._fingerprint) {
         this._fingerprint = captureContext._fingerprint;
+      }
+      if (captureContext._requestSessionStatus) {
+        this._requestSessionStatus = captureContext._requestSessionStatus;
       }
     } else if (isPlainObject(captureContext)) {
       // eslint-disable-next-line no-param-reassign
@@ -337,10 +337,10 @@ export class Scope implements ScopeInterface {
     this._extra = {};
     this._user = {};
     this._contexts = {};
-    this._requestSessionStatus = undefined;
     this._level = undefined;
     this._transactionName = undefined;
     this._fingerprint = undefined;
+    this._requestSessionStatus = undefined;
     this._span = undefined;
     this._session = undefined;
     this._notifyScopeListeners();
