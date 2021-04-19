@@ -1,5 +1,5 @@
 import { API, eventToSentryRequest, SDK_VERSION } from '@sentry/core';
-import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
+import { DsnProtocol, Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -68,6 +68,26 @@ export abstract class BaseTransport implements Transport {
    */
   public close(timeout?: number): PromiseLike<boolean> {
     return this._buffer.drain(timeout);
+  }
+
+  /** Extracts proxy settings from client options and env variables */
+  protected _getProxy(protocol: DsnProtocol): string | undefined {
+    const { no_proxy, http_proxy, https_proxy } = process.env;
+    const { httpProxy, httpsProxy } = this.options;
+    const proxy = protocol === 'http' ? httpProxy || http_proxy : httpsProxy || httpProxy || https_proxy || http_proxy;
+
+    if (!no_proxy) {
+      return proxy;
+    }
+
+    const { host, port } = this._api.getDsn();
+    for (const np of no_proxy.split(',')) {
+      if (host.endsWith(np) || `${host}:${port}`.endsWith(np)) {
+        return;
+      }
+    }
+
+    return proxy;
   }
 
   /** Returns a build request option object used by request */

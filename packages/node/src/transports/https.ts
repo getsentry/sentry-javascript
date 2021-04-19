@@ -9,7 +9,7 @@ export class HTTPSTransport extends BaseTransport {
   /** Create a new instance and set this.agent */
   public constructor(public options: TransportOptions) {
     super(options);
-    const proxy = options.httpsProxy || options.httpProxy || process.env.https_proxy || process.env.http_proxy;
+    const proxy = this._getProxy('https');
     this.module = https;
     this.client = proxy
       ? (new (require('https-proxy-agent'))(proxy) as https.Agent)
