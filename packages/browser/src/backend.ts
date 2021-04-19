@@ -32,7 +32,7 @@ export interface BrowserOptions extends Options {
 
   /**
    * A flag enabling Sessions Tracking feature.
-   * By default Sessions Tracking is disabled.
+   * By default, Sessions Tracking is enabled.
    */
   autoSessionTracking?: boolean;
 }
