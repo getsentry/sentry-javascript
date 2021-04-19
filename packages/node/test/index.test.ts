@@ -8,7 +8,6 @@ import {
   captureMessage,
   configureScope,
   Event,
-  flush,
   getCurrentHub,
   init,
   NodeClient,
