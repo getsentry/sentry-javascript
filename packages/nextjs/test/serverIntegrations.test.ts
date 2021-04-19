@@ -20,7 +20,7 @@ describe('user integrations without RewriteFrames', () => {
     };
     // Should get a single integration: RewriteFrames
     const integrationWrapper = getFinalServerIntegrations(userIntegrationFnc);
-    expect(typeof integrationWrapper === 'function').toBeTruthy();
+    expect(integrationWrapper).toBeInstanceOf(Function);
     const finalIntegrations = (integrationWrapper as IntegrationFunction)([]);
     expect(finalIntegrations).toHaveLength(1);
     expect(finalIntegrations[0]).toMatchObject(defaultRewriteFrames);
@@ -43,6 +43,7 @@ describe('user integrations with RewriteFrames', () => {
     // Should get a function that returns the RewriteFramesIntegration
     let finalIntegrations = getFinalServerIntegrations(integrationsFnc);
     expect(typeof finalIntegrations === 'function').toBeTruthy();
+    expect(finalIntegrations).toBeInstanceOf(Function);
     finalIntegrations = finalIntegrations as IntegrationFunction;
     expect(finalIntegrations([])).toMatchObject(userIntegrations);
   });
