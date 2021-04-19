@@ -205,11 +205,11 @@ export class SessionFlusher implements SessionFlusherInterface {
   }
 
   /**
-   * Wrapper function for _incrementSessionCount that checks if the instance of SessionFlusher is enabled then fetches
-   * the session status of the request from `_requestSessionStatus` on the scope and passes them to `_incrementSessionCount`
-   * along with the start date
+   * Wrapper function for _incrementSessionStatusCount that checks if the instance of SessionFlusher is enabled then
+   * fetches the session status of the request from `_requestSessionStatus` on the scope and passes them to
+   * `_incrementSessionStatusCount` along with the start date
    */
-  public incrementSessionCount(): void {
+  public incrementSessionStatusCount(): void {
     if (!this._isEnabled) {
       return;
     }
@@ -218,7 +218,7 @@ export class SessionFlusher implements SessionFlusherInterface {
     const requestSessionStatus = (scope as any)._requestSessionStatus;
 
     if (requestSessionStatus !== undefined) {
-      this._incrementSessionCount(requestSessionStatus, new Date());
+      this._incrementSessionStatusCount(requestSessionStatus, new Date());
       // This is not entirely necessarily but is added as a safe guard to indicate the bounds of a request and so in
       // case captureRequestSession is called more than once to prevent double count
       (scope as any)._requestSessionStatus = undefined;
@@ -231,7 +231,7 @@ export class SessionFlusher implements SessionFlusherInterface {
    * Increments status bucket in pendingAggregates buffer (internal state) corresponding to status of
    * the session received
    */
-  private _incrementSessionCount(status: RequestSessionStatus, date: Date): number {
+  private _incrementSessionStatusCount(status: RequestSessionStatus, date: Date): number {
     // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
     const sessionStartedTrunc: number = new Date(date).setSeconds(0, 0);
     this._pendingAggregates[sessionStartedTrunc] = this._pendingAggregates[sessionStartedTrunc] || {};

@@ -84,8 +84,11 @@ export interface SessionFlusher {
   /** Getter function that returns a boolean flag that indicater whether an instance of Session Flusher is enabled */
   getEnabled(): void;
 
-  /** Aggregates the Session in its corresponding Aggregate Bucket */
-  incrementSessionCount(): void;
+  /**
+   * Increments the Session Status bucket in SessionAggregate Object corresponding to the status of the session
+   * captured
+   */
+  incrementSessionStatusCount(): void;
 
   /** Submits the aggregates request mode sessions to Sentry */
   sendSessionAggregate(sessionAggregate: SessionAggregate): void;

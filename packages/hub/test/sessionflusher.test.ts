@@ -24,20 +24,20 @@ describe('Session Flusher', () => {
     jest.restoreAllMocks();
   });
 
-  test('test incrementSessionCount updates the internal SessionFlusher state', () => {
+  test('test incrementSessionStatusCount updates the internal SessionFlusher state', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.0', environment: 'dev' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
-    let count = (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
+    let count = (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
     expect(count).toEqual(1);
-    count = (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
+    count = (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
     expect(count).toEqual(2);
-    count = (flusher as any)._incrementSessionCount(RequestSessionStatus.Errored, date);
+    count = (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Errored, date);
     expect(count).toEqual(1);
     date.setMinutes(date.getMinutes() + 1);
-    count = (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
+    count = (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
     expect(count).toEqual(1);
-    count = (flusher as any)._incrementSessionCount(RequestSessionStatus.Errored, date);
+    count = (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Errored, date);
     expect(count).toEqual(1);
 
     expect(flusher.getSessionAggregate().aggregates).toEqual([
@@ -47,12 +47,12 @@ describe('Session Flusher', () => {
     expect(flusher.getSessionAggregate().attrs).toEqual({ release: '1.0.0', environment: 'dev' });
   });
 
-  test('test undefined attributes are excluded, on incrementSessionCount call', () => {
+  test('test undefined attributes are excluded, on incrementSessionStatusCount call', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.0' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
-    (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
-    (flusher as any)._incrementSessionCount(RequestSessionStatus.Errored, date);
+    (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
+    (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Errored, date);
 
     expect(flusher.getSessionAggregate()).toEqual({
       aggregates: [{ errored: 1, exited: 1, started: '2021-04-08T12:18:00.000Z' }],
@@ -77,8 +77,8 @@ describe('Session Flusher', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     const date = new Date('2021-04-08T12:18:23.043Z');
-    (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
-    (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
+    (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
+    (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
 
     expect(sendSessionAggregate).toHaveBeenCalledTimes(0);
 
@@ -113,8 +113,8 @@ describe('Session Flusher', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.x' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     const date = new Date('2021-04-08T12:18:23.043Z');
-    (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
-    (flusher as any)._incrementSessionCount(RequestSessionStatus.Ok, date);
+    (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
+    (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
     flusher.close();
 
     expect(flusherFlushFunc).toHaveBeenCalledTimes(1);
