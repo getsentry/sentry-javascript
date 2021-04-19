@@ -87,7 +87,7 @@ describe('FetchTransport', () => {
         {
           dsn: testDsn,
           headers: {
-            Authorization: 'Basic GVzdDp0ZXN0Cg==',
+            Accept: 'application/json',
           },
         },
         window.fetch,
@@ -103,7 +103,7 @@ describe('FetchTransport', () => {
         fetch.calledWith(storeUrl, {
           body: JSON.stringify(eventPayload),
           headers: {
-            Authorization: 'Basic GVzdDp0ZXN0Cg==',
+            Accept: 'application/json',
           },
           method: 'POST',
           referrerPolicy: 'origin',
