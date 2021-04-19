@@ -278,9 +278,7 @@ describe('SentryNode initialization', () => {
     // Unsure if this is needed under jest.
     global.SENTRY_RELEASE = undefined;
     // Closing is required here so that all open handles are closed in the test
-    void getCurrentHub()
-      .getClient<NodeClient>()
-      ?.close();
+    void global.__SENTRY__.hub._stack[0].client.close();
   });
 
   describe('SDK metadata', () => {
