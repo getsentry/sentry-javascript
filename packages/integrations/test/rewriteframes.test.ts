@@ -78,12 +78,32 @@ describe('RewriteFrames', () => {
     });
   });
 
+  describe('default iteratee prepends custom prefix to basename if frame starts with `/`', () => {
+    beforeEach(() => {
+      rewriteFrames = new RewriteFrames({
+        prefix: 'foobar/',
+      });
+    });
+
+    it('transforms messageEvent frames', () => {
+      const event = rewriteFrames.process(messageEvent);
+      expect(event.stacktrace!.frames![0].filename).toEqual('foobar/file1.js');
+      expect(event.stacktrace!.frames![1].filename).toEqual('foobar/file2.js');
+    });
+
+    it('transforms exceptionEvent frames', () => {
+      const event = rewriteFrames.process(exceptionEvent);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('foobar/file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('foobar/file2.js');
+    });
+  });
+
   describe('default iteratee appends basename to `app:///` if frame starts with `C:\\`', () => {
     beforeEach(() => {
       rewriteFrames = new RewriteFrames();
     });
 
-    it('trasforms windowsExceptionEvent frames', () => {
+    it('transforms windowsExceptionEvent frames', () => {
       const event = rewriteFrames.process(windowsExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
