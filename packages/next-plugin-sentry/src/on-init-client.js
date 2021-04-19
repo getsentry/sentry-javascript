@@ -1,5 +1,6 @@
 import '../../../../sentry.client.config.js';
 
 export default async function initClient() {
-  // Client initialization code
+  // There is no initialization code. The goal of this file is the
+  // side-effect of importing the`sentry.client.config.js` file.
 }
