@@ -11,7 +11,7 @@ import * as os from 'os';
 import * as url from 'url';
 
 import { NodeClient } from './client';
-import { flush, isAutosessionTrackingEnabled } from './sdk';
+import { flush, isAutoSessionTrackingEnabled } from './sdk';
 
 export interface ExpressRequest {
   baseUrl?: string;
@@ -395,8 +395,11 @@ export function requestHandler(
     local.on('error', err => {
       // Request mode session capturing functionality is added here so that we are able to catch errors even if Sentry's
       // error handler is not used
-      if (isAutosessionTrackingEnabled()) {
-        const scope = getCurrentHub().getStackTop().scope;
+      const currentHub = getCurrentHub();
+      const client = currentHub.getClient<NodeClient>();
+
+      if (isAutoSessionTrackingEnabled(client)) {
+        const scope = currentHub.getStackTop().scope;
         if (scope) {
           /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           const requestSessionStatus = (scope as any)._requestSessionStatus;
@@ -413,7 +416,8 @@ export function requestHandler(
       const currentHub = getCurrentHub();
       currentHub.configureScope(scope => {
         scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
-        if (isAutosessionTrackingEnabled()) {
+        const client = currentHub.getClient<NodeClient>();
+        if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
           if (scope) {
             /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -431,10 +435,9 @@ export function requestHandler(
 
       res.once('finish', () => {
         // Calling captureRequestSession to capture request mode session at the end of the request
-        if (isAutosessionTrackingEnabled()) {
+        const client = currentHub.getClient<NodeClient>();
+        if (isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
-            const client = currentHub.getClient<NodeClient>();
-
             if (client && client.captureRequestSession) {
               client.captureRequestSession();
             }
@@ -494,7 +497,9 @@ export function errorHandler(options?: {
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      if (isAutosessionTrackingEnabled()) {
+      const currentHub = getCurrentHub();
+      const client = currentHub.getClient<NodeClient>();
+      if (isAutoSessionTrackingEnabled(client)) {
         getCurrentHub().configureScope(scope => {
           /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           (scope as any)._requestSessionStatus = (res as any).__sentry_requestSessionStatus || undefined;

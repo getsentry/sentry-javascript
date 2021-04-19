@@ -156,12 +156,13 @@ export async function close(timeout?: number): Promise<boolean> {
 }
 
 /**
- * Function that checks if autoSessionTracking option is enabled
+ * Function that takes an instance of NodeClient and checks if autoSessionTracking option is enabled for that client
  */
-export function isAutosessionTrackingEnabled(): boolean {
-  // Also add the checks that makes sure in case when you stop session tracking or resume
-  const client = getCurrentHub().getClient<NodeClient>();
-  const clientOptions: NodeOptions | null = client ? client.getOptions() : null;
+export function isAutoSessionTrackingEnabled(client?: NodeClient): boolean {
+  if (client === undefined) {
+    return false;
+  }
+  const clientOptions: NodeOptions = client && client.getOptions();
   if (clientOptions && clientOptions.autoSessionTracking !== undefined) {
     return clientOptions.autoSessionTracking;
   }
