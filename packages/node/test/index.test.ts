@@ -279,7 +279,7 @@ describe('SentryNode initialization', () => {
     global.SENTRY_RELEASE = undefined;
     // Closing is required here so that all open handles are closed in the test
     void getCurrentHub()
-      .getClient()
+      .getClient<NodeClient>()
       ?.close();
   });
 
