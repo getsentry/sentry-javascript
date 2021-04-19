@@ -11,7 +11,7 @@
   },
   "module": "./esm/index.server.js",
   "browser": "./esm/index.client.js",
-  "types": "./esm/react.d.ts",
+  "types": "./esm/index.client.d.ts",
   "publishConfig": {
     "access": "public"
   },
