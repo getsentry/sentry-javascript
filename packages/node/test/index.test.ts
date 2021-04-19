@@ -275,12 +275,7 @@ describe('SentryNode initialization', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toEqual('foobar');
-    // Unsure if this is needed under jest.
-    global.SENTRY_RELEASE = undefined;
-    // Closing is required here so that all open handles are closed in the test
-    void getCurrentHub()
-      .getClient()
-      ?.close();
+    delete global.SENTRY_RELEASE;
   });
 
   describe('SDK metadata', () => {

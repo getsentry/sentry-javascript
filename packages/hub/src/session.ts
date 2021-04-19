@@ -147,15 +147,23 @@ export class SessionFlusher implements SessionFlusherInterface {
   public readonly flushTimeout: number = 60;
   private _pendingAggregates: { [key: number]: AggregationCounts } = {};
   private _sessionAttrs: releaseHealthAttributes;
-  private _intervalId: ReturnType<typeof setInterval>;
+  private _flushInterval: ReturnType<typeof setInterval>;
   private _isEnabled: boolean = true;
   private _transport: Transport;
 
   constructor(transport: Transport, attrs: releaseHealthAttributes) {
     this._transport = transport;
-    // Call to setInterval, so that flush is called every 60 seconds
-    this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
     this._sessionAttrs = attrs;
+
+    // Call to setInterval, so that flush is called every 60 seconds
+    this._flushInterval = setInterval(() => this.flush(), this.flushTimeout * 1000);
+    // We need to dereference the timer to allow node process to exit freely
+    if (typeof this._flushInterval === 'object') {
+      const nodeFlushInterval = (this._flushInterval as unknown) as { unref: () => typeof setInterval };
+      if (typeof nodeFlushInterval.unref === 'function') {
+        nodeFlushInterval.unref();
+      }
+    }
   }
 
   /** Checks if the instance of SessionFlusher is enabled */
@@ -199,7 +207,7 @@ export class SessionFlusher implements SessionFlusherInterface {
 
   /** JSDoc */
   close(): void {
-    clearTimeout(this._intervalId);
+    clearTimeout(this._flushInterval);
     this._isEnabled = false;
     this.flush();
   }
