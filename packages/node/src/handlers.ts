@@ -419,8 +419,8 @@ export function requestHandler(
             /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
             // Set `_requestSessionStatus` to Ok, at the beginning of the request and it is required to place it
-            // on the response as well because for some reason the scope is cleared in the `errorHandler`
-            // ToDo: Investigate why the scope does not propagate to the errorHandler
+            // on the response as well because for some reason the scope does not propagate to the errorHandler
+            // TODO: Investigate why the scope does not propagate to the errorHandler
             (scope as any)._requestSessionStatus = RequestSessionStatus.Ok;
             (res as any).__sentry_requestSessionStatus = RequestSessionStatus.Ok;
 
