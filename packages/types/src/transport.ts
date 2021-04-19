@@ -2,7 +2,7 @@ import { DsnLike } from './dsn';
 import { Event } from './event';
 import { Response } from './response';
 import { SdkMetadata } from './sdkmetadata';
-import { AggregatedSessions, Session } from './session';
+import { Session, SessionAggregate } from './session';
 
 /** Transport used sending data to Sentry */
 export interface Transport {
@@ -23,9 +23,9 @@ export interface Transport {
   /**
    * Sends the aggregated request mode sessions to the Envelope endpoint in Sentry.
    *
-   * @param aggregatedSessions Aggregated Sessions that should be sent to Sentry.
+   * @param sessionAggregate Aggregated Sessions that should be sent to Sentry.
    */
-  sendSessions?(aggregatedSessions: AggregatedSessions): PromiseLike<Response>;
+  sendSessionAggregate?(sessionAggregate: SessionAggregate): PromiseLike<Response>;
 
   /**
    * Call this function to wait until all pending requests have been sent.

@@ -1,11 +1,11 @@
 import { API, SDK_VERSION } from '@sentry/core';
 import {
-  AggregatedSessions,
   Event,
   Response,
   SentryRequest,
   SentryRequestType,
   Session,
+  SessionAggregate,
   Status,
   Transport,
   TransportOptions,
@@ -91,8 +91,8 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public sendSessions(_: AggregatedSessions): PromiseLike<Response> {
-    throw new SentryError('Transport Class has to implement `sendSessions` method.');
+  public sendSessionAggregate(_: SessionAggregate): PromiseLike<Response> {
+    throw new SentryError('Transport Class has to implement `sendSessionAggregate` method.');
   }
 
   /**
@@ -181,7 +181,7 @@ export abstract class BaseTransport implements Transport {
   protected async _sendWithModule(
     httpModule: HTTPModule,
     sentryReq: SentryRequest,
-    originalPayload: Event | Session | AggregatedSessions,
+    originalPayload: Event | Session | SessionAggregate,
   ): Promise<Response> {
     if (this._isRateLimited(sentryReq.type)) {
       return Promise.reject({

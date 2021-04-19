@@ -1,7 +1,7 @@
 import { DebugMeta, Event, SentryRequest, TransactionSamplingMethod } from '@sentry/types';
 
 import { API } from '../../src/api';
-import { aggregateSessionsToSentryRequest, eventToSentryRequest } from '../../src/request';
+import { eventToSentryRequest, sessionAggregateToSentryRequest } from '../../src/request';
 
 const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012', {
   sdk: {
@@ -126,13 +126,13 @@ describe('eventToSentryRequest', () => {
   });
 });
 
-describe('aggregateSessionsToSentryRequest', () => {
+describe('sessionAggregateToSentryRequest', () => {
   it('test envelope creation for aggregateSessions', () => {
     const aggregatedSession = {
       attrs: { release: '1.0.x', environment: 'prod' },
       aggregates: [{ started: '2021-04-08T12:18:00.000Z', exited: 2 }],
     };
-    const result = aggregateSessionsToSentryRequest(aggregatedSession, api);
+    const result = sessionAggregateToSentryRequest(aggregatedSession, api);
 
     const [envelopeHeaderString, itemHeaderString, sessionString] = result.body.split('\n');
 

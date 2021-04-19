@@ -70,7 +70,7 @@ export enum RequestSessionStatus {
 }
 
 /** JSDoc */
-export interface AggregatedSessions {
+export interface SessionAggregate {
   attrs?: {
     environment?: string;
     release?: string;
@@ -88,7 +88,7 @@ export interface SessionFlusher {
   incrementSessionCount(): void;
 
   /** Submits the session to Sentry */
-  sendSessions(aggregatedSession: AggregatedSessions): void;
+  sendSessionAggregate(sessionAggregate: SessionAggregate): void;
 
   /** Empties Aggregate Buckets and Sends them to Transport Buffer */
   flush(): void;

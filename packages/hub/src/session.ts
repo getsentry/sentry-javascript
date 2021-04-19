@@ -1,8 +1,8 @@
 import {
-  AggregatedSessions,
   AggregationCounts,
   RequestSessionStatus,
   Session as SessionInterface,
+  SessionAggregate,
   SessionContext,
   SessionFlusher as SessionFlusherInterface,
   SessionStatus,
@@ -163,38 +163,38 @@ export class SessionFlusher implements SessionFlusherInterface {
     return this._isEnabled;
   }
 
-  /** Sends aggregated sessions to Transport */
-  public sendSessions(aggregatedSession: AggregatedSessions): void {
-    if (!this._transport.sendSessions) {
-      logger.warn("Dropping session because custom transport doesn't implement sendSession");
+  /** Sends session aggregate to Transport */
+  public sendSessionAggregate(sessionAggregate: SessionAggregate): void {
+    if (!this._transport.sendSessionAggregate) {
+      logger.warn("Dropping session because custom transport doesn't implement sendSessionAggregate");
       return;
     }
-    this._transport.sendSessions(aggregatedSession).then(null, reason => {
+    this._transport.sendSessionAggregate(sessionAggregate).then(null, reason => {
       logger.error(`Error while sending session: ${reason}`);
     });
   }
 
   /** Checks if `pendingAggregates` has entries, and if it does flushes them by calling `sendSessions` */
   flush(): void {
-    const aggregatedSessions = this.getAggregatedSessions();
-    if (aggregatedSessions.aggregates.length === 0) {
+    const sessionAggregate = this.getSessionAggregate();
+    if (sessionAggregate.aggregates.length === 0) {
       return;
     }
     this._pendingAggregates = {};
-    this.sendSessions(aggregatedSessions);
+    this.sendSessionAggregate(sessionAggregate);
   }
 
   /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
-  getAggregatedSessions(): AggregatedSessions {
+  getSessionAggregate(): SessionAggregate {
     const aggregates: AggregationCounts[] = Object.keys(this._pendingAggregates).map((key: string) => {
       return this._pendingAggregates[parseInt(key)];
     });
 
-    const aggregatedSessions: AggregatedSessions = {
+    const sessionAggregate: SessionAggregate = {
       attrs: this._sessionAttrs,
       aggregates: aggregates,
     };
-    return dropUndefinedKeys(aggregatedSessions);
+    return dropUndefinedKeys(sessionAggregate);
   }
 
   /** JSDoc */

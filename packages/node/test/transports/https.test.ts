@@ -90,7 +90,7 @@ describe('HTTPSTransport', () => {
 
   test('send 200 aggregate sessions', async () => {
     const transport = createTransport({ dsn });
-    await transport.sendSessions(sessionsPayload);
+    await transport.sendSessionAggregate(sessionsPayload);
 
     const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
     assertBasicOptions(requestOptions, true);
@@ -102,7 +102,7 @@ describe('HTTPSTransport', () => {
     const transport = createTransport({ dsn });
 
     try {
-      await transport.sendSessions(sessionsPayload);
+      await transport.sendSessionAggregate(sessionsPayload);
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions, true);
@@ -237,7 +237,7 @@ describe('HTTPSTransport', () => {
     const transactionRes = await transport.sendEvent(transactionPayload);
     expect(transactionRes.status).toEqual(Status.Success);
 
-    const aggregatedSessionsRes = await transport.sendSessions(sessionsPayload);
+    const aggregatedSessionsRes = await transport.sendSessionAggregate(sessionsPayload);
     expect(aggregatedSessionsRes.status).toEqual(Status.Success);
 
     try {
@@ -308,7 +308,7 @@ describe('HTTPSTransport', () => {
     }
 
     try {
-      await transport.sendSessions(sessionsPayload);
+      await transport.sendSessionAggregate(sessionsPayload);
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
@@ -335,7 +335,7 @@ describe('HTTPSTransport', () => {
     const eventRes = await transport.sendEvent(eventPayload);
     expect(eventRes.status).toEqual(Status.Success);
 
-    const aggregatedSessionsRes = await transport.sendSessions(sessionsPayload);
+    const aggregatedSessionsRes = await transport.sendSessionAggregate(sessionsPayload);
     expect(aggregatedSessionsRes.status).toEqual(Status.Success);
 
     const transactionRes = await transport.sendEvent(transactionPayload);

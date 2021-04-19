@@ -27,13 +27,13 @@ describe('BaseTransport', () => {
     }
   });
 
-  test('doesnt provide sendSessions() implementation', async () => {
+  test('doesnt provide sendSessionAggregate() implementation', async () => {
     const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
-      await transport.sendSessions({});
+      await transport.sendSessionAggregate({});
     } catch (e) {
-      expect(e.message).toEqual('Transport Class has to implement `sendSessions` method.');
+      expect(e.message).toEqual('Transport Class has to implement `sendSessionAggregate` method.');
     }
   });
 });
