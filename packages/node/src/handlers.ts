@@ -431,15 +431,15 @@ export function requestHandler(
 
       res.once('finish', () => {
         // Calling captureRequestSession to capture request mode session at the end of the request
-        setImmediate(() => {
-          if (isAutosessionTrackingEnabled()) {
+        if (isAutosessionTrackingEnabled()) {
+          setImmediate(() => {
             const client = currentHub.getClient<NodeClient>();
 
             if (client && client.captureRequestSession) {
               client.captureRequestSession();
             }
-          }
-        });
+          });
+        }
       });
       next();
     });
