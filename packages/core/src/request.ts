@@ -56,12 +56,12 @@ export function aggregateSessionsToSentryRequest(aggregatedSessions: AggregatedS
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
   });
-  // The server expects the headers for request mode sessions to be `sessions` while the SDK considers
-  // request mode sessions to be of type `session`
+  // The server expects type `sessions` in headers for aggregated sessions payload, while
   const itemHeaders = JSON.stringify({
     type: 'sessions',
   });
 
+  // SDK is currently rate limiting both aggregate sessions payload and individual sessions on category `session`
   return {
     body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(aggregatedSessions)}`,
     type: 'session',
