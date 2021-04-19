@@ -165,9 +165,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   const navigationStart = performance.timing && performance.timing.navigationStart;
   const hasNavigationStart = typeof navigationStart === 'number';
   // if navigationStart isn't available set delta to threshold so it isn't used
-  const navigationStartDelta = hasNavigationStart
-    ? Math.abs(navigationStart + performanceNow - dateNow)
-    : threshold;
+  const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;
   const navigationStartIsReliable = navigationStartDelta < threshold;
 
   if (timeOriginIsReliable || navigationStartIsReliable) {
