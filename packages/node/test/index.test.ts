@@ -272,7 +272,7 @@ describe('SentryNode', () => {
 });
 
 describe('SentryNode initialization', () => {
-  test.only('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
+  test('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toEqual('foobar');
