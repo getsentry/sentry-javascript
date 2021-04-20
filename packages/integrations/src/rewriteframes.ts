@@ -23,9 +23,17 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: { root?: string; iteratee?: StackFrameIteratee } = {}) {
+  private readonly _prefix: string = 'app:///';
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(options: { root?: string; prefix?: string; iteratee?: StackFrameIteratee } = {}) {
     if (options.root) {
       this._root = options.root;
+    }
+    if (options.prefix) {
+      this._prefix = options.prefix;
     }
     if (options.iteratee) {
       this._iteratee = options.iteratee;
@@ -75,7 +83,7 @@ export class RewriteFrames implements Integration {
             .replace(/\\/g, '/') // replace all `\\` instances with `/`
         : frame.filename;
       const base = this._root ? relative(this._root, filename) : basename(filename);
-      frame.filename = `app:///${base}`;
+      frame.filename = `${this._prefix}${base}`;
     }
     return frame;
   };
