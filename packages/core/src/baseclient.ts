@@ -156,7 +156,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       logger.warn('Discarded session because of missing or non-string release');
     } else {
       this._sendSession(session);
-      // After sending, we set init false to inidcate it's not the first occurence
+      // After sending, we set init false to indicate it's not the first occurrence
       session.update({ init: false });
     }
   }
