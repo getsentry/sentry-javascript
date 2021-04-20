@@ -40,7 +40,7 @@ export {
 
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
-export { defaultIntegrations, init, lastEventId, flush, close } from './sdk';
+export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';
 export { SDK_NAME } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
