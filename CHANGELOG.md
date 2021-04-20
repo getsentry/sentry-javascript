@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.0
+
+- [browser] feat: Parse safari-extension and safari-web-extension errors (#3374)
+- [browser] fix: Provide better descriptions for the performance navigation timing spans (#3245)
+- [browser] test: Replace Authorization with Accept header (#3400)
+- [ci] ci: Add CodeQL scanning
+- [core] Drop session if release is not a string or is missing and log (#3396)
+- [docs] Document how to publish a new release (#3361)
+- [gatsby] fix: Specify gatsby peer dep (#3385)
+- [gatsby] chore(docs): Update @sentry/gatsby README (#3384)
+- [integrations] feat(integrations): add prefix support for RewriteFrames (#3416)
+- [integrations] ref: Use esm imports with localforage and add esModuleInterop (#3403)
+- [nextjs] feat: Next.js SDK + Plugin (#3301)
+- [node] fix: Generate a Sentry Release string from env if its not provided (#3393)
+- [tracing] fix: Replace performance.timeOrigin in favour of browserPerformanceTimeOrigin (#3397)
+- [tracing] fix: Mark span as failed when fetch API call fails (#3351)
+- [utils] fix: Use the more reliable timeOrigin (#3398)
+- [utils] fix: Wrap oldOnPopState.apply call in try/catch to prevent Firefox from crashing (#3377)
+
 ## 6.2.5
 
 - [utils] fix: Avoid performance.timeOrigin if too skewed (#3356)
