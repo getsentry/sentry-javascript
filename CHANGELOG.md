@@ -8,13 +8,9 @@
 
 - [browser] feat: Parse safari-extension and safari-web-extension errors (#3374)
 - [browser] fix: Provide better descriptions for the performance navigation timing spans (#3245)
-- [browser] ref: Change autoSessionTracking comment about its default state (#3411)
 - [browser] test: Replace Authorization with Accept header (#3400)
-- [build] build: Make Sentry SDKs "Official" (fix typo) (#3405)
 - [ci] ci: Add CodeQL scanning
 - [core] Drop session if release is not a string or is missing and log (#3396)
-- [core] fix: Fixed typo in documentation and incorrect test (#3389)
-- [docs] misc: sort list of workspaces in package.json (#3367)
 - [docs] Document how to publish a new release (#3361)
 - [gatsby] fix: Specify gatsby peer dep (#3385)
 - [gatsby] chore(docs): Update @sentry/gatsby README (#3384)
@@ -22,13 +18,10 @@
 - [integrations] ref: Use esm imports with localforage and add esModuleInterop (#3403)
 - [nextjs] feat: Next.js SDK + Plugin (#3301)
 - [node] fix: Generate a Sentry Release string from env if its not provided (#3393)
-- [node] fix(dev): Use less popular ports for node manual testing (#3369)
 - [tracing] fix: Replace performance.timeOrigin in favour of browserPerformanceTimeOrigin (#3397)
 - [tracing] fix: Mark span as failed when fetch API call fails (#3351)
-- [tracing] ref: Add logger message on transaction finishing (#3370)
 - [utils] fix: Use the more reliable timeOrigin (#3398)
 - [utils] fix: Wrap oldOnPopState.apply call in try/catch to prevent Firefox from crashing (#3377)
-- [vue] fix: Re-export all the things from @sentry/browser in @sentry/vue (#3386)
 
 ## 6.2.5
 
