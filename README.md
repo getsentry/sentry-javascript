@@ -48,6 +48,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): browser SDK with Ember integration enabled
 - [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): browser SDK with Vue integration enabled
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
+- [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for native crashes
 - [`@sentry/integrations`](https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations): Pluggable
   integrations that can be used to enhance JS SDKs

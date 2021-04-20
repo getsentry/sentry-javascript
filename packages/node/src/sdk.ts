@@ -151,7 +151,7 @@ export async function close(timeout?: number): Promise<boolean> {
 /**
  * A function that returns a Sentry release string dynamically from env variables
  */
-function getSentryRelease(): string | undefined {
+export function getSentryRelease(): string | undefined {
   // Always read first as Sentry takes this as precedence
   if (process.env.SENTRY_RELEASE) {
     return process.env.SENTRY_RELEASE;
@@ -170,6 +170,9 @@ function getSentryRelease(): string | undefined {
     process.env.COMMIT_REF ||
     // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
     process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.VERCEL_GITHUB_COMMIT_SHA ||
+    process.env.VERCEL_GITLAB_COMMIT_SHA ||
+    process.env.VERCEL_BITBUCKET_COMMIT_SHA ||
     // Zeit (now known as Vercel)
     process.env.ZEIT_GITHUB_COMMIT_SHA ||
     process.env.ZEIT_GITLAB_COMMIT_SHA ||

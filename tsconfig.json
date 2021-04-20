@@ -2,6 +2,7 @@
   "extends": "./packages/typescript/tsconfig.json",
   "compilerOptions": {
     "baseUrl": "packages",
+    "allowSyntheticDefaultImports": true,
     "types": ["node"],
     "paths": {
       "@sentry/*": ["*/src"]

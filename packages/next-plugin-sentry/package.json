@@ -1,0 +1,38 @@
+{
+  "name": "@sentry/next-plugin-sentry",
+  "version": "6.2.5",
+  "description": "Sentry plugin for Next.js, part of the @sentry/nextjs SDK",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/next-plugin-sentry",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "6.2.5",
+    "@sentry/integrations": "6.2.5"
+  },
+  "devDependencies": {
+    "eslint": "7.20.0",
+    "rimraf": "3.0.2"
+  },
+  "nextjs": {
+    "name": "sentry",
+    "required-env": []
+  },
+  "peerDependencies": {
+    "next": "*"
+  },
+  "scripts": {
+    "link:yarn": "yarn link",
+    "pack": "npm pack"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
