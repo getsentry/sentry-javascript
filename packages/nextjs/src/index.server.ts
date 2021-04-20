@@ -25,3 +25,5 @@ export function init(options: NextjsOptions): void {
     scope.setTag('runtime', 'node');
   });
 }
+
+export { withSentryConfig } from './utils/config';

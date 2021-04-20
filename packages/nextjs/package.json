@@ -22,6 +22,7 @@
     "@sentry/next-plugin-sentry": "6.2.5",
     "@sentry/node": "6.2.5",
     "@sentry/react": "6.2.5",
+    "@sentry/utils": "6.2.5",
     "@sentry/webpack-plugin": "1.15.0"
   },
   "devDependencies": {
