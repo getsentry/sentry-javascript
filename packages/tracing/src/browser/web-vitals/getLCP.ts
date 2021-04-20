@@ -22,6 +22,17 @@ import { onHidden } from './lib/onHidden';
 import { whenInput } from './lib/whenInput';
 import { ReportHandler } from './types';
 
+// https://wicg.github.io/largest-contentful-paint/#sec-largest-contentful-paint-interface
+export interface LargestContentfulPaint extends PerformanceEntry {
+  renderTime: DOMHighResTimeStamp;
+  loadTime: DOMHighResTimeStamp;
+  size: number;
+  id: string;
+  url: string;
+  element?: Element;
+  toJSON(): Record<string, unknown>;
+}
+
 export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void => {
   const metric = initMetric('LCP');
   const firstHidden = getFirstHidden();
