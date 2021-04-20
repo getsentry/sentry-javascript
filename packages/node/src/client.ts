@@ -1,5 +1,5 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
-import { SessionFlusher } from '@sentry/hub';
+import { Session, SessionFlusher } from '@sentry/hub';
 import { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -39,6 +39,18 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
           environment,
         });
       }
+    }
+  }
+  /**
+   * @inheritDoc
+   */
+  public captureSession(session: Session): void {
+    if (!session.release) {
+      logger.warn('Discarded session because of missing release');
+    } else {
+      this._sendSession(session);
+      // After sending, we set init false to inidcate it's not the first occurence
+      session.update({ init: false });
     }
   }
 

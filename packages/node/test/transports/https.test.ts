@@ -1,4 +1,5 @@
 import { AggregatedSessions, TransportOptions } from '@sentry/types';
+import { Session } from '@sentry/hub';
 import { SentryError } from '@sentry/utils';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 
@@ -95,6 +96,28 @@ describe('HTTPSTransport', () => {
 
     try {
       await transport.sendSessionAggregate(sessionsPayload);
+    } catch (e) {
+      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+      assertBasicOptions(requestOptions, true);
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    }
+  });
+
+  test('send 200 session', async () => {
+    const transport = createTransport({ dsn });
+    await transport.sendSession(new Session());
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    assertBasicOptions(requestOptions, true);
+    expect(mockSetEncoding).toHaveBeenCalled();
+  });
+
+  test('send 400 session', async () => {
+    mockReturnCode = 400;
+    const transport = createTransport({ dsn });
+
+    try {
+      await transport.sendSession(new Session());
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions, true);
