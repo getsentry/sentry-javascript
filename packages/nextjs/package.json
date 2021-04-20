@@ -32,7 +32,7 @@
     "rimraf": "3.0.2"
   },
   "scripts": {
-    "build": "run-p build:esm",
+    "build": "run-p build:esm build:es5",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:watch": "run-p build:watch:esm build:watch:es5",
