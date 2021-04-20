@@ -56,11 +56,12 @@
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:eslint": "eslint . --format stylish --fix",
-    "test": "run-s test:jest test:express test:webpack",
+    "test": "run-s test:jest test:express test:webpack test:release-health",
     "test:jest": "jest",
     "test:watch": "jest --watch",
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:webpack": "cd test/manual/webpack-domain/ && yarn && node npm-build.js",
+    "test:release-health": "node test/manual/release-health/single-session/healthy-session.js && node test/manual/release-health/single-session/caught-exception-errored-session.js && node test/manual/release-health/single-session/uncaught-exception-crashed-session.js && node test/manual/release-health/single-session/unhandled-rejection-crashed-session.js",
     "pack": "npm pack"
   },
   "volta": {
