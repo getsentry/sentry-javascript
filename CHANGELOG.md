@@ -4,6 +4,34 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.0
+
+- [nextjs] feat: Next.js SDK + Plugin (#3301)
+- [integrations] feat(integrations): add prefix support for RewriteFrames (#3416)
+- [build] chore(deps): bump ssri in /packages/node/test/manual/webpack-domain (#3413)
+- [build] chore(deps): bump ssri from 6.0.1 to 6.0.2 (#3414)
+- [browser] ref: Change autoSessionTracking comment about its default state (#3411)
+- [utils] fix: Use the more reliable timeOrigin (#3398)
+- [build] build: Make Sentry SDKs "Official" (fix typo) (#3405)
+- [integrations] ref: Use esm imports with localforage and add esModuleInterop (#3403)
+- [browser] test: Replace Authorization with Accept header (#3400)
+- [core] Drop session if release is not a string or is missing and log (#3396)
+- [tracing] fix: Replace performance.timeOrigin in favour of browserPerformanceTimeOrigin (#3397)
+- [node] fix(node): Generate a Sentry Release string from env if its not provided (#3393)
+- [ci] ci: Add CodeQL scanning
+- [core] fix(browser/core): Fixed typo in documentation and incorrect test (#3389)
+- [tracing] fix: Mark span as failed when fetch API call fails (#3351)
+- [vue] fix: Re-export all the things from @sentry/browser in @sentry/vue (#3386)
+- [gatsby] fix(@sentry/gatsby): Specify gatsby peer dep (#3385)
+- [gatsby] chore(docs): Update @sentry/gatsby README (#3384)
+- [node] fix(dev): Use less popular ports for node manual testing (#3369)
+- [utils] fix: Wrap oldOnPopState.apply call in try/catch to prevent Firefox from crashing (#3377)
+- [tracing] ref: Add logger message on transaction finishing (#3370)
+- [browser] feat: Parse safari-extension and safari-web-extension errors (#3374)
+- [docs] misc: sort list of workspaces in package.json (#3367)
+- [docs] Document how to publish a new release (#3361)
+- [browse] fix: Provide better descriptions for the performance navigation timing spans (#3245)
+
 ## 6.2.5
 
 - [utils] fix: Avoid performance.timeOrigin if too skewed (#3356)
