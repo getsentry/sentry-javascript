@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@sentry/types": "6.2.5",
+    "@types/webpack": "^5.28.0",
     "eslint": "7.20.0",
     "rimraf": "3.0.2"
   },
