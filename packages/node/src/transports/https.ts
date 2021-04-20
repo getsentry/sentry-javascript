@@ -24,7 +24,7 @@ export class HTTPSTransport extends BaseTransport {
     if (!this.module) {
       throw new SentryError('No module available in HTTPSTransport');
     }
-    return this._sendWithModule(this.module, eventToSentryRequest(event, this._api));
+    return this._sendWithModule(this.module, eventToSentryRequest(event, this._api), event);
   }
 
   /**
@@ -34,7 +34,7 @@ export class HTTPSTransport extends BaseTransport {
     if (!this.module) {
       throw new SentryError('No module available in HTTPTransport');
     }
-    return this._sendWithModule(this.module, sessionToSentryRequest(session, this._api));
+    return this._sendWithModule(this.module, sessionToSentryRequest(session, this._api), session);
   }
 
   /**
@@ -44,6 +44,10 @@ export class HTTPSTransport extends BaseTransport {
     if (!this.module) {
       throw new SentryError('No module available in HTTPTransport');
     }
-    return this._sendWithModule(this.module, sessionAggregateToSentryRequest(sessionAggregate, this._api));
+    return this._sendWithModule(
+      this.module,
+      sessionAggregateToSentryRequest(sessionAggregate, this._api),
+      sessionAggregate,
+    );
   }
 }
