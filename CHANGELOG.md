@@ -30,7 +30,7 @@
 - [browser] feat: Parse safari-extension and safari-web-extension errors (#3374)
 - [docs] misc: sort list of workspaces in package.json (#3367)
 - [docs] Document how to publish a new release (#3361)
-- [browse] fix: Provide better descriptions for the performance navigation timing spans (#3245)
+- [browser] fix: Provide better descriptions for the performance navigation timing spans (#3245)
 
 ## 6.2.5
 
