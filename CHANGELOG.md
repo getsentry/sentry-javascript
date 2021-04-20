@@ -8,8 +8,6 @@
 
 - [nextjs] feat: Next.js SDK + Plugin (#3301)
 - [integrations] feat(integrations): add prefix support for RewriteFrames (#3416)
-- [build] chore(deps): bump ssri in /packages/node/test/manual/webpack-domain (#3413)
-- [build] chore(deps): bump ssri from 6.0.1 to 6.0.2 (#3414)
 - [browser] ref: Change autoSessionTracking comment about its default state (#3411)
 - [utils] fix: Use the more reliable timeOrigin (#3398)
 - [build] build: Make Sentry SDKs "Official" (fix typo) (#3405)
