@@ -20,13 +20,13 @@ export class HTTPSTransport extends BaseTransport {
    * @inheritDoc
    */
   public sendEvent(event: Event): Promise<Response> {
-    return this._send(eventToSentryRequest(event, this._api));
+    return this._send(eventToSentryRequest(event, this._api), event);
   }
 
   /**
    * @inheritDoc
    */
   public sendSession(session: Session): PromiseLike<Response> {
-    return this._send(sessionToSentryRequest(session, this._api));
+    return this._send(sessionToSentryRequest(session, this._api), session);
   }
 }
