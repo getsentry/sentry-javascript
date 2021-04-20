@@ -170,7 +170,7 @@ export function isAutoSessionTrackingEnabled(client?: NodeClient): boolean {
 }
 
 /**
- * A function that returns a Sentry release string dynamically from env variables
+ * Returns a release dynamically from environment variables.
  */
 function getSentryRelease(): string | undefined {
   // Always read first as Sentry takes this as precedence

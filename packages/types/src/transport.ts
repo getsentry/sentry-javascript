@@ -14,9 +14,9 @@ export interface Transport {
   sendEvent(event: Event): PromiseLike<Response>;
 
   /**
-   * Sends the session to the Store endpoint in Sentry.
+   * Sends the session to the Envelope endpoint in Sentry.
    *
-   * @param body Session that should be sent to Sentry.
+   * @param session Session that should be sent to Sentry.
    */
   sendSession?(session: Session): PromiseLike<Response>;
 
