@@ -191,7 +191,7 @@ function startSessionTracking(): void {
 
   // The only way for this to be false is for there to be a version mismatch between @sentry/browser (>= 6.0.0) and
   // @sentry/hub (< 5.27.0). In the simple case, there won't ever be such a mismatch, because the two packages are
-  // pinned at the same version in package.json, but there are edge cases where it's possible'. See
+  // pinned at the same version in package.json, but there are edge cases where it's possible. See
   // https://github.com/getsentry/sentry-javascript/issues/3207 and
   // https://github.com/getsentry/sentry-javascript/issues/3234 and
   // https://github.com/getsentry/sentry-javascript/issues/3278.
