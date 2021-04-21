@@ -105,8 +105,9 @@ app.get('/trace', async (_req, res, next) => {
 app.use(Tracing.finish());
 app.use(Sentry.Handlers.errorHandler());
 
-const server = app.listen(1231, () => {
-  http.get('http://localhost:1231/trace', res => {
+const server = app.listen(0, () => {
+  const port = server.address().port;
+  http.get(`http://localhost:${port}/trace`, res => {
     server.close();
   });
 });

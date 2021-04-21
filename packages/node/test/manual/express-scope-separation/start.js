@@ -18,6 +18,7 @@ class DummyTransport {
 
     if (!remaining) {
       console.error('SUCCESS: All scopes contain correct tags');
+      server.close();
       process.exit(0);
     }
 
@@ -83,8 +84,9 @@ app.get('/baz', req => {
 
 app.use(Sentry.Handlers.errorHandler());
 
-app.listen(1121);
-
-http.get('http://localhost:1121/foo');
-http.get('http://localhost:1121/bar');
-http.get('http://localhost:1121/baz');
+const server = app.listen(0, () => {
+  const port = server.address().port;
+  http.get(`http://localhost:${port}/foo`);
+  http.get(`http://localhost:${port}/bar`);
+  http.get(`http://localhost:${port}/baz`);
+});
