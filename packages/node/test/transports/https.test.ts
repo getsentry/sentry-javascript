@@ -1,5 +1,6 @@
 import { TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
+import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 
 import { HTTPSTransport } from '../../src/transports/https';
@@ -153,36 +154,110 @@ describe('HTTPSTransport', () => {
     expect(requestOptions.headers).toEqual(expect.objectContaining({ a: 'b' }));
   });
 
-  test('https proxy', async () => {
-    mockReturnCode = 200;
-    const transport = createTransport({
-      dsn,
-      httpsProxy: 'https://example.com:8080',
-    });
-    await transport.sendEvent({
-      message: 'test',
+  describe('proxy', () => {
+    test('can be configured through client option', async () => {
+      const transport = createTransport({
+        dsn,
+        httpsProxy: 'https://example.com:8080',
+      });
+      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      expect(client).toBeInstanceOf(HttpsProxyAgent);
+      expect(client.secureProxy).toEqual(true);
+      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
     });
 
-    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-    assertBasicOptions(requestOptions);
-    expect(requestOptions.agent).toBeInstanceOf(HttpsProxyAgent);
-    expect(requestOptions.agent.secureProxy).toEqual(true);
-    expect(requestOptions.agent.proxy).toEqual(
-      expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }),
-    );
-  });
+    test('can be configured through env variables option', async () => {
+      process.env.https_proxy = 'https://example.com:8080';
+      const transport = createTransport({
+        dsn,
+        httpsProxy: 'https://example.com:8080',
+      });
+      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      expect(client).toBeInstanceOf(HttpsProxyAgent);
+      expect(client.secureProxy).toEqual(true);
+      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
+      delete process.env.https_proxy;
+    });
 
-  test('tls certificate', async () => {
-    mockReturnCode = 200;
-    const transport = createTransport({
-      caCerts: './some/path.pem',
-      dsn,
+    test('https proxies have priority in client option', async () => {
+      const transport = createTransport({
+        dsn,
+        httpProxy: 'http://unsecure-example.com:8080',
+        httpsProxy: 'https://example.com:8080',
+      });
+      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      expect(client).toBeInstanceOf(HttpsProxyAgent);
+      expect(client.secureProxy).toEqual(true);
+      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
     });
-    await transport.sendEvent({
-      message: 'test',
+
+    test('https proxies have priority in env variables', async () => {
+      process.env.http_proxy = 'http://unsecure-example.com:8080';
+      process.env.https_proxy = 'https://example.com:8080';
+      const transport = createTransport({
+        dsn,
+      });
+      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      expect(client).toBeInstanceOf(HttpsProxyAgent);
+      expect(client.secureProxy).toEqual(true);
+      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
+      delete process.env.http_proxy;
+      delete process.env.https_proxy;
     });
-    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-    assertBasicOptions(requestOptions);
-    expect(requestOptions.ca).toEqual('mockedCert');
+
+    test('client options have priority over env variables', async () => {
+      process.env.https_proxy = 'https://env-example.com:8080';
+      const transport = createTransport({
+        dsn,
+        httpsProxy: 'https://example.com:8080',
+      });
+      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      expect(client).toBeInstanceOf(HttpsProxyAgent);
+      expect(client.secureProxy).toEqual(true);
+      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
+      delete process.env.https_proxy;
+    });
+
+    test('no_proxy allows for skipping specific hosts', async () => {
+      process.env.no_proxy = 'sentry.io';
+      const transport = createTransport({
+        dsn,
+        httpsProxy: 'https://example.com:8080',
+      });
+      expect(transport.client).toBeInstanceOf(https.Agent);
+    });
+
+    test('no_proxy works with a port', async () => {
+      process.env.https_proxy = 'https://example.com:8080';
+      process.env.no_proxy = 'sentry.io:8989';
+      const transport = createTransport({
+        dsn,
+      });
+      expect(transport.client).toBeInstanceOf(https.Agent);
+      delete process.env.https_proxy;
+    });
+
+    test('no_proxy works with multiple comma-separated hosts', async () => {
+      process.env.http_proxy = 'https://example.com:8080';
+      process.env.no_proxy = 'example.com,sentry.io,wat.com:1337';
+      const transport = createTransport({
+        dsn,
+      });
+      expect(transport.client).toBeInstanceOf(https.Agent);
+      delete process.env.https_proxy;
+    });
+
+    test('can configure tls certificate through client option', async () => {
+      mockReturnCode = 200;
+      const transport = createTransport({
+        caCerts: './some/path.pem',
+        dsn,
+      });
+      await transport.sendEvent({
+        message: 'test',
+      });
+      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+      expect(requestOptions.ca).toEqual('mockedCert');
+    });
   });
 });

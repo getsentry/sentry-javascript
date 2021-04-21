@@ -9,7 +9,7 @@ export class HTTPTransport extends BaseTransport {
   /** Create a new instance and set this.agent */
   public constructor(public options: TransportOptions) {
     super(options);
-    const proxy = options.httpProxy || process.env.http_proxy;
+    const proxy = this._getProxy('http');
     this.module = http;
     this.client = proxy
       ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
