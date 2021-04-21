@@ -30,7 +30,7 @@ export interface LargestContentfulPaint extends PerformanceEntry {
   id: string;
   url: string;
   element?: Element;
-  toJSON(): Record<string, unknown>;
+  toJSON(): Record<string, string>;
 }
 
 export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void => {
