@@ -70,7 +70,15 @@ export abstract class BaseTransport implements Transport {
     return this._buffer.drain(timeout);
   }
 
-  /** Extracts proxy settings from client options and env variables */
+  /**
+   * Extracts proxy settings from client options and env variables.
+   *
+   * Honors `no_proxy` env variable with the highest priority to allow for hosts exclusion.
+   *
+   * An order of priority for available protocols is:
+   * `http`  => `options.httpProxy` | `process.env.http_proxy`
+   * `https` => `options.httpsProxy` | `options.httpProxy` | `process.env.https_proxy` | `process.env.http_proxy`
+   */
   protected _getProxy(protocol: DsnProtocol): string | undefined {
     const { no_proxy, http_proxy, https_proxy } = process.env;
     const { httpProxy, httpsProxy } = this.options;
