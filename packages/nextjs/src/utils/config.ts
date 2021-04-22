@@ -1,10 +1,37 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// import { version as nextVersion } from './node_modules/next/package.json';
 import { getSentryRelease } from '@sentry/node';
 import { logger } from '@sentry/utils';
 import defaultWebpackPlugin, { SentryCliPluginOptions } from '@sentry/webpack-plugin';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 import * as fs from 'fs';
+import * as path from 'path';
+
+/**
+ * Starting at `startPath`, move up one directory at a time, searching for `searchFile`.
+ *
+ * @param startPath The location from which to start the search.
+ * @param searchFile The file to search for
+ * @returns The absolute path of the file, if it's found, or undefined if it's not.
+ */
+function findUp(startPath: string, searchFile: string): string | undefined {
+  if (!fs.existsSync(startPath)) {
+    throw new Error(`The given \`startPath\` value (${startPath}) does not exist.`);
+  }
+
+  let currentDir = fs.statSync(startPath).isFile() ? path.dirname(startPath) : startPath;
+  while (currentDir !== '/') {
+    const possiblePath = path.join(currentDir, searchFile);
+    if (fs.existsSync(possiblePath)) {
+      return possiblePath;
+    }
+
+    currentDir = path.join(currentDir, '..');
+  }
+
+  return undefined;
+}
 
 /**
  * Next requires that plugins be tagged with the same version number as the currently-running `next.js` package, so
@@ -14,27 +41,39 @@ export function syncPluginVersionWithNextVersion(): void {
   // TODO Once we get at least to TS 2.9, we can use `"resolveJsonModule": true` in our `compilerOptions` and we'll be
   // able to do:
   // import { version as nextVersion } from './node_modules/next/package.json';
+  let nextVersion;
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-  const nextVersion = (require('../../../../next/package.json') as any).version;
-  if (!nextVersion) {
-    logger.error('[next-plugin-sentry] Cannot read next.js version. Plug-in will not work.');
+  try {
+    // `require.resolve` returns the location of the packages `"main"` entry point, as specified in its `package.json`
+    const nextResolvedMain = require.resolve('next');
+    // since we don't know where in the package's directory that entry point is, search upward until we find a folder
+    // containing `package.json`
+    const nextPackageJsonPath = findUp(nextResolvedMain, 'package.json');
+    nextVersion = nextPackageJsonPath && (require(nextPackageJsonPath) as { version: string }).version;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(`[next-plugin-sentry] Cannot read next.js version. Plug-in will not work.\nReceived error: ${err}`);
     return;
   }
 
-  const pluginPackageDotJsonPath = `../../../next-plugin-sentry/package.json`;
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const pluginPackageDotJson = require(pluginPackageDotJsonPath); // see TODO above
-  if (!pluginPackageDotJson) {
-    logger.error(`[next-plugin-sentry] Cannot read ${pluginPackageDotJsonPath}. Plug-in will not work.`);
+  let pluginPackageJsonPath, pluginPackageJson;
+
+  try {
+    const pluginResolvedMain = require.resolve('@sentry/next-plugin-sentry');
+    // see notes above about why we need to call `findUp`
+    pluginPackageJsonPath = findUp(pluginResolvedMain, 'package.json');
+    pluginPackageJson = pluginPackageJsonPath && require(pluginPackageJsonPath);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[next-plugin-sentry] Cannot find \`@sentry/next-plugin-sentry\`. Plug-in will not work. ` +
+        `Please try reinstalling \`@sentry/nextjs\`.\nReceived error: ${err}`,
+    );
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  (pluginPackageDotJson as any).version = nextVersion;
-  // interestingly, the `require` calls above seem to resolve from a different starting point than `fs` does here, which
-  // is why we can't just use `pluginPackageDotJsonPath` again
-  fs.writeFileSync('./node_modules/@sentry/next-plugin-sentry/package.json', JSON.stringify(pluginPackageDotJson));
+  (pluginPackageJson as { version: string }).version = nextVersion!;
+  fs.writeFileSync(pluginPackageJsonPath!, JSON.stringify(pluginPackageJson));
 }
 
 type WebpackConfig = { devtool: string; plugins: Array<{ [key: string]: any }> };
