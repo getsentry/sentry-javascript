@@ -1,14 +1,14 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Measurements, SpanContext } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getGlobalObject, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, logger } from '@sentry/utils';
 
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
 import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
-import { getLCP } from './web-vitals/getLCP';
+import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
 import { getTTFB } from './web-vitals/getTTFB';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
@@ -20,6 +20,7 @@ export class MetricsInstrumentation {
   private _measurements: Measurements = {};
 
   private _performanceCursor: number = 0;
+  private _lcpEntry: LargestContentfulPaint | undefined;
 
   public constructor() {
     if (global && global.performance) {
@@ -170,6 +171,26 @@ export class MetricsInstrumentation {
       }
 
       transaction.setMeasurements(this._measurements);
+
+      if (this._lcpEntry) {
+        logger.log('[Measurements] Adding LCP Data');
+        // Capture Properties of the LCP element that contributes to the LCP.
+
+        if (this._lcpEntry.element) {
+          transaction.setTag('lcp.element', htmlTreeAsString(this._lcpEntry.element));
+        }
+
+        if (this._lcpEntry.id) {
+          transaction.setTag('lcp.id', this._lcpEntry.id);
+        }
+
+        if (this._lcpEntry.url) {
+          // Trim URL to the first 200 characters.
+          transaction.setTag('lcp.url', this._lcpEntry.url.trim().slice(0, 200));
+        }
+
+        transaction.setTag('lcp.size', this._lcpEntry.size);
+      }
     }
   }
 
@@ -241,6 +262,7 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding LCP');
       this._measurements['lcp'] = { value: metric.value };
       this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
+      this._lcpEntry = entry as LargestContentfulPaint;
     });
   }
 
