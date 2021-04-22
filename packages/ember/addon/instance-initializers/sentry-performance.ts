@@ -305,6 +305,12 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   }
   const measureName = '@sentry/ember:initial-load';
 
+  const startMarkExists = performance.getEntriesByName(startName).length > 0;
+  const endMarkExists = performance.getEntriesByName(endName).length > 0;
+  if (!startMarkExists || !endMarkExists) {
+    return;
+  }
+
   performance.measure(measureName, startName, endName);
   const measures = performance.getEntriesByName(measureName);
   const measure = measures[0];
