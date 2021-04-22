@@ -185,7 +185,8 @@ export class MetricsInstrumentation {
         }
 
         if (this._lcpEntry.url) {
-          transaction.setTag('lcp.url', this._lcpEntry.url);
+          // Trim URL to the first 200 characters.
+          transaction.setTag('lcp.url', this._lcpEntry.url.trim().slice(0, 200));
         }
 
         transaction.setTag('lcp.size', this._lcpEntry.size);
