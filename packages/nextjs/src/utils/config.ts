@@ -96,4 +96,8 @@ export function withSentryConfig(
   };
 }
 
-syncPluginVersionWithNextVersion();
+try {
+  syncPluginVersionWithNextVersion();
+} catch (error) {
+  logger.warn(`[next-plugin-sentry] Cannot sync plug-in and next versions. Plug-in may not work, versions must match`);
+}
