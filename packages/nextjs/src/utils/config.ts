@@ -77,7 +77,13 @@ export function withSentryConfig(
     experimental: { ...(providedExports.experimental || {}), plugins: true },
     plugins: [...(providedExports.plugins || []), '@sentry/next-plugin-sentry'],
     productionBrowserSourceMaps: true,
-    webpack: (config, options) => {
+    webpack: (originalConfig, options) => {
+      let config = originalConfig;
+
+      if (typeof providedExports.webpack === 'function') {
+        config = providedExports.webpack(originalConfig, options);
+      }
+
       if (!options.dev) {
         // Ensure quality source maps in production. (Source maps aren't uploaded in dev, and besides, Next doesn't let
         // you change this is dev even if you want to - see
@@ -92,10 +98,6 @@ export function withSentryConfig(
           ...providedWebpackPluginOptions,
         }),
       );
-
-      if (typeof providedExports.webpack === 'function') {
-        return providedExports.webpack(config, options);
-      }
 
       return config;
     },
