@@ -13,21 +13,28 @@ import * as path from 'path';
  *
  * @param startPath The location from which to start the search.
  * @param searchFile The file to search for
- * @returns The absolute path of the file, if it's found, or undefined if it's not.
+ * @returns The absolute path of the file, if it's found, or undefined if it's not
  */
 function findUp(startPath: string, searchFile: string): string | undefined {
   if (!fs.existsSync(startPath)) {
     throw new Error(`The given \`startPath\` value (${startPath}) does not exist.`);
   }
 
+  // if the last segment of `startPath` is a file, trim it off so that we start looking in its parent directory
   let currentDir = fs.statSync(startPath).isFile() ? path.dirname(startPath) : startPath;
-  while (currentDir !== '/') {
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
     const possiblePath = path.join(currentDir, searchFile);
     if (fs.existsSync(possiblePath)) {
       return possiblePath;
     }
 
-    currentDir = path.join(currentDir, '..');
+    const parentDir = path.resolve(currentDir, '..');
+    // this means we've gotten to the root
+    if (currentDir === parentDir) {
+      break;
+    }
+    currentDir = parentDir;
   }
 
   return undefined;
