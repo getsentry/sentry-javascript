@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.1
+
+- [angular] fix: Make SentryErrorHandler extensible and export it publicly (#3438)
+- [browser] feat: Capture information about the LCP element culprit (#3427)
+- [ember] fix: Add guards to ensure marks exist (#3436)
+- [nextjs] fix: Fix incomplete merging of user config with Sentry config (#3434)
+- [nextjs] ref: Use resolved paths for `require` calls in config code (#3426)
+- [node] fix: Fix for manual tests in node (#3428)
+- [transports] feat: Honor no_proxy env variable (#3412)
+
 ## 6.3.0
 
 - [browser] feat: Parse safari-extension and safari-web-extension errors (#3374)
