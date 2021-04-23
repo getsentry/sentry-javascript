@@ -22,7 +22,7 @@ export interface ErrorHandlerOptions {
  */
 @Injectable({ providedIn: 'root' })
 class SentryErrorHandler implements AngularErrorHandler {
-  private readonly _options: ErrorHandlerOptions;
+  protected readonly _options: ErrorHandlerOptions;
 
   public constructor(options?: ErrorHandlerOptions) {
     this._options = {
@@ -55,7 +55,7 @@ class SentryErrorHandler implements AngularErrorHandler {
   /**
    * Used to pull a desired value that will be used to capture an event out of the raw value captured by ErrorHandler.
    */
-  private _extractError(error: unknown): unknown {
+  protected _extractError(error: unknown): unknown {
     // Allow custom overrides of extracting function
     if (this._options.extractor) {
       const defaultExtractor = this._defaultExtractor.bind(this);
@@ -68,7 +68,7 @@ class SentryErrorHandler implements AngularErrorHandler {
   /**
    * Default implementation of error extraction that handles default error wrapping, HTTP responses, ErrorEvent and few other known cases.
    */
-  private _defaultExtractor(errorCandidate: unknown): unknown {
+  protected _defaultExtractor(errorCandidate: unknown): unknown {
     let error = errorCandidate;
 
     // Try to unwrap zone.js error.
@@ -115,4 +115,4 @@ function createErrorHandler(config?: ErrorHandlerOptions): SentryErrorHandler {
   return new SentryErrorHandler(config);
 }
 
-export { createErrorHandler };
+export { createErrorHandler, SentryErrorHandler };

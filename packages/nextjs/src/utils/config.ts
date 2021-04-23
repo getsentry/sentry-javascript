@@ -119,11 +119,18 @@ export function withSentryConfig(
   }
 
   return {
-    experimental: { plugins: true },
+    ...providedExports,
+    experimental: { ...(providedExports.experimental || {}), plugins: true },
     plugins: [...(providedExports.plugins || []), '@sentry/next-plugin-sentry'],
     productionBrowserSourceMaps: true,
-    webpack: (config, { dev }) => {
-      if (!dev) {
+    webpack: (originalConfig, options) => {
+      let config = originalConfig;
+
+      if (typeof providedExports.webpack === 'function') {
+        config = providedExports.webpack(originalConfig, options);
+      }
+
+      if (!options.dev) {
         // Ensure quality source maps in production. (Source maps aren't uploaded in dev, and besides, Next doesn't let
         // you change this is dev even if you want to - see
         // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md.)
@@ -132,14 +139,20 @@ export function withSentryConfig(
       config.plugins.push(
         // TODO it's not clear how to do this better, but there *must* be a better way
         new ((SentryWebpackPlugin as unknown) as typeof defaultWebpackPlugin)({
-          dryRun: dev,
+          dryRun: options.dev,
           ...defaultWebpackPluginOptions,
           ...providedWebpackPluginOptions,
         }),
       );
+
       return config;
     },
   };
 }
 
-syncPluginVersionWithNextVersion();
+try {
+  syncPluginVersionWithNextVersion();
+} catch (error) {
+  logger.warn(`[next-plugin-sentry] Cannot sync plug-in and next versions. Plug-in may not work, versions must match.`);
+  logger.warn('[next-plugin-sentry] A local project build should sync the versions, before deploying it.');
+}
