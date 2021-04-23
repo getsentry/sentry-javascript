@@ -8,6 +8,7 @@
 
 - [angular] fix: Make SentryErrorHandler extensible and export it publicly (#3438)
 - [browser] feat: Capture information about the LCP element culprit (#3427)
+- [core] fix: Correctly attach installed integrations to sdkinfo (#3447)
 - [ember] fix: Add guards to ensure marks exist (#3436)
 - [nextjs] fix: Fix incomplete merging of user config with Sentry config (#3434)
 - [nextjs] ref: Use resolved paths for `require` calls in config code (#3426)
