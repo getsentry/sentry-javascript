@@ -477,6 +477,15 @@ describe('BaseClient', () => {
       });
     });
 
+    test('adds installed integrations to sdk info', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
+      client.setupIntegrations();
+      client.captureEvent({ message: 'message' });
+      expect(TestBackend.instance!.event!.sdk).toEqual({
+        integrations: ['TestIntegration'],
+      });
+    });
+
     test('normalizes event with default depth of 3', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
