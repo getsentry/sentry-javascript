@@ -107,5 +107,6 @@ export function withSentryConfig(
 try {
   syncPluginVersionWithNextVersion();
 } catch (error) {
-  logger.warn(`[next-plugin-sentry] Cannot sync plug-in and next versions. Plug-in may not work, versions must match`);
+  logger.warn(`[next-plugin-sentry] Cannot sync plug-in and next versions. Plug-in may not work, versions must match.`);
+  logger.warn('[next-plugin-sentry] A local project build should sync the versions, before deploying it.');
 }
