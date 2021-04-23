@@ -434,10 +434,10 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param event The event that will be filled with all integrations.
    */
   protected _applyIntegrationsMetadata(event: Event): void {
-    const sdkInfo = event.sdk;
     const integrationsArray = Object.keys(this._integrations);
-    if (sdkInfo && integrationsArray.length > 0) {
-      sdkInfo.integrations = integrationsArray;
+    if (integrationsArray.length > 0) {
+      event.sdk = event.sdk || {};
+      event.sdk.integrations = [...(event.sdk.integrations || []), ...integrationsArray];
     }
   }
 

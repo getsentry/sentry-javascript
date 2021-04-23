@@ -1,8 +1,8 @@
 import { Package } from './package';
 
 export interface SdkInfo {
-  name: string;
-  version: string;
+  name?: string;
+  version?: string;
   integrations?: string[];
   packages?: Package[];
 }
