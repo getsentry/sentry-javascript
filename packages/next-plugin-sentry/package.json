@@ -13,11 +13,9 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@sentry/integrations": "6.3.1",
-    "@sentry/nextjs": "6.3.1"
-  },
   "devDependencies": {
+    "@sentry/integrations": "6.3.1",
+    "@sentry/nextjs": "6.3.1",
     "eslint": "7.20.0",
     "rimraf": "3.0.2"
   },
@@ -26,6 +24,8 @@
     "required-env": []
   },
   "peerDependencies": {
+    "@sentry/integrations": "^6.3.1",
+    "@sentry/nextjs": "^6.3.1",
     "next": "*"
   },
   "scripts": {
