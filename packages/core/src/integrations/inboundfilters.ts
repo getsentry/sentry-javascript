@@ -46,10 +46,10 @@ export class InboundFilters implements Integration {
       if (self) {
         const client = hub.getClient();
         const clientOptions = client ? client.getOptions() : {};
-        // This checks prevents most of the occurences of the bug linked below:
+        // This checks prevents most of the occurrences of the bug linked below:
         // https://github.com/getsentry/sentry-javascript/issues/2622
         // The bug is caused by multiple SDK instances, where one is minified and one is using non-mangled code.
-        // Unfortunatelly we cannot fix it reliably (thus reserved property in rollups terser config),
+        // Unfortunatelly we cannot fix it reliably (thus reserved property in rollup's terser config),
         // as we cannot force people using multiple instances in their apps to sync SDK versions.
         const options = typeof self._mergeOptions === 'function' ? self._mergeOptions(clientOptions) : {};
         if (typeof self._shouldDropEvent !== 'function') {

@@ -17,7 +17,7 @@ const terserInstance = terser({
     reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
     properties: {
       regex: /^_[^_]/,
-      // This exclusion prevents most of the occurences of the bug linked below:
+      // This exclusion prevents most of the occurrences of the bug linked below:
       // https://github.com/getsentry/sentry-javascript/issues/2622
       // The bug is caused by multiple SDK instances, where one is minified and one is using non-mangled code.
       // Unfortunatelly we cannot fix it reliably (thus `typeof` check in the `InboundFilters` code),
