@@ -13,6 +13,7 @@ export const withSentry = (handler: (req: NextApiRequest, res: NextApiResponse) 
     } catch (e) {
       captureException(e);
       await flush(2000);
+      throw e;
     }
   };
 };
