@@ -117,7 +117,7 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
     return transaction;
   }
 
-  logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
+  logger.log(`[Tracing] Starting ${transaction.op} transaction: ${transaction.name}.`);
   return transaction;
 }
 

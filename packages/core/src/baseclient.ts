@@ -202,7 +202,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public setupIntegrations(): void {
     if (this._isEnabled()) {
-      this._integrations = setupIntegrations(this._options);
+      this._integrations = setupIntegrations(this.getOptions());
     }
   }
 

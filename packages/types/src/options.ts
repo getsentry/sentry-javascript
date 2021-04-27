@@ -34,6 +34,11 @@ export interface Options {
   defaultIntegrations?: false | Integration[];
 
   /**
+   * If this is set to false, will not try to auto-discover installed integrations.
+   */
+  discoverIntegrations?: boolean;
+
+  /**
    * List of integrations that should be installed after SDK was initialized.
    * Accepts either a list of integrations or a function that receives
    * default integrations and returns a new, updated list.
@@ -124,6 +129,8 @@ export interface Options {
      * and provide additional data about every request.
      * */
     sdk?: SdkInfo;
+    defaultIntegrations?: Integration[];
+    discoveredIntegrations?: Integration[];
   };
 
   /**

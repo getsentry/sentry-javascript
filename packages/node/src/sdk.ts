@@ -1,5 +1,6 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import { Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -77,8 +78,14 @@ export const defaultIntegrations = [
  * @see {@link NodeOptions} for documentation on configuration options.
  */
 export function init(options: NodeOptions = {}): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
+  options._internal = options._internal || {};
+
+  // Both `defaultIntegrations` and `discoverIntegrations` should be `boolean`, but we are stuck with this type
+  // for backwards compatibility at the momement.
+  if (options.defaultIntegrations !== false) {
+    options._internal.defaultIntegrations = Array.isArray(options.defaultIntegrations)
+      ? options.defaultIntegrations
+      : defaultIntegrations;
   }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
