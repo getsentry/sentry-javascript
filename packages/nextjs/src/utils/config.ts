@@ -115,7 +115,7 @@ export function withSentryConfig(
     .map(key => key in Object.keys(providedWebpackPluginOptions));
   if (webpackPluginOptionOverrides.length > 0) {
     logger.warn(
-      '[next-plugin-sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
+      '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
         `\t${webpackPluginOptionOverrides.toString()},\n` +
         "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
     );
