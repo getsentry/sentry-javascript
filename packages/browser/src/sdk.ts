@@ -74,9 +74,16 @@ export const defaultIntegrations = [
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
 export function init(options: BrowserOptions = {}): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
+  options._internal = options._internal || {};
+
+  // Both `defaultIntegrations` and `discoverIntegrations` should be `boolean`, but we are stuck with this type
+  // for backwards compatibility at the momement.
+  if (options.defaultIntegrations !== false) {
+    options._internal.defaultIntegrations = Array.isArray(options.defaultIntegrations)
+      ? options.defaultIntegrations
+      : defaultIntegrations;
   }
+
   if (options.release === undefined) {
     const window = getGlobalObject<Window>();
     // This supports the variable that sentry-webpack-plugin injects
