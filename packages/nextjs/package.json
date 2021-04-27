@@ -19,7 +19,6 @@
   "dependencies": {
     "@sentry/core": "6.3.1",
     "@sentry/integrations": "6.3.1",
-    "@sentry/next-plugin-sentry": "6.3.1",
     "@sentry/node": "6.3.1",
     "@sentry/react": "6.3.1",
     "@sentry/utils": "6.3.1",
