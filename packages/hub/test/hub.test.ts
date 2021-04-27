@@ -1,41 +1,39 @@
-import { Event } from '@sentry/types';
+import { Client, Event } from '@sentry/types';
 
 import { getCurrentHub, Hub, Scope } from '../src';
-
-const clientFn: any = jest.fn();
+import { TestClient } from './mocks/client';
 
 describe('Hub', () => {
+  let client: Client;
+
+  beforeEach(() => {
+    client = new TestClient();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
     jest.useRealTimers();
   });
 
   test('call bindClient with provided client when constructing new instance', () => {
-    const testClient: any = { setupIntegrations: jest.fn() };
+    const testClient = new TestClient();
     const spy = jest.spyOn(Hub.prototype, 'bindClient');
     new Hub(testClient);
     expect(spy).toHaveBeenCalledWith(testClient);
   });
 
   test('push process into stack', () => {
-    const hub = new Hub();
+    const hub = new Hub(client);
     expect(hub.getStack()).toHaveLength(1);
   });
 
   test('pass in filled layer', () => {
-    const hub = new Hub(clientFn);
+    const hub = new Hub(client);
     expect(hub.getStack()).toHaveLength(1);
   });
 
-  test("don't invoke client sync with wrong func", () => {
-    const hub = new Hub(clientFn);
-    // @ts-ignore we want to able to call private method
-    hub._invokeClient('funca', true);
-    expect(clientFn).not.toHaveBeenCalled();
-  });
-
   test('isOlderThan', () => {
-    const hub = new Hub();
+    const hub = new Hub(client);
     expect(hub.isOlderThan(0)).toBeFalsy();
   });
 
@@ -51,7 +49,7 @@ describe('Hub', () => {
     });
 
     test('inherit client', () => {
-      const testClient: any = { bla: 'a' };
+      const testClient = new TestClient();
       const hub = new Hub(testClient);
       hub.pushScope();
       expect(hub.getStack()).toHaveLength(2);
@@ -60,8 +58,8 @@ describe('Hub', () => {
 
     describe('bindClient', () => {
       test('should override curent client', () => {
-        const testClient: any = { setupIntegrations: jest.fn() };
-        const nextClient: any = { setupIntegrations: jest.fn() };
+        const testClient = new TestClient();
+        const nextClient = new TestClient();
         const hub = new Hub(testClient);
         hub.bindClient(nextClient);
         expect(hub.getStack()).toHaveLength(1);
@@ -69,8 +67,8 @@ describe('Hub', () => {
       });
 
       test('should bind client to the top-most layer', () => {
-        const testClient: any = { bla: 'a' };
-        const nextClient: any = { foo: 'bar' };
+        const testClient = new TestClient();
+        const nextClient = new TestClient();
         const hub = new Hub(testClient);
         hub.pushScope();
         hub.bindClient(nextClient);
@@ -80,8 +78,8 @@ describe('Hub', () => {
       });
 
       test('should call setupIntegration method of passed client', () => {
-        const testClient: any = { setupIntegrations: jest.fn() };
-        const nextClient: any = { setupIntegrations: jest.fn() };
+        const testClient = new TestClient();
+        const nextClient = new TestClient();
         const hub = new Hub(testClient);
         hub.bindClient(nextClient);
         expect(testClient.setupIntegrations).toHaveBeenCalled();
@@ -96,7 +94,7 @@ describe('Hub', () => {
       };
       const localScope = new Scope();
       localScope.setExtra('a', 'b');
-      const hub = new Hub({ a: 'b' } as any, localScope);
+      const hub = new Hub(client, localScope);
 
       localScope.addEventProcessor(async (processedEvent: Event) => {
         processedEvent.dist = '1';
@@ -113,7 +111,7 @@ describe('Hub', () => {
   });
 
   test('popScope', () => {
-    const hub = new Hub();
+    const hub = new Hub(client);
     hub.pushScope();
     expect(hub.getStack()).toHaveLength(2);
     hub.popScope();
@@ -122,7 +120,7 @@ describe('Hub', () => {
 
   describe('withScope', () => {
     test('simple', () => {
-      const hub = new Hub();
+      const hub = new Hub(client);
       hub.withScope(() => {
         expect(hub.getStack()).toHaveLength(2);
       });
@@ -130,8 +128,8 @@ describe('Hub', () => {
     });
 
     test('bindClient', () => {
-      const hub = new Hub();
-      const testClient: any = { bla: 'a' };
+      const hub = new Hub(client);
+      const testClient = new TestClient();
       hub.withScope(() => {
         hub.bindClient(testClient);
         expect(hub.getStack()).toHaveLength(2);
@@ -142,31 +140,30 @@ describe('Hub', () => {
   });
 
   test('getCurrentClient', () => {
-    const testClient: any = { bla: 'a' };
+    const testClient = new TestClient();
     const hub = new Hub(testClient);
     expect(hub.getClient()).toBe(testClient);
   });
 
   test('getStack', () => {
-    const client: any = { a: 'b' };
     const hub = new Hub(client);
     expect(hub.getStack()[0].client).toBe(client);
   });
 
   test('getStackTop', () => {
-    const testClient: any = { bla: 'a' };
-    const hub = new Hub();
+    const testClient = new TestClient();
+    const hub = new Hub(client);
     hub.pushScope();
     hub.pushScope();
     hub.bindClient(testClient);
-    expect(hub.getStackTop().client).toEqual({ bla: 'a' });
+    expect(hub.getStackTop().client).toEqual(testClient);
   });
 
   describe('configureScope', () => {
     test('should have an access to provide scope', () => {
       const localScope = new Scope();
       localScope.setExtra('a', 'b');
-      const hub = new Hub({} as any, localScope);
+      const hub = new Hub(client, localScope);
       const cb = jest.fn();
       hub.configureScope(cb);
       expect(cb).toHaveBeenCalledWith(localScope);
@@ -182,7 +179,7 @@ describe('Hub', () => {
 
   describe('captureException', () => {
     test('simple', () => {
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureException('a');
       expect(spy).toHaveBeenCalled();
@@ -191,7 +188,7 @@ describe('Hub', () => {
     });
 
     test('should set event_id in hint', () => {
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureException('a');
       // @ts-ignore Says mock object is type unknown
@@ -199,7 +196,7 @@ describe('Hub', () => {
     });
 
     test('should generate hint if not provided in the call', () => {
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       const ex = new Error('foo');
       hub.captureException(ex);
@@ -214,7 +211,7 @@ describe('Hub', () => {
 
   describe('captureMessage', () => {
     test('simple', () => {
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureMessage('a');
       expect(spy).toHaveBeenCalled();
@@ -223,7 +220,7 @@ describe('Hub', () => {
     });
 
     test('should set event_id in hint', () => {
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureMessage('a');
       // @ts-ignore Says mock object is type unknown
@@ -231,7 +228,7 @@ describe('Hub', () => {
     });
 
     test('should generate hint if not provided in the call', () => {
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureMessage('foo');
       // @ts-ignore Says mock object is type unknown
@@ -248,7 +245,7 @@ describe('Hub', () => {
       const event: Event = {
         extra: { b: 3 },
       };
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureEvent(event);
       expect(spy).toHaveBeenCalled();
@@ -260,7 +257,7 @@ describe('Hub', () => {
       const event: Event = {
         extra: { b: 3 },
       };
-      const hub = new Hub();
+      const hub = new Hub(client);
       const spy = jest.spyOn(hub as any, '_invokeClient');
       hub.captureEvent(event);
       // @ts-ignore Says mock object is type unknown
@@ -272,7 +269,7 @@ describe('Hub', () => {
     const event: Event = {
       extra: { b: 3 },
     };
-    const hub = new Hub();
+    const hub = new Hub(client);
     const eventId = hub.captureEvent(event);
     expect(eventId).toBe(hub.lastEventId());
   });
@@ -280,12 +277,11 @@ describe('Hub', () => {
   test('run', () => {
     const currentHub = getCurrentHub();
     const myScope = new Scope();
-    const myClient: any = { a: 'b' };
     myScope.setExtra('a', 'b');
-    const myHub = new Hub(myClient, myScope);
+    const myHub = new Hub(client, myScope);
     myHub.run(hub => {
       expect(hub.getScope()).toBe(myScope);
-      expect(hub.getClient()).toBe(myClient);
+      expect(hub.getClient()).toBe(client);
       expect(hub).toBe(getCurrentHub());
     });
     expect(currentHub).toBe(getCurrentHub());
@@ -294,7 +290,7 @@ describe('Hub', () => {
   describe('breadcrumbs', () => {
     test('withScope', () => {
       expect.assertions(6);
-      const hub = new Hub(clientFn);
+      const hub = new Hub(client);
       hub.addBreadcrumb({ message: 'My Breadcrumb' });
       hub.withScope(scope => {
         scope.addBreadcrumb({ message: 'scope breadcrumb' });
