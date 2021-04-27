@@ -27,3 +27,4 @@ export function init(options: NextjsOptions): void {
 }
 
 export { withSentryConfig } from './utils/config';
+export { withSentry } from './utils/handlers';
