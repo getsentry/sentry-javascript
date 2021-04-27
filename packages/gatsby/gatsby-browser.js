@@ -6,8 +6,8 @@ exports.onClientEntry = function(_, pluginParams) {
     return;
   }
 
-  pluginParams._metadata = pluginParams._metadata || {};
-  pluginParams._metadata.sdk = {
+  pluginParams._internal = pluginParams._internal || {};
+  pluginParams._internal.sdk = {
     name: 'sentry.javascript.gatsby',
     packages: [
       {

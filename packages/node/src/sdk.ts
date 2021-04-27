@@ -1,8 +1,10 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { dynamicRequire, dynamicResolve, getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
+import { cwd } from 'process';
+import * as readPkgUp from 'read-pkg-up';
 
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
@@ -88,6 +90,10 @@ export function init(options: NodeOptions = {}): void {
       : defaultIntegrations;
   }
 
+  if (options.discoverIntegrations) {
+    options._internal.discoveredIntegrations = discoverIntegrations();
+  }
+
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
     options.dsn = process.env.SENTRY_DSN;
   }
@@ -116,6 +122,32 @@ export function init(options: NodeOptions = {}): void {
   }
 
   initAndBind(NodeClient, options);
+}
+
+/**
+ * Auto-discover integrations based on package.json entries
+ */
+function discoverIntegrations(): Integration[] {
+  const pkg = readPkgUp.sync();
+
+  if (!pkg) {
+    return [];
+  }
+
+  return Object.keys({
+    ...pkg.packageJson.dependencies,
+    ...pkg.packageJson.devDependencies,
+  })
+    .filter(name => {
+      return /^@sentry\/integration-(common|node)-[a-z]/.test(name);
+    })
+    .map(name => {
+      const mod = dynamicRequire(module, dynamicResolve(module, name, { paths: [cwd()] }));
+      return Object.values(mod) as { new (): Integration }[];
+    })
+    .reduce((acc, integrations) => {
+      return acc.concat(integrations.map(Integration => new Integration()));
+    }, [] as Integration[]);
 }
 
 /**
