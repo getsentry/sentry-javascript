@@ -32,7 +32,6 @@
   },
   "dependencies": {
     "@embroider/macros": ">=0.25.0",
-    "@embroider/test-setup": "^0.35.1",
     "@sentry/browser": "6.3.1",
     "@sentry/tracing": "6.3.1",
     "@sentry/types": "6.3.1",
@@ -44,7 +43,7 @@
   },
   "devDependencies": {
     "@ember/optional-features": "^1.3.0",
-    "@embroider/compat": "^0.35.1",
+    "@embroider/test-setup": "^0.35.1",
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
     "@sentry-internal/eslint-config-sdk": "6.3.1",
