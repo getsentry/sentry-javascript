@@ -4,8 +4,8 @@ import { BrowserOptions, init as browserInit, SDK_VERSION } from '@sentry/browse
  * Inits the React SDK
  */
 export function init(options: BrowserOptions): void {
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = options._metadata.sdk || {
+  options._internal = options._internal || {};
+  options._internal.sdk = options._internal.sdk || {
     name: 'sentry.javascript.react',
     packages: [
       {

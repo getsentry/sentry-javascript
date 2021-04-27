@@ -3,11 +3,11 @@ import { Event, SdkInfo, SentryRequest, Session } from '@sentry/types';
 import { API } from './api';
 
 /** Extract sdk info from from the API metadata */
-function getSdkMetadataForEnvelopeHeader(api: API): SdkInfo | undefined {
-  if (!api.metadata || !api.metadata.sdk) {
+function getSdkInfoForEnvelopeHeader(api: API): SdkInfo | undefined {
+  if (!api.sdkInfo) {
     return;
   }
-  const { name, version } = api.metadata.sdk;
+  const { name, version } = api.sdkInfo;
   return { name, version };
 }
 
@@ -29,7 +29,7 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 
 /** Creates a SentryRequest from a Session. */
 export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
+  const sdkInfo = getSdkInfoForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
@@ -47,7 +47,7 @@ export function sessionToSentryRequest(session: Session, api: API): SentryReques
 
 /** Creates a SentryRequest from an event. */
 export function eventToSentryRequest(event: Event, api: API): SentryRequest {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
+  const sdkInfo = getSdkInfoForEnvelopeHeader(api);
   const eventType = event.type || 'event';
   const useEnvelope = eventType === 'transaction';
 
@@ -60,7 +60,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   }
 
   const req: SentryRequest = {
-    body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, api.metadata.sdk) : event),
+    body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, sdkInfo) : event),
     type: eventType,
     url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
   };

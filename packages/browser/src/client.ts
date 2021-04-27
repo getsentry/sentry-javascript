@@ -19,8 +19,8 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserOptions = {}) {
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
+    options._internal = options._internal || {};
+    options._internal.sdk = options._internal.sdk || {
       name: 'sentry.javascript.browser',
       packages: [
         {

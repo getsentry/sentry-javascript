@@ -34,7 +34,7 @@ export abstract class BaseTransport implements Transport {
   protected readonly _rateLimits: Record<string, Date> = {};
 
   public constructor(public options: TransportOptions) {
-    this._api = new API(options.dsn, options._metadata);
+    this._api = new API(options.dsn, options._sdk);
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
   }

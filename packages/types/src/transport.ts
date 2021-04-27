@@ -1,7 +1,7 @@
 import { DsnLike } from './dsn';
 import { Event } from './event';
 import { Response } from './response';
-import { SdkMetadata } from './sdkmetadata';
+import { SdkInfo } from './sdkinfo';
 import { Session } from './session';
 
 /** Transport used sending data to Sentry */
@@ -49,5 +49,5 @@ export interface TransportOptions {
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
    * */
-  _metadata?: SdkMetadata;
+  _sdk?: SdkInfo;
 }

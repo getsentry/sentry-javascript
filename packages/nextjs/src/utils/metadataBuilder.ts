@@ -1,5 +1,5 @@
 import { SDK_VERSION } from '@sentry/core';
-import { Package, SdkInfo } from '@sentry/types';
+import { Package } from '@sentry/types';
 
 import { NextjsOptions } from './nextjsOptions';
 
@@ -18,13 +18,9 @@ export class MetadataBuilder {
     this._packageNames = packages;
   }
 
-  public addSdkMetadata(): void {
-    this._options._metadata = this._options._metadata || {};
-    this._options._metadata.sdk = this._getSdkInfo();
-  }
-
-  private _getSdkInfo(): SdkInfo {
-    return {
+  public addSdkInfo(): void {
+    this._options._internal = this._options._internal || {};
+    this._options._internal.sdk = {
       name: SDK_NAME,
       version: SDK_VERSION,
       packages: this._getPackages(),
