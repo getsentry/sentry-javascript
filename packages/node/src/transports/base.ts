@@ -53,7 +53,7 @@ export abstract class BaseTransport implements Transport {
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
-    this._api = new API(options.dsn, options._metadata);
+    this._api = new API(options.dsn, options._sdk);
   }
 
   /**

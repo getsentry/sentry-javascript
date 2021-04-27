@@ -19,8 +19,8 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
 
   const initConfig = Object.assign({}, config.sentry, _runtimeConfig || {});
 
-  initConfig._metadata = initConfig._metadata || {};
-  initConfig._metadata.sdk = {
+  initConfig._internal = initConfig._internal || {};
+  initConfig._internal.sdk = {
     name: 'sentry.javascript.ember',
     packages: [
       {
@@ -71,7 +71,12 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
   return {
     [BaseRoute.name]: class extends BaseRoute {
       beforeModel(...args: any[]) {
-        return instrumentFunction('ember.route.beforeModel', (<any>this).fullRouteName, super.beforeModel.bind(this), args);
+        return instrumentFunction(
+          'ember.route.beforeModel',
+          (<any>this).fullRouteName,
+          super.beforeModel.bind(this),
+          args,
+        );
       }
 
       async model(...args: any[]) {
@@ -79,7 +84,12 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
       }
 
       async afterModel(...args: any[]) {
-        return instrumentFunction('ember.route.afterModel', (<any>this).fullRouteName, super.afterModel.bind(this), args);
+        return instrumentFunction(
+          'ember.route.afterModel',
+          (<any>this).fullRouteName,
+          super.afterModel.bind(this),
+          args,
+        );
       }
 
       async setupController(...args: any[]) {

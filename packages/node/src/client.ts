@@ -15,8 +15,8 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: NodeOptions) {
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
+    options._internal = options._internal || {};
+    options._internal.sdk = options._internal.sdk || {
       name: 'sentry.javascript.node',
       packages: [
         {

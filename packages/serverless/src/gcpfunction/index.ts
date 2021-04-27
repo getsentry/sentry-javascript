@@ -23,8 +23,8 @@ export function init(options: Sentry.NodeOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
 
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
+  options._internal = options._internal || {};
+  options._internal.sdk = {
     name: 'sentry.javascript.serverless',
     integrations: ['GCPFunction'],
     packages: [
