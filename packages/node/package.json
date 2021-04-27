@@ -24,6 +24,7 @@
     "cookie": "^0.4.1",
     "https-proxy-agent": "^5.0.0",
     "lru_map": "^0.3.3",
+    "read-pkg-up": "^7.0.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
