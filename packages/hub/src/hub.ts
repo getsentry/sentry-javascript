@@ -69,7 +69,9 @@ export class Hub implements HubInterface {
    */
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
     this.getStackTop().scope = scope;
-    this.bindClient(client);
+    if (client) {
+      this.bindClient(client);
+    }
   }
 
   /**
@@ -82,12 +84,10 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public bindClient(client?: Client): void {
+  public bindClient(client: Client): void {
     const top = this.getStackTop();
     top.client = client;
-    if (client && client.setupIntegrations) {
-      client.setupIntegrations();
-    }
+    client.setupIntegrations();
   }
 
   /**
