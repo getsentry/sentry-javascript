@@ -28,6 +28,7 @@
     "packages/gatsby",
     "packages/hub",
     "packages/integrations",
+    "packages/integration-node-mongodb",
     "packages/minimal",
     "packages/nextjs",
     "packages/next-plugin-sentry",
