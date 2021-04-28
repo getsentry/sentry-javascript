@@ -16,7 +16,7 @@ type WebpackExport = (config: WebpackConfig, options: WebpackOptions) => Webpack
 
 // The two arguments passed to the exported `webpack` function, as well as the thing it returns
 type WebpackConfig = { devtool: string; plugins: PlainObject[]; entry: EntryProperty };
-type WebpackOptions = { dev: boolean; isServer: boolean };
+type WebpackOptions = { dev: boolean; isServer: boolean; buildId: string };
 
 // For our purposes, the value for `entry` is either an object, or a function which returns such an object
 type EntryProperty = (() => Promise<EntryPropertyObject>) | EntryPropertyObject;
@@ -97,7 +97,6 @@ export function withSentryConfig(
   providedWebpackPluginOptions: Partial<SentryCliPluginOptions> = {},
 ): NextConfigExports {
   const defaultWebpackPluginOptions = {
-    release: getSentryRelease(),
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
@@ -148,6 +147,7 @@ export function withSentryConfig(
       // TODO it's not clear how to do this better, but there *must* be a better way
       new ((SentryWebpackPlugin as unknown) as typeof defaultWebpackPlugin)({
         dryRun: options.dev,
+        release: getSentryRelease(options.buildId),
         ...defaultWebpackPluginOptions,
         ...providedWebpackPluginOptions,
       }),
