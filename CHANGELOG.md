@@ -6,7 +6,7 @@
 
 ## 6.3.3
 
-- [nextjs] fix: User server types #3471
+- [nextjs] fix: User server types (#3471)
 
 ## 6.3.2
 
