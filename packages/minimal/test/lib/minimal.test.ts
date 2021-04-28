@@ -15,49 +15,83 @@ import {
   setUser,
   withScope,
 } from '../../src';
-import { init, TestClient, TestClient2 } from '../mocks/client';
+import { TestClient } from '../mocks/client';
 
 // eslint-disable-next-line no-var
 declare var global: any;
 
 describe('Minimal', () => {
+  let client: TestClient;
+
   beforeEach(() => {
+    client = new TestClient();
     global.__SENTRY__ = {
       hub: undefined,
     };
   });
 
-  describe('Capture', () => {
-    test('Return an event_id', () => {
-      const client: any = {
-        captureException: jest.fn(async () => Promise.resolve()),
-      };
+  test('works with custom carriers', () => {
+    const iAmSomeGlobalVarTheUserHasToManage = {
+      state: {},
+    };
+    const hub = getHubFromCarrier(iAmSomeGlobalVarTheUserHasToManage.state);
+    hub.pushScope();
+    hub.bindClient(client);
+    hub.configureScope((scope: Scope) => {
+      scope.setUser({ id: '1234' });
+    });
+    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub._stack[1].scope._user).toEqual({
+      id: '1234',
+    });
+    hub.popScope();
+    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub._stack[1]).toBeUndefined();
+  });
+
+  describe('bindClient', () => {
+    test('bindClient returns undefined before binding a client', () => {
+      expect(getCurrentHub().getClient()).toBeUndefined();
+    });
+
+    test('bindClient returns the bound client', () => {
+      getCurrentHub().bindClient(client);
+      expect(getCurrentHub().getClient()).toBe(client);
+    });
+  });
+
+  describe('client methods', () => {
+    beforeEach(() => {
+      getCurrentHub().bindClient(client);
+    });
+
+    test('calls function on the client', done => {
+      const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
       getCurrentHub().withScope(() => {
         getCurrentHub().bindClient(client);
+        _callOnClient('mySecretPublicMethod', 'test');
+        expect(s.mock.calls[0][0]).toBe('test');
+        s.mockRestore();
+        done();
+      });
+    });
+
+    test('captureException returns an event_id', () => {
+      getCurrentHub().withScope(() => {
         const e = new Error('test exception');
         const eventId = captureException(e);
         expect(eventId).toBeTruthy();
       });
     });
 
-    test('Exception', () => {
-      const client: any = {
-        captureException: jest.fn(async () => Promise.resolve()),
-      };
+    test('captureException', () => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(client);
         const e = new Error('test exception');
         captureException(e);
         expect(client.captureException.mock.calls[0][0]).toBe(e);
       });
     });
 
-    test('Exception with explicit scope', () => {
-      const client: any = {
-        captureException: jest.fn(async () => Promise.resolve()),
-      };
+    test('captureException with explicit scope', () => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(client);
         const e = new Error('test exception');
         const captureContext = { extra: { foo: 'wat' } };
         captureException(e, captureContext);
@@ -66,20 +100,16 @@ describe('Minimal', () => {
       });
     });
 
-    test('Message', () => {
-      const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
+    test('captureMessage', () => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(client);
         const message = 'yo';
         captureMessage(message);
         expect(client.captureMessage.mock.calls[0][0]).toBe(message);
       });
     });
 
-    test('Message with explicit scope', () => {
-      const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
+    test('captureMessage with explicit scope', () => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(client);
         const message = 'yo';
         const captureContext = { extra: { foo: 'wat' } };
         captureMessage(message, captureContext);
@@ -91,10 +121,8 @@ describe('Minimal', () => {
     });
 
     // NOTE: We left custom level as 2nd argument to not break the API. Should be removed and unified in v6.
-    test('Message with custom level', () => {
-      const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
+    test('captureMessage with custom level', () => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(client);
         const message = 'yo';
         const level = Severity.Warning;
         captureMessage(message, level);
@@ -103,10 +131,8 @@ describe('Minimal', () => {
       });
     });
 
-    test('Event', () => {
-      const client: any = { captureEvent: jest.fn(async () => Promise.resolve()) };
+    test('captureEvent', () => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(client);
         const e = { message: 'test' };
         captureEvent(e);
         expect(client.captureEvent.mock.calls[0][0]).toBe(e);
@@ -114,192 +140,124 @@ describe('Minimal', () => {
     });
   });
 
-  describe('configureScope', () => {
-    test('User Context', () => {
-      const client: any = new TestClient({});
-      getCurrentHub().pushScope();
+  describe('scope methods', () => {
+    beforeEach(() => {
       getCurrentHub().bindClient(client);
-      configureScope((scope: Scope) => {
-        scope.setUser({ id: '1234' });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
-        id: '1234',
-      });
-      getCurrentHub().popScope();
     });
 
-    test('Extra Context', () => {
-      const client: any = new TestClient({});
-      getCurrentHub().pushScope();
-      getCurrentHub().bindClient(client);
-      configureScope((scope: Scope) => {
-        scope.setExtra('id', '1234');
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
-        id: '1234',
-      });
-      getCurrentHub().popScope();
-    });
-
-    test('Tags Context', () => {
-      init({});
-      configureScope((scope: Scope) => {
-        scope.setTag('id', '1234');
-      });
-      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
-        id: '1234',
-      });
-    });
-
-    test('Fingerprint', () => {
-      const client: any = new TestClient({});
-      getCurrentHub().pushScope();
-      getCurrentHub().bindClient(client);
-      configureScope((scope: Scope) => {
-        scope.setFingerprint(['abcd']);
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['abcd']);
-    });
-
-    test('Level', () => {
-      const client: any = new TestClient({});
-      const scope = getCurrentHub().pushScope();
-      getCurrentHub().bindClient(client);
-      scope.setLevel(Severity.Warning);
-      expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
-    });
-  });
-
-  test('Clear Scope', () => {
-    const client: any = new TestClient({});
-    getCurrentHub().withScope(() => {
-      getCurrentHub().bindClient(client);
-      expect(global.__SENTRY__.hub._stack.length).toBe(2);
-      configureScope((scope: Scope) => {
-        scope.setUser({ id: '1234' });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
-        id: '1234',
-      });
-      configureScope((scope: Scope) => {
-        scope.clear();
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({});
-    });
-  });
-
-  test('returns undefined before binding a client', () => {
-    expect(getCurrentHub().getClient()).toBeUndefined();
-  });
-
-  test('returns the bound client', () => {
-    init({});
-    expect(getCurrentHub().getClient()).toBe(TestClient.instance);
-  });
-
-  test('Calls function on the client', done => {
-    const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
-    getCurrentHub().withScope(() => {
-      getCurrentHub().bindClient(new TestClient({}) as any);
-      _callOnClient('mySecretPublicMethod', 'test');
-      expect(s.mock.calls[0][0]).toBe('test');
-      s.mockRestore();
-      done();
-    });
-  });
-
-  test('does not throw an error when pushing different clients', () => {
-    init({});
-    expect(() => {
-      getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(new TestClient2() as any);
-      });
-    }).not.toThrow();
-  });
-
-  test('does not throw an error when pushing same clients', () => {
-    init({});
-    expect(() => {
-      getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(new TestClient({}) as any);
-      });
-    }).not.toThrow();
-  });
-
-  test('custom carrier', () => {
-    const iAmSomeGlobalVarTheUserHasToManage = {
-      state: {},
-    };
-    const hub = getHubFromCarrier(iAmSomeGlobalVarTheUserHasToManage.state);
-    hub.pushScope();
-    hub.bindClient(new TestClient({}) as any);
-    hub.configureScope((scope: Scope) => {
-      scope.setUser({ id: '1234' });
-    });
-    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub._stack[1].scope._user).toEqual({
-      id: '1234',
-    });
-    hub.popScope();
-    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub._stack[1]).toBeUndefined();
-  });
-
-  test('withScope', () => {
-    withScope(scope => {
-      scope.setLevel(Severity.Warning);
-      scope.setFingerprint(['1']);
-      withScope(scope2 => {
-        scope2.setLevel(Severity.Info);
-        scope2.setFingerprint(['2']);
-        withScope(scope3 => {
-          scope3.clear();
-          expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
-          expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['1']);
-          expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual(Severity.Info);
-          expect(global.__SENTRY__.hub._stack[2].scope._fingerprint).toEqual(['2']);
-          expect(global.__SENTRY__.hub._stack[3].scope._level).toBeUndefined();
+    describe('configureScope', () => {
+      test('setUser', () => {
+        getCurrentHub().pushScope();
+        configureScope((scope: Scope) => {
+          scope.setUser({ id: '1234' });
         });
-        expect(global.__SENTRY__.hub._stack).toHaveLength(3);
+        expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+          id: '1234',
+        });
+        getCurrentHub().popScope();
       });
-      expect(global.__SENTRY__.hub._stack).toHaveLength(2);
+
+      test('setExtra', () => {
+        getCurrentHub().pushScope();
+        configureScope((scope: Scope) => {
+          scope.setExtra('id', '1234');
+        });
+        expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+          id: '1234',
+        });
+        getCurrentHub().popScope();
+      });
+
+      test('setTag', () => {
+        configureScope((scope: Scope) => {
+          scope.setTag('id', '1234');
+        });
+        expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
+          id: '1234',
+        });
+      });
+
+      test('setFingerprint', () => {
+        getCurrentHub().pushScope();
+        configureScope((scope: Scope) => {
+          scope.setFingerprint(['abcd']);
+        });
+        expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['abcd']);
+      });
+
+      test('setLevel', () => {
+        const scope = getCurrentHub().pushScope();
+        scope.setLevel(Severity.Warning);
+        expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
+      });
     });
-    expect(global.__SENTRY__.hub._stack).toHaveLength(1);
-  });
 
-  test('setExtras', () => {
-    init({});
-    setExtras({ a: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
-  });
+    test('withScope', () => {
+      withScope(scope => {
+        scope.setLevel(Severity.Warning);
+        scope.setFingerprint(['1']);
+        withScope(scope2 => {
+          scope2.setLevel(Severity.Info);
+          scope2.setFingerprint(['2']);
+          withScope(scope3 => {
+            scope3.clear();
+            expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
+            expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['1']);
+            expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual(Severity.Info);
+            expect(global.__SENTRY__.hub._stack[2].scope._fingerprint).toEqual(['2']);
+            expect(global.__SENTRY__.hub._stack[3].scope._level).toBeUndefined();
+          });
+          expect(global.__SENTRY__.hub._stack).toHaveLength(3);
+        });
+        expect(global.__SENTRY__.hub._stack).toHaveLength(2);
+      });
+      expect(global.__SENTRY__.hub._stack).toHaveLength(1);
+    });
 
-  test('setTags', () => {
-    init({});
-    setTags({ a: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
-  });
+    test('clear', () => {
+      getCurrentHub().withScope(() => {
+        expect(global.__SENTRY__.hub._stack.length).toBe(2);
+        configureScope((scope: Scope) => {
+          scope.setUser({ id: '1234' });
+        });
+        expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+          id: '1234',
+        });
+        configureScope((scope: Scope) => {
+          scope.clear();
+        });
+        expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({});
+      });
+    });
 
-  test('setExtra', () => {
-    init({});
-    setExtra('a', 'b');
-    // prettier-ignore
-    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ 'a': 'b' });
-  });
+    test('setExtras', () => {
+      setExtras({ a: 'b' });
+      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
+    });
 
-  test('setTag', () => {
-    init({});
-    setTag('a', 'b');
-    // prettier-ignore
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ 'a': 'b' });
-  });
+    test('setTags', () => {
+      setTags({ a: 'b' });
+      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    });
 
-  test('setUser', () => {
-    init({});
-    setUser({ id: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({ id: 'b' });
-  });
+    test('setExtra', () => {
+      setExtra('a', 'b');
+      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
+    });
 
-  test('setContext', () => {
-    init({});
-    setContext('test', { id: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._contexts).toEqual({ test: { id: 'b' } });
+    test('setTag', () => {
+      setTag('a', 'b');
+      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    });
+
+    test('setUser', () => {
+      setUser({ id: 'b' });
+      expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({ id: 'b' });
+    });
+
+    test('setContext', () => {
+      setContext('test', { id: 'b' });
+      expect(global.__SENTRY__.hub._stack[0].scope._contexts).toEqual({ test: { id: 'b' } });
+    });
   });
 });

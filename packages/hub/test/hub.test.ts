@@ -16,10 +16,9 @@ describe('Hub', () => {
   });
 
   test('call bindClient with provided client when constructing new instance', () => {
-    const testClient = new TestClient();
     const spy = jest.spyOn(Hub.prototype, 'bindClient');
-    new Hub(testClient);
-    expect(spy).toHaveBeenCalledWith(testClient);
+    new Hub(client);
+    expect(spy).toHaveBeenCalledWith(client);
   });
 
   test('push process into stack', () => {
@@ -49,40 +48,37 @@ describe('Hub', () => {
     });
 
     test('inherit client', () => {
-      const testClient = new TestClient();
-      const hub = new Hub(testClient);
+      const hub = new Hub(client);
       hub.pushScope();
       expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[1].client).toBe(testClient);
+      expect(hub.getStack()[1].client).toBe(client);
     });
 
     describe('bindClient', () => {
       test('should override curent client', () => {
-        const testClient = new TestClient();
         const nextClient = new TestClient();
-        const hub = new Hub(testClient);
+        const hub = new Hub(client);
         hub.bindClient(nextClient);
         expect(hub.getStack()).toHaveLength(1);
         expect(hub.getStack()[0].client).toBe(nextClient);
       });
 
       test('should bind client to the top-most layer', () => {
-        const testClient = new TestClient();
         const nextClient = new TestClient();
-        const hub = new Hub(testClient);
+        const hub = new Hub(client);
         hub.pushScope();
         hub.bindClient(nextClient);
         expect(hub.getStack()).toHaveLength(2);
-        expect(hub.getStack()[0].client).toBe(testClient);
+        expect(hub.getStack()[0].client).toBe(client);
         expect(hub.getStack()[1].client).toBe(nextClient);
       });
 
       test('should call setupIntegration method of passed client', () => {
-        const testClient = new TestClient();
         const nextClient = new TestClient();
-        const hub = new Hub(testClient);
+        const hub = new Hub(client);
         hub.bindClient(nextClient);
-        expect(testClient.setupIntegrations).toHaveBeenCalled();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(client.setupIntegrations).toHaveBeenCalled();
         expect(nextClient.setupIntegrations).toHaveBeenCalled();
       });
     });
@@ -129,20 +125,18 @@ describe('Hub', () => {
 
     test('bindClient', () => {
       const hub = new Hub(client);
-      const testClient = new TestClient();
       hub.withScope(() => {
-        hub.bindClient(testClient);
+        hub.bindClient(client);
         expect(hub.getStack()).toHaveLength(2);
-        expect(hub.getStack()[1].client).toBe(testClient);
+        expect(hub.getStack()[1].client).toBe(client);
       });
       expect(hub.getStack()).toHaveLength(1);
     });
   });
 
   test('getCurrentClient', () => {
-    const testClient = new TestClient();
-    const hub = new Hub(testClient);
-    expect(hub.getClient()).toBe(testClient);
+    const hub = new Hub(client);
+    expect(hub.getClient()).toBe(client);
   });
 
   test('getStack', () => {
@@ -151,12 +145,11 @@ describe('Hub', () => {
   });
 
   test('getStackTop', () => {
-    const testClient = new TestClient();
     const hub = new Hub(client);
     hub.pushScope();
     hub.pushScope();
-    hub.bindClient(testClient);
-    expect(hub.getStackTop().client).toEqual(testClient);
+    hub.bindClient(client);
+    expect(hub.getStackTop().client).toEqual(client);
   });
 
   describe('configureScope', () => {

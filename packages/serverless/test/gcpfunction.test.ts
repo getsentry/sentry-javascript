@@ -381,7 +381,7 @@ describe('GCPFunction', () => {
 
       expect(Sentry.init).toBeCalledWith(
         expect.objectContaining({
-          _metadata: {
+          _internal: {
             sdk: {
               name: 'sentry.javascript.serverless',
               integrations: ['GCPFunction'],

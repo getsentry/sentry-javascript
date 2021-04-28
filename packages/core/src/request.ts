@@ -2,15 +2,6 @@ import { Event, SdkInfo, SentryRequest, Session } from '@sentry/types';
 
 import { API } from './api';
 
-/** Extract sdk info from from the API metadata */
-function getSdkInfoForEnvelopeHeader(api: API): SdkInfo | undefined {
-  if (!api.sdkInfo) {
-    return;
-  }
-  const { name, version } = api.sdkInfo;
-  return { name, version };
-}
-
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
@@ -29,10 +20,9 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 
 /** Creates a SentryRequest from a Session. */
 export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
-  const sdkInfo = getSdkInfoForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
+    ...(api.sdkInfo && { sdk: api.sdkInfo }),
   });
   const itemHeaders = JSON.stringify({
     type: 'session',
@@ -47,7 +37,6 @@ export function sessionToSentryRequest(session: Session, api: API): SentryReques
 
 /** Creates a SentryRequest from an event. */
 export function eventToSentryRequest(event: Event, api: API): SentryRequest {
-  const sdkInfo = getSdkInfoForEnvelopeHeader(api);
   const eventType = event.type || 'event';
   const useEnvelope = eventType === 'transaction';
 
@@ -60,7 +49,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   }
 
   const req: SentryRequest = {
-    body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, sdkInfo) : event),
+    body: JSON.stringify(api.sdkInfo ? enhanceEventWithSdkInfo(event, api.sdkInfo) : event),
     type: eventType,
     url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
   };
@@ -75,7 +64,12 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
     const envelopeHeaders = JSON.stringify({
       event_id: event.event_id,
       sent_at: new Date().toISOString(),
-      ...(sdkInfo && { sdk: sdkInfo }),
+      ...(api.sdkInfo && {
+        sdk: {
+          name: api.sdkInfo.name,
+          version: api.sdkInfo.version,
+        },
+      }),
     });
     const itemHeaders = JSON.stringify({
       type: event.type,

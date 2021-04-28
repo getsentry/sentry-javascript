@@ -10,13 +10,24 @@ export interface IntegrationIndex {
 }
 
 /** Gets integration to install */
-export function getIntegrationsToSetup(options: Options): Integration[] {
-  const defaultIntegrations = options._internal?.defaultIntegrations || [];
-  const discoveredIntegrations = options._internal?.discoveredIntegrations || [];
-  const userIntegrations = options.integrations || [];
+export function getIntegrationsToSetup(integrations: {
+  defaultIntegrations?: Integration[];
+  discoveredIntegrations?: Integration[];
+  userIntegrations?: Integration[] | ((integrations: Integration[]) => Integration[]);
+}): Integration[] {
+  const { discoveredIntegrations = [], userIntegrations = [] } = integrations;
+  let { defaultIntegrations = [] } = integrations;
+
+  // And filter out duplicated default integrations
+  defaultIntegrations = defaultIntegrations.reduce((acc, defaultIntegration) => {
+    if (acc.every(accIntegration => defaultIntegration.name !== accIntegration.name)) {
+      acc.push(defaultIntegration);
+    }
+    return acc;
+  }, [] as Integration[]);
 
   // Filter out default integrations that are also discovered
-  let integrations: Integration[] = [
+  let processedIntegrations: Integration[] = [
     ...defaultIntegrations.filter(defaultIntegration =>
       discoveredIntegrations.every(discoveredIntegration => discoveredIntegration.name !== defaultIntegration.name),
     ),
@@ -24,12 +35,12 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
   ];
 
   if (Array.isArray(userIntegrations)) {
-    // Filter out integrations that are also included in user options
-    integrations = [
-      ...integrations.filter(integrations =>
-        userIntegrations.every(userIntegration => userIntegration.name !== integrations.name),
+    // Filter out integrations that are also included in user integrations
+    processedIntegrations = [
+      ...processedIntegrations.filter(integrations =>
+        (userIntegrations as Integration[]).every(userIntegration => userIntegration.name !== integrations.name),
       ),
-      // And filter out duplicated user options integrations
+      // And filter out duplicated user integrations
       ...userIntegrations.reduce((acc, userIntegration) => {
         if (acc.every(accIntegration => userIntegration.name !== accIntegration.name)) {
           acc.push(userIntegration);
@@ -38,11 +49,11 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
       }, [] as Integration[]),
     ];
   } else if (typeof userIntegrations === 'function') {
-    integrations = userIntegrations(integrations);
-    integrations = Array.isArray(integrations) ? integrations : [integrations];
+    processedIntegrations = userIntegrations(processedIntegrations);
+    processedIntegrations = Array.isArray(processedIntegrations) ? processedIntegrations : [processedIntegrations];
   }
 
-  return integrations;
+  return processedIntegrations;
 }
 
 /** Setup given integration */
@@ -63,7 +74,11 @@ export function setupIntegration(integration: Integration): void {
  */
 export function setupIntegrations(options: Options): IntegrationIndex {
   const integrations: IntegrationIndex = {};
-  getIntegrationsToSetup(options).forEach(integration => {
+  getIntegrationsToSetup({
+    defaultIntegrations: options._internal?.defaultIntegrations || [],
+    discoveredIntegrations: options._internal?.discoveredIntegrations || [],
+    userIntegrations: options.integrations || [],
+  }).forEach(integration => {
     integrations[integration.name] = integration;
     setupIntegration(integration);
   });
