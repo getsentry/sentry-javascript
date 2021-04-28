@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.3
+
+- [nextjs] fix: User server types #3471
+
 ## 6.3.2
 
 - [nextjs] ref: Remove next.js plugin (#3462)
