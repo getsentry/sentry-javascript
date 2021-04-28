@@ -1,4 +1,5 @@
 import { configureScope, init as nodeInit } from '@sentry/node';
+import { AWSLambda } from '@sentry/serverless';
 
 import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
@@ -26,5 +27,5 @@ export function init(options: NextjsOptions): void {
   });
 }
 
+export const withSentry = AWSLambda.wrapHandler;
 export { withSentryConfig } from './utils/config';
-export { withSentry } from './utils/handlers';

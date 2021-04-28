@@ -21,6 +21,7 @@
     "@sentry/integrations": "6.3.3",
     "@sentry/node": "6.3.3",
     "@sentry/react": "6.3.3",
+    "@sentry/serverless": "6.3.3",
     "@sentry/utils": "6.3.3",
     "@sentry/webpack-plugin": "1.15.0"
   },
