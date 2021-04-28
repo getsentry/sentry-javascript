@@ -190,7 +190,7 @@ describe('SentryBrowser initialization', () => {
       init({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.sdkInfo;
 
       expect(sdkData.name).to.equal('sentry.javascript.browser');
       expect(sdkData.packages[0].name).to.equal('npm:@sentry/browser');
@@ -202,7 +202,7 @@ describe('SentryBrowser initialization', () => {
       const client = new BrowserClient({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (client as any)._backend._transport._api.metadata?.sdk;
+      const sdkData = (client as any)._backend._transport._api.sdkInfo;
 
       expect(sdkData.name).to.equal('sentry.javascript.browser');
       expect(sdkData.packages[0].name).to.equal('npm:@sentry/browser');
@@ -216,7 +216,7 @@ describe('SentryBrowser initialization', () => {
       init({
         dsn,
         // this would normally be set by the wrapper SDK in init()
-        _metadata: {
+        _internal: {
           sdk: {
             name: 'sentry.javascript.angular',
             packages: [
@@ -231,7 +231,7 @@ describe('SentryBrowser initialization', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.sdkInfo;
 
       expect(sdkData.name).to.equal('sentry.javascript.angular');
       expect(sdkData.packages[0].name).to.equal('npm:@sentry/angular');

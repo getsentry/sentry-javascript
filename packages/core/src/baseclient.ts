@@ -87,6 +87,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected constructor(backendClass: BackendClass<B, O>, options: O) {
     this._backend = new backendClass(options);
     this._options = options;
+    this._options._internal = this._options._internal || {};
+
+    // Both `defaultIntegrations` and `discoverIntegrations` should be `boolean`, but we are stuck with this type
+    // for backwards compatibility at the momement.
+    if (options.defaultIntegrations !== false) {
+      this._options._internal.defaultIntegrations = Array.isArray(this._options.defaultIntegrations)
+        ? this._options.defaultIntegrations
+        : [];
+    }
 
     if (options.dsn) {
       this._dsn = new Dsn(options.dsn);

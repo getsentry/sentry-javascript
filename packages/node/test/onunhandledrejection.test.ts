@@ -1,15 +1,29 @@
-import { Hub, init, Integrations, Scope } from '../src';
+import { Scope } from '@sentry/core';
+import { Hub } from '@sentry/hub';
 
-const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
+import { OnUnhandledRejection } from '../src/integrations/onunhandledrejection';
+
+jest.mock('@sentry/hub', () => {
+  // we just want to short-circuit it, so dont worry about types
+  const original = jest.requireActual('@sentry/hub');
+  original.Hub.prototype.getIntegration = () => true;
+  return {
+    ...original,
+    getCurrentHub: () => new Hub(),
+  };
+});
 
 describe('unhandled promises', () => {
   test('install global listener', () => {
-    init({ dsn });
+    const integration = new OnUnhandledRejection();
+    integration.setupOnce();
     expect(process.listeners('unhandledRejection')).toHaveLength(1);
   });
 
   test('sendUnhandledPromise', () => {
-    const integration = new Integrations.OnUnhandledRejection();
+    const integration = new OnUnhandledRejection();
+    integration.setupOnce();
+
     const promise = {
       domain: {
         sentryContext: {

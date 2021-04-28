@@ -15,12 +15,10 @@ describe('eventToSentryRequest', () => {
   }
 
   const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012', {
-    sdk: {
-      integrations: ['AWSLambda'],
-      name: 'sentry.javascript.browser',
-      version: `12.31.12`,
-      packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
-    },
+    integrations: ['AWSLambda'],
+    name: 'sentry.javascript.browser',
+    version: `12.31.12`,
+    packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
   });
   let event: Event;
 

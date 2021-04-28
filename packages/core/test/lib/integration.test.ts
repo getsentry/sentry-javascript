@@ -18,7 +18,7 @@ class MockIntegration implements Integration {
 describe('getIntegrationsToSetup', () => {
   it('works with empty array', () => {
     const integrations = getIntegrationsToSetup({
-      integrations: [],
+      userIntegrations: [],
     });
 
     expect(integrations.map(i => i.name)).toEqual([]);
@@ -26,7 +26,7 @@ describe('getIntegrationsToSetup', () => {
 
   it('works with single item', () => {
     const integrations = getIntegrationsToSetup({
-      integrations: [new MockIntegration('foo')],
+      userIntegrations: [new MockIntegration('foo')],
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo']);
@@ -34,7 +34,7 @@ describe('getIntegrationsToSetup', () => {
 
   it('works with multiple items', () => {
     const integrations = getIntegrationsToSetup({
-      integrations: [new MockIntegration('foo'), new MockIntegration('bar')],
+      userIntegrations: [new MockIntegration('foo'), new MockIntegration('bar')],
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
@@ -42,7 +42,7 @@ describe('getIntegrationsToSetup', () => {
 
   it('filter duplicated items', () => {
     const integrations = getIntegrationsToSetup({
-      integrations: [new MockIntegration('foo'), new MockIntegration('foo'), new MockIntegration('bar')],
+      userIntegrations: [new MockIntegration('foo'), new MockIntegration('foo'), new MockIntegration('bar')],
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
@@ -55,7 +55,7 @@ describe('getIntegrationsToSetup', () => {
     (second as any).order = 'second';
 
     const integrations = getIntegrationsToSetup({
-      integrations: [first, second, new MockIntegration('bar')],
+      userIntegrations: [first, second, new MockIntegration('bar')],
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
@@ -89,7 +89,7 @@ describe('getIntegrationsToSetup', () => {
   it('work with user integrations and defaults and pick defaults first', () => {
     const integrations = getIntegrationsToSetup({
       defaultIntegrations: [new MockIntegration('foo')],
-      integrations: [new MockIntegration('bar')],
+      userIntegrations: [new MockIntegration('bar')],
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
@@ -98,7 +98,7 @@ describe('getIntegrationsToSetup', () => {
   it('work with user integrations and defaults and filter duplicates', () => {
     const integrations = getIntegrationsToSetup({
       defaultIntegrations: [new MockIntegration('foo'), new MockIntegration('foo')],
-      integrations: [new MockIntegration('bar'), new MockIntegration('bar')],
+      userIntegrations: [new MockIntegration('bar'), new MockIntegration('bar')],
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
@@ -116,34 +116,11 @@ describe('getIntegrationsToSetup', () => {
 
     const integrations = getIntegrationsToSetup({
       defaultIntegrations: [firstDefault, secondDefault],
-      integrations: [firstUser, secondUser],
+      userIntegrations: [firstUser, secondUser],
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
     expect((integrations[0] as any).order).toEqual('firstUser');
     expect((integrations[1] as any).order).toEqual('secondUser');
-  });
-
-  it('always moves Debug integration to the end of the list', () => {
-    let integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('Debug'), new MockIntegration('foo')],
-      integrations: [new MockIntegration('bar')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
-
-    integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('foo')],
-      integrations: [new MockIntegration('Debug'), new MockIntegration('bar')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
-
-    integrations = getIntegrationsToSetup({
-      defaultIntegrations: [new MockIntegration('Debug')],
-      integrations: [new MockIntegration('foo')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'Debug']);
   });
 });
