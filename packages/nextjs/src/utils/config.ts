@@ -8,14 +8,14 @@ type PlainObject<T = any> = { [key: string]: T };
 
 // Man are these types hard to name well. "Entry" = an item in some collection of items, but in our case, one of the
 // things we're worried about here is property (entry) in an object called... entry. So henceforth, the specific
-// proptery we're modifying is going to be known as an EntryProperty, or EP for short.
+// property we're modifying is going to be known as an EntryProperty.
 
 // The function which is ultimately going to be exported from `next.config.js` under the name `webpack`
 type WebpackExport = (config: WebpackConfig, options: WebpackOptions) => WebpackConfig;
-// type WebpackExport = (config: WebpackConfig, options: WebpackOptions) => Promise<WebpackConfig>;
 
 // The two arguments passed to the exported `webpack` function, as well as the thing it returns
 type WebpackConfig = { devtool: string; plugins: PlainObject[]; entry: EntryProperty };
+// TODO use real webpack types
 type WebpackOptions = { dev: boolean; isServer: boolean };
 
 // For our purposes, the value for `entry` is either an object, or a function which returns such an object
@@ -27,7 +27,6 @@ type EntryProperty = (() => Promise<EntryPropertyObject>) | EntryPropertyObject;
 type EntryPropertyObject = PlainObject<string | Array<string> | EntryPointObject>;
 type EntryPointObject = { import: string | Array<string> };
 
-// const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryPropertyObject> => {
 const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryProperty> => {
   // Out of the box, nextjs uses the `() => Promise<EntryPropertyObject>)` flavor of EntryProperty, where the returned
   // object has string arrays for values. But because we don't know whether someone else has come along before us and
@@ -77,7 +76,8 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
 
   newEntryProperty[injectionPoint] = injectedInto;
 
-  // TODO: hack made necessary because promises are currently kicking my butt
+  // TODO: hack made necessary because the async-ness of this function turns our object back into a promise, meaning the
+  // internal `next` code which should do this doesn't
   if ('main.js' in newEntryProperty) {
     delete newEntryProperty['main.js'];
   }
@@ -121,13 +121,11 @@ export function withSentryConfig(
     );
   }
 
-  // const newWebpackExport = async (config: WebpackConfig, options: WebpackOptions): Promise<WebpackConfig> => {
   const newWebpackExport = (config: WebpackConfig, options: WebpackOptions): WebpackConfig => {
     let newConfig = config;
 
     if (typeof providedExports.webpack === 'function') {
       newConfig = providedExports.webpack(config, options);
-      // newConfig = await providedExports.webpack(config, options);
     }
 
     // Ensure quality source maps in production. (Source maps aren't uploaded in dev, and besides, Next doesn't let you
@@ -140,8 +138,6 @@ export function withSentryConfig(
     // Inject user config files (`sentry.client.confg.js` and `sentry.server.config.js`), which is where `Sentry.init()`
     // is called. By adding them here, we ensure that they're bundled by webpack as part of both server code and client code.
     newConfig.entry = (injectSentry(newConfig.entry, options.isServer) as unknown) as EntryProperty;
-    // newConfig.entry = await injectSentry(newConfig.entry, options.isServer);
-    // newConfig.entry = async () => injectSentry(newConfig.entry, options.isServer);
 
     // Add the Sentry plugin, which uploads source maps to Sentry when not in dev
     newConfig.plugins.push(
