@@ -132,6 +132,15 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
 }
 
 /**
+ * Tries to invoke context.getRemainingTimeInMillis if not available returns 0
+ * Some environments use AWS lambda but don't support this function
+ * @param context
+ */
+function tryGetRemainingTimeInMillis(context: Context): number {
+  return typeof context.getRemainingTimeInMillis === 'function' ? context.getRemainingTimeInMillis() : 0;
+}
+
+/**
  * Adds additional information from the environment and AWS Context to the Sentry Scope.
  *
  * @param scope Scope that should be enhanced
@@ -155,7 +164,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
     function_version: context.functionVersion,
     invoked_function_arn: context.invokedFunctionArn,
     execution_duration_in_millis: performance.now() - startTime,
-    remaining_time_in_millis: context.getRemainingTimeInMillis(),
+    remaining_time_in_millis: tryGetRemainingTimeInMillis(context),
     'sys.argv': process.argv,
   });
 
@@ -221,7 +230,7 @@ export function wrapHandler<TEvent, TResult>(
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
     // In seconds. You cannot go any more granular than this in AWS Lambda.
-    const configuredTimeout = Math.ceil(context.getRemainingTimeInMillis() / 1000);
+    const configuredTimeout = Math.ceil(tryGetRemainingTimeInMillis(context) / 1000);
     const configuredTimeoutMinutes = Math.floor(configuredTimeout / 60);
     const configuredTimeoutSeconds = configuredTimeout % 60;
 
@@ -233,7 +242,7 @@ export function wrapHandler<TEvent, TResult>(
     // When `callbackWaitsForEmptyEventLoop` is set to false, which it should when using `captureTimeoutWarning`,
     // we don't have a guarantee that this message will be delivered. Because of that, we don't flush it.
     if (options.captureTimeoutWarning) {
-      const timeoutWarningDelay = context.getRemainingTimeInMillis() - options.timeoutWarningLimit;
+      const timeoutWarningDelay = tryGetRemainingTimeInMillis(context) - options.timeoutWarningLimit;
 
       timeoutWarningTimer = setTimeout(() => {
         withScope(scope => {
