@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.2
+
+- [nextjs] ref: Remove next.js plugin (#3462)
+- [core] fix: Prevent InboundFilters mergeOptions method from breaking users code (#3458)
+
 ## 6.3.1
 
 - [angular] fix: Make SentryErrorHandler extensible and export it publicly (#3438)
