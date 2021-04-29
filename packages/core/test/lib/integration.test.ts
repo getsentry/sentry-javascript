@@ -18,6 +18,7 @@ class MockIntegration implements Integration {
 function withAutoloadedIntegrations(integrations: Integration[], callback: () => void) {
   (global as any).__SENTRY__ = { integrations };
   callback();
+  (global as any).__SENTRY__ = undefined;
   delete (global as any).__SENTRY__;
 }
 
