@@ -30,7 +30,6 @@
     "packages/integrations",
     "packages/minimal",
     "packages/nextjs",
-    "packages/next-plugin-sentry",
     "packages/node",
     "packages/react",
     "packages/serverless",
