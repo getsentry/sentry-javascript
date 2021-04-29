@@ -1,12 +1,14 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
 import {
   CustomSamplingContext,
+  Integration,
+  IntegrationClass,
   Options,
   SamplingContext,
   TransactionContext,
   TransactionSamplingMethod,
 } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { dynamicRequire, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
@@ -206,15 +208,67 @@ export function startIdleTransaction(
  * @private
  */
 export function _addTracingExtensions(): void {
+  // FIXME: This is problematic, because `getMainCarrier` always return a valid Carrier, but because
+  // of how we set the types, we need to perform an unnecessary check here.
   const carrier = getMainCarrier();
-  if (carrier.__SENTRY__) {
-    carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
-    if (!carrier.__SENTRY__.extensions.startTransaction) {
-      carrier.__SENTRY__.extensions.startTransaction = _startTransaction;
-    }
-    if (!carrier.__SENTRY__.extensions.traceHeaders) {
-      carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
-    }
+  if (!carrier.__SENTRY__) {
+    return;
+  }
+  carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
+  if (!carrier.__SENTRY__.extensions.startTransaction) {
+    carrier.__SENTRY__.extensions.startTransaction = _startTransaction;
+  }
+  if (!carrier.__SENTRY__.extensions.traceHeaders) {
+    carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
+  }
+}
+
+/**
+ * @private
+ */
+function _autoloadDatabaseIntegrations(): void {
+  const carrier = getMainCarrier();
+  if (!carrier.__SENTRY__) {
+    return;
+  }
+
+  const supportedPackages = ['mongodb', 'mongoose', 'pg', 'mysql'];
+
+  const packageToIntegrationMapping: Record<string, () => Integration> = {
+    mongodb() {
+      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass<Integration> };
+      return new integration.Mongo();
+    },
+    mongoose() {
+      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass<Integration> };
+      return new integration.Mongo({ mongoose: true });
+    },
+    mysql() {
+      const integration = dynamicRequire(module, './integrations/mysql') as { Mysql: IntegrationClass<Integration> };
+      return new integration.Mysql();
+    },
+    pg() {
+      const integration = dynamicRequire(module, './integrations/postgres') as {
+        Postgres: IntegrationClass<Integration>;
+      };
+      return new integration.Postgres();
+    },
+  };
+
+  const mappedPackages = supportedPackages
+    .filter(moduleName => !!loadModule(moduleName))
+    .map(pkg => {
+      try {
+        return packageToIntegrationMapping[pkg]();
+      } catch (e) {
+        return undefined;
+      }
+    })
+    .filter(p => p) as Integration[];
+
+  if (mappedPackages.length > 0) {
+    carrier.__SENTRY__.integrations = carrier.__SENTRY__.integrations || [];
+    carrier.__SENTRY__.integrations.concat(mappedPackages);
   }
 }
 
@@ -223,6 +277,12 @@ export function _addTracingExtensions(): void {
  */
 export function addExtensionMethods(): void {
   _addTracingExtensions();
+
+  // TODO: Option to disable this (but how, if it's a side-effect and there's no access to client options?)
+  // Detect and automatically load specified integrations.
+  if (isNodeEnv()) {
+    _autoloadDatabaseIntegrations();
+  }
 
   // If an error happens globally, we should make sure transaction status is set to error.
   registerErrorInstrumentation();

@@ -1,4 +1,4 @@
-import { Client } from '@sentry/types';
+import { Client, Integration } from '@sentry/types';
 
 import { Hub } from './hub';
 import { Scope } from './scope';
@@ -22,6 +22,7 @@ export interface Carrier {
     /**
      * Extra Hub properties injected by various SDKs
      */
+    integrations?: Integration[];
     extensions?: {
       /** Hack to prevent bundlers from breaking our usage of the domain package in the cross-platform Hub package */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

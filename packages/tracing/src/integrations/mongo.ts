@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
-import { dynamicRequire, fill, isThenable, logger } from '@sentry/utils';
+import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 // This allows us to use the same array for both defaults options and the type itself.
 // (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... )
@@ -119,17 +119,15 @@ export class Mongo implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    let collection: MongoCollection;
     const moduleName = this._useMongoose ? 'mongoose' : 'mongodb';
-    try {
-      const mongodbModule = dynamicRequire(module, moduleName) as { Collection: MongoCollection };
-      collection = mongodbModule.Collection;
-    } catch (e) {
+    const pkg = loadModule<{ Collection: MongoCollection }>(moduleName);
+
+    if (!pkg) {
       logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
       return;
     }
 
-    this._instrumentOperations(collection, this._operations, getCurrentHub);
+    this._instrumentOperations(pkg.Collection, this._operations, getCurrentHub);
   }
 
   /**
