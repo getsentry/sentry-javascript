@@ -26,33 +26,10 @@ type EntryProperty = (() => Promise<EntryPropertyObject>) | EntryPropertyObject;
 type EntryPropertyObject = PlainObject<string | Array<string> | EntryPointObject>;
 type EntryPointObject = { import: string | Array<string> };
 
-const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryProperty> => {
-  // Out of the box, nextjs uses the `() => Promise<EntryPropertyObject>)` flavor of EntryProperty, where the returned
-  // object has string arrays for values. But because we don't know whether someone else has come along before us and
-  // changed that, we need to check a few things along the way.
-
-  // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
-  // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
-  // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
-  // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
-  // options. See https://webpack.js.org/configuration/entry-context/#entry.
-
-  let newEntryProperty = origEntryProperty;
-
-  if (typeof origEntryProperty === 'function') {
-    newEntryProperty = await origEntryProperty();
-  }
-
-  newEntryProperty = newEntryProperty as EntryPropertyObject;
-
-  // according to vercel, we only need to inject Sentry in one spot for server and one spot for client, and because
-  // those are used as bases, it will apply everywhere
-  const injectionPoint = isServer ? 'pages/_document' : 'main';
-  const injectee = isServer ? './sentry.server.config.js' : './sentry.client.config.js';
-
+/** Add a file (`injectee`) to a given element (`injectionPoint`) of the `entry` property */
+const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string, injectee: string): void => {
   // can be a string, array of strings, or object whose `import` property is one of those two
-  let injectedInto = newEntryProperty[injectionPoint];
-
+  let injectedInto = entryProperty[injectionPoint];
   // whatever the format, add in the sentry file
   injectedInto =
     typeof injectedInto === 'string'
@@ -72,15 +49,42 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
               : // array case for inner property
                 [injectee, ...injectedInto.import],
         };
+  entryProperty[injectionPoint] = injectedInto;
+};
 
-  newEntryProperty[injectionPoint] = injectedInto;
-
+const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryProperty> => {
+  // Out of the box, nextjs uses the `() => Promise<EntryPropertyObject>)` flavor of EntryProperty, where the returned
+  // object has string arrays for values. But because we don't know whether someone else has come along before us and
+  // changed that, we need to check a few things along the way.
+  // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
+  // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
+  // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
+  // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
+  // options. See https://webpack.js.org/configuration/entry-context/#entry.
+  let newEntryProperty = origEntryProperty;
+  if (typeof origEntryProperty === 'function') {
+    newEntryProperty = await origEntryProperty();
+  }
+  newEntryProperty = newEntryProperty as EntryPropertyObject;
+  // On the server, we need to inject the SDK into both into the base page (`_document`) and into individual API routes
+  // (which have no common base).
+  if (isServer) {
+    Object.keys(newEntryProperty).forEach(key => {
+      if (key === 'pages/_document' || key.includes('pages/api')) {
+        // for some reason, because we're now in a function, we have to cast again
+        _injectFile(newEntryProperty as EntryPropertyObject, key, './sentry.server.config.js');
+      }
+    });
+  }
+  // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
+  else {
+    _injectFile(newEntryProperty, 'main', './sentry.client.config.js');
+  }
   // TODO: hack made necessary because the async-ness of this function turns our object back into a promise, meaning the
   // internal `next` code which should do this doesn't
   if ('main.js' in newEntryProperty) {
     delete newEntryProperty['main.js'];
   }
-
   return newEntryProperty;
 };
 
