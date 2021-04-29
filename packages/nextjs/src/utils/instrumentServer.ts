@@ -86,6 +86,8 @@ function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogge
   return (err: Error): void => {
     // TODO add context data here
     Sentry.captureException(err);
-    return origErrorLogger(err);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    return origErrorLogger.bind(this, err);
   };
 }

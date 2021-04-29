@@ -151,7 +151,7 @@ export async function close(timeout?: number): Promise<boolean> {
 /**
  * Returns a release dynamically from environment variables.
  */
-export function getSentryRelease(): string | undefined {
+export function getSentryRelease(fallback?: string): string | undefined {
   // Always read first as Sentry takes this as precedence
   if (process.env.SENTRY_RELEASE) {
     return process.env.SENTRY_RELEASE;
@@ -176,6 +176,7 @@ export function getSentryRelease(): string | undefined {
     // Zeit (now known as Vercel)
     process.env.ZEIT_GITHUB_COMMIT_SHA ||
     process.env.ZEIT_GITLAB_COMMIT_SHA ||
-    process.env.ZEIT_BITBUCKET_COMMIT_SHA
+    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
+    fallback
   );
 }
