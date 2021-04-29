@@ -1,4 +1,5 @@
 import { captureException, flush, Handlers, withScope } from '@sentry/node';
+import { addExceptionMechanism } from '@sentry/utils';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 const { parseRequest } = Handlers;
@@ -13,11 +14,17 @@ export const withSentry = (handler: (req: NextApiRequest, res: NextApiResponse) 
       // TODO: Finish Transaction
     } catch (e) {
       withScope(scope => {
-        scope.addEventProcessor(event => parseRequest(event, req));
+        scope.addEventProcessor(event => {
+          addExceptionMechanism(event, {
+            handled: false,
+          });
+          return parseRequest(event, req);
+        });
         captureException(e);
       });
-      await flush(2000);
       throw e;
+    } finally {
+      await flush(2000);
     }
   };
 };
