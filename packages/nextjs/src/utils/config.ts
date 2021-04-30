@@ -30,6 +30,14 @@ type EntryPointObject = { import: string | Array<string> };
 const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string, injectee: string): void => {
   // can be a string, array of strings, or object whose `import` property is one of those two
   let injectedInto = entryProperty[injectionPoint];
+
+  // Sometimes especially for older next.js versions it happens we don't have an entry point
+  if (injectedInto === undefined) {
+    // eslint-disable-next-line no-console
+    console.error(`[Sentry] Can't inject ${injectee}, no entrypoint is defined.`);
+    return;
+  }
+
   // whatever the format, add in the sentry file
   injectedInto =
     typeof injectedInto === 'string'
