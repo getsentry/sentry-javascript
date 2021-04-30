@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.5
+
+- [nextjs] fix: Add tslib dependecy; change inject order (#3487)
+
 ## 6.3.4
 
 - [nextjs] fix: API routes logging (#3479)

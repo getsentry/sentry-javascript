@@ -22,7 +22,8 @@
     "@sentry/node": "6.3.4",
     "@sentry/react": "6.3.4",
     "@sentry/utils": "6.3.4",
-    "@sentry/webpack-plugin": "1.15.0"
+    "@sentry/webpack-plugin": "1.15.0",
+    "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@sentry/types": "6.3.4",
