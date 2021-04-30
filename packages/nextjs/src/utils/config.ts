@@ -26,6 +26,9 @@ type EntryProperty = (() => Promise<EntryPropertyObject>) | EntryPropertyObject;
 type EntryPropertyObject = PlainObject<string | Array<string> | EntryPointObject>;
 type EntryPointObject = { import: string | Array<string> };
 
+const sentryClientConfig = './sentry.client.config.js';
+const sentryServerConfig = './sentry.server.config.js';
+
 /** Add a file (`injectee`) to a given element (`injectionPoint`) of the `entry` property */
 const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string, injectee: string): void => {
   // can be a string, array of strings, or object whose `import` property is one of those two
@@ -40,10 +43,13 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
 
   // In case we inject our client config, we need to add it after the frontend code
   // otherwise the runtime config isn't loaded. See: https://github.com/getsentry/sentry-javascript/issues/3485
-  const isClient = injectee === './sentry.client.config.js';
+  const isClient = injectee === sentryClientConfig;
 
-  // Object -> Add it
-  if (injectedInto != null && typeof injectedInto == 'object' && !Array.isArray(injectedInto)) {
+  if (typeof injectedInto === 'string') {
+    injectedInto = isClient ? [injectedInto, injectee] : [injectee, injectedInto];
+  } else if (Array.isArray(injectedInto)) {
+    injectedInto = isClient ? [...injectedInto, injectee] : [injectee, ...injectedInto];
+  } else {
     let importVal: string | string[] | EntryPointObject;
     if (typeof injectedInto.import === 'string') {
       importVal = isClient ? [injectedInto.import, injectee] : [injectee, injectedInto.import];
@@ -56,16 +62,6 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
       ...injectedInto,
       import: importVal,
     };
-  }
-
-  // Array -> Add it
-  if (Array.isArray(injectedInto)) {
-    injectedInto = isClient ? [...injectedInto, injectee] : [injectee, ...injectedInto];
-  }
-
-  // String -> We need to make it an array
-  if (typeof injectedInto === 'string') {
-    injectedInto = isClient ? [injectedInto, injectee] : [injectee, injectedInto];
   }
 
   entryProperty[injectionPoint] = injectedInto;
@@ -90,13 +86,13 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
     Object.keys(newEntryProperty).forEach(key => {
       if (key === 'pages/_document' || key.includes('pages/api')) {
         // for some reason, because we're now in a function, we have to cast again
-        _injectFile(newEntryProperty as EntryPropertyObject, key, './sentry.server.config.js');
+        _injectFile(newEntryProperty as EntryPropertyObject, key, sentryServerConfig);
       }
     });
   }
   // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
   else {
-    _injectFile(newEntryProperty, 'main', './sentry.client.config.js');
+    _injectFile(newEntryProperty, 'main', sentryClientConfig);
   }
   // TODO: hack made necessary because the async-ness of this function turns our object back into a promise, meaning the
   // internal `next` code which should do this doesn't
