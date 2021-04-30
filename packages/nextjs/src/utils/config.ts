@@ -38,32 +38,42 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
     return;
   }
 
-  // whatever the format, add in the sentry file
-  injectedInto =
-    typeof injectedInto === 'string'
-      ? // string case
-        [injectee, injectedInto]
-      : // not a string, must be an array or object
-      Array.isArray(injectedInto)
-      ? // array case
-        [injectee, ...injectedInto]
-      : // object case
-        {
-          ...injectedInto,
-          import:
-            typeof injectedInto.import === 'string'
-              ? // string case for inner property
-                [injectee, injectedInto.import]
-              : // array case for inner property
-                [injectee, ...injectedInto.import],
-        };
+  // In case we inject our client config, we need to add it after the frontend code
+  // otherwise the runtime config isn't loaded. See: https://github.com/getsentry/sentry-javascript/issues/3485
+  const isClient = injectee === './sentry.client.config.js';
+
+  // Object -> Add it
+  if (injectedInto != null && typeof injectedInto == 'object' && !Array.isArray(injectedInto)) {
+    let importVal: string | string[] | EntryPointObject;
+    if (typeof injectedInto.import === 'string') {
+      importVal = isClient ? [injectedInto.import, injectee] : [injectee, injectedInto.import];
+    } else {
+      // If it's not a string, the inner value is an array
+      importVal = isClient ? [...injectedInto.import, injectee] : [injectee, ...injectedInto.import];
+    }
+
+    injectedInto = {
+      ...injectedInto,
+      import: importVal,
+    };
+  }
+
+  // Array -> Add it
+  if (Array.isArray(injectedInto)) {
+    injectedInto = isClient ? [...injectedInto, injectee] : [injectee, ...injectedInto];
+  }
+
+  // String -> We need to make it an array
+  if (typeof injectedInto === 'string') {
+    injectedInto = isClient ? [injectedInto, injectee] : [injectee, injectedInto];
+  }
+
   entryProperty[injectionPoint] = injectedInto;
 };
 
 const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryProperty> => {
   // Out of the box, nextjs uses the `() => Promise<EntryPropertyObject>)` flavor of EntryProperty, where the returned
-  // object has string arrays for values. But because we don't know whether someone else has come along before us and
-  // changed that, we need to check a few things along the way.
+  // object has string arrays for values.
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
   // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
