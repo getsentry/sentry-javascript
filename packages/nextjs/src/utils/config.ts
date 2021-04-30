@@ -32,7 +32,7 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
   let injectedInto = entryProperty[injectionPoint];
 
   // Sometimes especially for older next.js versions it happens we don't have an entry point
-  if (injectedInto === undefined) {
+  if (!injectedInto) {
     // eslint-disable-next-line no-console
     console.error(`[Sentry] Can't inject ${injectee}, no entrypoint is defined.`);
     return;
