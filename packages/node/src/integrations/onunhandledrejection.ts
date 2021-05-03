@@ -69,7 +69,10 @@ export class OnUnhandledRejection implements Integration {
         scope.setExtras(context.extra);
       }
 
-      hub.captureException(reason, { originalException: promise });
+      hub.captureException(reason, {
+        originalException: promise,
+        data: { mechanism: { handled: false, type: 'onunhandledrejection' } },
+      });
     });
     /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
