@@ -15,6 +15,7 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export function init(options: NextjsOptions): void {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
   metadataBuilder.addSdkMetadata();
+  options.environment = options.environment || process.env.NODE_ENV;
   if (options.integrations) {
     options.integrations = getFinalServerIntegrations(options.integrations);
   } else {
