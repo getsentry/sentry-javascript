@@ -179,6 +179,7 @@
     'captureEvent',
     'configureScope',
     'withScope',
+    'setUser',
     'showReportDialog'
   ].forEach(function(f) {
     _window[_namespace][f] = function() {
