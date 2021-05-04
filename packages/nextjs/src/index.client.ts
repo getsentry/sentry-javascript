@@ -9,6 +9,7 @@ export * from '@sentry/react';
 export function init(options: NextjsOptions): void {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'react']);
   metadataBuilder.addSdkMetadata();
+  options.environment = options.environment || process.env.NODE_ENV;
   reactInit(options);
   configureScope(scope => {
     scope.setTag('runtime', 'browser');
