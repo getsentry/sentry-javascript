@@ -53,7 +53,9 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let ex: any = exception;
-    const mechanism: Mechanism = {
+    const providedMechanism: Mechanism | undefined =
+      hint && hint.data && (hint.data as { mechanism: Mechanism }).mechanism;
+    const mechanism: Mechanism = providedMechanism || {
       handled: true,
       type: 'generic',
     };
