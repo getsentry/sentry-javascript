@@ -2,6 +2,7 @@ import { getSentryRelease } from '@sentry/node';
 import { logger } from '@sentry/utils';
 import defaultWebpackPlugin, { SentryCliPluginOptions } from '@sentry/webpack-plugin';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
+import * as path from 'path';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -14,7 +15,9 @@ type PlainObject<T = any> = { [key: string]: T };
 type WebpackExport = (config: WebpackConfig, options: WebpackOptions) => WebpackConfig;
 
 // The two arguments passed to the exported `webpack` function, as well as the thing it returns
-type WebpackConfig = { devtool: string; plugins: PlainObject[]; entry: EntryProperty };
+// TODO use real webpack types?
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type WebpackConfig = { devtool: string; plugins: PlainObject[]; entry: EntryProperty; module: { rules: any[] } };
 type WebpackOptions = { dev: boolean; isServer: boolean; buildId: string };
 
 // For our purposes, the value for `entry` is either an object, or a function which returns such an object
@@ -41,8 +44,9 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
     return;
   }
 
-  // In case we inject our client config, we need to add it after the frontend code
-  // otherwise the runtime config isn't loaded. See: https://github.com/getsentry/sentry-javascript/issues/3485
+  // We need to inject the user-provided config file after the frontend code so that it has access to the runtime config
+  // (which won't have loaded yet otherwise). See: https://github.com/getsentry/sentry-javascript/issues/3485. On the
+  // server side, we inject beforehand so that we can catch any errors in the code that follows.
   const isClient = injectee === sentryClientConfig;
 
   if (typeof injectedInto === 'string') {
@@ -68,8 +72,6 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
 };
 
 const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryProperty> => {
-  // Out of the box, nextjs uses the `() => Promise<EntryPropertyObject>)` flavor of EntryProperty, where the returned
-  // object has string arrays for values.
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
   // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
@@ -150,6 +152,42 @@ export function withSentryConfig(
     if (!options.dev) {
       newConfig.devtool = 'source-map';
     }
+
+    // Wherever the webpack process ultimately runs, it's not somewhere where modules resolve successfully, so get the
+    // absolute paths here, where resolution does work, and pass those into the config instead of the module names
+    const sdkResolvedMain = require.resolve('@sentry/nextjs');
+    const loaderPath = path.join(path.dirname(sdkResolvedMain), 'utils/api-wrapping-loader.js');
+    const babelLoaderResolvedMain = require.resolve('babel-loader');
+    const babelPluginResolvedMain = require.resolve('@babel/plugin-transform-modules-commonjs');
+
+    newConfig.module = {
+      ...newConfig.module,
+      rules: [
+        ...newConfig.module.rules,
+        {
+          test: /pages\/api\/.*/,
+          use: [
+            {
+              // `sdkResolvedMain` is the path to `dist/index.server.js`
+              loader: loaderPath,
+              options: {
+                // pass the path into the loader so it can be used there as well (it's another place where modules don't
+                // resolve well)
+                sdkPath: sdkResolvedMain,
+              },
+            },
+            {
+              loader: babelLoaderResolvedMain,
+              options: {
+                // this is here to turn any `import`s into `requires`, so that our loader can load the string as a
+                // module (loaders apply top to bottom, so this happens before ours)
+                plugins: [babelPluginResolvedMain],
+              },
+            },
+          ],
+        },
+      ],
+    };
 
     // Inject user config files (`sentry.client.confg.js` and `sentry.server.config.js`), which is where `Sentry.init()`
     // is called. By adding them here, we ensure that they're bundled by webpack as part of both server code and client code.
