@@ -1111,7 +1111,7 @@
     resolve "^1.8.1"
     semver "^7.3.2"
 
-"@embroider/macros@0.37.0", "@embroider/macros@>=0.25.0":
+"@embroider/macros@0.37.0", "@embroider/macros@~0.37.0":
   version "0.37.0"
   resolved "https://registry.yarnpkg.com/@embroider/macros/-/macros-0.37.0.tgz#221013fc5bc0eaa78f1de98802fc03e588bfe1b1"
   integrity sha512-VItxn4NzGR5prryXGbPGTuLMd+QPPKvAYZv2357iS+wmz6mTzC5nqXljwDQIOJbAji9giDO+FW2HzXYOcY3teQ==
@@ -1126,10 +1126,10 @@
     resolve "^1.8.1"
     semver "^7.3.2"
 
-"@embroider/test-setup@^0.35.1":
-  version "0.35.1"
-  resolved "https://registry.yarnpkg.com/@embroider/test-setup/-/test-setup-0.35.1.tgz#34999b383aa7ab4bcd7c30c7e26c1ca970fc074a"
-  integrity sha512-QXXKmPZp91ge/3KCLSbDzV35K05NZqMNZEnHc1XIcJcAb3tbmcN5nPk+hzV4PIT685FcvTIk60aw+dy1FJ0kNw==
+"@embroider/test-setup@0.39.1":
+  version "0.39.1"
+  resolved "https://registry.yarnpkg.com/@embroider/test-setup/-/test-setup-0.39.1.tgz#3b87c9a3a029711f43f7ac89952eaaddf30196fd"
+  integrity sha512-EYlsiPiK6FfxeB9Yq9/c/dXwTjo1T5xD6UUfK6rv0PLGP5W1OqYd0Kyf8LGpLKeaRzLD6GfOeb+GXpx9IgPyeg==
   dependencies:
     lodash "^4.17.20"
     resolve "^1.17.0"
@@ -1330,13 +1330,6 @@
   version "0.44.0"
   resolved "https://registry.yarnpkg.com/@glimmer/validator/-/validator-0.44.0.tgz#03d127097dc9cb23052cdb7fcae59d0a9dca53e1"
   integrity sha512-i01plR0EgFVz69GDrEuFgq1NheIjZcyTy3c7q+w7d096ddPVeVcRzU3LKaqCfovvLJ+6lJx40j45ecycASUUyw==
-
-"@glimmer/vm-babel-plugins@0.77.5":
-  version "0.77.5"
-  resolved "https://registry.yarnpkg.com/@glimmer/vm-babel-plugins/-/vm-babel-plugins-0.77.5.tgz#daffb6507aa6b08ec36f69d652897d339fdd0007"
-  integrity sha512-jTBM7fJMrIEy4/bCeI8e7ypR+AuWYzLA+KORCGbnTJtL/NYg4G8qwhQAZBtg1d3KmoqyqaCsyqE6f4/tzJO4eQ==
-  dependencies:
-    babel-plugin-debug-macros "^0.3.4"
 
 "@glimmer/vm@^0.42.2":
   version "0.42.2"
@@ -3859,10 +3852,31 @@ after@0.8.2:
   resolved "https://registry.yarnpkg.com/after/-/after-0.8.2.tgz#fedb394f9f0e02aa9768e702bda23b505fae7e1f"
   integrity sha1-/ts5T58OAqqXaOcCvaI7UF+ufh8=
 
-agent-base@4, agent-base@5, agent-base@6, agent-base@^4.3.0, agent-base@~4.2.1:
+agent-base@4, agent-base@^4.3.0:
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-4.3.0.tgz#8165f01c436009bccad0b1d122f05ed770efc6ee"
+  integrity sha512-salcGninV0nPrwpGNn4VTXBb1SOuXQBiqbrNXoeizJsHrsL6ERFM2Ne3JUSBWRE6aeNJI2ROP/WEEIDUiDe3cg==
+  dependencies:
+    es6-promisify "^5.0.0"
+
+agent-base@5:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-5.1.1.tgz#e8fb3f242959db44d63be665db7a8e739537a32c"
   integrity sha512-TMeqbNl2fMW0nMjTEPOwe3J/PRFP4vqeoNuQMG0HlMrtm5QxKqdvAkZ1pRBQ/ulIyDD5Yq0nJ7YbdD8ey0TO3g==
+
+agent-base@6:
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-6.0.2.tgz#49fff58577cfee3f37176feab4c22e00f86d7f77"
+  integrity sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==
+  dependencies:
+    debug "4"
+
+agent-base@~4.2.1:
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-4.2.1.tgz#d89e5999f797875674c07d87f260fc41e83e8ca9"
+  integrity sha512-JVwXMr9nHYTUXsBFKUqhJwvlcYU/blreOEUkhNR2eXZIvwd+c+o5V4MgDPKWnMS/56awN3TRzIP+KoPn+roQtg==
+  dependencies:
+    es6-promisify "^5.0.0"
 
 agentkeepalive@^3.4.1:
   version "3.5.2"
@@ -8585,16 +8599,15 @@ ember-source-channel-url@^3.0.0:
   dependencies:
     node-fetch "^2.6.0"
 
-ember-source@^3.24.0:
-  version "3.26.1"
-  resolved "https://registry.yarnpkg.com/ember-source/-/ember-source-3.26.1.tgz#8c9e8a314fb0da447b944d64f9d92a80a628d7b5"
-  integrity sha512-5/NATBo5h9m1N52ITVksmjtGlYhGHLl4lDErAWv5/DC9zYe9ZR93NtymR6PEqrRilXc2x0KWd3NlOsWUoJRUOw==
+ember-source@~3.24.0:
+  version "3.24.4"
+  resolved "https://registry.yarnpkg.com/ember-source/-/ember-source-3.24.4.tgz#db3f70cbe4155d48474177f1564627a1fc980f64"
+  integrity sha512-C5sFGxT743n2PCaTnpvy3GWHdPz+/Ve9qjcSdfRjUvFCSYNhsRkxkpXRvXEU8WoUXY35Pm4vV9RsiorX1M+/Tw==
   dependencies:
     "@babel/helper-module-imports" "^7.8.3"
     "@babel/plugin-transform-block-scoping" "^7.8.3"
     "@babel/plugin-transform-object-assign" "^7.8.3"
     "@ember/edition-utils" "^1.2.0"
-    "@glimmer/vm-babel-plugins" "0.77.5"
     babel-plugin-debug-macros "^0.3.3"
     babel-plugin-filter-imports "^4.0.0"
     broccoli-concat "^4.2.4"
@@ -8611,9 +8624,9 @@ ember-source@^3.24.0:
     ember-cli-version-checker "^5.1.1"
     ember-router-generator "^2.0.0"
     inflection "^1.12.0"
-    jquery "^3.5.1"
+    jquery "^3.5.0"
     resolve "^1.17.0"
-    semver "^7.3.4"
+    semver "^6.1.1"
     silent-error "^1.1.1"
 
 ember-template-lint@^2.9.1:
@@ -8951,6 +8964,18 @@ es6-object-assign@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/es6-object-assign/-/es6-object-assign-1.1.0.tgz#c2c3582656247c39ea107cb1e6652b6f9f24523c"
   integrity sha1-wsNYJlYkfDnqEHyx5mUrb58kUjw=
+
+es6-promise@^4.0.3:
+  version "4.2.8"
+  resolved "https://registry.yarnpkg.com/es6-promise/-/es6-promise-4.2.8.tgz#4eb21594c972bc40553d276e510539143db53e0a"
+  integrity sha512-HJDGx5daxeIvxdBxvG2cb9g4tEvwIk3i8+nhX0yGrYmZUzbkdg8QbDevheDB8gd0//uPj4c1EQua8Q+MViT0/w==
+
+es6-promisify@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/es6-promisify/-/es6-promisify-5.0.0.tgz#5109d62f3e56ea967c4b63505aef08291c8a5203"
+  integrity sha1-UQnWLz5W6pZ8S2NQWu8IKRyKUgM=
+  dependencies:
+    es6-promise "^4.0.3"
 
 escalade@^3.1.1:
   version "3.1.1"
@@ -12296,7 +12321,7 @@ jest-environment-jsdom@^24.9.0:
     jest-util "^24.9.0"
     jsdom "^11.5.1"
 
-jest-environment-node@24, "jest-environment-node@>=24 <=26", jest-environment-node@^24.9.0:
+"jest-environment-node@>=24 <=26", jest-environment-node@^24.9.0:
   version "24.9.0"
   resolved "https://registry.yarnpkg.com/jest-environment-node/-/jest-environment-node-24.9.0.tgz#333d2d2796f9687f2aeebf0742b519f33c1cbfd3"
   integrity sha512-6d4V2f4nxzIzwendo27Tr0aFm+IXWa0XEUnaH6nU0FMaozxovt+sfRvh4J47wL1OvF83I3SSTu0XK+i4Bqe7uA==
@@ -12600,7 +12625,7 @@ jmespath@0.15.0:
   resolved "https://registry.yarnpkg.com/jmespath/-/jmespath-0.15.0.tgz#a3f222a9aae9f966f5d27c796510e28091764217"
   integrity sha1-o/Iiqarp+Wb10nx5ZRDigJF2Qhc=
 
-jquery@^3.5.1:
+jquery@^3.5.0:
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.6.0.tgz#c72a09f15c1bdce142f49dbf1170bdf8adac2470"
   integrity sha512-JVzAR/AjBvVt2BmYhxRCSYysDsPcssdmTFnzyLEts9qNwmjmu4JTAMYubEfwVOSwpQ1I1sKKFcxhZCI2buerfw==
