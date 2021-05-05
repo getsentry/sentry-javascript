@@ -1,5 +1,5 @@
-import { API, eventToSentryRequest, SDK_VERSION } from '@sentry/core';
-import { DsnProtocol, Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
+import { API, SDK_VERSION } from '@sentry/core';
+import { DsnProtocol, Event, Response, SentryRequest, Status, Transport, TransportOptions } from '@sentry/types';
 import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -124,7 +124,10 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async _sendWithModule(httpModule: HTTPModule, event: Event): Promise<Response> {
+  protected async _send(sentryReq: SentryRequest): Promise<Response> {
+    if (!this.module) {
+      throw new SentryError('No module available');
+    }
     if (new Date(Date.now()) < this._disabledUntil) {
       return Promise.reject(new SentryError(`Transport locked till ${this._disabledUntil} due to too many requests.`));
     }
@@ -134,10 +137,11 @@ export abstract class BaseTransport implements Transport {
     }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
-        const sentryReq = eventToSentryRequest(event, this._api);
+        if (!this.module) {
+          throw new SentryError('No module available');
+        }
         const options = this._getRequestOptions(new url.URL(sentryReq.url));
-
-        const req = httpModule.request(options, (res: http.IncomingMessage) => {
+        const req = this.module.request(options, (res: http.IncomingMessage) => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);
 
