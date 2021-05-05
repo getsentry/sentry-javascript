@@ -32,7 +32,6 @@
   },
   "dependencies": {
     "@embroider/macros": "~0.37.0",
-    "@embroider/test-setup": "0.39.1",
     "@sentry/browser": "6.3.5",
     "@sentry/tracing": "6.3.5",
     "@sentry/types": "6.3.5",
