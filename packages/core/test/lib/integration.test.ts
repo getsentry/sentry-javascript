@@ -15,13 +15,6 @@ class MockIntegration implements Integration {
   }
 }
 
-function withAutoloadedIntegrations(integrations: Integration[], callback: () => void) {
-  (global as any).__SENTRY__ = { integrations };
-  callback();
-  (global as any).__SENTRY__ = undefined;
-  delete (global as any).__SENTRY__;
-}
-
 describe('getIntegrationsToSetup', () => {
   it('works with empty array', () => {
     const integrations = getIntegrationsToSetup({
@@ -129,40 +122,6 @@ describe('getIntegrationsToSetup', () => {
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
     expect((integrations[0] as any).order).toEqual('firstUser');
     expect((integrations[1] as any).order).toEqual('secondUser');
-  });
-
-  it('work with single autoloaded integration', () => {
-    withAutoloadedIntegrations([new MockIntegration('foo')], () => {
-      const integrations = getIntegrationsToSetup({});
-      expect(integrations.map(i => i.name)).toEqual(['foo']);
-    });
-  });
-
-  it('work with multiple autoloaded integrations', () => {
-    withAutoloadedIntegrations([new MockIntegration('foo'), new MockIntegration('bar')], () => {
-      const integrations = getIntegrationsToSetup({});
-      expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
-    });
-  });
-
-  it('user integrations override autoloaded', () => {
-    const firstAutoloaded = new MockIntegration('foo');
-    (firstAutoloaded as any).order = 'firstAutoloaded';
-    const secondAutoloaded = new MockIntegration('bar');
-    (secondAutoloaded as any).order = 'secondAutoloaded';
-    const firstUser = new MockIntegration('foo');
-    (firstUser as any).order = 'firstUser';
-    const secondUser = new MockIntegration('bar');
-    (secondUser as any).order = 'secondUser';
-
-    withAutoloadedIntegrations([firstAutoloaded, secondAutoloaded], () => {
-      const integrations = getIntegrationsToSetup({
-        integrations: [firstUser, secondUser],
-      });
-      expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
-      expect((integrations[0] as any).order).toEqual('firstUser');
-      expect((integrations[1] as any).order).toEqual('secondUser');
-    });
   });
 
   it('always moves Debug integration to the end of the list', () => {

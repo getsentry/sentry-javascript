@@ -35,7 +35,7 @@ import { Session } from './session';
  *
  * @hidden
  */
-export const API_VERSION = 3;
+export const API_VERSION = 4;
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten

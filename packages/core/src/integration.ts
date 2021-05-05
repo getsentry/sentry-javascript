@@ -1,4 +1,4 @@
-import { addGlobalEventProcessor, getCurrentHub, getMainCarrier } from '@sentry/hub';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -23,12 +23,10 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 
 /** Gets integration to install */
 export function getIntegrationsToSetup(options: Options): Integration[] {
-  const carrier = getMainCarrier();
-  const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
   const defaultIntegrations = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
   const userIntegrations = options.integrations;
 
-  let integrations: Integration[] = [...filterDuplicates(defaultIntegrations), ...autoloadedIntegrations];
+  let integrations: Integration[] = [...filterDuplicates(defaultIntegrations)];
 
   if (Array.isArray(userIntegrations)) {
     // Filter out integrations that are also included in user options
