@@ -17,12 +17,15 @@
     "access": "public"
   },
   "dependencies": {
+    "@babel/core": "7.x",
+    "@babel/plugin-transform-modules-commonjs": "^7.13.8",
     "@sentry/core": "6.3.5",
     "@sentry/integrations": "6.3.5",
     "@sentry/node": "6.3.5",
     "@sentry/react": "6.3.5",
     "@sentry/utils": "6.3.5",
     "@sentry/webpack-plugin": "1.15.0",
+    "babel-loader": "^8.2.2",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
