@@ -43,6 +43,7 @@ Sentry.init({
   dsn: 'http://test@example.com/1337',
   release: '1.1',
   transport: DummyTransport,
+  autoSessionTracking: true
 });
 
 /**

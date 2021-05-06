@@ -104,7 +104,7 @@ export function init(options: NodeOptions = {}): void {
   }
 
   if (options.autoSessionTracking === undefined) {
-    options.autoSessionTracking = true;
+    options.autoSessionTracking = false;
   }
 
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
