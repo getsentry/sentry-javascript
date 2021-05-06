@@ -204,7 +204,7 @@ export abstract class BaseTransport implements Transport {
     }
     if (originalPayload && this._isRateLimited(sentryReq.type)) {
       return Promise.reject({
-        event: originalPayload,
+        payload: originalPayload,
         type: sentryReq.type,
         reason: `Transport locked till ${this._disabledUntil(sentryReq.type)} due to too many requests.`,
         status: 429,
@@ -244,16 +244,15 @@ export abstract class BaseTransport implements Transport {
           const limited = this._handleRateLimit(headers);
           if (limited) logger.warn(`Too many requests, backing off until: ${this._disabledUntil(sentryReq.type)}`);
 
-          let rejectionMessage = `HTTP Error (${statusCode})`;
-          if (res.headers && res.headers['x-sentry-error']) {
-            rejectionMessage += `: ${res.headers['x-sentry-error']}`;
-          }
-
           if (status === Status.Success) {
             resolve({ status });
+          } else {
+            let rejectionMessage = `HTTP Error (${statusCode})`;
+            if (res.headers && res.headers['x-sentry-error']) {
+              rejectionMessage += `: ${res.headers['x-sentry-error']}`;
+            }
+            reject(new SentryError(rejectionMessage));
           }
-
-          reject(new SentryError(rejectionMessage));
 
           // Force the socket to drain
           res.on('data', () => {

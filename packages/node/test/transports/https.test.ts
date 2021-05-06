@@ -151,7 +151,7 @@ describe('HTTPSTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event.message).toEqual('test');
+      expect(e.payload.message).toEqual('test');
       expect(e.type).toEqual('event');
     }
 

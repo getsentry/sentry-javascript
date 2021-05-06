@@ -166,7 +166,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event.message).toEqual('test');
+      expect(e.payload.message).toEqual('test');
       expect(e.type).toEqual('event');
     }
 
@@ -219,7 +219,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(eventPayload);
+      expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
     }
 
@@ -230,7 +230,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(transactionPayload);
+      expect(e.payload).toEqual(transactionPayload);
       expect(e.type).toEqual('transaction');
     }
 
@@ -297,7 +297,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(eventPayload);
+      expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
     }
 
@@ -353,7 +353,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(eventPayload);
+      expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
     }
 
@@ -364,9 +364,9 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event.environment).toEqual(sessionPayload.environment);
-      expect(e.event.release).toEqual(sessionPayload.release);
-      expect(e.event.sid).toEqual(sessionPayload.sid);
+      expect(e.payload.environment).toEqual(sessionPayload.environment);
+      expect(e.payload.release).toEqual(sessionPayload.release);
+      expect(e.payload.sid).toEqual(sessionPayload.sid);
       expect(e.type).toEqual('session');
     }
 
@@ -377,7 +377,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(transactionPayload);
+      expect(e.payload).toEqual(transactionPayload);
       expect(e.type).toEqual('transaction');
     }
 
@@ -436,7 +436,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(eventPayload);
+      expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
     }
 
@@ -447,7 +447,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(transactionPayload);
+      expect(e.payload).toEqual(transactionPayload);
       expect(e.type).toEqual('transaction');
     }
 
@@ -501,7 +501,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(eventPayload);
+      expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
     }
 
@@ -548,7 +548,7 @@ describe('HTTPTransport', () => {
       expect(e.reason).toEqual(
         `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
       );
-      expect(e.event).toEqual(eventPayload);
+      expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
     }
 
