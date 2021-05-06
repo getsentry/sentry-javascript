@@ -1,13 +1,16 @@
 import { captureException, flush, Handlers, withScope } from '@sentry/node';
 import { addExceptionMechanism } from '@sentry/utils';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiHandler } from 'next';
 
 const { parseRequest } = Handlers;
 
+// purely for clarity
+type WrappedNextApiHandler = NextApiHandler;
+
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const withSentry = (handler: (req: NextApiRequest, res: NextApiResponse) => Promise<void>) => {
+export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  return async (req: NextApiRequest, res: NextApiResponse) => {
+  return async (req, res) => {
     try {
       // TODO: Start Transaction
       return await handler(req, res); // Call Handler
