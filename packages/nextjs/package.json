@@ -33,7 +33,8 @@
     "rimraf": "3.0.2"
   },
   "peerDependencies": {
-    "next": "^10.0.8"
+    "next": "^10.0.8",
+    "react": "15.x || 16.x || 17.x"
   },
   "scripts": {
     "build": "run-p build:esm build:es5",
