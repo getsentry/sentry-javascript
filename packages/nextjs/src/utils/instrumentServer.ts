@@ -86,7 +86,6 @@ function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogge
   return function(this: Server, err: Error): void {
     // TODO add context data here
     Sentry.captureException(err);
-    debugger;
     return origErrorLogger.call(this, err);
   };
 }
