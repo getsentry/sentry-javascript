@@ -145,6 +145,7 @@ export class MetricsInstrumentation {
       // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
       // start of the response in milliseconds
       if (typeof responseStartTimestamp === 'number') {
+        logger.log('[Measurements] Adding TTFB');
         this._measurements['ttfb'] = { value: (responseStartTimestamp - transaction.startTimestamp) * 1000 };
 
         if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
