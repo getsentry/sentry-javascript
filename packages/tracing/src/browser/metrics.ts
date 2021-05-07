@@ -60,6 +60,8 @@ export class MetricsInstrumentation {
 
     let entryScriptStartTimestamp: number | undefined;
     let tracingInitMarkStartTime: number | undefined;
+    let responseStartTimestamp: number | undefined;
+    let requestStartTimestamp: number | undefined;
 
     global.performance
       .getEntries()
@@ -73,9 +75,12 @@ export class MetricsInstrumentation {
         }
 
         switch (entry.entryType) {
-          case 'navigation':
+          case 'navigation': {
             addNavigationSpans(transaction, entry, timeOrigin);
+            responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
+            requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
             break;
+          }
           case 'mark':
           case 'paint':
           case 'measure': {
@@ -137,7 +142,19 @@ export class MetricsInstrumentation {
 
       const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
-      ['fcp', 'fp', 'lcp', 'ttfb'].forEach(name => {
+      // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
+      // start of the response in milliseconds
+      if (typeof responseStartTimestamp === 'number') {
+        this._measurements['ttfb'] = { value: (responseStartTimestamp - transaction.startTimestamp) * 1000 };
+
+        if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
+          // Capture the time spent making the request and receiving the first byte of the response.
+          // This is the time between the start of the request and the start of the response in milliseconds.
+          this._measurements['ttfb.requestTime'] = { value: (responseStartTimestamp - requestStartTimestamp) * 1000 };
+        }
+      }
+
+      ['fcp', 'fp', 'lcp'].forEach(name => {
         if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
           return;
         }
