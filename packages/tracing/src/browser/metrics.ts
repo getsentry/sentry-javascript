@@ -9,7 +9,6 @@ import { msToSec } from '../utils';
 import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
-import { getTTFB } from './web-vitals/getTTFB';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
@@ -31,7 +30,6 @@ export class MetricsInstrumentation {
       this._trackCLS();
       this._trackLCP();
       this._trackFID();
-      this._trackTTFB();
     }
   }
 
@@ -280,24 +278,6 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding FID');
       this._measurements['fid'] = { value: metric.value };
       this._measurements['mark.fid'] = { value: timeOrigin + startTime };
-    });
-  }
-
-  /** Starts tracking the Time to First Byte on the current page. */
-  private _trackTTFB(): void {
-    getTTFB(metric => {
-      const entry = metric.entries.pop();
-
-      if (!entry) {
-        return;
-      }
-
-      logger.log('[Measurements] Adding TTFB');
-      this._measurements['ttfb'] = { value: metric.value };
-
-      // Capture the time spent making the request and receiving the first byte of the response
-      const requestTime = metric.value - ((metric.entries[0] ?? entry) as PerformanceNavigationTiming).requestStart;
-      this._measurements['ttfb.requestTime'] = { value: requestTime };
     });
   }
 }
