@@ -119,6 +119,12 @@ export interface Options {
   tracesSampleRate?: number;
 
   /**
+   * A flag enabling Sessions Tracking feature.
+   * By default, Sessions Tracking is enabled.
+   */
+  autoSessionTracking?: boolean;
+
+  /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
    * */

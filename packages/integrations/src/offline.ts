@@ -1,7 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, normalize, uuid4 } from '@sentry/utils';
 import localForage from 'localforage';
+
+type LocalForage = {
+  setItem<T>(key: string, value: T, callback?: (err: any, value: T) => void): Promise<T>;
+  iterate<T, U>(
+    iteratee: (value: T, key: string, iterationNumber: number) => U,
+    callback?: (err: any, result: U) => void,
+  ): Promise<U>;
+  removeItem(key: string, callback?: (err: any) => void): Promise<void>;
+};
 
 /**
  * cache offline errors and send when connected
@@ -36,7 +46,7 @@ export class Offline implements Integration {
   /**
    * event cache
    */
-  public offlineEventStore: typeof localForage;
+  public offlineEventStore: LocalForage;
 
   /**
    * @inheritDoc

@@ -78,7 +78,10 @@ export class OnUncaughtException implements Integration {
         if (hub.getIntegration(OnUncaughtException)) {
           hub.withScope((scope: Scope) => {
             scope.setLevel(Severity.Fatal);
-            hub.captureException(error, { originalException: error });
+            hub.captureException(error, {
+              originalException: error,
+              data: { mechanism: { handled: false, type: 'onuncaughtexception' } },
+            });
             if (!calledFatalError) {
               calledFatalError = true;
               onFatalError(error);

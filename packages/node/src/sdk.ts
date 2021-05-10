@@ -1,5 +1,6 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import { SessionStatus } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -103,7 +104,14 @@ export function init(options: NodeOptions = {}): void {
     const detectedRelease = getSentryRelease();
     if (detectedRelease !== undefined) {
       options.release = detectedRelease;
+    } else {
+      // If release is not provided, then we should disable autoSessionTracking
+      options.autoSessionTracking = false;
     }
+  }
+
+  if (options.autoSessionTracking === undefined) {
+    options.autoSessionTracking = false;
   }
 
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
@@ -116,6 +124,10 @@ export function init(options: NodeOptions = {}): void {
   }
 
   initAndBind(NodeClient, options);
+
+  if (options.autoSessionTracking) {
+    startSessionTracking();
+  }
 }
 
 /**
@@ -156,6 +168,20 @@ export async function close(timeout?: number): Promise<boolean> {
 }
 
 /**
+ * Function that takes an instance of NodeClient and checks if autoSessionTracking option is enabled for that client
+ */
+export function isAutoSessionTrackingEnabled(client?: NodeClient): boolean {
+  if (client === undefined) {
+    return false;
+  }
+  const clientOptions: NodeOptions = client && client.getOptions();
+  if (clientOptions && clientOptions.autoSessionTracking !== undefined) {
+    return clientOptions.autoSessionTracking;
+  }
+  return false;
+}
+
+/**
  * Returns a release dynamically from environment variables.
  */
 export function getSentryRelease(fallback?: string): string | undefined {
@@ -186,4 +212,25 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
     fallback
   );
+}
+
+/**
+ * Enable automatic Session Tracking for the node process.
+ */
+function startSessionTracking(): void {
+  const hub = getCurrentHub();
+  hub.startSession();
+  // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
+  // The 'beforeExit' event is not emitted for conditions causing explicit termination,
+  // such as calling process.exit() or uncaught exceptions.
+  // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
+  process.on('beforeExit', () => {
+    const session = hub.getScope()?.getSession();
+    const terminalStates = [SessionStatus.Exited, SessionStatus.Crashed];
+    // Only call endSession, if the Session exists on Scope and SessionStatus is not a
+    // Terminal Status i.e. Exited or Crashed because
+    // "When a session is moved away from ok it must not be updated anymore."
+    // Ref: https://develop.sentry.dev/sdk/sessions/
+    if (session && !terminalStates.includes(session.status)) hub.endSession();
+  });
 }

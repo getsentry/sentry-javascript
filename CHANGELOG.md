@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.3.6
+
+- [nextjs] fix: Fix error logging (#3512)
+- [nextjs] fix: Add environment automatically (#3495)
+- [node] feat: Implement category based rate limiting (#3435)
+- [node] fix: Set handled to false when it is a crash (#3493)
+- [tracing] fix: Mark tracing distributables as side effects (#3519)
+
+## 6.3.5
+
+- [nextjs] fix: Add tslib dependecy; change inject order (#3487)
+
 ## 6.3.4
 
 - [nextjs] fix: API routes logging (#3479)

@@ -83,11 +83,9 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
  * @returns A wrapped version of that logger
  */
 function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogger {
-  return (err: Error): void => {
+  return function(this: Server, err: Error): void {
     // TODO add context data here
     Sentry.captureException(err);
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    return origErrorLogger.bind(this, err);
+    return origErrorLogger.call(this, err);
   };
 }
