@@ -9,7 +9,6 @@ import { msToSec } from '../utils';
 import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
-import { getTTFB } from './web-vitals/getTTFB';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
@@ -31,7 +30,6 @@ export class MetricsInstrumentation {
       this._trackCLS();
       this._trackLCP();
       this._trackFID();
-      this._trackTTFB();
     }
   }
 
@@ -62,6 +60,8 @@ export class MetricsInstrumentation {
 
     let entryScriptStartTimestamp: number | undefined;
     let tracingInitMarkStartTime: number | undefined;
+    let responseStartTimestamp: number | undefined;
+    let requestStartTimestamp: number | undefined;
 
     global.performance
       .getEntries()
@@ -75,9 +75,12 @@ export class MetricsInstrumentation {
         }
 
         switch (entry.entryType) {
-          case 'navigation':
+          case 'navigation': {
             addNavigationSpans(transaction, entry, timeOrigin);
+            responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
+            requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
             break;
+          }
           case 'mark':
           case 'paint':
           case 'measure': {
@@ -139,7 +142,20 @@ export class MetricsInstrumentation {
 
       const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
-      ['fcp', 'fp', 'lcp', 'ttfb'].forEach(name => {
+      // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
+      // start of the response in milliseconds
+      if (typeof responseStartTimestamp === 'number') {
+        logger.log('[Measurements] Adding TTFB');
+        this._measurements['ttfb'] = { value: (responseStartTimestamp - transaction.startTimestamp) * 1000 };
+
+        if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
+          // Capture the time spent making the request and receiving the first byte of the response.
+          // This is the time between the start of the request and the start of the response in milliseconds.
+          this._measurements['ttfb.requestTime'] = { value: (responseStartTimestamp - requestStartTimestamp) * 1000 };
+        }
+      }
+
+      ['fcp', 'fp', 'lcp'].forEach(name => {
         if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
           return;
         }
@@ -280,24 +296,6 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding FID');
       this._measurements['fid'] = { value: metric.value };
       this._measurements['mark.fid'] = { value: timeOrigin + startTime };
-    });
-  }
-
-  /** Starts tracking the Time to First Byte on the current page. */
-  private _trackTTFB(): void {
-    getTTFB(metric => {
-      const entry = metric.entries.pop();
-
-      if (!entry) {
-        return;
-      }
-
-      logger.log('[Measurements] Adding TTFB');
-      this._measurements['ttfb'] = { value: metric.value };
-
-      // Capture the time spent making the request and receiving the first byte of the response
-      const requestTime = metric.value - ((metric.entries[0] ?? entry) as PerformanceNavigationTiming).requestStart;
-      this._measurements['ttfb.requestTime'] = { value: requestTime };
     });
   }
 }
