@@ -9,38 +9,37 @@ export interface IntegrationIndex {
   [key: string]: Integration;
 }
 
+/**
+ * @private
+ */
+function filterDuplicates(integrations: Integration[]): Integration[] {
+  return integrations.reduce((acc, integrations) => {
+    if (acc.every(accIntegration => integrations.name !== accIntegration.name)) {
+      acc.push(integrations);
+    }
+    return acc;
+  }, [] as Integration[]);
+}
+
 /** Gets integration to install */
 export function getIntegrationsToSetup(options: Options): Integration[] {
   const defaultIntegrations = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
   const userIntegrations = options.integrations;
-  let integrations: Integration[] = [];
+
+  let integrations: Integration[] = [...filterDuplicates(defaultIntegrations)];
+
   if (Array.isArray(userIntegrations)) {
-    const userIntegrationsNames = userIntegrations.map(i => i.name);
-    const pickedIntegrationsNames: string[] = [];
-
-    // Leave only unique default integrations, that were not overridden with provided user integrations
-    defaultIntegrations.forEach(defaultIntegration => {
-      if (
-        userIntegrationsNames.indexOf(defaultIntegration.name) === -1 &&
-        pickedIntegrationsNames.indexOf(defaultIntegration.name) === -1
-      ) {
-        integrations.push(defaultIntegration);
-        pickedIntegrationsNames.push(defaultIntegration.name);
-      }
-    });
-
-    // Don't add same user integration twice
-    userIntegrations.forEach(userIntegration => {
-      if (pickedIntegrationsNames.indexOf(userIntegration.name) === -1) {
-        integrations.push(userIntegration);
-        pickedIntegrationsNames.push(userIntegration.name);
-      }
-    });
+    // Filter out integrations that are also included in user options
+    integrations = [
+      ...integrations.filter(integrations =>
+        userIntegrations.every(userIntegration => userIntegration.name !== integrations.name),
+      ),
+      // And filter out duplicated user options integrations
+      ...filterDuplicates(userIntegrations),
+    ];
   } else if (typeof userIntegrations === 'function') {
-    integrations = userIntegrations(defaultIntegrations);
+    integrations = userIntegrations(integrations);
     integrations = Array.isArray(integrations) ? integrations : [integrations];
-  } else {
-    integrations = [...defaultIntegrations];
   }
 
   // Make sure that if present, `Debug` integration will always run last
