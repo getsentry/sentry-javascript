@@ -45,6 +45,8 @@ export interface TransportOptions {
   caCerts?: string;
   /** Fetch API init parameters */
   fetchParameters?: { [key: string]: string };
+  /** An optional envelope tunnel URL */
+  envelopeTunnel?: string;
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.

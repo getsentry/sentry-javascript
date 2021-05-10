@@ -51,7 +51,7 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
 export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const eventType = event.type || 'event';
-  const useEnvelope = eventType === 'transaction';
+  const useEnvelope = eventType === 'transaction' || api.forcesEnvelopes();
 
   const { transactionSampling, ...metadata } = event.debug_meta || {};
   const { method: samplingMethod, rate: sampleRate } = transactionSampling || {};

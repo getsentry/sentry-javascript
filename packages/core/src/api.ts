@@ -18,16 +18,25 @@ export class API {
   /** The internally used Dsn object. */
   private readonly _dsnObject: Dsn;
 
+  /** The envelope tunnel to use. */
+  private envelopeTunnel?: string;
+
   /** Create a new instance of API */
-  public constructor(dsn: DsnLike, metadata: SdkMetadata = {}) {
+  public constructor(dsn: DsnLike, metadata: SdkMetadata = {}, envelopeTunnel?: string) {
     this.dsn = dsn;
     this._dsnObject = new Dsn(dsn);
     this.metadata = metadata;
+    this.envelopeTunnel = envelopeTunnel;
   }
 
   /** Returns the Dsn object. */
   public getDsn(): Dsn {
     return this._dsnObject;
+  }
+
+  /** Does this transport force envelopes? */
+  public forcesEnvelopes(): boolean {
+    return !!this.envelopeTunnel;
   }
 
   /** Returns the prefix to construct Sentry ingestion API endpoints. */
@@ -132,6 +141,9 @@ export class API {
 
   /** Returns the ingest API endpoint for target. */
   private _getIngestEndpoint(target: 'store' | 'envelope'): string {
+    if (this.envelopeTunnel) {
+      return this.envelopeTunnel;
+    }
     const base = this.getBaseApiEndpoint();
     const dsn = this._dsnObject;
     return `${base}${dsn.projectId}/${target}/`;
@@ -139,6 +151,9 @@ export class API {
 
   /** Returns a URL-encoded string with auth config suitable for a query string. */
   private _encodedAuth(): string {
+    if (this.envelopeTunnel) {
+      return '';
+    }
     const dsn = this._dsnObject;
     const auth = {
       // We send only the minimum set of required information. See
