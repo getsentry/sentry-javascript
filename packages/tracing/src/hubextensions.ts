@@ -208,8 +208,6 @@ export function startIdleTransaction(
  * @private
  */
 export function _addTracingExtensions(): void {
-  // FIXME: This is problematic, because `getMainCarrier` always return a valid Carrier, but because
-  // of how we set the types, we need to perform an unnecessary check here.
   const carrier = getMainCarrier();
   if (!carrier.__SENTRY__) {
     return;

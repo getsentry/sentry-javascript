@@ -25,6 +25,9 @@ export function dynamicRequire(mod: any, request: string): any {
  * build time. `require.resolve` is also not available in any other way, so we cannot create,
  * a fake helper like we do with `dynamicRequire`.
  *
+ * We always prefer to use local package, thus the value is not returned early from each `try/catch` block.
+ * That is to mimic the behavior of `require.resolve` exactly.
+ *
  * @param moduleName module name to require
  * @returns possibly required module
  */

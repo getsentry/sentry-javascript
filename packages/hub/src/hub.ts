@@ -457,7 +457,13 @@ export class Hub implements HubInterface {
   }
 }
 
-/** Returns the global shim registry. */
+/**
+ * Returns the global shim registry.
+ *
+ * FIXME: This function is problematic, because despite always returning a valid Carrier,
+ * it has an optional `__SENTRY__` property, which then in turn requires us to always perform an unnecessary check
+ * at the call-site. We always access the carrier through this function, so we can guarantee that `__SENTRY__` is there.
+ **/
 export function getMainCarrier(): Carrier {
   const carrier = getGlobalObject();
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
