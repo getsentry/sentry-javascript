@@ -1,4 +1,6 @@
-import { SDK_VERSION } from '@sentry/core';
+import { initAndBind, SDK_VERSION } from '@sentry/core';
+import { getMainCarrier } from '@sentry/hub';
+import { Integration } from '@sentry/types';
 import * as domain from 'domain';
 
 import {
@@ -15,6 +17,14 @@ import {
 } from '../src';
 import { NodeBackend } from '../src/backend';
 
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
+  return {
+    ...original,
+    initAndBind: jest.fn().mockImplementation(original.initAndBind),
+  };
+});
+
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 // eslint-disable-next-line no-var
@@ -26,6 +36,7 @@ describe('SentryNode', () => {
   });
 
   beforeEach(() => {
+    jest.clearAllMocks();
     getCurrentHub().pushScope();
   });
 
@@ -270,7 +281,32 @@ describe('SentryNode', () => {
   });
 });
 
+function withAutoloadedIntegrations(integrations: Integration[], callback: () => void) {
+  const carrier = getMainCarrier();
+  carrier.__SENTRY__!.integrations = integrations;
+  callback();
+  carrier.__SENTRY__!.integrations = undefined;
+  delete carrier.__SENTRY__!.integrations;
+}
+
+/** JSDoc */
+class MockIntegration implements Integration {
+  public name: string;
+
+  public constructor(name: string) {
+    this.name = name;
+  }
+
+  public setupOnce(): void {
+    // noop
+  }
+}
+
 describe('SentryNode initialization', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
@@ -331,6 +367,38 @@ describe('SentryNode initialization', () => {
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/serverless');
       expect(sdkData.packages[0].version).toEqual(SDK_VERSION);
       expect(sdkData.version).toEqual(SDK_VERSION);
+    });
+  });
+
+  describe('autoloaded integrations', () => {
+    it('should attach single integration to default integrations', () => {
+      withAutoloadedIntegrations([new MockIntegration('foo')], () => {
+        init({
+          defaultIntegrations: [new MockIntegration('bar')],
+        });
+        const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
+        expect(integrations.map(i => i.name)).toEqual(['bar', 'foo']);
+      });
+    });
+
+    it('should attach multiple integrations to default integrations', () => {
+      withAutoloadedIntegrations([new MockIntegration('foo'), new MockIntegration('bar')], () => {
+        init({
+          defaultIntegrations: [new MockIntegration('baz'), new MockIntegration('qux')],
+        });
+        const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
+        expect(integrations.map(i => i.name)).toEqual(['baz', 'qux', 'foo', 'bar']);
+      });
+    });
+
+    it('should ignore autoloaded integrations when defaultIntegrations:false', () => {
+      withAutoloadedIntegrations([new MockIntegration('foo')], () => {
+        init({
+          defaultIntegrations: false,
+        });
+        const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
+        expect(integrations).toEqual([]);
+      });
     });
   });
 });

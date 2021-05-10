@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { dynamicRequire, fill, logger } from '@sentry/utils';
+import { fill, loadModule, logger } from '@sentry/utils';
 
 interface MysqlConnection {
   createQuery: () => void;
@@ -22,12 +22,9 @@ export class Mysql implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    let connection: MysqlConnection;
+    const pkg = loadModule<MysqlConnection>('mysql/lib/Connection.js');
 
-    try {
-      // Unfortunatelly mysql is using some custom loading system and `Connection` is not exported directly.
-      connection = dynamicRequire(module, 'mysql/lib/Connection.js');
-    } catch (e) {
+    if (!pkg) {
       logger.error('Mysql Integration was unable to require `mysql` package.');
       return;
     }
@@ -36,7 +33,7 @@ export class Mysql implements Integration {
     //    function (callback) => void
     //    function (options, callback) => void
     //    function (options, values, callback) => void
-    fill(connection, 'createQuery', function(orig: () => void) {
+    fill(pkg, 'createQuery', function(orig: () => void) {
       return function(this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();

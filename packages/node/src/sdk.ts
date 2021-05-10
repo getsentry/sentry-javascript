@@ -78,9 +78,16 @@ export const defaultIntegrations = [
  * @see {@link NodeOptions} for documentation on configuration options.
  */
 export function init(options: NodeOptions = {}): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
-  }
+  const carrier = getMainCarrier();
+  const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
+
+  options.defaultIntegrations =
+    options.defaultIntegrations === false
+      ? []
+      : [
+          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
+          ...autoloadedIntegrations,
+        ];
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
     options.dsn = process.env.SENTRY_DSN;
@@ -113,7 +120,7 @@ export function init(options: NodeOptions = {}): void {
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {
-    setHubOnCarrier(getMainCarrier(), getCurrentHub());
+    setHubOnCarrier(carrier, getCurrentHub());
   }
 
   initAndBind(NodeClient, options);

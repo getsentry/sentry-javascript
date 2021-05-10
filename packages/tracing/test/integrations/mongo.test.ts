@@ -27,7 +27,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    dynamicRequire() {
+    loadModule() {
       return {
         Collection,
       };
