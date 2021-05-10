@@ -267,8 +267,7 @@ function _autoloadDatabaseIntegrations(): void {
     .filter(p => p) as Integration[];
 
   if (mappedPackages.length > 0) {
-    carrier.__SENTRY__.integrations = carrier.__SENTRY__.integrations || [];
-    carrier.__SENTRY__.integrations.concat(mappedPackages);
+    carrier.__SENTRY__.integrations = [...(carrier.__SENTRY__.integrations || []), ...mappedPackages];
   }
 }
 
@@ -278,7 +277,6 @@ function _autoloadDatabaseIntegrations(): void {
 export function addExtensionMethods(): void {
   _addTracingExtensions();
 
-  // TODO: Option to disable this (but how, if it's a side-effect and there's no access to client options?)
   // Detect and automatically load specified integrations.
   if (isNodeEnv()) {
     _autoloadDatabaseIntegrations();
