@@ -232,8 +232,6 @@ function _autoloadDatabaseIntegrations(): void {
     return;
   }
 
-  const supportedPackages = ['mongodb', 'mongoose', 'pg', 'mysql'];
-
   const packageToIntegrationMapping: Record<string, () => Integration> = {
     mongodb() {
       const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass<Integration> };
@@ -255,7 +253,7 @@ function _autoloadDatabaseIntegrations(): void {
     },
   };
 
-  const mappedPackages = supportedPackages
+  const mappedPackages = Object.keys(packageToIntegrationMapping)
     .filter(moduleName => !!loadModule(moduleName))
     .map(pkg => {
       try {
