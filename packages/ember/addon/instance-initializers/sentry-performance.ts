@@ -333,6 +333,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
 export async function instrumentForPerformance(appInstance: ApplicationInstance) {
   const config = getSentryConfig();
   const sentryConfig = config.sentry;
+  const browserTracingOptions = config.browserTracingOptions || {};
 
   const tracing = await import('@sentry/tracing');
 
@@ -349,6 +350,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
         _instrumentEmberRouter(routerService, routerMain, config, customStartTransaction, startTransactionOnPageLoad);
       },
       idleTimeout,
+      ...browserTracingOptions,
     }),
   ];
 
