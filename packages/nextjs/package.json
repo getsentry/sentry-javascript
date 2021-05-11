@@ -26,6 +26,7 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@sentry/tracing": "6.3.6",
     "@sentry/types": "6.3.6",
     "@types/webpack": "^5.28.0",
     "eslint": "7.20.0",
