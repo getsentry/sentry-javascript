@@ -24,13 +24,6 @@ export interface BrowserOptions extends Options {
    */
   denyUrls?: Array<string | RegExp>;
 
-  /**
-   * A URL to an envelope tunnel endpoint.  An envelope tunnel is an HTTP endpoint
-   * that accepts Sentry envelopes for forwarding.  This can be used to force data
-   * through a custom server independent of the type of data.
-   */
-  envelopeTunnel?: string;
-
   /** @deprecated use {@link Options.allowUrls} instead. */
   whitelistUrls?: Array<string | RegExp>;
 

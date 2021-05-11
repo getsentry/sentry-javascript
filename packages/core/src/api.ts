@@ -19,14 +19,14 @@ export class API {
   private readonly _dsnObject: Dsn;
 
   /** The envelope tunnel to use. */
-  private envelopeTunnel?: string;
+  private readonly _envelopeTunnel?: string;
 
   /** Create a new instance of API */
   public constructor(dsn: DsnLike, metadata: SdkMetadata = {}, envelopeTunnel?: string) {
     this.dsn = dsn;
     this._dsnObject = new Dsn(dsn);
     this.metadata = metadata;
-    this.envelopeTunnel = envelopeTunnel;
+    this._envelopeTunnel = envelopeTunnel;
   }
 
   /** Returns the Dsn object. */
@@ -35,13 +35,13 @@ export class API {
   }
 
   /** Does this transport force envelopes? */
-  public forcesEnvelopes(): boolean {
-    return !!this.envelopeTunnel;
+  public forceEnvelope(): boolean {
+    return !!this._envelopeTunnel;
   }
 
   /** Returns the prefix to construct Sentry ingestion API endpoints. */
   public getBaseApiEndpoint(): string {
-    const dsn = this._dsnObject;
+    const dsn = this.getDsn();
     const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
     const port = dsn.port ? `:${dsn.port}` : '';
     return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
@@ -67,12 +67,16 @@ export class API {
    * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
    */
   public getEnvelopeEndpointWithUrlEncodedAuth(): string {
+    if (this.forceEnvelope()) {
+      return this._envelopeTunnel as string;
+    }
+
     return `${this._getEnvelopeEndpoint()}?${this._encodedAuth()}`;
   }
 
   /** Returns only the path component for the store endpoint. */
   public getStoreEndpointPath(): string {
-    const dsn = this._dsnObject;
+    const dsn = this.getDsn();
     return `${dsn.path ? `/${dsn.path}` : ''}/api/${dsn.projectId}/store/`;
   }
 
@@ -82,7 +86,7 @@ export class API {
    */
   public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
     // CHANGE THIS to use metadata but keep clientName and clientVersion compatible
-    const dsn = this._dsnObject;
+    const dsn = this.getDsn();
     const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
     header.push(`sentry_client=${clientName}/${clientVersion}`);
     header.push(`sentry_key=${dsn.publicKey}`);
@@ -103,7 +107,7 @@ export class API {
       user?: { name?: string; email?: string };
     } = {},
   ): string {
-    const dsn = this._dsnObject;
+    const dsn = this.getDsn();
     const endpoint = `${this.getBaseApiEndpoint()}embed/error-page/`;
 
     const encodedOptions = [];
@@ -141,20 +145,17 @@ export class API {
 
   /** Returns the ingest API endpoint for target. */
   private _getIngestEndpoint(target: 'store' | 'envelope'): string {
-    if (this.envelopeTunnel) {
-      return this.envelopeTunnel;
+    if (this._envelopeTunnel) {
+      return this._envelopeTunnel;
     }
     const base = this.getBaseApiEndpoint();
-    const dsn = this._dsnObject;
+    const dsn = this.getDsn();
     return `${base}${dsn.projectId}/${target}/`;
   }
 
   /** Returns a URL-encoded string with auth config suitable for a query string. */
   private _encodedAuth(): string {
-    if (this.envelopeTunnel) {
-      return '';
-    }
-    const dsn = this._dsnObject;
+    const dsn = this.getDsn();
     const auth = {
       // We send only the minimum set of required information. See
       // https://github.com/getsentry/sentry-javascript/issues/2572.
