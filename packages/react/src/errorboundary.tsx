@@ -1,6 +1,18 @@
-import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
+import {
+  captureEvent,
+  captureException,
+  eventFromException,
+  ReportDialogOptions,
+  Scope,
+  showReportDialog,
+  withScope,
+} from '@sentry/browser';
+import { Event, Severity } from '@sentry/types';
+import { parseSemver } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
+
+const reactVersion = parseSemver(React.version);
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -52,6 +64,37 @@ const INITIAL_STATE = {
   eventId: null,
 };
 
+function captureReactErrorBoundaryError(error: Error, componentStack: string): string {
+  const errorBoundaryError = new Error(error.name);
+  errorBoundaryError.stack = componentStack;
+  errorBoundaryError.message = error.message;
+
+  let errorBoundaryEvent: Event = {};
+  void eventFromException({}, errorBoundaryError).then(e => {
+    errorBoundaryEvent = e;
+  });
+
+  if (
+    errorBoundaryEvent.exception &&
+    Array.isArray(errorBoundaryEvent.exception.values) &&
+    reactVersion.major &&
+    reactVersion.major >= 17
+  ) {
+    let originalEvent: Event = {};
+    void eventFromException({}, error).then(e => {
+      originalEvent = e;
+    });
+    originalEvent.level = Severity.Error;
+    if (originalEvent.exception && Array.isArray(originalEvent.exception.values)) {
+      originalEvent.exception.values.push(...errorBoundaryEvent.exception.values);
+    }
+
+    return captureEvent(originalEvent);
+  }
+
+  return captureException(error, { contexts: { react: { componentStack } } });
+}
+
 /**
  * A ErrorBoundary component that logs errors to Sentry.
  * Requires React >= 16
@@ -66,7 +109,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       if (beforeCapture) {
         beforeCapture(scope, error, componentStack);
       }
-      const eventId = captureException(error, { contexts: { react: { componentStack } } });
+      const eventId = captureReactErrorBoundaryError(error, componentStack);
       if (onError) {
         onError(error, componentStack, eventId);
       }

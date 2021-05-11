@@ -1,10 +1,11 @@
 import { Scope } from '@sentry/browser';
+import { Event, Severity } from '@sentry/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 
 import { ErrorBoundary, ErrorBoundaryProps, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
-const mockCaptureException = jest.fn();
+const mockCaptureEvent = jest.fn();
 const mockShowReportDialog = jest.fn();
 const EVENT_ID = 'test-id-123';
 
@@ -12,8 +13,8 @@ jest.mock('@sentry/browser', () => {
   const actual = jest.requireActual('@sentry/browser');
   return {
     ...actual,
-    captureException: (err: any, ctx: any) => {
-      mockCaptureException(err, ctx);
+    captureEvent: (event: Event) => {
+      mockCaptureEvent(event);
       return EVENT_ID;
     },
     showReportDialog: (options: any) => {
@@ -67,7 +68,7 @@ describe('ErrorBoundary', () => {
   jest.spyOn(console, 'error').mockImplementation();
 
   afterEach(() => {
-    mockCaptureException.mockClear();
+    mockCaptureEvent.mockClear();
     mockShowReportDialog.mockClear();
   });
 
@@ -170,10 +171,7 @@ describe('ErrorBoundary', () => {
       expect(container.innerHTML).toBe('<div>Fallback here</div>');
 
       expect(errorString).toBe('Error: boom');
-      expect(compStack).toBe(`
-    in Bam (created by TestApp)
-    in ErrorBoundary (created by TestApp)
-    in TestApp`);
+      expect(compStack).toMatch(/\s+(at Bam) \(.*?\)\s+(at ErrorBoundary) \(.*?\)\s+(at TestApp) \(.*?\)/g);
       expect(eventIdString).toBe(EVENT_ID);
     });
   });
@@ -188,7 +186,7 @@ describe('ErrorBoundary', () => {
       );
 
       expect(mockOnError).toHaveBeenCalledTimes(0);
-      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+      expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
@@ -196,9 +194,12 @@ describe('ErrorBoundary', () => {
       expect(mockOnError).toHaveBeenCalledTimes(1);
       expect(mockOnError).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
 
-      expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
-        contexts: { react: { componentStack: expect.any(String) } },
+      expect(mockCaptureEvent).toHaveBeenCalledTimes(1);
+      expect(mockCaptureEvent).toHaveBeenCalledWith({
+        exception: {
+          values: expect.any(Array),
+        },
+        level: Severity.Error,
       });
     });
 
@@ -206,7 +207,7 @@ describe('ErrorBoundary', () => {
       const mockBeforeCapture = jest.fn();
 
       const testBeforeCapture = (...args: any[]) => {
-        expect(mockCaptureException).toHaveBeenCalledTimes(0);
+        expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
         mockBeforeCapture(...args);
       };
 
@@ -217,14 +218,14 @@ describe('ErrorBoundary', () => {
       );
 
       expect(mockBeforeCapture).toHaveBeenCalledTimes(0);
-      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+      expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
 
       expect(mockBeforeCapture).toHaveBeenCalledTimes(1);
       expect(mockBeforeCapture).toHaveBeenLastCalledWith(expect.any(Scope), expect.any(Error), expect.any(String));
-      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureEvent).toHaveBeenCalledTimes(1);
     });
 
     it('shows a Sentry Report Dialog with correct options', () => {
