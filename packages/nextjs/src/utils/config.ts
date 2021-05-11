@@ -128,7 +128,7 @@ export function withSentryConfig(
   // warn if any of the default options for the webpack plugin are getting overridden
   const webpackPluginOptionOverrides = Object.keys(defaultWebpackPluginOptions)
     .concat('dryrun')
-    .map(key => key in Object.keys(providedWebpackPluginOptions));
+    .filter(key => key in Object.keys(providedWebpackPluginOptions));
   if (webpackPluginOptionOverrides.length > 0) {
     logger.warn(
       '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
