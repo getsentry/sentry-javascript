@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
-import { Hub } from '@sentry/hub';
-import * as hubModule from '@sentry/hub';
+import { Hub, makeMain } from '@sentry/hub';
 import { TransactionSamplingMethod } from '@sentry/types';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
@@ -32,6 +31,7 @@ describe('Hub', () => {
   describe('getTransaction()', () => {
     it('should find a transaction which has been set on the scope if sampled = true', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+      makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark' });
       transaction.sampled = true;
 
@@ -44,6 +44,7 @@ describe('Hub', () => {
 
     it('should find a transaction which has been set on the scope if sampled = false', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+      makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
 
       hub.configureScope(scope => {
@@ -55,6 +56,7 @@ describe('Hub', () => {
 
     it("should not find an open transaction if it's not on the scope", () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+      makeMain(hub);
       hub.startTransaction({ name: 'dogpark' });
 
       expect(hub.getScope()?.getTransaction()).toBeUndefined();
@@ -66,6 +68,8 @@ describe('Hub', () => {
       it('should add transaction context data to default sample context', () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
+
         const transactionContext = {
           name: 'dogpark',
           parentSpanId: '12312012',
@@ -80,6 +84,7 @@ describe('Hub', () => {
       it("should add parent's sampling decision to default sample context", () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         const parentSamplingDecsion = false;
 
         hub.startTransaction({
@@ -98,6 +103,7 @@ describe('Hub', () => {
       it('should set sampled = false when tracing is disabled', () => {
         // neither tracesSampleRate nor tracesSampler is defined -> tracing disabled
         const hub = new Hub(new BrowserClient({}));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(transaction.sampled).toBe(false);
@@ -105,6 +111,7 @@ describe('Hub', () => {
 
       it('should set sampled = false if tracesSampleRate is 0', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(transaction.sampled).toBe(false);
@@ -112,6 +119,7 @@ describe('Hub', () => {
 
       it('should set sampled = true if tracesSampleRate is 1', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(transaction.sampled).toBe(true);
@@ -120,6 +128,7 @@ describe('Hub', () => {
       it("should call tracesSampler if it's defined", () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(tracesSampler).toHaveBeenCalled();
@@ -128,6 +137,7 @@ describe('Hub', () => {
       it('should set sampled = false if tracesSampler returns 0', () => {
         const tracesSampler = jest.fn().mockReturnValue(0);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(tracesSampler).toHaveBeenCalled();
@@ -137,6 +147,7 @@ describe('Hub', () => {
       it('should set sampled = true if tracesSampler returns 1', () => {
         const tracesSampler = jest.fn().mockReturnValue(1);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(tracesSampler).toHaveBeenCalled();
@@ -147,6 +158,7 @@ describe('Hub', () => {
         // so that the decision otherwise would be false
         const tracesSampler = jest.fn().mockReturnValue(0);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark', sampled: true });
 
         expect(transaction.sampled).toBe(true);
@@ -156,6 +168,7 @@ describe('Hub', () => {
         // so that the decision otherwise would be true
         const tracesSampler = jest.fn().mockReturnValue(1);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
 
         expect(transaction.sampled).toBe(false);
@@ -165,6 +178,7 @@ describe('Hub', () => {
         // make the two options do opposite things to prove precedence
         const tracesSampler = jest.fn().mockReturnValue(true);
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0, tracesSampler }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(tracesSampler).toHaveBeenCalled();
@@ -174,6 +188,7 @@ describe('Hub', () => {
       it('should tolerate tracesSampler returning a boolean', () => {
         const tracesSampler = jest.fn().mockReturnValue(true);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(tracesSampler).toHaveBeenCalled();
@@ -183,6 +198,7 @@ describe('Hub', () => {
       it('should record sampling method when sampling decision is explicitly set', () => {
         const tracesSampler = jest.fn().mockReturnValue(0.1121);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark', sampled: true });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
@@ -193,6 +209,7 @@ describe('Hub', () => {
       it('should record sampling method and rate when sampling decision comes from tracesSampler', () => {
         const tracesSampler = jest.fn().mockReturnValue(0.1121);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
@@ -202,6 +219,7 @@ describe('Hub', () => {
 
       it('should record sampling method when sampling decision is inherited', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.1121 }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
@@ -211,6 +229,7 @@ describe('Hub', () => {
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.1121 }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
@@ -222,6 +241,7 @@ describe('Hub', () => {
     describe('isValidSampleRate()', () => {
       it("should reject tracesSampleRates which aren't numbers or booleans", () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 'dogs!' as any }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
@@ -229,6 +249,7 @@ describe('Hub', () => {
 
       it('should reject tracesSampleRates which are NaN', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 'dogs!' as any }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
@@ -237,6 +258,7 @@ describe('Hub', () => {
       // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampleRates less than 0', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: -26 }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
@@ -245,6 +267,7 @@ describe('Hub', () => {
       // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampleRates greater than 1', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 26 }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
@@ -253,6 +276,7 @@ describe('Hub', () => {
       it("should reject tracesSampler return values which aren't numbers or booleans", () => {
         const tracesSampler = jest.fn().mockReturnValue('dogs!');
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
@@ -261,6 +285,7 @@ describe('Hub', () => {
       it('should reject tracesSampler return values which are NaN', () => {
         const tracesSampler = jest.fn().mockReturnValue(NaN);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be a boolean or a number'));
@@ -270,6 +295,7 @@ describe('Hub', () => {
       it('should reject tracesSampler return values less than 0', () => {
         const tracesSampler = jest.fn().mockReturnValue(-12);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
@@ -279,6 +305,7 @@ describe('Hub', () => {
       it('should reject tracesSampler return values greater than 1', () => {
         const tracesSampler = jest.fn().mockReturnValue(31);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Sample rate must be between 0 and 1'));
@@ -290,6 +317,7 @@ describe('Hub', () => {
       jest.spyOn(client, 'captureEvent');
 
       const hub = new Hub(client);
+      makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark' });
 
       jest.spyOn(transaction, 'finish');
@@ -303,6 +331,7 @@ describe('Hub', () => {
     describe('sampling inheritance', () => {
       it('should propagate sampling decision to child spans', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: Math.random() }));
+        makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
         const child = transaction.startChild({ op: 'ball.chase' });
 
@@ -320,7 +349,7 @@ describe('Hub', () => {
               integrations: [new BrowserTracing()],
             }),
           );
-          jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
+          makeMain(hub);
 
           const transaction = hub.startTransaction({ name: 'dogpark' });
           hub.configureScope(scope => {
@@ -362,7 +391,7 @@ describe('Hub', () => {
               integrations: [new BrowserTracing()],
             }),
           );
-          jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
+          makeMain(hub);
 
           const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
           hub.configureScope(scope => {
@@ -407,6 +436,7 @@ describe('Hub', () => {
         // tracesSampleRate
         mathRandom.mockReturnValueOnce(1);
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0.5 }));
+        makeMain(hub);
         const parentSamplingDecsion = true;
 
         const transaction = hub.startTransaction({
@@ -422,6 +452,7 @@ describe('Hub', () => {
         // tracesSampleRate = 1 means every transaction should end up with sampled = true, so make parent's decision the
         // opposite to prove that inheritance takes precedence over tracesSampleRate
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+        makeMain(hub);
         const parentSamplingDecsion = false;
 
         const transaction = hub.startTransaction({
@@ -440,6 +471,7 @@ describe('Hub', () => {
         const parentSamplingDecsion = false;
 
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
 
         const transaction = hub.startTransaction({
           name: 'dogpark',
@@ -457,6 +489,7 @@ describe('Hub', () => {
         const parentSamplingDecsion = true;
 
         const hub = new Hub(new BrowserClient({ tracesSampler }));
+        makeMain(hub);
 
         const transaction = hub.startTransaction({
           name: 'dogpark',
