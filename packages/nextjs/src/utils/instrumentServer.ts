@@ -45,6 +45,8 @@ type WrappedReqHandler = ReqHandler;
 // TODO is it necessary for this to be an object?
 const closure: PlainObject = {};
 
+let sdkInitialized = false;
+
 /**
  * Do the monkeypatching and wrapping necessary to catch errors in page routes. Along the way, as a bonus, grab (and
  * return) the path of the project root, for use in `RewriteFrames`.
@@ -58,6 +60,10 @@ export function instrumentServer(): string {
   // wrap this getter because it runs before the request handler runs, which gives us a chance to wrap the logger before
   // it's called for the first time
   fill(nextServerPrototype, 'getServerRequestHandler', makeWrappedHandlerGetter);
+  if (!sdkInitialized) {
+    require(path.join(process.cwd(), 'sentry.server.config.js'));
+    sdkInitialized = true;
+  }
 
   return closure.projectRootDir;
 }
