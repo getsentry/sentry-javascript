@@ -5,6 +5,7 @@ import { Event, Status, Transports } from '../../../src';
 
 const testDsn = 'https://123@sentry.io/42';
 const storeUrl = 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7';
+const envelopeTunnel = 'https://hello.com/world';
 const eventPayload: Event = {
   event_id: '1337',
 };
@@ -48,6 +49,15 @@ describe('FetchTransport', () => {
           referrerPolicy: 'origin',
         }),
       ).equal(true);
+    });
+
+    it('sends a request to envelopeTunnel if configured', async () => {
+      transport = new Transports.FetchTransport({ dsn: testDsn, envelopeTunnel }, window.fetch);
+      fetch.returns(Promise.resolve({ status: 200, headers: new Headers() }));
+
+      await transport.sendEvent(eventPayload);
+
+      expect(fetch.calledWith(envelopeTunnel)).equal(true);
     });
 
     it('rejects with non-200 status code', async () => {

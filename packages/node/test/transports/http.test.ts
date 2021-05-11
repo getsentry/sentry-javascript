@@ -10,6 +10,7 @@ const mockSetEncoding = jest.fn();
 const dsn = 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
 const storePath = '/mysubpath/api/50622/store/';
 const envelopePath = '/mysubpath/api/50622/envelope/';
+const envelopeTunnel = 'https://hello.com/world';
 const eventPayload: Event = {
   event_id: '1337',
 };
@@ -157,6 +158,19 @@ describe('HTTPTransport', () => {
       assertBasicOptions(requestOptions);
       expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode}): test-failed`));
     }
+  });
+
+  test('sends a request to envelopeTunnel if configured', async () => {
+    const transport = createTransport({ dsn, envelopeTunnel });
+
+    await transport.sendEvent({
+      message: 'test',
+    });
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    expect(requestOptions.protocol).toEqual('https:');
+    expect(requestOptions.hostname).toEqual('hello.com');
+    expect(requestOptions.path).toEqual('/world');
   });
 
   test('back-off using retry-after header', async () => {
