@@ -14,7 +14,14 @@ export const TRACEPARENT_REGEXP = new RegExp(
  *
  * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
  */
-export function hasTracingEnabled(options: Options): boolean {
+export function hasTracingEnabled(
+  options: Options | undefined = getCurrentHub()
+    .getClient()
+    ?.getOptions(),
+): boolean {
+  if (!options) {
+    return false;
+  }
   return 'tracesSampleRate' in options || 'tracesSampler' in options;
 }
 
