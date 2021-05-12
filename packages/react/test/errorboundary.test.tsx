@@ -215,38 +215,37 @@ describe('ErrorBoundary', () => {
       const event = mockCaptureEvent.mock.calls[0][0];
       expect(event.exception.values).toHaveLength(2);
       expect(event.level).toBe(Severity.Error);
-      expect(event.exception.values[1].stacktrace).toEqual({
-        frames: [
-          {
-            colno: 23,
-            filename: expect.stringContaining('errorboundary.test.tsx'),
-            function: 'TestApp',
-            in_app: true,
-            lineno: 31,
-          },
-          {
-            colno: 39,
-            filename: expect.stringContaining('errorboundary.tsx'),
-            function: 'ErrorBoundary',
-            in_app: true,
-            lineno: 2026,
-          },
-          {
-            colno: 37,
-            filename: expect.stringContaining('errorboundary.test.tsx'),
-            function: 'Bam',
-            in_app: true,
-            lineno: 27,
-          },
-          {
-            colno: 20,
-            filename: expect.stringContaining('errorboundary.test.tsx'),
-            function: 'Boo',
-            in_app: true,
-            lineno: 23,
-          },
-        ],
-      });
+
+      expect(event.exception.values[1].stacktrace.frames).toEqual([
+        {
+          colno: expect.any(Number),
+          filename: expect.stringContaining('errorboundary.test.tsx'),
+          function: 'TestApp',
+          in_app: true,
+          lineno: expect.any(Number),
+        },
+        {
+          colno: expect.any(Number),
+          filename: expect.stringContaining('errorboundary.tsx'),
+          function: 'ErrorBoundary',
+          in_app: true,
+          lineno: expect.any(Number),
+        },
+        {
+          colno: expect.any(Number),
+          filename: expect.stringContaining('errorboundary.test.tsx'),
+          function: 'Bam',
+          in_app: true,
+          lineno: expect.any(Number),
+        },
+        {
+          colno: expect.any(Number),
+          filename: expect.stringContaining('errorboundary.test.tsx'),
+          function: 'Boo',
+          in_app: true,
+          lineno: expect.any(Number),
+        },
+      ]);
     });
 
     it('calls `beforeCapture()` when an error occurs', () => {
