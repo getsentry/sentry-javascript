@@ -84,7 +84,6 @@ function captureReactErrorBoundaryError(error: Error, componentStack: string): s
     void eventFromException({}, error).then(e => {
       originalEvent = e;
     });
-    originalEvent.level = Severity.Error;
     if (originalEvent.exception && Array.isArray(originalEvent.exception.values)) {
       originalEvent.exception.values.push(...errorBoundaryEvent.exception.values);
     }

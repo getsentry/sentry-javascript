@@ -2,6 +2,7 @@ import { Scope } from '@sentry/browser';
 import { Event, Severity } from '@sentry/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
+import { useState } from 'react';
 
 import { ErrorBoundary, ErrorBoundaryProps, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
@@ -22,6 +23,15 @@ jest.mock('@sentry/browser', () => {
     },
   };
 });
+
+function Boo({ title }: { title: string }): JSX.Element {
+  throw new Error(title);
+}
+
+function Bam(): JSX.Element {
+  const [title] = useState('boom');
+  return <Boo title={title} />;
+}
 
 const TestApp: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
   const [isError, setError] = React.useState(false);
@@ -45,10 +55,6 @@ const TestApp: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
     </ErrorBoundary>
   );
 };
-
-function Bam(): JSX.Element {
-  throw new Error('boom');
-}
 
 describe('withErrorBoundary', () => {
   it('sets displayName properly', () => {
@@ -171,7 +177,15 @@ describe('ErrorBoundary', () => {
       expect(container.innerHTML).toBe('<div>Fallback here</div>');
 
       expect(errorString).toBe('Error: boom');
-      expect(compStack).toMatch(/\s+(at Bam) \(.*?\)\s+(at ErrorBoundary) \(.*?\)\s+(at TestApp) \(.*?\)/g);
+      /*
+        at Boo (/path/to/sentry-javascript/packages/react/test/errorboundary.test.tsx:23:20)
+        at Bam (/path/to/sentry-javascript/packages/react/test/errorboundary.test.tsx:40:11)
+        at ErrorBoundary (/path/to/sentry-javascript/packages/react/src/errorboundary.tsx:2026:39)
+        at TestApp (/path/to/sentry-javascript/packages/react/test/errorboundary.test.tsx:22:23)
+      */
+      expect(compStack).toMatch(
+        /\s+(at Boo) \(.*?\)\s+(at Bam) \(.*?\)\s+(at ErrorBoundary) \(.*?\)\s+(at TestApp) \(.*?\)/g,
+      );
       expect(eventIdString).toBe(EVENT_ID);
     });
   });
@@ -195,11 +209,43 @@ describe('ErrorBoundary', () => {
       expect(mockOnError).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
 
       expect(mockCaptureEvent).toHaveBeenCalledTimes(1);
-      expect(mockCaptureEvent).toHaveBeenCalledWith({
-        exception: {
-          values: expect.any(Array),
-        },
-        level: Severity.Error,
+
+      // We do a detailed assert on the stacktrace as a regression test against future
+      // react changes (that way we can update the docs if frames change in a major way).
+      const event = mockCaptureEvent.mock.calls[0][0];
+      expect(event.exception.values).toHaveLength(2);
+      expect(event.level).toBe(Severity.Error);
+      expect(event.exception.values[1].stacktrace).toEqual({
+        frames: [
+          {
+            colno: 23,
+            filename: expect.stringContaining('errorboundary.test.tsx'),
+            function: 'TestApp',
+            in_app: true,
+            lineno: 31,
+          },
+          {
+            colno: 39,
+            filename: expect.stringContaining('errorboundary.tsx'),
+            function: 'ErrorBoundary',
+            in_app: true,
+            lineno: 2026,
+          },
+          {
+            colno: 37,
+            filename: expect.stringContaining('errorboundary.test.tsx'),
+            function: 'Bam',
+            in_app: true,
+            lineno: 27,
+          },
+          {
+            colno: 20,
+            filename: expect.stringContaining('errorboundary.test.tsx'),
+            function: 'Boo',
+            in_app: true,
+            lineno: 23,
+          },
+        ],
       });
     });
 

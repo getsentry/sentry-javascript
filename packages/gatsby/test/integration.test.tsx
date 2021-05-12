@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render } from '@testing-library/react';
 import * as React from 'react';
+import { useEffect } from 'react';
 
 import { onClientEntry } from '../gatsby-browser';
 
@@ -24,7 +25,7 @@ describe('useEffect', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function TestComponent() {
-      React.useEffect(() => {
+      useEffect(() => {
         const error = new Error('testing 123');
         (window as any).Sentry.captureException(error);
       });
