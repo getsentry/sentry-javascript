@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render } from '@testing-library/react';
-import * as React from 'react';
 import { useEffect } from 'react';
 
 import { onClientEntry } from '../gatsby-browser';
@@ -15,7 +14,7 @@ describe('useEffect', () => {
     let calls = 0;
 
     onClientEntry(undefined, {
-      beforeSend: event => {
+      beforeSend: (event: any) => {
         expect(event).not.toBeUndefined();
         calls += 1;
 

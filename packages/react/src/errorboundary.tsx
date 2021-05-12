@@ -7,7 +7,7 @@ import {
   showReportDialog,
   withScope,
 } from '@sentry/browser';
-import { Event, Severity } from '@sentry/types';
+import { Event } from '@sentry/types';
 import { parseSemver } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -64,6 +64,13 @@ const INITIAL_STATE = {
   eventId: null,
 };
 
+/**
+ * Logs react error boundary errors to Sentry. If on React version >= 17, creates stack trace
+ * from componentStack param, otherwise relies on error param for stacktrace.
+ *
+ * @param error An error captured by React Error Boundary
+ * @param componentStack The component stacktrace
+ */
 function captureReactErrorBoundaryError(error: Error, componentStack: string): string {
   const errorBoundaryError = new Error(error.name);
   errorBoundaryError.stack = componentStack;
