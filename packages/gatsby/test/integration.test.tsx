@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render } from '@testing-library/react';
 import { useEffect } from 'react';
+import * as React from 'react';
 
 import { onClientEntry } from '../gatsby-browser';
 
