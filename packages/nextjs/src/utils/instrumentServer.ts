@@ -11,11 +11,15 @@ import * as Sentry from '../index.server';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
 
+// class used by `next` as a proxy to the real server; see
+// https://github.com/vercel/next.js/blob/4443d6f3d36b107e833376c2720c1e206eee720d/packages/next/server/next.ts#L32
 interface NextServer {
   server: Server;
   createServer: (options: PlainObject) => Server;
 }
 
+// `next`'s main server class; see
+// https://github.com/vercel/next.js/blob/4443d6f3d36b107e833376c2720c1e206eee720d/packages/next/next-server/server/next-server.ts#L132
 interface Server {
   dir: string;
   publicDir: string;
@@ -47,17 +51,37 @@ const closure: PlainObject = {};
 let sdkSetupComplete = false;
 
 /**
- * Do the monkeypatching and wrapping necessary to catch errors in page routes. Along the way, as a bonus, grab (and
- * return) the path of the project root, for use in `RewriteFrames`.
+ * Do the monkeypatching and wrapping necessary to catch errors in page routes and record transactions for both page and
+ * API routes. Along the way, as a bonus, grab (and return) the path of the project root, for use in `RewriteFrames`.
  *
  * @returns The absolute path of the project root directory
  *
  */
 export function instrumentServer(): string {
-  const nextServerPrototype = Object.getPrototypeOf(createNextServer({}));
+  // The full implementation here involves a lot of indirection and multiple layers of callbacks and wrapping, and is
+  // therefore potentially a little hard to follow. Here's the overall idea:
 
-  // wrap this getter because it runs before the request handler runs, which gives us a chance to wrap the logger before
-  // it's called for the first time
+  // Next.js uses two server classes, `NextServer` and `Server`, with the former proxying calls to the latter, which
+  // then does the all real work. The only access we have to either is through Next's default export,
+  // `createNextServer()`, which returns a `NextServer` instance.
+
+  // At server startup:
+  //  `next.config.js` imports SDK -> SDK index.ts -> `instrumentServer()` (the function we're in right now) ->
+  //  `createNextServer()` -> `NextServer` instance -> `NextServer` prototype -> wrap
+  //  `NextServer.getServerRequestHandler()`, purely to get us to the next step
+
+  // At time of first request:
+  //  Wrapped `getServerRequestHandler` runs for the first time -> live `NextServer` instance (via `this`) -> live
+  //  `Server` instance -> `Server` prototype -> wrap `Server.logError` and `Server.handleRequest` methods, then pass
+  //  wrapped version of `handleRequest` to caller of `getServerRequestHandler`
+
+  // Whenever caller of `NextServer.getServerRequestHandler` calls the wrapped `Server.handleRequest`:
+  //   Trace request
+
+  // Whenever something calls the wrapped `Server.logError`:
+  //   Capture error
+
+  const nextServerPrototype = Object.getPrototypeOf(createNextServer({}));
   fill(nextServerPrototype, 'getServerRequestHandler', makeWrappedHandlerGetter);
 
   // TODO replace with an env var, since at this point we don't have a value yet
@@ -93,9 +117,11 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
 
       const serverPrototype = Object.getPrototypeOf(this.server);
 
-      // wrap the logger so we can capture errors in page-level functions like `getServerSideProps`
+      // wrap for error capturing (`logError` gets called by `next` for all server-side errors)
       fill(serverPrototype, 'logError', makeWrappedErrorLogger);
 
+      // wrap for request transaction creation (`handleRequest` is called for all incoming requests, and dispatches them
+      // to the appropriate handlers)
       fill(serverPrototype, 'handleRequest', makeWrappedReqHandler);
 
       sdkSetupComplete = true;
