@@ -72,9 +72,8 @@ const INITIAL_STATE = {
  * @param componentStack The component stacktrace
  */
 function captureReactErrorBoundaryError(error: Error, componentStack: string): string {
-  const errorBoundaryError = new Error(error.name);
+  const errorBoundaryError = new Error(error.message);
   errorBoundaryError.stack = componentStack;
-  errorBoundaryError.message = error.message;
 
   let errorBoundaryEvent: Event = {};
   void eventFromException({}, errorBoundaryError).then(e => {
