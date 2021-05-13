@@ -2,11 +2,13 @@ import { getSentryRelease } from '@sentry/node';
 import { logger } from '@sentry/utils';
 import defaultWebpackPlugin, { SentryCliPluginOptions } from '@sentry/webpack-plugin';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const SENTRY_CLIENT_CONFIG_FILE = './sentry.client.config.js';
 const SENTRY_SERVER_CONFIG_FILE = './sentry.server.config.js';
 // this is where the transpiled/bundled version of `USER_SERVER_CONFIG_FILE` will end up
-export const SERVER_INIT_OUTPUT_LOCATION = 'sentry/serverInit';
+export const SERVER_SDK_INIT_PATH = 'sentry/initServer.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -15,7 +17,14 @@ type PlainObject<T = any> = { [key: string]: T };
 type WebpackExport = (config: WebpackConfig, options: WebpackOptions) => WebpackConfig;
 
 // The two arguments passed to the exported `webpack` function, as well as the thing it returns
-type WebpackConfig = { devtool: string; plugins: PlainObject[]; entry: EntryProperty; output: { path: string } };
+type WebpackConfig = {
+  devtool: string;
+  plugins: PlainObject[];
+  entry: EntryProperty;
+  output: { path: string };
+  target: string;
+  context: string;
+};
 type WebpackOptions = { dev: boolean; isServer: boolean; buildId: string };
 
 // For our purposes, the value for `entry` is either an object, or a function which returns such an object
@@ -87,7 +96,7 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
   // `require()` on the resulting file when we're instrumenting the sesrver. (We can't use a dynamic import there
   // because that then forces the user into a particular TS config.)
   if (isServer) {
-    newEntryProperty[SERVER_INIT_OUTPUT_LOCATION] = SENTRY_SERVER_CONFIG_FILE;
+    newEntryProperty[SERVER_SDK_INIT_PATH] = SENTRY_SERVER_CONFIG_FILE;
   }
   // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
   else {
@@ -144,6 +153,12 @@ export function withSentryConfig(
   }
 
   const newWebpackExport = (config: WebpackConfig, options: WebpackOptions): WebpackConfig => {
+    // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
+    // webpack-processed version of `sentry.server.config.js` when we need it
+    if (config.target === 'node') {
+      memoizeOutputPath(config);
+    }
+
     let newConfig = config;
 
     if (typeof providedExports.webpack === 'function') {
@@ -180,4 +195,24 @@ export function withSentryConfig(
     productionBrowserSourceMaps: true,
     webpack: newWebpackExport,
   };
+}
+
+/**
+ * Store the future location of the webpack-processed version of `sentry.server.config.js` in a runtime env variable, so
+ * we know where to find it when we want to initialize the SDK.
+ *
+ * @param config The webpack config object for this build
+ */
+function memoizeOutputPath(config: WebpackConfig): void {
+  const builtServerSDKInitPath = path.join(config.output.path, SERVER_SDK_INIT_PATH);
+  const projectDir = config.context;
+  // next will automatically set variables from `.env.local` in `process.env` at runtime
+  const envFilePath = path.join(projectDir, '.env.local');
+  const envVarString = `SENTRY_SERVER_INIT_PATH=${builtServerSDKInitPath}\n`;
+
+  if (fs.existsSync(envFilePath)) {
+    fs.appendFileSync(envFilePath, `\n${envVarString}`);
+  } else {
+    fs.writeFileSync(envFilePath, envVarString);
+  }
 }

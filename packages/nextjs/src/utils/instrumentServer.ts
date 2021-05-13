@@ -1,10 +1,9 @@
 import { deepReadDirSync } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { fill, logger } from '@sentry/utils';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
-import * as path from 'path';
 import * as url from 'url';
 
 import * as Sentry from '../index.server';
@@ -45,7 +44,7 @@ type WrappedReqHandler = ReqHandler;
 // TODO is it necessary for this to be an object?
 const closure: PlainObject = {};
 
-let sdkInitialized = false;
+let sdkSetupComplete = false;
 
 /**
  * Do the monkeypatching and wrapping necessary to catch errors in page routes. Along the way, as a bonus, grab (and
@@ -60,11 +59,8 @@ export function instrumentServer(): string {
   // wrap this getter because it runs before the request handler runs, which gives us a chance to wrap the logger before
   // it's called for the first time
   fill(nextServerPrototype, 'getServerRequestHandler', makeWrappedHandlerGetter);
-  if (!sdkInitialized) {
-    require(path.join(process.cwd(), 'sentry.server.config.js'));
-    sdkInitialized = true;
-  }
 
+  // TODO replace with an env var, since at this point we don't have a value yet
   return closure.projectRootDir;
 }
 
@@ -79,7 +75,18 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
   // We wrap this purely in order to be able to grab data and do further monkeypatching the first time it runs.
   // Otherwise, it's just a pass-through to the original method.
   const wrappedHandlerGetter = async function(this: NextServer): Promise<ReqHandler> {
-    if (!closure.wrappingComplete) {
+    if (!sdkSetupComplete) {
+      try {
+        // `SENTRY_SERVER_INIT_PATH` is set at build time, and points to a webpack-processed version of the user's
+        // `sentry.server.config.js`. Requiring it starts the SDK.
+        require(process.env.SENTRY_SERVER_INIT_PATH as string);
+      } catch (err) {
+        // Log the error but don't bail - we still want the wrapping to happen, in case the user is doing something weird
+        // and manually calling `Sentry.init()` somewhere else.
+        logger.error(`[Sentry] Could not initialize SDK. Received error:\n${err}`);
+      }
+
+      // TODO: Replace projectRootDir with env variables
       closure.projectRootDir = this.server.dir;
       closure.server = this.server;
       closure.publicDir = this.server.publicDir;
@@ -91,7 +98,7 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
 
       fill(serverPrototype, 'handleRequest', makeWrappedReqHandler);
 
-      closure.wrappingComplete = true;
+      sdkSetupComplete = true;
     }
 
     return origHandlerGetter.call(this);
