@@ -52,7 +52,9 @@ module.exports = {
         // in SDKs, we should make sure that we are correctly preserving class scope.
         '@typescript-eslint/unbound-method': 'error',
 
-        // Private and protected members of a class should be prefixed with a leading underscore
+        // Private and protected members of a class should be prefixed with a leading underscore.
+        // typeLike declarations (class, interface, typeAlias, enum, typeParameter) should be
+        // PascalCase.
         '@typescript-eslint/naming-convention': [
           'error',
           {
@@ -66,6 +68,10 @@ module.exports = {
             modifiers: ['protected'],
             format: ['camelCase'],
             leadingUnderscore: 'require',
+          },
+          {
+            selector: 'typeLike',
+            format: ['PascalCase'],
           },
         ],
 

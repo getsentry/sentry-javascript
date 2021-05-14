@@ -5,6 +5,8 @@ import { logger } from '@sentry/utils';
 import { NodeClient } from '../client';
 import { logAndExitProcess } from './utils/errorhandling';
 
+type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
+
 /** Global Promise Rejection handler */
 export class OnUncaughtException implements Integration {
   /**
@@ -53,9 +55,7 @@ export class OnUncaughtException implements Integration {
     let firstError: Error;
 
     return (error: Error): void => {
-      type onFatalErrorHandlerType = (firstError: Error, secondError?: Error) => void;
-
-      let onFatalError: onFatalErrorHandlerType = logAndExitProcess;
+      let onFatalError: OnFatalErrorHandler = logAndExitProcess;
       const client = getCurrentHub().getClient<NodeClient>();
 
       if (this._options.onFatalError) {
@@ -63,7 +63,7 @@ export class OnUncaughtException implements Integration {
         onFatalError = this._options.onFatalError;
       } else if (client && client.getOptions().onFatalError) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        onFatalError = client.getOptions().onFatalError as onFatalErrorHandlerType;
+        onFatalError = client.getOptions().onFatalError as OnFatalErrorHandler;
       }
 
       if (!caughtFirstError) {
