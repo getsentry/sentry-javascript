@@ -376,8 +376,7 @@ export function requestHandler(
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
   // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
   if (client && isAutoSessionTrackingEnabled(client)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (client as any)._initSessionFlusher();
+    client.initSessionFlusher();
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
     const scope = currentHub.getScope();

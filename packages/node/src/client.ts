@@ -13,6 +13,7 @@ import { NodeBackend, NodeOptions } from './backend';
  */
 export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   protected _sessionFlusher: SessionFlusher | undefined;
+
   /**
    * Creates a new Node SDK instance.
    * @param options Configuration options for this SDK.
@@ -102,7 +103,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   }
 
   /** Method that initialises an instance of SessionFlusher on Client */
-  protected _initSessionFlusher(): void {
+  public initSessionFlusher(): void {
     const { release, environment } = this._options;
     if (!release) {
       logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');

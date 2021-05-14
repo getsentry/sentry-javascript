@@ -699,7 +699,7 @@ describe('errorHandler()', () => {
     client = new NodeClient({ autoSessionTracking: false, release: '3.3' });
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
-    (client as any)._initSessionFlusher();
+    client.initSessionFlusher();
 
     const scope = sentryCore.getCurrentHub().getScope();
     const hub = new Hub(client);
@@ -734,7 +734,7 @@ describe('errorHandler()', () => {
     client = new NodeClient({ autoSessionTracking: true, release: '1.1' });
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
-    (client as any)._initSessionFlusher();
+    client.initSessionFlusher();
     const scope = new sentryHub.Scope();
     const hub = new Hub(client, scope);
 
@@ -752,7 +752,7 @@ describe('errorHandler()', () => {
     client = new NodeClient({ autoSessionTracking: true, release: '2.2' });
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
-    (client as any)._initSessionFlusher();
+    client.initSessionFlusher();
     const scope = new sentryHub.Scope();
     const hub = new Hub(client, scope);
 

@@ -28,7 +28,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.4' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
       scope.setRequestSession({ status: RequestSessionStatus.Ok });
@@ -42,7 +42,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
       scope.setRequestSession({ status: RequestSessionStatus.Crashed });
@@ -56,7 +56,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
       scope.setRequestSession({ status: RequestSessionStatus.Ok });
@@ -70,7 +70,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
 
@@ -86,7 +86,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.4' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
       scope.setRequestSession({ status: RequestSessionStatus.Ok });
@@ -104,7 +104,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
       scope.setRequestSession({ status: RequestSessionStatus.Ok });
@@ -119,7 +119,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
       scope.setRequestSession({ status: RequestSessionStatus.Ok });
@@ -134,7 +134,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
 
@@ -151,7 +151,7 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' });
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
-      (client as any)._initSessionFlusher();
+      client.initSessionFlusher();
 
       const scope = new Scope();
       scope.setRequestSession({ status: RequestSessionStatus.Ok });
@@ -186,7 +186,7 @@ describe('flush/close', () => {
       autoSessionTracking: true,
       release: '1.1',
     });
-    (client as any)._initSessionFlusher();
+    client.initSessionFlusher();
     // Clearing interval is important here to ensure that the flush function later on is called by the `client.close()`
     // not due to the interval running every 60s
     clearInterval((client as any)._sessionFlusher._intervalId);
