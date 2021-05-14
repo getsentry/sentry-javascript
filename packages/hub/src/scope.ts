@@ -10,7 +10,7 @@ import {
   Extra,
   Extras,
   Primitive,
-  RequestSessionStatus,
+  RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
   Severity,
@@ -67,7 +67,7 @@ export class Scope implements ScopeInterface {
   protected _session?: Session;
 
   /** Request Mode Session Status */
-  protected _requestSession?: { status?: RequestSessionStatus };
+  protected _requestSession?: RequestSession;
 
   /**
    * Inherit values from the parent scope.
@@ -125,6 +125,21 @@ export class Scope implements ScopeInterface {
    */
   public getUser(): User | undefined {
     return this._user;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getRequestSession(): RequestSession | undefined {
+    return this._requestSession;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setRequestSession(requestSession?: RequestSession): this {
+    this._requestSession = requestSession;
+    return this;
   }
 
   /**

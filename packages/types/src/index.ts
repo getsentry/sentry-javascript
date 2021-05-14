@@ -27,8 +27,9 @@ export {
   Session,
   SessionContext,
   SessionStatus,
+  RequestSession,
   RequestSessionStatus,
-  SessionFlusher,
+  SessionFlusherLike,
 } from './session';
 export { Severity } from './severity';
 export { Span, SpanContext } from './span';

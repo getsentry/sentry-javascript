@@ -38,13 +38,11 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
     // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
     // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
     // sent to the Server only when the `requestHandler` middleware is used
     if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
-      const requestSession = (scope as any)._requestSession;
+      const requestSession = scope.getRequestSession();
 
       // Necessary checks to ensure this is code block is executed only within a request
       // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
@@ -52,7 +50,6 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
         requestSession.status = RequestSessionStatus.Errored;
       }
     }
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     return super.captureException(exception, hint, scope);
   }
@@ -71,16 +68,13 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
 
       // If the event is of type Exception, then a request session should be captured
       if (isException) {
-        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-        const requestSession = (scope as any)._requestSession;
+        const requestSession = scope.getRequestSession();
 
         // Ensure that this is happening within the bounds of a request, and make sure not to override
         // Session Status if Errored / Crashed
         if (requestSession && requestSession.status === RequestSessionStatus.Ok) {
-          (scope as any)._requestSession.status = RequestSessionStatus.Errored;
+          requestSession.status = RequestSessionStatus.Errored;
         }
-
-        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
       }
     }
 

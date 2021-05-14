@@ -417,9 +417,8 @@ export function requestHandler(
         if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
           if (scope) {
-            // Set `status` of `_requestSession` to Ok, at the beginning of the request
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (scope as any)._requestSession = { status: RequestSessionStatus.Ok };
+            // Set `status` of `RequestSession` to Ok, at the beginning of the request
+            scope.setRequestSession({ status: RequestSessionStatus.Ok });
           }
         }
       });
@@ -500,14 +499,14 @@ export function errorHandler(options?: {
 
         const client = getCurrentHub().getClient<NodeClient>();
         if (client && isAutoSessionTrackingEnabled(client)) {
-          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
           // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
           // instantiated when the the`requestHandler` middleware is initialised, which indicates that we should be
           // running in SessionAggregates mode
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const isSessionAggregatesMode = (client as any)._sessionFlusher !== undefined;
           if (isSessionAggregatesMode) {
-            const requestSession = (_scope as any)._requestSession;
+            const requestSession = _scope.getRequestSession();
             // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
             // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
             // the bounds of a request, and if so the status is updated
@@ -515,7 +514,6 @@ export function errorHandler(options?: {
               requestSession.status = RequestSessionStatus.Crashed;
           }
         }
-        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
         const eventId = captureException(error);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

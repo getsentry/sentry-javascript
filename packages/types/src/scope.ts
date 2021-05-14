@@ -3,7 +3,7 @@ import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
 import { Primitive } from './misc';
-import { RequestSessionStatus, Session } from './session';
+import { RequestSession, Session } from './session';
 import { Severity } from './severity';
 import { Span } from './span';
 import { Transaction } from './transaction';
@@ -20,7 +20,7 @@ export interface ScopeContext {
   contexts: Contexts;
   tags: { [key: string]: Primitive };
   fingerprint: string[];
-  requestSession: { status: RequestSessionStatus };
+  requestSession: RequestSession;
 }
 
 /**
@@ -113,14 +113,24 @@ export interface Scope {
   getTransaction(): Transaction | undefined;
 
   /**
+   * Returns the `Session` if there is one
+   */
+  getSession(): Session | undefined;
+
+  /**
    * Sets the `Session` on the scope
    */
   setSession(session?: Session): this;
 
   /**
-   * Returns the `Session` if there is one
+   * Returns the `RequestSession` if there is one
    */
-  getSession(): Session | undefined;
+  getRequestSession(): RequestSession | undefined;
+
+  /**
+   * Sets the `RequestSession` on the scope
+   */
+  setRequestSession(requestSession?: RequestSession): this;
 
   /**
    * Updates the scope with provided data. Can work in three variations:

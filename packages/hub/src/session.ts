@@ -4,7 +4,7 @@ import {
   Session as SessionInterface,
   SessionAggregates,
   SessionContext,
-  SessionFlusher as SessionFlusherInterface,
+  SessionFlusherLike,
   SessionStatus,
   Transport,
 } from '@sentry/types';
@@ -135,7 +135,7 @@ export class Session implements SessionInterface {
   }
 }
 
-type releaseHealthAttributes = {
+type ReleaseHealthAttributes = {
   environment?: string;
   release: string;
 };
@@ -143,15 +143,15 @@ type releaseHealthAttributes = {
 /**
  * @inheritdoc
  */
-export class SessionFlusher implements SessionFlusherInterface {
+export class SessionFlusher implements SessionFlusherLike {
   public readonly flushTimeout: number = 60;
   private _pendingAggregates: Record<number, AggregationCounts> = {};
-  private _sessionAttrs: releaseHealthAttributes;
+  private _sessionAttrs: ReleaseHealthAttributes;
   private _intervalId: ReturnType<typeof setInterval>;
   private _isEnabled: boolean = true;
   private _transport: Transport;
 
-  constructor(transport: Transport, attrs: releaseHealthAttributes) {
+  constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
     this._transport = transport;
     // Call to setInterval, so that flush is called every 60 seconds
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
@@ -170,7 +170,7 @@ export class SessionFlusher implements SessionFlusherInterface {
   }
 
   /** Checks if `pendingAggregates` has entries, and if it does flushes them by calling `sendSessions` */
-  flush(): void {
+  public flush(): void {
     const sessionAggregates = this.getSessionAggregates();
     if (sessionAggregates.aggregates.length === 0) {
       return;
@@ -180,7 +180,7 @@ export class SessionFlusher implements SessionFlusherInterface {
   }
 
   /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
-  getSessionAggregates(): SessionAggregates {
+  public getSessionAggregates(): SessionAggregates {
     const aggregates: AggregationCounts[] = Object.keys(this._pendingAggregates).map((key: string) => {
       return this._pendingAggregates[parseInt(key)];
     });
@@ -193,7 +193,7 @@ export class SessionFlusher implements SessionFlusherInterface {
   }
 
   /** JSDoc */
-  close(): void {
+  public close(): void {
     clearInterval(this._intervalId);
     this._isEnabled = false;
     this.flush();
@@ -201,7 +201,7 @@ export class SessionFlusher implements SessionFlusherInterface {
 
   /**
    * Wrapper function for _incrementSessionStatusCount that checks if the instance of SessionFlusher is enabled then
-   * fetches the session status of the request from `_requestSession.status` on the scope and passes them to
+   * fetches the session status of the request from `Scope.getRequestSession().status` on the scope and passes them to
    * `_incrementSessionStatusCount` along with the start date
    */
   public incrementSessionStatusCount(): void {
@@ -209,14 +209,13 @@ export class SessionFlusher implements SessionFlusherInterface {
       return;
     }
     const scope = getCurrentHub().getScope();
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-    const requestSession = (scope as any)._requestSession;
+    const requestSession = scope?.getRequestSession();
 
     if (requestSession && requestSession.status) {
       this._incrementSessionStatusCount(requestSession.status, new Date());
       // This is not entirely necessarily but is added as a safe guard to indicate the bounds of a request and so in
       // case captureRequestSession is called more than once to prevent double count
-      (scope as any)._requestSession = undefined;
+      scope?.setRequestSession(undefined);
 
       /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     }
@@ -228,7 +227,7 @@ export class SessionFlusher implements SessionFlusherInterface {
    */
   private _incrementSessionStatusCount(status: RequestSessionStatus, date: Date): number {
     // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
-    const sessionStartedTrunc: number = new Date(date).setSeconds(0, 0);
+    const sessionStartedTrunc = new Date(date).setSeconds(0, 0);
     this._pendingAggregates[sessionStartedTrunc] = this._pendingAggregates[sessionStartedTrunc] || {};
 
     // corresponds to aggregated sessions in one specific minute bucket

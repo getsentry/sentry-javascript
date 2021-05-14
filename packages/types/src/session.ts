@@ -29,6 +29,10 @@ export interface Session extends SessionContext {
   };
 }
 
+export interface RequestSession {
+  status?: RequestSessionStatus;
+}
+
 /**
  * Session Context
  */
@@ -80,8 +84,7 @@ export interface SessionAggregates {
   aggregates: Array<AggregationCounts>;
 }
 
-export interface SessionFlusher {
-
+export interface SessionFlusherLike {
   /**
    * Increments the Session Status bucket in SessionAggregates Object corresponding to the status of the session
    * captured
