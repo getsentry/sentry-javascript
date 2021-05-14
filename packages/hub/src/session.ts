@@ -182,7 +182,7 @@ export class SessionFlusher implements SessionFlusherLike {
   /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
   public getSessionAggregates(): SessionAggregates {
     const aggregates: AggregationCounts[] = Object.keys(this._pendingAggregates).map((key: string) => {
-      return this._pendingAggregates[key];
+      return this._pendingAggregates[parseInt(key)];
     });
 
     const sessionAggregates: SessionAggregates = {
