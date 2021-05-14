@@ -4,23 +4,35 @@ import * as path from 'path';
 /**
  * Recursively read the contents of a directory.
  *
- * @param targetDir The directory to scan. All returned paths will be relative to this directory.
- * @param _paths Array to hold results, passed for purposes of recursion. Not meant to be provided by the caller.
+ * @param targetDir Absolute or relative path of the directory to scan. All returned paths will be relative to this
+ * directory.
  * @returns Array holding all relative paths
  */
-export function deepReadDirSync(targetDir: string, _paths?: string[]): string[] {
-  const paths = _paths || [];
-  const currentDirContents = fs.readdirSync(targetDir);
+export function deepReadDirSync(targetDir: string): string[] {
+  const targetDirAbsPath = path.resolve(targetDir);
 
-  currentDirContents.forEach((fileOrDirName: string) => {
-    const fileOrDirAbsPath = path.join(targetDir, fileOrDirName);
+  if (!fs.existsSync(targetDirAbsPath)) {
+    throw new Error(`Cannot read contents of ${targetDirAbsPath}. Directory does not exist.`);
+  }
 
-    if (fs.statSync(fileOrDirAbsPath).isDirectory()) {
-      deepReadDirSync(fileOrDirAbsPath, paths);
-      return;
-    }
-    paths.push(fileOrDirAbsPath.replace(targetDir, ''));
-  });
+  if (!fs.statSync(targetDirAbsPath).isDirectory()) {
+    throw new Error(`Cannot read contents of ${targetDirAbsPath}, because it is not a directory.`);
+  }
 
-  return paths;
+  // This does the same thing as its containing function, `deepReadDirSync` (except that - purely for convenience - it
+  // deals in absolute paths rather than relative ones). We need this to be separate from the outer function to preserve
+  // the difference between `targetDirAbsPath` and `currentDirAbsPath`.
+  const deepReadCurrentDir = (currentDirAbsPath: string): string[] => {
+    return fs.readdirSync(currentDirAbsPath).reduce((absPaths: string[], itemName: string) => {
+      const itemAbsPath = path.join(currentDirAbsPath, itemName);
+
+      if (fs.statSync(itemAbsPath).isDirectory()) {
+        return [...absPaths, ...deepReadCurrentDir(itemAbsPath)];
+      }
+
+      return [...absPaths, itemAbsPath];
+    }, []);
+  };
+
+  return deepReadCurrentDir(targetDirAbsPath).map(absPath => path.relative(targetDirAbsPath, absPath));
 }

@@ -156,15 +156,14 @@ function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogge
 function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
   const liveServer = closure.server as Server;
 
-  // inspired by
+  // inspired by next's public file routing; see
   // https://github.com/vercel/next.js/blob/4443d6f3d36b107e833376c2720c1e206eee720d/packages/next/next-server/server/next-server.ts#L1166
   const publicDirFiles = new Set(
-    deepReadDirSync(liveServer.publicDir).map(p =>
-      encodeURI(
-        // switch any backslashes in the path to regular slashes
-        p.replace(/\\/g, '/'),
-      ),
-    ),
+    // we need the paths here to match the format of a request url, which means they must:
+    // - start with a slash
+    // - use forward slashes rather than backslashes
+    // - be URL-encoded
+    deepReadDirSync(liveServer.publicDir).map(filepath => encodeURI(`/${filepath.replace(/\\/g, '/')}`)),
   );
 
   // add transaction start and stop to the normal request handling
