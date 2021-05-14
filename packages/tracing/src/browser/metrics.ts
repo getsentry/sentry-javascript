@@ -34,6 +34,7 @@ export class MetricsInstrumentation {
   }
 
   /** Add performance related spans to a transaction */
+  // eslint-disable-next-line complexity
   public addPerformanceEntries(transaction: Transaction): void {
     if (!global || !global.performance || !global.performance.getEntries || !browserPerformanceTimeOrigin) {
       // Gatekeeper if performance API not available
@@ -188,7 +189,7 @@ export class MetricsInstrumentation {
 
       transaction.setMeasurements(this._measurements);
 
-      if (this._lcpEntry) {
+      if (this._lcpEntry && this._lcpEntry !== undefined) {
         logger.log('[Measurements] Adding LCP Data');
         // Capture Properties of the LCP element that contributes to the LCP.
 

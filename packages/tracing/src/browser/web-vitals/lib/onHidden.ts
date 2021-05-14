@@ -15,39 +15,21 @@
  */
 
 export interface OnHiddenCallback {
-  // TODO(philipwalton): add `isPersisted` if needed for bfcache.
-  ({ timeStamp, isUnloading }: { timeStamp: number; isUnloading: boolean }): void;
+  (event: Event): void;
 }
 
-let isUnloading = false;
-let listenersAdded = false;
-
-const onPageHide = (event: PageTransitionEvent): void => {
-  isUnloading = !event.persisted;
-};
-
-const addListeners = (): void => {
-  addEventListener('pagehide', onPageHide);
-
-  // `beforeunload` is needed to fix this bug:
-  // https://bugs.chromium.org/p/chromium/issues/detail?id=987409
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  addEventListener('beforeunload', () => {});
-};
-
 export const onHidden = (cb: OnHiddenCallback, once = false): void => {
-  if (!listenersAdded) {
-    addListeners();
-    listenersAdded = true;
-  }
-
-  addEventListener(
-    'visibilitychange',
-    ({ timeStamp }) => {
-      if (document.visibilityState === 'hidden') {
-        cb({ timeStamp, isUnloading });
+  const onHiddenOrPageHide = (event: Event): void => {
+    if (event.type === 'pagehide' || document.visibilityState === 'hidden') {
+      cb(event);
+      if (once) {
+        removeEventListener('visibilitychange', onHiddenOrPageHide, true);
+        removeEventListener('pagehide', onHiddenOrPageHide, true);
       }
-    },
-    { capture: true, once },
-  );
+    }
+  };
+  addEventListener('visibilitychange', onHiddenOrPageHide, true);
+  // Some browsers have buggy implementations of visibilitychange,
+  // so we use pagehide in addition, just to be safe.
+  addEventListener('pagehide', onHiddenOrPageHide, true);
 };

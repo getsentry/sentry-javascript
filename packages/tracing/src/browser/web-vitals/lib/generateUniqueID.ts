@@ -15,10 +15,10 @@
  */
 
 /**
- * Performantly generate a unique, 27-char string by combining the current
- * timestamp with a 13-digit random number.
+ * Performantly generate a unique, 30-char string by combining a version
+ * number, the current timestamp with a 13-digit number integer.
  * @return {string}
  */
 export const generateUniqueID = (): string => {
-  return `${Date.now()}-${Math.floor(Math.random() * (9e12 - 1)) + 1e12}`;
+  return `v1-${Date.now()}-${Math.floor(Math.random() * (9e12 - 1)) + 1e12}`;
 };

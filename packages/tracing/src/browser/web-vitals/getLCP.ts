@@ -34,7 +34,7 @@ export interface LargestContentfulPaint extends PerformanceEntry {
   toJSON(): Record<string, string>;
 }
 
-export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void => {
+export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
   let metric = initMetric('LCP');
   const firstHidden = getFirstHidden();
 

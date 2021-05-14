@@ -38,7 +38,7 @@ declare global {
   }
 }
 
-export const getFID = (onReport: ReportHandler, reportAllChanges = false): void => {
+export const getFID = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
   let metric = initMetric('FID');
   const firstHidden = getFirstHidden();
 

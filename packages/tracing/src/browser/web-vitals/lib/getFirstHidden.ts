@@ -14,24 +14,41 @@
  * limitations under the License.
  */
 
+import { onBFCacheRestore } from './onBFCacheRestore';
 import { onHidden } from './onHidden';
 
-let firstHiddenTime: number;
+let firstHiddenTime = -1;
 
-type HiddenType = {
-  readonly timeStamp: number;
+const initHiddenTime = (): number => {
+  return document.visibilityState === 'hidden' ? 0 : Infinity;
 };
 
-export const getFirstHidden = (): HiddenType => {
-  if (firstHiddenTime === undefined) {
+const trackChanges = (): void => {
+  // Update the time if/when the document becomes hidden.
+  onHidden(({ timeStamp }) => {
+    firstHiddenTime = timeStamp;
+  }, true);
+};
+
+export const getFirstHidden = (): { readonly timeStamp: number } => {
+  if (firstHiddenTime < 0) {
     // If the document is hidden when this code runs, assume it was hidden
     // since navigation start. This isn't a perfect heuristic, but it's the
     // best we can do until an API is available to support querying past
     // visibilityState.
-    firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
+    firstHiddenTime = initHiddenTime();
+    trackChanges();
 
-    // Update the time if/when the document becomes hidden.
-    onHidden(({ timeStamp }) => (firstHiddenTime = timeStamp), true);
+    // Reset the time on bfcache restores.
+    onBFCacheRestore(() => {
+      // Schedule a task in order to track the `visibilityState` once it's
+      // had an opportunity to change to visible in all browsers.
+      // https://bugs.chromium.org/p/chromium/issues/detail?id=1133363
+      setTimeout(() => {
+        firstHiddenTime = initHiddenTime();
+        trackChanges();
+      }, 0);
+    });
   }
 
   return {

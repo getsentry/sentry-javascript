@@ -20,8 +20,9 @@ Current vendored web vitals are:
 
 ## Notable differences from `web-vitals` library
 
-- Currently we do not grab metrics information from bfcache events (ex. `onBFCacheRestore`)
-
+<!---
+TODO(abhi): Uhh I gotta figure this out lol, it's def something with polyfilled func
+-->
 ## CHANGELOG
 
 https://github.com/getsentry/sentry-javascript/pull/3515
