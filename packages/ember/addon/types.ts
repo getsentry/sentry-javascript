@@ -12,6 +12,7 @@ export type EmberSentryConfig = {
   enableComponentDefinitions: boolean;
   minimumRunloopQueueDuration: number;
   minimumComponentRenderDuration: number;
+  browserTracingOptions: Object;
 };
 
 export type OwnConfig = {

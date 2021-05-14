@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, makeMain, Scope } from '@sentry/hub';
 
 import { Span, SpanStatus, Transaction } from '../src';
 import { TRACEPARENT_REGEXP } from '../src/utils';
@@ -10,6 +10,7 @@ describe('Span', () => {
   beforeEach(() => {
     const myScope = new Scope();
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }), myScope);
+    makeMain(hub);
   });
 
   describe('new Span', () => {

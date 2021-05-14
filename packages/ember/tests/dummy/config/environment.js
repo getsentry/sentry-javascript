@@ -28,6 +28,9 @@ module.exports = function(environment) {
       tracesSampleRate: 1,
       dsn: process.env.SENTRY_DSN,
     },
+    browserTracingOptions: {
+      tracingOrigins: ['localhost', 'doesntexist.example'],
+    },
     ignoreEmberOnErrorWarning: true,
     minimumRunloopQueueDuration: 5,
     minimumComponentRenderDuration: 2,

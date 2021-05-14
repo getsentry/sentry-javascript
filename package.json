@@ -12,7 +12,8 @@
     "test": "lerna run --stream --concurrency 1 --sort test",
     "codecov": "codecov",
     "pack:changed": "lerna run pack --since",
-    "postpublish": "make publish-docs"
+    "prepublishOnly": "lerna run --stream --concurrency 1 prepublishOnly",
+    "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish"
   },
   "volta": {
     "node": "10.18.1",
