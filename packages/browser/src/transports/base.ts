@@ -15,7 +15,6 @@ const CATEGORY_MAPPING: {
   event: 'error',
   transaction: 'transaction',
   session: 'session',
-  sessions: 'session',
 };
 
 /** Base Transport class implementation */

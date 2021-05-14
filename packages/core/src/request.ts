@@ -36,7 +36,8 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
   });
   let type: SentryRequestType = 'session';
   if ('aggregates' in session) {
-    type = 'sessions';
+    // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
+    type = 'sessions' as SentryRequestType;
   }
   const itemHeaders = JSON.stringify({
     type,

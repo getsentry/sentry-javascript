@@ -1,5 +1,5 @@
 /** Possible SentryRequest types that can be used to make a distinction between Sentry features */
-export type SentryRequestType = 'event' | 'transaction' | 'session' | 'sessions';
+export type SentryRequestType = 'event' | 'transaction' | 'session';
 
 /** A generic client request. */
 export interface SentryRequest {
