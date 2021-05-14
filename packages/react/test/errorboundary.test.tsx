@@ -216,7 +216,8 @@ describe('ErrorBoundary', () => {
       expect(event.exception.values).toHaveLength(2);
       expect(event.level).toBe(Severity.Error);
 
-      expect(event.exception.values[1].stacktrace.frames).toEqual([
+      expect(event.exception.values[0].type).toEqual('React ErrorBoundary Error');
+      expect(event.exception.values[0].stacktrace.frames).toEqual([
         {
           colno: expect.any(Number),
           filename: expect.stringContaining('errorboundary.test.tsx'),

@@ -73,6 +73,7 @@ const INITIAL_STATE = {
  */
 function captureReactErrorBoundaryError(error: Error, componentStack: string): string {
   const errorBoundaryError = new Error(error.message);
+  errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
   errorBoundaryError.stack = componentStack;
 
   let errorBoundaryEvent: Event = {};
@@ -91,7 +92,7 @@ function captureReactErrorBoundaryError(error: Error, componentStack: string): s
       originalEvent = e;
     });
     if (originalEvent.exception && Array.isArray(originalEvent.exception.values)) {
-      originalEvent.exception.values.push(...errorBoundaryEvent.exception.values);
+      originalEvent.exception.values = [...errorBoundaryEvent.exception.values, ...originalEvent.exception.values];
     }
 
     return captureEvent(originalEvent);
@@ -101,8 +102,10 @@ function captureReactErrorBoundaryError(error: Error, componentStack: string): s
 }
 
 /**
- * A ErrorBoundary component that logs errors to Sentry.
- * Requires React >= 16
+ * A ErrorBoundary component that logs errors to Sentry. Requires React >= 16.
+ * NOTE: If you are a Sentry user, and you are seeing this stack frame, it means the
+ * Sentry React SDK ErrorBoundary caught an error invoking your application code. This
+ * is expected behavior and NOT indicative of a bug with the Sentry React SDK.
  */
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = INITIAL_STATE;
