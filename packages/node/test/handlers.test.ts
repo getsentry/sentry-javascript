@@ -229,7 +229,7 @@ describe('requestHandler', () => {
     sentryRequestMiddleware(req, res, next);
 
     const scope = sentryCore.getCurrentHub().getScope();
-    expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Ok });
+    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
   });
 
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
@@ -241,7 +241,7 @@ describe('requestHandler', () => {
     sentryRequestMiddleware(req, res, next);
 
     const scope = sentryCore.getCurrentHub().getScope();
-    expect((scope as any)._requestSession).toBeUndefined();
+    expect(scope?.getRequestSession()).toBeUndefined();
   });
 
   it('autoSessionTracking is enabled, calls _captureRequestSession, on response finish', done => {
@@ -258,7 +258,7 @@ describe('requestHandler', () => {
     res.emit('finish');
 
     setImmediate(() => {
-      expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Ok });
+      expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
       expect(captureRequestSession).toHaveBeenCalled();
       done();
     });
@@ -276,7 +276,7 @@ describe('requestHandler', () => {
     res.emit('finish');
 
     setImmediate(() => {
-      expect((scope as any)._requestSession).toBeUndefined();
+      expect(scope?.getRequestSession()).toBeUndefined();
       expect(captureRequestSession).not.toHaveBeenCalled();
       done();
     });
@@ -708,9 +708,9 @@ describe('errorHandler()', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
-    (scope as any)._requestSession = { status: RequestSessionStatus.Ok };
+    scope?.setRequestSession({ status: RequestSessionStatus.Ok });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = (scope as any)._requestSession;
+    const requestSession = scope?.getRequestSession();
     expect(requestSession).toEqual({ status: RequestSessionStatus.Ok });
   });
 
@@ -724,9 +724,9 @@ describe('errorHandler()', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
-    (scope as any)._requestSession = { status: RequestSessionStatus.Ok };
+    scope?.setRequestSession({ status: RequestSessionStatus.Ok });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = (scope as any)._requestSession;
+    const requestSession = scope?.getRequestSession();
     expect(requestSession).toEqual({ status: RequestSessionStatus.Ok });
   });
 
@@ -742,9 +742,9 @@ describe('errorHandler()', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
-    (scope as any)._requestSession = { status: RequestSessionStatus.Ok };
+    scope?.setRequestSession({ status: RequestSessionStatus.Ok });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = (scope as any)._requestSession;
+    const requestSession = scope?.getRequestSession();
     expect(requestSession).toEqual({ status: RequestSessionStatus.Crashed });
   });
 
@@ -761,7 +761,7 @@ describe('errorHandler()', () => {
     jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = (scope as any)._requestSession;
+    const requestSession = scope?.getRequestSession();
     expect(requestSession).toEqual(undefined);
   });
 });

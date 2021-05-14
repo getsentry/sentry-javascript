@@ -131,9 +131,9 @@ describe('Scope', () => {
 
     test('_requestSession clone', () => {
       const parentScope = new Scope();
-      (parentScope as any)._requestSession = { status: RequestSessionStatus.Errored };
+      parentScope.setRequestSession({ status: RequestSessionStatus.Errored });
       const scope = Scope.clone(parentScope);
-      expect((parentScope as any)._requestSession).toEqual((scope as any)._requestSession);
+      expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
     });
 
     test('parent changed inheritance', () => {
@@ -158,13 +158,16 @@ describe('Scope', () => {
       // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
       // that it should also change in parent scope because we are copying the reference to the object
       const parentScope = new Scope();
-      (parentScope as any)._requestSession = { status: RequestSessionStatus.Errored };
+      parentScope.setRequestSession({ status: RequestSessionStatus.Errored });
 
       const scope = Scope.clone(parentScope);
-      (scope as any)._requestSession.status = RequestSessionStatus.Ok;
+      const requestSession = scope.getRequestSession();
+      if (requestSession) {
+        requestSession.status = RequestSessionStatus.Ok;
+      }
 
-      expect((parentScope as any)._requestSession).toEqual({ status: RequestSessionStatus.Ok });
-      expect((scope as any)._requestSession).toEqual({ status: RequestSessionStatus.Ok });
+      expect(parentScope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
     });
   });
 
@@ -356,7 +359,7 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
-    (scope as any)._requestSession = { status: RequestSessionStatus.Ok };
+    scope.setRequestSession({ status: RequestSessionStatus.Ok });
     expect((scope as any)._extra).toEqual({ a: 2 });
     scope.clear();
     expect((scope as any)._extra).toEqual({});
@@ -383,7 +386,7 @@ describe('Scope', () => {
       scope.setUser({ id: '1337' });
       scope.setLevel(Severity.Info);
       scope.setFingerprint(['foo']);
-      (scope as any)._requestSession = { status: RequestSessionStatus.Ok };
+      scope.setRequestSession({ status: RequestSessionStatus.Ok });
     });
 
     test('given no data, returns the original scope', () => {
