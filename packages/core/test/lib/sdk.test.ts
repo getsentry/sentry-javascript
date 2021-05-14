@@ -3,6 +3,7 @@ import { Client, Integration } from '@sentry/types';
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
 import { TestClient } from '../mocks/client';
+import { Scope } from '@sentry/hub';
 
 // eslint-disable-next-line no-var
 declare var global: any;
@@ -16,10 +17,14 @@ jest.mock('@sentry/hub', () => {
     getCurrentHub(): {
       bindClient(client: Client): boolean;
       getClient(): boolean;
+      getScope(): Scope;
     } {
       return {
         getClient(): boolean {
           return false;
+        },
+        getScope(): Scope {
+          return new Scope();
         },
         bindClient(client: Client): boolean {
           client.setupIntegrations();
