@@ -7,35 +7,33 @@ const { assertSessions, BaseDummyTransport } = require('../test-utils');
 function cleanUpAndExitSuccessfully() {
   console.log('SUCCESS: Session Aggregates payload is correct!');
   server.close();
-  clearInterval(flusher._intervalId)
+  clearInterval(flusher._intervalId);
   process.exit(0);
 }
 
 function assertSessionAggregates(session, expected) {
   // For loop is added here just in the rare occasion that the session count do not land in the same aggregate
   // bucket
-  session.aggregates.forEach(function (_, idx) {
+  session.aggregates.forEach(function(_, idx) {
     delete session.aggregates[idx].started;
     // Session Aggregates keys need to be ordered for JSON.stringify comparison
-    const ordered = Object.keys(session.aggregates[idx]).sort().reduce(
-      (obj, key) => {
+    const ordered = Object.keys(session.aggregates[idx])
+      .sort()
+      .reduce((obj, key) => {
         obj[key] = session.aggregates[idx][key];
         return obj;
-      },
-      {}
-    );
+      }, {});
     session.aggregates[idx] = ordered;
-  })
-  assertSessions(session, expected)
+  });
+  assertSessions(session, expected);
 }
 
 class DummyTransport extends BaseDummyTransport {
   sendSession(session) {
-    console.error('FAIL: Received Single Session which should have been deleted in favor of Session Aggregates!');
-    process.exit(1);
-  }
-  sendSessionAggregates(session) {
-    assertSessionAggregates(session, {"attrs":{"release":"1.1"},"aggregates":[{"crashed":2,"errored":1,"exited":1}]})
+    assertSessionAggregates(session, {
+      attrs: { release: '1.1' },
+      aggregates: [{ crashed: 2, errored: 1, exited: 1 }],
+    });
 
     cleanUpAndExitSuccessfully();
 
@@ -63,9 +61,8 @@ const flusher = Sentry.getCurrentHub().getClient()._sessionFlusher;
 clearInterval(flusher._intervalId);
 flusher._intervalId = setInterval(() => flusher.flush(), 1000);
 
-
 app.get('/foo', (req, res, next) => {
-  res.send("Success")
+  res.send('Success');
   next();
 });
 
@@ -75,12 +72,11 @@ app.get('/bar', (req, res, next) => {
 
 app.get('/baz', (req, res, next) => {
   try {
-    throw new Error('hey there')
-  }
-  catch(e) {
+    throw new Error('hey there');
+  } catch (e) {
     Sentry.captureException(e);
   }
-  res.send("Caught Exception: Baz")
+  res.send('Caught Exception: Baz');
   next();
 });
 

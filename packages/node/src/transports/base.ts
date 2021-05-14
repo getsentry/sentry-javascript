@@ -6,6 +6,7 @@ import {
   SentryRequest,
   SentryRequestType,
   Session,
+  SessionAggregates,
   Status,
   Transport,
   TransportOptions,
@@ -50,6 +51,7 @@ const CATEGORY_MAPPING: {
   event: 'error',
   transaction: 'transaction',
   session: 'session',
+  sessions: 'session',
 };
 
 /** Base Transport class implementation */
@@ -198,7 +200,10 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async _send(sentryReq: SentryRequest, originalPayload?: Event | Session): Promise<Response> {
+  protected async _send(
+    sentryReq: SentryRequest,
+    originalPayload?: Event | Session | SessionAggregates,
+  ): Promise<Response> {
     if (!this.module) {
       throw new SentryError('No module available');
     }

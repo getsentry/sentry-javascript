@@ -3,19 +3,19 @@ import { RequestSessionStatus, Status } from '@sentry/types';
 import { SessionFlusher } from '../src';
 
 describe('Session Flusher', () => {
-  let sendSessionAggregates: jest.Mock;
+  let sendSession: jest.Mock;
   let transport: {
     sendEvent: jest.Mock;
-    sendSessionAggregates: jest.Mock;
+    sendSession: jest.Mock;
     close: jest.Mock;
   };
 
   beforeEach(() => {
     jest.useFakeTimers();
-    sendSessionAggregates = jest.fn(() => Promise.resolve({ status: Status.Success }));
+    sendSession = jest.fn(() => Promise.resolve({ status: Status.Success }));
     transport = {
       sendEvent: jest.fn(),
-      sendSessionAggregates,
+      sendSession,
       close: jest.fn(),
     };
   });
@@ -80,12 +80,12 @@ describe('Session Flusher', () => {
     (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
     (flusher as any)._incrementSessionStatusCount(RequestSessionStatus.Ok, date);
 
-    expect(sendSessionAggregates).toHaveBeenCalledTimes(0);
+    expect(sendSession).toHaveBeenCalledTimes(0);
 
     jest.advanceTimersByTime(61000);
 
     expect(flusherFlushFunc).toHaveBeenCalledTimes(1);
-    expect(sendSessionAggregates).toHaveBeenCalledWith(
+    expect(sendSession).toHaveBeenCalledWith(
       expect.objectContaining({
         attrs: { release: '1.0.0', environment: 'dev' },
         aggregates: [{ started: '2021-04-08T12:18:00.000Z', exited: 2 }],
@@ -97,10 +97,10 @@ describe('Session Flusher', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
 
-    expect(sendSessionAggregates).toHaveBeenCalledTimes(0);
+    expect(sendSession).toHaveBeenCalledTimes(0);
     jest.advanceTimersByTime(61000);
     expect(flusherFlushFunc).toHaveBeenCalledTimes(1);
-    expect(sendSessionAggregates).toHaveBeenCalledTimes(0);
+    expect(sendSession).toHaveBeenCalledTimes(0);
   });
 
   test('calling close on SessionFlusher should disable SessionFlusher', () => {
@@ -118,7 +118,7 @@ describe('Session Flusher', () => {
     flusher.close();
 
     expect(flusherFlushFunc).toHaveBeenCalledTimes(1);
-    expect(sendSessionAggregates).toHaveBeenCalledWith(
+    expect(sendSession).toHaveBeenCalledWith(
       expect.objectContaining({
         attrs: { release: '1.0.x' },
         aggregates: [{ started: '2021-04-08T12:18:00.000Z', exited: 2 }],

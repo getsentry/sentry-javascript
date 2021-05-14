@@ -16,16 +16,9 @@ export interface Transport {
   /**
    * Sends the session to the Envelope endpoint in Sentry.
    *
-   * @param session Session that should be sent to Sentry.
+   * @param session Session that should be sent to Sentry | Session Aggregates that should be sent to Sentry.
    */
-  sendSession?(session: Session): PromiseLike<Response>;
-
-  /**
-   * Sends the request mode session aggregates to the Envelope endpoint in Sentry.
-   *
-   * @param sessionAggregates Session Aggregates that should be sent to Sentry.
-   */
-  sendSessionAggregates?(sessionAggregates: SessionAggregates): PromiseLike<Response>;
+  sendSession?(session: Session | SessionAggregates): PromiseLike<Response>;
 
   /**
    * Call this function to wait until all pending requests have been sent.

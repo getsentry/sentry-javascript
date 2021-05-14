@@ -160,11 +160,11 @@ export class SessionFlusher implements SessionFlusherInterface {
 
   /** Sends session aggregates to Transport */
   public sendSessionAggregates(sessionAggregates: SessionAggregates): void {
-    if (!this._transport.sendSessionAggregates) {
-      logger.warn("Dropping session because custom transport doesn't implement sendSessionAggregates");
+    if (!this._transport.sendSession) {
+      logger.warn("Dropping session because custom transport doesn't implement sendSession");
       return;
     }
-    this._transport.sendSessionAggregates(sessionAggregates).then(null, reason => {
+    this._transport.sendSession(sessionAggregates).then(null, reason => {
       logger.error(`Error while sending session: ${reason}`);
     });
   }

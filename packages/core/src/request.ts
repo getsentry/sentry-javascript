@@ -28,38 +28,23 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 }
 
 /** Creates a SentryRequest from a Session. */
-export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
+export function sessionToSentryRequest(session: Session | SessionAggregates, api: API): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
   });
+  let type: SentryRequestType = 'session';
+  if ('aggregates' in session) {
+    type = 'sessions';
+  }
   const itemHeaders = JSON.stringify({
-    type: 'session',
+    type,
   });
 
   return {
     body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(session)}`,
-    type: 'session',
-    url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
-  };
-}
-
-/** Creates a SentryRequest from an Aggregates of Request mode sessions */
-export function sessionAggregatesToSentryRequest(sessionAggregates: SessionAggregates, api: API): SentryRequest {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
-  const envelopeHeaders = JSON.stringify({
-    sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
-  });
-  // The server expects type `sessions` in headers for Session Aggregates payload
-  const itemHeaders = JSON.stringify({
-    type: 'sessions',
-  });
-
-  return {
-    body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(sessionAggregates)}`,
-    type: 'sessions' as SentryRequestType,
+    type,
     url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
   };
 }

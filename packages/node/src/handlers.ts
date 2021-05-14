@@ -426,13 +426,14 @@ export function requestHandler(
 
       res.once('finish', () => {
         const client = currentHub.getClient<NodeClient>();
-        
-        if (!client || !isAutoSessionTrackingEnabled(client)) {
+        if (isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
-            // Calling _captureRequestSession to capture request session at the end of the request by incrementing
-            // the correct SessionAggregates bucket i.e. crashed, errored or exited
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (client as any)._captureRequestSession();
+            if (client) {
+              // Calling _captureRequestSession to capture request session at the end of the request by incrementing
+              // the correct SessionAggregates bucket i.e. crashed, errored or exited
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (client as any)._captureRequestSession();
+            }
           });
         }
       });

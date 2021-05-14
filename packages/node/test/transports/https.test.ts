@@ -106,7 +106,7 @@ describe('HTTPSTransport', () => {
 
   test('send 200 request mode session', async () => {
     const transport = createTransport({ dsn });
-    await transport.sendSessionAggregates(sessionsPayload);
+    await transport.sendSession(sessionsPayload);
 
     const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
     assertBasicOptions(requestOptions, true);
@@ -118,7 +118,7 @@ describe('HTTPSTransport', () => {
     const transport = createTransport({ dsn });
 
     try {
-      await transport.sendSessionAggregates(sessionsPayload);
+      await transport.sendSession(sessionsPayload);
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions, true);
