@@ -91,17 +91,6 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     return super.close(timeout);
   }
 
-  /**
-   * @inheritDoc
-   */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    event.platform = event.platform || 'node';
-    if (this.getOptions().serverName) {
-      event.server_name = this.getOptions().serverName;
-    }
-    return super._prepareEvent(event, scope, hint);
-  }
-
   /** Method that initialises an instance of SessionFlusher on Client */
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
@@ -113,6 +102,17 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
         environment,
       });
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
+    event.platform = event.platform || 'node';
+    if (this.getOptions().serverName) {
+      event.server_name = this.getOptions().serverName;
+    }
+    return super._prepareEvent(event, scope, hint);
   }
 
   /**
