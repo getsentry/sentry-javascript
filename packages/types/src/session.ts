@@ -81,7 +81,6 @@ export interface SessionAggregates {
 }
 
 export interface SessionFlusher {
-  readonly flushTimeout: number;
 
   /**
    * Increments the Session Status bucket in SessionAggregates Object corresponding to the status of the session

@@ -145,7 +145,7 @@ type releaseHealthAttributes = {
  */
 export class SessionFlusher implements SessionFlusherInterface {
   public readonly flushTimeout: number = 60;
-  private _pendingAggregates: { [key: number]: AggregationCounts } = {};
+  private _pendingAggregates: Record<number, AggregationCounts> = {};
   private _sessionAttrs: releaseHealthAttributes;
   private _intervalId: ReturnType<typeof setInterval>;
   private _isEnabled: boolean = true;
@@ -187,7 +187,7 @@ export class SessionFlusher implements SessionFlusherInterface {
 
     const sessionAggregates: SessionAggregates = {
       attrs: this._sessionAttrs,
-      aggregates: aggregates,
+      aggregates,
     };
     return dropUndefinedKeys(sessionAggregates);
   }
@@ -240,13 +240,13 @@ export class SessionFlusher implements SessionFlusherInterface {
 
     switch (status) {
       case RequestSessionStatus.Errored:
-        aggregationCounts.errored = aggregationCounts.errored !== undefined ? aggregationCounts.errored + 1 : 1;
+        aggregationCounts.errored = (aggregationCounts.errored || 0) + 1;
         return aggregationCounts.errored;
       case RequestSessionStatus.Ok:
-        aggregationCounts.exited = aggregationCounts.exited !== undefined ? aggregationCounts.exited + 1 : 1;
+        aggregationCounts.exited = (aggregationCounts.exited || 0) + 1;
         return aggregationCounts.exited;
       case RequestSessionStatus.Crashed:
-        aggregationCounts.crashed = aggregationCounts.crashed !== undefined ? aggregationCounts.crashed + 1 : 1;
+        aggregationCounts.crashed = (aggregationCounts.crashed || 0) + 1;
         return aggregationCounts.crashed;
     }
   }
