@@ -34,11 +34,8 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
   });
-  let type: SentryRequestType = 'session';
-  if ('aggregates' in session) {
-    // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
-    type = 'sessions' as SentryRequestType;
-  }
+  // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
+  let type: SentryRequestType = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
   const itemHeaders = JSON.stringify({
     type,
   });
