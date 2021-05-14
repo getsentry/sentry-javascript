@@ -6,11 +6,11 @@ import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNode
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
+import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './types';
 import { getCLS } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
-import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
 const global = getGlobalObject<Window>();
 
