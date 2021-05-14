@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render } from '@testing-library/react';
+import { useEffect } from 'react';
 import * as React from 'react';
 
 import { onClientEntry } from '../gatsby-browser';
@@ -14,7 +15,7 @@ describe('useEffect', () => {
     let calls = 0;
 
     onClientEntry(undefined, {
-      beforeSend: event => {
+      beforeSend: (event: any) => {
         expect(event).not.toBeUndefined();
         calls += 1;
 
@@ -24,7 +25,7 @@ describe('useEffect', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function TestComponent() {
-      React.useEffect(() => {
+      useEffect(() => {
         const error = new Error('testing 123');
         (window as any).Sentry.captureException(error);
       });
