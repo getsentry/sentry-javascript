@@ -39,3 +39,18 @@ export interface Metric {
 export interface ReportHandler {
   (metric: Metric): void;
 }
+
+// https://wicg.github.io/event-timing/#sec-performance-event-timing
+export interface PerformanceEventTiming extends PerformanceEntry {
+  processingStart: DOMHighResTimeStamp;
+  processingEnd: DOMHighResTimeStamp;
+  duration: DOMHighResTimeStamp;
+  cancelable?: boolean;
+  target?: Element;
+}
+
+export type FirstInputPolyfillEntry = Omit<PerformanceEventTiming, 'processingEnd' | 'toJSON'>;
+
+export interface FirstInputPolyfillCallback {
+  (entry: FirstInputPolyfillEntry): void;
+}

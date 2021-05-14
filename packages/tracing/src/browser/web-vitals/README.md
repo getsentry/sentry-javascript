@@ -4,9 +4,9 @@
 
 This was vendored from: https://github.com/GoogleChrome/web-vitals
 
-The commit SHA used is: [56c736b7c4e80f295bc8a98017671c95231fa225](https://github.com/GoogleChrome/web-vitals/tree/56c736b7c4e80f295bc8a98017671c95231fa225)
+Current vendored version: 1.2.2
 
-Current vendored version: 0.2.4
+The commit SHA used is: [d51aa10f68eda421ed90f2a966c3e9e2611d6d57](https://github.com/GoogleChrome/web-vitals/tree/d51aa10f68eda421ed90f2a966c3e9e2611d6d57)
 
 Current vendored web vitals are:
 
@@ -17,6 +17,10 @@ Current vendored web vitals are:
 ## License
 
 [Apache 2.0](https://github.com/GoogleChrome/web-vitals/blob/master/LICENSE)
+
+## Notable differences from `web-vitals` library
+
+- Currently we do not grab metrics information from bfcache events (ex. `onBFCacheRestore`)
 
 ## CHANGELOG
 

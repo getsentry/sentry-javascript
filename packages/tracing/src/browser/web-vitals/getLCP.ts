@@ -15,11 +15,12 @@
  */
 
 import { bindReporter } from './lib/bindReporter';
+import { finalMetrics } from './lib/finalMetrics';
 import { getFirstHidden } from './lib/getFirstHidden';
 import { initMetric } from './lib/initMetric';
 import { observe, PerformanceEntryHandler } from './lib/observe';
+import { onBFCacheRestore } from './lib/onBFCacheRestore';
 import { onHidden } from './lib/onHidden';
-import { whenInput } from './lib/whenInput';
 import { ReportHandler } from './types';
 
 // https://wicg.github.io/largest-contentful-paint/#sec-largest-contentful-paint-interface
@@ -34,7 +35,7 @@ export interface LargestContentfulPaint extends PerformanceEntry {
 }
 
 export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void => {
-  const metric = initMetric('LCP');
+  let metric = initMetric('LCP');
   const firstHidden = getFirstHidden();
 
   let report: ReturnType<typeof bindReporter>;
@@ -49,8 +50,6 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void 
     if (value < firstHidden.timeStamp) {
       metric.value = value;
       metric.entries.push(entry);
-    } else {
-      metric.isFinal = true;
     }
 
     report();
@@ -59,17 +58,35 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges = false): void 
   const po = observe('largest-contentful-paint', entryHandler);
 
   if (po) {
-    report = bindReporter(onReport, metric, po, reportAllChanges);
-
-    const onFinal = (): void => {
-      if (!metric.isFinal) {
+    report = bindReporter(onReport, metric, reportAllChanges);
+    const stopListening = (): void => {
+      if (!finalMetrics.has(metric)) {
         po.takeRecords().map(entryHandler as PerformanceEntryHandler);
-        metric.isFinal = true;
+        po.disconnect();
+        finalMetrics.add(metric);
         report();
       }
     };
 
-    void whenInput().then(onFinal);
-    onHidden(onFinal, true);
+    // Stop listening after input. Note: while scrolling is an input that
+    // stop LCP observation, it's unreliable since it can be programmatically
+    // generated. See: https://github.com/GoogleChrome/web-vitals/issues/75
+    ['keydown', 'click'].forEach(type => {
+      addEventListener(type, stopListening, { once: true, capture: true });
+    });
+
+    onHidden(stopListening, true);
+
+    onBFCacheRestore(event => {
+      metric = initMetric('LCP');
+      report = bindReporter(onReport, metric, reportAllChanges);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          metric.value = performance.now() - event.timeStamp;
+          finalMetrics.add(metric);
+          report();
+        });
+      });
+    });
   }
 };
