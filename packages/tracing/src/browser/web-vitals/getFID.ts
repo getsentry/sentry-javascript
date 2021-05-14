@@ -72,6 +72,7 @@ export const getFID = (onReport: ReportHandler, reportAllChanges?: boolean): voi
       });
     }
   } else {
+    resetFirstInputPolyfill();
     firstInputPolyfill(entryHandler as FirstInputPolyfillCallback);
   }
 };
