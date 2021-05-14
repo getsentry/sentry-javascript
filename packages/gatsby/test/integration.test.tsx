@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render } from '@testing-library/react';
 import { useEffect } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as React from 'react';
 
 import { onClientEntry } from '../gatsby-browser';

@@ -13,7 +13,7 @@ export class MetadataBuilder {
   private _options: NextjsOptions;
   private _packageNames: string[];
 
-  constructor(options: NextjsOptions, packages: string[]) {
+  public constructor(options: NextjsOptions, packages: string[]) {
     this._options = options;
     this._packageNames = packages;
   }

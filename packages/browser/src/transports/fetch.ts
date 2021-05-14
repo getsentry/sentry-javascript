@@ -81,7 +81,7 @@ export class FetchTransport extends BaseTransport {
    */
   private _fetch: typeof fetch;
 
-  constructor(options: TransportOptions, fetchImpl: FetchImpl = getNativeFetchImplementation()) {
+  public constructor(options: TransportOptions, fetchImpl: FetchImpl = getNativeFetchImplementation()) {
     super(options);
     this._fetch = fetchImpl;
   }

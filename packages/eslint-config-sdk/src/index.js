@@ -104,6 +104,10 @@ module.exports = {
         // instead of any. This is especially important for methods that expose a public API, as users
         // should know exactly what they have to provide to use those methods. Turned off in tests.
         '@typescript-eslint/no-unsafe-member-access': 'error',
+
+        // Be explicit about class member accessibility (public, private, protected). Turned off
+        // on tests for ease of use.
+        '@typescript-eslint/explicit-member-accessibility': ['error'],
       },
     },
     {
@@ -140,6 +144,7 @@ module.exports = {
         'no-unused-expressions': 'off',
         '@typescript-eslint/no-unused-expressions': 'off',
         '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/explicit-member-accessibility': 'off',
       },
     },
     {
