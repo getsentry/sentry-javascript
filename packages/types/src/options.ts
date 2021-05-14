@@ -2,6 +2,7 @@ import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { LogLevel } from './loglevel';
+import { CaptureContext } from './scope';
 import { SdkMetadata } from './sdkmetadata';
 import { SamplingContext } from './transaction';
 import { Transport, TransportClass, TransportOptions } from './transport';
@@ -123,6 +124,11 @@ export interface Options {
    * By default, Sessions Tracking is enabled.
    */
   autoSessionTracking?: boolean;
+
+  /**
+   * Set data to the inital scope
+   */
+  initialScope?: CaptureContext;
 
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,

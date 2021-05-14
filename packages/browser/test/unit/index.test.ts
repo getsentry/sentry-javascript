@@ -179,6 +179,29 @@ describe('SentryBrowser initialization', () => {
     delete global.SENTRY_RELEASE;
   });
 
+  it('should use initalScope object', () => {
+    init({ dsn, initialScope: { tags: { a: 'b' } } });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
+  });
+
+  it('should use initalScope Scope', () => {
+    const scope = new Scope();
+    scope.setTags({ a: 'b' });
+    init({ dsn, initialScope: scope });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
+  });
+
+  it('should use initalScope callback', () => {
+    init({
+      dsn,
+      initialScope: scope => {
+        scope.setTags({ a: 'b' });
+        return scope;
+      },
+    });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
+  });
+
   it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {
     // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
     init({ dsn });
