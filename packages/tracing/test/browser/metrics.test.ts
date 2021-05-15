@@ -1,5 +1,5 @@
 import { Span, Transaction } from '../../src';
-import { _startChild, addResourceSpans, ResourceEntry, MetricsInstrumentation } from '../../src/browser/metrics';
+import { _startChild, addResourceSpans, MetricsInstrumentation, ResourceEntry } from '../../src/browser/metrics';
 import { addDOMPropertiesToGlobal } from '../testutils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-var
