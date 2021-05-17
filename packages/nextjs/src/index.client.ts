@@ -1,5 +1,6 @@
 import { configureScope, init as reactInit } from '@sentry/react';
 
+import { startClientPerfMonitoring } from './performance/client';
 import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 
@@ -14,4 +15,6 @@ export function init(options: NextjsOptions): void {
   configureScope(scope => {
     scope.setTag('runtime', 'browser');
   });
+
+  startClientPerfMonitoring();
 }
