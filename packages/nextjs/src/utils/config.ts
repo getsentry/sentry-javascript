@@ -8,7 +8,7 @@ import * as path from 'path';
 const SENTRY_CLIENT_CONFIG_FILE = './sentry.client.config.js';
 const SENTRY_SERVER_CONFIG_FILE = './sentry.server.config.js';
 // this is where the transpiled/bundled version of `USER_SERVER_CONFIG_FILE` will end up
-export const SERVER_SDK_INIT_PATH = 'sentry/initServer.js';
+export const SERVER_SDK_INIT_PATH = 'sentry/initServerSDK.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -156,7 +156,9 @@ export function withSentryConfig(
     // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
     // webpack-processed version of `sentry.server.config.js` when we need it
     if (config.target === 'node') {
-      memoizeOutputPath(config);
+      const serverSDKInitOutputPath = path.join(config.output.path, SERVER_SDK_INIT_PATH);
+      const projectDir = config.context;
+      setRuntimeEnvVars(projectDir, { SENTRY_SERVER_INIT_PATH: serverSDKInitOutputPath });
     }
 
     let newConfig = config;
@@ -198,21 +200,37 @@ export function withSentryConfig(
 }
 
 /**
- * Store the future location of the webpack-processed version of `sentry.server.config.js` in a runtime env variable, so
- * we know where to find it when we want to initialize the SDK.
+ * Set variables to be added to the env at runtime, by storing them in `.env.local` (which `next` automatically reads
+ * into memory at server startup).
  *
- * @param config The webpack config object for this build
+ * @param projectDir The path to the project root
+ * @param vars Object containing vars to set
  */
-function memoizeOutputPath(config: WebpackConfig): void {
-  const builtServerSDKInitPath = path.join(config.output.path, SERVER_SDK_INIT_PATH);
-  const projectDir = config.context;
-  // next will automatically set variables from `.env.local` in `process.env` at runtime
+function setRuntimeEnvVars(projectDir: string, vars: PlainObject<string>): void {
+  // ensure the file exists
   const envFilePath = path.join(projectDir, '.env.local');
-  const envVarString = `SENTRY_SERVER_INIT_PATH=${builtServerSDKInitPath}\n`;
-
-  if (fs.existsSync(envFilePath)) {
-    fs.appendFileSync(envFilePath, `\n${envVarString}`);
-  } else {
-    fs.writeFileSync(envFilePath, envVarString);
+  if (!fs.existsSync(envFilePath)) {
+    fs.writeFileSync(envFilePath, '');
   }
+
+  let fileContents = fs
+    .readFileSync(envFilePath)
+    .toString()
+    .trim();
+
+  Object.entries(vars).forEach(entry => {
+    const [varName, value] = entry;
+    const envVarString = `${varName}=${value}`;
+
+    // new entry
+    if (!fileContents.includes(varName)) {
+      fileContents = `${fileContents}\n${envVarString}`;
+    }
+    // existing entry; make sure value is up to date
+    else {
+      fileContents = fileContents.replace(new RegExp(`${varName}=\\S+`), envVarString);
+    }
+  });
+
+  fs.writeFileSync(envFilePath, `${fileContents.trim()}\n`);
 }
