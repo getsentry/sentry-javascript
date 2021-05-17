@@ -1,4 +1,4 @@
-import { Event, SdkInfo, SentryRequest, Session } from '@sentry/types';
+import { Event, SdkInfo, SentryRequest, SentryRequestType, Session, SessionAggregates } from '@sentry/types';
 
 import { API } from './api';
 
@@ -28,19 +28,21 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 }
 
 /** Creates a SentryRequest from a Session. */
-export function sessionToSentryRequest(session: Session, api: API): SentryRequest {
+export function sessionToSentryRequest(session: Session | SessionAggregates, api: API): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
   });
+  // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
+  const type: SentryRequestType = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
   const itemHeaders = JSON.stringify({
-    type: 'session',
+    type,
   });
 
   return {
     body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(session)}`,
-    type: 'session',
+    type,
     url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
   };
 }

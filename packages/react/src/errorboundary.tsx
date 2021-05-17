@@ -1,6 +1,18 @@
-import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
+import {
+  captureEvent,
+  captureException,
+  eventFromException,
+  ReportDialogOptions,
+  Scope,
+  showReportDialog,
+  withScope,
+} from '@sentry/browser';
+import { Event } from '@sentry/types';
+import { parseSemver } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
+
+const reactVersion = parseSemver(React.version);
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -53,8 +65,47 @@ const INITIAL_STATE = {
 };
 
 /**
- * A ErrorBoundary component that logs errors to Sentry.
- * Requires React >= 16
+ * Logs react error boundary errors to Sentry. If on React version >= 17, creates stack trace
+ * from componentStack param, otherwise relies on error param for stacktrace.
+ *
+ * @param error An error captured by React Error Boundary
+ * @param componentStack The component stacktrace
+ */
+function captureReactErrorBoundaryError(error: Error, componentStack: string): string {
+  const errorBoundaryError = new Error(error.message);
+  errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+  errorBoundaryError.stack = componentStack;
+
+  let errorBoundaryEvent: Event = {};
+  void eventFromException({}, errorBoundaryError).then(e => {
+    errorBoundaryEvent = e;
+  });
+
+  if (
+    errorBoundaryEvent.exception &&
+    Array.isArray(errorBoundaryEvent.exception.values) &&
+    reactVersion.major &&
+    reactVersion.major >= 17
+  ) {
+    let originalEvent: Event = {};
+    void eventFromException({}, error).then(e => {
+      originalEvent = e;
+    });
+    if (originalEvent.exception && Array.isArray(originalEvent.exception.values)) {
+      originalEvent.exception.values = [...errorBoundaryEvent.exception.values, ...originalEvent.exception.values];
+    }
+
+    return captureEvent(originalEvent);
+  }
+
+  return captureException(error, { contexts: { react: { componentStack } } });
+}
+
+/**
+ * A ErrorBoundary component that logs errors to Sentry. Requires React >= 16.
+ * NOTE: If you are a Sentry user, and you are seeing this stack frame, it means the
+ * Sentry React SDK ErrorBoundary caught an error invoking your application code. This
+ * is expected behavior and NOT indicative of a bug with the Sentry React SDK.
  */
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = INITIAL_STATE;
@@ -66,7 +117,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       if (beforeCapture) {
         beforeCapture(scope, error, componentStack);
       }
-      const eventId = captureException(error, { contexts: { react: { componentStack } } });
+      const eventId = captureReactErrorBoundaryError(error, componentStack);
       if (onError) {
         onError(error, componentStack, eventId);
       }

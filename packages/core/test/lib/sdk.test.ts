@@ -1,3 +1,4 @@
+import { Scope } from '@sentry/hub';
 import { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
@@ -16,10 +17,14 @@ jest.mock('@sentry/hub', () => {
     getCurrentHub(): {
       bindClient(client: Client): boolean;
       getClient(): boolean;
+      getScope(): Scope;
     } {
       return {
         getClient(): boolean {
           return false;
+        },
+        getScope(): Scope {
+          return new Scope();
         },
         bindClient(client: Client): boolean {
           client.setupIntegrations();

@@ -10,7 +10,7 @@ class Collection {
   public namespace: string = 'mockedNamespace';
 
   // Method that can have a callback as last argument, or return a promise otherwise.
-  insertOne(_doc: unknown, _options: unknown, callback?: () => void) {
+  public insertOne(_doc: unknown, _options: unknown, callback?: () => void) {
     if (typeof callback === 'function') {
       callback();
       return;
@@ -18,7 +18,7 @@ class Collection {
     return Promise.resolve();
   }
   // Method that has no callback as last argument, and doesnt return promise.
-  initializeOrderedBulkOp() {
+  public initializeOrderedBulkOp() {
     return {};
   }
 }
