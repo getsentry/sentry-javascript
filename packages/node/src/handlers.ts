@@ -255,8 +255,11 @@ export function extractRequestData(
         if (method === 'GET' || method === 'HEAD') {
           break;
         }
-        // body data:
-        //   node, express, koa: req.body
+        // body data: express, koa: req.body
+
+        // when using node by itself, you have to read the incoming stream(see
+        // https://nodejs.dev/learn/get-http-request-body-data-using-nodejs); if a user is doing that, we can't know
+        // where they're going to store the final result, so they'll have to capture this data themselves
         if (req.body !== undefined) {
           requestData.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
         }
