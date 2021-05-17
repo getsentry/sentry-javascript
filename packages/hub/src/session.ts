@@ -29,7 +29,7 @@ export class Session implements SessionInterface {
   public ipAddress?: string;
   public init: boolean = true;
 
-  constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
+  public constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
     if (context) {
       this.update(context);
     }
@@ -37,7 +37,7 @@ export class Session implements SessionInterface {
 
   /** JSDoc */
   // eslint-disable-next-line complexity
-  update(context: SessionContext = {}): void {
+  public update(context: SessionContext = {}): void {
     if (context.user) {
       if (context.user.ip_address) {
         this.ipAddress = context.user.ip_address;
@@ -89,7 +89,7 @@ export class Session implements SessionInterface {
   }
 
   /** JSDoc */
-  close(status?: Exclude<SessionStatus, SessionStatus.Ok>): void {
+  public close(status?: Exclude<SessionStatus, SessionStatus.Ok>): void {
     if (status) {
       this.update({ status });
     } else if (this.status === SessionStatus.Ok) {
@@ -100,7 +100,7 @@ export class Session implements SessionInterface {
   }
 
   /** JSDoc */
-  toJSON(): {
+  public toJSON(): {
     init: boolean;
     sid: string;
     did?: string;
@@ -151,7 +151,7 @@ export class SessionFlusher implements SessionFlusherLike {
   private _isEnabled: boolean = true;
   private _transport: Transport;
 
-  constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
+  public constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
     this._transport = transport;
     // Call to setInterval, so that flush is called every 60 seconds
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
