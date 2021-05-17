@@ -21,6 +21,7 @@
     "@sentry/integrations": "6.4.0",
     "@sentry/node": "6.4.0",
     "@sentry/react": "6.4.0",
+    "@sentry/tracing": "6.4.0",
     "@sentry/utils": "6.4.0",
     "@sentry/webpack-plugin": "1.15.0",
     "tslib": "^1.9.3"
