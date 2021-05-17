@@ -10,6 +10,7 @@ import {
   Extra,
   Extras,
   Primitive,
+  RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
   Severity,
@@ -65,6 +66,9 @@ export class Scope implements ScopeInterface {
   /** Session */
   protected _session?: Session;
 
+  /** Request Mode Session Status */
+  protected _requestSession?: RequestSession;
+
   /**
    * Inherit values from the parent scope.
    * @param scope to clone.
@@ -83,6 +87,7 @@ export class Scope implements ScopeInterface {
       newScope._transactionName = scope._transactionName;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
+      newScope._requestSession = scope._requestSession;
     }
     return newScope;
   }
@@ -120,6 +125,21 @@ export class Scope implements ScopeInterface {
    */
   public getUser(): User | undefined {
     return this._user;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getRequestSession(): RequestSession | undefined {
+    return this._requestSession;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setRequestSession(requestSession?: RequestSession): this {
+    this._requestSession = requestSession;
+    return this;
   }
 
   /**
@@ -297,6 +317,9 @@ export class Scope implements ScopeInterface {
       if (captureContext._fingerprint) {
         this._fingerprint = captureContext._fingerprint;
       }
+      if (captureContext._requestSession) {
+        this._requestSession = captureContext._requestSession;
+      }
     } else if (isPlainObject(captureContext)) {
       // eslint-disable-next-line no-param-reassign
       captureContext = captureContext as ScopeContext;
@@ -311,6 +334,9 @@ export class Scope implements ScopeInterface {
       }
       if (captureContext.fingerprint) {
         this._fingerprint = captureContext.fingerprint;
+      }
+      if (captureContext.requestSession) {
+        this._requestSession = captureContext.requestSession;
       }
     }
 
@@ -329,6 +355,7 @@ export class Scope implements ScopeInterface {
     this._level = undefined;
     this._transactionName = undefined;
     this._fingerprint = undefined;
+    this._requestSession = undefined;
     this._span = undefined;
     this._session = undefined;
     this._notifyScopeListeners();

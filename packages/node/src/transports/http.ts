@@ -1,5 +1,5 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
-import { Event, Response, Session, TransportOptions } from '@sentry/types';
+import { Event, Response, Session, SessionAggregates, TransportOptions } from '@sentry/types';
 import * as http from 'http';
 
 import { BaseTransport } from './base';
@@ -26,7 +26,7 @@ export class HTTPTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public sendSession(session: Session): PromiseLike<Response> {
+  public sendSession(session: Session | SessionAggregates): PromiseLike<Response> {
     return this._send(sessionToSentryRequest(session, this._api), session);
   }
 }

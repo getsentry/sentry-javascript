@@ -9,6 +9,7 @@
     "fix": "lerna run --parallel fix",
     "link:yarn": "lerna run --stream --concurrency 1 link:yarn",
     "lint": "lerna run --parallel lint",
+    "lint:eslint": "lerna run --parallel lint:eslint",
     "test": "lerna run --stream --concurrency 1 --sort test",
     "codecov": "codecov",
     "pack:changed": "lerna run pack --since",

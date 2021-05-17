@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.4.0
+
+- [core] feat: initalScope in SDK Options (#3544)
+- [node] feat: Release Health for Node (Session Aggregates) (#3319)
+- [node] feat: Autoload Database Integrations in Node environment (#3483)
+- [react] feat: Add support for React 17 Error Boundaries (#3532)
+- [tracing] fix: Generate TTFB (Time to first byte) from span data (#3515)
+
 ## 6.3.6
 
 - [nextjs] fix: Fix error logging (#3512)
