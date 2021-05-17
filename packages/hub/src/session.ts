@@ -151,7 +151,7 @@ export class SessionFlusher implements SessionFlusherLike {
   private _isEnabled: boolean = true;
   private _transport: Transport;
 
-  constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
+  public constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
     this._transport = transport;
     // Call to setInterval, so that flush is called every 60 seconds
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
