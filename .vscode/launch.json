@@ -5,19 +5,20 @@
   "version": "0.2.0",
   // TODO: these are all alike save the package, so figure out how to make that variable
   "configurations": [
-    // @sentry/tracing - run a specific test file in watch mode
+
+    // @sentry/core - run a specific test file in watch mode
     // must have file in currently active tab when hitting the play button
     {
       "type": "node",
       "request": "launch",
-      "cwd": "${workspaceFolder}/packages/tracing",
-      "name": "Debug @sentry/tracing tests - just open file",
+      "cwd": "${workspaceFolder}/packages/core",
+      "name": "Debug @sentry/core tests - just open file",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
         "--watch",
         "--runInBand",
         "--config",
-        "${workspaceFolder}/packages/tracing/package.json",
+        "${workspaceFolder}/packages/core/package.json",
         "--coverage",
         "false", // coverage messes up the source maps
         "${relativeFile}" // remove this to run all package tests
@@ -25,7 +26,31 @@
       "disableOptimisticBPs": true,
       "sourceMaps": true,
       "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
+      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
+    },
+
+    // @sentry/nextjs - run a specific test file in watch mode
+    // must have file in currently active tab when hitting the play button
+    {
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/nextjs",
+      "name": "Debug @sentry/nextjs tests - just open file",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": [
+        "--watch",
+        "--runInBand",
+        "--config",
+        "${workspaceFolder}/packages/nextjs/package.json",
+        "--coverage",
+        "false", // coverage messes up the source maps
+        "${relativeFile}" // remove this to run all package tests
+      ],
+      "disableOptimisticBPs": true,
+      "sourceMaps": true,
+      "smartStep": true,
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
       "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
     },
 
@@ -49,23 +74,23 @@
       "disableOptimisticBPs": true,
       "sourceMaps": true,
       "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
       "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
     },
 
-    // @sentry/core - run a specific test file in watch mode
+    // @sentry/tracing - run a specific test file in watch mode
     // must have file in currently active tab when hitting the play button
     {
       "type": "node",
       "request": "launch",
-      "cwd": "${workspaceFolder}/packages/core",
-      "name": "Debug @sentry/core tests - just open file",
+      "cwd": "${workspaceFolder}/packages/tracing",
+      "name": "Debug @sentry/tracing tests - just open file",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
         "--watch",
         "--runInBand",
         "--config",
-        "${workspaceFolder}/packages/core/package.json",
+        "${workspaceFolder}/packages/tracing/package.json",
         "--coverage",
         "false", // coverage messes up the source maps
         "${relativeFile}" // remove this to run all package tests
@@ -73,7 +98,7 @@
       "disableOptimisticBPs": true,
       "sourceMaps": true,
       "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
       "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
     },
 
@@ -97,7 +122,7 @@
       "disableOptimisticBPs": true,
       "sourceMaps": true,
       "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which can't read from stdin
+      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
       "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
     },
   ]
