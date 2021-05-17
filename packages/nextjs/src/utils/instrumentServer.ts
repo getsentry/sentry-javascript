@@ -8,6 +8,8 @@ import * as url from 'url';
 
 import * as Sentry from '../index.server';
 
+debugger;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
 
@@ -124,6 +126,7 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
       // to the appropriate handlers)
       fill(serverPrototype, 'handleRequest', makeWrappedReqHandler);
 
+      logger.log('[Sentry] Server-side SDK setup complete.');
       sdkSetupComplete = true;
     }
 

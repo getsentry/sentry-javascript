@@ -53,6 +53,7 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "test": "jest",
+    "test:integration": "NODE_ENV=\"production\" && jest test/integration/tests/*",
     "test:watch": "jest --watch",
     "pack": "npm pack"
   },
