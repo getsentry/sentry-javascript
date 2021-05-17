@@ -1,9 +1,19 @@
 import { DebugMeta, Event, SentryRequest, TransactionSamplingMethod } from '@sentry/types';
 
 import { API } from '../../src/api';
-import { eventToSentryRequest } from '../../src/request';
+import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
+
+const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012', {
+  sdk: {
+    integrations: ['AWSLambda'],
+    name: 'sentry.javascript.browser',
+    version: `12.31.12`,
+    packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
+  },
+});
 
 describe('eventToSentryRequest', () => {
+  let event: Event;
   function parseEnvelopeRequest(request: SentryRequest): any {
     const [envelopeHeaderString, itemHeaderString, eventString] = request.body.split('\n');
 
@@ -13,16 +23,6 @@ describe('eventToSentryRequest', () => {
       event: JSON.parse(eventString),
     };
   }
-
-  const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012', {
-    sdk: {
-      integrations: ['AWSLambda'],
-      name: 'sentry.javascript.browser',
-      version: `12.31.12`,
-      packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
-    },
-  });
-  let event: Event;
 
   beforeEach(() => {
     event = {
@@ -121,6 +121,35 @@ describe('eventToSentryRequest', () => {
           ],
           version: '1337',
         },
+      }),
+    );
+  });
+});
+
+describe('sessionToSentryRequest', () => {
+  it('test envelope creation for aggregateSessions', () => {
+    const aggregatedSession = {
+      attrs: { release: '1.0.x', environment: 'prod' },
+      aggregates: [{ started: '2021-04-08T12:18:00.000Z', exited: 2 }],
+    };
+    const result = sessionToSentryRequest(aggregatedSession, api);
+
+    const [envelopeHeaderString, itemHeaderString, sessionString] = result.body.split('\n');
+
+    expect(JSON.parse(envelopeHeaderString)).toEqual(
+      expect.objectContaining({
+        sdk: { name: 'sentry.javascript.browser', version: '12.31.12' },
+      }),
+    );
+    expect(JSON.parse(itemHeaderString)).toEqual(
+      expect.objectContaining({
+        type: 'sessions',
+      }),
+    );
+    expect(JSON.parse(sessionString)).toEqual(
+      expect.objectContaining({
+        attrs: { release: '1.0.x', environment: 'prod' },
+        aggregates: [{ started: '2021-04-08T12:18:00.000Z', exited: 2 }],
       }),
     );
   });

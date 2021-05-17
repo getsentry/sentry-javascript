@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { TransportOptions } from '@sentry/types';
+import { SessionAggregates, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -10,6 +10,10 @@ const mockSetEncoding = jest.fn();
 const dsn = 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
 const storePath = '/mysubpath/api/50622/store/';
 const envelopePath = '/mysubpath/api/50622/envelope/';
+const sessionsPayload: SessionAggregates = {
+  attrs: { environment: 'test', release: '1.0' },
+  aggregates: [{ started: '2021-03-17T16:00:00.000Z', exited: 1 }],
+};
 let mockReturnCode = 200;
 let mockHeaders = {};
 
@@ -93,6 +97,28 @@ describe('HTTPSTransport', () => {
 
     try {
       await transport.sendSession(new Session());
+    } catch (e) {
+      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+      assertBasicOptions(requestOptions, true);
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    }
+  });
+
+  test('send 200 request mode session', async () => {
+    const transport = createTransport({ dsn });
+    await transport.sendSession(sessionsPayload);
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    assertBasicOptions(requestOptions, true);
+    expect(mockSetEncoding).toHaveBeenCalled();
+  });
+
+  test('send 400 request mode session', async () => {
+    mockReturnCode = 400;
+    const transport = createTransport({ dsn });
+
+    try {
+      await transport.sendSession(sessionsPayload);
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions, true);
