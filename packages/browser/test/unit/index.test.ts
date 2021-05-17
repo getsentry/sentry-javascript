@@ -179,7 +179,7 @@ describe('SentryBrowser initialization', () => {
     delete global.SENTRY_RELEASE;
   });
 
-  it('should use initalScope object', () => {
+  it('should use initialScope', () => {
     init({ dsn, initialScope: { tags: { a: 'b' } } });
     expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
   });
