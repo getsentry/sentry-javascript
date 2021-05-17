@@ -1,5 +1,5 @@
 const Sentry = require('../../../../dist');
-const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('./test-utils');
+const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('../test-utils');
 
 let sessionCounter = 0;
 process.on('exit', ()=> {
