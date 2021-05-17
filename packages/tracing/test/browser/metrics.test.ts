@@ -186,7 +186,7 @@ describe('MetricsInstrumentation', () => {
   it('initializes trackers when not on node and `global.performance` is available.', () => {
     addDOMPropertiesToGlobal(['performance', 'document', 'addEventListener', 'window']);
     const backup = global.process;
-    delete global.process;
+    global.process = undefined;
 
     const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
