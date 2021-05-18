@@ -22,6 +22,9 @@ export function init(options: NextjsOptions): void {
     options.integrations = [defaultRewriteFrames];
   }
 
+  // Right now we only capture frontend sessions for Next.js
+  options.autoSessionTracking = false;
+
   nodeInit(options);
   configureScope(scope => {
     scope.setTag('runtime', 'node');
