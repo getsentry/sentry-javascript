@@ -1,27 +1,21 @@
-import { TransactionContext } from '@sentry/types';
+import { Transaction, TransactionContext } from '@sentry/types';
 
-import * as Sentry from '../index.client';
-import { wrapRouter } from './routerWrapper';
+import { wrapRouter } from './nextRouterWrapper';
 
-export function startClientPerfMonitoring(): void {
-  wrapRouter();
-  startInitialTransaction();
+export function nextRouterInstrumentation(
+  startTransaction: (context: TransactionContext) => Transaction | undefined,
+  startTransactionOnPageLoad: boolean = true,
+  startTransactionOnLocationChange: boolean = true,
+): void {
+  wrapRouter(startTransaction, startTransactionOnLocationChange);
+  if (startTransactionOnPageLoad) {
+    startTransaction({
+      name: window.location.pathname,
+      op: 'pageload',
+    });
+  }
 }
 
-function startInitialTransaction(): void {
-  const initialTransactionCtx = getInitialTransactionContext();
-  const transaction = Sentry.startTransaction(initialTransactionCtx);
-  Sentry.getCurrentHub()
-    .getScope()
-    ?.setSpan(transaction);
-}
-
-function getInitialTransactionContext(): TransactionContext {
-  return {
-    name: `GET ${window.location.pathname}`,
-    // Operation target format is `<protocol>.client`.
-    // `window.location.protocol` is `<protocol>:`, so remove the `:`.
-    op: `${window.location.protocol.slice(0, -1)}.client`,
-    sampled: true, // For testing purposes, remove for production
-  };
-}
+// TODO: check for the info we can get from the router events,
+// note that it may interfere with the wrapping
+// https://nextjs.org/docs/api-reference/next/router#routerevents

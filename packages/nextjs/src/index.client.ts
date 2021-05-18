@@ -1,10 +1,10 @@
 import { configureScope, init as reactInit } from '@sentry/react';
 
-import { startClientPerfMonitoring } from './performance/client';
 import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 
 export * from '@sentry/react';
+export { nextRouterInstrumentation } from './performance/client';
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
@@ -15,6 +15,4 @@ export function init(options: NextjsOptions): void {
   configureScope(scope => {
     scope.setTag('runtime', 'browser');
   });
-
-  startClientPerfMonitoring();
 }
