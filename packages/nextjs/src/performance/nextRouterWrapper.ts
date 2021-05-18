@@ -24,13 +24,13 @@ export function wrapRouter(startTransactionCb: StartTransactionCb, _startTransac
   Router.ready(() => {
     // There should always be a router at this point; but checking again purely for types.
     if (!Router.router) return;
-    const router = Router.router;
-    fill(Object.getPrototypeOf(router), 'push', pushWrapper); // create transactions
-    // TODO: replace - create transactions
-    // TODO: back - create transactions
-    // TODO: reload - create transactions
-    // TODO: beforepopstate - create span
-    // TODO: prefetch - ignore it, outside of the page load
+    const routerPrototype = Object.getPrototypeOf(Router.router);
+    fill(routerPrototype, 'push', pushWrapper); // create transactions
+    fill(routerPrototype, 'replace', replaceWrapper); // create transactions
+    fill(routerPrototype, 'back', backWrapper); // create transactions
+    fill(routerPrototype, 'reload', reloadWrapper); // create transactions
+    fill(routerPrototype, 'beforePopState', beforePopStateWrapper); // create spans
+    // Ignore `prefetch`, since its outside of the page load
   });
 }
 
@@ -62,6 +62,46 @@ export function pushWrapper(originalPush: RouterPush): WrappedRouterPush {
     console.log(prevTransactionId);
 
     return originalPush.call(this, ...args);
+  };
+  return wrapper;
+}
+
+type RouterReplace = () => Promise<boolean>;
+type WrappedRouterReplace = RouterReplace;
+
+function replaceWrapper(originalReplace: RouterReplace): WrappedRouterReplace {
+  const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    return originalReplace.apply(this, args);
+  };
+  return wrapper;
+}
+
+type RouterBack = () => Promise<boolean>;
+type WrappedRouterBack = RouterReplace;
+
+function backWrapper(originalBack: RouterBack): WrappedRouterBack {
+  const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    return originalBack.apply(this, args);
+  };
+  return wrapper;
+}
+
+type RouterReload = () => Promise<boolean>;
+type WrappedRouterReload = RouterReplace;
+
+function reloadWrapper(originalReload: RouterReload): WrappedRouterReload {
+  const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    return originalReload.apply(this, args);
+  };
+  return wrapper;
+}
+
+type RouterBeforePopState = () => Promise<boolean>;
+type WrappedRouterBeforePopState = RouterReplace;
+
+function beforePopStateWrapper(originalBeforePopState: RouterBeforePopState): WrappedRouterBeforePopState {
+  const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    return originalBeforePopState.apply(this, args);
   };
   return wrapper;
 }
