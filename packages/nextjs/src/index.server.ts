@@ -23,9 +23,7 @@ export function init(options: NextjsOptions): void {
   }
 
   // Right now we only capture frontend sessions for Next.js
-  if (options.autoSessionTracking === undefined) {
-    options.autoSessionTracking = false;
-  }
+  options.autoSessionTracking = false;
 
   nodeInit(options);
   configureScope(scope => {
