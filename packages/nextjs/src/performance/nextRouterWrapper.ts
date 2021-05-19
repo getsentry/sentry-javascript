@@ -33,6 +33,22 @@ export function wrapRouter(startTransactionCb: StartTransactionCb, startTransact
   });
 }
 
+/**
+ * Closes previous transaction (if required) and starts a new one.
+ */
+function startNewTransaction(toUrl: any, transactionOp: string = 'navigation'): void {
+  if (activeTransaction) activeTransaction.finish();
+  if (!startTransaction) {
+    // This should never happen, adding it for type checking purposes.
+    return;
+  }
+
+  activeTransaction = startTransaction({
+    name: toUrl, // TODO: should this be normalized?
+    op: transactionOp,
+  });
+}
+
 type RouterPush = () => Promise<boolean>;
 type WrappedRouterPush = RouterPush;
 
@@ -42,20 +58,7 @@ function pushWrapper(originalPush: RouterPush): WrappedRouterPush {
   // Not including it means leads to: `TypeError: Cannot read property 'auth' of undefined`, similar to
   // https://github.com/vercel/next.js/issues/11513
   const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
-    if (activeTransaction) {
-      activeTransaction.finish();
-    }
-    if (!startTransaction) {
-      // This should never happen, adding it for type checking purposes.
-      return Promise.resolve(false);
-    }
-
-    const toUrl = args[0]; // TODO: normalize the URL?
-    activeTransaction = startTransaction({
-      name: toUrl,
-      op: 'navigation',
-    });
-
+    startNewTransaction(args[0]); // The URL being pushed
     return originalPush.call(this, ...args);
   };
   return wrapper;
