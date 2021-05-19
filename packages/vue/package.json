@@ -42,7 +42,8 @@
     "rollup-plugin-typescript2": "^0.21.0",
     "typescript": "3.7.5",
     "vue": "^2.6",
-    "vue-router": "^3.0.1"
+    "vue-router": "^3.0.1",
+    "madge": "4.0.2"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm build:bundle",

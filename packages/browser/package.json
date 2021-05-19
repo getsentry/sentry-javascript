@@ -51,7 +51,8 @@
     "rollup-plugin-typescript2": "^0.21.0",
     "sinon": "^7.3.2",
     "typescript": "3.7.5",
-    "webpack": "^4.30.0"
+    "webpack": "^4.30.0",
+    "madge": "4.0.2"
   },
   "scripts": {
     "build": "run-s build:dist build:esm build:bundle",
