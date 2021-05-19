@@ -74,6 +74,17 @@ function replaceWrapper(originalReplace: RouterReplace): WrappedRouterReplace {
   return wrapper;
 }
 
+type RouterBeforePopState = () => Promise<boolean>;
+type WrappedRouterBeforePopState = RouterReplace;
+
+function beforePopStateWrapper(originalBeforePopState: RouterBeforePopState): WrappedRouterBeforePopState {
+  const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    // TODO: create a span
+    return originalBeforePopState.apply(this, args);
+  };
+  return wrapper;
+}
+
 type RouterBack = () => Promise<boolean>;
 type WrappedRouterBack = RouterReplace;
 
@@ -89,17 +100,8 @@ type WrappedRouterReload = RouterReplace;
 
 function reloadWrapper(originalReload: RouterReload): WrappedRouterReload {
   const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    // TODO
     return originalReload.apply(this, args);
-  };
-  return wrapper;
-}
-
-type RouterBeforePopState = () => Promise<boolean>;
-type WrappedRouterBeforePopState = RouterReplace;
-
-function beforePopStateWrapper(originalBeforePopState: RouterBeforePopState): WrappedRouterBeforePopState {
-  const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
-    return originalBeforePopState.apply(this, args);
   };
   return wrapper;
 }
