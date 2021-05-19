@@ -23,18 +23,6 @@ export type RouteConfig = {
   routes?: RouteConfig[];
 };
 
-interface RouteProps {
-  [propName: string]: any;
-  location?: Location;
-  component?: React.ComponentType<any> | React.ComponentType<any>;
-  render?: (props: any) => React.ReactNode;
-  children?: ((props: any) => React.ReactNode) | React.ReactNode;
-  path?: string | string[];
-  exact?: boolean;
-  sensitive?: boolean;
-  strict?: boolean;
-}
-
 type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -148,9 +136,7 @@ function computeRootMatch(pathname: string): Match {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withSentryRouting<P extends RouteProps & Record<string, any>>(
-  Route: React.ComponentType<P>,
-): React.FC<P> {
+export function withSentryRouting<P extends Record<string, any>>(Route: React.ComponentType<P>): React.FC<P> {
   const componentDisplayName = Route.displayName || Route.name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
