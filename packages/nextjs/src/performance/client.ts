@@ -42,7 +42,7 @@ export function nextRouterInstrumentation(
 type RouterChangeState = (method: string, url: string, as: string, options: Record<string, any>) => void;
 type WrappedRouterChangeState = RouterChangeState;
 
-export function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): WrappedRouterChangeState {
+function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): WrappedRouterChangeState {
   const wrapper = function(
     this: any,
     method: string,
