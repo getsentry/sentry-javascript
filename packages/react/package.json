@@ -53,7 +53,8 @@
     "react-test-renderer": "^16.13.1",
     "redux": "^4.0.5",
     "rimraf": "^2.6.3",
-    "typescript": "3.7.5"
+    "typescript": "3.7.5",
+    "madge": "4.0.2"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
@@ -72,7 +73,8 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "test": "jest",
     "test:watch": "jest --watch",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "circularDepCheck": "madge --circular src/index.ts"
   },
   "volta": {
     "extends": "../../package.json"
