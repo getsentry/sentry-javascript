@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Primitive, Transaction, TransactionContext } from '@sentry/types';
 import { fill } from '@sentry/utils';
 import { default as Router } from 'next/router';
@@ -18,8 +19,9 @@ export function nextRouterInstrumentation(
   if (startTransactionOnLocationChange) {
     startTransaction = startTransactionCb;
     Router.ready(() => {
-      const routerPrototype = Object.getPrototypeOf(Router);
+      const routerPrototype = Object.getPrototypeOf(Router.router);
       // TODO: fill `beforePopState`
+      fill(routerPrototype, 'beforePopState', beforePopStateWrapper);
 
       // `withRouter` uses `useRouter` underneath:
       // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/with-router.tsx#L21
@@ -73,6 +75,20 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
       prevTransactionId = url;
     }
     return originalChangeStateWrapper.call(this, method, url, as, options, ...args);
+  };
+  return wrapper;
+}
+
+// Next.js only cares when `beforePopState` returns `false`, but it can actually return anything.
+// https://nextjs.org/docs/api-reference/next/router#routerbeforepopstate
+type RouterBeforePopState = () => boolean | any;
+type WrappedRouterBeforePopState = RouterBeforePopState;
+
+function beforePopStateWrapper(originalBeforePopState: RouterBeforePopState): WrappedRouterBeforePopState {
+  console.log('beforePopStateWrapper 1');
+  const wrapper = function(this: any, ...args: any[]): any {
+    console.log('beforePopStateWrapper 2');
+    return originalBeforePopState.apply(this, args);
   };
   return wrapper;
 }
