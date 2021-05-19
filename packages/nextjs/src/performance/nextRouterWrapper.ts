@@ -69,6 +69,7 @@ type WrappedRouterReplace = RouterReplace;
 
 function replaceWrapper(originalReplace: RouterReplace): WrappedRouterReplace {
   const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    startNewTransaction(args[0]); // The replacer URL
     return originalReplace.apply(this, args);
   };
   return wrapper;
@@ -90,6 +91,7 @@ type WrappedRouterBack = RouterReplace;
 
 function backWrapper(originalBack: RouterBack): WrappedRouterBack {
   const wrapper = function(this: any, ...args: any[]): Promise<boolean> {
+    // TODO
     return originalBack.apply(this, args);
   };
   return wrapper;
