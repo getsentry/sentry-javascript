@@ -38,7 +38,8 @@
     "npm-run-all": "^4.1.2",
     "prettier": "1.19.0",
     "rimraf": "^2.6.3",
-    "typescript": "3.7.5"
+    "typescript": "3.7.5",
+    "madge": "4.0.2"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
@@ -61,7 +62,8 @@
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:webpack": "cd test/manual/webpack-domain/ && yarn && node npm-build.js",
     "test:release-health": "node test/manual/release-health/single-session/healthy-session.js && node test/manual/release-health/single-session/caught-exception-errored-session.js && node test/manual/release-health/single-session/uncaught-exception-crashed-session.js && node test/manual/release-health/single-session/unhandled-rejection-crashed-session.js && node test/manual/release-health/session-aggregates/aggregates-disable-single-session.js",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "circularDepCheck": "madge --circular src/index.ts"
   },
   "volta": {
     "extends": "../../package.json"

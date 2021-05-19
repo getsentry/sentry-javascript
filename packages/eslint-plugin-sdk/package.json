@@ -24,14 +24,16 @@
   "devDependencies": {
     "mocha": "^6.2.0",
     "prettier": "1.19.0",
-    "typescript": "3.7.5"
+    "typescript": "3.7.5",
+    "madge": "4.0.2"
   },
   "scripts": {
     "link:yarn": "yarn link",
     "lint": "prettier --check \"{src,test}/**/*.js\"",
     "fix": "prettier --write \"{src,test}/**/*.js\"",
     "test": "mocha test --recursive",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "circularDepCheck": "madge --circular src/index.js"
   },
   "volta": {
     "extends": "../../package.json"

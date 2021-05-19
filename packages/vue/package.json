@@ -42,7 +42,8 @@
     "rollup-plugin-typescript2": "^0.21.0",
     "typescript": "3.7.5",
     "vue": "^2.6",
-    "vue-router": "^3.0.1"
+    "vue-router": "^3.0.1",
+    "madge": "4.0.2"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm build:bundle",
@@ -63,7 +64,8 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "circularDepCheck": "madge --circular src/index.ts"
   },
   "volta": {
     "extends": "../../package.json"
