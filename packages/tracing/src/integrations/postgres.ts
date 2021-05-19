@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { fill, loadModule, logger } from '@sentry/utils';
+import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 interface PgClient {
   prototype: {
@@ -36,6 +36,7 @@ export class Postgres implements Integration {
      * function (query, params, callback) => void
      * function (query) => Promise
      * function (query, params) => Promise
+     * function (pg.Cursor) => pg.Cursor
      */
     fill(pkg.Client.prototype, 'query', function(orig: () => void | Promise<unknown>) {
       return function(this: unknown, config: unknown, values: unknown, callback: unknown) {
@@ -60,10 +61,17 @@ export class Postgres implements Integration {
           });
         }
 
-        return (orig.call(this, config, values) as Promise<unknown>).then((res: unknown) => {
-          span?.finish();
-          return res;
-        });
+        const rv = typeof values !== 'undefined' ? orig.call(this, config, values) : orig.call(this, config);
+
+        if (isThenable(rv)) {
+          return (rv as Promise<unknown>).then((res: unknown) => {
+            span?.finish();
+            return res;
+          });
+        }
+
+        span?.finish();
+        return rv;
       };
     });
   }
