@@ -26,10 +26,10 @@ export function wrapRouter(startTransactionCb: StartTransactionCb, startTransact
     const routerPrototype = Object.getPrototypeOf(Router.router);
     fill(routerPrototype, 'push', pushWrapper); // create transactions
     fill(routerPrototype, 'replace', replaceWrapper); // create transactions
+    // Ignore `prefetch`, since its outside of the page load
+    fill(routerPrototype, 'beforePopState', beforePopStateWrapper); // create spans
     fill(routerPrototype, 'back', backWrapper); // create transactions
     fill(routerPrototype, 'reload', reloadWrapper); // create transactions
-    fill(routerPrototype, 'beforePopState', beforePopStateWrapper); // create spans
-    // Ignore `prefetch`, since its outside of the page load
   });
 }
 
