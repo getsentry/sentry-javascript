@@ -36,7 +36,8 @@
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
-    "typescript": "3.7.5"
+    "typescript": "3.7.5",
+    "madge": "4.0.2"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm build:bundle",
