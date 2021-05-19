@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Measurements, SpanContext } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
 
 import { Span } from '../span';
 import { Transaction } from '../transaction';
@@ -22,7 +22,7 @@ export class MetricsInstrumentation {
   private _lcpEntry: LargestContentfulPaint | undefined;
 
   public constructor() {
-    if (global && global.performance) {
+    if (!isNodeEnv() && global?.performance) {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
