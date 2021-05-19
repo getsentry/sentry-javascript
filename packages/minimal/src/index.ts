@@ -13,6 +13,8 @@ import {
   User,
 } from '@sentry/types';
 
+// Test change
+
 /**
  * This calls a function on the current hub.
  * @param method function to call on hub.
