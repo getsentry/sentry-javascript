@@ -13,7 +13,7 @@ import { truncate } from './string';
  * @param source An object that contains a method to be wrapped.
  * @param name The name of the method to be wrapped.
  * @param replacementFactory A higher-order function that takes the original version of the given method and returns a
- * wrapped verstion. Note: The function returned by `replacementFactory` needs to be a non-arrow function, in order to
+ * wrapped version. Note: The function returned by `replacementFactory` needs to be a non-arrow function, in order to
  * preserve the correct value of `this`, and the original method must be called using `origMethod.call(this, <other
  * args>)` or `origMethod.apply(this, [<other args>])` (rather than being called directly), again to preserve `this`.
  * @returns void
