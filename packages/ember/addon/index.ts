@@ -17,7 +17,9 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
   assert('Missing configuration.', config);
   assert('Missing configuration for Sentry.', config.sentry || _runtimeConfig);
 
-  const initConfig = Object.assign({}, config.sentry, _runtimeConfig || {});
+  // Permanently merge options into config, preferring runtime config
+  Object.assign(config.sentry, _runtimeConfig || {});
+  const initConfig = Object.assign({}, config.sentry);
 
   initConfig._metadata = initConfig._metadata || {};
   initConfig._metadata.sdk = {
