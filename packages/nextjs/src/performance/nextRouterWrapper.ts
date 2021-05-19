@@ -4,7 +4,7 @@ import { fill } from '@sentry/utils';
 import Router from 'next/router';
 
 let activeTransaction: Transaction | undefined = undefined;
-let prevTransactionId: string | undefined = undefined;
+// let prevTransactionId: string | undefined = undefined;
 let startTransaction: StartTransactionCb | undefined = undefined;
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
@@ -13,17 +13,16 @@ type StartTransactionCb = (context: TransactionContext) => Transaction | undefin
  * Wraps the Next.js Router's methods to add performance monitoring.
  * https://nextjs.org/docs/api-reference/next/router#router-object
  */
-export function wrapRouter(startTransactionCb: StartTransactionCb, _startTransactionOnLocationChange: boolean): void {
-  // TODO: if we aren't going to start transactions on location change, stop at this point.
-  // Created spans don't have any transaction to attach to.
+export function wrapRouter(startTransactionCb: StartTransactionCb, startTransactionOnLocationChange: boolean): void {
+  // Spans that aren't attached to any transaction are lost; so if transactions aren't
+  // created, no need to wrap the router.
+  if (!startTransactionOnLocationChange) return;
 
   startTransaction = startTransactionCb;
 
   // At this execution point, the router hasn't been created yet, so it cannot be wrapped.
   // However, we can use the following callback to wrap it once it's been created.
   Router.ready(() => {
-    // There should always be a router at this point; but checking again purely for types.
-    if (!Router.router) return;
     const routerPrototype = Object.getPrototypeOf(Router.router);
     fill(routerPrototype, 'push', pushWrapper); // create transactions
     fill(routerPrototype, 'replace', replaceWrapper); // create transactions
@@ -37,11 +36,7 @@ export function wrapRouter(startTransactionCb: StartTransactionCb, _startTransac
 type RouterPush = () => Promise<boolean>;
 type WrappedRouterPush = RouterPush;
 
-/**
- * Wraps the `push` of the Next.js client.
- * https://nextjs.org/docs/api-reference/next/router#routerpush
- */
-export function pushWrapper(originalPush: RouterPush): WrappedRouterPush {
+function pushWrapper(originalPush: RouterPush): WrappedRouterPush {
   // The additional arguments must have the same type as the original `push` function, see
   // https://github.com/vercel/next.js/blob/da97a18dafc7799e63aa7985adc95f213c2bf5f3/packages/next/next-server/lib/router/router.ts#L763
   // Not including it means leads to: `TypeError: Cannot read property 'auth' of undefined`, similar to
@@ -51,15 +46,15 @@ export function pushWrapper(originalPush: RouterPush): WrappedRouterPush {
       activeTransaction.finish();
     }
     if (!startTransaction) {
-      // This should never happen, it's only for type checking bla bla bla
+      // This should never happen, adding it for type checking purposes.
       return Promise.resolve(false);
     }
+
+    const toUrl = args[0]; // TODO: normalize the URL?
     activeTransaction = startTransaction({
-      name: args[0], // url for now, it should be prevTransactionId
+      name: toUrl,
       op: 'navigation',
     });
-    prevTransactionId = args[0]; // TODO: we might want to normalize the url in the future
-    console.log(prevTransactionId);
 
     return originalPush.call(this, ...args);
   };
