@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Primitive, Transaction, TransactionContext } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { fill, getGlobalObject } from '@sentry/utils';
 import { default as Router } from 'next/router';
+
+const global = getGlobalObject<Window>();
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 
@@ -30,13 +32,11 @@ export function nextRouterInstrumentation(
 ): void {
   startTransaction = startTransactionCb;
   Router.ready(() => {
-    const routerPrototype = Object.getPrototypeOf(Router.router);
-
     // We can only start the pageload transaction when we have access to the parameterized
     // route name. Setting the transaction name after the transaction is started could lead
     // to possible race conditions with the router, so this approach was taken.
     if (startTransactionOnPageLoad) {
-      prevTransactionId = removeQueryParams(Router.route);
+      prevTransactionId = Router.route !== null ? removeQueryParams(Router.route) : global.location.pathname;
       activeTransaction = startTransactionCb({
         name: prevTransactionId,
         op: 'pageload',
@@ -53,10 +53,8 @@ export function nextRouterInstrumentation(
       // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/router.ts#L92
       // `Router.changeState` handles the router state changes, so it may be enough to only wrap it
       // (instead of wrapping all of the Router's functions).
+      const routerPrototype = Object.getPrototypeOf(Router.router);
       fill(routerPrototype, 'changeState', changeStateWrapper);
-
-      // TODO: fill `beforePopState`
-      // fill(routerPrototype, 'beforePopState', beforePopStateWrapper);
     }
   });
 }
@@ -111,22 +109,6 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
   };
   return wrapper;
 }
-
-// Next.js only cares when `beforePopState` returns `false`, but it can actually return anything.
-// https://nextjs.org/docs/api-reference/next/router#routerbeforepopstate
-// type RouterBeforePopState = () => boolean | any;
-// type WrappedRouterBeforePopState = RouterBeforePopState;
-
-/* eslint-disable no-console */
-// function beforePopStateWrapper(originalBeforePopState: RouterBeforePopState): WrappedRouterBeforePopState {
-//   console.log('beforePopStateWrapper 1');
-//   const wrapper = function(this: any, ...args: any[]): any {
-//     console.log('beforePopStateWrapper 2', args);
-//     return originalBeforePopState.apply(this, args);
-//   };
-//   return wrapper;
-// }
-/* eslint-enable no-console */
 
 export function removeQueryParams(route: string): string {
   return route.replace(QUERY_PARAM_REGEX, '');

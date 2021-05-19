@@ -75,6 +75,8 @@ function replaceWrapper(originalReplace: RouterReplace): WrappedRouterReplace {
   return wrapper;
 }
 
+// Next.js only cares when `beforePopState` returns `false`, but it can actually return anything.
+// https://nextjs.org/docs/api-reference/next/router#routerbeforepopstate
 type RouterBeforePopState = () => Promise<boolean>;
 type WrappedRouterBeforePopState = RouterReplace;
 
