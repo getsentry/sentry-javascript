@@ -1,6 +1,6 @@
 import { Primitive, Transaction, TransactionContext } from '@sentry/types';
 import { fill } from '@sentry/utils';
-import Router from 'next/router';
+import { default as Router } from 'next/router';
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 
