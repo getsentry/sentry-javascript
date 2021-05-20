@@ -1,6 +1,6 @@
 import { deepReadDirSync } from '@sentry/node';
-import { Transaction } from '@sentry/types';
 import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { Event as SentryEvent, Transaction } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -30,6 +30,7 @@ interface Server {
 interface NextRequest extends http.IncomingMessage {
   cookies: Record<string, string>;
   url: string;
+  query: { [key: string]: string };
 }
 
 interface NextResponse extends http.ServerResponse {
@@ -200,6 +201,8 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = Sentry.getCurrentHub().getScope();
 
       if (currentScope) {
+        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
+
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
           // pull off query string, if any
@@ -222,6 +225,8 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             if (transaction) {
               transaction.setHttpStatus(res.statusCode);
 
+              // we'll collect this data in a more targeted way in the event processor we added above,
+              // `addRequestDataToEvent`
               delete transaction.metadata.request;
 
               // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the
@@ -279,4 +284,17 @@ function makeWrappedMethodForGettingParameterizedPath(
 function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
   // `static` is a deprecated but still-functional location for static resources
   return !url.startsWith('/_next/') && !url.startsWith('/static/') && !publicDirFiles.has(url);
+}
+
+function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
+  event.request = {
+    // TODO body/data
+    url: req.url.split('?')[0],
+    cookies: req.cookies,
+    headers: req.headers as { [key: string]: string },
+    method: req.method,
+    query_string: req.query,
+  };
+
+  return event;
 }
