@@ -19,7 +19,6 @@ jest.mock('next/router', () => {
   };
 });
 
-// [in, out]
 type Table<I = string, O = string> = Array<{ in: I; out: O }>;
 
 describe('client', () => {
