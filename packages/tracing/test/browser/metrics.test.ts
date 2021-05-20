@@ -1,5 +1,9 @@
 import { Span, Transaction } from '../../src';
-import { _startChild, addResourceSpans, ResourceEntry } from '../../src/browser/metrics';
+import { _startChild, addResourceSpans, MetricsInstrumentation, ResourceEntry } from '../../src/browser/metrics';
+import { addDOMPropertiesToGlobal } from '../testutils';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, no-var
+declare var global: any;
 
 describe('_startChild()', () => {
   it('creates a span with given properties', () => {
@@ -165,5 +169,31 @@ describe('addResourceSpans', () => {
         },
       }),
     );
+  });
+});
+
+describe('MetricsInstrumentation', () => {
+  it('does not initialize trackers when on node', () => {
+    const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
+      jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
+    );
+
+    new MetricsInstrumentation();
+
+    trackers.forEach(tracker => expect(tracker).not.toBeCalled());
+  });
+
+  it('initializes trackers when not on node and `global.performance` is available.', () => {
+    addDOMPropertiesToGlobal(['performance', 'document', 'addEventListener', 'window']);
+    const backup = global.process;
+    global.process = undefined;
+
+    const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
+      jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
+    );
+    new MetricsInstrumentation();
+    global.process = backup;
+
+    trackers.forEach(tracker => expect(tracker).toBeCalled());
   });
 });
