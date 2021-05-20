@@ -13,7 +13,7 @@ const DEFAULT_TAGS = Object.freeze({
 const QUERY_PARAM_REGEX = /\?(.*)/;
 
 let activeTransaction: Transaction | undefined = undefined;
-let prevTransactionId: string | undefined = undefined;
+let prevTransactionName: string | undefined = undefined;
 let startTransaction: StartTransactionCb | undefined = undefined;
 
 /**
@@ -35,9 +35,9 @@ export function nextRouterInstrumentation(
     // route name. Setting the transaction name after the transaction is started could lead
     // to possible race conditions with the router, so this approach was taken.
     if (startTransactionOnPageLoad) {
-      prevTransactionId = Router.route !== null ? removeQueryParams(Router.route) : global.location.pathname;
+      prevTransactionName = Router.route !== null ? removeQueryParams(Router.route) : global.location.pathname;
       activeTransaction = startTransactionCb({
-        name: prevTransactionId,
+        name: prevTransactionName,
         op: 'pageload',
         tags: DEFAULT_TAGS,
       });
@@ -95,12 +95,12 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
         method,
         ...options,
       };
-      if (prevTransactionId) {
-        tags.from = prevTransactionId;
+      if (prevTransactionName) {
+        tags.from = prevTransactionName;
       }
-      prevTransactionId = removeQueryParams(url);
+      prevTransactionName = removeQueryParams(url);
       activeTransaction = startTransaction({
-        name: prevTransactionId,
+        name: prevTransactionName,
         op: 'navigation',
         tags,
       });
