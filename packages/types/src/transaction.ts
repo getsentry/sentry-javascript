@@ -22,6 +22,11 @@ export interface TransactionContext extends SpanContext {
    * If this transaction has a parent, the parent's sampling decision
    */
   parentSampled?: boolean;
+
+  /**
+   * Metadata associated with the transaction, for internal SDK use.
+   */
+  metadata?: TransactionMetadata;
 }
 
 /**
@@ -57,6 +62,11 @@ export interface Transaction extends TransactionContext, Span {
    * @inheritDoc
    */
   data: { [key: string]: any };
+
+  /**
+   * Metadata about the transaction
+   */
+  metadata: TransactionMetadata;
 
   /**
    * Set the name of the transaction
@@ -112,4 +122,14 @@ export enum TransactionSamplingMethod {
   Sampler = 'client_sampler',
   Rate = 'client_rate',
   Inheritance = 'inheritance',
+}
+
+export interface TransactionMetadata {
+  transactionSampling?: { rate?: number; method?: string };
+
+  /** The two halves (sentry and third-party) of a transaction's tracestate header, used for dynamic sampling */
+  tracestate?: {
+    sentry?: string;
+    thirdparty?: string;
+  };
 }
