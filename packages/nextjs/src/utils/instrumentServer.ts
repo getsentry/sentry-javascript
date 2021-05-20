@@ -2,6 +2,7 @@ import { deepReadDirSync } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
+import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
 import * as url from 'url';
@@ -173,35 +174,43 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
     res: NextResponse,
     parsedUrl?: url.UrlWithParsedQuery,
   ): Promise<void> {
-    // We only want to record page and API requests
-    if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
-      const transaction = Sentry.startTransaction({
-        name: `${(req.method || 'GET').toUpperCase()} ${req.url}`,
-        op: 'http.server',
-      });
-      Sentry.getCurrentHub()
-        .getScope()
-        ?.setSpan(transaction);
+    // wrap everything in a domain in order to prevent scope bleed between requests
+    const local = domain.create();
+    local.add(req);
+    local.add(res);
+    // TODO could this replace wrapping the error logger?
+    // local.on('error', Sentry.captureException);
 
-      res.__sentry__ = {};
-      res.__sentry__.transaction = transaction;
-    }
-
-    res.once('finish', () => {
-      const transaction = res.__sentry__?.transaction;
-      if (transaction) {
-        // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
-        // closes
-        setImmediate(() => {
-          // TODO
-          // addExpressReqToTransaction(transaction, req);
-          transaction.setHttpStatus(res.statusCode);
-          transaction.finish();
+    local.run(() => {
+      // We only want to record page and API requests
+      if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
+        const transaction = Sentry.startTransaction({
+          name: `${(req.method || 'GET').toUpperCase()} ${req.url}`,
+          op: 'http.server',
         });
+        Sentry.getCurrentHub()
+          .getScope()
+          ?.setSpan(transaction);
+
+        res.__sentry__ = { transaction };
+
+        res.once('finish', () => {
+          const transaction = res.__sentry__?.transaction;
+          if (transaction) {
+            // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
+            // closes
+            setImmediate(() => {
+              // TODO
+              // addExpressReqToTransaction(transaction, req);
+              transaction.setHttpStatus(res.statusCode);
+              transaction.finish();
+            });
+          }
+        });
+
+        return origReqHandler.call(this, req, res, parsedUrl);
       }
     });
-
-    return origReqHandler.call(this, req, res, parsedUrl);
   };
 
   return wrappedReqHandler;
