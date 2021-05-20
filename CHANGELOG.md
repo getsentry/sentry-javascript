@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.4.1
+
+- [ember] ref: Fix merging of runtime config with environment config. (#3563)
+- [angular] ref: Allow angular v12 as a peer dependency. (#3569)
+- [tracing] fix: Avoid browser tracing initialization on node environment (#3548)
+- [react] ref: Make RouteProps typing more generic (#3570)
+- [tracing] fix: Correctly handle pg.Cursor in pg query method (#3567)
+- [types] fix: Add attachment to SentryRequestType (#3561)
+- [nextjs] ref: Disable node session for next.js (#3558)
+- [eslint] feat: Add new eslint rules (#3545)
+
 ## 6.4.0
 
 - [core] feat: initalScope in SDK Options (#3544)
