@@ -132,4 +132,10 @@ export interface TransactionMetadata {
     sentry?: string;
     thirdparty?: string;
   };
+
+  /** For transactions tracing server-side request handling, the request being tracked. */
+  request?: {
+    [key: string]: any;
+    url: string;
+  };
 }
