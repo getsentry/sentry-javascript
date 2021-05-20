@@ -46,16 +46,16 @@ export function nextRouterInstrumentation(
 
     // Spans that aren't attached to any transaction are lost; so if transactions aren't
     // created (besides potentially the onpageload transaction), no need to wrap the router.
-    if (startTransactionOnLocationChange) {
-      // `withRouter` uses `useRouter` underneath:
-      // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/with-router.tsx#L21
-      // Router events also use the router:
-      // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/router.ts#L92
-      // `Router.changeState` handles the router state changes, so it may be enough to only wrap it
-      // (instead of wrapping all of the Router's functions).
-      const routerPrototype = Object.getPrototypeOf(Router.router);
-      fill(routerPrototype, 'changeState', changeStateWrapper);
-    }
+    if (!startTransactionOnLocationChange) return;
+
+    // `withRouter` uses `useRouter` underneath:
+    // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/with-router.tsx#L21
+    // Router events also use the router:
+    // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/router.ts#L92
+    // `Router.changeState` handles the router state changes, so it may be enough to only wrap it
+    // (instead of wrapping all of the Router's functions).
+    const routerPrototype = Object.getPrototypeOf(Router.router);
+    fill(routerPrototype, 'changeState', changeStateWrapper);
   });
 }
 
@@ -94,6 +94,7 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
       const tags: Record<string, Primitive> = {
         ...DEFAULT_TAGS,
         method,
+        ...options,
       };
       if (prevTransactionId) {
         tags.from = prevTransactionId;
