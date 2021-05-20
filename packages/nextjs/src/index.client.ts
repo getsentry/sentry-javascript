@@ -4,6 +4,7 @@ import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 
 export * from '@sentry/react';
+export { nextRouterInstrumentation } from './performance/client';
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
