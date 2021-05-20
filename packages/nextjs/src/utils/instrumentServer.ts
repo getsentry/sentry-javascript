@@ -1,6 +1,6 @@
 import { deepReadDirSync } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { Event as SentryEvent, Transaction } from '@sentry/types';
+import { Event as SentryEvent } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -33,13 +33,9 @@ interface NextRequest extends http.IncomingMessage {
   query: { [key: string]: string };
   headers: { [key: string]: string };
 }
+type NextResponse = http.ServerResponse;
 
-interface NextResponse extends http.ServerResponse {
-  __sentry__: {
-    transaction?: Transaction;
-  };
-}
-
+// the methods we'll wrap
 type HandlerGetter = () => Promise<ReqHandler>;
 type ReqHandler = (req: NextRequest, res: NextResponse, parsedUrl?: url.UrlWithParsedQuery) => Promise<void>;
 type ErrorLogger = (err: Error) => void;
@@ -47,8 +43,8 @@ type ApiPageEnsurer = (path: string) => Promise<void>;
 type PageComponentFinder = (
   pathname: string,
   query: querystring.ParsedUrlQuery,
-  params: { [key: string]: any } | null,
-) => Promise<{ [key: string]: any } | null>;
+  params: { [key: string]: unknown } | null,
+) => Promise<{ [key: string]: unknown } | null>;
 
 // these aliases are purely to make the function signatures more easily understandable
 type WrappedHandlerGetter = HandlerGetter;
@@ -57,19 +53,14 @@ type WrappedReqHandler = ReqHandler;
 type WrappedApiPageEnsurer = ApiPageEnsurer;
 type WrappedPageComponentFinder = PageComponentFinder;
 
-// TODO is it necessary for this to be an object?
-const closure: PlainObject = {};
-
+let liveServer: Server;
 let sdkSetupComplete = false;
 
 /**
  * Do the monkeypatching and wrapping necessary to catch errors in page routes and record transactions for both page and
- * API routes. Along the way, as a bonus, grab (and return) the path of the project root, for use in `RewriteFrames`.
- *
- * @returns The absolute path of the project root directory
- *
+ * API routes.
  */
-export function instrumentServer(): string {
+export function instrumentServer(): void {
   // The full implementation here involves a lot of indirection and multiple layers of callbacks and wrapping, and is
   // therefore potentially a little hard to follow. Here's the overall idea:
 
@@ -78,26 +69,34 @@ export function instrumentServer(): string {
   // `createNextServer()`, which returns a `NextServer` instance.
 
   // At server startup:
-  //  `next.config.js` imports SDK -> SDK index.ts -> `instrumentServer()` (the function we're in right now) ->
-  //  `createNextServer()` -> `NextServer` instance -> `NextServer` prototype -> wrap
-  //  `NextServer.getServerRequestHandler()`, purely to get us to the next step
+  //    `next.config.js` imports SDK ->
+  //    SDK's `index.ts` runs ->
+  //    `instrumentServer()` (the function we're in right now) ->
+  //    `createNextServer()` ->
+  //    `NextServer` instance ->
+  //    `NextServer` prototype ->
+  //    Wrap `NextServer.getServerRequestHandler()`, purely to get us to the next step
 
   // At time of first request:
-  //  Wrapped `getServerRequestHandler` runs for the first time -> live `NextServer` instance (via `this`) -> live
-  //  `Server` instance -> `Server` prototype -> wrap `Server.logError` and `Server.handleRequest` methods, then pass
-  //  wrapped version of `handleRequest` to caller of `getServerRequestHandler`
+  //    Wrapped `getServerRequestHandler` runs for the first time ->
+  //    Live `NextServer` instance(via`this`) ->
+  //    Live `Server` instance (via `NextServer.server`) ->
+  //    `Server` prototype ->
+  //    Wrap `Server.logError`, `Server.handleRequest`, `Server.ensureApiPage`, and `Server.findPageComponents` methods,
+  //    then fulfill original purpose of function by passing wrapped version of `handleRequest` to caller
 
   // Whenever caller of `NextServer.getServerRequestHandler` calls the wrapped `Server.handleRequest`:
-  //   Trace request
+  //    Trace request
 
   // Whenever something calls the wrapped `Server.logError`:
-  //   Capture error
+  //    Capture error
+
+  // Whenever an API request is handled and the wrapped `Server.ensureApiPage` is called, or whenever a page request is
+  // handled and the wrapped `Server.findPageComponents` is called:
+  //    Replace URL in transaction name with parameterized version
 
   const nextServerPrototype = Object.getPrototypeOf(createNextServer({}));
   fill(nextServerPrototype, 'getServerRequestHandler', makeWrappedHandlerGetter);
-
-  // TODO replace with an env var, since at this point we don't have a value yet
-  return closure.projectRootDir;
 }
 
 /**
@@ -122,17 +121,14 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
         logger.error(`[Sentry] Could not initialize SDK. Received error:\n${err}`);
       }
 
-      // TODO: Replace projectRootDir with env variables
-      closure.projectRootDir = this.server.dir;
-      closure.server = this.server;
-      closure.publicDir = this.server.publicDir;
+      // stash this in the closure so that `makeWrappedReqHandler` can use it
+      liveServer = this.server;
+      const serverPrototype = Object.getPrototypeOf(liveServer);
 
-      const serverPrototype = Object.getPrototypeOf(this.server);
-
-      // wrap for error capturing (`logError` gets called by `next` for all server-side errors)
+      // Wrap for error capturing (`logError` gets called by `next` for all server-side errors)
       fill(serverPrototype, 'logError', makeWrappedErrorLogger);
 
-      // wrap for request transaction creation (`handleRequest` is called for all incoming requests, and dispatches them
+      // Wrap for request transaction creation (`handleRequest` is called for all incoming requests, and dispatches them
       // to the appropriate handlers)
       fill(serverPrototype, 'handleRequest', makeWrappedReqHandler);
 
@@ -172,8 +168,6 @@ function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogge
  * @returns A wrapped version of that handler
  */
 function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
-  const liveServer = closure.server as Server;
-
   // inspired by next's public file routing; see
   // https://github.com/vercel/next.js/blob/4443d6f3d36b107e833376c2720c1e206eee720d/packages/next/next-server/server/next-server.ts#L1166
   const publicDirFiles = new Set(
@@ -286,6 +280,13 @@ function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
   return !url.startsWith('/_next/') && !url.startsWith('/static/') && !publicDirFiles.has(url);
 }
 
+/**
+ * Harvest specific data from the request, and add it to the event.
+ *
+ * @param event The event to which to add request data
+ * @param req The request whose data is being added
+ * @returns The modified event
+ */
 function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
   event.request = {
     ...event.request,
