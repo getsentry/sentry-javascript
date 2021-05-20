@@ -1,18 +1,20 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Event, Measurements, Transaction as TransactionInterface, TransactionContext } from '@sentry/types';
+import {
+  Event,
+  Measurements,
+  Transaction as TransactionInterface,
+  TransactionContext,
+  TransactionMetadata,
+} from '@sentry/types';
 import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
-
-interface TransactionMetadata {
-  transactionSampling?: { [key: string]: string | number };
-}
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
   public name: string;
 
-  private _metadata: TransactionMetadata = {};
+  public metadata: TransactionMetadata;
 
   private _measurements: Measurements = {};
 
@@ -39,6 +41,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this.name = transactionContext.name || '';
 
+    this.metadata = transactionContext.metadata || {};
     this._trimEnd = transactionContext.trimEnd;
 
     // this is because transactions are also spans, and spans have a transaction pointer
@@ -76,7 +79,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @hidden
    */
   public setMetadata(newMetadata: TransactionMetadata): void {
-    this._metadata = { ...this._metadata, ...newMetadata };
+    this.metadata = { ...this.metadata, ...newMetadata };
   }
 
   /**
@@ -123,7 +126,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
-      debug_meta: this._metadata,
+      debug_meta: this.metadata,
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;
