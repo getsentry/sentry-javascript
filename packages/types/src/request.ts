@@ -13,7 +13,7 @@ export interface Request {
   url?: string;
   method?: string;
   data?: any;
-  query_string?: string;
+  query_string?: string | { [key: string]: string };
   cookies?: { [key: string]: string };
   env?: { [key: string]: string };
   headers?: { [key: string]: string };
