@@ -62,7 +62,7 @@ export interface Options {
    * that accepts Sentry envelopes for forwarding. This can be used to force data
    * through a custom server independent of the type of data.
    */
-  envelopeTunnel?: string;
+  tunnel?: string;
 
   /**
    * The release identifier used when uploading respective source maps. Specify

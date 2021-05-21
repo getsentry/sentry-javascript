@@ -61,7 +61,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     const transportOptions = {
       ...this._options.transportOptions,
       dsn: this._options.dsn,
-      envelopeTunnel: this._options.envelopeTunnel,
+      tunnel: this._options.tunnel,
       _metadata: this._options._metadata,
     };
 

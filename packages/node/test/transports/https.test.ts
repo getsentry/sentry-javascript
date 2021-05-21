@@ -10,7 +10,7 @@ const mockSetEncoding = jest.fn();
 const dsn = 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
 const storePath = '/mysubpath/api/50622/store/';
 const envelopePath = '/mysubpath/api/50622/envelope/';
-const envelopeTunnel = 'https://hello.com/world';
+const tunnel = 'https://hello.com/world';
 const sessionsPayload: SessionAggregates = {
   attrs: { environment: 'test', release: '1.0' },
   aggregates: [{ started: '2021-03-17T16:00:00.000Z', exited: 1 }],
@@ -145,8 +145,8 @@ describe('HTTPSTransport', () => {
     }
   });
 
-  test('sends a request to envelopeTunnel if configured', async () => {
-    const transport = createTransport({ dsn, envelopeTunnel });
+  test('sends a request to tunnel if configured', async () => {
+    const transport = createTransport({ dsn, tunnel });
 
     await transport.sendEvent({
       message: 'test',

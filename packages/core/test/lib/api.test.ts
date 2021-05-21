@@ -5,7 +5,7 @@ import { API } from '../../src/api';
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const legacyDsn = 'https://abc:123@sentry.io:1234/subpath/123';
-const envelopeTunnel = 'https://hello.com/world';
+const tunnel = 'https://hello.com/world';
 
 describe('API', () => {
   test('getStoreEndpoint', () => {
@@ -20,7 +20,7 @@ describe('API', () => {
     expect(new API(dsnPublic).getEnvelopeEndpointWithUrlEncodedAuth()).toEqual(
       'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
     );
-    expect(new API(dsnPublic, {}, envelopeTunnel).getEnvelopeEndpointWithUrlEncodedAuth()).toEqual(envelopeTunnel);
+    expect(new API(dsnPublic, {}, tunnel).getEnvelopeEndpointWithUrlEncodedAuth()).toEqual(tunnel);
   });
 
   test('getRequestHeaders', () => {

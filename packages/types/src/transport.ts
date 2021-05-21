@@ -46,7 +46,7 @@ export interface TransportOptions {
   /** Fetch API init parameters */
   fetchParameters?: { [key: string]: string };
   /** The envelope tunnel to use. */
-  envelopeTunnel?: string;
+  tunnel?: string;
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.

@@ -116,7 +116,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
       ...(this._options.caCerts && { caCerts: this._options.caCerts }),
       dsn: this._options.dsn,
-      envelopeTunnel: this._options.envelopeTunnel,
+      tunnel: this._options.tunnel,
       _metadata: this._options._metadata,
     };
 

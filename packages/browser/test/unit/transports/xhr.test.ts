@@ -6,7 +6,7 @@ import { Event, Status, Transports } from '../../../src';
 const testDsn = 'https://123@sentry.io/42';
 const storeUrl = 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7';
 const envelopeUrl = 'https://sentry.io/api/42/envelope/?sentry_key=123&sentry_version=7';
-const envelopeTunnel = 'https://hello.com/world';
+const tunnel = 'https://hello.com/world';
 const eventPayload: Event = {
   event_id: '1337',
 };
@@ -47,13 +47,13 @@ describe('XHRTransport', () => {
       expect(JSON.parse(request.requestBody)).deep.equal(eventPayload);
     });
 
-    it('sends a request to envelopeTunnel if configured', async () => {
-      transport = new Transports.XHRTransport({ dsn: testDsn, envelopeTunnel });
-      server.respondWith('POST', envelopeTunnel, [200, {}, '']);
+    it('sends a request to tunnel if configured', async () => {
+      transport = new Transports.XHRTransport({ dsn: testDsn, tunnel });
+      server.respondWith('POST', tunnel, [200, {}, '']);
 
       await transport.sendEvent(eventPayload);
 
-      expect(server.requests[0].url).equal(envelopeTunnel);
+      expect(server.requests[0].url).equal(tunnel);
     });
 
     it('rejects with non-200 status code', async () => {

@@ -13,7 +13,7 @@ const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.s
 });
 
 const ingestDsn = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
-const envelopeTunnel = 'https://hello.com/world';
+const tunnel = 'https://hello.com/world';
 
 function parseEnvelopeRequest(request: SentryRequest): any {
   const [envelopeHeaderString, itemHeaderString, eventString] = request.body.split('\n');
@@ -139,16 +139,16 @@ describe('eventToSentryRequest', () => {
     );
   });
 
-  it('uses envelopeTunnel as the url if it is configured', () => {
-    api = new API(ingestDsn, {}, envelopeTunnel);
+  it('uses tunnel as the url if it is configured', () => {
+    api = new API(ingestDsn, {}, tunnel);
 
     const result = eventToSentryRequest(event, api);
 
-    expect(result.url).toEqual(envelopeTunnel);
+    expect(result.url).toEqual(tunnel);
   });
 
-  it('adds dsn to envelope header if envelopeTunnel is configured', () => {
-    api = new API(ingestDsn, {}, envelopeTunnel);
+  it('adds dsn to envelope header if tunnel is configured', () => {
+    api = new API(ingestDsn, {}, tunnel);
 
     const result = eventToSentryRequest(event, api);
     const envelope = parseEnvelopeRequest(result);
