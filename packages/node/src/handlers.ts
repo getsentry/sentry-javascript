@@ -65,6 +65,7 @@ export function tracingHandler(): (
         op: 'http.server',
         ...traceparentData,
       },
+      // extra context passed to the tracesSampler
       { request: extractRequestData(req) },
     );
 

@@ -1,7 +1,7 @@
 import { deepReadDirSync } from '@sentry/node';
-import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { Event as SentryEvent } from '@sentry/types';
-import { fill, logger } from '@sentry/utils';
+import { fill, isString, logger } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
@@ -200,6 +200,13 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
+          // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
+          let traceparentData;
+          if (req.headers && isString(req.headers['sentry-trace'])) {
+            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
+            logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+          }
+
           // pull off query string, if any
           const reqPath = req.url.split('?')[0];
 
@@ -207,11 +214,16 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
           const namePrefix = req.url.startsWith('/api') ? `${(req.method || 'GET').toUpperCase()} ` : '';
 
-          const transaction = Sentry.startTransaction({
-            name: `${namePrefix}${reqPath}`,
-            op: 'http.server',
-            metadata: { requestPath: req.url.split('?')[0] },
-          });
+          const transaction = Sentry.startTransaction(
+            {
+              name: `${namePrefix}${reqPath}`,
+              op: 'http.server',
+              metadata: { requestPath: req.url.split('?')[0] },
+              ...traceparentData,
+            },
+            // extra context passed to the `tracesSampler`
+            { request: req },
+          );
 
           currentScope.setSpan(transaction);
 
