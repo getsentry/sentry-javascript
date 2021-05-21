@@ -1,7 +1,7 @@
 import { RewriteFrames } from '@sentry/integrations';
 import { Integration } from '@sentry/types';
 
-import { addIntegration, UserFunctionIntegrations } from '../src/utils/userIntegrations';
+import { addIntegration, UserFunctionIntegrations } from '../../src/utils/userIntegrations';
 
 const testIntegration = new RewriteFrames();
 

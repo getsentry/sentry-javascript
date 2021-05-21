@@ -1,7 +1,7 @@
 import { Integration } from '@sentry/types';
 
 export type UserFunctionIntegrations = (integrations: Integration[]) => Integration[];
-type UserIntegrations = Integration[] | UserFunctionIntegrations;
+export type UserIntegrations = Integration[] | UserFunctionIntegrations;
 
 /**
  * Retrieves the patched integrations with the provided integration.
