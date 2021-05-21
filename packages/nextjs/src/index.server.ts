@@ -1,9 +1,10 @@
+import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, init as nodeInit } from '@sentry/node';
 
 import { instrumentServer } from './utils/instrumentServer';
 import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { defaultRewriteFrames, getFinalServerIntegrations } from './utils/serverIntegrations';
+import { addIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/node';
 
@@ -16,12 +17,7 @@ export function init(options: NextjsOptions): void {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
   metadataBuilder.addSdkMetadata();
   options.environment = options.environment || process.env.NODE_ENV;
-  if (options.integrations) {
-    options.integrations = getFinalServerIntegrations(options.integrations);
-  } else {
-    options.integrations = [defaultRewriteFrames];
-  }
-
+  addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
   options.autoSessionTracking = false;
 
@@ -29,6 +25,23 @@ export function init(options: NextjsOptions): void {
   configureScope(scope => {
     scope.setTag('runtime', 'node');
   });
+}
+
+const SOURCEMAP_FILENAME_REGEX = /^.*\/\.next\//;
+
+const defaultRewriteFramesIntegration = new RewriteFrames({
+  iteratee: frame => {
+    frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next/');
+    return frame;
+  },
+});
+
+function addServerIntegrations(options: NextjsOptions): void {
+  if (options.integrations) {
+    options.integrations = addIntegration(defaultRewriteFramesIntegration, options.integrations);
+  } else {
+    options.integrations = [defaultRewriteFramesIntegration];
+  }
 }
 
 export { withSentryConfig } from './utils/config';
