@@ -31,15 +31,9 @@ const defaultBrowserTracingIntegration = new BrowserTracing({
 
 function createClientIntegrations(integrations?: UserIntegrations): UserIntegrations {
   if (integrations) {
-    const newIntegrations = addIntegration(defaultBrowserTracingIntegration, integrations);
-    if (Array.isArray(newIntegrations)) {
-      newIntegrations.forEach(i => {
-        if (i.name === 'BrowserTracing') {
-          (i as InstanceType<typeof BrowserTracing>).options.routingInstrumentation = nextRouterInstrumentation;
-        }
-      });
-    }
-    return newIntegrations;
+    return addIntegration(defaultBrowserTracingIntegration, integrations, {
+      BrowserTracing: { keyPath: 'options.routingInstrumentation', value: nextRouterInstrumentation },
+    });
   } else {
     return [defaultBrowserTracingIntegration];
   }

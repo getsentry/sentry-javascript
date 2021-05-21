@@ -77,7 +77,7 @@ describe('Client init()', () => {
       expect(integrations).toEqual([expect.any(Integrations.Breadcrumbs), expect.any(BrowserTracing)]);
     });
 
-    it('uses custom BrowserTracing but uses nextRouterInstrumentation', () => {
+    it('uses custom BrowserTracing with array option with nextRouterInstrumentation', () => {
       init({
         integrations: [new BrowserTracing({ idleTimeout: 5000, startTransactionOnLocationChange: false })],
       });
@@ -85,6 +85,23 @@ describe('Client init()', () => {
       const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
       expect(reactInitOptions.integrations).toHaveLength(1);
       const integrations = reactInitOptions.integrations as Integration[];
+      expect((integrations[0] as InstanceType<typeof BrowserTracing>).options).toEqual(
+        expect.objectContaining({
+          idleTimeout: 5000,
+          startTransactionOnLocationChange: false,
+          routingInstrumentation: nextRouterInstrumentation,
+        }),
+      );
+    });
+
+    it('uses custom BrowserTracing with function option with nextRouterInstrumentation', () => {
+      init({
+        integrations: () => [new BrowserTracing({ idleTimeout: 5000, startTransactionOnLocationChange: false })],
+      });
+
+      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
+      const integrationFunc = reactInitOptions.integrations as () => Integration[];
+      const integrations = integrationFunc();
       expect((integrations[0] as InstanceType<typeof BrowserTracing>).options).toEqual(
         expect.objectContaining({
           idleTimeout: 5000,
