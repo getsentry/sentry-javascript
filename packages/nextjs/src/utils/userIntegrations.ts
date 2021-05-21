@@ -1,7 +1,7 @@
 import { Integration } from '@sentry/types';
 
+export type UserFunctionIntegrations = (integrations: Integration[]) => Integration[];
 type UserIntegrations = Integration[] | UserFunctionIntegrations;
-type UserFunctionIntegrations = (integrations: Integration[]) => Integration[];
 
 /**
  * Retrieves the patched integrations with the provided integration.
@@ -26,17 +26,15 @@ function addIntegrationToArray(integration: Integration, userIntegrations: Integ
   if (userIntegrations.map(int => int.name).includes(integration.name)) {
     return userIntegrations;
   }
-
-  userIntegrations.push(integration);
-  return userIntegrations;
+  return [...userIntegrations, integration];
 }
 
 function addIntegrationToFunction(
   integration: Integration,
-  userIntegrations: UserFunctionIntegrations,
+  userIntegrationsFunc: UserFunctionIntegrations,
 ): UserFunctionIntegrations {
   const wrapper: UserFunctionIntegrations = defaultIntegrations => {
-    const userFinalIntegrations: Integration[] = userIntegrations(defaultIntegrations);
+    const userFinalIntegrations = userIntegrationsFunc(defaultIntegrations);
     return addIntegrationToArray(integration, userFinalIntegrations);
   };
   return wrapper;
