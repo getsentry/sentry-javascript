@@ -288,6 +288,7 @@ function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
 
 function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
   event.request = {
+    ...event.request,
     // TODO body/data
     url: req.url.split('?')[0],
     cookies: req.cookies,
