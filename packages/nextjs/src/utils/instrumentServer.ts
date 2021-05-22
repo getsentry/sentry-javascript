@@ -31,6 +31,7 @@ interface NextRequest extends http.IncomingMessage {
   cookies: Record<string, string>;
   url: string;
   query: { [key: string]: string };
+  headers: { [key: string]: string };
 }
 
 interface NextResponse extends http.ServerResponse {
@@ -290,7 +291,7 @@ function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEven
     // TODO body/data
     url: req.url.split('?')[0],
     cookies: req.cookies,
-    headers: req.headers as { [key: string]: string },
+    headers: req.headers,
     method: req.method,
     query_string: req.query,
   };
