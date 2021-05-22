@@ -58,7 +58,7 @@
     // come out in the wrong order. Because of that we don't need async=1 as GA does.
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-    var _currentScriptTag = _document.getElementsByTagName(_script)[0];
+    var _currentScriptTag = _document.scripts[0];
     var _newScriptTag = _document.createElement(_script);
     _newScriptTag.src = _sdkBundleUrl;
     _newScriptTag.setAttribute('crossorigin', 'anonymous');
