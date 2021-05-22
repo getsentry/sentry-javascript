@@ -215,7 +215,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           const transaction = Sentry.startTransaction({
             name: `${namePrefix}${reqPath}`,
             op: 'http.server',
-            metadata: { request: req },
+            metadata: { requestPath: req.url.split('?')[0] },
           });
 
           currentScope.setSpan(transaction);
@@ -227,7 +227,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
 
               // we'll collect this data in a more targeted way in the event processor we added above,
               // `addRequestDataToEvent`
-              delete transaction.metadata.request;
+              delete transaction.metadata.requestPath;
 
               // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the
               // transaction closes
@@ -261,9 +261,8 @@ function makeWrappedMethodForGettingParameterizedPath(
     const transaction = getActiveTransaction();
 
     // replace specific URL with parameterized version
-    if (transaction && transaction.metadata.request) {
-      // strip query string, if any
-      const origPath = transaction.metadata.request.url.split('?')[0];
+    if (transaction && transaction.metadata.requestPath) {
+      const origPath = transaction.metadata.requestPath;
       transaction.name = transaction.name.replace(origPath, parameterizedPath);
     }
 

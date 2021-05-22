@@ -133,9 +133,6 @@ export interface TransactionMetadata {
     thirdparty?: string;
   };
 
-  /** For transactions tracing server-side request handling, the request being tracked. */
-  request?: {
-    [key: string]: any;
-    url: string;
-  };
+  /** For transactions tracing server-side request handling, the path of the request being tracked. */
+  requestPath?: string;
 }
