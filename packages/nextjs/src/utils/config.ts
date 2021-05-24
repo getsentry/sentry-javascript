@@ -2,6 +2,7 @@ import { getSentryRelease } from '@sentry/node';
 import { logger } from '@sentry/utils';
 import defaultWebpackPlugin, { SentryCliPluginOptions } from '@sentry/webpack-plugin';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
+import { NextConfig } from 'next/dist/next-server/server/config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -102,15 +103,13 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
   return newEntryProperty;
 };
 
-type NextConfigExports = {
-  experimental?: { plugins: boolean };
-  plugins?: string[];
+type NextConfigExports = Partial<NextConfig> & {
   productionBrowserSourceMaps?: boolean;
   webpack?: WebpackExport;
 };
 
 export function withSentryConfig(
-  providedExports: NextConfigExports = {},
+  providedExports: Partial<NextConfig> = {},
   providedWebpackPluginOptions: Partial<SentryCliPluginOptions> = {},
 ): NextConfigExports {
   const defaultWebpackPluginOptions = {
