@@ -1,10 +1,11 @@
 import { deepReadDirSync } from '@sentry/node';
-import { hasTracingEnabled } from '@sentry/tracing';
-import { Transaction } from '@sentry/types';
+import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { Event as SentryEvent, Transaction } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
+import * as querystring from 'querystring';
 import * as url from 'url';
 
 import * as Sentry from '../index.server';
@@ -29,6 +30,8 @@ interface Server {
 interface NextRequest extends http.IncomingMessage {
   cookies: Record<string, string>;
   url: string;
+  query: { [key: string]: string };
+  headers: { [key: string]: string };
 }
 
 interface NextResponse extends http.ServerResponse {
@@ -40,11 +43,19 @@ interface NextResponse extends http.ServerResponse {
 type HandlerGetter = () => Promise<ReqHandler>;
 type ReqHandler = (req: NextRequest, res: NextResponse, parsedUrl?: url.UrlWithParsedQuery) => Promise<void>;
 type ErrorLogger = (err: Error) => void;
+type ApiPageEnsurer = (path: string) => Promise<void>;
+type PageComponentFinder = (
+  pathname: string,
+  query: querystring.ParsedUrlQuery,
+  params: { [key: string]: any } | null,
+) => Promise<{ [key: string]: any } | null>;
 
 // these aliases are purely to make the function signatures more easily understandable
 type WrappedHandlerGetter = HandlerGetter;
 type WrappedErrorLogger = ErrorLogger;
 type WrappedReqHandler = ReqHandler;
+type WrappedApiPageEnsurer = ApiPageEnsurer;
+type WrappedPageComponentFinder = PageComponentFinder;
 
 // TODO is it necessary for this to be an object?
 const closure: PlainObject = {};
@@ -125,6 +136,12 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
       // to the appropriate handlers)
       fill(serverPrototype, 'handleRequest', makeWrappedReqHandler);
 
+      // Wrap as a way to grab the parameterized request URL to use as the transaction name for API requests and page
+      // requests, respectively. These methods are chosen because they're the first spot in the request-handling process
+      // where the parameterized path is provided as an argument, so it's easy to grab.
+      fill(serverPrototype, 'ensureApiPage', makeWrappedMethodForGettingParameterizedPath);
+      fill(serverPrototype, 'findPageComponents', makeWrappedMethodForGettingParameterizedPath);
+
       sdkSetupComplete = true;
     }
 
@@ -182,38 +199,78 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
     // local.on('error', Sentry.captureException);
 
     local.run(() => {
-      // We only want to record page and API requests
-      if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
-        const transaction = Sentry.startTransaction({
-          name: `${(req.method || 'GET').toUpperCase()} ${req.url}`,
-          op: 'http.server',
-        });
-        Sentry.getCurrentHub()
-          .getScope()
-          ?.setSpan(transaction);
+      const currentScope = Sentry.getCurrentHub().getScope();
 
-        res.__sentry__ = { transaction };
+      if (currentScope) {
+        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
 
-        res.once('finish', () => {
-          const transaction = res.__sentry__?.transaction;
-          if (transaction) {
-            // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
-            // closes
-            setImmediate(() => {
-              // TODO
-              // addExpressReqToTransaction(transaction, req);
+        // We only want to record page and API requests
+        if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
+          // pull off query string, if any
+          const reqPath = req.url.split('?')[0];
+
+          // requests for pages will only ever be GET requests, so don't bother to include the method in the transaction
+          // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
+          const namePrefix = req.url.startsWith('/api') ? `${(req.method || 'GET').toUpperCase()} ` : '';
+
+          const transaction = Sentry.startTransaction({
+            name: `${namePrefix}${reqPath}`,
+            op: 'http.server',
+            metadata: { requestPath: req.url.split('?')[0] },
+          });
+
+          currentScope.setSpan(transaction);
+
+          res.once('finish', () => {
+            const transaction = getActiveTransaction();
+            if (transaction) {
               transaction.setHttpStatus(res.statusCode);
-              transaction.finish();
-            });
-          }
-        });
 
-        return origReqHandler.call(this, req, res, parsedUrl);
+              // we'll collect this data in a more targeted way in the event processor we added above,
+              // `addRequestDataToEvent`
+              delete transaction.metadata.requestPath;
+
+              // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the
+              // transaction closes
+              setImmediate(() => {
+                transaction.finish();
+              });
+            }
+          });
+        }
       }
+
+      return origReqHandler.call(this, req, res, parsedUrl);
     });
   };
 
   return wrappedReqHandler;
+}
+
+/**
+ * Wrap the given method in order to use the parameterized path passed to it in the transaction name.
+ *
+ * @param origMethod Either `ensureApiPage` (called for every API request) or `findPageComponents` (called for every
+ * page request), both from the `Server` class
+ * @returns A wrapped version of the given method
+ */
+function makeWrappedMethodForGettingParameterizedPath(
+  origMethod: ApiPageEnsurer | PageComponentFinder,
+): WrappedApiPageEnsurer | WrappedPageComponentFinder {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wrappedMethod = async function(this: Server, parameterizedPath: string, ...args: any[]): Promise<any> {
+    const transaction = getActiveTransaction();
+
+    // replace specific URL with parameterized version
+    if (transaction && transaction.metadata.requestPath) {
+      const origPath = transaction.metadata.requestPath;
+      transaction.name = transaction.name.replace(origPath, parameterizedPath);
+    }
+
+    return origMethod.call(this, parameterizedPath, ...args);
+  };
+
+  return wrappedMethod;
 }
 
 /**
@@ -227,4 +284,18 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
 function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
   // `static` is a deprecated but still-functional location for static resources
   return !url.startsWith('/_next/') && !url.startsWith('/static/') && !publicDirFiles.has(url);
+}
+
+function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
+  event.request = {
+    ...event.request,
+    // TODO body/data
+    url: req.url.split('?')[0],
+    cookies: req.cookies,
+    headers: req.headers,
+    method: req.method,
+    query_string: req.query,
+  };
+
+  return event;
 }
