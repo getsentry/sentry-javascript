@@ -1,7 +1,7 @@
 import { RewriteFrames } from '@sentry/integrations';
 import { Integration } from '@sentry/types';
 
-import { addIntegration, UserFunctionIntegrations } from '../../src/utils/userIntegrations';
+import { addIntegration, IntegrationsFunction } from '../../src/utils/userIntegrations';
 
 const testIntegration = new RewriteFrames();
 
@@ -17,11 +17,11 @@ describe('user integrations without any integrations', () => {
   });
 
   test('as a function', () => {
-    const userIntegrationFnc: UserFunctionIntegrations = (): Integration[] => [];
+    const userIntegrationFnc: IntegrationsFunction = (): Integration[] => [];
     // Should get a single integration
     const integrationWrapper = addIntegration(testIntegration, userIntegrationFnc);
     expect(integrationWrapper).toBeInstanceOf(Function);
-    const finalIntegrations = (integrationWrapper as UserFunctionIntegrations)([]);
+    const finalIntegrations = (integrationWrapper as IntegrationsFunction)([]);
     expect(finalIntegrations).toHaveLength(1);
     expect(finalIntegrations[0]).toMatchObject(testIntegration);
   });
@@ -37,14 +37,14 @@ describe('user integrations with integrations', () => {
 
   test('as a function', () => {
     const userIntegrations = [new RewriteFrames()];
-    const integrationsFnc: UserFunctionIntegrations = (_integrations: Integration[]): Integration[] => {
+    const integrationsFnc: IntegrationsFunction = (_integrations: Integration[]): Integration[] => {
       return userIntegrations;
     };
     // Should get a function that returns the test integration
     let finalIntegrations = addIntegration(testIntegration, integrationsFnc);
     expect(typeof finalIntegrations === 'function').toBe(true);
     expect(finalIntegrations).toBeInstanceOf(Function);
-    finalIntegrations = finalIntegrations as UserFunctionIntegrations;
+    finalIntegrations = finalIntegrations as IntegrationsFunction;
     expect(finalIntegrations([])).toMatchObject(userIntegrations);
   });
 });

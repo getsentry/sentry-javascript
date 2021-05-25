@@ -1,21 +1,15 @@
 import { Integration } from '@sentry/types';
 
-export type UserFunctionIntegrations = (integrations: Integration[]) => Integration[];
-export type UserIntegrations = Integration[] | UserFunctionIntegrations;
+export type IntegrationsFunction = (integrations: Integration[]) => Integration[];
+export type UserIntegrations = Integration[] | IntegrationsFunction;
 
-type Options = {
-  [integrationName: string]:
-    | {
-        keyPath: string;
-        value: unknown;
-      }
-    | undefined;
-};
+/** Pairs of a property's path within an integration object (ex: `options.xyz`) and the desired value for that property */
+type IntegrationProperties = Array<[string, unknown]>;
 
 /**
  * Recursively traverses an object to update an existing nested key.
  * Note: The provided key path must include existing properties,
- * the function will not create objects while traversing.
+ * as the function will not create objects while traversing.
  *
  * @param obj An object to update
  * @param value The value to update the nested key with
@@ -23,11 +17,15 @@ type Options = {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setNestedKey(obj: Record<string, any>, keyPath: string, value: unknown): void {
+  // Split first path segment from the rest
   // Ex. foo.bar.zoop will extract foo and bar.zoop
   const match = keyPath.match(/([a-z]+)\.(.*)/i);
   if (match === null) {
+    // assuming no illegal characters, the only way for the match to be null is if there's no period after the first
+    // capture group, which means we've reached the end of the path and can set the value
     obj[keyPath] = value;
   } else {
+    // follow the path down one level and repeat
     setNestedKey(obj[match[1]], match[2], value);
   }
 }
@@ -47,7 +45,7 @@ function setNestedKey(obj: Record<string, any>, keyPath: string, value: unknown)
 export function addIntegration(
   integration: Integration,
   userIntegrations: UserIntegrations,
-  options: Options = {},
+  options: IntegrationProperties = [],
 ): UserIntegrations {
   if (Array.isArray(userIntegrations)) {
     return addIntegrationToArray(integration, userIntegrations, options);
@@ -56,38 +54,55 @@ export function addIntegration(
   }
 }
 
+/**
+ * Add an integration to an integration array, or update its options if it already exists.
+ *
+ * @param newIntegration The integration to add, with the correct options
+ * @param userIntegrations The array of existing integrations
+ * @param newOptions Options to be set in case the integration already exists
+ * @returns The modified array
+ */
 function addIntegrationToArray(
-  integration: Integration,
+  newIntegration: Integration,
   userIntegrations: Integration[],
-  options: Options,
+  newOptions: IntegrationProperties,
 ): Integration[] {
-  let includesName = false;
-  // eslint-disable-next-line @typescript-eslint/prefer-for-of
-  for (let x = 0; x < userIntegrations.length; x++) {
-    if (userIntegrations[x].name === integration.name) {
-      includesName = true;
-    }
+  const userIntegrationNames = userIntegrations.map(integration => integration.name);
+  // const userHasIntegration = userIntegrationNames.includes(newIntegration.name)
+  const existingIntegrationIndex = userIntegrationNames.indexOf(newIntegration.name);
 
-    const op = options[userIntegrations[x].name];
-    if (op) {
-      setNestedKey(userIntegrations[x], op.keyPath, op.value);
-    }
+  if (existingIntegrationIndex === -1) {
+    // the user doesn't already have the integration, so just use the instance we already have, since it has the correct
+    // options already
+    userIntegrations.push(newIntegration);
+  }
+  // set or overwrite options in the existing integration instance
+  else {
+    const existingIntegration = userIntegrations[existingIntegrationIndex];
+    newOptions.forEach(([optionPath, value]) => {
+      setNestedKey(existingIntegration, optionPath, value);
+    });
   }
 
-  if (includesName) {
-    return userIntegrations;
-  }
-  return [...userIntegrations, integration];
+  return userIntegrations;
 }
 
+/**
+ * Wrap a given integration function to make sure the result includes the given integration
+ *
+ * @param newIntegration The integration to add
+ * @param userIntegrationsFunc A function which returns integrations
+ * @param integrationOptions Options for the new integration
+ * @returns A wrapped version of the function
+ */
 function addIntegrationToFunction(
-  integration: Integration,
-  userIntegrationsFunc: UserFunctionIntegrations,
-  options: Options,
-): UserFunctionIntegrations {
-  const wrapper: UserFunctionIntegrations = defaultIntegrations => {
+  newIntegration: Integration,
+  userIntegrationsFunc: IntegrationsFunction,
+  integrationOptions: IntegrationProperties,
+): IntegrationsFunction {
+  const wrapper: IntegrationsFunction = defaultIntegrations => {
     const userFinalIntegrations = userIntegrationsFunc(defaultIntegrations);
-    return addIntegrationToArray(integration, userFinalIntegrations, options);
+    return addIntegrationToArray(newIntegration, userFinalIntegrations, integrationOptions);
   };
   return wrapper;
 }
