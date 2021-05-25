@@ -16,9 +16,16 @@ export function init(options: NextjsOptions): void {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'react']);
   metadataBuilder.addSdkMetadata();
   options.environment = options.environment || process.env.NODE_ENV;
+
+  // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set
+  const integrations =
+    options.tracesSampleRate === undefined && options.tracesSampler === undefined
+      ? options.integrations
+      : createClientIntegrations(options.integrations);
+
   reactInit({
     ...options,
-    integrations: createClientIntegrations(options.integrations),
+    integrations,
   });
   configureScope(scope => {
     scope.setTag('runtime', 'browser');

@@ -41,7 +41,7 @@ describe('Client init()', () => {
         },
       },
       environment: 'test',
-      integrations: expect.any(Array),
+      integrations: undefined,
     });
   });
 
@@ -54,8 +54,29 @@ describe('Client init()', () => {
   });
 
   describe('integrations', () => {
-    it('adds BrowserTracing integration by default', () => {
+    it('does not add BrowserTracing integration by default if tracesSampleRate is not set', () => {
       init({});
+
+      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
+      expect(reactInitOptions.integrations).toBeUndefined();
+    });
+
+    it('adds BrowserTracing integration by default if tracesSampleRate is set', () => {
+      init({ tracesSampleRate: 1.0 });
+
+      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
+      expect(reactInitOptions.integrations).toHaveLength(1);
+
+      const integrations = reactInitOptions.integrations as Integration[];
+      expect(integrations[0]).toEqual(expect.any(BrowserTracing));
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect((integrations[0] as InstanceType<typeof BrowserTracing>).options.routingInstrumentation).toEqual(
+        nextRouterInstrumentation,
+      );
+    });
+
+    it('adds BrowserTracing integration by default if tracesSampler is set', () => {
+      init({ tracesSampler: () => true });
 
       const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
       expect(reactInitOptions.integrations).toHaveLength(1);
@@ -69,7 +90,7 @@ describe('Client init()', () => {
     });
 
     it('supports passing integration through options', () => {
-      init({ integrations: [new Integrations.Breadcrumbs({ console: false })] });
+      init({ tracesSampleRate: 1.0, integrations: [new Integrations.Breadcrumbs({ console: false })] });
       const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
       expect(reactInitOptions.integrations).toHaveLength(2);
 
@@ -79,6 +100,7 @@ describe('Client init()', () => {
 
     it('uses custom BrowserTracing with array option with nextRouterInstrumentation', () => {
       init({
+        tracesSampleRate: 1.0,
         integrations: [new BrowserTracing({ idleTimeout: 5000, startTransactionOnLocationChange: false })],
       });
 
@@ -96,6 +118,7 @@ describe('Client init()', () => {
 
     it('uses custom BrowserTracing with function option with nextRouterInstrumentation', () => {
       init({
+        tracesSampleRate: 1.0,
         integrations: () => [new BrowserTracing({ idleTimeout: 5000, startTransactionOnLocationChange: false })],
       });
 
