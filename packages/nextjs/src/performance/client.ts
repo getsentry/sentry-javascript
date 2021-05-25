@@ -10,8 +10,6 @@ const DEFAULT_TAGS = Object.freeze({
   'routing.instrumentation': 'next-router',
 });
 
-const QUERY_PARAM_REGEX = /\?(.*)/;
-
 let activeTransaction: Transaction | undefined = undefined;
 let prevTransactionName: string | undefined = undefined;
 let startTransaction: StartTransactionCb | undefined = undefined;
