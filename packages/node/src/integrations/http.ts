@@ -116,7 +116,9 @@ function _createWrappedRequestMethodFactory(
           });
 
           const sentryTraceHeader = span.toTraceparent();
-          logger.log(`[Tracing] Adding sentry-trace header to outgoing request: ${sentryTraceHeader}`);
+          logger.log(
+            `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
+          );
           requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
         }
       }
