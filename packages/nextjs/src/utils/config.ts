@@ -98,7 +98,7 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
   // `require()` on the resulting file when we're instrumenting the sesrver. (We can't use a dynamic import there
   // because that then forces the user into a particular TS config.)
   if (isServer) {
-    newEntryProperty[SERVER_SDK_INIT_PATH] = SENTRY_SERVER_CONFIG_FILE;
+    newEntryProperty[SERVER_SDK_INIT_PATH.slice(0, -3)] = SENTRY_SERVER_CONFIG_FILE;
   }
   // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
   else {
