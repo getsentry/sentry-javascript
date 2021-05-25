@@ -1,9 +1,9 @@
-import { AfterViewInit, Directive, Injectable, Input, OnInit } from '@angular/core';
+import { AfterViewInit, Directive, Injectable, Input, OnDestroy, OnInit } from '@angular/core';
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
 let instrumentationInitialized: boolean;
@@ -53,7 +53,7 @@ export function getActiveTransaction(): Transaction | undefined {
  * Creates a new transaction for every route change and measures a duration of routing process.
  */
 @Injectable({ providedIn: 'root' })
-export class TraceService {
+export class TraceService implements OnDestroy {
   public navStart$: Observable<Event> = this._router.events.pipe(
     filter(event => event instanceof NavigationStart),
     tap(event => {
@@ -100,10 +100,19 @@ export class TraceService {
   );
 
   private _routingSpan?: Span;
+  private _subscription: Subscription = new Subscription();
 
   public constructor(private readonly _router: Router) {
-    this.navStart$.subscribe();
-    this.navEnd$.subscribe();
+    this._subscription.add(this.navStart$.subscribe());
+    this._subscription.add(this.navEnd$.subscribe());
+  }
+
+  /**
+   * This is used to prevent memory leaks when the root view is created and destroyed multiple times,
+   * since `subscribe` callbacks captures `this` and prevent many resources from being GC'd.
+   */
+  public ngOnDestroy(): void {
+    this._subscription.unsubscribe();
   }
 }
 
