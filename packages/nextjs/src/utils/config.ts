@@ -1,5 +1,5 @@
 import { getSentryRelease } from '@sentry/node';
-import { logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 import defaultWebpackPlugin, { SentryCliPluginOptions } from '@sentry/webpack-plugin';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 import * as fs from 'fs';
@@ -83,11 +83,13 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
   // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
+
   let newEntryProperty = origEntryProperty;
   if (typeof origEntryProperty === 'function') {
     newEntryProperty = await origEntryProperty();
   }
   newEntryProperty = newEntryProperty as EntryPropertyObject;
+
   // Add a new element to the `entry` array, we force webpack to create a bundle out of the user's
   // `sentry.server.config.js` file and output it to `SERVER_INIT_LOCATION`. (See
   // https://webpack.js.org/guides/code-splitting/#entry-points.) We do this so that the user's config file is run
@@ -128,7 +130,7 @@ export function withSentryConfig(
   providedExports: NextConfigExports = {},
   providedSentryWebpackPluginOptions: Partial<SentryCliPluginOptions> = {},
 ): NextConfigExports {
-  const defaultSentryWebpackPluginOptions = {
+  const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
@@ -138,12 +140,12 @@ export function withSentryConfig(
     urlPrefix: `~/_next`,
     include: '.next/',
     ignore: ['.next/cache', 'server/ssr-module-cache.js', 'static/*/_ssgManifest.js', 'static/*/_buildManifest.js'],
-  };
+  });
 
   // warn if any of the default options for the webpack plugin are getting overridden
   const sentryWebpackPluginOptionOverrides = Object.keys(defaultSentryWebpackPluginOptions)
     .concat('dryrun')
-    .filter(key => key in Object.keys(providedSentryWebpackPluginOptions));
+    .filter(key => key in providedSentryWebpackPluginOptions);
   if (sentryWebpackPluginOptionOverrides.length > 0) {
     logger.warn(
       '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
