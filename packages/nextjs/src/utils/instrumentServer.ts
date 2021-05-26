@@ -161,6 +161,23 @@ function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogge
   };
 }
 
+// inspired by next's public file routing; see
+// https://github.com/vercel/next.js/blob/4443d6f3d36b107e833376c2720c1e206eee720d/packages/next/next-server/server/next-server.ts#L1166
+function getPublicDirFiles(): Set<string> {
+  try {
+    // we need the paths here to match the format of a request url, which means they must:
+    // - start with a slash
+    // - use forward slashes rather than backslashes
+    // - be URL-encoded
+    const dirContents = deepReadDirSync(liveServer.publicDir).map(filepath =>
+      encodeURI(`/${filepath.replace(/\\/g, '/')}`),
+    );
+    return new Set(dirContents);
+  } catch (_) {
+    return new Set();
+  }
+}
+
 /**
  * Wrap the server's request handler to be able to create request transactions.
  *
@@ -168,16 +185,7 @@ function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogge
  * @returns A wrapped version of that handler
  */
 function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
-  // inspired by next's public file routing; see
-  // https://github.com/vercel/next.js/blob/4443d6f3d36b107e833376c2720c1e206eee720d/packages/next/next-server/server/next-server.ts#L1166
-  const publicDirFiles = new Set(
-    // we need the paths here to match the format of a request url, which means they must:
-    // - start with a slash
-    // - use forward slashes rather than backslashes
-    // - be URL-encoded
-    deepReadDirSync(liveServer.publicDir).map(filepath => encodeURI(`/${filepath.replace(/\\/g, '/')}`)),
-  );
-
+  const publicDirFiles = getPublicDirFiles();
   // add transaction start and stop to the normal request handling
   const wrappedReqHandler = async function(
     this: Server,
