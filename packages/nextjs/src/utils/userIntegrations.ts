@@ -1,4 +1,5 @@
 import { Integration } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 export type IntegrationsFunction = (integrations: Integration[]) => Integration[];
 export type UserIntegrations = Integration[] | IntegrationsFunction;
@@ -68,7 +69,6 @@ function addIntegrationToArray(
   newOptions: IntegrationProperties,
 ): Integration[] {
   const userIntegrationNames = userIntegrations.map(integration => integration.name);
-  // const userHasIntegration = userIntegrationNames.includes(newIntegration.name)
   const existingIntegrationIndex = userIntegrationNames.indexOf(newIntegration.name);
 
   if (existingIntegrationIndex === -1) {
@@ -80,7 +80,11 @@ function addIntegrationToArray(
   else {
     const existingIntegration = userIntegrations[existingIntegrationIndex];
     newOptions.forEach(([optionPath, value]) => {
-      setNestedKey(existingIntegration, optionPath, value);
+      try {
+        setNestedKey(existingIntegration, optionPath, value);
+      } catch (err) {
+        logger.error(`Unable to set options for ${newIntegration.name}. Received error: ${err}`);
+      }
     });
   }
 
