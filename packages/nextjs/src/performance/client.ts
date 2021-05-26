@@ -1,5 +1,5 @@
 import { Primitive, Transaction, TransactionContext } from '@sentry/types';
-import { fill, getGlobalObject } from '@sentry/utils';
+import { fill, getGlobalObject, stripUrlQueryAndFragment } from '@sentry/utils';
 import { default as Router } from 'next/router';
 
 const global = getGlobalObject<Window>();
@@ -9,8 +9,6 @@ type StartTransactionCb = (context: TransactionContext) => Transaction | undefin
 const DEFAULT_TAGS = Object.freeze({
   'routing.instrumentation': 'next-router',
 });
-
-const QUERY_PARAM_REGEX = /\?(.*)/;
 
 let activeTransaction: Transaction | undefined = undefined;
 let prevTransactionName: string | undefined = undefined;
@@ -35,7 +33,7 @@ export function nextRouterInstrumentation(
     // route name. Setting the transaction name after the transaction is started could lead
     // to possible race conditions with the router, so this approach was taken.
     if (startTransactionOnPageLoad) {
-      prevTransactionName = Router.route !== null ? removeQueryParams(Router.route) : global.location.pathname;
+      prevTransactionName = Router.route !== null ? stripUrlQueryAndFragment(Router.route) : global.location.pathname;
       activeTransaction = startTransactionCb({
         name: prevTransactionName,
         op: 'pageload',
@@ -98,7 +96,7 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
       if (prevTransactionName) {
         tags.from = prevTransactionName;
       }
-      prevTransactionName = removeQueryParams(url);
+      prevTransactionName = stripUrlQueryAndFragment(url);
       activeTransaction = startTransaction({
         name: prevTransactionName,
         op: 'navigation',
@@ -108,8 +106,4 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
     return originalChangeStateWrapper.call(this, method, url, as, options, ...args);
   };
   return wrapper;
-}
-
-export function removeQueryParams(route: string): string {
-  return route.replace(QUERY_PARAM_REGEX, '');
 }

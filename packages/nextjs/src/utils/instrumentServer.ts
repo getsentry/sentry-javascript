@@ -1,7 +1,7 @@
 import { deepReadDirSync } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { Event as SentryEvent } from '@sentry/types';
-import { fill, isString, logger } from '@sentry/utils';
+import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
@@ -208,7 +208,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           }
 
           // pull off query string, if any
-          const reqPath = req.url.split('?')[0];
+          const reqPath = stripUrlQueryAndFragment(req.url);
 
           // requests for pages will only ever be GET requests, so don't bother to include the method in the transaction
           // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
@@ -218,7 +218,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',
-              metadata: { requestPath: req.url.split('?')[0] },
+              metadata: { requestPath: reqPath },
               ...traceparentData,
             },
             // extra context passed to the `tracesSampler`

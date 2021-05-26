@@ -1,6 +1,6 @@
 import { default as Router } from 'next/router';
 
-import { nextRouterInstrumentation, removeQueryParams } from '../../src/performance/client';
+import { nextRouterInstrumentation } from '../../src/performance/client';
 
 let readyCalled = false;
 jest.mock('next/router', () => {
@@ -97,20 +97,6 @@ describe('client', () => {
         // @ts-ignore changeState can be called with array spread
         Router.router?.changeState(...test.in);
         expect(mockStartTransaction).toHaveBeenLastCalledWith(test.out);
-      });
-    });
-  });
-
-  describe('removeQueryParams()', () => {
-    it('removes query params from an url', () => {
-      const table: Table = [
-        { in: '/posts/[id]/[comment]?name=ferret&color=purple', out: '/posts/[id]/[comment]' },
-        { in: '/posts/[id]/[comment]?', out: '/posts/[id]/[comment]' },
-        { in: '/about?', out: '/about' },
-      ];
-
-      table.forEach(test => {
-        expect(removeQueryParams(test.in)).toEqual(test.out);
       });
     });
   });
