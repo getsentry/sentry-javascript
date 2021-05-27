@@ -31,7 +31,13 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
 
           const url = `${req.url}`;
           // pull off query string, if any
-          const reqPath = stripUrlQueryAndFragment(url);
+          let reqPath = stripUrlQueryAndFragment(url);
+          // Replace with placeholder
+          if (req.query) {
+            for (const [key, value] of Object.entries(req.query)) {
+              reqPath = reqPath.replace(`${value}`, `[${key}]`);
+            }
+          }
 
           // requests for pages will only ever be GET requests, so don't bother to include the method in the transaction
           // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
