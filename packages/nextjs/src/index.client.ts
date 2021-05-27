@@ -1,5 +1,5 @@
 import { configureScope, init as reactInit } from '@sentry/react';
-import { Integrations } from '@sentry/tracing';
+import { defaultRequestInstrumentationOptions, Integrations } from '@sentry/tracing';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { MetadataBuilder } from './utils/metadataBuilder';
@@ -33,6 +33,7 @@ export function init(options: NextjsOptions): void {
 }
 
 const defaultBrowserTracingIntegration = new BrowserTracing({
+  tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
   routingInstrumentation: nextRouterInstrumentation,
 });
 
