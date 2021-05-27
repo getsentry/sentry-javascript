@@ -15,7 +15,7 @@ import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sent
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
-import * as url from 'url';
+import { URL } from 'url';
 
 import { SDK_NAME } from '../version';
 
@@ -30,7 +30,7 @@ export interface HTTPModule {
    * @param callback Callback when request is finished
    */
   request(
-    options: http.RequestOptions | https.RequestOptions | string | url.URL,
+    options: http.RequestOptions | https.RequestOptions | string | URL,
     callback?: (res: http.IncomingMessage) => void,
   ): http.ClientRequest;
 
@@ -39,10 +39,16 @@ export interface HTTPModule {
   // versions:
 
   // request(
-  //   url: string | url.URL,
+  //   url: string | URL,
   //   options: http.RequestOptions | https.RequestOptions,
   //   callback?: (res: http.IncomingMessage) => void,
   // ): http.ClientRequest;
+}
+
+type URLConstructor = new (url: string, base?: string | URL) => URL;
+
+export interface UrlContainer {
+  URL: URLConstructor;
 }
 
 const CATEGORY_MAPPING: {
@@ -61,6 +67,9 @@ export abstract class BaseTransport implements Transport {
 
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
+
+  /** The object containing URL constructor */
+  public url?: UrlContainer;
 
   /** API object */
   protected _api: API;
@@ -119,7 +128,7 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** Returns a build request option object used by request */
-  protected _getRequestOptions(uri: url.URL): http.RequestOptions | https.RequestOptions {
+  protected _getRequestOptions(uri: URL): http.RequestOptions | https.RequestOptions {
     const headers = {
       ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
@@ -224,7 +233,10 @@ export abstract class BaseTransport implements Transport {
         if (!this.module) {
           throw new SentryError('No module available');
         }
-        const options = this._getRequestOptions(new url.URL(sentryReq.url));
+        if (!this.url) {
+          throw new SentryError('No URL configured');
+        }
+        const options = this._getRequestOptions(new this.url.URL(sentryReq.url));
         const req = this.module.request(options, (res: http.IncomingMessage) => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);

@@ -1,6 +1,7 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
 import { Event, Response, Session, SessionAggregates, TransportOptions } from '@sentry/types';
 import * as http from 'http';
+import * as url from 'url';
 
 import { BaseTransport } from './base';
 
@@ -10,6 +11,7 @@ export class HTTPTransport extends BaseTransport {
   public constructor(public options: TransportOptions) {
     super(options);
     const proxy = this._getProxy('http');
+    this.url = url;
     this.module = http;
     this.client = proxy
       ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
