@@ -27,7 +27,7 @@ interface Server {
   publicDir: string;
 }
 
-interface NextRequest extends http.IncomingMessage {
+export interface NextRequest extends http.IncomingMessage {
   cookies: Record<string, string>;
   url: string;
   query: { [key: string]: string };
@@ -307,7 +307,7 @@ function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
  * @param req The request whose data is being added
  * @returns The modified event
  */
-function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
+export function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
   event.request = {
     ...event.request,
     // TODO body/data
