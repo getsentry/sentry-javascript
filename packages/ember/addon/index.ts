@@ -73,7 +73,12 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
   return {
     [BaseRoute.name]: class extends BaseRoute {
       beforeModel(...args: any[]) {
-        return instrumentFunction('ember.route.beforeModel', (<any>this).fullRouteName, super.beforeModel.bind(this), args);
+        return instrumentFunction(
+          'ember.route.beforeModel',
+          (<any>this).fullRouteName,
+          super.beforeModel.bind(this),
+          args,
+        );
       }
 
       async model(...args: any[]) {
@@ -81,7 +86,12 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
       }
 
       async afterModel(...args: any[]) {
-        return instrumentFunction('ember.route.afterModel', (<any>this).fullRouteName, super.afterModel.bind(this), args);
+        return instrumentFunction(
+          'ember.route.afterModel',
+          (<any>this).fullRouteName,
+          super.afterModel.bind(this),
+          args,
+        );
       }
 
       async setupController(...args: any[]) {
@@ -97,3 +107,6 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
 };
 
 export * from '@sentry/browser';
+
+// init is now the preferred way to call initialization for this addon.
+export const init = InitSentryForEmber;

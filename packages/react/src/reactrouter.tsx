@@ -52,6 +52,18 @@ function createReactRouterInstrumentation(
   allRoutes: RouteConfig[] = [],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
+  function getInitPathName(): string | undefined {
+    if (history && history.location) {
+      return history.location.pathname;
+    }
+
+    if (global && global.location) {
+      return global.location.pathname;
+    }
+
+    return undefined;
+  }
+
   function getTransactionName(pathname: string): string {
     if (allRoutes === [] || !matchPath) {
       return pathname;
@@ -69,9 +81,10 @@ function createReactRouterInstrumentation(
   }
 
   return (customStartTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
-    if (startTransactionOnPageLoad && global && global.location) {
+    const initPathName = getInitPathName();
+    if (startTransactionOnPageLoad && initPathName) {
       activeTransaction = customStartTransaction({
-        name: getTransactionName(global.location.pathname),
+        name: getTransactionName(initPathName),
         op: 'pageload',
         tags: {
           'routing.instrumentation': name,
