@@ -60,6 +60,8 @@
     "build:bundle:watch": "rollup --config --watch",
     "build:dist": "tsc -p tsconfig.build.json",
     "build:dist:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:es5": "run-s build:dist",
+    "build:es5:watch": "run-s build:dist:watch",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "build:watch": "run-p build:dist:watch build:esm:watch build:bundle:watch",
