@@ -8,27 +8,24 @@ describe('build metadata', () => {
   test('without packages', () => {
     const nextjsOptions: NextjsOptions = {};
     const metadataPackages: string[] = [];
-    new MetadataBuilder(nextjsOptions, metadataPackages).addSdkMetadata();
-
-    const optionsMetadata = nextjsOptions._metadata;
-    expect(optionsMetadata).toBeDefined();
-    const sdkInfo = optionsMetadata?.sdk;
-    testSdkInfo(sdkInfo);
-    testSdkInfoPackages(sdkInfo?.packages, metadataPackages);
+    testMetadataBuilder(nextjsOptions, metadataPackages);
   });
 
   test('with packages', () => {
     const nextjsOptions: NextjsOptions = {};
     const metadataPackages: string[] = ['packageA', 'packageB'];
-    new MetadataBuilder(nextjsOptions, metadataPackages).addSdkMetadata();
-
-    const optionsMetadata = nextjsOptions._metadata;
-    expect(optionsMetadata).toBeDefined();
-    const sdkInfo = optionsMetadata?.sdk;
-    testSdkInfo(sdkInfo);
-    testSdkInfoPackages(sdkInfo?.packages, metadataPackages);
+    testMetadataBuilder(nextjsOptions, metadataPackages);
   });
 });
+
+function testMetadataBuilder(nextjsOptions: NextjsOptions, packages: string[]): void {
+  new MetadataBuilder(nextjsOptions, packages).addSdkMetadata();
+  const optionsMetadata = nextjsOptions._metadata;
+  expect(optionsMetadata).toBeDefined();
+  const sdkInfo = optionsMetadata?.sdk;
+  testSdkInfo(sdkInfo);
+  testSdkInfoPackages(sdkInfo?.packages, packages);
+}
 
 function testSdkInfo(sdkInfo: SdkInfo | undefined): void {
   expect(sdkInfo).toBeDefined();
