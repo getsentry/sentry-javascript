@@ -77,7 +77,7 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
   entryProperty[injectionPoint] = injectedInto;
 };
 
-const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryProperty> => {
+const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryPropertyObject> => {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
   // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
@@ -106,11 +106,7 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
   else {
     _injectFile(newEntryProperty, 'main', SENTRY_CLIENT_CONFIG_FILE);
   }
-  // TODO: hack made necessary because the async-ness of this function turns our object back into a promise, meaning the
-  // internal `next` code which should do this doesn't
-  if ('main.js' in newEntryProperty) {
-    delete newEntryProperty['main.js'];
-  }
+
   return newEntryProperty;
 };
 
@@ -178,9 +174,15 @@ export function withSentryConfig(
       newConfig.devtool = 'source-map';
     }
 
-    // Inject user config files (`sentry.client.confg.js` and `sentry.server.config.js`), which is where `Sentry.init()`
-    // is called. By adding them here, we ensure that they're bundled by webpack as part of both server code and client code.
-    newConfig.entry = (injectSentry(newConfig.entry, options.isServer) as unknown) as EntryProperty;
+    // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
+    // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (In a synchronous
+    // world, `x = () => f(x)` is fine, because the dereferencing is guaranteed to happen before the assignment, meaning
+    // we know f will get the original value of x. But in an async world, if we do `x = async () => f(x)`, the
+    // assignment happens *before* the dereferencing, meaning f is passed the new value. In other words, in that
+    // scenario, the new value is defined in terms of itself, with predictably bad consequences. Theoretically this
+    // could also be fixed by using `bind`, but this is way simpler.)
+    const origEntryProperty = newConfig.entry;
+    newConfig.entry = () => injectSentry(origEntryProperty, options.isServer);
 
     // Add the Sentry plugin, which uploads source maps to Sentry when not in dev
     newConfig.plugins.push(
