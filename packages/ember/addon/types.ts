@@ -1,7 +1,7 @@
 import { BrowserOptions } from '@sentry/browser';
 
 export type EmberSentryConfig = {
-  sentry: BrowserOptions;
+  sentry: BrowserOptions & { browserTracingOptions: Object };
   transitionTimeout: number;
   ignoreEmberOnErrorWarning: boolean;
   disableInstrumentComponents: boolean;

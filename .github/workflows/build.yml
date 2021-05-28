@@ -191,6 +191,7 @@ jobs:
           # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
           # tests in our Node matrix above.
           node-version: '10'
+          fetch-depth: 0
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
