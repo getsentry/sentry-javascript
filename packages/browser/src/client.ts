@@ -1,4 +1,4 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, Scope, SDK_VERSION, Session } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
@@ -55,6 +55,15 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       ...options,
       dsn: options.dsn || this.getDsn(),
     });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public captureSession(session: Session): void {
+    // Make sure session duration is not sent
+    session.duration = undefined;
+    super.captureSession(session);
   }
 
   /**

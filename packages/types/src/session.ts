@@ -15,9 +15,9 @@ export interface Session extends SessionContext {
     init: boolean;
     sid: string;
     did?: string;
-    timestamp: string;
-    started: string;
-    duration: number;
+    timestamp: number;
+    started: number;
+    duration?: number;
     status: SessionStatus;
     errors: number;
     attrs?: {

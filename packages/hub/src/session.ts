@@ -8,7 +8,7 @@ import {
   SessionStatus,
   Transport,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';
 
@@ -21,9 +21,9 @@ export class Session implements SessionInterface {
   public release?: string;
   public sid: string = uuid4();
   public did?: string;
-  public timestamp: number = Date.now();
-  public started: number = Date.now();
-  public duration: number = 0;
+  public timestamp: number = timestampInSeconds;
+  public started: number = timestampInSeconds;
+  public duration?: number = 0;
   public status: SessionStatus = SessionStatus.Ok;
   public environment?: string;
   public ipAddress?: string;
@@ -48,7 +48,7 @@ export class Session implements SessionInterface {
       }
     }
 
-    this.timestamp = context.timestamp || Date.now();
+    this.timestamp = context.timestamp || timestampInSeconds;
 
     if (context.sid) {
       // Good enough uuid validation. — Kamil
@@ -63,7 +63,7 @@ export class Session implements SessionInterface {
     if (typeof context.started === 'number') {
       this.started = context.started;
     }
-    if (typeof context.duration === 'number') {
+    if (typeof context.duration === 'number' || typeof context.duration === undefined) {
       this.duration = context.duration;
     } else {
       this.duration = this.timestamp - this.started;
@@ -104,9 +104,9 @@ export class Session implements SessionInterface {
     init: boolean;
     sid: string;
     did?: string;
-    timestamp: string;
-    started: string;
-    duration: number;
+    timestamp: number;
+    started: number;
+    duration?: number;
     status: SessionStatus;
     errors: number;
     attrs?: {
@@ -119,8 +119,8 @@ export class Session implements SessionInterface {
     return dropUndefinedKeys({
       sid: `${this.sid}`,
       init: this.init,
-      started: new Date(this.started).toISOString(),
-      timestamp: new Date(this.timestamp).toISOString(),
+      started: this.started,
+      timestamp: this.timestamp,
       status: this.status,
       errors: this.errors,
       did: typeof this.did === 'number' || typeof this.did === 'string' ? `${this.did}` : undefined,
