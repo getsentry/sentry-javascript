@@ -66,11 +66,7 @@ export class Session implements SessionInterface {
     if (typeof context.duration === 'number') {
       this.duration = context.duration;
     } else {
-      // Otherwise:
-      // hub.startSession();
-      // hub.captureSession();
-      // can produce either 0 or 1, depending on the mood
-      this.duration = Math.floor(this.timestamp - this.started);
+      this.duration = this.timestamp - this.started;
     }
     if (context.release) {
       this.release = context.release;
