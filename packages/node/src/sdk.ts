@@ -132,6 +132,11 @@ export function init(options: NodeOptions = {}): void {
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
+
+  // TODO: Right now, unless the user sets this option, this is a no-op, since 10 is Node's default value. Written this
+  // way so that it's easy to bump it if and when we choose to do so (would be a breaking change since it would likely
+  // have an effect on grouping)
+  Error.stackTraceLimit = typeof options.maxStacktraceFrames === 'number' ? options.maxStacktraceFrames : 10;
 }
 
 /**

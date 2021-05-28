@@ -37,6 +37,9 @@ export interface NodeOptions extends Options {
   /** Sets the number of context lines for each frame when loading a file. */
   frameContextLines?: number;
 
+  /** The maximum number of frames to include in a stacktrace. The Node default is 10. */
+  maxStacktraceFrames?: number;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 }
