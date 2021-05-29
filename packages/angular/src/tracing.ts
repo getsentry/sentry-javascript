@@ -1,4 +1,4 @@
-import { AfterViewInit, Directive, Injectable, Input, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
@@ -6,18 +6,7 @@ import { logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils
 import { Observable, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
-// That's the `global.Zone` exposed when the `zone.js` package is used.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const Zone: any;
-
-// There're 2 types of Angular applications:
-// 1) zone-full (by default)
-// 2) zone-less
-// The developer can avoid importing the `zone.js` package and tells Angular that
-// he is responsible for running the change detection by himself. This is done by
-// "nooping" the zone through `CompilerOptions` when bootstrapping the root module.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-const isNgZoneEnabled = typeof Zone !== 'undefined' && !!Zone.current;
+import { runOutsideAngular } from './zone';
 
 let instrumentationInitialized: boolean;
 let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
@@ -106,21 +95,10 @@ export class TraceService implements OnDestroy {
     filter(event => event instanceof NavigationEnd),
     tap(() => {
       if (this._routingSpan) {
-        if (isNgZoneEnabled) {
-          // The `Zone.root.run` basically will finish the transaction in the most parent zone.
-          // The Angular's zone is forked from the `Zone.root`. In this case, `zone.js` won't
-          // trigger change detection, and `ApplicationRef.tick()` will not be run.
-          // Caretaker note: we're using `Zone.root` except `NgZone.runOutsideAngular` since this
-          // will require injecting the `NgZone` facade. That will create a breaking change for
-          // projects already using the `TraceService`.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          Zone.root.run(() => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this._routingSpan!.finish();
-          });
-        } else {
-          this._routingSpan.finish();
-        }
+        runOutsideAngular(() => {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this._routingSpan!.finish();
+        });
         this._routingSpan = null;
       }
     }),
@@ -136,7 +114,7 @@ export class TraceService implements OnDestroy {
 
   /**
    * This is used to prevent memory leaks when the root view is created and destroyed multiple times,
-   * since `subscribe` callbacks captures `this` and prevent many resources from being GC'd.
+   * since `subscribe` callbacks capture `this` and prevent many resources from being GC'd.
    */
   public ngOnDestroy(): void {
     this._subscription.unsubscribe();
@@ -178,6 +156,15 @@ export class TraceDirective implements OnInit, AfterViewInit {
     }
   }
 }
+
+/**
+ * A module serves as a single compilation unit for the `TraceDirective` and can be re-used by any other module.
+ */
+@NgModule({
+  declarations: [TraceDirective],
+  exports: [TraceDirective],
+})
+export class TraceModule {}
 
 /**
  * Decorator function that can be used to capture initialization lifecycle of the whole component.
