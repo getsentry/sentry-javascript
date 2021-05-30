@@ -12,6 +12,9 @@ if [[ "$(cut -d. -f1 <<<"$NODE_VERSION")" -le 6 ]]; then
   cd packages/tracing
   yarn add --dev --ignore-engines --ignore-scripts jsdom@11.x
   cd ../..
+  cd packages/utils
+  yarn add --dev --ignore-engines --ignore-scripts jsdom@11.x
+  cd ../..
 
   # only test against @sentry/node and its dependencies - node 6 is too old for anything else to work
   yarn test --scope="@sentry/core" --scope="@sentry/hub" --scope="@sentry/minimal" --scope="@sentry/node" --scope="@sentry/utils" --scope="@sentry/tracing"
@@ -21,6 +24,9 @@ elif [[ "$(cut -d. -f1 <<<"$NODE_VERSION")" -le 8 ]]; then
   # install legacy versions of packages whose current versions don't support node 8
   # ignoring engines and scripts lets us get away with having incompatible things installed for packages we're not testing
   cd packages/tracing
+  yarn add --dev --ignore-engines --ignore-scripts jsdom@15.x
+  cd ../..
+  cd packages/utils
   yarn add --dev --ignore-engines --ignore-scripts jsdom@15.x
   cd ../..
 
