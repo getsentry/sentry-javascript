@@ -204,7 +204,11 @@ function startSessionTracking(): void {
 
   // We want to create a session for every navigation as well
   addInstrumentationHandler({
-    callback: () => {
+    callback: ({ from, to }) => {
+      // Don't create an additional session for the initial route or if the location did not change
+      if (from === undefined || from === to) {
+        return;
+      }
       hub.startSession();
       hub.captureSession();
     },

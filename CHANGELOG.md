@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.5.0
+
+- [angular] fix: prevent memory leak when the root view is removed (#3594)
+- [browser] fix: Do not trigger session on meaningless navigation (#3608)
+- [nextjs] feat: Frontend + withSentry Performance Monitoring (#3580)
+- [react] fix: Use history object for init transaction name (#3609)
+
 ## 6.4.1
 
 - [ember] ref: Fix merging of runtime config with environment config. (#3563)

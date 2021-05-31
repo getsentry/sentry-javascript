@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "6.4.1",
+  "version": "6.5.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -17,16 +17,17 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "6.4.1",
-    "@sentry/integrations": "6.4.1",
-    "@sentry/node": "6.4.1",
-    "@sentry/react": "6.4.1",
-    "@sentry/utils": "6.4.1",
+    "@sentry/core": "6.5.0",
+    "@sentry/integrations": "6.5.0",
+    "@sentry/node": "6.5.0",
+    "@sentry/react": "6.5.0",
+    "@sentry/tracing": "6.5.0",
+    "@sentry/utils": "6.5.0",
     "@sentry/webpack-plugin": "1.15.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/types": "6.4.1",
+    "@sentry/types": "6.5.0",
     "@types/webpack": "^5.28.0",
     "eslint": "7.20.0",
     "next": "10.1.3",
@@ -53,7 +54,9 @@
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
+    "vercel:project": "source vercel/make-project-use-current-branch.sh"
   },
   "volta": {
     "extends": "../../package.json"
