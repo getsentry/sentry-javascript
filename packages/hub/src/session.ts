@@ -21,13 +21,14 @@ export class Session implements SessionInterface {
   public release?: string;
   public sid: string = uuid4();
   public did?: string;
-  public timestamp: number = timestampInSeconds;
-  public started: number = timestampInSeconds;
+  public timestamp: number = timestampInSeconds();
+  public started: number = timestampInSeconds();
   public duration?: number = 0;
   public status: SessionStatus = SessionStatus.Ok;
   public environment?: string;
   public ipAddress?: string;
   public init: boolean = true;
+  public browser: boolean = false;
 
   public constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
     if (context) {
@@ -48,8 +49,11 @@ export class Session implements SessionInterface {
       }
     }
 
-    this.timestamp = context.timestamp || timestampInSeconds;
+    this.timestamp = context.timestamp || timestampInSeconds();
 
+    if (context.browser) {
+      this.browser = context.browser;
+    }
     if (context.sid) {
       // Good enough uuid validation. — Kamil
       this.sid = context.sid.length === 32 ? context.sid : uuid4();
@@ -63,10 +67,18 @@ export class Session implements SessionInterface {
     if (typeof context.started === 'number') {
       this.started = context.started;
     }
-    if (typeof context.duration === 'number' || typeof context.duration === undefined) {
-      this.duration = context.duration;
+    // The session duration for browser sessions does not track a meaningful
+    // concept that can be used as a metric.
+    // Automatically captured sessions are akin to page views, and thus we
+    // discard their duration.
+    if (this.browser) {
+      this.duration = undefined;
     } else {
-      this.duration = this.timestamp - this.started;
+      if (typeof context.duration === 'number') {
+        this.duration = context.duration;
+      } else {
+        this.duration = this.timestamp - this.started;
+      }
     }
     if (context.release) {
       this.release = context.release;

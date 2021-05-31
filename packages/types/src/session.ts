@@ -50,6 +50,8 @@ export interface SessionContext {
   ipAddress?: string;
   errors?: number;
   user?: User | null;
+  // Sessions are handled differently in browser environments
+  browser?: boolean;
 }
 
 /**
