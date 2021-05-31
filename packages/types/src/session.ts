@@ -40,7 +40,9 @@ export interface SessionContext {
   sid?: string;
   did?: string;
   init?: boolean;
+  // seconds since the UNIX epoch
   timestamp?: number;
+  // seconds since the UNIX epoch
   started?: number;
   duration?: number;
   status?: SessionStatus;
@@ -51,7 +53,7 @@ export interface SessionContext {
   errors?: number;
   user?: User | null;
   // Sessions are handled differently in browser environments
-  browser?: boolean;
+  isBrowser?: boolean;
 }
 
 /**

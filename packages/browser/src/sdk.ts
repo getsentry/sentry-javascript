@@ -199,7 +199,7 @@ function startSessionTracking(): void {
     return;
   }
 
-  hub.startSession({ browser: true });
+  hub.startSession({ isBrowser: true });
   hub.captureSession();
 
   // We want to create a session for every navigation as well
@@ -209,7 +209,7 @@ function startSessionTracking(): void {
       if (from === undefined || from === to) {
         return;
       }
-      hub.startSession({ browser: true });
+      hub.startSession({ isBrowser: true });
       hub.captureSession();
     },
     type: 'history',

@@ -28,9 +28,10 @@ export class Session implements SessionInterface {
   public environment?: string;
   public ipAddress?: string;
   public init: boolean = true;
-  public browser: boolean = false;
+  public isBrowser: boolean = false;
 
   public constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
+    // Both timestamp and started are in seconds since the UNIX epoch.
     const startingTime = timestampInSeconds();
     this.timestamp = startingTime;
     this.started = startingTime;
@@ -53,9 +54,8 @@ export class Session implements SessionInterface {
     }
 
     this.timestamp = context.timestamp || timestampInSeconds();
-
-    if (context.browser) {
-      this.browser = context.browser;
+    if (context.isBrowser) {
+      this.isBrowser = context.isBrowser;
     }
     if (context.sid) {
       // Good enough uuid validation. — Kamil
@@ -74,14 +74,13 @@ export class Session implements SessionInterface {
     // concept that can be used as a metric.
     // Automatically captured sessions are akin to page views, and thus we
     // discard their duration.
-    if (this.browser) {
+    if (this.isBrowser) {
       this.duration = undefined;
+    } else if (typeof context.duration === 'number') {
+      this.duration = context.duration;
     } else {
-      if (typeof context.duration === 'number') {
-        this.duration = context.duration;
-      } else {
-        this.duration = this.timestamp - this.started;
-      }
+      const duration = this.timestamp - this.started;
+      this.duration = duration >= 0 ? duration : 0;
     }
     if (context.release) {
       this.release = context.release;
