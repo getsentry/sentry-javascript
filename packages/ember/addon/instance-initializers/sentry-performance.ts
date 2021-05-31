@@ -333,7 +333,8 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
 export async function instrumentForPerformance(appInstance: ApplicationInstance) {
   const config = getSentryConfig();
   const sentryConfig = config.sentry;
-  const browserTracingOptions = config.browserTracingOptions || {};
+  // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
+  const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
 
   const tracing = await import('@sentry/tracing');
 

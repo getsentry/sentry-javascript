@@ -17,7 +17,7 @@
     "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish"
   },
   "volta": {
-    "node": "10.18.1",
+    "node": "14.17.0",
     "yarn": "1.22.5"
   },
   "workspaces": [
