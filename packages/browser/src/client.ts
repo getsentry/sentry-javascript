@@ -60,15 +60,6 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public captureSession(session: Session): void {
-    // Make sure session duration is not sent
-    session.duration = undefined;
-    super.captureSession(session);
-  }
-
-  /**
-   * @inheritDoc
-   */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
     return super._prepareEvent(event, scope, hint);

@@ -21,8 +21,8 @@ export class Session implements SessionInterface {
   public release?: string;
   public sid: string = uuid4();
   public did?: string;
-  public timestamp: number = timestampInSeconds();
-  public started: number = timestampInSeconds();
+  public timestamp: number;
+  public started: number;
   public duration?: number = 0;
   public status: SessionStatus = SessionStatus.Ok;
   public environment?: string;
@@ -31,6 +31,9 @@ export class Session implements SessionInterface {
   public browser: boolean = false;
 
   public constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
+    const startingTime = timestampInSeconds();
+    this.timestamp = startingTime;
+    this.started = startingTime;
     if (context) {
       this.update(context);
     }
@@ -116,8 +119,8 @@ export class Session implements SessionInterface {
     init: boolean;
     sid: string;
     did?: string;
-    timestamp: number;
-    started: number;
+    timestamp: string;
+    started: string;
     duration?: number;
     status: SessionStatus;
     errors: number;
@@ -131,8 +134,8 @@ export class Session implements SessionInterface {
     return dropUndefinedKeys({
       sid: `${this.sid}`,
       init: this.init,
-      started: this.started,
-      timestamp: this.timestamp,
+      started: new Date(this.started).toISOString(),
+      timestamp: new Date(this.timestamp).toISOString(),
       status: this.status,
       errors: this.errors,
       did: typeof this.did === 'number' || typeof this.did === 'string' ? `${this.did}` : undefined,
