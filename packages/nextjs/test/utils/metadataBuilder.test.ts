@@ -31,8 +31,8 @@ function testSdkInfo(sdkInfo: SdkInfo | undefined): void {
   expect(sdkInfo).toBeDefined();
   expect(sdkInfo?.name).toBeDefined();
   expect(sdkInfo?.name).toEqual(SDK_NAME);
-  expect(sdkInfo?.version).toBeDefined();
-  expect(sdkInfo?.packages).toBeDefined();
+  expect(sdkInfo?.version).toEqual(expect.any(String));
+  expect(sdkInfo?.packages).toEqual(expect.any(Array));
 }
 
 function testSdkInfoPackages(actualPkgs: Package[] | undefined, expectedPkgNames: string[]): void {
@@ -46,8 +46,7 @@ function testSdkInfoPackages(actualPkgs: Package[] | undefined, expectedPkgNames
     expect(currentPkg.name).toBeDefined();
     const pkgPrefix = currentPkg.name.substring(0, PACKAGE_NAME_PREFIX.length);
     expect(pkgPrefix).toEqual(PACKAGE_NAME_PREFIX);
-    const packageName = currentPkg.name.substring(PACKAGE_NAME_PREFIX.length);
-    return packageName;
+    return currentPkg.name.substring(PACKAGE_NAME_PREFIX.length);
   });
   expect(pkgNames).toEqual(expectedPkgNames);
 }
