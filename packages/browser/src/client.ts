@@ -1,4 +1,4 @@
-import { BaseClient, Scope, SDK_VERSION, Session } from '@sentry/core';
+import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
