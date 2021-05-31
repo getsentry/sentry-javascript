@@ -41,6 +41,7 @@ export {
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';
+export { deepReadDirSync } from './utils';
 export { SDK_NAME } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
