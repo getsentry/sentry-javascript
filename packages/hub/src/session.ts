@@ -8,7 +8,7 @@ import {
   SessionStatus,
   Transport,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';
 
@@ -21,15 +21,20 @@ export class Session implements SessionInterface {
   public release?: string;
   public sid: string = uuid4();
   public did?: string;
-  public timestamp: number = Date.now();
-  public started: number = Date.now();
-  public duration: number = 0;
+  public timestamp: number;
+  public started: number;
+  public duration?: number = 0;
   public status: SessionStatus = SessionStatus.Ok;
   public environment?: string;
   public ipAddress?: string;
   public init: boolean = true;
+  public ignoreDuration: boolean = false;
 
   public constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
+    // Both timestamp and started are in seconds since the UNIX epoch.
+    const startingTime = timestampInSeconds();
+    this.timestamp = startingTime;
+    this.started = startingTime;
     if (context) {
       this.update(context);
     }
@@ -48,8 +53,10 @@ export class Session implements SessionInterface {
       }
     }
 
-    this.timestamp = context.timestamp || Date.now();
-
+    this.timestamp = context.timestamp || timestampInSeconds();
+    if (context.ignoreDuration) {
+      this.ignoreDuration = context.ignoreDuration;
+    }
     if (context.sid) {
       // Good enough uuid validation. — Kamil
       this.sid = context.sid.length === 32 ? context.sid : uuid4();
@@ -63,10 +70,13 @@ export class Session implements SessionInterface {
     if (typeof context.started === 'number') {
       this.started = context.started;
     }
-    if (typeof context.duration === 'number') {
+    if (this.ignoreDuration) {
+      this.duration = undefined;
+    } else if (typeof context.duration === 'number') {
       this.duration = context.duration;
     } else {
-      this.duration = this.timestamp - this.started;
+      const duration = this.timestamp - this.started;
+      this.duration = duration >= 0 ? duration : 0;
     }
     if (context.release) {
       this.release = context.release;
@@ -106,7 +116,7 @@ export class Session implements SessionInterface {
     did?: string;
     timestamp: string;
     started: string;
-    duration: number;
+    duration?: number;
     status: SessionStatus;
     errors: number;
     attrs?: {
@@ -119,8 +129,9 @@ export class Session implements SessionInterface {
     return dropUndefinedKeys({
       sid: `${this.sid}`,
       init: this.init,
-      started: new Date(this.started).toISOString(),
-      timestamp: new Date(this.timestamp).toISOString(),
+      // Make sure that sec is converted to ms for date constructor
+      started: new Date(this.started * 1000).toISOString(),
+      timestamp: new Date(this.timestamp * 1000).toISOString(),
       status: this.status,
       errors: this.errors,
       did: typeof this.did === 'number' || typeof this.did === 'string' ? `${this.did}` : undefined,
