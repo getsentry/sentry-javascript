@@ -1,7 +1,7 @@
 import { SessionContext, SessionStatus } from '@sentry/types';
+import { timestampInSeconds } from '@sentry/utils';
 
 import { Session } from '../src/session';
-import { timestampInSeconds } from '@sentry/utils';
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {
