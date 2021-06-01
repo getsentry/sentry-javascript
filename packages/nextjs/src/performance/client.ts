@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Primitive, Transaction, TransactionContext } from '@sentry/types';
 import { fill, getGlobalObject, stripUrlQueryAndFragment } from '@sentry/utils';
 import { default as Router } from 'next/router';

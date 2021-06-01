@@ -25,7 +25,7 @@ elif [[ "$(cut -d. -f1 <<<"$NODE_VERSION")" -le 8 ]]; then
   cd ../..
 
   # ember tests happen separately, and the rest fail on node 8 for various syntax or dependency reasons
-  yarn test --ignore="@sentry/ember" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry/react" --ignore="@sentry/wasm" --ignore="@sentry/gatsby" --ignore="@sentry/serverless"
+  yarn test --ignore="@sentry/ember" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry/react" --ignore="@sentry/wasm" --ignore="@sentry/gatsby" --ignore="@sentry/serverless" --ignore="@sentry/nextjs"
 
 else
   yarn test --ignore="@sentry/ember"
