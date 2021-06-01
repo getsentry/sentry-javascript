@@ -38,7 +38,8 @@ export {
   withScope,
 } from '@sentry/core';
 
-export { NodeBackend, NodeOptions } from './backend';
+export { NodeOptions } from './types';
+export { NodeBackend } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';
 export { deepReadDirSync } from './utils';
