@@ -59,6 +59,7 @@
     "karma-browserstack-launcher": "^1.5.1",
     "karma-firefox-launcher": "^1.1.0",
     "lerna": "3.13.4",
+    "madge": "4.0.2",
     "mocha": "^6.1.4",
     "npm-run-all": "^4.1.2",
     "prettier": "1.19.0",
@@ -73,7 +74,5 @@
   "resolutions": {
     "**/agent-base": "5",
     "**/jest-environment-node": "24"
-  },
-  "version": "0.0.0",
-  "dependencies": {}
+  }
 }
