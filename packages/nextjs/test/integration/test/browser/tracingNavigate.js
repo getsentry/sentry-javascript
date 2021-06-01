@@ -15,6 +15,7 @@ module.exports = async ({ page, url, requests }) => {
   });
 
   await sleep(100);
+
   await page.click('a#alsoHealthy');
   await page.waitForRequest(isTransactionRequest);
 
@@ -32,6 +33,7 @@ module.exports = async ({ page, url, requests }) => {
   });
 
   await sleep(100);
+
   await page.click('a#healthy');
   await page.waitForRequest(isTransactionRequest);
 
