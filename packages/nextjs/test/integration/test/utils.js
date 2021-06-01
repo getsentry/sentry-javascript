@@ -115,15 +115,18 @@ module.exports.sleep = duration => {
 };
 
 module.exports.expectEvent = (request, expectedEvent) => {
+  if (!request) throw new Error('Event missing');
   return assertObjectMatches(extractEventFromRequest(request), expectedEvent);
 };
 
 module.exports.expectSession = (request, expectedItem) => {
+  if (!request) throw new Error('Session missing');
   const { itemHeader, item } = extractEnvelopeFromRequest(request);
   return itemHeader.type === 'session' && assertObjectMatches(item, expectedItem);
 };
 
 module.exports.expectTransaction = (request, expectedItem) => {
+  if (!request) throw new Error('Transaction missing');
   const { itemHeader, item } = extractEnvelopeFromRequest(request);
   return itemHeader.type === 'transaction' && assertObjectMatches(item, expectedItem);
 };
