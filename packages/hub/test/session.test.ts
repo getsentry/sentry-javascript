@@ -7,24 +7,23 @@ describe('Session', () => {
   it('initializes with the proper defaults', () => {
     const session = new Session().toJSON();
 
-    const sessionStartTime = session.timestamp;
-
+    // Grab current year to check if we are converting from sec -> ms correctly
+    const currentYear = new Date(timestampInSeconds() * 1000).toISOString().slice(0, 4);
     expect(session).toEqual({
       attrs: {},
       duration: 0,
       errors: 0,
       init: true,
       sid: expect.any(String),
-      started: expect.any(String),
+      started: expect.stringMatching(currentYear),
       status: SessionStatus.Ok,
-      timestamp: expect.any(String),
+      timestamp: expect.stringMatching(currentYear),
     });
 
     expect(session.sid).toHaveLength(32);
 
     // started and timestamp should be the same on creation
-    expect(session.started).toEqual(sessionStartTime);
-    expect(session.timestamp).toEqual(sessionStartTime);
+    expect(session.started).toEqual(session.timestamp);
   });
 
   describe('update', () => {
@@ -41,13 +40,16 @@ describe('Session', () => {
       ['sets an did', { did: 'specialID123' }, { did: 'specialID123' }],
       ['overwrites user did with custom did', { did: 'custom-did', user: { id: 'user-id' } }, { did: 'custom-did' }],
       ['sets a started time', { started: time }, { started: new Date(time * 1000).toISOString() }],
-      ['does not set a duration for browser env', { isBrowser: true }, { duration: undefined }],
+      ['does not set a duration for browser env', { ignoreDuration: true }, { duration: undefined }],
       ['sets a duration', { duration: 12000 }, { duration: 12000 }],
-      ['does not use custom duration for browser env', { duration: 12000, isBrowser: true }, { duration: undefined }],
+      [
+        'does not use custom duration for browser env',
+        { duration: 12000, ignoreDuration: true },
+        { duration: undefined },
+      ],
       [
         'does not set a negative duration',
         { timestamp: 10, started: 100 },
-        // TODO(abhi): What should the behaviour here be?
         { duration: 0, timestamp: expect.any(String), started: expect.any(String) },
       ],
       [
@@ -88,30 +90,26 @@ describe('Session', () => {
   describe('close', () => {
     it('exits a normal session', () => {
       const session = new Session();
-      const mockUpdate = jest.spyOn(session, 'update');
-      expect(mockUpdate).toHaveBeenCalledTimes(0);
+      expect(session.status).toEqual(SessionStatus.Ok);
       session.close();
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
-      expect(mockUpdate).toHaveBeenLastCalledWith({ status: SessionStatus.Exited });
+      expect(session.status).toEqual(SessionStatus.Exited);
     });
 
     it('updates session status when give status', () => {
       const session = new Session();
-      const mockUpdate = jest.spyOn(session, 'update');
+      expect(session.status).toEqual(SessionStatus.Ok);
 
-      session.close(SessionStatus.Crashed);
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
-      expect(mockUpdate).toHaveBeenLastCalledWith({ status: SessionStatus.Crashed });
+      session.close(SessionStatus.Abnormal);
+      expect(session.status).toEqual(SessionStatus.Abnormal);
     });
 
-    it('only changes status ok', () => {
+    it('only changes status ok to exited', () => {
       const session = new Session();
-      session.status = SessionStatus.Abnormal;
-      const mockUpdate = jest.spyOn(session, 'update');
+      session.update({ status: SessionStatus.Crashed });
+      expect(session.status).toEqual(SessionStatus.Crashed);
 
       session.close();
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
-      expect(mockUpdate).toHaveBeenLastCalledWith();
+      expect(session.status).toEqual(SessionStatus.Crashed);
     });
   });
 });
