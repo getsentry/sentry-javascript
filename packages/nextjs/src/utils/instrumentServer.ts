@@ -2,7 +2,6 @@ import { deepReadDirSync } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { Event as SentryEvent } from '@sentry/types';
 import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
-// import * as assert from 'assert';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
