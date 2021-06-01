@@ -34,8 +34,7 @@
   },
   "devDependencies": {
     "eslint": "7.27.0",
-    "typescript": "3.7.5",
-    "madge": "4.0.2"
+    "typescript": "3.7.5"
   },
   "scripts": {
     "link:yarn": "yarn link",

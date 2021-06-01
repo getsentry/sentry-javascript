@@ -42,8 +42,7 @@
     "prettier": "1.19.0",
     "read-pkg": "^5.2.0",
     "rimraf": "^2.6.3",
-    "typescript": "3.7.5",
-    "madge": "4.0.2"
+    "typescript": "3.7.5"
   },
   "scripts": {
     "build": "run-s build:es build:awslambda-layer",
