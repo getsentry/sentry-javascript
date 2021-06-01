@@ -1,6 +1,7 @@
 import { SessionContext, SessionStatus } from '@sentry/types';
 
 import { Session } from '../src/session';
+import { timestampInSeconds } from '@sentry/utils';
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {
@@ -27,39 +28,19 @@ describe('Session', () => {
   });
 
   describe('update', () => {
-    const DEFAULT_OUT = { duration: expect.any(Number) };
+    const time = timestampInSeconds();
     // [ name, in, out ]
     const table: Array<[string, SessionContext, Record<string, any>]> = [
-      ['sets an ip address', { user: { ip_address: '0.0.0.0' } }, { attrs: { ip_address: '0.0.0.0' }, ...DEFAULT_OUT }],
-      ['sets a did', { user: { id: 'specialID123' } }, { did: 'specialID123', ...DEFAULT_OUT }],
-      [
-        'sets a timestamp',
-        { timestamp: 1622481662 },
-        { timestamp: new Date(1622481662).toISOString(), ...DEFAULT_OUT },
-      ],
-      [
-        'sets a sid',
-        { sid: '99705f22a3f1468e95ba7386e84691aa' },
-        { sid: '99705f22a3f1468e95ba7386e84691aa', ...DEFAULT_OUT },
-      ],
-      [
-        'requires custom sid to be of certain length',
-        { sid: '123' },
-        { sid: expect.not.stringMatching('123'), ...DEFAULT_OUT },
-      ],
-      [
-        'requires custom sid to be of certain length',
-        { sid: '123' },
-        { sid: expect.not.stringMatching('123'), ...DEFAULT_OUT },
-      ],
-      ['sets an init', { init: false }, { init: false, ...DEFAULT_OUT }],
-      ['sets an did', { did: 'specialID123' }, { did: 'specialID123', ...DEFAULT_OUT }],
-      [
-        'overwrites user did with custom did',
-        { did: 'custom-did', user: { id: 'user-id' } },
-        { did: 'custom-did', ...DEFAULT_OUT },
-      ],
-      ['sets a started time', { started: 1622481662 }, { started: new Date(1622481662).toISOString(), ...DEFAULT_OUT }],
+      ['sets an ip address', { user: { ip_address: '0.0.0.0' } }, { attrs: { ip_address: '0.0.0.0' } }],
+      ['sets a did', { user: { id: 'specialID123' } }, { did: 'specialID123' }],
+      ['sets a timestamp', { timestamp: time }, { timestamp: new Date(time * 1000).toISOString() }],
+      ['sets a sid', { sid: '99705f22a3f1468e95ba7386e84691aa' }, { sid: '99705f22a3f1468e95ba7386e84691aa' }],
+      ['requires custom sid to be of certain length', { sid: '123' }, { sid: expect.not.stringMatching('123') }],
+      ['requires custom sid to be of certain length', { sid: '123' }, { sid: expect.not.stringMatching('123') }],
+      ['sets an init', { init: false }, { init: false }],
+      ['sets an did', { did: 'specialID123' }, { did: 'specialID123' }],
+      ['overwrites user did with custom did', { did: 'custom-did', user: { id: 'user-id' } }, { did: 'custom-did' }],
+      ['sets a started time', { started: time }, { started: new Date(time * 1000).toISOString() }],
       ['does not set a duration for browser env', { isBrowser: true }, { duration: undefined }],
       ['sets a duration', { duration: 12000 }, { duration: 12000 }],
       ['does not use custom duration for browser env', { duration: 12000, isBrowser: true }, { duration: undefined }],
@@ -77,26 +58,30 @@ describe('Session', () => {
       [
         'sets a release',
         { release: 'f1557994979ecd969963f53c27ca946379d721f3' },
-        { attrs: { release: 'f1557994979ecd969963f53c27ca946379d721f3' }, ...DEFAULT_OUT },
+        { attrs: { release: 'f1557994979ecd969963f53c27ca946379d721f3' } },
       ],
-      ['sets an environment', { environment: 'staging' }, { attrs: { environment: 'staging' }, ...DEFAULT_OUT }],
-      ['sets an ipAddress', { ipAddress: '0.0.0.0' }, { attrs: { ip_address: '0.0.0.0' }, ...DEFAULT_OUT }],
+      ['sets an environment', { environment: 'staging' }, { attrs: { environment: 'staging' } }],
+      ['sets an ipAddress', { ipAddress: '0.0.0.0' }, { attrs: { ip_address: '0.0.0.0' } }],
       [
         'overwrites user ip_address did with custom ipAddress',
         { ipAddress: '0.0.0.0', user: { ip_address: '1.1.1.1' } },
-        { attrs: { ip_address: '0.0.0.0' }, ...DEFAULT_OUT },
+        { attrs: { ip_address: '0.0.0.0' } },
       ],
-      ['sets an userAgent', { userAgent: 'Mozilla/5.0' }, { attrs: { user_agent: 'Mozilla/5.0' }, ...DEFAULT_OUT }],
-      ['sets errors', { errors: 3 }, { errors: 3, ...DEFAULT_OUT }],
-      ['sets status', { status: SessionStatus.Crashed }, { status: SessionStatus.Crashed, ...DEFAULT_OUT }],
+      ['sets an userAgent', { userAgent: 'Mozilla/5.0' }, { attrs: { user_agent: 'Mozilla/5.0' } }],
+      ['sets errors', { errors: 3 }, { errors: 3 }],
+      ['sets status', { status: SessionStatus.Crashed }, { status: SessionStatus.Crashed }],
     ];
 
     test.each(table)('%s', (...test) => {
+      // duration and timestamp can vary after session update, so let's expect anything unless
+      // the out variable in a test explicitly refers to it.
+      const DEFAULT_OUT = { duration: expect.any(Number), timestamp: expect.any(String) };
+
       const session = new Session();
       const initSessionProps = session.toJSON();
 
       session.update(test[1]);
-      expect(session.toJSON()).toEqual({ ...initSessionProps, ...test[2] });
+      expect(session.toJSON()).toEqual({ ...initSessionProps, ...DEFAULT_OUT, ...test[2] });
     });
   });
 

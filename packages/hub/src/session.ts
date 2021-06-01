@@ -133,8 +133,9 @@ export class Session implements SessionInterface {
     return dropUndefinedKeys({
       sid: `${this.sid}`,
       init: this.init,
-      started: new Date(this.started).toISOString(),
-      timestamp: new Date(this.timestamp).toISOString(),
+      // Make sure that sec is converted to ms for date constructor
+      started: new Date(this.started * 1000).toISOString(),
+      timestamp: new Date(this.timestamp * 1000).toISOString(),
       status: this.status,
       errors: this.errors,
       did: typeof this.did === 'number' || typeof this.did === 'string' ? `${this.did}` : undefined,
