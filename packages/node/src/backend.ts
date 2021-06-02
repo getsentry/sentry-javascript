@@ -109,7 +109,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     return new SyncPromise<Event>(resolve => {
       if (this._options.attachStacktrace && hint && hint.syntheticException) {
         const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-        parseStack(stack, this._options)
+        void parseStack(stack, this._options)
           .then(frames => {
             event.stacktrace = {
               frames: prepareFramesForEvent(frames),
