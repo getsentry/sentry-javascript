@@ -5,7 +5,7 @@ const path = require('path');
 
 const next = require('next');
 
-const { DEBUG_MODE } = require('./utils');
+const { colorize, DEBUG_MODE } = require('./utils');
 const { log } = console;
 
 /**
@@ -29,11 +29,11 @@ const FILES_FILTER = process.argv[2];
   }
 
   if (scenarios.length === 0) {
-    log('No tests founds.');
+    log('No test suites found');
     process.exit(0);
   } else {
     if (DEBUG_MODE) {
-      scenarios.forEach(s => log(`⊙ Tests Found: ${s}`));
+      scenarios.forEach(s => log(`⊙ Test suites found: ${s}`));
     }
   }
 
@@ -59,12 +59,17 @@ const FILES_FILTER = process.argv[2];
 
         try {
           await require(`./server/${testCase}`)(testInput);
-          log(`\x1b[32m✓ Test Succeded: ${testCase}\x1b[0m`);
+          log(colorize(`✓ Scenario succeded: ${testCase}`, 'green'));
           return true;
         } catch (error) {
           const testCaseFrames = error.stack.split('\n').filter(l => l.includes(testCase));
+          if (testCaseFrames.length === 0) {
+            log(error);
+            return false;
+          }
           const line = testCaseFrames[0].match(/.+:(\d+):/)[1];
-          log(`\x1b[31mX Test Failed: ${testCase} (line: ${line})\x1b[0m\n${error.message}`);
+          log(colorize(`X Scenario failed: ${testCase} (line: ${line})`, 'red'));
+          log(error.message);
           return false;
         }
       });
@@ -79,10 +84,10 @@ const FILES_FILTER = process.argv[2];
   });
 
   if (success) {
-    log(`\x1b[32m✓ All Tests Succeded\x1b[0m`);
+    log(colorize(`✓ All scenarios succeded`, 'green'));
     process.exit(0);
   } else {
-    log(`\x1b[31mX Some Tests Failed\x1b[0m`);
+    log(colorize(`X Some scenarios failed`, 'red'));
     process.exit(1);
   }
 })();

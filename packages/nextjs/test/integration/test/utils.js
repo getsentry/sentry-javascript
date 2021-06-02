@@ -187,3 +187,19 @@ const assertObjectMatches = (actual, expected) => {
 
   return true;
 };
+
+// Misc
+
+const COLOR_RESET = '\x1b[0m';
+const COLORS = {
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+};
+
+module.exports.colorize = (str, color) => {
+  if (!(color in COLORS)) {
+    throw new Error(`Unknown color. Available colors: ${Object.keys(COLORS).join(', ')}`);
+  }
+
+  return `${COLORS[color]}${str}${COLOR_RESET}`;
+};
