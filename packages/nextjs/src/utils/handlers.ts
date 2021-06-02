@@ -81,7 +81,11 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
 
         transaction.finish();
       }
-      await flush(2000);
+      try {
+        await flush(2000);
+      } catch (e) {
+        // no-empty
+      }
     }
   };
 };
