@@ -90,7 +90,7 @@ const FILES_FILTER = process.argv[2];
           if (
             isSentryRequest(request) ||
             // Used for testing http tracing
-            request.url().includes('example.com')
+            request.url().includes('http://example.com')
           ) {
             request.respond({
               status: 200,
