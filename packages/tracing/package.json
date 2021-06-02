@@ -27,7 +27,6 @@
     "@sentry/browser": "6.5.0",
     "@types/express": "^4.17.1",
     "@types/jsdom": "^16.2.3",
-    "eslint": "7.6.0",
     "jest": "^24.7.1",
     "jsdom": "^16.2.2",
     "npm-run-all": "^4.1.2",

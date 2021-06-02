@@ -29,7 +29,6 @@
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "6.5.0",
-    "eslint": "7.6.0",
     "jest": "^24.7.1",
     "jsdom": "^16.2.2",
     "npm-run-all": "^4.1.2",

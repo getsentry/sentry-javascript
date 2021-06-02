@@ -35,7 +35,6 @@
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "6.5.0",
     "@testing-library/react": "^10.4.9",
-    "eslint": "7.6.0",
     "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
     "prettier": "1.19.0",
