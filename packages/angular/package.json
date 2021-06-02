@@ -32,7 +32,6 @@
     "@angular/core": "^10.0.3",
     "@angular/router": "^10.0.3",
     "@sentry-internal/eslint-config-sdk": "6.5.0",
-    "eslint": "7.6.0",
     "npm-run-all": "^4.1.2",
     "prettier": "1.19.0",
     "rimraf": "^2.6.3",

@@ -221,7 +221,7 @@ export function wrapHandler<TEvent, TResult>(
             // This should never happen, but still can if someone writes a handler as
             // `async (event, context, callback) => {}`
             if (isPromise(rv)) {
-              (rv as Promise<NonNullable<TResult>>).then(resolve, reject);
+              void (rv as Promise<NonNullable<TResult>>).then(resolve, reject);
             }
           })
       : (handler as AsyncHandler<typeof handler>);

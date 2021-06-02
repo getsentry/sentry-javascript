@@ -73,7 +73,6 @@
     "ember-test-selectors": "^4.1.0",
     "ember-try": "^1.4.0",
     "ember-window-mock": "^0.7.1",
-    "eslint": "7.6.0",
     "eslint-plugin-ember": "^8.6.0",
     "eslint-plugin-node": "^11.1.0",
     "loader.js": "^4.7.0",
