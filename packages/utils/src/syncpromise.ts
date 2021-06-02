@@ -68,7 +68,7 @@ class SyncPromise<T> implements PromiseLike<T> {
       const resolvedCollection: U[] = [];
 
       collection.forEach((item, index) => {
-        SyncPromise.resolve(item)
+        void SyncPromise.resolve(item)
           .then(value => {
             resolvedCollection[index] = value;
             counter -= 1;
@@ -184,7 +184,7 @@ class SyncPromise<T> implements PromiseLike<T> {
     }
 
     if (isThenable(value)) {
-      (value as PromiseLike<T>).then(this._resolve, this._reject);
+      void (value as PromiseLike<T>).then(this._resolve, this._reject);
       return;
     }
 
