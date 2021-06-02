@@ -129,6 +129,13 @@ const FILES_FILTER = process.argv[2];
             log(error);
             return false;
           }
+          /**
+           * Find first frame that matches our scenario filename and extract line number from it, eg.:
+           *
+           * at assertObjectMatches (/test/integration/test/utils.js:184:7)
+           * at module.exports.expectEvent (/test/integration/test/utils.js:122:10)
+           * at module.exports (/test/integration/test/client/errorGlobal.js:6:3)
+           */
           const line = testCaseFrames[0].match(/.+:(\d+):/)[1];
           log(colorize(`X Scenario failed: ${testCase} (line: ${line})`, 'red'));
           log(error.message);
