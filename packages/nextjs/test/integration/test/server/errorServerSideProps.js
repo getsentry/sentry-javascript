@@ -2,24 +2,27 @@ const assert = require('assert');
 
 const { getAsync, interceptEventRequest, sleep } = require('../utils');
 
-module.exports = async ({ url }) => {
-  const capturedRequest = interceptEventRequest({
-    exception: {
-      values: [
-        {
-          type: 'Error',
-          value: 'ServerSideProps Error',
-        },
-      ],
+module.exports = async ({ url, argv }) => {
+  const capturedRequest = interceptEventRequest(
+    {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'ServerSideProps Error',
+          },
+        ],
+      },
+      tags: {
+        runtime: 'node',
+      },
+      request: {
+        url: '/withServerSideProps',
+        method: 'GET',
+      },
     },
-    tags: {
-      runtime: 'node',
-    },
-    request: {
-      url: '/withServerSideProps',
-      method: 'GET',
-    },
-  });
+    argv,
+  );
 
   await getAsync(`${url}/withServerSideProps`);
   await sleep(100);

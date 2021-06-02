@@ -4,12 +4,12 @@ const { inspect } = require('util');
 
 const nock = require('nock');
 
-const DEBUG_MODE = (module.exports.DEBUG_MODE = Boolean(process.env.DEBUG));
-const DEBUG_DEPTH = process.env.DEBUG_DEPTH ? parseInt(process.env.DEBUG_DEPTH, 10) : 4;
-
-const logDebug = (module.exports.logDebug = (title, body) => {
-  if (DEBUG_MODE) {
-    console.log(`\n${title}:\n\n${inspect(body, { depth: DEBUG_DEPTH })}`);
+const logIf = (module.exports.logIf = (condition, message, input, depth = 4) => {
+  if (condition) {
+    console.log(message);
+    if (input) {
+      console.log(inspect(input, { depth }));
+    }
   }
 });
 
@@ -34,30 +34,30 @@ module.exports.getAsync = url => {
   });
 };
 
-module.exports.interceptEventRequest = expectedEvent => {
+module.exports.interceptEventRequest = (expectedEvent, argv = {}) => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/store/', body => {
-      logDebug('Intercepted Event', body);
+      logIf(argv.debug, 'Intercepted Event', body, argv.depth);
       return objectMatches(body, expectedEvent);
     })
     .reply(200);
 };
 
-module.exports.interceptSessionRequest = expectedItem => {
+module.exports.interceptSessionRequest = (expectedItem, argv = {}) => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
-      logDebug('Intercepted Transaction', { envelopeHeader, itemHeader, item });
+      logIf(argv.debug, 'Intercepted Transaction', { envelopeHeader, itemHeader, item }, argv.depth);
       return itemHeader.type === 'session' && objectMatches(item, expectedItem);
     })
     .reply(200);
 };
 
-module.exports.interceptTracingRequest = expectedItem => {
+module.exports.interceptTracingRequest = (expectedItem, argv = {}) => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
-      logDebug('Intercepted Transaction', { envelopeHeader, itemHeader, item });
+      logIf(argv.debug, 'Intercepted Transaction', { envelopeHeader, itemHeader, item }, argv.depth);
       return itemHeader.type === 'transaction' && objectMatches(item, expectedItem);
     })
     .reply(200);

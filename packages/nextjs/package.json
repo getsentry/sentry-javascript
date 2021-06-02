@@ -57,8 +57,8 @@
     "test:unit": "jest",
     "test:integration": "run-s test:integration:build test:integration:server test:integration:client",
     "test:integration:build": "cd test/integration && yarn && yarn build && cd ../..",
-    "test:integration:server": "node test/integration/test/server.js",
-    "test:integration:client": "node test/integration/test/client.js",
+    "test:integration:server": "node test/integration/test/server.js --silent",
+    "test:integration:client": "node test/integration/test/client.js --silent",
     "pack": "npm pack",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh"

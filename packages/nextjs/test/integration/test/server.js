@@ -3,42 +3,61 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const path = require('path');
 
+const yargs = require('yargs/yargs');
 const next = require('next');
 
-const { colorize, DEBUG_MODE } = require('./utils');
+const { colorize } = require('./utils');
 const { log } = console;
 
 /**
- * Usage: node server.js <filename>
+ * server.js
  *
- * ENV Variables:
- * DEBUG=[bool] - enable request and application logs
- * DEBUG_DEPTH=[int] - set logging depth
+ * Start the test-runner
  *
- * Arguments:
- * <filename> - filter tests based on filename partial match
+ * Options:
+ *   --filter   Filter scenarios based on filename (case-insensitive)      [string]
+ *   --silent   Hide all stdout and console logs except test results      [boolean]
+ *   --debug    Log intercepted requests and debug messages               [boolean]
+ *   --depth    Set the logging depth for intercepted requests             [number]
  */
 
-const FILES_FILTER = process.argv[2];
+const argv = yargs(process.argv.slice(2))
+  .command('$0', 'Start the test-runner')
+  .option('filter', {
+    type: 'string',
+    description: 'Filter scenarios based on filename (case-insensitive)',
+  })
+  .option('silent', {
+    type: 'boolean',
+    description: 'Hide all stdout and console logs except test results',
+  })
+  .option('debug', {
+    type: 'boolean',
+    description: 'Log intercepted requests and debug messages',
+  })
+  .option('depth', {
+    type: 'number',
+    description: 'Set the logging depth for intercepted requests',
+  }).argv;
 
 (async () => {
   let scenarios = await fs.readdir(path.resolve(__dirname, './server'));
 
-  if (FILES_FILTER) {
-    scenarios = scenarios.filter(file => file.toLowerCase().includes(FILES_FILTER));
+  if (argv.filter) {
+    scenarios = scenarios.filter(file => file.toLowerCase().includes(argv.filter));
   }
 
   if (scenarios.length === 0) {
     log('No test suites found');
     process.exit(0);
   } else {
-    if (DEBUG_MODE) {
+    if (!argv.silent) {
       scenarios.forEach(s => log(`⊙ Test suites found: ${s}`));
     }
   }
 
   // Silence all the unnecessary server noise. We are capturing errors manualy anyway.
-  if (!DEBUG_MODE) {
+  if (argv.silent) {
     console.log = () => {};
     console.error = () => {};
   }
@@ -55,6 +74,7 @@ const FILES_FILTER = process.argv[2];
       const cases = scenarios.map(async testCase => {
         const testInput = {
           url: `http://localhost:${server.address().port}`,
+          argv,
         };
 
         try {
