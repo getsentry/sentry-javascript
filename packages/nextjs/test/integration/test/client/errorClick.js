@@ -1,6 +1,8 @@
-const { expectRequestCount, waitForAll, isEventRequest, expectEvent } = require('../utils');
+const { waitForAll } = require('../utils/common');
+const { expectRequestCount, isEventRequest, expectEvent } = require('../utils/client');
 
 module.exports = async ({ page, url, requests }) => {
+  console.log(page, url, requests);
   await page.goto(`${url}/errorClick`);
 
   await waitForAll([page.click('button'), page.waitForRequest(isEventRequest)]);

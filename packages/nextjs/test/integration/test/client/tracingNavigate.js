@@ -1,4 +1,5 @@
-const { expectRequestCount, expectTransaction, isTransactionRequest, sleep } = require('../utils');
+const { sleep } = require('../utils/common');
+const { expectRequestCount, isTransactionRequest, expectTransaction } = require('../utils/client');
 
 module.exports = async ({ page, url, requests }) => {
   await page.goto(`${url}/healthy`);

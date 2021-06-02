@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.5.1
+
+- [nextjs] fix: Prevent webpack 5 from crashing server (#3642)
+- [eslint] build: Upgrade to eslint 7.27.0 (#3639)
+- [nextjs] test: Add nextjs integration tests for Server and Browser (#3632)
+- [browser] ref: Don't send session duration in browser environments (#3616)
+- [hub] fix: Correctly compute session durations (#3616)
+
 ## 6.5.0
 
 - [angular] fix: prevent memory leak when the root view is removed (#3594)

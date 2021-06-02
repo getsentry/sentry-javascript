@@ -1,4 +1,5 @@
-const { expectRequestCount, waitForAll, isSessionRequest, expectSession, sleep } = require('../utils');
+const { sleep, waitForAll } = require('../utils/common');
+const { expectRequestCount, isSessionRequest, expectSession } = require('../utils/client');
 
 module.exports = async ({ page, url, requests }) => {
   await waitForAll([page.goto(`${url}/healthy`), page.waitForRequest(isSessionRequest)]);

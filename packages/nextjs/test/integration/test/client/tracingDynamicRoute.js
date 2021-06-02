@@ -1,4 +1,4 @@
-const { expectRequestCount, isTransactionRequest, expectTransaction } = require('../utils');
+const { expectRequestCount, isTransactionRequest, expectTransaction } = require('../utils/client');
 
 module.exports = async ({ page, url, requests }) => {
   await page.goto(`${url}/users/102`);

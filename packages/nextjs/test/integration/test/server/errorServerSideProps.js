@@ -1,6 +1,7 @@
 const assert = require('assert');
 
-const { getAsync, interceptEventRequest, sleep } = require('../utils');
+const { sleep } = require('../utils/common');
+const { getAsync, interceptEventRequest } = require('../utils/server');
 
 module.exports = async ({ url, argv }) => {
   const capturedRequest = interceptEventRequest(
