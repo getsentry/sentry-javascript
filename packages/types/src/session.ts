@@ -17,7 +17,7 @@ export interface Session extends SessionContext {
     did?: string;
     timestamp: string;
     started: string;
-    duration: number;
+    duration?: number;
     status: SessionStatus;
     errors: number;
     attrs?: {
@@ -40,7 +40,9 @@ export interface SessionContext {
   sid?: string;
   did?: string;
   init?: boolean;
+  // seconds since the UNIX epoch
   timestamp?: number;
+  // seconds since the UNIX epoch
   started?: number;
   duration?: number;
   status?: SessionStatus;
@@ -50,6 +52,7 @@ export interface SessionContext {
   ipAddress?: string;
   errors?: number;
   user?: User | null;
+  ignoreDuration?: boolean;
 }
 
 /**

@@ -17,6 +17,7 @@ export function init(options: NextjsOptions): void {
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
   metadataBuilder.addSdkMetadata();
   options.environment = options.environment || process.env.NODE_ENV;
+  // TODO capture project root and store in an env var for RewriteFrames?
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
   options.autoSessionTracking = false;
@@ -47,5 +48,5 @@ function addServerIntegrations(options: NextjsOptions): void {
 export { withSentryConfig } from './utils/config';
 export { withSentry } from './utils/handlers';
 
-// TODO capture project root (which this returns) for RewriteFrames?
+// wrap various server methods to enable error monitoring and tracing
 instrumentServer();
