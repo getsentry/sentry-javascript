@@ -72,6 +72,18 @@ const FILES_FILTER = process.argv[2];
 
         page.on('console', msg => logDebug(msg.text()));
 
+        // Capturing requests this way allows us to have a reproducible order,
+        // where using `Promise.all([page.waitForRequest(isEventRequest), page.waitForRequest(isEventRequest)])` doesn't guarantee it.
+        const testInput = {
+          page,
+          url: `http://localhost:${server.address().port}`,
+          requests: {
+            events: [],
+            sessions: [],
+            transactions: [],
+          },
+        };
+
         await page.setRequestInterception(true);
         page.on('request', request => {
           if (
@@ -105,18 +117,6 @@ const FILES_FILTER = process.argv[2];
             testInput.requests.transactions.push(request);
           }
         });
-
-        // Capturing requests this way allows us to have a reproducible order,
-        // where using `Promise.all([page.waitForRequest(isEventRequest), page.waitForRequest(isEventRequest)])` doesn't guarantee it.
-        const testInput = {
-          page,
-          url: `http://localhost:${server.address().port}`,
-          requests: {
-            events: [],
-            sessions: [],
-            transactions: [],
-          },
-        };
 
         try {
           await require(`./browser/${testCase}`)(testInput);
