@@ -2,7 +2,8 @@ const assert = require('assert');
 
 const nock = require('nock');
 
-const { getAsync, sleep, interceptTracingRequest } = require('../utils');
+const { sleep } = require('../utils/common');
+const { getAsync, interceptTracingRequest } = require('../utils/server');
 
 module.exports = async ({ url, argv }) => {
   nock('http://example.com')

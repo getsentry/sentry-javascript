@@ -3,7 +3,7 @@ const path = require('path');
 
 const yargs = require('yargs/yargs');
 
-const { colorize, verifyDir } = require('./utils');
+const { colorize, verifyDir } = require('./utils/common');
 const { error, log } = console;
 
 const argv = yargs(process.argv.slice(2))
