@@ -559,7 +559,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   protected _process<T>(promise: PromiseLike<T>): void {
     this._processing += 1;
-    promise.then(
+    void promise.then(
       value => {
         this._processing -= 1;
         return value;

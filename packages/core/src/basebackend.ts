@@ -91,7 +91,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public sendEvent(event: Event): void {
-    this._transport.sendEvent(event).then(null, reason => {
+    void this._transport.sendEvent(event).then(null, reason => {
       logger.error(`Error while sending event: ${reason}`);
     });
   }
@@ -105,7 +105,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
       return;
     }
 
-    this._transport.sendSession(session).then(null, reason => {
+    void this._transport.sendSession(session).then(null, reason => {
       logger.error(`Error while sending session: ${reason}`);
     });
   }

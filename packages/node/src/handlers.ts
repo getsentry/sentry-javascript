@@ -65,6 +65,7 @@ export function tracingHandler(): (
         op: 'http.server',
         ...traceparentData,
       },
+      // extra context passed to the tracesSampler
       { request: extractRequestData(req) },
     );
 
@@ -256,8 +257,11 @@ export function extractRequestData(
         if (method === 'GET' || method === 'HEAD') {
           break;
         }
-        // body data:
-        //   node, express, koa: req.body
+        // body data: express, koa: req.body
+
+        // when using node by itself, you have to read the incoming stream(see
+        // https://nodejs.dev/learn/get-http-request-body-data-using-nodejs); if a user is doing that, we can't know
+        // where they're going to store the final result, so they'll have to capture this data themselves
         if (req.body !== undefined) {
           requestData.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
         }
@@ -393,7 +397,7 @@ export function requestHandler(
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
       res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
-        flush(options.flushTimeout)
+        void flush(options.flushTimeout)
           .then(() => {
             _end.call(this, chunk, encoding, cb);
           })

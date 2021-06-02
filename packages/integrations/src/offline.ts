@@ -69,7 +69,7 @@ export class Offline implements Integration {
 
     if ('addEventListener' in this.global) {
       this.global.addEventListener('online', () => {
-        this._sendEvents().catch(() => {
+        void this._sendEvents().catch(() => {
           logger.warn('could not send cached events');
         });
       });
@@ -79,7 +79,7 @@ export class Offline implements Integration {
       if (this.hub && this.hub.getIntegration(Offline)) {
         // cache if we are positively offline
         if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
-          this._cacheEvent(event)
+          void this._cacheEvent(event)
             .then((_event: Event): Promise<void> => this._enforceMaxEvents())
             .catch((_error): void => {
               logger.warn('could not cache event while offline');
@@ -95,7 +95,7 @@ export class Offline implements Integration {
 
     // if online now, send any events stored in a previous offline session
     if ('navigator' in this.global && 'onLine' in this.global.navigator && this.global.navigator.onLine) {
-      this._sendEvents().catch(() => {
+      void this._sendEvents().catch(() => {
         logger.warn('could not send cached events');
       });
     }
@@ -159,7 +159,7 @@ export class Offline implements Integration {
       if (this.hub) {
         this.hub.captureEvent(event);
 
-        this._purgeEvent(cacheKey).catch((_error): void => {
+        void this._purgeEvent(cacheKey).catch((_error): void => {
           logger.warn('could not purge event from cache');
         });
       } else {
