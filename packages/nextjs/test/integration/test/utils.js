@@ -85,7 +85,7 @@ const objectMatches = (actual, expected) => {
   return true;
 };
 
-// Browser
+// Client
 
 module.exports.isSentryRequest = request => {
   return /sentry.io\/api/.test(request.url());

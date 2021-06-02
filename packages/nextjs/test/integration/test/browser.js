@@ -19,7 +19,7 @@ const {
 const { log } = console;
 
 /**
- * Usage: node browser.js <filename>
+ * Usage: node client.js <filename>
  *
  * ENV Variables:
  * DEBUG=[bool] - enable requests logging
@@ -32,7 +32,7 @@ const { log } = console;
 const FILES_FILTER = process.argv[2];
 
 (async () => {
-  let scenarios = await fs.readdir(path.resolve(__dirname, './browser'));
+  let scenarios = await fs.readdir(path.resolve(__dirname, './client'));
 
   if (FILES_FILTER) {
     scenarios = scenarios.filter(file => file.toLowerCase().includes(FILES_FILTER));
@@ -119,7 +119,7 @@ const FILES_FILTER = process.argv[2];
         });
 
         try {
-          await require(`./browser/${testCase}`)(testInput);
+          await require(`./client/${testCase}`)(testInput);
           log(`\x1b[32m✓ Test Succeded: ${testCase}\x1b[0m`);
           return true;
         } catch (error) {
