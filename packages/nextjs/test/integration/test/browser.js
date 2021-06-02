@@ -39,11 +39,11 @@ const FILES_FILTER = process.argv[2];
   }
 
   if (scenarios.length === 0) {
-    console.log('No tests founds.');
+    log('No tests founds.');
     process.exit(0);
   } else {
     if (DEBUG_MODE) {
-      scenarios.forEach(s => console.log(`⊙ Tests Found: ${s}`));
+      scenarios.forEach(s => log(`⊙ Tests Found: ${s}`));
     }
   }
 
@@ -70,7 +70,7 @@ const FILES_FILTER = process.argv[2];
         const page = await browser.newPage();
         page.setDefaultTimeout(2000);
 
-        if (DEBUG_MODE) page.on('console', msg => logDebug(msg.text()));
+        page.on('console', msg => logDebug(msg.text()));
 
         await page.setRequestInterception(true);
         page.on('request', request => {
@@ -91,17 +91,17 @@ const FILES_FILTER = process.argv[2];
           }
 
           if (isEventRequest(request)) {
-            if (DEBUG_MODE) logDebug('Intercepted Event', extractEventFromRequest(request));
+            logDebug('Intercepted Event', extractEventFromRequest(request));
             testInput.requests.events.push(request);
           }
 
           if (isSessionRequest(request)) {
-            if (DEBUG_MODE) logDebug('Intercepted Session', extractEnvelopeFromRequest(request));
+            logDebug('Intercepted Session', extractEnvelopeFromRequest(request));
             testInput.requests.sessions.push(request);
           }
 
           if (isTransactionRequest(request)) {
-            if (DEBUG_MODE) logDebug('Intercepted Transaction', extractEnvelopeFromRequest(request));
+            logDebug('Intercepted Transaction', extractEnvelopeFromRequest(request));
             testInput.requests.transactions.push(request);
           }
         });

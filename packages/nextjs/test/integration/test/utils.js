@@ -7,8 +7,11 @@ const nock = require('nock');
 const DEBUG_MODE = (module.exports.DEBUG_MODE = Boolean(process.env.DEBUG));
 const DEBUG_DEPTH = process.env.DEBUG_DEPTH ? parseInt(process.env.DEBUG_DEPTH, 10) : 4;
 
-const logDebug = (module.exports.logDebug = (title, body) =>
-  console.log(`\n${title}:\n\n${inspect(body, { depth: DEBUG_DEPTH })}`));
+const logDebug = (module.exports.logDebug = (title, body) => {
+  if (DEBUG_MODE) {
+    console.log(`\n${title}:\n\n${inspect(body, { depth: DEBUG_DEPTH })}`);
+  }
+});
 
 // Server
 
@@ -34,7 +37,7 @@ module.exports.getAsync = url => {
 module.exports.interceptEventRequest = expectedEvent => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/store/', body => {
-      if (DEBUG_MODE) logDebug('Intercepted Event', body);
+      logDebug('Intercepted Event', body);
       return objectMatches(body, expectedEvent);
     })
     .reply(200);
@@ -44,7 +47,7 @@ module.exports.interceptSessionRequest = expectedItem => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
-      if (DEBUG_MODE) logDebug('Intercepted Transaction', { envelopeHeader, itemHeader, item });
+      logDebug('Intercepted Transaction', { envelopeHeader, itemHeader, item });
       return itemHeader.type === 'session' && objectMatches(item, expectedItem);
     })
     .reply(200);
@@ -54,7 +57,7 @@ module.exports.interceptTracingRequest = expectedItem => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
-      if (DEBUG_MODE) logDebug('Intercepted Transaction', { envelopeHeader, itemHeader, item });
+      logDebug('Intercepted Transaction', { envelopeHeader, itemHeader, item });
       return itemHeader.type === 'transaction' && objectMatches(item, expectedItem);
     })
     .reply(200);

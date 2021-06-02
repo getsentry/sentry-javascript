@@ -29,11 +29,11 @@ const FILES_FILTER = process.argv[2];
   }
 
   if (scenarios.length === 0) {
-    console.log('No tests founds.');
+    log('No tests founds.');
     process.exit(0);
   } else {
     if (DEBUG_MODE) {
-      scenarios.forEach(s => console.log(`⊙ Tests Found: ${s}`));
+      scenarios.forEach(s => log(`⊙ Tests Found: ${s}`));
     }
   }
 
