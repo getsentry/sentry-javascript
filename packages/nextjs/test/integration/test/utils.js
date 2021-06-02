@@ -1,3 +1,4 @@
+const { stat } = require('fs').promises;
 const { strictEqual } = require('assert');
 const { get } = require('http');
 const { inspect } = require('util');
@@ -202,4 +203,17 @@ module.exports.colorize = (str, color) => {
   }
 
   return `${COLORS[color]}${str}${COLOR_RESET}`;
+};
+
+module.exports.verifyDir = async path => {
+  try {
+    if (!(await stat(path)).isDirectory()) {
+      throw new Error(`Invalid scenariosDir: ${path} is not a directory`);
+    }
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      throw new Error(`Invalid scenariosDir: ${path} does not exist`);
+    }
+    throw e;
+  }
 };
