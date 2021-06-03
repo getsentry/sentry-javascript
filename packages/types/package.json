@@ -35,8 +35,7 @@
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:eslint": "eslint . --format stylish --fix",
-    "pack": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts"
+    "pack": "npm pack"
   },
   "volta": {
     "extends": "../../package.json"
