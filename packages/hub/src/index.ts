@@ -1,5 +1,3 @@
-// eslint-disable-next-line deprecation/deprecation
-export { Carrier, DomainAsCarrier, Layer } from './interfaces';
 export { addGlobalEventProcessor, Scope } from './scope';
 export { Session, SessionFlusher } from './session';
 export {
@@ -11,4 +9,8 @@ export {
   Hub,
   makeMain,
   setHubOnCarrier,
+  Carrier,
+  // eslint-disable-next-line deprecation/deprecation
+  DomainAsCarrier,
+  Layer,
 } from './hub';
