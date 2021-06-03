@@ -1,4 +1,4 @@
-import { deepReadDirSync } from '@sentry/node';
+import { captureException, deepReadDirSync, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { Event as SentryEvent } from '@sentry/types';
 import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -7,8 +7,6 @@ import * as http from 'http';
 import { default as createNextServer } from 'next';
 import * as querystring from 'querystring';
 import * as url from 'url';
-
-import * as Sentry from '../index.server';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -156,7 +154,7 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
 function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogger {
   return function(this: Server, err: Error): void {
     // TODO add context data here
-    Sentry.captureException(err);
+    captureException(err);
     return origErrorLogger.call(this, err);
   };
 }
@@ -201,7 +199,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
     // local.on('error', Sentry.captureException);
 
     local.run(() => {
-      const currentScope = Sentry.getCurrentHub().getScope();
+      const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
         currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
@@ -222,7 +220,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
           const namePrefix = req.url.startsWith('/api') ? `${(req.method || 'GET').toUpperCase()} ` : '';
 
-          const transaction = Sentry.startTransaction(
+          const transaction = startTransaction(
             {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',
