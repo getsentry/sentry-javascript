@@ -158,7 +158,10 @@ export function withSentryConfig(
     if (config.target === 'node') {
       const serverSDKInitOutputPath = path.join(config.output.path, SERVER_SDK_INIT_PATH);
       const projectDir = config.context;
-      setRuntimeEnvVars(projectDir, { SENTRY_SERVER_INIT_PATH: serverSDKInitOutputPath });
+      setRuntimeEnvVars(projectDir, {
+        // ex: .next/server/sentry/initServerSdk.js
+        SENTRY_SERVER_INIT_PATH: path.relative(projectDir, serverSDKInitOutputPath),
+      });
     }
 
     let newConfig = config;
