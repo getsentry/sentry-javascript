@@ -24,6 +24,8 @@ module.exports = async ({ page, url, requests }) => {
     errors: 0,
   });
 
+  await sleep(100);
+
   expectSession(requests.sessions[2], {
     init: true,
     status: 'ok',
