@@ -143,7 +143,6 @@ export function onLoad(callback: () => void): void {
  */
 export function flush(timeout?: number): PromiseLike<boolean> {
   const client = getCurrentHub().getClient<BrowserClient>();
-  console.log(client);
   if (client) {
     return client.flush(timeout);
   }
