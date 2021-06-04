@@ -12,39 +12,23 @@ describe('Custom transport', () => {
         dsn: sampleDsn,
       });
 
-      return expect(transport.sendEvent({})).rejects.toEqual(new SentryError('No URL configured'));
+      return expect(transport.sendEvent({})).rejects.toEqual(new SentryError('No URL parser configured'));
     });
 
     test('use URL property constructor for sendEvent() method', async () => {
-      const mockUrlConstructor = jest.fn();
-
-      const transport = new CustomUrlTransport(
-        {
-          dsn: sampleDsn,
-        },
-        {
-          URL: mockUrlConstructor,
-        },
-      );
-
+      const urlParser = jest.fn();
+      const transport = new CustomUrlTransport({ dsn: sampleDsn }, urlParser);
       await transport.sendEvent({}).catch(noop);
-      expect(mockUrlConstructor).toHaveBeenCalled();
+
+      expect(urlParser).toHaveBeenCalled();
     });
 
     test('use URL property constructor for sendSession() method', async () => {
-      const mockUrlConstructor = jest.fn();
-
-      const transport = new CustomUrlTransport(
-        {
-          dsn: sampleDsn,
-        },
-        {
-          URL: mockUrlConstructor,
-        },
-      );
-
+      const urlParser = jest.fn();
+      const transport = new CustomUrlTransport({ dsn: sampleDsn }, urlParser);
       await transport.sendSession({ aggregates: [] }).then(noop, noop);
-      expect(mockUrlConstructor).toHaveBeenCalled();
+
+      expect(urlParser).toHaveBeenCalled();
     });
   });
 });

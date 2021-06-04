@@ -3,12 +3,12 @@ import { Event, Response, TransportOptions } from '@sentry/types';
 import * as http from 'http';
 
 import { BaseTransport, HTTPTransport } from '../../../src/transports';
-import { UrlContainer } from '../../../src/transports/base';
+import { UrlParser } from '../../../src/transports/base';
 
 export class CustomUrlTransport extends HTTPTransport {
-  public constructor(public options: TransportOptions, url: UrlContainer) {
+  public constructor(public options: TransportOptions, urlParser: UrlParser) {
     super(options);
-    this.url = url;
+    this.urlParser = urlParser;
   }
 }
 

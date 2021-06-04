@@ -45,11 +45,8 @@ export interface HTTPModule {
   // ): http.ClientRequest;
 }
 
-type URLConstructor = new (url: string, base?: string | URL) => URL;
-
-export interface UrlContainer {
-  URL: URLConstructor;
-}
+export type URLParts = Pick<URL, 'hostname' | 'pathname' | 'port' | 'protocol'>;
+export type UrlParser = (url: string) => URLParts;
 
 const CATEGORY_MAPPING: {
   [key in SentryRequestType]: string;
@@ -68,8 +65,8 @@ export abstract class BaseTransport implements Transport {
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
 
-  /** The object containing URL constructor */
-  public url?: UrlContainer;
+  /** The function used to parse URLs */
+  public urlParser?: UrlParser;
 
   /** API object */
   protected _api: API;
@@ -128,12 +125,12 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** Returns a build request option object used by request */
-  protected _getRequestOptions(uri: URL): http.RequestOptions | https.RequestOptions {
+  protected _getRequestOptions(urlParts: URLParts): http.RequestOptions | https.RequestOptions {
     const headers = {
       ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
-    const { hostname, pathname, port, protocol } = uri;
+    const { hostname, pathname, port, protocol } = urlParts;
     // See https://github.com/nodejs/node/blob/38146e717fed2fabe3aacb6540d839475e0ce1c6/lib/internal/url.js#L1268-L1290
     // We ignore the query string on purpose
     const path = `${pathname}`;
@@ -233,10 +230,10 @@ export abstract class BaseTransport implements Transport {
         if (!this.module) {
           throw new SentryError('No module available');
         }
-        if (!this.url) {
-          throw new SentryError('No URL configured');
+        if (!this.urlParser) {
+          throw new SentryError('No URL parser configured');
         }
-        const options = this._getRequestOptions(new this.url.URL(sentryReq.url));
+        const options = this._getRequestOptions(this.urlParser(sentryReq.url));
         const req = this.module.request(options, (res: http.IncomingMessage) => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);
