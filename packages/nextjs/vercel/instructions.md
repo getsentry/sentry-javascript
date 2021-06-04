@@ -1,4 +1,14 @@
-### To prepare branch for deploying on Vercel:
+# Testing an SDK Branch on Vercel
+
+Follow the instructions below to test a branch of the SDK against a test app deployed to Vercel. This assumes you
+already have such an app set up, and modifies both it and the SDK branch such that the dependency installation process
+run on Vercel includes cloning the repo, building the current branch of the SDK, and setting the test app's
+`@sentry/next` dependency to point to the newly-built local version.
+
+(The clone-build-link step is necessary because you can't point a `package.json` dependency to a sub-folder of a git
+repo, only a full repo itself. Since we run a monorepo, this won't work in our case.)
+
+### To prepare your SDK branch for deploying on Vercel
 
 From `packages/nextjs`, run
 
@@ -7,7 +17,7 @@ From `packages/nextjs`, run
 This will delete unneeded packages (angular, vue, etc) in order to speed up deployment. It will then commit that change.
 When your branch is ready to PR, just rebase and drop that commit.
 
-### To prepare test app for using current branch:
+### To prepare your test app for using current SDK branch
 
 First, make sure the branch you want to test is checked out in your `sentry-javascript` repo, and that all changes you
 want to test are pushed to GitHub.
@@ -16,9 +26,10 @@ From `packages/nextjs`, run
 
   `yarn vercel:project <path/to/testapp>`.
 
-This will copy a script into a `.sentry` folder at the root level of your test app,and create a second one. (The first
-script is the one you'll run on Vercel. The second is a helper to the first, so that it knows which branch to use.) It
-will then commit (but not push) this change.
+This will copy the `install-sentry-from-branch.sh` script into a `.sentry` folder at the root level of your test app,
+and create a `set-branch-name.sh` script in the same location. (The first script is the one you'll run on Vercel. The
+second is called by the first, and just sets an environment variable with the current (SDK) branch name.) It will then
+commit (but not push) this change.
 
 Go into your project settings on Vercel and change the install command to
 
@@ -30,9 +41,12 @@ If you're using bundle analyzer, change the build command to
 
 The bundle visualizations will be available on your deployed site at `/client.html` and `/server.html`.
 
-### To test the SDK:
+NOTE: You don't need to change the `@sentry/nextjs` dependency in your project's `package.json` file. That will happen
+on the fly each time your app is deployed.
 
-Once you have pushed the changes made by `yarn vercel:project` to GitHub, just make changes and push, and Vercel will
-always use the latest version of both the SDK and your test app. Pushing changes to your test app will trigger a new
-build in Vercel; for changes to the SDK, you'll need to manually redeploy, either by kicking off a new build or simply
-choosing 'Redeploy' on your most recent existing build.
+### To test the SDK
+
+Once you have pushed the changes made by `yarn vercel:project` to GitHub, just make changes (either to the SDK or your
+test app) and push them. Vercel will always use the latest version of both the SDK and your test app each time it
+deploys. Pushing changes to your test app will trigger a new build in Vercel; for changes to the SDK, you'll need to
+manually redeploy, either by kicking off a new build or simply choosing 'Redeploy' on your most recent existing build.
