@@ -175,7 +175,7 @@ export class SessionFlusher implements SessionFlusherLike {
       logger.warn("Dropping session because custom transport doesn't implement sendSession");
       return;
     }
-    this._transport.sendSession(sessionAggregates).then(null, reason => {
+    void this._transport.sendSession(sessionAggregates).then(null, reason => {
       logger.error(`Error while sending session: ${reason}`);
     });
   }
