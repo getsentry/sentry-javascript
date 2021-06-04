@@ -19,7 +19,7 @@ yarn vercel:branch
 
 cd $PROJECT_DIR
 
-# make sure we're dealing with a clean repo
+# make sure we're dealing with a clean test app repo
 STASHED_CHANGES=$(git status --porcelain)
 if [ -n "${STASHED_CHANGES}" ]; then
   echo "Found uncommitted changes in your project. Stashing them."
