@@ -6,6 +6,19 @@ import { logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils
 import { Observable, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
+// That's the `global.Zone` exposed when the `zone.js` package is used.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const Zone: any;
+
+// There're 2 types of Angular applications:
+// 1) zone-full (by default)
+// 2) zone-less
+// The developer can avoid importing the `zone.js` package and tells Angular that
+// he is responsible for running the change detection by himself. This is done by
+// "nooping" the zone through `CompilerOptions` when bootstrapping the root module.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+const isNgZoneEnabled = typeof Zone !== 'undefined' && !!Zone.current;
+
 let instrumentationInitialized: boolean;
 let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let stashedStartTransactionOnLocationChange: boolean;
@@ -93,13 +106,27 @@ export class TraceService implements OnDestroy {
     filter(event => event instanceof NavigationEnd),
     tap(() => {
       if (this._routingSpan) {
-        this._routingSpan.finish();
-        delete this._routingSpan;
+        if (isNgZoneEnabled) {
+          // The `Zone.root.run` basically will finish the transaction in the most parent zone.
+          // The Angular's zone is forked from the `Zone.root`. In this case, `zone.js` won't
+          // trigger change detection, and `ApplicationRef.tick()` will not be run.
+          // Caretaker note: we're using `Zone.root` except `NgZone.runOutsideAngular` since this
+          // will require injecting the `NgZone` facade. That will create a breaking change for
+          // projects already using the `TraceService`.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          Zone.root.run(() => {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this._routingSpan!.finish();
+          });
+        } else {
+          this._routingSpan.finish();
+        }
+        this._routingSpan = null;
       }
     }),
   );
 
-  private _routingSpan?: Span;
+  private _routingSpan: Span | null = null;
   private _subscription: Subscription = new Subscription();
 
   public constructor(private readonly _router: Router) {

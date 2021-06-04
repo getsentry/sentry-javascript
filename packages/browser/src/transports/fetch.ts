@@ -132,7 +132,7 @@ export class FetchTransport extends BaseTransport {
 
     return this._buffer.add(
       new SyncPromise<Response>((resolve, reject) => {
-        this._fetch(sentryRequest.url, options)
+        void this._fetch(sentryRequest.url, options)
           .then(response => {
             const headers = {
               'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),

@@ -183,6 +183,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Set up Node
         uses: actions/setup-node@v1
         with:

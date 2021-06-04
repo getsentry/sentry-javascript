@@ -3,8 +3,8 @@ import { Package, SdkInfo } from '@sentry/types';
 
 import { NextjsOptions } from './nextjsOptions';
 
-const SDK_NAME = 'sentry.javascript.nextjs';
-const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
+export const SDK_NAME = 'sentry.javascript.nextjs';
+export const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
 
 /**
  * A builder for the SDK metadata in the options for the SDK initialization.
