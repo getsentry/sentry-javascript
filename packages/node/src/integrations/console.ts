@@ -19,9 +19,8 @@ export class Console implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    const consoleModule = require('console');
     for (const level of ['debug', 'info', 'warn', 'error', 'log']) {
-      fill(consoleModule, level, createConsoleWrapper(level));
+      fill(console, level, createConsoleWrapper(level));
     }
   }
 }
