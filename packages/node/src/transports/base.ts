@@ -65,9 +65,6 @@ export abstract class BaseTransport implements Transport {
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
 
-  /** The function used to parse URLs */
-  public urlParser?: UrlParser;
-
   /** API object */
   protected _api: API;
 
@@ -81,6 +78,9 @@ export abstract class BaseTransport implements Transport {
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn, options._metadata);
   }
+
+  /** Default function used to parse URLs */
+  public urlParser: UrlParser = url => new URL(url);
 
   /**
    * @inheritDoc
@@ -229,9 +229,6 @@ export abstract class BaseTransport implements Transport {
       new Promise<Response>((resolve, reject) => {
         if (!this.module) {
           throw new SentryError('No module available');
-        }
-        if (!this.urlParser) {
-          throw new SentryError('No URL parser configured');
         }
         const options = this._getRequestOptions(this.urlParser(sentryReq.url));
         const req = this.module.request(options, (res: http.IncomingMessage) => {

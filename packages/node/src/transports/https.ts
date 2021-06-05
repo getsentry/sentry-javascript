@@ -1,7 +1,6 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
 import { Event, Response, Session, SessionAggregates, TransportOptions } from '@sentry/types';
 import * as https from 'https';
-import { URL } from 'url';
 
 import { BaseTransport } from './base';
 
@@ -11,7 +10,6 @@ export class HTTPSTransport extends BaseTransport {
   public constructor(public options: TransportOptions) {
     super(options);
     const proxy = this._getProxy('https');
-    this.urlParser = url => new URL(url);
     this.module = https;
     this.client = proxy
       ? (new (require('https-proxy-agent'))(proxy) as https.Agent)
