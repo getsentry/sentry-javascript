@@ -30,7 +30,7 @@ export interface HTTPModule {
    * @param callback Callback when request is finished
    */
   request(
-    options: http.RequestOptions | https.RequestOptions | string | url.URL,
+    options: http.RequestOptions | https.RequestOptions,
     callback?: (res: http.IncomingMessage) => void,
   ): http.ClientRequest;
 
