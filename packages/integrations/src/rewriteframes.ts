@@ -56,11 +56,11 @@ export class RewriteFrames implements Integration {
   /** JSDoc */
   public process(event: Event): Event {
     if (event.exception && Array.isArray(event.exception.values)) {
-      return this._processExceptionsEvent(event);
+      event = this._processExceptionsEvent(event);
     }
 
     if (event.stacktrace) {
-      return this._processStacktraceEvent(event);
+      event = this._processStacktraceEvent(event);
     }
 
     return event;
