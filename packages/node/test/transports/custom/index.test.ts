@@ -1,7 +1,7 @@
 import { CustomUrlTransport } from './transports';
 
 describe('Custom transport', () => {
-  describe('url container support', () => {
+  describe('URL parser support', () => {
     const noop = () => null;
     const sampleDsn = 'https://username@sentry.tld/path/1';
 
