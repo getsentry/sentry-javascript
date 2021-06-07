@@ -17,33 +17,8 @@ import * as http from 'http';
 import * as https from 'https';
 import { URL } from 'url';
 
-import { SDK_NAME } from '../version';
-
-/**
- * Internal used interface for typescript.
- * @hidden
- */
-export interface HTTPModule {
-  /**
-   * Request wrapper
-   * @param options These are {@see TransportOptions}
-   * @param callback Callback when request is finished
-   */
-  request(
-    options: http.RequestOptions | https.RequestOptions | string | URL,
-    callback?: (res: http.IncomingMessage) => void,
-  ): http.ClientRequest;
-
-  // This is the type for nodejs versions that handle the URL argument
-  // (v10.9.0+), but we do not use it just yet because we support older node
-  // versions:
-
-  // request(
-  //   url: string | URL,
-  //   options: http.RequestOptions | https.RequestOptions,
-  //   callback?: (res: http.IncomingMessage) => void,
-  // ): http.ClientRequest;
-}
+import { SDK_NAME } from '../../version';
+import { HTTPModule } from './http-module';
 
 export type URLParts = Pick<URL, 'hostname' | 'pathname' | 'port' | 'protocol'>;
 export type UrlParser = (url: string) => URLParts;
@@ -231,7 +206,7 @@ export abstract class BaseTransport implements Transport {
           throw new SentryError('No module available');
         }
         const options = this._getRequestOptions(this.urlParser(sentryReq.url));
-        const req = this.module.request(options, (res: http.IncomingMessage) => {
+        const req = this.module.request(options, res => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);
 
