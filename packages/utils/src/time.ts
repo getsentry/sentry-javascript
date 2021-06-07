@@ -141,7 +141,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // data as reliable if they are within a reasonable threshold of the current time.
 
   const { performance } = getGlobalObject<Window>();
-  if (!performance) {
+  if (!performance || !performance.now) {
     _browserPerformanceTimeOriginMode = 'none';
     return undefined;
   }
