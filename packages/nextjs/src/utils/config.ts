@@ -7,7 +7,7 @@ import * as path from 'path';
 
 const SENTRY_CLIENT_CONFIG_FILE = './sentry.client.config.js';
 const SENTRY_SERVER_CONFIG_FILE = './sentry.server.config.js';
-// this is where the transpiled/bundled version of `USER_SERVER_CONFIG_FILE` will end up
+// this is where the transpiled/bundled version of `SENTRY_SERVER_CONFIG_FILE` will end up
 export const SERVER_SDK_INIT_PATH = 'sentry/initServerSDK.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +21,7 @@ type WebpackConfig = {
   devtool: string;
   plugins: PlainObject[];
   entry: EntryProperty;
-  output: { path: string };
+  output: { filename: string; path: string };
   target: string;
   context: string;
 };
@@ -156,9 +156,13 @@ export function withSentryConfig(
     // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
     // webpack-processed version of `sentry.server.config.js` when we need it
     if (config.target === 'node') {
-      const serverSDKInitOutputPath = path.join(config.output.path, SERVER_SDK_INIT_PATH);
+      const outputLocation = path.dirname(path.join(config.output.path, config.output.filename));
+      const serverSDKInitOutputPath = path.join(outputLocation, SERVER_SDK_INIT_PATH);
       const projectDir = config.context;
-      setRuntimeEnvVars(projectDir, { SENTRY_SERVER_INIT_PATH: serverSDKInitOutputPath });
+      setRuntimeEnvVars(projectDir, {
+        // ex: .next/server/sentry/initServerSdk.js
+        SENTRY_SERVER_INIT_PATH: path.relative(projectDir, serverSDKInitOutputPath),
+      });
     }
 
     let newConfig = config;
