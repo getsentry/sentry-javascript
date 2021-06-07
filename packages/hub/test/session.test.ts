@@ -36,8 +36,8 @@ describe('Session', () => {
       ['sets a sid', { sid: '99705f22a3f1468e95ba7386e84691aa' }, { sid: '99705f22a3f1468e95ba7386e84691aa' }],
       [
         'requires custom sid to be of certain length',
-        { sid: 'specialID123' },
-        { sid: expect.not.stringMatching('specialID123') },
+        { sid: 'fake-sid' },
+        { sid: expect.not.stringMatching('fake-sid') },
       ],
       ['sets an init', { init: false }, { init: false }],
       ['sets an did', { did: 'specialID123' }, { did: 'specialID123' }],
