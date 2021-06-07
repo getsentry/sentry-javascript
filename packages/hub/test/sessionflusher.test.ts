@@ -1,6 +1,6 @@
 import { RequestSessionStatus, Status } from '@sentry/types';
 
-import { SessionFlusher } from '../src';
+import { SessionFlusher } from '../src/sessionFlusher';
 
 describe('Session Flusher', () => {
   let sendSession: jest.Mock;
