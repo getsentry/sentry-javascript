@@ -56,7 +56,8 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "test": "PORT=1337 jest",
     "test:watch": "jest --watch",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "circularDepCheck": "madge --circular src/index.ts"
   },
   "volta": {
     "extends": "../../package.json"

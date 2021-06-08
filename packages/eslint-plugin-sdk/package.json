@@ -31,7 +31,8 @@
     "lint": "prettier --check \"{src,test}/**/*.js\"",
     "fix": "prettier --write \"{src,test}/**/*.js\"",
     "test": "mocha test --recursive",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "circularDepCheck": "madge --circular src/index.js"
   },
   "volta": {
     "extends": "../../package.json"

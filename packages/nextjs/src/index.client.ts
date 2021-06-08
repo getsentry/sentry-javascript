@@ -1,5 +1,5 @@
-import { configureScope, init as reactInit } from '@sentry/react';
-import { defaultRequestInstrumentationOptions, Integrations } from '@sentry/tracing';
+import { configureScope, init as reactInit, Integrations as BrowserIntegrations } from '@sentry/react';
+import { defaultRequestInstrumentationOptions, Integrations as TracingIntegrations } from '@sentry/tracing';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { MetadataBuilder } from './utils/metadataBuilder';
@@ -9,7 +9,8 @@ import { addIntegration, UserIntegrations } from './utils/userIntegrations';
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
 
-const { BrowserTracing } = Integrations;
+const { BrowserTracing } = TracingIntegrations;
+export const Integrations = { ...BrowserIntegrations, BrowserTracing };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {

@@ -62,7 +62,8 @@
     "test:integration:client": "cd test/integration && node test/client.js --silent",
     "pack": "npm pack",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
-    "vercel:project": "source vercel/make-project-use-current-branch.sh"
+    "vercel:project": "source vercel/make-project-use-current-branch.sh",
+    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts"
   },
   "volta": {
     "extends": "../../package.json"
