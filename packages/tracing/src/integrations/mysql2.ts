@@ -6,7 +6,7 @@ interface Mysql2Connection {
   createQuery: () => void;
 }
 
-/** Tracing integration for node-mysql package */
+/** Tracing integration for node-mysql2 package */
 export class Mysql2 implements Integration {
   /**
    * @inheritDoc
@@ -30,9 +30,9 @@ export class Mysql2 implements Integration {
     }
 
     // The original function will have one of these signatures:
-    //    function (callback) => void
-    //    function (options, callback) => void
-    //    function (options, values, callback) => void
+    //    function (callback, config) => void
+    //    function (options, callback, config) => void
+    //    function (options, values, callback, config) => void
     fill(pkg, 'createQuery', function(orig: () => void) {
       return function(this: unknown, options: unknown, values: unknown, callback: unknown, config: unknown) {
         const scope = getCurrentHub().getScope();
