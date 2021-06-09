@@ -25,7 +25,7 @@ export class Mysql2 implements Integration {
     const pkg = loadModule<Mysql2Connection>('mysql2/lib/connection.js');
 
     if (!pkg) {
-      logger.error('Mysql Integration was unable to require `mysql` package.');
+      logger.error('Mysql2 Integration was unable to require `mysql2` package.');
       return;
     }
 
