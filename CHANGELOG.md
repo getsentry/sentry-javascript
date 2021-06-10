@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.6.0
+
+- [node] feat: Allow for overriding custom `UrlParser` in Node.js transports (#3612)
+- [browser] feat: Add `serializeAttribute` option to DOM breadcrumbs. (#3620)
+- [nextjs] fix: `Improve NextConfigExports` compatibility (#3592)
+- [nextjs] fix: Use correct abs path for server init (#3649)
+- [angular] fix: Do not run change detection when capturing the exception (#3618)
+- [angular] fix: Do not run change detection when finishing transaction (#3622)
+- [angular] fix: Provide a single compilation unit for the `trace` directive (#3617)
+- [utils] fix: Check for `performance.now` when calculating browser timing (#3657)
+- [integrations] fix: Run rewriting for both `exception` and `stacktrace` events (#3653)
+- [node] ref: Replace old-style `require(console)` with a global object (#3623)
+- [node] ref: Make `HTTPModule` more abstract to be able to use it in non-Node.JS environments (#3655)
+- [nextjs] ref: Export `BrowserTracing` integration directly from `@sentry/nextjs` (#3647)
+
 ## 6.5.1
 
 - [nextjs] fix: Prevent webpack 5 from crashing server (#3642)
