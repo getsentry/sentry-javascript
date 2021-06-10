@@ -1,11 +1,9 @@
 {
   "name": "with-typescript",
-  "version": "1.0.0",
   "scripts": {
     "dev": "next",
     "build": "next build",
-    "start": "next start",
-    "type-check": "tsc"
+    "start": "next start"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../",
@@ -23,5 +21,16 @@
     "typescript": "^4.2.4",
     "yargs": "^16.2.0"
   },
-  "license": "MIT"
+  "resolutions": {
+    "@sentry/browser": "file:../../../browser",
+    "@sentry/core": "file:../../../core",
+    "@sentry/hub": "file:../../../hub",
+    "@sentry/integrations": "file:../../../integrations",
+    "@sentry/minimal": "file:../../../minimal",
+    "@sentry/node": "file:../../../node",
+    "@sentry/react": "file:../../../react",
+    "@sentry/tracing": "file:../../../tracing",
+    "@sentry/types": "file:../../../types",
+    "@sentry/utils": "file:../../../utils"
+  }
 }
