@@ -3,6 +3,7 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 import defaultWebpackPlugin, { SentryCliPluginOptions } from '@sentry/webpack-plugin';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 import * as fs from 'fs';
+import { NextConfig } from 'next/dist/next-server/server/config';
 import * as path from 'path';
 
 const SENTRY_CLIENT_CONFIG_FILE = './sentry.client.config.js';
@@ -110,9 +111,7 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
   return newEntryProperty;
 };
 
-type NextConfigExports = {
-  experimental?: { plugins: boolean };
-  plugins?: string[];
+type NextConfigExports = Partial<NextConfig> & {
   productionBrowserSourceMaps?: boolean;
   webpack?: WebpackExport;
 };
@@ -125,7 +124,7 @@ type NextConfigExports = {
  * @returns The modified config to be exported
  */
 export function withSentryConfig(
-  providedExports: NextConfigExports = {},
+  providedExports: Partial<NextConfig> = {},
   providedSentryWebpackPluginOptions: Partial<SentryCliPluginOptions> = {},
 ): NextConfigExports {
   const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
