@@ -10,5 +10,6 @@ export {
   TraceClassDecorator,
   TraceMethodDecorator,
   TraceDirective,
+  TraceModule,
   TraceService,
 } from './tracing';
