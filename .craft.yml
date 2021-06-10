@@ -1,12 +1,5 @@
-minVersion: '0.14.0'
-github:
-  owner: getsentry
-  repo: sentry-javascript
+minVersion: '0.23.1'
 changelogPolicy: simple
-statusProvider:
-  name: github
-artifactProvider:
-  name: github
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   - name: npm
@@ -20,44 +13,27 @@ targets:
         metadata:
           cacheControl: 'public, max-age=31536000'
   - name: registry
-    type: sdk
-    onlyIfPresent: /^sentry-browser-.*\.tgz$/
-    includeNames: /\.js$/
-    checksums:
-      - algorithm: sha384
-        format: base64
-    config:
-      canonical: 'npm:@sentry/browser'
-  - name: registry
-    type: sdk
-    onlyIfPresent: /^sentry-node-.*\.tgz$/
-    config:
-      canonical: 'npm:@sentry/node'
-  - name: registry
-    type: sdk
-    onlyIfPresent: /^sentry-react-.*\.tgz$/
-    config:
-      canonical: 'npm:@sentry/react'
-  - name: registry
-    type: sdk
-    onlyIfPresent: /^sentry-vue-.*\.tgz$/
-    config:
-      canonical: 'npm:@sentry/vue'
-  - name: registry
-    type: sdk
-    onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
-    config:
-      canonical: 'npm:@sentry/gatsby'
-  - name: registry
-    type: sdk
-    onlyIfPresent: /^sentry-angular-.*\.tgz$/
-    config:
-      canonical: 'npm:@sentry/angular'
-  - name: registry
-    type: sdk
-    onlyIfPresent: /^sentry-wasm-.*\.tgz$/
-    config:
-      canonical: 'npm:@sentry/wasm'
+    sdks:
+      'npm:@sentry/browser':
+        onlyIfPresent: /^sentry-browser-.*\.tgz$/
+        includeNames: /\.js$/
+        checksums:
+          - algorithm: sha384
+            format: base64
+      'npm:@sentry/node':
+        onlyIfPresent: /^sentry-node-.*\.tgz$/
+      'npm:@sentry/react':
+        onlyIfPresent: /^sentry-react-.*\.tgz$/
+      'npm:@sentry/vue':
+        onlyIfPresent: /^sentry-vue-.*\.tgz$/
+      'npm:@sentry/gatsby':
+        onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
+      'npm:@sentry/angular':
+        onlyIfPresent: /^sentry-angular-.*\.tgz$/
+      'npm:@sentry/wasm':
+        onlyIfPresent: /^sentry-wasm-.*\.tgz$/
+      'npm:@sentry/nextjs':
+        onlyIfPresent: /^sentry-nextjs-.*\.tgz$/
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+(\.\d+)*\.zip$/
     layerName: SentryNodeServerlessSDK
