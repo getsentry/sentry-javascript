@@ -9,7 +9,7 @@ NEXTJS_SDK_DIR=$(pwd)
 # this puts us in the repo root
 cd ../..
 
-# make sure we're dealing with a clean repo
+# make sure we're dealing with a clean SDK repo
 STASHED_CHANGES=$(git status --porcelain)
 if [ -n "${STASHED_CHANGES}" ]; then
   echo "Found uncommitted changes. Stashing them."

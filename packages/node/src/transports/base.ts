@@ -15,7 +15,7 @@ import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sent
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
-import * as url from 'url';
+import { URL } from 'url';
 
 import { SDK_NAME } from '../version';
 
@@ -30,7 +30,7 @@ export interface HTTPModule {
    * @param callback Callback when request is finished
    */
   request(
-    options: http.RequestOptions | https.RequestOptions | string | url.URL,
+    options: http.RequestOptions | https.RequestOptions | string | URL,
     callback?: (res: http.IncomingMessage) => void,
   ): http.ClientRequest;
 
@@ -39,11 +39,14 @@ export interface HTTPModule {
   // versions:
 
   // request(
-  //   url: string | url.URL,
+  //   url: string | URL,
   //   options: http.RequestOptions | https.RequestOptions,
   //   callback?: (res: http.IncomingMessage) => void,
   // ): http.ClientRequest;
 }
+
+export type URLParts = Pick<URL, 'hostname' | 'pathname' | 'port' | 'protocol'>;
+export type UrlParser = (url: string) => URLParts;
 
 const CATEGORY_MAPPING: {
   [key in SentryRequestType]: string;
@@ -75,6 +78,9 @@ export abstract class BaseTransport implements Transport {
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn, options._metadata);
   }
+
+  /** Default function used to parse URLs */
+  public urlParser: UrlParser = url => new URL(url);
 
   /**
    * @inheritDoc
@@ -119,12 +125,12 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** Returns a build request option object used by request */
-  protected _getRequestOptions(uri: url.URL): http.RequestOptions | https.RequestOptions {
+  protected _getRequestOptions(urlParts: URLParts): http.RequestOptions | https.RequestOptions {
     const headers = {
       ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
-    const { hostname, pathname, port, protocol } = uri;
+    const { hostname, pathname, port, protocol } = urlParts;
     // See https://github.com/nodejs/node/blob/38146e717fed2fabe3aacb6540d839475e0ce1c6/lib/internal/url.js#L1268-L1290
     // We ignore the query string on purpose
     const path = `${pathname}`;
@@ -224,7 +230,7 @@ export abstract class BaseTransport implements Transport {
         if (!this.module) {
           throw new SentryError('No module available');
         }
-        const options = this._getRequestOptions(new url.URL(sentryReq.url));
+        const options = this._getRequestOptions(this.urlParser(sentryReq.url));
         const req = this.module.request(options, (res: http.IncomingMessage) => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);

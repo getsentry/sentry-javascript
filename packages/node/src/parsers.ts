@@ -3,8 +3,8 @@ import { addContextToFrame, basename, dirname, SyncPromise } from '@sentry/utils
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
-import { NodeOptions } from './backend';
 import * as stacktrace from './stacktrace';
+import { NodeOptions } from './types';
 
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);

@@ -6,7 +6,7 @@ import { isString } from './is';
  * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-export function htmlTreeAsString(elem: unknown): string {
+export function htmlTreeAsString(elem: unknown, keyAttr?: string): string {
   type SimpleNode = {
     parentNode: SimpleNode;
   } | null;
@@ -28,7 +28,7 @@ export function htmlTreeAsString(elem: unknown): string {
 
     // eslint-disable-next-line no-plusplus
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-      nextStr = _htmlElementAsString(currentElem);
+      nextStr = _htmlElementAsString(currentElem, keyAttr);
       // bail out if
       // - nextStr is the 'html' element
       // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
@@ -54,7 +54,7 @@ export function htmlTreeAsString(elem: unknown): string {
  * e.g. [HTMLElement] => input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-function _htmlElementAsString(el: unknown): string {
+function _htmlElementAsString(el: unknown, keyAttr?: string): string {
   const elem = el as {
     tagName?: string;
     id?: string;
@@ -74,16 +74,22 @@ function _htmlElementAsString(el: unknown): string {
   }
 
   out.push(elem.tagName.toLowerCase());
-  if (elem.id) {
-    out.push(`#${elem.id}`);
-  }
 
-  // eslint-disable-next-line prefer-const
-  className = elem.className;
-  if (className && isString(className)) {
-    classes = className.split(/\s+/);
-    for (i = 0; i < classes.length; i++) {
-      out.push(`.${classes[i]}`);
+  const keyAttrValue = keyAttr ? elem.getAttribute(keyAttr) : null;
+  if (keyAttrValue) {
+    out.push(`[${keyAttr}="${keyAttrValue}"]`);
+  } else {
+    if (elem.id) {
+      out.push(`#${elem.id}`);
+    }
+
+    // eslint-disable-next-line prefer-const
+    className = elem.className;
+    if (className && isString(className)) {
+      classes = className.split(/\s+/);
+      for (i = 0; i < classes.length; i++) {
+        out.push(`.${classes[i]}`);
+      }
     }
   }
   const allowedAttrs = ['type', 'name', 'title', 'alt'];

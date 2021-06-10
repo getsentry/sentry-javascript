@@ -450,11 +450,11 @@ export class Scope implements ScopeInterface {
       } else {
         const result = processor({ ...event }, hint) as Event | null;
         if (isThenable(result)) {
-          (result as PromiseLike<Event | null>)
+          void (result as PromiseLike<Event | null>)
             .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
             .then(null, reject);
         } else {
-          this._notifyEventProcessors(processors, result, hint, index + 1)
+          void this._notifyEventProcessors(processors, result, hint, index + 1)
             .then(resolve)
             .then(null, reject);
         }

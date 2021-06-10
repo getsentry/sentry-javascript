@@ -4,9 +4,9 @@ import { SessionStatus } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
 
-import { NodeOptions } from './backend';
 import { NodeClient } from './client';
 import { Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
+import { NodeOptions } from './types';
 
 export const defaultIntegrations = [
   // Common

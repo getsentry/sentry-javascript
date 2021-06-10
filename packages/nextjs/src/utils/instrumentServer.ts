@@ -1,14 +1,13 @@
-import { deepReadDirSync } from '@sentry/node';
+import { captureException, deepReadDirSync, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { Event as SentryEvent } from '@sentry/types';
 import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
+import * as path from 'path';
 import * as querystring from 'querystring';
 import * as url from 'url';
-
-import * as Sentry from '../index.server';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -114,11 +113,13 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
       try {
         // `SENTRY_SERVER_INIT_PATH` is set at build time, and points to a webpack-processed version of the user's
         // `sentry.server.config.js`. Requiring it starts the SDK.
-        require(process.env.SENTRY_SERVER_INIT_PATH as string);
+        require(path.resolve(process.env.SENTRY_SERVER_INIT_PATH as string));
       } catch (err) {
         // Log the error but don't bail - we still want the wrapping to happen, in case the user is doing something weird
-        // and manually calling `Sentry.init()` somewhere else.
-        logger.error(`[Sentry] Could not initialize SDK. Received error:\n${err}`);
+        // and manually calling `Sentry.init()` somewhere else. We log to console instead of using logger from utils
+        // because Sentry is not initialized.
+        // eslint-disable-next-line no-console
+        console.error(`[Sentry] Could not initialize SDK. Received error:\n${err}`);
       }
 
       // stash this in the closure so that `makeWrappedReqHandler` can use it
@@ -156,7 +157,7 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
 function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogger {
   return function(this: Server, err: Error): void {
     // TODO add context data here
-    Sentry.captureException(err);
+    captureException(err);
     return origErrorLogger.call(this, err);
   };
 }
@@ -201,7 +202,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
     // local.on('error', Sentry.captureException);
 
     local.run(() => {
-      const currentScope = Sentry.getCurrentHub().getScope();
+      const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
         currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
@@ -222,7 +223,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
           const namePrefix = req.url.startsWith('/api') ? `${(req.method || 'GET').toUpperCase()} ` : '';
 
-          const transaction = Sentry.startTransaction(
+          const transaction = startTransaction(
             {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',

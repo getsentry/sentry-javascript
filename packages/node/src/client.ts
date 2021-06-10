@@ -3,7 +3,8 @@ import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { NodeBackend, NodeOptions } from './backend';
+import { NodeBackend } from './backend';
+import { NodeOptions } from './types';
 
 /**
  * The Sentry Node SDK Client.

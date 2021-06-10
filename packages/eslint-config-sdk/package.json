@@ -40,7 +40,8 @@
     "link:yarn": "yarn link",
     "lint": "prettier --check \"**/*.js\"",
     "fix": "prettier --write \"**/*.js\"",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "circularDepCheck": "madge --circular src/index.js"
   },
   "volta": {
     "extends": "../../package.json"

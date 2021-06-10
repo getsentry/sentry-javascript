@@ -48,7 +48,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "pack": "npm pack",
-    "version": "node ../../scripts/versionbump.js src/version.ts"
+    "version": "node ../../scripts/versionbump.js src/version.ts",
+    "circularDepCheck": "madge --circular src/index.ts"
   },
   "volta": {
     "extends": "../../package.json"
