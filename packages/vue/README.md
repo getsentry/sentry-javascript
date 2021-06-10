@@ -17,6 +17,8 @@
 This package is a wrapper around `@sentry/browser`, with added functionality related to Vue.js. All methods available in
 `@sentry/browser` can be imported from `@sentry/vue`.
 
+It targets Vue version `2.x`. Support for `3.x` is tracked by [GitHub issue #2925](https://github.com/getsentry/sentry-javascript/issues/2925).
+
 To use this SDK, call `Sentry.init(options)` before you create a new Vue instance.
 
 ```javascript
