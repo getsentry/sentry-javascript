@@ -57,7 +57,7 @@
     "test:unit": "jest",
     "test:integration": "run-s test:integration:clean test:integration:build test:integration:server test:integration:client",
     "test:integration:clean": "cd test/integration && rimraf node_modules .next .env.local",
-    "test:integration:build": "cd test/integration && yarn && yarn build",
+    "test:integration:build": "cd test/integration && yarn --no-lockfile && yarn build",
     "test:integration:server": "cd test/integration && node test/server.js --silent",
     "test:integration:client": "cd test/integration && node test/client.js --silent",
     "pack": "npm pack",
