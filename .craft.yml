@@ -32,6 +32,8 @@ targets:
         onlyIfPresent: /^sentry-angular-.*\.tgz$/
       'npm:@sentry/wasm':
         onlyIfPresent: /^sentry-wasm-.*\.tgz$/
+      'npm:@sentry/nextjs':
+        onlyIfPresent: /^sentry-nextjs-.*\.tgz$/
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+(\.\d+)*\.zip$/
     layerName: SentryNodeServerlessSDK
