@@ -155,11 +155,11 @@ To track Angular components as part of your transactions, you have 3 options.
 _TraceDirective:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in template:
 
 ```javascript
-import { TraceDirective } from '@sentry/angular';
+import { TraceModule } from '@sentry/angular';
 
 @NgModule({
   // ...
-  declarations: [TraceDirective],
+  imports: [TraceModule],
   // ...
 })
 export class AppModule {}
@@ -168,9 +168,9 @@ export class AppModule {}
 Then inside your components template (keep in mind that directive name attribute is required):
 
 ```html
-<app-header [trace]="'header'"></app-header>
-<articles-list [trace]="'articles-list'"></articles-list>
-<app-footer [trace]="'footer'"></app-footer>
+<app-header trace="header"></app-header>
+<articles-list trace="articles-list"></articles-list>
+<app-footer trace="footer"></app-footer>
 ```
 
 _TraceClassDecorator:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in components:

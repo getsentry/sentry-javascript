@@ -89,7 +89,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       transaction.setHttpStatus(res.statusCode);
       transaction.finish();
 
-      flush(options.flushTimeout)
+      void flush(options.flushTimeout)
         .then(() => {
           _end.call(this, chunk, encoding, cb);
         })

@@ -42,11 +42,13 @@ describe('SyncPromise', () => {
 
     const fp = async (s: PromiseLike<string>, prepend: string) =>
       new Promise<string>(resolve => {
-        s.then(val => {
-          resolve(prepend + val);
-        }).then(null, _ => {
-          // bla
-        });
+        void s
+          .then(val => {
+            resolve(prepend + val);
+          })
+          .then(null, _ => {
+            // bla
+          });
       });
 
     const res = await cp
@@ -70,11 +72,13 @@ describe('SyncPromise', () => {
 
     const f = (s: SyncPromise<string>, prepend: string) =>
       new SyncPromise<string>(resolve => {
-        s.then(val => {
-          resolve(prepend + val);
-        }).then(null, () => {
-          // no-empty
-        });
+        void s
+          .then(val => {
+            resolve(prepend + val);
+          })
+          .then(null, () => {
+            // no-empty
+          });
       });
 
     return (
@@ -103,7 +107,7 @@ describe('SyncPromise', () => {
     expect.assertions(2);
 
     return new SyncPromise<number>(done => {
-      new Promise<number>(resolve => {
+      void new Promise<number>(resolve => {
         expect(true).toBe(true);
         resolve(41);
       })
@@ -152,17 +156,21 @@ describe('SyncPromise', () => {
         resolve(2);
       }),
     );
-    qp.then(value => {
-      expect(value).toEqual(2);
-    }).then(null, () => {
-      // no-empty
-    });
+    void qp
+      .then(value => {
+        expect(value).toEqual(2);
+      })
+      .then(null, () => {
+        // no-empty
+      });
     expect(qp).not.toHaveProperty('_value');
-    qp.then(value => {
-      expect(value).toEqual(2);
-    }).then(null, () => {
-      // no-empty
-    });
+    void qp
+      .then(value => {
+        expect(value).toEqual(2);
+      })
+      .then(null, () => {
+        // no-empty
+      });
     jest.runAllTimers();
     expect(qp).toHaveProperty('_value');
   });

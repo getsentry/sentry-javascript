@@ -1,36 +1,48 @@
 import { getSentryRelease } from '@sentry/node';
-import { logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 import defaultWebpackPlugin, { SentryCliPluginOptions } from '@sentry/webpack-plugin';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 import { NextConfig } from 'next/dist/next-server/server/config';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const SENTRY_CLIENT_CONFIG_FILE = './sentry.client.config.js';
+const SENTRY_SERVER_CONFIG_FILE = './sentry.server.config.js';
+// this is where the transpiled/bundled version of `SENTRY_SERVER_CONFIG_FILE` will end up
+export const SERVER_SDK_INIT_PATH = 'sentry/initServerSDK.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
-
-// Man are these types hard to name well. "Entry" = an item in some collection of items, but in our case, one of the
-// things we're worried about here is property (entry) in an object called... entry. So henceforth, the specific
-// property we're modifying is going to be known as an EntryProperty.
 
 // The function which is ultimately going to be exported from `next.config.js` under the name `webpack`
 type WebpackExport = (config: WebpackConfig, options: WebpackOptions) => WebpackConfig;
 
 // The two arguments passed to the exported `webpack` function, as well as the thing it returns
-type WebpackConfig = { devtool: string; plugins: PlainObject[]; entry: EntryProperty };
+type WebpackConfig = {
+  devtool: string;
+  plugins: PlainObject[];
+  entry: EntryProperty;
+  output: { filename: string; path: string };
+  target: string;
+  context: string;
+};
 type WebpackOptions = { dev: boolean; isServer: boolean; buildId: string };
 
 // For our purposes, the value for `entry` is either an object, or a function which returns such an object
 type EntryProperty = (() => Promise<EntryPropertyObject>) | EntryPropertyObject;
-
 // Each value in that object is either a string representing a single entry point, an array of such strings, or an
 // object containing either of those, along with other configuration options. In that third case, the entry point(s) are
 // listed under the key `import`.
-type EntryPropertyObject = PlainObject<string | Array<string> | EntryPointObject>;
+type EntryPropertyObject = PlainObject<string> | PlainObject<Array<string>> | PlainObject<EntryPointObject>;
 type EntryPointObject = { import: string | Array<string> };
 
-const sentryClientConfig = './sentry.client.config.js';
-const sentryServerConfig = './sentry.server.config.js';
-
-/** Add a file (`injectee`) to a given element (`injectionPoint`) of the `entry` property */
+/**
+ * Add a file to a specific element of the given `entry` webpack config property.
+ *
+ * @param entryProperty The existing `entry` config object
+ * @param injectionPoint The key where the file should be injected
+ * @param injectee The path to the injected file
+ */
 const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string, injectee: string): void => {
   // can be a string, array of strings, or object whose `import` property is one of those two
   let injectedInto = entryProperty[injectionPoint];
@@ -42,21 +54,19 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
     return;
   }
 
-  // In case we inject our client config, we need to add it after the frontend code
-  // otherwise the runtime config isn't loaded. See: https://github.com/getsentry/sentry-javascript/issues/3485
-  const isClient = injectee === sentryClientConfig;
-
+  // We inject the user's client config file after the existing code so that the config file has access to
+  // `publicRuntimeConfig`. See https://github.com/getsentry/sentry-javascript/issues/3485
   if (typeof injectedInto === 'string') {
-    injectedInto = isClient ? [injectedInto, injectee] : [injectee, injectedInto];
+    injectedInto = [injectedInto, injectee];
   } else if (Array.isArray(injectedInto)) {
-    injectedInto = isClient ? [...injectedInto, injectee] : [injectee, ...injectedInto];
+    injectedInto = [...injectedInto, injectee];
   } else {
-    let importVal: string | string[] | EntryPointObject;
+    let importVal: string | string[];
+
     if (typeof injectedInto.import === 'string') {
-      importVal = isClient ? [injectedInto.import, injectee] : [injectee, injectedInto.import];
+      importVal = [injectedInto.import, injectee];
     } else {
-      // If it's not a string, the inner value is an array
-      importVal = isClient ? [...injectedInto.import, injectee] : [injectee, ...injectedInto.import];
+      importVal = [...injectedInto.import, injectee];
     }
 
     injectedInto = {
@@ -68,38 +78,36 @@ const _injectFile = (entryProperty: EntryPropertyObject, injectionPoint: string,
   entryProperty[injectionPoint] = injectedInto;
 };
 
-const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryProperty> => {
-  // Out of the box, nextjs uses the `() => Promise<EntryPropertyObject>)` flavor of EntryProperty, where the returned
-  // object has string arrays for values.
+const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean): Promise<EntryPropertyObject> => {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
   // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
+
   let newEntryProperty = origEntryProperty;
   if (typeof origEntryProperty === 'function') {
     newEntryProperty = await origEntryProperty();
   }
   newEntryProperty = newEntryProperty as EntryPropertyObject;
-  // On the server, we need to inject the SDK into both into the base page (`_document`) and into individual API routes
-  // (which have no common base).
+
+  // Add a new element to the `entry` array, we force webpack to create a bundle out of the user's
+  // `sentry.server.config.js` file and output it to `SERVER_INIT_LOCATION`. (See
+  // https://webpack.js.org/guides/code-splitting/#entry-points.) We do this so that the user's config file is run
+  // through babel (and any other processors through which next runs the rest of the user-provided code - pages, API
+  // routes, etc.). Specifically, we need any ESM-style `import` code to get transpiled into ES5, so that we can call
+  // `require()` on the resulting file when we're instrumenting the sesrver. (We can't use a dynamic import there
+  // because that then forces the user into a particular TS config.)
   if (isServer) {
-    Object.keys(newEntryProperty).forEach(key => {
-      if (key === 'pages/_document' || key.includes('pages/api')) {
-        // for some reason, because we're now in a function, we have to cast again
-        _injectFile(newEntryProperty as EntryPropertyObject, key, sentryServerConfig);
-      }
-    });
+    // slice off the final `.js` since webpack is going to add it back in for us, and we don't want to end up with
+    // `.js.js` as the extension
+    newEntryProperty[SERVER_SDK_INIT_PATH.slice(0, -3)] = SENTRY_SERVER_CONFIG_FILE;
   }
   // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
   else {
-    _injectFile(newEntryProperty, 'main', sentryClientConfig);
+    _injectFile(newEntryProperty, 'main', SENTRY_CLIENT_CONFIG_FILE);
   }
-  // TODO: hack made necessary because the async-ness of this function turns our object back into a promise, meaning the
-  // internal `next` code which should do this doesn't
-  if ('main.js' in newEntryProperty) {
-    delete newEntryProperty['main.js'];
-  }
+
   return newEntryProperty;
 };
 
@@ -108,11 +116,18 @@ type NextConfigExports = Partial<NextConfig> & {
   webpack?: WebpackExport;
 };
 
+/**
+ * Add Sentry options to the config to be exported from the user's `next.config.js` file.
+ *
+ * @param providedExports The existing config to be exported ,prior to adding Sentry
+ * @param providedSentryWebpackPluginOptions Configuration for SentryWebpackPlugin
+ * @returns The modified config to be exported
+ */
 export function withSentryConfig(
   providedExports: Partial<NextConfig> = {},
-  providedWebpackPluginOptions: Partial<SentryCliPluginOptions> = {},
+  providedSentryWebpackPluginOptions: Partial<SentryCliPluginOptions> = {},
 ): NextConfigExports {
-  const defaultWebpackPluginOptions = {
+  const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
@@ -121,22 +136,34 @@ export function withSentryConfig(
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix: `~/_next`,
     include: '.next/',
-    ignore: ['node_modules', 'webpack.config.js'],
-  };
+    ignore: ['.next/cache', 'server/ssr-module-cache.js', 'static/*/_ssgManifest.js', 'static/*/_buildManifest.js'],
+  });
 
   // warn if any of the default options for the webpack plugin are getting overridden
-  const webpackPluginOptionOverrides = Object.keys(defaultWebpackPluginOptions)
+  const sentryWebpackPluginOptionOverrides = Object.keys(defaultSentryWebpackPluginOptions)
     .concat('dryrun')
-    .filter(key => key in Object.keys(providedWebpackPluginOptions));
-  if (webpackPluginOptionOverrides.length > 0) {
+    .filter(key => key in providedSentryWebpackPluginOptions);
+  if (sentryWebpackPluginOptionOverrides.length > 0) {
     logger.warn(
       '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
-        `\t${webpackPluginOptionOverrides.toString()},\n` +
+        `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +
         "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
     );
   }
 
   const newWebpackExport = (config: WebpackConfig, options: WebpackOptions): WebpackConfig => {
+    // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
+    // webpack-processed version of `sentry.server.config.js` when we need it
+    if (config.target === 'node') {
+      const outputLocation = path.dirname(path.join(config.output.path, config.output.filename));
+      const serverSDKInitOutputPath = path.join(outputLocation, SERVER_SDK_INIT_PATH);
+      const projectDir = config.context;
+      setRuntimeEnvVars(projectDir, {
+        // ex: .next/server/sentry/initServerSdk.js
+        SENTRY_SERVER_INIT_PATH: path.relative(projectDir, serverSDKInitOutputPath),
+      });
+    }
+
     let newConfig = config;
 
     if (typeof providedExports.webpack === 'function') {
@@ -150,9 +177,15 @@ export function withSentryConfig(
       newConfig.devtool = 'source-map';
     }
 
-    // Inject user config files (`sentry.client.confg.js` and `sentry.server.config.js`), which is where `Sentry.init()`
-    // is called. By adding them here, we ensure that they're bundled by webpack as part of both server code and client code.
-    newConfig.entry = (injectSentry(newConfig.entry, options.isServer) as unknown) as EntryProperty;
+    // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
+    // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (In a synchronous
+    // world, `x = () => f(x)` is fine, because the dereferencing is guaranteed to happen before the assignment, meaning
+    // we know f will get the original value of x. But in an async world, if we do `x = async () => f(x)`, the
+    // assignment happens *before* the dereferencing, meaning f is passed the new value. In other words, in that
+    // scenario, the new value is defined in terms of itself, with predictably bad consequences. Theoretically this
+    // could also be fixed by using `bind`, but this is way simpler.)
+    const origEntryProperty = newConfig.entry;
+    newConfig.entry = () => injectSentry(origEntryProperty, options.isServer);
 
     // Add the Sentry plugin, which uploads source maps to Sentry when not in dev
     newConfig.plugins.push(
@@ -160,8 +193,8 @@ export function withSentryConfig(
       new ((SentryWebpackPlugin as unknown) as typeof defaultWebpackPlugin)({
         dryRun: options.dev,
         release: getSentryRelease(options.buildId),
-        ...defaultWebpackPluginOptions,
-        ...providedWebpackPluginOptions,
+        ...defaultSentryWebpackPluginOptions,
+        ...providedSentryWebpackPluginOptions,
       }),
     );
 
@@ -173,4 +206,40 @@ export function withSentryConfig(
     productionBrowserSourceMaps: true,
     webpack: newWebpackExport,
   };
+}
+
+/**
+ * Set variables to be added to the env at runtime, by storing them in `.env.local` (which `next` automatically reads
+ * into memory at server startup).
+ *
+ * @param projectDir The path to the project root
+ * @param vars Object containing vars to set
+ */
+function setRuntimeEnvVars(projectDir: string, vars: PlainObject<string>): void {
+  // ensure the file exists
+  const envFilePath = path.join(projectDir, '.env.local');
+  if (!fs.existsSync(envFilePath)) {
+    fs.writeFileSync(envFilePath, '');
+  }
+
+  let fileContents = fs
+    .readFileSync(envFilePath)
+    .toString()
+    .trim();
+
+  Object.entries(vars).forEach(entry => {
+    const [varName, value] = entry;
+    const envVarString = `${varName}=${value}`;
+
+    // new entry
+    if (!fileContents.includes(varName)) {
+      fileContents = `${fileContents}\n${envVarString}`;
+    }
+    // existing entry; make sure value is up to date
+    else {
+      fileContents = fileContents.replace(new RegExp(`${varName}=\\S+`), envVarString);
+    }
+  });
+
+  fs.writeFileSync(envFilePath, `${fileContents.trim()}\n`);
 }

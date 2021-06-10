@@ -54,16 +54,18 @@ export class RewriteFrames implements Integration {
   }
 
   /** JSDoc */
-  public process(event: Event): Event {
-    if (event.exception && Array.isArray(event.exception.values)) {
-      return this._processExceptionsEvent(event);
+  public process(originalEvent: Event): Event {
+    let processedEvent = originalEvent;
+
+    if (originalEvent.exception && Array.isArray(originalEvent.exception.values)) {
+      processedEvent = this._processExceptionsEvent(processedEvent);
     }
 
-    if (event.stacktrace) {
-      return this._processStacktraceEvent(event);
+    if (originalEvent.stacktrace) {
+      processedEvent = this._processStacktraceEvent(processedEvent);
     }
 
-    return event;
+    return processedEvent;
   }
 
   /**

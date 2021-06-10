@@ -299,7 +299,7 @@ describe('Hub', () => {
       hub.withScope(scope => {
         scope.addBreadcrumb({ message: 'scope breadcrumb' });
         const event: Event = {};
-        scope
+        void scope
           .applyToEvent(event)
           .then((appliedEvent: Event | null) => {
             expect(appliedEvent).toBeTruthy();

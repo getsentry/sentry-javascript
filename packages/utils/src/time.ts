@@ -103,7 +103,7 @@ const timestampSource: TimestampSource =
 /**
  * Returns a timestamp in seconds since the UNIX epoch using the Date API.
  */
-export const dateTimestampInSeconds = dateTimestampSource.nowSeconds.bind(dateTimestampSource);
+export const dateTimestampInSeconds: () => number = dateTimestampSource.nowSeconds.bind(dateTimestampSource);
 
 /**
  * Returns a timestamp in seconds since the UNIX epoch using either the Performance or Date APIs, depending on the
@@ -116,7 +116,7 @@ export const dateTimestampInSeconds = dateTimestampSource.nowSeconds.bind(dateTi
  * skew can grow to arbitrary amounts like days, weeks or months.
  * See https://github.com/getsentry/sentry-javascript/issues/2590.
  */
-export const timestampInSeconds = timestampSource.nowSeconds.bind(timestampSource);
+export const timestampInSeconds: () => number = timestampSource.nowSeconds.bind(timestampSource);
 
 // Re-exported with an old name for backwards-compatibility.
 export const timestampWithMs = timestampInSeconds;
@@ -141,7 +141,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // data as reliable if they are within a reasonable threshold of the current time.
 
   const { performance } = getGlobalObject<Window>();
-  if (!performance) {
+  if (!performance || !performance.now) {
     _browserPerformanceTimeOriginMode = 'none';
     return undefined;
   }

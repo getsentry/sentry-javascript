@@ -28,7 +28,7 @@ export class PromiseBuffer<T> {
     if (this._buffer.indexOf(task) === -1) {
       this._buffer.push(task);
     }
-    task
+    void task
       .then(() => this.remove(task))
       .then(null, () =>
         this.remove(task).then(null, () => {
@@ -70,7 +70,7 @@ export class PromiseBuffer<T> {
           resolve(false);
         }
       }, timeout);
-      SyncPromise.all(this._buffer)
+      void SyncPromise.all(this._buffer)
         .then(() => {
           clearTimeout(capturedSetTimeout);
           resolve(true);

@@ -139,6 +139,29 @@ jobs:
       - name: Run linter
         run: yarn lint
 
+  job_circular_dep_check:
+    name: Circular Dependency Check
+    needs: job_build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run madge
+        run: yarn circularDepCheck
+
   job_unit_test:
     name: Test (Node ${{ matrix.node }})
     needs: job_build
@@ -183,6 +206,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
@@ -191,6 +216,7 @@ jobs:
           # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
           # tests in our Node matrix above.
           node-version: '10'
+          fetch-depth: 0
       - name: Check dependency cache
         uses: actions/cache@v2
         with:

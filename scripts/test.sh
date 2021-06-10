@@ -12,6 +12,9 @@ if [[ "$(cut -d. -f1 <<<"$NODE_VERSION")" -le 6 ]]; then
   cd packages/tracing
   yarn add --dev --ignore-engines --ignore-scripts jsdom@11.x
   cd ../..
+  cd packages/utils
+  yarn add --dev --ignore-engines --ignore-scripts jsdom@11.x
+  cd ../..
 
   # only test against @sentry/node and its dependencies - node 6 is too old for anything else to work
   yarn test --scope="@sentry/core" --scope="@sentry/hub" --scope="@sentry/minimal" --scope="@sentry/node" --scope="@sentry/utils" --scope="@sentry/tracing"
@@ -23,9 +26,12 @@ elif [[ "$(cut -d. -f1 <<<"$NODE_VERSION")" -le 8 ]]; then
   cd packages/tracing
   yarn add --dev --ignore-engines --ignore-scripts jsdom@15.x
   cd ../..
+  cd packages/utils
+  yarn add --dev --ignore-engines --ignore-scripts jsdom@15.x
+  cd ../..
 
   # ember tests happen separately, and the rest fail on node 8 for various syntax or dependency reasons
-  yarn test --ignore="@sentry/ember" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry/react" --ignore="@sentry/wasm" --ignore="@sentry/gatsby" --ignore="@sentry/serverless"
+  yarn test --ignore="@sentry/ember" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry/react" --ignore="@sentry/wasm" --ignore="@sentry/gatsby" --ignore="@sentry/serverless" --ignore="@sentry/nextjs"
 
 else
   yarn test --ignore="@sentry/ember"
