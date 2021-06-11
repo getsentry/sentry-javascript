@@ -200,22 +200,22 @@ export function extractRequestData(
   const requestData: { [key: string]: any } = {};
 
   // headers:
-  //   node, express: req.headers
+  //   node, express, nextjs: req.headers
   //   koa: req.header
   const headers = (req.headers || req.header || {}) as {
     host?: string;
     cookie?: string;
   };
   // method:
-  //   node, express, koa: req.method
+  //   node, express, koa, nextjs: req.method
   const method = req.method;
   // host:
   //   express: req.hostname in > 4 and req.host in < 4
   //   koa: req.host
-  //   node: req.headers.host
+  //   node, nextjs: req.headers.host
   const host = req.hostname || req.host || headers.host || '<no host>';
   // protocol:
-  //   node: <n/a>
+  //   node, nextjs: <n/a>
   //   express, koa: req.protocol
   const protocol =
     req.protocol === 'https' || req.secure || ((req.socket || {}) as { encrypted?: boolean }).encrypted
@@ -223,7 +223,7 @@ export function extractRequestData(
       : 'http';
   // url (including path and query string):
   //   node, express: req.originalUrl
-  //   koa: req.url
+  //   koa, nextjs: req.url
   const originalUrl = (req.originalUrl || req.url || '') as string;
   // absolute url
   const absoluteUrl = `${protocol}://${host}${originalUrl}`;
@@ -242,26 +242,27 @@ export function extractRequestData(
       case 'cookies':
         // cookies:
         //   node, express, koa: req.headers.cookie
-        //   vercel, sails.js, express (w/ cookie middleware): req.cookies
+        //   vercel, sails.js, express (w/ cookie middleware), nextjs: req.cookies
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         requestData.cookies = req.cookies || cookie.parse(headers.cookie || '');
         break;
       case 'query_string':
         // query string:
         //   node: req.url (raw)
-        //   express, koa: req.query
+        //   express, koa, nextjs: req.query
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.query_string = url.parse(originalUrl || '', false).query;
+        requestData.query_string = req.query || url.parse(originalUrl || '', false).query;
         break;
       case 'data':
         if (method === 'GET' || method === 'HEAD') {
           break;
         }
-        // body data: express, koa: req.body
-
-        // when using node by itself, you have to read the incoming stream(see
-        // https://nodejs.dev/learn/get-http-request-body-data-using-nodejs); if a user is doing that, we can't know
-        // where they're going to store the final result, so they'll have to capture this data themselves
+        // body data:
+        //   express, koa, nextjs: req.body
+        //
+        //   when using node by itself, you have to read the incoming stream(see
+        //   https://nodejs.dev/learn/get-http-request-body-data-using-nodejs); if a user is doing that, we can't know
+        //   where they're going to store the final result, so they'll have to capture this data themselves
         if (req.body !== undefined) {
           requestData.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
         }
@@ -345,7 +346,7 @@ export function parseRequest(event: Event, req: ExpressRequest, options?: ParseR
   }
 
   // client ip:
-  //   node: req.connection.remoteAddress
+  //   node, nextjs: req.connection.remoteAddress
   //   express, koa: req.ip
   if (options.ip) {
     const ip = req.ip || (req.connection && req.connection.remoteAddress);
@@ -358,6 +359,8 @@ export function parseRequest(event: Event, req: ExpressRequest, options?: ParseR
   }
 
   if (options.transaction && !event.transaction) {
+    // TODO do we even need this anymore?
+    // TODO make this work for nextjs
     event.transaction = extractTransaction(req, options.transaction);
   }
 
