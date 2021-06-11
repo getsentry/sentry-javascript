@@ -31,6 +31,7 @@ export interface NextRequest extends http.IncomingMessage {
   url: string;
   query: { [key: string]: string };
   headers: { [key: string]: string };
+  body: string | { [key: string]: unknown };
 }
 type NextResponse = http.ServerResponse;
 
@@ -309,9 +310,11 @@ function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
  * @returns The modified event
  */
 export function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
+  // TODO (breaking change): Replace all calls to this function with `parseRequest(event, req, { transaction: false })`
+  // (this is breaking because doing so will change `event.request.url` from a path into an absolute URL)
   event.request = {
     ...event.request,
-    // TODO body/data
+    data: req.body,
     url: req.url.split('?')[0],
     cookies: req.cookies,
     headers: req.headers,
