@@ -311,7 +311,8 @@ function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
  */
 export function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
   // TODO (breaking change): Replace all calls to this function with `parseRequest(event, req, { transaction: false })`
-  // (this is breaking because doing so will change `event.request.url` from a path into an absolute URL)
+  // (this is breaking because doing so will change `event.request.url` from a path into an absolute URL, which might
+  // mess up various automations in the Sentry web app - alert rules, auto assignment, saved searches, etc)
   event.request = {
     ...event.request,
     data: req.body,
