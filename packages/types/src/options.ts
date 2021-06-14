@@ -58,6 +58,13 @@ export interface Options {
   transportOptions?: TransportOptions;
 
   /**
+   * A URL to an envelope tunnel endpoint. An envelope tunnel is an HTTP endpoint
+   * that accepts Sentry envelopes for forwarding. This can be used to force data
+   * through a custom server independent of the type of data.
+   */
+  tunnel?: string;
+
+  /**
    * The release identifier used when uploading respective source maps. Specify
    * this value to allow Sentry to resolve the correct source maps when
    * processing events.
