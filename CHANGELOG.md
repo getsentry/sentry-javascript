@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.7.0
+
+- [core] feat: Add `tunnel` option to support request tunneling for dealing with ad-blockers (#3521)
+
 ## 6.6.0
 
 - [node] feat: Allow for overriding custom `UrlParser` in Node.js transports (#3612)
