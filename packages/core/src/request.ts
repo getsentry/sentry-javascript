@@ -33,6 +33,7 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
+    ...(api.forceEnvelope() && { dsn: api.getDsn().toString() }),
   });
   // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
   const type: SentryRequestType = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';

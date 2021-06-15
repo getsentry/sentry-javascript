@@ -3,7 +3,12 @@ import { DebugMeta, Event, SentryRequest, TransactionSamplingMethod } from '@sen
 import { API } from '../../src/api';
 import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
 
-const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012', {
+const ingestDsn = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
+const ingestUrl =
+  'https://squirrelchasers.ingest.sentry.io/api/12312012/envelope/?sentry_key=dogsarebadatkeepingsecrets&sentry_version=7';
+const tunnel = 'https://hello.com/world';
+
+const api = new API(ingestDsn, {
   sdk: {
     integrations: ['AWSLambda'],
     name: 'sentry.javascript.browser',
@@ -11,9 +16,6 @@ const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.s
     packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
   },
 });
-
-const ingestDsn = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
-const tunnel = 'https://hello.com/world';
 
 function parseEnvelopeRequest(request: SentryRequest): any {
   const [envelopeHeaderString, itemHeaderString, eventString] = request.body.split('\n');
@@ -26,19 +28,9 @@ function parseEnvelopeRequest(request: SentryRequest): any {
 }
 
 describe('eventToSentryRequest', () => {
-  let api: API;
   let event: Event;
 
   beforeEach(() => {
-    api = new API(ingestDsn, {
-      sdk: {
-        integrations: ['AWSLambda'],
-        name: 'sentry.javascript.browser',
-        version: `12.31.12`,
-        packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
-      },
-    });
-
     event = {
       contexts: { trace: { trace_id: '1231201211212012', span_id: '12261980', op: 'pageload' } },
       environment: 'dogpark',
@@ -140,17 +132,15 @@ describe('eventToSentryRequest', () => {
   });
 
   it('uses tunnel as the url if it is configured', () => {
-    api = new API(ingestDsn, {}, tunnel);
+    const tunnelRequest = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
+    expect(tunnelRequest.url).toEqual(tunnel);
 
-    const result = eventToSentryRequest(event, api);
-
-    expect(result.url).toEqual(tunnel);
+    const defaultRequest = eventToSentryRequest(event, new API(ingestDsn, {}));
+    expect(defaultRequest.url).toEqual(ingestUrl);
   });
 
   it('adds dsn to envelope header if tunnel is configured', () => {
-    api = new API(ingestDsn, {}, tunnel);
-
-    const result = eventToSentryRequest(event, api);
+    const result = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.envelopeHeader).toEqual(
@@ -161,10 +151,9 @@ describe('eventToSentryRequest', () => {
   });
 
   it('adds default "event" item type to item header if tunnel is configured', () => {
-    api = new API(ingestDsn, {}, tunnel);
     delete event.type;
 
-    const result = eventToSentryRequest(event, api);
+    const result = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.itemHeader).toEqual(
@@ -199,6 +188,25 @@ describe('sessionToSentryRequest', () => {
       expect.objectContaining({
         attrs: { release: '1.0.x', environment: 'prod' },
         aggregates: [{ started: '2021-04-08T12:18:00.000Z', exited: 2 }],
+      }),
+    );
+  });
+
+  it('uses tunnel as the url if it is configured', () => {
+    const tunnelRequest = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}, tunnel));
+    expect(tunnelRequest.url).toEqual(tunnel);
+
+    const defaultRequest = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}));
+    expect(defaultRequest.url).toEqual(ingestUrl);
+  });
+
+  it('adds dsn to envelope header if tunnel is configured', () => {
+    const result = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}, tunnel));
+    const envelope = parseEnvelopeRequest(result);
+
+    expect(envelope.envelopeHeader).toEqual(
+      expect.objectContaining({
+        dsn: ingestDsn,
       }),
     );
   });
