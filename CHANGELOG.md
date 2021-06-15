@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.7.1
+
+- [core] fix: Add event type to item header when envelopes are forced (#3676)
+- [core] fix: Include DSN in envelope header for sessions (#3680)
+- [core] fix: Prevent scope from storing more than 100 breadcrumbs at the time (#3677)
+- [node] ref: Remove default http(s) import from http-module (#3681)
+- [nextjs] feat: Add body data to transaction `request` context (#3672)
+
 ## 6.7.0
 
 - [core] feat: Add `tunnel` option to support request tunneling for dealing with ad-blockers (#3521)
