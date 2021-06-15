@@ -81,7 +81,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
       ...(api.forceEnvelope() && { dsn: api.getDsn().toString() }),
     });
     const itemHeaders = JSON.stringify({
-      type: event.type,
+      type: eventType,
 
       // TODO: Right now, sampleRate may or may not be defined (it won't be in the cases of inheritance and
       // explicitly-set sampling decisions). Are we good with that?

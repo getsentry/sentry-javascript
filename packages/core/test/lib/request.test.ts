@@ -159,6 +159,20 @@ describe('eventToSentryRequest', () => {
       }),
     );
   });
+
+  it('adds default "event" item type to item header if tunnel is configured', () => {
+    api = new API(ingestDsn, {}, tunnel);
+    delete event.type;
+
+    const result = eventToSentryRequest(event, api);
+    const envelope = parseEnvelopeRequest(result);
+
+    expect(envelope.itemHeader).toEqual(
+      expect.objectContaining({
+        type: 'event',
+      }),
+    );
+  });
 });
 
 describe('sessionToSentryRequest', () => {
