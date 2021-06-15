@@ -1,8 +1,8 @@
-import http, { IncomingHttpHeaders } from 'http';
-import https from 'https';
+import { IncomingHttpHeaders, RequestOptions as HTTPRequestOptions } from 'http';
+import { RequestOptions as HTTPSRequestOptions } from 'https';
 import { URL } from 'url';
 
-export type HTTPModuleRequestOptions = http.RequestOptions | https.RequestOptions | string | URL;
+export type HTTPModuleRequestOptions = HTTPRequestOptions | HTTPSRequestOptions | string | URL;
 
 /**
  * Cut version of http.IncomingMessage.
