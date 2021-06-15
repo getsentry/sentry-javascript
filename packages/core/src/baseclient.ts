@@ -152,6 +152,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public captureSession(session: Session): void {
+    if (!this._isEnabled()) {
+      logger.warn('SDK not enabled, will not send session.');
+      return;
+    }
+
     if (!(typeof session.release === 'string')) {
       logger.warn('Discarded session because of missing or non-string release');
     } else {
