@@ -43,12 +43,6 @@ export const API_VERSION = 4;
 const DEFAULT_BREADCRUMBS = 100;
 
 /**
- * Absolute maximum number of breadcrumbs added to an event. The
- * `maxBreadcrumbs` option cannot be higher than this value.
- */
-const MAX_BREADCRUMBS = 100;
-
-/**
  * A layer in the process stack.
  * @hidden
  */
@@ -289,7 +283,7 @@ export class Hub implements HubInterface {
 
     if (finalBreadcrumb === null) return;
 
-    scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
   }
 
   /**
