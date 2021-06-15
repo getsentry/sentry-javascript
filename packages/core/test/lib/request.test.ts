@@ -3,15 +3,6 @@ import { DebugMeta, Event, SentryRequest, TransactionSamplingMethod } from '@sen
 import { API } from '../../src/api';
 import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
 
-const api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012', {
-  sdk: {
-    integrations: ['AWSLambda'],
-    name: 'sentry.javascript.browser',
-    version: `12.31.12`,
-    packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
-  },
-});
-
 const ingestDsn = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
 const tunnel = 'https://hello.com/world';
 
@@ -176,6 +167,19 @@ describe('eventToSentryRequest', () => {
 });
 
 describe('sessionToSentryRequest', () => {
+  let api: API;
+
+  beforeEach(() => {
+    api = new API('https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012', {
+      sdk: {
+        integrations: ['AWSLambda'],
+        name: 'sentry.javascript.browser',
+        version: `12.31.12`,
+        packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
+      },
+    });
+  });
+
   it('test envelope creation for aggregateSessions', () => {
     const aggregatedSession = {
       attrs: { release: '1.0.x', environment: 'prod' },
@@ -199,6 +203,27 @@ describe('sessionToSentryRequest', () => {
       expect.objectContaining({
         attrs: { release: '1.0.x', environment: 'prod' },
         aggregates: [{ started: '2021-04-08T12:18:00.000Z', exited: 2 }],
+      }),
+    );
+  });
+
+  it('uses tunnel as the url if it is configured', () => {
+    api = new API(ingestDsn, {}, tunnel);
+
+    const result = sessionToSentryRequest({ aggregates: [] }, api);
+
+    expect(result.url).toEqual(tunnel);
+  });
+
+  it('adds dsn to envelope header if tunnel is configured', () => {
+    api = new API(ingestDsn, {}, tunnel);
+
+    const result = sessionToSentryRequest({ aggregates: [] }, api);
+    const envelope = parseEnvelopeRequest(result);
+
+    expect(envelope.envelopeHeader).toEqual(
+      expect.objectContaining({
+        dsn: ingestDsn,
       }),
     );
   });
