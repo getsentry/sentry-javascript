@@ -63,8 +63,24 @@ describe('Scope', () => {
 
     test('addBreadcrumb', () => {
       const scope = new Scope();
-      scope.addBreadcrumb({ message: 'test' }, 100);
+      scope.addBreadcrumb({ message: 'test' });
       expect((scope as any)._breadcrumbs[0]).toHaveProperty('message', 'test');
+    });
+
+    test('addBreadcrumb can be limited to hold up to N breadcrumbs', () => {
+      const scope = new Scope();
+      for (let i = 0; i < 10; i++) {
+        scope.addBreadcrumb({ message: 'test' }, 5);
+      }
+      expect((scope as any)._breadcrumbs).toHaveLength(5);
+    });
+
+    test('addBreadcrumb cannot go over MAX_BREADCRUMBS value', () => {
+      const scope = new Scope();
+      for (let i = 0; i < 111; i++) {
+        scope.addBreadcrumb({ message: 'test' }, 111);
+      }
+      expect((scope as any)._breadcrumbs).toHaveLength(100);
     });
 
     test('setLevel', () => {
@@ -181,7 +197,7 @@ describe('Scope', () => {
       scope.setFingerprint(['abcd']);
       scope.setLevel(Severity.Warning);
       scope.setTransactionName('/abc');
-      scope.addBreadcrumb({ message: 'test' }, 100);
+      scope.addBreadcrumb({ message: 'test' });
       scope.setContext('os', { id: '1' });
       const event: Event = {};
       return scope.applyToEvent(event).then(processedEvent => {
@@ -203,7 +219,7 @@ describe('Scope', () => {
       scope.setTag('a', 'b');
       scope.setUser({ id: '1' });
       scope.setFingerprint(['abcd']);
-      scope.addBreadcrumb({ message: 'test' }, 100);
+      scope.addBreadcrumb({ message: 'test' });
       scope.setContext('server', { id: '2' });
       const event: Event = {
         breadcrumbs: [{ message: 'test1' }],
@@ -358,7 +374,7 @@ describe('Scope', () => {
     scope.setTag('a', 'b');
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
-    scope.addBreadcrumb({ message: 'test' }, 100);
+    scope.addBreadcrumb({ message: 'test' });
     scope.setRequestSession({ status: RequestSessionStatus.Ok });
     expect((scope as any)._extra).toEqual({ a: 2 });
     scope.clear();
@@ -368,7 +384,7 @@ describe('Scope', () => {
 
   test('clearBreadcrumbs', () => {
     const scope = new Scope();
-    scope.addBreadcrumb({ message: 'test' }, 100);
+    scope.addBreadcrumb({ message: 'test' });
     expect((scope as any)._breadcrumbs).toHaveLength(1);
     scope.clearBreadcrumbs();
     expect((scope as any)._breadcrumbs).toHaveLength(0);
