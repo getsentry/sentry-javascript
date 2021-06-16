@@ -152,6 +152,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public captureSession(session: Session): void {
+    if (!this._isEnabled()) {
+      logger.warn('SDK not enabled, will not capture session.');
+      return;
+    }
+
     if (!(typeof session.release === 'string')) {
       logger.warn('Discarded session because of missing or non-string release');
     } else {
@@ -485,7 +490,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
-      return SyncPromise.reject(new SentryError('SDK not enabled, will not send event.'));
+      return SyncPromise.reject(new SentryError('SDK not enabled, will not capture event.'));
     }
 
     const isTransaction = event.type === 'transaction';
