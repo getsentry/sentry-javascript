@@ -1,4 +1,4 @@
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope, Session } from '@sentry/hub';
 import { Event, Severity, Span } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
@@ -962,6 +962,24 @@ describe('BaseClient', () => {
           expect(true).toEqual(true);
         }),
       ]);
+    });
+  });
+
+  describe('captureSession()', () => {
+    test('sends sessions to the backend', () => {
+      expect.assertions(1);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const session = new Session({ release: 'test' });
+      client.captureSession(session);
+      expect(TestBackend.instance!.session).toEqual(session);
+    });
+
+    test('skips when disabled', () => {
+      expect.assertions(1);
+      const client = new TestClient({ enabled: false, dsn: PUBLIC_DSN });
+      const session = new Session({ release: 'test' });
+      client.captureSession(session);
+      expect(TestBackend.instance!.session).toBeUndefined();
     });
   });
 });
