@@ -1,5 +1,5 @@
 import { RewriteFrames } from '@sentry/integrations';
-import { configureScope, init as nodeInit } from '@sentry/node';
+import { configureScope, init as nodeInit, Integrations } from '@sentry/node';
 
 import { instrumentServer } from './utils/instrumentServer';
 import { MetadataBuilder } from './utils/metadataBuilder';
@@ -37,11 +37,19 @@ const defaultRewriteFramesIntegration = new RewriteFrames({
   },
 });
 
+const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
+
 function addServerIntegrations(options: NextjsOptions): void {
   if (options.integrations) {
     options.integrations = addIntegration(defaultRewriteFramesIntegration, options.integrations);
   } else {
     options.integrations = [defaultRewriteFramesIntegration];
+  }
+
+  if (options.tracesSampleRate !== undefined || options.tracesSampler !== undefined) {
+    options.integrations = addIntegration(defaultHttpTracingIntegration, options.integrations, {
+      Http: { keyPath: '_tracing', value: true },
+    });
   }
 }
 
