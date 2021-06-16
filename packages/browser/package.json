@@ -50,7 +50,7 @@
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
     "sinon": "^7.3.2",
-    "typescript": "3.7.5",
+    "typescript": "3.8.3",
     "webpack": "^4.30.0"
   },
   "scripts": {
