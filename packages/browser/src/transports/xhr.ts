@@ -29,7 +29,9 @@ export class XHRTransport extends BaseTransport {
       return Promise.reject({
         event: originalPayload,
         type: sentryRequest.type,
-        reason: `Transport locked till ${this._disabledUntil(sentryRequest.type)} due to too many requests.`,
+        reason: `Transport for ${sentryRequest.type} requests locked till ${this._disabledUntil(
+          sentryRequest.type,
+        )} due to too many requests.`,
         status: 429,
       });
     }

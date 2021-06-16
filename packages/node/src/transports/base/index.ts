@@ -182,17 +182,19 @@ export abstract class BaseTransport implements Transport {
 
   /** JSDoc */
   protected async _send(
-    sentryReq: SentryRequest,
+    sentryRequest: SentryRequest,
     originalPayload?: Event | Session | SessionAggregates,
   ): Promise<Response> {
     if (!this.module) {
       throw new SentryError('No module available');
     }
-    if (originalPayload && this._isRateLimited(sentryReq.type)) {
+    if (originalPayload && this._isRateLimited(sentryRequest.type)) {
       return Promise.reject({
         payload: originalPayload,
-        type: sentryReq.type,
-        reason: `Transport locked till ${this._disabledUntil(sentryReq.type)} due to too many requests.`,
+        type: sentryRequest.type,
+        reason: `Transport for ${sentryRequest.type} requests locked till ${this._disabledUntil(
+          sentryRequest.type,
+        )} due to too many requests.`,
         status: 429,
       });
     }
@@ -205,7 +207,7 @@ export abstract class BaseTransport implements Transport {
         if (!this.module) {
           throw new SentryError('No module available');
         }
-        const options = this._getRequestOptions(this.urlParser(sentryReq.url));
+        const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
         const req = this.module.request(options, res => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);
@@ -228,7 +230,10 @@ export abstract class BaseTransport implements Transport {
           };
 
           const limited = this._handleRateLimit(headers);
-          if (limited) logger.warn(`Too many requests, backing off until: ${this._disabledUntil(sentryReq.type)}`);
+          if (limited)
+            logger.warn(
+              `Too many ${sentryRequest.type} requests, backing off until: ${this._disabledUntil(sentryRequest.type)}`,
+            );
 
           if (status === Status.Success) {
             resolve({ status });
@@ -249,7 +254,7 @@ export abstract class BaseTransport implements Transport {
           });
         });
         req.on('error', reject);
-        req.end(sentryReq.body);
+        req.end(sentryRequest.body);
       }),
     );
   }
