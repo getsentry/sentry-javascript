@@ -204,7 +204,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for event requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload.message).toEqual('test');
       expect(e.type).toEqual('event');
@@ -257,7 +259,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for event requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
@@ -268,7 +272,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for transaction requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(transactionPayload);
       expect(e.type).toEqual('transaction');
@@ -335,7 +341,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for event requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
@@ -391,7 +399,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for event requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
@@ -402,7 +412,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for session requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload.environment).toEqual(sessionPayload.environment);
       expect(e.payload.release).toEqual(sessionPayload.release);
@@ -415,7 +427,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for transaction requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(transactionPayload);
       expect(e.type).toEqual('transaction');
@@ -474,7 +488,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for event requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
@@ -485,7 +501,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for transaction requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(transactionPayload);
       expect(e.type).toEqual('transaction');
@@ -539,7 +557,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for event requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
@@ -586,7 +606,9 @@ describe('HTTPTransport', () => {
     } catch (e) {
       expect(e.status).toEqual(429);
       expect(e.reason).toEqual(
-        `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        `Transport for event requests locked till ${new Date(
+          now + retryAfterSeconds * 1000,
+        )} due to too many requests.`,
       );
       expect(e.payload).toEqual(eventPayload);
       expect(e.type).toEqual('event');
