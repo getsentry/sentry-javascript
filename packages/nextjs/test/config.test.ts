@@ -212,7 +212,27 @@ describe('webpack config', () => {
       });
 
       expect(finalWebpackConfig.entry).toEqual(
-        expect.objectContaining({ main: expect.arrayContaining(['./sentry.client.config.js']) }),
+        expect.objectContaining({ main: ['./src/index.ts', './sentry.client.config.js'] }),
+      );
+    });
+
+    // see https://github.com/getsentry/sentry-javascript/pull/3696#issuecomment-863363803
+    it('handles non-empty `main.js` entry point', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        userSentryWebpackPluginConfig,
+        incomingWebpackConfig: {
+          ...clientWebpackConfig,
+          entry: () => Promise.resolve({ main: './src/index.ts', 'main.js': ['sitLieDownRollOver.config.js'] }),
+        },
+        incomingWebpackBuildContext: { ...buildContext, isServer: false },
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          main: ['sitLieDownRollOver.config.js', './src/index.ts', './sentry.client.config.js'],
+          'main.js': [],
+        }),
       );
     });
   });
