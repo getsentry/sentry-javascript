@@ -1,4 +1,4 @@
-import { ExportedNextConfig, NextConfigObject, SentryWebpackPluginOptions } from './types';
+import { ExportedNextConfig, NextConfigFunction, NextConfigObject, SentryWebpackPluginOptions } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
 /**
@@ -11,14 +11,22 @@ import { constructWebpackConfigFunction } from './webpack';
 export function withSentryConfig(
   userNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
-): NextConfigObject {
+): NextConfigFunction {
   const newWebpackExport = constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginOptions);
 
-  const finalNextConfig = {
-    ...userNextConfig,
-    // TODO When we add a way to disable the webpack plugin, doing so should turn this off, too
-    productionBrowserSourceMaps: true,
-    webpack: newWebpackExport,
+  const finalNextConfig = (
+    phase: string,
+    defaults: { defaultConfig: { [key: string]: unknown } },
+  ): NextConfigObject => {
+    const materializedUserNextConfig =
+      typeof userNextConfig === 'function' ? userNextConfig(phase, defaults) : userNextConfig;
+
+    return {
+      ...materializedUserNextConfig,
+      // TODO When we add a way to disable the webpack plugin, doing so should turn this off, too
+      productionBrowserSourceMaps: true,
+      webpack: newWebpackExport,
+    };
   };
 
   return finalNextConfig;
