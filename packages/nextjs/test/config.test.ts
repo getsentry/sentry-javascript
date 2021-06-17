@@ -62,7 +62,10 @@ function materializeFinalNextConfig(
   userNextConfig: ExportedNextConfig,
   userSentryWebpackPluginConfig: SentryWebpackPluginOptions,
 ): NextConfigObject {
-  const finalConfigValues = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
+  const configFunction = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
+  const finalConfigValues = configFunction('phase-production-build', {
+    defaultConfig: {},
+  });
 
   return finalConfigValues;
 }
@@ -123,6 +126,20 @@ describe('withSentryConfig', () => {
     expect(finalConfig).toEqual(
       expect.objectContaining({
         ...userNextConfig,
+        productionBrowserSourceMaps: true,
+        webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
+      }),
+    );
+  });
+
+  it("works when user's overall config is a function", () => {
+    const userNextConfigFunction = () => userNextConfig;
+
+    const finalConfig = materializeFinalNextConfig(userNextConfigFunction, userSentryWebpackPluginConfig);
+
+    expect(finalConfig).toEqual(
+      expect.objectContaining({
+        ...userNextConfigFunction(),
         productionBrowserSourceMaps: true,
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),

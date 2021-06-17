@@ -4,7 +4,7 @@ export { SentryCliPluginOptions as SentryWebpackPluginOptions } from '@sentry/we
  * Overall Nextjs config
  */
 
-export type ExportedNextConfig = NextConfigObject;
+export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
 
 export type NextConfigObject = {
   // whether or not next should create source maps for browser code
@@ -16,6 +16,11 @@ export type NextConfigObject = {
   // other `next.config.js` options
   [key: string]: unknown;
 };
+
+export type NextConfigFunction = (
+  phase: string,
+  defaults: { defaultConfig: { [key: string]: unknown } },
+) => NextConfigObject;
 
 /**
  * Webpack config
