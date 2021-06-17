@@ -1,10 +1,12 @@
-import { getMainCarrier, Hub } from '@sentry/hub';
+/* eslint-disable max-lines */
+import { getMainCarrier, Hub, Scope } from '@sentry/hub';
 import {
   CustomSamplingContext,
   Integration,
   IntegrationClass,
   Options,
   SamplingContext,
+  SpanContext,
   TransactionContext,
   TransactionSamplingMethod,
 } from '@sentry/types';
@@ -12,6 +14,7 @@ import { dynamicRequire, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
+import { SpanStatus } from './spanstatus';
 import { Transaction } from './transaction';
 import { hasTracingEnabled } from './utils';
 
@@ -147,6 +150,52 @@ function isValidSampleRate(rate: unknown): boolean {
 }
 
 /**
+ *
+ * @param this The Hub starting the transaction
+ * @param ctx The
+ * @param callback
+ */
+function _trace<T>(hub: Hub, ctx: SpanContext | TransactionContext, callback: (scope: Scope) => T): void {
+  // TODO: withScope returns different scope managers depending on what is registered on the hub
+  return hub.withScope(scope => {
+    const spanContext = { ...ctx };
+
+    const parentSpan = scope.getSpan();
+
+    // TODO: What should happen in this case?
+    const span = parentSpan
+      ? parentSpan.startChild(spanContext)
+      : _startTransaction(hub, spanContext as TransactionContext);
+
+    scope.setSpan(span);
+    try {
+      const rv = callback(scope);
+      if (isPromise(rv)) {
+        return rv.then(
+          r => {
+            span.finish();
+            return r;
+          },
+          e => {
+            // TODO: Capture error?
+            span.setStatus(SpanStatus.InternalError);
+            span.finish();
+            return e;
+          },
+        );
+      }
+      span.finish();
+      return rv;
+    } catch (e) {
+      // TODO: Capture error?
+      span.setStatus(SpanStatus.InternalError);
+      span.finish();
+      return e;
+    }
+  });
+}
+
+/**
  * Creates a new transaction and adds a sampling decision if it doesn't yet have one.
  *
  * The Hub.startTransaction method delegates to this method to do its work, passing the Hub instance in as `this`, as if
@@ -162,13 +211,13 @@ function isValidSampleRate(rate: unknown): boolean {
  * @see {@link Hub.startTransaction}
  */
 function _startTransaction(
-  this: Hub,
+  hub: Hub,
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const options = this.getClient()?.getOptions() || {};
+  const options = hub.getClient()?.getOptions() || {};
 
-  let transaction = new Transaction(transactionContext, this);
+  let transaction = new Transaction(transactionContext, hub);
   transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
@@ -219,6 +268,23 @@ export function _addTracingExtensions(): void {
   if (!carrier.__SENTRY__.extensions.traceHeaders) {
     carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
   }
+  if (!carrier.__SENTRY__.extensions.trace) {
+    carrier.__SENTRY__.extensions.trace = _trace;
+  }
+}
+
+/** JSDOC */
+function isObject(value: unknown): boolean {
+  return value !== null && (typeof value === 'object' || typeof value === 'function');
+}
+
+/** JSDOC */
+function isPromise<T>(value: any): value is Promise<T> {
+  return (
+    value instanceof Promise ||
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (isObject(value) && typeof value.then === 'function' && typeof value.catch === 'function')
+  );
 }
 
 /**
