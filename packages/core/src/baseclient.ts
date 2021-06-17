@@ -253,13 +253,18 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       }
     }
 
+    const initialSessionStatus = session.status;
+    const terminalStates = [SessionStatus.Crashed, SessionStatus.Abnormal];
+
     session.update({
       ...(crashed && { status: SessionStatus.Crashed }),
       user,
       userAgent,
-      errors: session.errors + Number(errored || crashed),
+      errors: Math.max(session.errors, Number(errored || crashed)),
     });
-    this.captureSession(session);
+
+    // Only send a session update if session was not already in a terminal
+    if (!terminalStates.includes(initialSessionStatus)) this.captureSession(session);
   }
 
   /** Deliver captured session to Sentry */
