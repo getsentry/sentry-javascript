@@ -211,13 +211,13 @@ function _trace<T>(hub: Hub, ctx: SpanContext | TransactionContext, callback: (s
  * @see {@link Hub.startTransaction}
  */
 function _startTransaction(
-  hub: Hub,
+  this: Hub,
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const options = hub.getClient()?.getOptions() || {};
+  const options = this.getClient()?.getOptions() || {};
 
-  let transaction = new Transaction(transactionContext, hub);
+  let transaction = new Transaction(transactionContext, this);
   transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
