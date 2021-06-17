@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
-import { Scope, Session } from '@sentry/hub';
-import {
+ { Scope, Session }  '@sentry/hub';
+ {
   Client,
   Event,
   EventHint,
@@ -9,8 +9,8 @@ import {
   Options,
   SessionStatus,
   Severity,
-} from '@sentry/types';
-import {
+} '@sentry/types';
+ {
   dateTimestampInSeconds,
   Dsn,
   isPrimitive,
@@ -21,10 +21,10 @@ import {
   SyncPromise,
   truncate,
   uuid4,
-} from '@sentry/utils';
+}  '@sentry/utils';
 
-import { Backend, BackendClass } from './basebackend';
-import { IntegrationIndex, setupIntegrations } from './integration';
+ { Backend, BackendClass }  './basebackend';
+ { IntegrationIndex, setupIntegrations }  './integration';
 
 /**
  * Base implementation for all JavaScript SDK clients.
