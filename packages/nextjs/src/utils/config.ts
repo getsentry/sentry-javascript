@@ -106,6 +106,12 @@ const injectSentry = async (origEntryProperty: EntryProperty, isServer: boolean)
   // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
   else {
     _injectFile(newEntryProperty, 'main', SENTRY_CLIENT_CONFIG_FILE);
+
+    // next-pwa inserts its register script to 'main.js' entry. In this case, both `main` and `main.js` exist.
+    // As in: https://github.com/getsentry/sentry-javascript/issues/3538
+    if ('main.js' in newEntryProperty) {
+      _injectFile(newEntryProperty, 'main.js', SENTRY_CLIENT_CONFIG_FILE);
+    }
   }
 
   return newEntryProperty;
