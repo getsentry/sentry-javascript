@@ -54,10 +54,13 @@ export type WebpackEntryProperty = EntryPropertyObject | EntryPropertyFunction;
 // Each value in that object is either a string representing a single entry point, an array of such strings, or an
 // object containing either of those, along with other configuration options. In that third case, the entry point(s) are
 // listed under the key `import`.
-export type EntryPropertyObject =
-  | { [key: string]: string }
-  | { [key: string]: Array<string> }
-  | { [key: string]: EntryPointObject }; // only in webpack 5
+export type EntryPropertyObject = {
+  [key: string]:
+    | string
+    | Array<string>
+    // only in webpack 5
+    | EntryPointObject;
+};
 
 export type EntryPropertyFunction = () => Promise<EntryPropertyObject>;
 

@@ -4,6 +4,7 @@ import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 
 import {
   BuildContext,
+  EntryPointObject,
   EntryPropertyObject,
   ExportedNextConfig,
   SentryWebpackPluginOptions,
@@ -151,6 +152,23 @@ async function addSentryToEntryProperty(
   // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
   else {
     addFileToExistingEntryPoint(newEntryProperty, 'main', SENTRY_CLIENT_CONFIG_FILE);
+
+    // To work around a bug in nextjs, we need to ensure that the `main.js` entry is empty (otherwise it'll choose that
+    // over `main` and we'll lose the change we just made). In case some other library has put something into it, copy
+    // its contents over before emptying it out. See
+    // https://github.com/getsentry/sentry-javascript/pull/3696#issuecomment-863363803.)
+    const mainjsValue = newEntryProperty['main.js'];
+    if (Array.isArray(mainjsValue) && mainjsValue.length > 0) {
+      const mainValue = newEntryProperty.main;
+
+      // copy the `main.js` entries over
+      newEntryProperty.main = Array.isArray(mainValue)
+        ? [...mainjsValue, ...mainValue]
+        : { ...(mainValue as EntryPointObject), import: [...mainjsValue, ...(mainValue as EntryPointObject).import] };
+
+      // nuke the entries
+      newEntryProperty['main.js'] = [];
+    }
   }
 
   return newEntryProperty;
