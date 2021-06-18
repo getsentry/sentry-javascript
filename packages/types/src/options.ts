@@ -3,6 +3,7 @@ import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { LogLevel } from './loglevel';
 import { CaptureContext } from './scope';
+import { ScopeManager } from './scopemanager';
 import { SdkMetadata } from './sdkmetadata';
 import { SamplingContext } from './transaction';
 import { Transport, TransportClass, TransportOptions } from './transport';
@@ -136,6 +137,16 @@ export interface Options {
    * Set data to the inital scope
    */
   initialScope?: CaptureContext;
+
+  /**
+   * The scope manager defines the strategy for scope management.
+   *
+   * Scope management is related to the ability of determining the current scope.
+   *
+   * A default scope manager is automatically chosen based on the current execution environment.
+   * This option serves to override the default.
+   */
+  scopeManager?: ScopeManager;
 
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,

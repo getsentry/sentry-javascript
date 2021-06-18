@@ -21,8 +21,13 @@ class TestClient extends BaseClient<any, Options> {
 }
 
 describe('SimpleScopeManager', () => {
+  let client: TestClient;
+
+  beforeEach(() => {
+    client = new TestClient({ scopeManager: new SimpleScopeManager() });
+  });
+
   test('withScope forks the current scope', () => {
-    const client = new TestClient({ scopeManager: new SimpleScopeManager() });
     const scope = client.getScope();
     scope.setTag('outer', 'scope');
     expect(scope._tags).toEqual({ outer: 'scope' });
@@ -33,5 +38,10 @@ describe('SimpleScopeManager', () => {
     });
     expect(innerScope._tags).toEqual({ outer: 'scope', inner: 'scope' });
     expect(scope._tags).toEqual({ outer: 'scope' });
+  });
+
+  test('withScope returns return value from wrapped function', () => {
+    const rv = client.withScope(() => 42);
+    expect(rv).toEqual(42);
   });
 });

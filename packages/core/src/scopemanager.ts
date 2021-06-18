@@ -1,9 +1,5 @@
 import { Scope } from '@sentry/hub';
-
-interface ScopeManager {
-  current(): Scope;
-  withScope<T>(fn: (scope: Scope) => T): T;
-}
+import { ScopeManager } from '@sentry/types';
 
 /**
  *

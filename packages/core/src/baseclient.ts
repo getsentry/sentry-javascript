@@ -7,6 +7,7 @@ import {
   Integration,
   IntegrationClass,
   Options,
+  ScopeManager,
   SessionStatus,
   Severity,
 } from '@sentry/types';
@@ -25,6 +26,7 @@ import {
 
 import { Backend, BackendClass } from './basebackend';
 import { IntegrationIndex, setupIntegrations } from './integration';
+import { SimpleScopeManager } from './scopemanager';
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -96,7 +98,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     // TODO: set a default scopeManager that is the best implementation based on what we know of the execution env.
-    this._scopeManager = options.scopeManager; // || default
+    this._scopeManager = options.scopeManager || new SimpleScopeManager();
   }
 
   /**
