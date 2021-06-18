@@ -44,7 +44,10 @@ BaseContextManager - https://github.com/open-telemetry/opentelemetry-js-api/blob
 ## Open Questions
 
 - Is the context decision stored globally or per client? (or can we find a way around it)
--
+
+- How to do manual context propagation? (if not using zones and still want to get the right context in a setTimeout)
+
+- Can we have a global scope in addition to a local scope?
 
 ## Unrelated
 

@@ -72,6 +72,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
   protected readonly _dsn?: Dsn;
 
+  /** ScopeManager used to manage scopes in current execution environment (Zone.js, Async Hooks, Domains, etc). */
+  protected readonly _scopeManager: unknown; // TODO: ScopeManager interface
+
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
 
@@ -91,6 +94,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     if (options.dsn) {
       this._dsn = new Dsn(options.dsn);
     }
+
+    // TODO: set a default scopeManager that is the best implementation based on what we know of the execution env.
+    this._scopeManager = options.scopeManager; // || default
   }
 
   /**
@@ -575,7 +581,4 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       },
     );
   }
-
-  // TODO(Experimental):
-  public ContextManager: C;
 }
