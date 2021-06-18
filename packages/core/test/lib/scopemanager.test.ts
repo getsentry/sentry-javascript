@@ -1,10 +1,13 @@
+import { Scope } from '@sentry/hub';
+import { Options } from '@sentry/types';
+
 import { BaseClient } from '../../src/baseclient';
 import { SimpleScopeManager } from '../../src/scopemanager';
-import { Scope } from '@sentry/hub';
 
-class TestClient extends BaseClient {
+const backendClass = Object; // we don't care about the backend
+
+class TestClient extends BaseClient<any, Options> {
   public constructor(options: Options) {
-    const backendClass = Object; // we don't care about the backend
     super(backendClass, options);
   }
 
@@ -17,8 +20,8 @@ class TestClient extends BaseClient {
   }
 }
 
-describe('Client', () => {
-  test('SimpleScopeManager', () => {
+describe('SimpleScopeManager', () => {
+  test('withScope forks the current scope', () => {
     const client = new TestClient({ scopeManager: new SimpleScopeManager() });
     const scope = client.getScope();
     scope.setTag('outer', 'scope');
