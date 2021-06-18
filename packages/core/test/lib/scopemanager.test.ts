@@ -12,11 +12,18 @@ class TestClient extends BaseClient<any, Options> {
   }
 }
 
-describe('SimpleScopeManager', () => {
+describe('Client + SimpleScopeManager', () => {
   let client: TestClient;
 
   beforeEach(() => {
     client = new TestClient({ scopeManager: new SimpleScopeManager() });
+  });
+
+  test('getScope returns mutable scope', () => {
+    const scope = client.getScope();
+    scope.setTag('key', 'value');
+    expect(scope._tags).toEqual({ key: 'value' });
+    expect(client.getScope()).toEqual(scope);
   });
 
   test('withScope returns return value from wrapped function', () => {
