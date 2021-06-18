@@ -575,4 +575,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       },
     );
   }
+
+  // TODO(Experimental):
+  public ContextManager: C;
 }
