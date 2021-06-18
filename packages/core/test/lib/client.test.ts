@@ -1,4 +1,5 @@
 import { BaseClient } from '../../src/baseclient';
+import { SimpleScopeManager } from '../../src/scopemanager';
 import { Scope } from '@sentry/hub';
 
 class TestClient extends BaseClient {
@@ -13,20 +14,6 @@ class TestClient extends BaseClient {
 
   public withScope<T>(fn: (scope: Scope) => T): T {
     return this._scopeManager.withScope(fn);
-  }
-}
-
-class SimpleScopeManager {
-  private _current = new Scope();
-
-  public current(): Scope {
-    return this._current;
-  }
-
-  public withScope<T>(fn: (scope: Scope) => T): T {
-    // public withScope<T>(scope: Scope, fn: (scope: Scope) => T): T {
-    // TODO: optional Scope as second argument
-    return fn(Scope.clone(this._current));
   }
 }
 

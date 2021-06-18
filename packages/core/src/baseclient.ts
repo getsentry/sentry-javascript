@@ -73,7 +73,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected readonly _dsn?: Dsn;
 
   /** ScopeManager used to manage scopes in current execution environment (Zone.js, Async Hooks, Domains, etc). */
-  protected readonly _scopeManager: unknown; // TODO: ScopeManager interface
+  protected readonly _scopeManager: ScopeManager;
 
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
