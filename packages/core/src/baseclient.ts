@@ -231,6 +231,20 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
   }
 
+  /**
+   * Returns the current scope.
+   */
+  public getScope(): Scope {
+    return this._scopeManager.current();
+  }
+
+  /**
+   * Runs fn with a fork of the current scope.
+   */
+  public withScope<T>(fn: (scope: Scope) => T): T {
+    return this._scopeManager.withScope(fn);
+  }
+
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;

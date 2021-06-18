@@ -10,14 +10,6 @@ class TestClient extends BaseClient<any, Options> {
   public constructor(options: Options) {
     super(backendClass, options);
   }
-
-  public getScope(): Scope {
-    return this._scopeManager.current();
-  }
-
-  public withScope<T>(fn: (scope: Scope) => T): T {
-    return this._scopeManager.withScope(fn);
-  }
 }
 
 describe('SimpleScopeManager', () => {
