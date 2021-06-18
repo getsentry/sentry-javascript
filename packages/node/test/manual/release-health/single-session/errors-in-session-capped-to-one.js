@@ -1,8 +1,15 @@
 const Sentry = require('../../../../dist');
 const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('../test-utils');
+
 let sessionCounter = 0;
-process.on('exit', ()=> {
-  if (process.exitCode !== 1) {
+const expectedSessions = 3;
+
+process.on('exit', (exitCode) => {
+  if (sessionCounter !== expectedSessions) {
+    console.log(`FAIL: Expected ${expectedSessions} Sessions, Received ${sessionCounter}.`);
+    process.exitCode = 1
+  }
+  if (exitCode === 0) {
     console.log('SUCCESS: All application mode sessions were sent to node transport as expected');
   }
 })
@@ -24,15 +31,21 @@ class DummyTransport extends BaseDummyTransport {
       assertSessions(constructStrippedSessionObject(session),
         {
           init: false,
-          status: 'exited',
+          status: 'ok',
           errors: 1,
           release: '1.1'
         }
       )
     }
-    else {
-      console.log('FAIL: Received way too many Sessions!');
-      process.exit(1);
+    else if (sessionCounter === 3) {
+      assertSessions(constructStrippedSessionObject(session),
+        {
+          init: false,
+          status: 'exited',
+          errors: 1,
+          release: '1.1'
+        }
+      )
     }
     return super.sendSession(session);
   }
@@ -51,5 +64,3 @@ Sentry.init({
 for (let i = 0; i < 2; i++) {
   Sentry.captureException(new Error('hello world'));
 }
-
-

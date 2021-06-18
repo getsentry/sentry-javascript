@@ -253,18 +253,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       }
     }
 
-    const terminalStates = [SessionStatus.Crashed, SessionStatus.Abnormal, SessionStatus.Exited];
-    const shouldSendUpdate = !terminalStates.includes(session.status) && session.errors !== 1;
+    const shouldSendUpdate = session.status === SessionStatus.Ok;
 
     session.update({
       ...(crashed && { status: SessionStatus.Crashed }),
       user,
       userAgent,
-      errors: Math.max(session.errors, Number(errored || crashed)),
+      errors: session.errors || Number(errored || crashed),
     });
 
-    // Only send a session update if session was not already in a terminal state or if it didn't already have an errored
-    // state i.e. errors: 1
+    // Only send a session update if session was not already in a terminal state
     if (shouldSendUpdate) this.captureSession(session);
   }
 
