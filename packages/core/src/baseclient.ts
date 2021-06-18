@@ -253,8 +253,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       }
     }
 
-    const initialSessionStatus = session.status;
-    const terminalStates = [SessionStatus.Crashed, SessionStatus.Abnormal];
+    const terminalStates = [SessionStatus.Crashed, SessionStatus.Abnormal, SessionStatus.Exited];
+    const shouldSendUpdate = !terminalStates.includes(session.status) && session.errors !== 1;
 
     session.update({
       ...(crashed && { status: SessionStatus.Crashed }),
@@ -263,8 +263,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       errors: Math.max(session.errors, Number(errored || crashed)),
     });
 
-    // Only send a session update if session was not already in a terminal
-    if (!terminalStates.includes(initialSessionStatus)) this.captureSession(session);
+    // Only send a session update if session was not already in a terminal state or if it didn't already have an errored
+    // state i.e. errors: 1
+    if (shouldSendUpdate) this.captureSession(session);
   }
 
   /** Deliver captured session to Sentry */

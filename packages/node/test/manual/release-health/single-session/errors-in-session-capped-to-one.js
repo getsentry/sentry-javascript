@@ -24,16 +24,6 @@ class DummyTransport extends BaseDummyTransport {
       assertSessions(constructStrippedSessionObject(session),
         {
           init: false,
-          status: 'ok',
-          errors: 1,
-          release: '1.1'
-        }
-      )
-    }
-    else if (sessionCounter === 3) {
-      assertSessions(constructStrippedSessionObject(session),
-        {
-          init: false,
           status: 'exited',
           errors: 1,
           release: '1.1'
