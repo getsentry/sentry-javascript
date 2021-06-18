@@ -424,10 +424,17 @@ export class Hub implements HubInterface {
   public startSession(context?: SessionContext): Session {
     const { scope, client } = this.getStackTop();
     const { release, environment } = (client && client.getOptions()) || {};
+
+    // Will fetch userAgent if called from browser sdk
+    const global = getGlobalObject();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const { userAgent } = (global as any).navigator || {};
+
     const session = new Session({
       release,
       environment,
       ...(scope && { user: scope.getUser() }),
+      ...(userAgent && { userAgent: userAgent }),
       ...context,
     });
 

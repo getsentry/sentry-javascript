@@ -8,7 +8,7 @@ const {
 
 const sessionCounts = {
   sessionCounter: 0,
-  expectedSessions: 3,
+  expectedSessions: 2,
 };
 
 validateSessionCountFunction(sessionCounts);
@@ -24,13 +24,6 @@ class DummyTransport extends BaseDummyTransport {
         release: '1.1',
       });
     } else if (sessionCounts.sessionCounter === 2) {
-      assertSessions(constructStrippedSessionObject(session), {
-        init: false,
-        status: 'ok',
-        errors: 1,
-        release: '1.1',
-      });
-    } else if (sessionCounts.sessionCounter === 3) {
       assertSessions(constructStrippedSessionObject(session), {
         init: false,
         status: 'exited',
