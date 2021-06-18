@@ -426,15 +426,14 @@ export class Hub implements HubInterface {
     const { release, environment } = (client && client.getOptions()) || {};
 
     // Will fetch userAgent if called from browser sdk
-    const global = getGlobalObject();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const { userAgent } = (global as any).navigator || {};
+    const global = getGlobalObject<{ navigator?: { userAgent?: string } }>();
+    const { userAgent } = global.navigator || {};
 
     const session = new Session({
       release,
       environment,
       ...(scope && { user: scope.getUser() }),
-      ...(userAgent && { userAgent: userAgent }),
+      ...(userAgent && { userAgent }),
       ...context,
     });
 
