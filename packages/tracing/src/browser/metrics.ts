@@ -45,7 +45,7 @@ export class MetricsInstrumentation {
     const timeOrigin = msToSec(browserPerformanceTimeOrigin);
     let entryScriptSrc: string | undefined;
 
-    if (global.document) {
+    if (global.document && document.scripts != null) {
       // eslint-disable-next-line @typescript-eslint/prefer-for-of
       for (let i = 0; i < document.scripts.length; i++) {
         // We go through all scripts on the page and look for 'data-entry'
