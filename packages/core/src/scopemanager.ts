@@ -20,6 +20,13 @@ export class SimpleScopeManager implements ScopeManager {
   public withScope<T>(fn: (scope: Scope) => T): T {
     // public withScope<T>(scope: Scope, fn: (scope: Scope) => T): T {
     // TODO: optional Scope as second argument
-    return fn(Scope.clone(this._current));
+    const oldScope = this._current;
+    const newScope = Scope.clone(this._current);
+    this._current = newScope;
+    try {
+      return fn(newScope);
+    } finally {
+      this._current = oldScope;
+    }
   }
 }

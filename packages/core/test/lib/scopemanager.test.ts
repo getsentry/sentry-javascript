@@ -32,15 +32,27 @@ describe('Client + SimpleScopeManager', () => {
   });
 
   test('withScope forks the current scope', () => {
-    const scope = client.getScope();
-    scope.setTag('outer', 'scope');
-    expect(scope._tags).toEqual({ outer: 'scope' });
+    const outerScope = client.getScope();
+    outerScope.setTag('outer', 'scope');
+    expect(outerScope._tags).toEqual({ outer: 'scope' });
     let innerScope: Scope;
     client.withScope(scope => {
       innerScope = scope;
       scope.setTag('inner', 'scope');
     });
     expect(innerScope._tags).toEqual({ outer: 'scope', inner: 'scope' });
-    expect(scope._tags).toEqual({ outer: 'scope' });
+    expect(outerScope._tags).toEqual({ outer: 'scope' });
+  });
+
+  test('getScope within withScope returns current scope', () => {
+    const outerScope = client.getScope();
+    let innerScopeExplicit: Scope;
+    let innerScopeFromClient: Scope;
+    client.withScope(scope => {
+      innerScopeExplicit = scope;
+      innerScopeFromClient = client.getScope();
+    });
+    expect(innerScopeFromClient).toBe(innerScopeExplicit);
+    expect(innerScopeFromClient).not.toBe(outerScope);
   });
 });
