@@ -1,51 +1,42 @@
 const Sentry = require('../../../../dist');
-const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('../test-utils');
+const {
+  assertSessions,
+  constructStrippedSessionObject,
+  BaseDummyTransport,
+  validateSessionCountFunction,
+} = require('../test-utils');
 
-let sessionCounter = 0;
-const expectedSessions = 3;
+const sessionCounts = {
+  sessionCounter: 0,
+  expectedSessions: 3,
+};
 
-process.on('exit', (exitCode) => {
-  if (sessionCounter !== expectedSessions) {
-    console.log(`FAIL: Expected ${expectedSessions} Sessions, Received ${sessionCounter}.`);
-    process.exitCode = 1
-  }
-  if (exitCode === 0) {
-    console.log('SUCCESS: All application mode sessions were sent to node transport as expected');
-  }
-})
+validateSessionCountFunction(sessionCounts);
 
 class DummyTransport extends BaseDummyTransport {
   sendSession(session) {
-    sessionCounter++;
-    if (sessionCounter === 1) {
-      assertSessions(constructStrippedSessionObject(session),
-        {
-          init: true,
-          status: 'ok',
-          errors: 1,
-          release: '1.1'
-        }
-      )
-    }
-    else if (sessionCounter === 2) {
-      assertSessions(constructStrippedSessionObject(session),
-        {
-          init: false,
-          status: 'ok',
-          errors: 1,
-          release: '1.1'
-        }
-      )
-    }
-    else if (sessionCounter === 3) {
-      assertSessions(constructStrippedSessionObject(session),
-        {
-          init: false,
-          status: 'exited',
-          errors: 1,
-          release: '1.1'
-        }
-      )
+    sessionCounts.sessionCounter++;
+    if (sessionCounts.sessionCounter === 1) {
+      assertSessions(constructStrippedSessionObject(session), {
+        init: true,
+        status: 'ok',
+        errors: 1,
+        release: '1.1',
+      });
+    } else if (sessionCounts.sessionCounter === 2) {
+      assertSessions(constructStrippedSessionObject(session), {
+        init: false,
+        status: 'ok',
+        errors: 1,
+        release: '1.1',
+      });
+    } else if (sessionCounts.sessionCounter === 3) {
+      assertSessions(constructStrippedSessionObject(session), {
+        init: false,
+        status: 'exited',
+        errors: 1,
+        release: '1.1',
+      });
     }
     return super.sendSession(session);
   }
@@ -55,7 +46,7 @@ Sentry.init({
   dsn: 'http://test@example.com/1337',
   release: '1.1',
   transport: DummyTransport,
-  autoSessionTracking: true
+  autoSessionTracking: true,
 });
 /**
  * The following code snippet will throw multiple errors, and thereby send session updates everytime an error is
