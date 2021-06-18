@@ -27,6 +27,11 @@ describe('SimpleScopeManager', () => {
     client = new TestClient({ scopeManager: new SimpleScopeManager() });
   });
 
+  test('withScope returns return value from wrapped function', () => {
+    const rv = client.withScope(() => 42);
+    expect(rv).toEqual(42);
+  });
+
   test('withScope forks the current scope', () => {
     const scope = client.getScope();
     scope.setTag('outer', 'scope');
@@ -38,10 +43,5 @@ describe('SimpleScopeManager', () => {
     });
     expect(innerScope._tags).toEqual({ outer: 'scope', inner: 'scope' });
     expect(scope._tags).toEqual({ outer: 'scope' });
-  });
-
-  test('withScope returns return value from wrapped function', () => {
-    const rv = client.withScope(() => 42);
-    expect(rv).toEqual(42);
   });
 });
