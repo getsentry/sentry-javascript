@@ -22,10 +22,10 @@ describe('parsers.ts', () => {
     test('parseStack with same file', done => {
       expect.assertions(1);
       let mockCalls = 0;
-      void Parsers.parseStack(frames)
+      void Parsers.parseStack(frames, fs.readFile)
         .then(_ => {
           mockCalls = spy.mock.calls.length;
-          void Parsers.parseStack(frames)
+          void Parsers.parseStack(frames, fs.readFile)
             .then(_1 => {
               // Calls to readFile shouldn't increase if there isn't a new error
               expect(spy).toHaveBeenCalledTimes(mockCalls);
@@ -54,7 +54,7 @@ describe('parsers.ts', () => {
           typeName: 'module.exports../src/index.ts',
         },
       ];
-      return Parsers.parseStack(framesWithFilePath).then(_ => {
+      return Parsers.parseStack(framesWithFilePath, fs.readFile).then(_ => {
         expect(spy).toHaveBeenCalledTimes(1);
       });
     });
@@ -63,14 +63,14 @@ describe('parsers.ts', () => {
       expect.assertions(2);
       let mockCalls = 0;
       let newErrorCalls = 0;
-      void Parsers.parseStack(frames)
+      void Parsers.parseStack(frames, fs.readFile)
         .then(_ => {
           mockCalls = spy.mock.calls.length;
-          void Parsers.parseStack(stacktrace.parse(getError()))
+          void Parsers.parseStack(stacktrace.parse(getError()), fs.readFile)
             .then(_1 => {
               newErrorCalls = spy.mock.calls.length;
               expect(newErrorCalls).toBeGreaterThan(mockCalls);
-              void Parsers.parseStack(stacktrace.parse(getError()))
+              void Parsers.parseStack(stacktrace.parse(getError()), fs.readFile)
                 .then(_2 => {
                   expect(spy).toHaveBeenCalledTimes(newErrorCalls);
                   done();
@@ -120,14 +120,14 @@ describe('parsers.ts', () => {
         typeName: 'module.exports../src/index.ts',
       },
     ];
-    return Parsers.parseStack(framesWithDuplicateFiles).then(_ => {
+    return Parsers.parseStack(framesWithDuplicateFiles, fs.readFile).then(_ => {
       expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
   test('parseStack with no context', async () => {
     expect.assertions(1);
-    return Parsers.parseStack(frames, { frameContextLines: 0 }).then(_ => {
+    return Parsers.parseStack(frames, fs.readFile, { frameContextLines: 0 }).then(_ => {
       expect(spy).toHaveBeenCalledTimes(0);
     });
   });

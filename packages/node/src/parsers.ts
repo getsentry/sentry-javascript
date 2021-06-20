@@ -1,6 +1,5 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
 import { addContextToFrame, basename, dirname, SyncPromise } from '@sentry/utils';
-import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
 import * as stacktrace from './stacktrace';
@@ -8,6 +7,8 @@ import { NodeOptions } from './types';
 
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
+
+export type ReadFileFn = (path: string, callback: (err: Error | null, data: Buffer) => void) => void;
 
 /**
  * Resets the file cache. Exists for testing purposes.
@@ -68,7 +69,7 @@ function getModule(filename: string, base?: string): string {
  *
  * @param filenames Array of filepaths to read content from.
  */
-function readSourceFiles(filenames: string[]): PromiseLike<{ [key: string]: string | null }> {
+function readSourceFiles(filenames: string[], readFile: ReadFileFn): PromiseLike<{ [key: string]: string | null }> {
   // we're relying on filenames being de-duped already
   if (filenames.length === 0) {
     return SyncPromise.resolve({});
@@ -135,7 +136,11 @@ export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
 /**
  * @hidden
  */
-export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): PromiseLike<StackFrame[]> {
+export function parseStack(
+  stack: stacktrace.StackFrame[],
+  readFile?: ReadFileFn,
+  options?: NodeOptions,
+): PromiseLike<StackFrame[]> {
   const filesToRead: string[] = [];
 
   const linesOfContext =
@@ -179,13 +184,16 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
     return SyncPromise.resolve(frames);
   }
 
-  try {
-    return addPrePostContext(filesToRead, frames, linesOfContext);
-  } catch (_) {
-    // This happens in electron for example where we are not able to read files from asar.
-    // So it's fine, we recover be just returning all frames without pre/post context.
-    return SyncPromise.resolve(frames);
+  if (readFile) {
+    try {
+      return addPrePostContext(filesToRead, frames, linesOfContext, readFile);
+    } catch (_) {
+      // This happens in electron for example where we are not able to read files from asar.
+      // So it's fine, we recover be just returning all frames without pre/post context.
+    }
   }
+
+  return SyncPromise.resolve(frames);
 }
 
 /**
@@ -198,9 +206,10 @@ function addPrePostContext(
   filesToRead: string[],
   frames: StackFrame[],
   linesOfContext: number,
+  readFile: ReadFileFn,
 ): PromiseLike<StackFrame[]> {
   return new SyncPromise<StackFrame[]>(resolve =>
-    readSourceFiles(filesToRead).then(sourceFiles => {
+    readSourceFiles(filesToRead, readFile).then(sourceFiles => {
       const result = frames.map(frame => {
         if (frame.filename && sourceFiles[frame.filename]) {
           try {
@@ -223,11 +232,15 @@ function addPrePostContext(
 /**
  * @hidden
  */
-export function getExceptionFromError(error: Error, options?: NodeOptions): PromiseLike<Exception> {
+export function getExceptionFromError(
+  error: Error,
+  readFile?: ReadFileFn,
+  options?: NodeOptions,
+): PromiseLike<Exception> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
   return new SyncPromise<Exception>(resolve =>
-    parseStack(stack, options).then(frames => {
+    parseStack(stack, readFile, options).then(frames => {
       const result = {
         stacktrace: {
           frames: prepareFramesForEvent(frames),
@@ -243,9 +256,9 @@ export function getExceptionFromError(error: Error, options?: NodeOptions): Prom
 /**
  * @hidden
  */
-export function parseError(error: ExtendedError, options?: NodeOptions): PromiseLike<Event> {
+export function parseError(error: ExtendedError, readFile?: ReadFileFn, options?: NodeOptions): PromiseLike<Event> {
   return new SyncPromise<Event>(resolve =>
-    getExceptionFromError(error, options).then((exception: Exception) => {
+    getExceptionFromError(error, readFile, options).then((exception: Exception) => {
       resolve({
         exception: {
           values: [exception],
