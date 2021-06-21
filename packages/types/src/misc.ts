@@ -1,3 +1,5 @@
+import { QueryParams } from './request';
+
 /**
  * Data extracted from an incoming request to a node server
  */
@@ -17,7 +19,7 @@ export interface ExtractedNodeRequestData {
   cookies?: { [key: string]: string };
 
   /** The request's query string, without the leading '?' */
-  query_string?: string;
+  query_string?: QueryParams;
 
   /** Any data sent in the request's body, as a JSON string */
   data?: string;
