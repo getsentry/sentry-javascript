@@ -16,15 +16,15 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public eventFromException(exception: any, hint?: EventHint | undefined): PromiseLike<Event> {
-    return eventFromException(this._options, exception, readFile, hint);
+  public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
+    return eventFromException(this._options, exception, hint, readFile);
   }
 
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return eventFromMessage(this._options, message, level, readFile, hint);
+    return eventFromMessage(this._options, message, level, hint, readFile);
   }
 
   /**

@@ -21,8 +21,8 @@ export function eventFromException(
   options: NodeOptions,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   exception: any,
-  readFile?: ReadFileFn,
   hint?: EventHint,
+  readFile?: ReadFileFn,
 ): PromiseLike<Event> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
@@ -77,8 +77,8 @@ export function eventFromMessage(
   options: NodeOptions,
   message: string,
   level: Severity = Severity.Info,
-  readFile?: ReadFileFn,
   hint?: EventHint,
+  readFile?: ReadFileFn,
 ): PromiseLike<Event> {
   const event: Event = {
     event_id: hint && hint.event_id,
