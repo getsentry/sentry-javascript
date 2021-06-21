@@ -13,6 +13,7 @@ import {
 import {
   dateTimestampInSeconds,
   Dsn,
+  isPlainObject,
   isPrimitive,
   isThenable,
   logger,
@@ -517,17 +518,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
 
         const beforeSendResult = beforeSend(prepared, hint);
-        if (typeof beforeSendResult === 'undefined') {
-          throw new SentryError('`beforeSend` method has to return `null` or a valid event.');
-        } else if (isThenable(beforeSendResult)) {
-          return (beforeSendResult as PromiseLike<Event | null>).then(
-            event => event,
-            e => {
-              throw new SentryError(`beforeSend rejected with ${e}`);
-            },
-          );
-        }
-        return beforeSendResult;
+        return this._ensureBeforeSendRv(beforeSendResult);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
@@ -574,5 +565,30 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         return reason;
       },
     );
+  }
+
+  /**
+   * Verifies that return value of configured `beforeSend` is of expected type.
+   */
+  protected _ensureBeforeSendRv(
+    rv: PromiseLike<Event | null> | Event | null,
+  ): PromiseLike<Event | null> | Event | null {
+    const nullErr = '`beforeSend` method has to return `null` or a valid event.';
+    if (isThenable(rv)) {
+      return (rv as PromiseLike<Event | null>).then(
+        event => {
+          if (!(isPlainObject(event) || event === null)) {
+            throw new SentryError(nullErr);
+          }
+          return event;
+        },
+        e => {
+          throw new SentryError(`beforeSend rejected with ${e}`);
+        },
+      );
+    } else if (!(isPlainObject(rv) || rv === null)) {
+      throw new SentryError(nullErr);
+    }
+    return rv;
   }
 }
