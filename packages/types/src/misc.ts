@@ -18,7 +18,7 @@ export interface ExtractedNodeRequestData {
   /** String representing the cookies sent along with the request */
   cookies?: { [key: string]: string };
 
-  /** The request's query string, without the leading '?' */
+  /** The request's query params */
   query_string?: QueryParams;
 
   /** Any data sent in the request's body, as a JSON string */
