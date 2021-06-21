@@ -184,14 +184,14 @@ describe('SentryBrowser initialization', () => {
     expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
   });
 
-  it('should use initalScope Scope', () => {
+  it('should use initialScope Scope', () => {
     const scope = new Scope();
     scope.setTags({ a: 'b' });
     init({ dsn, initialScope: scope });
     expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
   });
 
-  it('should use initalScope callback', () => {
+  it('should use initialScope callback', () => {
     init({
       dsn,
       initialScope: scope => {

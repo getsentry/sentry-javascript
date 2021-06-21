@@ -32,8 +32,8 @@ module.exports = function(environment) {
       },
     },
     ignoreEmberOnErrorWarning: true,
-    minimumRunloopQueueDuration: 5,
-    minimumComponentRenderDuration: 2,
+    minimumRunloopQueueDuration: 0,
+    minimumComponentRenderDuration: 0,
   };
 
   if (environment === 'development') {
