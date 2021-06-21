@@ -13,6 +13,7 @@ import {
 import {
   dateTimestampInSeconds,
   Dsn,
+  isPlainObject,
   isPrimitive,
   isThenable,
   logger,
@@ -227,7 +228,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
     let errored = false;
-    let userAgent;
     const exceptions = event.exception && event.exception.values;
 
     if (exceptions) {
@@ -242,24 +242,19 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       }
     }
 
-    const user = event.user;
-    if (!session.userAgent) {
-      const headers = event.request ? event.request.headers : {};
-      for (const key in headers) {
-        if (key.toLowerCase() === 'user-agent') {
-          userAgent = headers[key];
-          break;
-        }
-      }
-    }
+    // A session is updated and that session update is sent in only one of the two following scenarios:
+    // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
+    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
+    const sessionNonTerminal = session.status === SessionStatus.Ok;
+    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
 
-    session.update({
-      ...(crashed && { status: SessionStatus.Crashed }),
-      user,
-      userAgent,
-      errors: session.errors + Number(errored || crashed),
-    });
-    this.captureSession(session);
+    if (shouldUpdateAndSend) {
+      session.update({
+        ...(crashed && { status: SessionStatus.Crashed }),
+        errors: session.errors || Number(errored || crashed),
+      });
+      this.captureSession(session);
+    }
   }
 
   /** Deliver captured session to Sentry */
@@ -517,17 +512,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
 
         const beforeSendResult = beforeSend(prepared, hint);
-        if (typeof beforeSendResult === 'undefined') {
-          throw new SentryError('`beforeSend` method has to return `null` or a valid event.');
-        } else if (isThenable(beforeSendResult)) {
-          return (beforeSendResult as PromiseLike<Event | null>).then(
-            event => event,
-            e => {
-              throw new SentryError(`beforeSend rejected with ${e}`);
-            },
-          );
-        }
-        return beforeSendResult;
+        return this._ensureBeforeSendRv(beforeSendResult);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
@@ -574,5 +559,30 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         return reason;
       },
     );
+  }
+
+  /**
+   * Verifies that return value of configured `beforeSend` is of expected type.
+   */
+  protected _ensureBeforeSendRv(
+    rv: PromiseLike<Event | null> | Event | null,
+  ): PromiseLike<Event | null> | Event | null {
+    const nullErr = '`beforeSend` method has to return `null` or a valid event.';
+    if (isThenable(rv)) {
+      return (rv as PromiseLike<Event | null>).then(
+        event => {
+          if (!(isPlainObject(event) || event === null)) {
+            throw new SentryError(nullErr);
+          }
+          return event;
+        },
+        e => {
+          throw new SentryError(`beforeSend rejected with ${e}`);
+        },
+      );
+    } else if (!(isPlainObject(rv) || rv === null)) {
+      throw new SentryError(nullErr);
+    }
+    return rv;
   }
 }
