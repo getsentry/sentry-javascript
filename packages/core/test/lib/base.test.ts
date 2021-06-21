@@ -707,18 +707,20 @@ describe('BaseClient', () => {
     });
 
     test('calls beforeSend and log info about invalid return value', () => {
-      expect.assertions(3);
-      const beforeSend = jest.fn(() => undefined);
-      // @ts-ignore we need to test regular-js behavior
-      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerErrorSpy = jest.spyOn(logger, 'error');
-      client.captureEvent({ message: 'hello' });
-      expect(TestBackend.instance!.event).toBeUndefined();
-      expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerErrorSpy).toBeCalledWith(
-        new SentryError('`beforeSend` method has to return `null` or a valid event.'),
-      );
+      const invalidValues = [undefined, false, true, [], 1];
+      expect.assertions(invalidValues.length * 2);
+
+      for (const val of invalidValues) {
+        const beforeSend = jest.fn(() => val);
+        // @ts-ignore we need to test regular-js behavior
+        const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+        const loggerErrorSpy = jest.spyOn(logger, 'error');
+        client.captureEvent({ message: 'hello' });
+        expect(TestBackend.instance!.event).toBeUndefined();
+        expect(loggerErrorSpy).toBeCalledWith(
+          new SentryError('`beforeSend` method has to return `null` or a valid event.'),
+        );
+      }
     });
 
     test('calls async beforeSend and uses original event without any changes', done => {
