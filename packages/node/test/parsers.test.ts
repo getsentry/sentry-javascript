@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 
 import * as Parsers from '../src/parsers';
+import * as Sources from '../src/sources';
 import * as stacktrace from '../src/stacktrace';
 import { getError } from './helper/error';
 
@@ -11,7 +12,7 @@ describe('parsers.ts', () => {
   beforeEach(() => {
     spy = jest.spyOn(fs, 'readFile');
     frames = stacktrace.parse(new Error('test'));
-    Parsers.resetFileContentCache();
+    Sources.resetFileContentCache();
   });
 
   afterEach(() => {
@@ -22,10 +23,10 @@ describe('parsers.ts', () => {
     test('parseStack with same file', done => {
       expect.assertions(1);
       let mockCalls = 0;
-      void Parsers.parseStack(frames, fs.readFile)
+      void Parsers.parseStack(frames, Sources.readFilesAddPrePostContext)
         .then(_ => {
           mockCalls = spy.mock.calls.length;
-          void Parsers.parseStack(frames, fs.readFile)
+          void Parsers.parseStack(frames, Sources.readFilesAddPrePostContext)
             .then(_1 => {
               // Calls to readFile shouldn't increase if there isn't a new error
               expect(spy).toHaveBeenCalledTimes(mockCalls);
@@ -54,7 +55,7 @@ describe('parsers.ts', () => {
           typeName: 'module.exports../src/index.ts',
         },
       ];
-      return Parsers.parseStack(framesWithFilePath, fs.readFile).then(_ => {
+      return Parsers.parseStack(framesWithFilePath, Sources.readFilesAddPrePostContext).then(_ => {
         expect(spy).toHaveBeenCalledTimes(1);
       });
     });
@@ -63,14 +64,14 @@ describe('parsers.ts', () => {
       expect.assertions(2);
       let mockCalls = 0;
       let newErrorCalls = 0;
-      void Parsers.parseStack(frames, fs.readFile)
+      void Parsers.parseStack(frames, Sources.readFilesAddPrePostContext)
         .then(_ => {
           mockCalls = spy.mock.calls.length;
-          void Parsers.parseStack(stacktrace.parse(getError()), fs.readFile)
+          void Parsers.parseStack(stacktrace.parse(getError()), Sources.readFilesAddPrePostContext)
             .then(_1 => {
               newErrorCalls = spy.mock.calls.length;
               expect(newErrorCalls).toBeGreaterThan(mockCalls);
-              void Parsers.parseStack(stacktrace.parse(getError()), fs.readFile)
+              void Parsers.parseStack(stacktrace.parse(getError()), Sources.readFilesAddPrePostContext)
                 .then(_2 => {
                   expect(spy).toHaveBeenCalledTimes(newErrorCalls);
                   done();
@@ -120,14 +121,14 @@ describe('parsers.ts', () => {
         typeName: 'module.exports../src/index.ts',
       },
     ];
-    return Parsers.parseStack(framesWithDuplicateFiles, fs.readFile).then(_ => {
+    return Parsers.parseStack(framesWithDuplicateFiles, Sources.readFilesAddPrePostContext).then(_ => {
       expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
   test('parseStack with no context', async () => {
     expect.assertions(1);
-    return Parsers.parseStack(frames, fs.readFile, { frameContextLines: 0 }).then(_ => {
+    return Parsers.parseStack(frames, Sources.readFilesAddPrePostContext, { frameContextLines: 0 }).then(_ => {
       expect(spy).toHaveBeenCalledTimes(0);
     });
   });

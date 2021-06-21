@@ -10,7 +10,7 @@ import {
   SyncPromise,
 } from '@sentry/utils';
 
-import { extractStackFromError, parseError, parseStack, prepareFramesForEvent, ReadFileFn } from './parsers';
+import { extractStackFromError, parseError, parseStack, prepareFramesForEvent, ReadFilesFn } from './parsers';
 import { NodeOptions } from './types';
 
 /**
@@ -22,7 +22,7 @@ export function eventFromException(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   exception: any,
   hint?: EventHint,
-  readFile?: ReadFileFn,
+  readFiles?: ReadFilesFn,
 ): PromiseLike<Event> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
@@ -55,7 +55,7 @@ export function eventFromException(
   }
 
   return new SyncPromise<Event>((resolve, reject) =>
-    parseError(ex as Error, readFile, options)
+    parseError(ex as Error, readFiles, options)
       .then(event => {
         addExceptionTypeValue(event, undefined, undefined);
         addExceptionMechanism(event, mechanism);
@@ -78,7 +78,7 @@ export function eventFromMessage(
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
-  readFile?: ReadFileFn,
+  readFiles?: ReadFilesFn,
 ): PromiseLike<Event> {
   const event: Event = {
     event_id: hint && hint.event_id,
@@ -89,7 +89,7 @@ export function eventFromMessage(
   return new SyncPromise<Event>(resolve => {
     if (options.attachStacktrace && hint && hint.syntheticException) {
       const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-      void parseStack(stack, readFile, options)
+      void parseStack(stack, readFiles, options)
         .then(frames => {
           event.stacktrace = {
             frames: prepareFramesForEvent(frames),

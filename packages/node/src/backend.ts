@@ -1,9 +1,9 @@
 import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
 import { Dsn } from '@sentry/utils';
-import { readFile } from 'fs';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
+import { readFilesAddPrePostContext } from './sources';
 import { HTTPSTransport, HTTPTransport } from './transports';
 import { NodeOptions } from './types';
 
@@ -17,14 +17,14 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(this._options, exception, hint, readFile);
+    return eventFromException(this._options, exception, hint, readFilesAddPrePostContext);
   }
 
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return eventFromMessage(this._options, message, level, hint, readFile);
+    return eventFromMessage(this._options, message, level, hint, readFilesAddPrePostContext);
   }
 
   /**

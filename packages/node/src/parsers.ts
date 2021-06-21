@@ -1,22 +1,16 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
-import { addContextToFrame, basename, dirname, SyncPromise } from '@sentry/utils';
-import { LRUMap } from 'lru_map';
+import { basename, dirname, SyncPromise } from '@sentry/utils';
 
 import * as stacktrace from './stacktrace';
 import { NodeOptions } from './types';
 
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
-const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 
-export type ReadFileFn = (path: string, callback: (err: Error | null, data: Buffer) => void) => void;
-
-/**
- * Resets the file cache. Exists for testing purposes.
- * @hidden
- */
-export function resetFileContentCache(): void {
-  FILE_CONTENT_CACHE.clear();
-}
+export type ReadFilesFn = (
+  filesToRead: string[],
+  frames: StackFrame[],
+  linesOfContext: number,
+) => PromiseLike<StackFrame[]>;
 
 /** JSDoc */
 function getFunction(frame: stacktrace.StackFrame): string {
@@ -64,65 +58,6 @@ function getModule(filename: string, base?: string): string {
 }
 
 /**
- * This function reads file contents and caches them in a global LRU cache.
- * Returns a Promise filepath => content array for all files that we were able to read.
- *
- * @param filenames Array of filepaths to read content from.
- */
-function readSourceFiles(filenames: string[], readFile: ReadFileFn): PromiseLike<{ [key: string]: string | null }> {
-  // we're relying on filenames being de-duped already
-  if (filenames.length === 0) {
-    return SyncPromise.resolve({});
-  }
-
-  return new SyncPromise<{
-    [key: string]: string | null;
-  }>(resolve => {
-    const sourceFiles: {
-      [key: string]: string | null;
-    } = {};
-
-    let count = 0;
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < filenames.length; i++) {
-      const filename = filenames[i];
-
-      const cache = FILE_CONTENT_CACHE.get(filename);
-      // We have a cache hit
-      if (cache !== undefined) {
-        // If it's not null (which means we found a file and have a content)
-        // we set the content and return it later.
-        if (cache !== null) {
-          sourceFiles[filename] = cache;
-        }
-        // eslint-disable-next-line no-plusplus
-        count++;
-        // In any case we want to skip here then since we have a content already or we couldn't
-        // read the file and don't want to try again.
-        if (count === filenames.length) {
-          resolve(sourceFiles);
-        }
-        continue;
-      }
-
-      readFile(filename, (err: Error | null, data: Buffer) => {
-        const content = err ? null : data.toString();
-        sourceFiles[filename] = content;
-
-        // We always want to set the cache, even to null which means there was an error reading the file.
-        // We do not want to try to read the file again.
-        FILE_CONTENT_CACHE.set(filename, content);
-        // eslint-disable-next-line no-plusplus
-        count++;
-        if (count === filenames.length) {
-          resolve(sourceFiles);
-        }
-      });
-    }
-  });
-}
-
-/**
  * @hidden
  */
 export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
@@ -138,7 +73,7 @@ export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
  */
 export function parseStack(
   stack: stacktrace.StackFrame[],
-  readFile?: ReadFileFn,
+  readFiles?: ReadFilesFn,
   options?: NodeOptions,
 ): PromiseLike<StackFrame[]> {
   const filesToRead: string[] = [];
@@ -184,9 +119,9 @@ export function parseStack(
     return SyncPromise.resolve(frames);
   }
 
-  if (readFile) {
+  if (readFiles) {
     try {
-      return addPrePostContext(filesToRead, frames, linesOfContext, readFile);
+      return readFiles(filesToRead, frames, linesOfContext);
     } catch (_) {
       // This happens in electron for example where we are not able to read files from asar.
       // So it's fine, we recover be just returning all frames without pre/post context.
@@ -197,50 +132,17 @@ export function parseStack(
 }
 
 /**
- * This function tries to read the source files + adding pre and post context (source code)
- * to a frame.
- * @param filesToRead string[] of filepaths
- * @param frames StackFrame[] containg all frames
- */
-function addPrePostContext(
-  filesToRead: string[],
-  frames: StackFrame[],
-  linesOfContext: number,
-  readFile: ReadFileFn,
-): PromiseLike<StackFrame[]> {
-  return new SyncPromise<StackFrame[]>(resolve =>
-    readSourceFiles(filesToRead, readFile).then(sourceFiles => {
-      const result = frames.map(frame => {
-        if (frame.filename && sourceFiles[frame.filename]) {
-          try {
-            const lines = (sourceFiles[frame.filename] as string).split('\n');
-
-            addContextToFrame(lines, frame, linesOfContext);
-          } catch (e) {
-            // anomaly, being defensive in case
-            // unlikely to ever happen in practice but can definitely happen in theory
-          }
-        }
-        return frame;
-      });
-
-      resolve(result);
-    }),
-  );
-}
-
-/**
  * @hidden
  */
 export function getExceptionFromError(
   error: Error,
-  readFile?: ReadFileFn,
+  readFiles?: ReadFilesFn,
   options?: NodeOptions,
 ): PromiseLike<Exception> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
   return new SyncPromise<Exception>(resolve =>
-    parseStack(stack, readFile, options).then(frames => {
+    parseStack(stack, readFiles, options).then(frames => {
       const result = {
         stacktrace: {
           frames: prepareFramesForEvent(frames),
@@ -256,9 +158,9 @@ export function getExceptionFromError(
 /**
  * @hidden
  */
-export function parseError(error: ExtendedError, readFile?: ReadFileFn, options?: NodeOptions): PromiseLike<Event> {
+export function parseError(error: ExtendedError, readFiles?: ReadFilesFn, options?: NodeOptions): PromiseLike<Event> {
   return new SyncPromise<Event>(resolve =>
-    getExceptionFromError(error, readFile, options).then((exception: Exception) => {
+    getExceptionFromError(error, readFiles, options).then((exception: Exception) => {
       resolve({
         exception: {
           values: [exception],
