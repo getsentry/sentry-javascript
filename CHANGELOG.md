@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.7.2
+
+- [browser] ref: Log which request type has been limited (#3687)
+- [nextjs] test: Pin next v10 to integration tests (#3692)
+- [core]: fix: Do not track sessions if not enabled (#3686)
+- [postcss] build: bump postcss from 7.0.35 to 7.0.36 (#3684)
+- [nextjs] feat: Auto enable node http integration on server (#3675)
+- [nextjs] ref: Split up config code and add tests (#3693)
+- [nextjs] fix: Correctly handle functional next config in `withSentryConfig` (#3698)
+- [nextjs] fix: Fix conflict with other libraries modifying webpack `entry` property (#3703)
+- [nextjs] deps: Update @sentry/webpack-plugin to 1.15.1 in @sentry/nextjs (#3708) 
+- [core] ref: Make `beforeSend` more strict
+- [core] fix: Prevent sending terminal status session updates (#3701)  
+
 ## 6.7.1
 
 - [core] fix: Add event type to item header when envelopes are forced (#3676)
