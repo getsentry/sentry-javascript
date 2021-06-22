@@ -21,16 +21,21 @@ export function addSourcesToFrames(frames: StackFrame[], options?: NodeOptions):
   const linesOfContext =
     options && options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
+  if (linesOfContext <= 0) {
+    return SyncPromise.resolve(frames);
+  }
+
   const filesToRead: string[] = [];
 
   for (const frame of frames) {
-    if (frame.filename && frame.in_app && filesToRead.indexOf(frame.filename) === -1) {
+    if (
+      frame.filename &&
+      filesToRead.indexOf(frame.filename) === -1 &&
+      // We want to include sources for files that are in_app and in node_modules
+      (frame.in_app || frame.filename.indexOf('node_modules/') !== -1)
+    ) {
       filesToRead.push(frame.filename);
     }
-  }
-
-  if (linesOfContext <= 0) {
-    return SyncPromise.resolve(frames);
   }
 
   try {
