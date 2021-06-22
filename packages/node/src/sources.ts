@@ -3,6 +3,9 @@ import { addContextToFrame, SyncPromise } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
+import { NodeOptions } from './types';
+
+const DEFAULT_LINES_OF_CONTEXT: number = 7;
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 
 /**
@@ -13,13 +16,40 @@ export function resetFileContentCache(): void {
   FILE_CONTENT_CACHE.clear();
 }
 
+/** */
+export function addSourcesToFrames(frames: StackFrame[], options?: NodeOptions): PromiseLike<StackFrame[]> {
+  const linesOfContext =
+    options && options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+
+  const filesToRead: string[] = [];
+
+  for (const frame of frames) {
+    if (frame.filename && frame.in_app && filesToRead.indexOf(frame.filename) === -1) {
+      filesToRead.push(frame.filename);
+    }
+  }
+
+  if (linesOfContext <= 0) {
+    return SyncPromise.resolve(frames);
+  }
+
+  try {
+    return readFilesAddPrePostContext(filesToRead, frames, linesOfContext);
+  } catch (_) {
+    // This happens in electron for example where we are not able to read files from asar.
+    // So it's fine, we recover be just returning all frames without pre/post context.
+  }
+
+  return SyncPromise.resolve(frames);
+}
+
 /**
  * This function tries to read the source files + adding pre and post context (source code)
  * to a frame.
  * @param filesToRead string[] of filepaths
  * @param frames StackFrame[] containg all frames
  */
-export function readFilesAddPrePostContext(
+function readFilesAddPrePostContext(
   filesToRead: string[],
   frames: StackFrame[],
   linesOfContext: number,

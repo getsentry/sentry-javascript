@@ -3,7 +3,7 @@ import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry
 import { Dsn } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
-import { readFilesAddPrePostContext } from './sources';
+import { addSourcesToFrames } from './sources';
 import { HTTPSTransport, HTTPTransport } from './transports';
 import { NodeOptions } from './types';
 
@@ -17,14 +17,24 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(this._options, exception, hint, readFilesAddPrePostContext);
+    const event = eventFromException(this._options, exception, hint);
+
+    return addSourcesToFrames(event.stacktrace?.frames || [], this._options).then(frames => {
+      event.stacktrace = { frames };
+      return event;
+    });
   }
 
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return eventFromMessage(this._options, message, level, hint, readFilesAddPrePostContext);
+    const event = eventFromMessage(this._options, message, level, hint);
+
+    return addSourcesToFrames(event.stacktrace?.frames || [], this._options).then(frames => {
+      event.stacktrace = { frames };
+      return event;
+    });
   }
 
   /**

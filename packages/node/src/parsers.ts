@@ -1,16 +1,7 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
-import { basename, dirname, SyncPromise } from '@sentry/utils';
+import { basename, dirname } from '@sentry/utils';
 
 import * as stacktrace from './stacktrace';
-import { NodeOptions } from './types';
-
-const DEFAULT_LINES_OF_CONTEXT: number = 7;
-
-export type ReadFilesFn = (
-  filesToRead: string[],
-  frames: StackFrame[],
-  linesOfContext: number,
-) => PromiseLike<StackFrame[]>;
 
 /** JSDoc */
 function getFunction(frame: stacktrace.StackFrame): string {
@@ -71,17 +62,8 @@ export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
 /**
  * @hidden
  */
-export function parseStack(
-  stack: stacktrace.StackFrame[],
-  readFiles?: ReadFilesFn,
-  options?: NodeOptions,
-): PromiseLike<StackFrame[]> {
-  const filesToRead: string[] = [];
-
-  const linesOfContext =
-    options && options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
-
-  const frames: StackFrame[] = stack.map(frame => {
+export function parseStack(stack: stacktrace.StackFrame[]): StackFrame[] {
+  return stack.map(frame => {
     const parsedFrame: StackFrame = {
       colno: frame.columnNumber,
       filename: frame.fileName?.startsWith('file://') ? frame.fileName.substr(7) : frame.fileName || '',
@@ -105,69 +87,40 @@ export function parseStack(
     // Extract a module name based on the filename
     if (parsedFrame.filename) {
       parsedFrame.module = getModule(parsedFrame.filename);
-
-      if (!isInternal && linesOfContext > 0 && filesToRead.indexOf(parsedFrame.filename) === -1) {
-        filesToRead.push(parsedFrame.filename);
-      }
     }
 
     return parsedFrame;
   });
-
-  // We do an early return if we do not want to fetch context liens
-  if (linesOfContext <= 0) {
-    return SyncPromise.resolve(frames);
-  }
-
-  if (readFiles) {
-    try {
-      return readFiles(filesToRead, frames, linesOfContext);
-    } catch (_) {
-      // This happens in electron for example where we are not able to read files from asar.
-      // So it's fine, we recover be just returning all frames without pre/post context.
-    }
-  }
-
-  return SyncPromise.resolve(frames);
 }
 
 /**
  * @hidden
  */
-export function getExceptionFromError(
-  error: Error,
-  readFiles?: ReadFilesFn,
-  options?: NodeOptions,
-): PromiseLike<Exception> {
+export function getExceptionFromError(error: Error): Exception {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
-  return new SyncPromise<Exception>(resolve =>
-    parseStack(stack, readFiles, options).then(frames => {
-      const result = {
-        stacktrace: {
-          frames: prepareFramesForEvent(frames),
-        },
-        type: name,
-        value: error.message,
-      };
-      resolve(result);
-    }),
-  );
+  const frames = parseStack(stack);
+
+  return {
+    stacktrace: {
+      frames: prepareFramesForEvent(frames),
+    },
+    type: name,
+    value: error.message,
+  };
 }
 
 /**
  * @hidden
  */
-export function parseError(error: ExtendedError, readFiles?: ReadFilesFn, options?: NodeOptions): PromiseLike<Event> {
-  return new SyncPromise<Event>(resolve =>
-    getExceptionFromError(error, readFiles, options).then((exception: Exception) => {
-      resolve({
-        exception: {
-          values: [exception],
-        },
-      });
-    }),
-  );
+export function parseError(error: ExtendedError): Event {
+  const exception = getExceptionFromError(error);
+
+  return {
+    exception: {
+      values: [exception],
+    },
+  };
 }
 
 /**

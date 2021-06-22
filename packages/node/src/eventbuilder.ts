@@ -7,10 +7,9 @@ import {
   isError,
   isPlainObject,
   normalizeToSize,
-  SyncPromise,
 } from '@sentry/utils';
 
-import { extractStackFromError, parseError, parseStack, prepareFramesForEvent, ReadFilesFn } from './parsers';
+import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { NodeOptions } from './types';
 
 /**
@@ -18,12 +17,11 @@ import { NodeOptions } from './types';
  * @hidden
  */
 export function eventFromException(
-  options: NodeOptions,
+  _options: NodeOptions,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   exception: any,
   hint?: EventHint,
-  readFiles?: ReadFilesFn,
-): PromiseLike<Event> {
+): Event {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
   const providedMechanism: Mechanism | undefined =
@@ -54,19 +52,14 @@ export function eventFromException(
     mechanism.synthetic = true;
   }
 
-  return new SyncPromise<Event>((resolve, reject) =>
-    parseError(ex as Error, readFiles, options)
-      .then(event => {
-        addExceptionTypeValue(event, undefined, undefined);
-        addExceptionMechanism(event, mechanism);
+  const event = parseError(ex as Error);
+  addExceptionTypeValue(event, undefined, undefined);
+  addExceptionMechanism(event, mechanism);
 
-        resolve({
-          ...event,
-          event_id: hint && hint.event_id,
-        });
-      })
-      .then(null, reject),
-  );
+  return {
+    ...event,
+    event_id: hint && hint.event_id,
+  };
 }
 
 /**
@@ -78,29 +71,21 @@ export function eventFromMessage(
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
-  readFiles?: ReadFilesFn,
-): PromiseLike<Event> {
+): Event {
   const event: Event = {
     event_id: hint && hint.event_id,
     level,
     message,
   };
 
-  return new SyncPromise<Event>(resolve => {
-    if (options.attachStacktrace && hint && hint.syntheticException) {
-      const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-      void parseStack(stack, readFiles, options)
-        .then(frames => {
-          event.stacktrace = {
-            frames: prepareFramesForEvent(frames),
-          };
-          resolve(event);
-        })
-        .then(null, () => {
-          resolve(event);
-        });
-    } else {
-      resolve(event);
-    }
-  });
+  if (options.attachStacktrace && hint && hint.syntheticException) {
+    const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
+    const frames = parseStack(stack);
+
+    event.stacktrace = {
+      frames: prepareFramesForEvent(frames),
+    };
+  }
+
+  return event;
 }
