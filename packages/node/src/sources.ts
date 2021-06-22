@@ -16,7 +16,7 @@ export function resetFileContentCache(): void {
   FILE_CONTENT_CACHE.clear();
 }
 
-/** */
+/** Attempts to load sources and add context to the frames */
 export function addSourcesToFrames(frames: StackFrame[], options?: NodeOptions): PromiseLike<StackFrame[]> {
   const linesOfContext =
     options && options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
