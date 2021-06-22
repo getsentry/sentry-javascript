@@ -1,6 +1,8 @@
 function assertSessions(actual, expected) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    console.error('FAILED: Sessions do not match');
+  actual = JSON.stringify(actual);
+  expected = JSON.stringify(expected);
+  if (actual !== expected) {
+    process.stdout.write(`Expected Session:\n  ${expected}\nActual Session:\n  ${actual}`);
     process.exit(1);
   }
 }
@@ -27,14 +29,11 @@ class BaseDummyTransport {
 }
 
 function validateSessionCountFunction(sessionCounts) {
-  process.on('exit', exitCode => {
+  process.on('exit', () => {
     const { sessionCounter, expectedSessions } = sessionCounts;
     if (sessionCounter !== expectedSessions) {
-      console.log(`FAIL: Expected ${expectedSessions} Sessions, Received ${sessionCounter}.`);
+      process.stdout.write(`Expected Session Count: ${expectedSessions}\nActual Session Count:   ${sessionCounter}`);
       process.exitCode = 1;
-    }
-    if ((exitCode === 0) & !process.exitCode) {
-      console.log('SUCCESS: All application mode sessions were sent to node transport as expected');
     }
   });
 }
