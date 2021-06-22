@@ -6,7 +6,7 @@ import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNode
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
-import { getCLS } from './web-vitals/getCLS';
+import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
@@ -20,6 +20,7 @@ export class MetricsInstrumentation {
 
   private _performanceCursor: number = 0;
   private _lcpEntry: LargestContentfulPaint | undefined;
+  private _clsEntry: LayoutShift | undefined;
 
   public constructor() {
     if (!isNodeEnv() && global?.performance) {
@@ -207,6 +208,13 @@ export class MetricsInstrumentation {
 
         transaction.setTag('lcp.size', this._lcpEntry.size);
       }
+
+      if (this._clsEntry) {
+        logger.log('[Measurements] Adding CLS Data');
+        transaction.setData('measurements.cls', {
+          sources: this._clsEntry.sources.map(source => htmlTreeAsString(source.node)),
+        });
+      }
     }
   }
 
@@ -221,6 +229,7 @@ export class MetricsInstrumentation {
 
       logger.log('[Measurements] Adding CLS');
       this._measurements['cls'] = { value: metric.value };
+      this._clsEntry = entry as LayoutShift;
     });
   }
 
