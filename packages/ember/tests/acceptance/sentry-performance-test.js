@@ -28,15 +28,6 @@ function assertSentryCall(assert, callNumber, options) {
       return `${s.op} | ${normalizedDescription}`;
     });
 
-    // FIXME: For some reason, the last `afterRender` and `destroy` run queue event are not always called.
-    //        This is not a blocker, but should be investigated and fixed, as this is the expected output.
-    const lastSpan = event.spans[event.spans.length - 1];
-    if (lastSpan === 'ember.runloop.afterRender | undefined') {
-      event.spans.push('ember.runloop.destroy | undefined');
-    } else if (lastSpan === 'ember.runloop.render | undefined') {
-      event.spans.push('ember.runloop.afterRender | undefined', 'ember.runloop.destroy | undefined');
-    }
-
     assert.deepEqual(event.spans, options.spans, `Has correct spans`);
   }
 
