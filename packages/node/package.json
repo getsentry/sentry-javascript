@@ -60,12 +60,13 @@
     "test:watch": "jest --watch",
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:webpack": "cd test/manual/webpack-domain/ && yarn && node npm-build.js",
-    "test:release-health": "node test/manual/release-health/single-session/healthy-session.js && node test/manual/release-health/single-session/caught-exception-errored-session.js && node test/manual/release-health/single-session/uncaught-exception-crashed-session.js && node test/manual/release-health/single-session/unhandled-rejection-crashed-session.js && node test/manual/release-health/session-aggregates/aggregates-disable-single-session.js && node test/manual/release-health/single-session/errors-in-session-capped-to-one.js & node test/manual/release-health/single-session/terminal-state-sessions-sent-once.js",
+    "test:release-health": "node test/manual/release-health/runner.js",
     "pack": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts"
   },
   "volta": {
-    "extends": "../../package.json"
+    "extends": "../../package.json",
+    "node": "6.17.1"
   },
   "jest": {
     "collectCoverage": true,
