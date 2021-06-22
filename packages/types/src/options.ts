@@ -133,7 +133,7 @@ export interface Options {
   autoSessionTracking?: boolean;
 
   /**
-   * Set data to the inital scope
+   * Initial data to populate scope.
    */
   initialScope?: CaptureContext;
 

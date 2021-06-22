@@ -71,7 +71,7 @@
 
 ## 6.4.0
 
-- [core] feat: initalScope in SDK Options (#3544)
+- [core] feat: initialScope in SDK Options (#3544)
 - [node] feat: Release Health for Node (Session Aggregates) (#3319)
 - [node] feat: Autoload Database Integrations in Node environment (#3483)
 - [react] feat: Add support for React 17 Error Boundaries (#3532)
