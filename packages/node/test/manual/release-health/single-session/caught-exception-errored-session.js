@@ -16,6 +16,7 @@ validateSessionCountFunction(sessionCounts);
 class DummyTransport extends BaseDummyTransport {
   sendSession(session) {
     sessionCounts.sessionCounter++;
+
     if (sessionCounts.sessionCounter === 1) {
       assertSessions(constructStrippedSessionObject(session), {
         init: true,
@@ -23,7 +24,9 @@ class DummyTransport extends BaseDummyTransport {
         errors: 1,
         release: '1.1',
       });
-    } else if (sessionCounts.sessionCounter === 2) {
+    }
+
+    if (sessionCounts.sessionCounter === 2) {
       assertSessions(constructStrippedSessionObject(session), {
         init: false,
         status: 'exited',
@@ -31,6 +34,7 @@ class DummyTransport extends BaseDummyTransport {
         release: '1.1',
       });
     }
+
     return super.sendSession(session);
   }
 }

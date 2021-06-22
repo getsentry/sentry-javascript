@@ -1,12 +1,6 @@
 const Sentry = require('../../../../dist');
 const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('../test-utils');
 
-process.on('exit', () => {
-  if (process.exitCode === 0) {
-    console.log('SUCCESS: All application mode sessions were sent to node transport as expected');
-  }
-});
-
 class DummyTransport extends BaseDummyTransport {
   sendSession(session) {
     assertSessions(constructStrippedSessionObject(session), {
@@ -15,6 +9,8 @@ class DummyTransport extends BaseDummyTransport {
       errors: 1,
       release: '1.1',
     });
+
+    // We need to explicitly exit process early here to allow for 0 exit code
     process.exit(0);
   }
 }
@@ -25,6 +21,7 @@ Sentry.init({
   transport: DummyTransport,
   autoSessionTracking: true,
 });
+
 /**
  * The following code snippet will throw an exception of `mechanism.handled` equal to `false`, and so this session
  * is considered a Crashed Session.
