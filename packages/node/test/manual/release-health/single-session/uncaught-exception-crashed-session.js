@@ -1,22 +1,20 @@
 const Sentry = require('../../../../dist');
 const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('../test-utils');
 
-process.on('exit', ()=> {
-  if (process.exitCode !== 1) {
+process.on('exit', () => {
+  if (process.exitCode === 0) {
     console.log('SUCCESS: All application mode sessions were sent to node transport as expected');
   }
-})
+});
 
 class DummyTransport extends BaseDummyTransport {
   sendSession(session) {
-    assertSessions(constructStrippedSessionObject(session),
-      {
-        init: true,
-        status: 'crashed',
-        errors: 1,
-        release: '1.1'
-      }
-    )
+    assertSessions(constructStrippedSessionObject(session), {
+      init: true,
+      status: 'crashed',
+      errors: 1,
+      release: '1.1',
+    });
     process.exit(0);
   }
 }
@@ -25,7 +23,7 @@ Sentry.init({
   dsn: 'http://test@example.com/1337',
   release: '1.1',
   transport: DummyTransport,
-  autoSessionTracking: true
+  autoSessionTracking: true,
 });
 /**
  * The following code snippet will throw an exception of `mechanism.handled` equal to `false`, and so this session
@@ -34,4 +32,4 @@ Sentry.init({
  * extracts event data and uses it to update the Session and send it. No secondary session update in this case because
  * we explicitly exit the process in the onUncaughtException handler and so the `beforeExit` event is not fired.
  */
-throw new Error('test error')
+throw new Error('test error');
