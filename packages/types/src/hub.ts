@@ -10,6 +10,7 @@ import { Severity } from './severity';
 import { Span, SpanContext } from './span';
 import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import { User } from './user';
+import { ScopeManager } from './scopemanager';
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -228,4 +229,14 @@ export interface Hub {
    * @param endSession If set the session will be marked as exited and removed from the scope
    */
   captureSession(endSession: boolean): void;
+
+  /**
+   *
+   */
+  getCurrentScope(): Scope;
+
+  /**
+   * Registers a new scope manager
+   */
+  registerScopeManager(scopeManager: ScopeManager): void;
 }

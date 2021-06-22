@@ -12,6 +12,7 @@ import {
   Integration,
   IntegrationClass,
   Primitive,
+  ScopeManager,
   SessionContext,
   SessionStatus,
   Severity,
@@ -25,6 +26,7 @@ import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, log
 
 import { Scope } from './scope';
 import { Session } from './session';
+import { SimpleScopeManager } from './simpleScopeManager';
 
 /**
  * API compatibility version of this hub.
@@ -34,7 +36,7 @@ import { Session } from './session';
  *
  * @hidden
  */
-export const API_VERSION = 4;
+export const API_VERSION = 5;
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -92,6 +94,8 @@ export class Hub implements HubInterface {
 
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
+
+  private _scopeManager: ScopeManager = new SimpleScopeManager();
 
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
@@ -453,6 +457,20 @@ export class Hub implements HubInterface {
   }
 
   /**
+   *
+   */
+  public getCurrentScope(): Scope {
+    return this._scopeManager.getCurrentScope() as Scope;
+  }
+
+  /**
+   *
+   */
+  public registerScopeManager(scopeManager: ScopeManager): void {
+    this._scopeManager = scopeManager;
+  }
+
+  /**
    * Sends the current Session on the scope
    */
   private _sendSessionUpdate(): void {
@@ -547,6 +565,13 @@ export function getCurrentHub(): Hub {
   }
   // Return hub that lives on a global object
   return getHubFromCarrier(registry);
+}
+
+/**
+ *
+ */
+export function getCurrentScope(): Scope {
+  return getCurrentHub().getCurrentScope();
 }
 
 /**

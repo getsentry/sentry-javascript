@@ -19,6 +19,7 @@ export { QueryParams, Request, SentryRequest, SentryRequestType } from './reques
 export { Response } from './response';
 export { Runtime } from './runtime';
 export { CaptureContext, Scope, ScopeContext } from './scope';
+export { ScopeManager } from './scopemanager';
 export { SdkInfo } from './sdkinfo';
 export { SdkMetadata } from './sdkmetadata';
 export {
