@@ -65,8 +65,7 @@
     "circularDepCheck": "madge --circular src/index.ts"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "6.17.1"
+    "extends": "../../package.json"
   },
   "jest": {
     "collectCoverage": true,
