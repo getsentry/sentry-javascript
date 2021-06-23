@@ -29,7 +29,7 @@ function _wrapEventFunction(
     flushTimeout: 2000,
     ...wrapOptions,
   };
-  return (data, context, callback) => {
+  return async (data, context, callback) => {
     const transaction = startTransaction({
       name: context.eventType,
       op: 'gcp.function.event',
@@ -67,7 +67,7 @@ function _wrapEventFunction(
       return (fn as EventFunctionWithCallback)(data, context, newCallback);
     }
 
-    void Promise.resolve()
+    await Promise.resolve()
       .then(() => (fn as EventFunction)(data, context))
       .then(
         result => {
