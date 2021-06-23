@@ -5,12 +5,12 @@ import { Extra, Extras } from './extra';
 import { Integration, IntegrationClass } from './integration';
 import { Primitive } from './misc';
 import { Scope } from './scope';
+import { ScopeManager } from './scopemanager';
 import { Session, SessionContext } from './session';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
 import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import { User } from './user';
-import { ScopeManager } from './scopemanager';
 
 /**
  * Internal class used to make sure we always have the latest internal functions

@@ -1,4 +1,5 @@
 import { Breadcrumb } from './breadcrumb';
+import { Client } from './client';
 import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
@@ -155,4 +156,9 @@ export interface Scope {
    * Clears all currently set Breadcrumbs.
    */
   clearBreadcrumbs(): this;
+
+  /**
+   * Bind a client to the scope
+   */
+  bindClient(client: Client): void;
 }
