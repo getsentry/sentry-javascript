@@ -1,5 +1,8 @@
 import { SentryError } from './error';
+import { isThenable } from './is';
 import { SyncPromise } from './syncpromise';
+
+type TaskProducer<T> = () => PromiseLike<T>;
 
 /** A simple queue that holds promises. */
 export class PromiseBuffer<T> {
@@ -18,13 +21,22 @@ export class PromiseBuffer<T> {
   /**
    * Add a promise to the queue.
    *
-   * @param task Can be any PromiseLike<T>
+   * @param taskProducer A function producing any PromiseLike<T>
    * @returns The original promise.
    */
-  public add(task: PromiseLike<T>): PromiseLike<T> {
+  public add(taskProducer: PromiseLike<T> | TaskProducer<T>): PromiseLike<T> {
+    // NOTE: This is necessary to preserve backwards compatibility
+    // It should accept _only_ `TaskProducer<T>` but we dont want to break other custom transports
+    // that are utilizing our `Buffer` implementation.
+    // see: https://github.com/getsentry/sentry-javascript/issues/3725
+    const normalizedTaskProducer: TaskProducer<T> = isThenable(taskProducer)
+      ? () => taskProducer as PromiseLike<T>
+      : (taskProducer as TaskProducer<T>);
+
     if (!this.isReady()) {
       return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
+    const task = normalizedTaskProducer();
     if (this._buffer.indexOf(task) === -1) {
       this._buffer.push(task);
     }
