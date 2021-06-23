@@ -211,9 +211,9 @@ export class MetricsInstrumentation {
 
       if (this._clsEntry) {
         logger.log('[Measurements] Adding CLS Data');
-        transaction.setData('measurements.cls', {
-          sources: this._clsEntry.sources.map(source => htmlTreeAsString(source.node)),
-        });
+        this._clsEntry.sources.map((source, index) =>
+          transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+        );
       }
     }
   }
