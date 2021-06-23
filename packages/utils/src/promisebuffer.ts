@@ -21,7 +21,7 @@ export class PromiseBuffer<T> {
   /**
    * Add a promise to the queue.
    *
-   * @param taskProducer A function producing any PromiseLike<T>
+   * @param taskProducer A function producing any PromiseLike<T>; In previous versions is used to be `@param task: PromiseLike<T>`, however, Promises were instantly created on the call-site, making them fell through the buffer limit.
    * @returns The original promise.
    */
   public add(taskProducer: PromiseLike<T> | TaskProducer<T>): PromiseLike<T> {
