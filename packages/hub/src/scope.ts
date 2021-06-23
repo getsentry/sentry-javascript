@@ -455,6 +455,13 @@ export class Scope implements ScopeInterface {
   }
 
   /**
+   * @inheritdoc
+   */
+  public getClient(): Client | undefined {
+    return this._client;
+  }
+
+  /**
    * This will be called after {@link applyToEvent} is finished.
    */
   protected _notifyEventProcessors(

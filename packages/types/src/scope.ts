@@ -160,5 +160,10 @@ export interface Scope {
   /**
    * Bind a client to the scope
    */
-  bindClient(client: Client): void;
+  bindClient(client?: Client): void;
+
+  /**
+   *
+   */
+  getClient(): Client | undefined;
 }

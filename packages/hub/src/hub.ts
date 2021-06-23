@@ -35,6 +35,9 @@ import { SimpleScopeManager } from './simpleScopeManager';
  * changes and new methods are introduced.
  *
  * @hidden
+ *
+ * // TODO(abhi): Fix API version code
+ * @ deprecated
  */
 export const API_VERSION = 5;
 
@@ -89,13 +92,10 @@ export interface DomainAsCarrier extends Carrier {
  * @inheritDoc
  */
 export class Hub implements HubInterface {
-  /** Is a {@link Layer}[] containing the client and scope */
-  private readonly _stack: Layer[] = [{}];
-
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
 
-  private _scopeManager: ScopeManager = new SimpleScopeManager();
+  private _scopeManager: ScopeManager;
 
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
@@ -105,9 +105,10 @@ export class Hub implements HubInterface {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
-    this.getStackTop().scope = scope;
-    this.bindClient(client);
+  public constructor(client?: Client, scope?: Scope, private readonly _version: number = API_VERSION) {
+    this._scopeManager = new SimpleScopeManager(scope);
+    const currentScope = this._scopeManager.getCurrentScope();
+    currentScope.bindClient(client);
   }
 
   /**
@@ -121,8 +122,8 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public bindClient(client?: Client): void {
-    const top = this.getStackTop();
-    top.client = client;
+    const currentScope = this._scopeManager.getCurrentScope();
+    currentScope.bindClient(client);
     if (client && client.setupIntegrations) {
       client.setupIntegrations();
     }
@@ -130,6 +131,7 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   * @deprecated
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
@@ -143,6 +145,7 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   * @deprecated
    */
   public popScope(): boolean {
     if (this.getStack().length <= 1) return false;
@@ -152,13 +155,9 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public withScope(callback: (scope: Scope) => void): void {
-    const scope = this.pushScope();
-    try {
-      callback(scope);
-    } finally {
-      this.popScope();
-    }
+  public withScope<T>(callback: (scope: Scope) => T): T {
+    // @ts-ignore till I figure out the Scope class vs Scope interface stuff
+    return this._scopeManager.withScope<T>(callback);
   }
 
   /**
@@ -175,12 +174,14 @@ export class Hub implements HubInterface {
 
   /** Returns the scope stack for domains or the process. */
   public getStack(): Layer[] {
-    return this._stack;
+    return [this.getStackTop()];
   }
 
   /** Returns the topmost scope layer in the order domain > local > process. */
   public getStackTop(): Layer {
-    return this._stack[this._stack.length - 1];
+    const scope = this._scopeManager.getCurrentScope() as Scope;
+    const client = scope.getClient();
+    return { scope, client };
   }
 
   /**
@@ -342,11 +343,9 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public configureScope(callback: (scope: Scope) => void): void {
-    const { scope, client } = this.getStackTop();
-    if (scope && client) {
-      callback(scope);
-    }
+  public configureScope<T>(callback: (scope: Scope) => T): T {
+    // @ts-ignore till I figure this out
+    return this._scopeManager.configureScope<T>(callback);
   }
 
   /**

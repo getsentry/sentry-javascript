@@ -6,7 +6,11 @@ import { Scope } from './scope';
  *
  */
 export class SimpleScopeManager implements ScopeManager {
-  private _current: Scope = new Scope();
+  private _current: Scope;
+
+  public constructor(scope?: Scope) {
+    this._current = scope === undefined ? new Scope() : scope;
+  }
 
   /**
    *
