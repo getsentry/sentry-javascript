@@ -188,33 +188,37 @@ export class MetricsInstrumentation {
       }
 
       transaction.setMeasurements(this._measurements);
+      this._tagMetricInfo(transaction);
+    }
+  }
 
-      if (this._lcpEntry) {
-        logger.log('[Measurements] Adding LCP Data');
-        // Capture Properties of the LCP element that contributes to the LCP.
+  /** Add LCP / CLS data to transaction to allow debugging */
+  private _tagMetricInfo(transaction: Transaction): void {
+    if (this._lcpEntry) {
+      logger.log('[Measurements] Adding LCP Data');
+      // Capture Properties of the LCP element that contributes to the LCP.
 
-        if (this._lcpEntry.element) {
-          transaction.setTag('lcp.element', htmlTreeAsString(this._lcpEntry.element));
-        }
-
-        if (this._lcpEntry.id) {
-          transaction.setTag('lcp.id', this._lcpEntry.id);
-        }
-
-        if (this._lcpEntry.url) {
-          // Trim URL to the first 200 characters.
-          transaction.setTag('lcp.url', this._lcpEntry.url.trim().slice(0, 200));
-        }
-
-        transaction.setTag('lcp.size', this._lcpEntry.size);
+      if (this._lcpEntry.element) {
+        transaction.setTag('lcp.element', htmlTreeAsString(this._lcpEntry.element));
       }
 
-      if (this._clsEntry) {
-        logger.log('[Measurements] Adding CLS Data');
-        this._clsEntry.sources.map((source, index) =>
-          transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
-        );
+      if (this._lcpEntry.id) {
+        transaction.setTag('lcp.id', this._lcpEntry.id);
       }
+
+      if (this._lcpEntry.url) {
+        // Trim URL to the first 200 characters.
+        transaction.setTag('lcp.url', this._lcpEntry.url.trim().slice(0, 200));
+      }
+
+      transaction.setTag('lcp.size', this._lcpEntry.size);
+    }
+
+    if (this._clsEntry) {
+      logger.log('[Measurements] Adding CLS Data');
+      this._clsEntry.sources.map((source, index) =>
+        transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+      );
     }
   }
 
