@@ -36,8 +36,6 @@ import { SimpleScopeManager } from './simplescopemanager';
  *
  * @hidden
  *
- * // TODO(abhi): Fix API version code
- * @ deprecated
  */
 export const API_VERSION = 5;
 
@@ -106,8 +104,10 @@ export class Hub implements HubInterface {
    * @param version number, higher number means higher priority.
    */
   public constructor(client?: Client, scope?: Scope, private readonly _version: number = API_VERSION) {
-    const scopeManager = getCurrentScopeManager();
-    scopeManager.updateScope(scope);
+    if (scope) {
+      const scopeManager = getCurrentScopeManager();
+      scopeManager.updateScope(scope);
+    }
     this.bindClient(client);
   }
 
@@ -541,6 +541,7 @@ export function getCurrentHub(): Hub {
   const registry = getMainCarrier();
 
   // If there's no hub, or its an old API, assign a new one
+  // eslint-disable-next-line deprecation/deprecation
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
     setHubOnCarrier(registry, new Hub());
   }
