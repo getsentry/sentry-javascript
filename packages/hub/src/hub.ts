@@ -97,8 +97,6 @@ export class Hub implements HubInterface {
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
 
-  private _scopeManager: ScopeManager;
-
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
    * internal stack on creation.
@@ -108,9 +106,9 @@ export class Hub implements HubInterface {
    * @param version number, higher number means higher priority.
    */
   public constructor(client?: Client, scope?: Scope, private readonly _version: number = API_VERSION) {
-    this._scopeManager = new SimpleScopeManager(scope);
-    const currentScope = this._scopeManager.getCurrentScope();
-    currentScope.bindClient(client);
+    const scopeManager = getCurrentScopeManager();
+    scopeManager.updateScope(scope);
+    this.bindClient(client);
   }
 
   /**
@@ -124,7 +122,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public bindClient(client?: Client): void {
-    const currentScope = this._scopeManager.getCurrentScope();
+    const currentScope = getCurrentScope();
     currentScope.bindClient(client);
     if (client && client.setupIntegrations) {
       client.setupIntegrations();
@@ -158,8 +156,8 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public withScope<T>(callback: (scope: Scope) => T): T {
-    // @ts-ignore till I figure out the Scope class vs Scope interface stuff
-    return this._scopeManager.withScope<T>(callback);
+    // @ts-ignore scope class
+    return getCurrentScopeManager().withScope<T>(callback);
   }
 
   /**
@@ -181,7 +179,7 @@ export class Hub implements HubInterface {
 
   /** Returns the topmost scope layer in the order domain > local > process. */
   public getStackTop(): Layer {
-    const scope = this._scopeManager.getCurrentScope() as Scope;
+    const scope = getCurrentScope();
     const client = scope.getClient();
     return { scope, client };
   }
@@ -346,7 +344,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public configureScope<T>(callback: (scope: Scope) => T): void {
-    const currentScope = this._scopeManager.getCurrentScope() as Scope;
+    const currentScope = getCurrentScope();
     callback(currentScope);
   }
 
@@ -458,20 +456,6 @@ export class Hub implements HubInterface {
   }
 
   /**
-   *
-   */
-  public getCurrentScope(): Scope {
-    return this._scopeManager.getCurrentScope() as Scope;
-  }
-
-  /**
-   *
-   */
-  public registerScopeManager(scopeManager: ScopeManager): void {
-    this._scopeManager = scopeManager;
-  }
-
-  /**
    * Sends the current Session on the scope
    */
   private _sendSessionUpdate(): void {
@@ -572,8 +556,17 @@ export function getCurrentHub(): Hub {
 /**
  *
  */
+export function getCurrentScopeManager(): ScopeManager {
+  // Get main carrier (global for every environment)
+  const registry = getMainCarrier();
+  return getValueOnCarrier(registry, 'scopeManager', () => new SimpleScopeManager());
+}
+
+/**
+ *
+ */
 export function getCurrentScope(): Scope {
-  return getCurrentHub().getCurrentScope();
+  return getCurrentScopeManager().getCurrentScope() as Scope;
 }
 
 /**
@@ -632,7 +625,7 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  return getValueOnCarrier(carrier, 'hub', new Hub()) as Hub;
+  return getValueOnCarrier(carrier, 'hub', () => new Hub()) as Hub;
 }
 
 /**
@@ -651,13 +644,13 @@ export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
 export function getValueOnCarrier<
   O extends Required<Carrier>['__SENTRY__'],
   K extends keyof Required<Carrier>['__SENTRY__']
->(carrier: Carrier, key: K, defaultValue: O[K]): O[K] {
+>(carrier: Carrier, key: K, lazyDefaultValue: () => O[K]): NonNullable<O[K]> {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__[key]) {
-    return carrier.__SENTRY__[key] as O[K];
+    return carrier.__SENTRY__[key] as NonNullable<O[K]>;
   }
   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-  carrier.__SENTRY__[key] = defaultValue;
-  return carrier.__SENTRY__[key] as O[K];
+  carrier.__SENTRY__[key] = lazyDefaultValue();
+  return carrier.__SENTRY__[key] as NonNullable<O[K]>;
 }
 
 /**
@@ -679,23 +672,3 @@ export function setValueOnCarrier<
 export function hasValueOnCarrier(carrier: Carrier, key: keyof Required<Carrier>['__SENTRY__']): boolean {
   return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__[key]);
 }
-
-// /**
-//  *
-//  */
-// export function getScopeManagerOnCarrier(carrier: Carrier): ScopeManager {
-//   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.scopeManager) return carrier.__SENTRY__.scopeManager;
-//   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-//   carrier.__SENTRY__.scopeManager = new SimpleScopeManager();
-//   return carrier.__SENTRY__.scopeManager;
-// }
-
-// /**
-//  *
-//  */
-//  export function getScopeManagerOnCarrier(carrier: Carrier): ScopeManager {
-//   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.scopeManager) return carrier.__SENTRY__.scopeManager;
-//   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-//   carrier.__SENTRY__.scopeManager = new SimpleScopeManager();
-//   return carrier.__SENTRY__.scopeManager;
-//  }

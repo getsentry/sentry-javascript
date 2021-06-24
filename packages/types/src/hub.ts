@@ -229,14 +229,4 @@ export interface Hub {
    * @param endSession If set the session will be marked as exited and removed from the scope
    */
   captureSession(endSession: boolean): void;
-
-  /**
-   *
-   */
-  getCurrentScope(): Scope;
-
-  /**
-   * Registers a new scope manager
-   */
-  registerScopeManager(scopeManager: ScopeManager): void;
 }
