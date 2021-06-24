@@ -59,7 +59,7 @@ function _wrapCloudEventFunction(
       }
       transaction.finish();
 
-      void flush(options.flushTimeout)
+      flush(options.flushTimeout)
         .then(() => {
           callback(...args);
         })
@@ -72,7 +72,7 @@ function _wrapCloudEventFunction(
       return (fn as CloudEventFunctionWithCallback)(context, newCallback);
     }
 
-    void Promise.resolve()
+    return Promise.resolve()
       .then(() => (fn as CloudEventFunction)(context))
       .then(
         result => {
