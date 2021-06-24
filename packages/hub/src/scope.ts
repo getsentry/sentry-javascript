@@ -97,6 +97,7 @@ export class Scope implements ScopeInterface {
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
       newScope._requestSession = scope._requestSession;
+      newScope._client = scope._client;
     }
     return newScope;
   }
@@ -329,6 +330,9 @@ export class Scope implements ScopeInterface {
       if (captureContext._requestSession) {
         this._requestSession = captureContext._requestSession;
       }
+      if (captureContext._client) {
+        this._client = captureContext._client;
+      }
     } else if (isPlainObject(captureContext)) {
       // eslint-disable-next-line no-param-reassign
       captureContext = captureContext as ScopeContext;
@@ -346,6 +350,9 @@ export class Scope implements ScopeInterface {
       }
       if (captureContext.requestSession) {
         this._requestSession = captureContext.requestSession;
+      }
+      if (captureContext.client) {
+        this._client = captureContext.client;
       }
     }
 

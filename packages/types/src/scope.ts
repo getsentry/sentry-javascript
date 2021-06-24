@@ -22,6 +22,7 @@ export interface ScopeContext {
   tags: { [key: string]: Primitive };
   fingerprint: string[];
   requestSession: RequestSession;
+  client: Client;
 }
 
 /**
