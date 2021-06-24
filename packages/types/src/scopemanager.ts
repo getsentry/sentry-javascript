@@ -5,10 +5,6 @@ import { Scope } from './scope';
  */
 export interface ScopeManager {
   getCurrentScope(): Scope;
-
-  // Mutates current global scope.
-  configureScope<T>(cb: (scope: Scope) => T): T;
-
   // Forks current scope
   // Forking behaviour is based scope manager implementation
   withScope<T>(cb: (scope: Scope) => T): T;

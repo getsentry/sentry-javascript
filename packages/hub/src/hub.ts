@@ -76,6 +76,8 @@ export interface Carrier {
       // eslint-disable-next-line @typescript-eslint/ban-types
       [key: string]: Function;
     };
+
+    scopeManager?: ScopeManager;
   };
 }
 
@@ -343,9 +345,9 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public configureScope<T>(callback: (scope: Scope) => T): T {
-    // @ts-ignore till I figure this out
-    return this._scopeManager.configureScope<T>(callback);
+  public configureScope<T>(callback: (scope: Scope) => T): void {
+    const currentScope = this._scopeManager.getCurrentScope() as Scope;
+    callback(currentScope);
   }
 
   /**
@@ -526,6 +528,7 @@ export function getMainCarrier(): Carrier {
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
     extensions: {},
     hub: undefined,
+    scopeManager: undefined,
   };
   return carrier;
 }

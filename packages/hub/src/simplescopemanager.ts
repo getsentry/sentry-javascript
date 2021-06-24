@@ -34,11 +34,4 @@ export class SimpleScopeManager implements ScopeManager {
       this._current = oldScope;
     }
   }
-
-  /**
-   *
-   */
-  public configureScope<T>(fn: (scope: Scope) => T): T {
-    return fn(this.getCurrentScope());
-  }
 }
