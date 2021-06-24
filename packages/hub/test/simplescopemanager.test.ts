@@ -1,5 +1,5 @@
 import { Scope } from '../src/scope';
-import { SimpleScopeManager } from '../src/simpleScopeManager';
+import { SimpleScopeManager } from '../src/simplescopemanager';
 
 describe('SimpleScopeManager', () => {
   let scopeManager: SimpleScopeManager;
