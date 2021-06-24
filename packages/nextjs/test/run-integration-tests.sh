@@ -4,7 +4,7 @@ set -e
 
 function cleanup {
   echo "[nextjs] Cleaning up..."
-  mv next.config.js.bak next.config.js
+  mv next.config.js.bak next.config.js 2> /dev/null || true
   yarn remove next > /dev/null 2>&1 || true
   echo "[nextjs] Test run complete"
 }

@@ -30,7 +30,6 @@
     "@sentry/types": "6.7.2",
     "@types/webpack": "^5.28.0",
     "eslint": "7.20.0",
-    "eslint-config-next": "^11.0.1",
     "next": "10.1.3",
     "rimraf": "3.0.2"
   },
