@@ -26,7 +26,7 @@ import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, log
 
 import { Scope } from './scope';
 import { Session } from './session';
-import { SimpleScopeManager } from './simpleScopeManager';
+import { SimpleScopeManager } from './simplescopemanager';
 
 /**
  * API compatibility version of this hub.
@@ -622,7 +622,7 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
  * @param carrier object
  */
 function hasHubOnCarrier(carrier: Carrier): boolean {
-  return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub);
+  return hasValueOnCarrier(carrier, 'hub');
 }
 
 /**
@@ -632,10 +632,7 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) return carrier.__SENTRY__.hub;
-  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-  carrier.__SENTRY__.hub = new Hub();
-  return carrier.__SENTRY__.hub;
+  return getValueOnCarrier(carrier, 'hub', new Hub()) as Hub;
 }
 
 /**
@@ -645,8 +642,60 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  * @returns A boolean indicating success or failure
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
+  return setValueOnCarrier(carrier, 'hub', hub);
+}
+
+/**
+ *
+ */
+export function getValueOnCarrier<
+  O extends Required<Carrier>['__SENTRY__'],
+  K extends keyof Required<Carrier>['__SENTRY__']
+>(carrier: Carrier, key: K, defaultValue: O[K]): O[K] {
+  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__[key]) {
+    return carrier.__SENTRY__[key] as O[K];
+  }
+  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
+  carrier.__SENTRY__[key] = defaultValue;
+  return carrier.__SENTRY__[key] as O[K];
+}
+
+/**
+ *
+ */
+export function setValueOnCarrier<
+  O extends Required<Carrier>['__SENTRY__'],
+  K extends keyof Required<Carrier>['__SENTRY__']
+>(carrier: Carrier, key: K, value: O[K]): boolean {
   if (!carrier) return false;
   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-  carrier.__SENTRY__.hub = hub;
+  carrier.__SENTRY__[key] = value;
   return true;
 }
+
+/**
+ *
+ */
+export function hasValueOnCarrier(carrier: Carrier, key: keyof Required<Carrier>['__SENTRY__']): boolean {
+  return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__[key]);
+}
+
+// /**
+//  *
+//  */
+// export function getScopeManagerOnCarrier(carrier: Carrier): ScopeManager {
+//   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.scopeManager) return carrier.__SENTRY__.scopeManager;
+//   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
+//   carrier.__SENTRY__.scopeManager = new SimpleScopeManager();
+//   return carrier.__SENTRY__.scopeManager;
+// }
+
+// /**
+//  *
+//  */
+//  export function getScopeManagerOnCarrier(carrier: Carrier): ScopeManager {
+//   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.scopeManager) return carrier.__SENTRY__.scopeManager;
+//   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
+//   carrier.__SENTRY__.scopeManager = new SimpleScopeManager();
+//   return carrier.__SENTRY__.scopeManager;
+//  }
