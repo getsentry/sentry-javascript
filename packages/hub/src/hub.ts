@@ -673,3 +673,11 @@ export function setValueOnCarrier<
 export function hasValueOnCarrier(carrier: Carrier, key: keyof Required<Carrier>['__SENTRY__']): boolean {
   return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__[key]);
 }
+
+/**
+ *
+ */
+export function registerScopeManager(manager: ScopeManager): boolean {
+  const carrier = getMainCarrier();
+  return setValueOnCarrier(carrier, 'scopeManager', manager);
+}

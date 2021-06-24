@@ -5,7 +5,6 @@ import { Extra, Extras } from './extra';
 import { Integration, IntegrationClass } from './integration';
 import { Primitive } from './misc';
 import { Scope } from './scope';
-import { ScopeManager } from './scopemanager';
 import { Session, SessionContext } from './session';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
