@@ -59,7 +59,7 @@ function _wrapCloudEventFunction(
       }
       transaction.finish();
 
-      flush(options.flushTimeout)
+      void flush(options.flushTimeout)
         .then(() => {
           callback(...args);
         })

@@ -54,7 +54,7 @@ function _wrapEventFunction(
       }
       transaction.finish();
 
-      flush(options.flushTimeout)
+      void flush(options.flushTimeout)
         .then(() => {
           callback(...args);
         })
