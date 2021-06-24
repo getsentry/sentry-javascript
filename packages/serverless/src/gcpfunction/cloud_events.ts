@@ -76,10 +76,10 @@ function _wrapCloudEventFunction(
       .then(() => (fn as CloudEventFunction)(context))
       .then(
         result => {
-          newCallback(null, result);
+          return newCallback(null, result);
         },
         err => {
-          newCallback(err, undefined);
+          return newCallback(err, undefined);
         },
       );
   };
