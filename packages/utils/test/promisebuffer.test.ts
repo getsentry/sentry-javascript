@@ -10,20 +10,28 @@ describe('PromiseBuffer', () => {
   describe('add()', () => {
     test('no limit', () => {
       const q = new PromiseBuffer<void>();
-      const p = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
+      const p = jest.fn(
+        () => new SyncPromise<void>(resolve => setTimeout(resolve, 1)),
+      );
       q.add(p);
       expect(q.length()).toBe(1);
     });
+
     test('with limit', () => {
       const q = new PromiseBuffer<void>(1);
-      const p = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
-      expect(q.add(p)).toEqual(p);
-      expect(
-        q.add(
-          new SyncPromise<void>(resolve => setTimeout(resolve, 1)),
-        ),
-      ).rejects.toThrowError();
+      let t1;
+      const p1 = jest.fn(() => {
+        t1 = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
+        return t1;
+      });
+      const p2 = jest.fn(
+        () => new SyncPromise<void>(resolve => setTimeout(resolve, 1)),
+      );
+      expect(q.add(p1)).toEqual(t1);
+      expect(q.add(p2)).rejects.toThrowError();
       expect(q.length()).toBe(1);
+      expect(p1).toHaveBeenCalled();
+      expect(p2).not.toHaveBeenCalled();
     });
   });
 
