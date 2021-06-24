@@ -16,11 +16,12 @@ export class FakeTransport implements Transport {
   public sendEvent(_event: Event): PromiseLike<Response> {
     this.sendCalled += 1;
     return this._buffer.add(
-      new SyncPromise(async res => {
-        await sleep(this.delay);
-        this.sentCount += 1;
-        res({ status: Status.Success });
-      }),
+      () =>
+        new SyncPromise(async res => {
+          await sleep(this.delay);
+          this.sentCount += 1;
+          res({ status: Status.Success });
+        }),
     );
   }
 
