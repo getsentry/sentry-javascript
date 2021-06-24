@@ -34,7 +34,7 @@
     "rimraf": "3.0.2"
   },
   "peerDependencies": {
-    "next": "^10.0.8",
+    "next": "^10.0.8 || ^11.0",
     "react": "15.x || 16.x || 17.x"
   },
   "scripts": {
