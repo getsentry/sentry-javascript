@@ -149,8 +149,6 @@ function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
-function _withScopeV2<T>(fn: () => any) {}
-
 /**
  *
  * @param this The Hub starting the transaction

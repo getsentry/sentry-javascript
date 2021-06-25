@@ -7,6 +7,7 @@ import {
   Integration,
   IntegrationClass,
   Options,
+  Scope as ScopeType,
   ScopeManager,
   SessionStatus,
   Severity,
@@ -235,14 +236,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * Returns the current scope.
    */
-  public getScope(): Scope {
+  public getScope(): ScopeType {
     return this._scopeManager.current();
   }
 
   /**
-   * Runs fn with a fork of the current scope.
+   * Runs fn with a forked clone of the current scope.
    */
-  public withScope<T>(fn: (scope: Scope) => T): T {
+  public withScope<T>(fn: (scope: ScopeType) => T): T {
     return this._scopeManager.withScope(fn);
   }
 

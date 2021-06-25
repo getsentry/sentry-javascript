@@ -49,6 +49,16 @@ BaseContextManager - https://github.com/open-telemetry/opentelemetry-js-api/blob
 
 - Can we have a global scope in addition to a local scope?
 
+- With `Sentry.trace()` how to you tell it to create a `Transaction` vs `Span`?
+- What happens if you nest `Transaction`s with `Sentry.trace()`?
+
+
+- Possible way forward:
+
+1. Improve hub propagation: add Zone support just like with have support for domains in `@sentry/hub`.
+2. Add `Sentry.trace` on top of the existing Hub/Scope implementation (with Zone support).
+
+
 ## Unrelated
 
 - Introduce the concept of a Tracer:
