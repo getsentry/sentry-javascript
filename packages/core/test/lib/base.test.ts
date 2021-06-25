@@ -1,4 +1,4 @@
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope, Session } from '@sentry/hub';
 import { Event, Severity, Span } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
@@ -707,18 +707,20 @@ describe('BaseClient', () => {
     });
 
     test('calls beforeSend and log info about invalid return value', () => {
-      expect.assertions(3);
-      const beforeSend = jest.fn(() => undefined);
-      // @ts-ignore we need to test regular-js behavior
-      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerErrorSpy = jest.spyOn(logger, 'error');
-      client.captureEvent({ message: 'hello' });
-      expect(TestBackend.instance!.event).toBeUndefined();
-      expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerErrorSpy).toBeCalledWith(
-        new SentryError('`beforeSend` method has to return `null` or a valid event.'),
-      );
+      const invalidValues = [undefined, false, true, [], 1];
+      expect.assertions(invalidValues.length * 2);
+
+      for (const val of invalidValues) {
+        const beforeSend = jest.fn(() => val);
+        // @ts-ignore we need to test regular-js behavior
+        const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+        const loggerErrorSpy = jest.spyOn(logger, 'error');
+        client.captureEvent({ message: 'hello' });
+        expect(TestBackend.instance!.event).toBeUndefined();
+        expect(loggerErrorSpy).toBeCalledWith(
+          new SentryError('`beforeSend` method has to return `null` or a valid event.'),
+        );
+      }
     });
 
     test('calls async beforeSend and uses original event without any changes', done => {
@@ -962,6 +964,24 @@ describe('BaseClient', () => {
           expect(true).toEqual(true);
         }),
       ]);
+    });
+  });
+
+  describe('captureSession()', () => {
+    test('sends sessions to the backend', () => {
+      expect.assertions(1);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const session = new Session({ release: 'test' });
+      client.captureSession(session);
+      expect(TestBackend.instance!.session).toEqual(session);
+    });
+
+    test('skips when disabled', () => {
+      expect.assertions(1);
+      const client = new TestClient({ enabled: false, dsn: PUBLIC_DSN });
+      const session = new Session({ release: 'test' });
+      client.captureSession(session);
+      expect(TestBackend.instance!.session).toBeUndefined();
     });
   });
 });

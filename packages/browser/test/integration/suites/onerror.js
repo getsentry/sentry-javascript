@@ -130,6 +130,25 @@ describe("window.onerror", function() {
     });
   });
 
+  it("should onerror calls with non-string first argument gracefully", function() {
+    return runInSandbox(sandbox, function() {
+      window.onerror({
+        type: "error",
+        otherKey: "hi",
+      });
+    }).then(function(summary) {
+      assert.equal(summary.events[0].exception.values[0].type, "Error");
+      assert.equal(
+        summary.events[0].exception.values[0].value,
+        "Non-Error exception captured with keys: otherKey, type"
+      );
+      assert.deepEqual(summary.events[0].extra.__serialized__, {
+        type: "error",
+        otherKey: "hi",
+      });
+    });
+  });
+
   it("should NOT catch an exception already caught [but rethrown] via Sentry.captureException", function() {
     return runInSandbox(sandbox, function() {
       try {

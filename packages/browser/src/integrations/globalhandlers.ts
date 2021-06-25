@@ -85,17 +85,18 @@ export class GlobalHandlers implements Integration {
         }
 
         const client = currentHub.getClient();
-        const event = isPrimitive(error)
-          ? this._eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
-          : this._enhanceEventWithInitialFrame(
-              eventFromUnknownInput(error, undefined, {
-                attachStacktrace: client && client.getOptions().attachStacktrace,
-                rejection: false,
-              }),
-              data.url,
-              data.line,
-              data.column,
-            );
+        const event =
+          error === undefined && isString(data.msg)
+            ? this._eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
+            : this._enhanceEventWithInitialFrame(
+                eventFromUnknownInput(error || data.msg, undefined, {
+                  attachStacktrace: client && client.getOptions().attachStacktrace,
+                  rejection: false,
+                }),
+                data.url,
+                data.line,
+                data.column,
+              );
 
         addExceptionMechanism(event, {
           handled: false,
@@ -188,12 +189,10 @@ export class GlobalHandlers implements Integration {
     let message = isErrorEvent(msg) ? msg.message : msg;
     let name;
 
-    if (isString(message)) {
-      const groups = message.match(ERROR_TYPES_RE);
-      if (groups) {
-        name = groups[1];
-        message = groups[2];
-      }
+    const groups = message.match(ERROR_TYPES_RE);
+    if (groups) {
+      name = groups[1];
+      message = groups[2];
     }
 
     const event = {

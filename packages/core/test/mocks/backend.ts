@@ -1,3 +1,4 @@
+import { Session } from '@sentry/hub';
 import { Event, Options, Severity, Transport } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
 
@@ -14,6 +15,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
   public static sendEventCalled?: (event: Event) => void;
 
   public event?: Event;
+  public session?: Session;
 
   public constructor(protected readonly _options: TestOptions) {
     super(_options);
@@ -48,6 +50,10 @@ export class TestBackend extends BaseBackend<TestOptions> {
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     TestBackend.sendEventCalled && TestBackend.sendEventCalled(event);
+  }
+
+  public sendSession(session: Session): void {
+    this.session = session;
   }
 
   protected _setupTransport(): Transport {

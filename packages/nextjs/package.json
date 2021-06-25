@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "6.7.1",
+  "version": "6.7.2",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -17,24 +17,24 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "6.7.1",
-    "@sentry/integrations": "6.7.1",
-    "@sentry/node": "6.7.1",
-    "@sentry/react": "6.7.1",
-    "@sentry/tracing": "6.7.1",
-    "@sentry/utils": "6.7.1",
-    "@sentry/webpack-plugin": "1.15.0",
+    "@sentry/core": "6.7.2",
+    "@sentry/integrations": "6.7.2",
+    "@sentry/node": "6.7.2",
+    "@sentry/react": "6.7.2",
+    "@sentry/tracing": "6.7.2",
+    "@sentry/utils": "6.7.2",
+    "@sentry/webpack-plugin": "1.15.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/types": "6.7.1",
+    "@sentry/types": "6.7.2",
     "@types/webpack": "^5.28.0",
     "eslint": "7.20.0",
     "next": "10.1.3",
     "rimraf": "3.0.2"
   },
   "peerDependencies": {
-    "next": "^10.0.8",
+    "next": "^10.0.8 || ^11.0",
     "react": "15.x || 16.x || 17.x"
   },
   "scripts": {
@@ -55,11 +55,7 @@
     "test": "run-s test:unit test:integration",
     "test:watch": "jest --watch",
     "test:unit": "jest",
-    "test:integration": "run-s test:integration:clean test:integration:build test:integration:server test:integration:client",
-    "test:integration:clean": "cd test/integration && rimraf node_modules .next .env.local",
-    "test:integration:build": "cd test/integration && yarn --no-lockfile && yarn build",
-    "test:integration:server": "cd test/integration && node test/server.js --silent",
-    "test:integration:client": "cd test/integration && node test/client.js --silent",
+    "test:integration": "test/run-integration-tests.sh",
     "pack": "npm pack",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",

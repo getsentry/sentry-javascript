@@ -45,16 +45,10 @@ Sentry.init({
   transport: DummyTransport,
   autoSessionTracking: true,
 });
-
 /**
- * The following code snippet will capture exceptions of `mechanism.handled` equal to `true`, and so these sessions
- * are treated as Errored Sessions.
- * In this case, we have two session updates sent; First Session sent is due to the call to CaptureException that
- * extracts event data and uses it to update the Session and sends it. The second session update is sent on the
- * `beforeExit` event which happens right before the process exits.
+ * The following code snippet will throw multiple errors, and thereby send session updates everytime an error is
+ * captured. However, the number of errors in the session should be capped at 1, regardless of how many errors there are
  */
-try {
-  throw new Error('hey there');
-} catch (e) {
-  Sentry.captureException(e);
+for (let i = 0; i < 2; i++) {
+  Sentry.captureException(new Error('hello world'));
 }

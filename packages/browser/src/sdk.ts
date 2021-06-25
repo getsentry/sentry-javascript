@@ -4,7 +4,7 @@ import { addInstrumentationHandler, getGlobalObject, logger, SyncPromise } from 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
-import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -13,6 +13,7 @@ export const defaultIntegrations = [
   new Breadcrumbs(),
   new GlobalHandlers(),
   new LinkedErrors(),
+  new Dedupe(),
   new UserAgent(),
 ];
 

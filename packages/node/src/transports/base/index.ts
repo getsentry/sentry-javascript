@@ -182,17 +182,19 @@ export abstract class BaseTransport implements Transport {
 
   /** JSDoc */
   protected async _send(
-    sentryReq: SentryRequest,
+    sentryRequest: SentryRequest,
     originalPayload?: Event | Session | SessionAggregates,
   ): Promise<Response> {
     if (!this.module) {
       throw new SentryError('No module available');
     }
-    if (originalPayload && this._isRateLimited(sentryReq.type)) {
+    if (originalPayload && this._isRateLimited(sentryRequest.type)) {
       return Promise.reject({
         payload: originalPayload,
-        type: sentryReq.type,
-        reason: `Transport locked till ${this._disabledUntil(sentryReq.type)} due to too many requests.`,
+        type: sentryRequest.type,
+        reason: `Transport for ${sentryRequest.type} requests locked till ${this._disabledUntil(
+          sentryRequest.type,
+        )} due to too many requests.`,
         status: 429,
       });
     }
@@ -201,56 +203,62 @@ export abstract class BaseTransport implements Transport {
       return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
     return this._buffer.add(
-      new Promise<Response>((resolve, reject) => {
-        if (!this.module) {
-          throw new SentryError('No module available');
-        }
-        const options = this._getRequestOptions(this.urlParser(sentryReq.url));
-        const req = this.module.request(options, res => {
-          const statusCode = res.statusCode || 500;
-          const status = Status.fromHttpCode(statusCode);
-
-          res.setEncoding('utf8');
-
-          /**
-           * "Key-value pairs of header names and values. Header names are lower-cased."
-           * https://nodejs.org/api/http.html#http_message_headers
-           */
-          let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
-          retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
-
-          let rlHeader = res.headers ? res.headers['x-sentry-rate-limits'] : '';
-          rlHeader = (Array.isArray(rlHeader) ? rlHeader[0] : rlHeader) as string;
-
-          const headers = {
-            'x-sentry-rate-limits': rlHeader,
-            'retry-after': retryAfterHeader,
-          };
-
-          const limited = this._handleRateLimit(headers);
-          if (limited) logger.warn(`Too many requests, backing off until: ${this._disabledUntil(sentryReq.type)}`);
-
-          if (status === Status.Success) {
-            resolve({ status });
-          } else {
-            let rejectionMessage = `HTTP Error (${statusCode})`;
-            if (res.headers && res.headers['x-sentry-error']) {
-              rejectionMessage += `: ${res.headers['x-sentry-error']}`;
-            }
-            reject(new SentryError(rejectionMessage));
+      () =>
+        new Promise<Response>((resolve, reject) => {
+          if (!this.module) {
+            throw new SentryError('No module available');
           }
+          const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
+          const req = this.module.request(options, res => {
+            const statusCode = res.statusCode || 500;
+            const status = Status.fromHttpCode(statusCode);
 
-          // Force the socket to drain
-          res.on('data', () => {
-            // Drain
+            res.setEncoding('utf8');
+
+            /**
+             * "Key-value pairs of header names and values. Header names are lower-cased."
+             * https://nodejs.org/api/http.html#http_message_headers
+             */
+            let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
+            retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
+
+            let rlHeader = res.headers ? res.headers['x-sentry-rate-limits'] : '';
+            rlHeader = (Array.isArray(rlHeader) ? rlHeader[0] : rlHeader) as string;
+
+            const headers = {
+              'x-sentry-rate-limits': rlHeader,
+              'retry-after': retryAfterHeader,
+            };
+
+            const limited = this._handleRateLimit(headers);
+            if (limited)
+              logger.warn(
+                `Too many ${sentryRequest.type} requests, backing off until: ${this._disabledUntil(
+                  sentryRequest.type,
+                )}`,
+              );
+
+            if (status === Status.Success) {
+              resolve({ status });
+            } else {
+              let rejectionMessage = `HTTP Error (${statusCode})`;
+              if (res.headers && res.headers['x-sentry-error']) {
+                rejectionMessage += `: ${res.headers['x-sentry-error']}`;
+              }
+              reject(new SentryError(rejectionMessage));
+            }
+
+            // Force the socket to drain
+            res.on('data', () => {
+              // Drain
+            });
+            res.on('end', () => {
+              // Drain
+            });
           });
-          res.on('end', () => {
-            // Drain
-          });
-        });
-        req.on('error', reject);
-        req.end(sentryReq.body);
-      }),
+          req.on('error', reject);
+          req.end(sentryRequest.body);
+        }),
     );
   }
 }

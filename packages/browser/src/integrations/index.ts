@@ -3,3 +3,4 @@ export { TryCatch } from './trycatch';
 export { Breadcrumbs } from './breadcrumbs';
 export { LinkedErrors } from './linkederrors';
 export { UserAgent } from './useragent';
+export { Dedupe } from './dedupe';

@@ -1,6 +1,8 @@
 function assertSessions(actual, expected) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    console.error('FAILED: Sessions do not match');
+  actual = JSON.stringify(actual);
+  expected = JSON.stringify(expected);
+  if (actual !== expected) {
+    process.stdout.write(`Expected Session:\n  ${expected}\nActual Session:\n  ${actual}`);
     process.exit(1);
   }
 }
@@ -26,4 +28,14 @@ class BaseDummyTransport {
   }
 }
 
-module.exports = { assertSessions, constructStrippedSessionObject, BaseDummyTransport };
+function validateSessionCountFunction(sessionCounts) {
+  process.on('exit', () => {
+    const { sessionCounter, expectedSessions } = sessionCounts;
+    if (sessionCounter !== expectedSessions) {
+      process.stdout.write(`Expected Session Count: ${expectedSessions}\nActual Session Count:   ${sessionCounter}`);
+      process.exitCode = 1;
+    }
+  });
+}
+
+module.exports = { assertSessions, constructStrippedSessionObject, BaseDummyTransport, validateSessionCountFunction };
