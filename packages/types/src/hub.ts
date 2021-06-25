@@ -61,12 +61,12 @@ export interface Hub {
    * This is essentially a convenience function for:
    *
    *     pushScope();
-   *     callback();
+   *     fn();
    *     popScope();
    *
-   * @param callback that will be enclosed into push/popScope.
+   * @param fn wrapped function.
    */
-  withScope(callback: (scope: Scope) => void): void;
+  withScope<T>(fn: (scope: Scope) => T): T;
 
   /** Returns the client of the top stack. */
   getClient(): Client | undefined;

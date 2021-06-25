@@ -244,7 +244,7 @@ describe('Minimal', () => {
   });
 
   test('withScope', () => {
-    withScope(scope => {
+    const value = withScope(scope => {
       scope.setLevel(Severity.Warning);
       scope.setFingerprint(['1']);
       withScope(scope2 => {
@@ -261,8 +261,10 @@ describe('Minimal', () => {
         expect(global.__SENTRY__.hub._stack).toHaveLength(3);
       });
       expect(global.__SENTRY__.hub._stack).toHaveLength(2);
+      return 'ok';
     });
     expect(global.__SENTRY__.hub._stack).toHaveLength(1);
+    expect(value).toBe('ok');
   });
 
   test('setExtras', () => {

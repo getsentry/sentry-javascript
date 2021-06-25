@@ -170,13 +170,13 @@ export function setUser(user: User | null): void {
  * This is essentially a convenience function for:
  *
  *     pushScope();
- *     callback();
+ *     fn();
  *     popScope();
  *
- * @param callback that will be enclosed into push/popScope.
+ * @param fn wrapped function.
  */
-export function withScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('withScope', callback);
+export function withScope<T>(fn: (scope: Scope) => T): T {
+  return callOnHub<T>('withScope', fn);
 }
 
 /**

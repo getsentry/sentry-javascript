@@ -152,6 +152,18 @@ describe('Hub', () => {
         });
       }).toThrow(error);
     });
+
+    test('should return return value from wrapped function', () => {
+      // someFn represents an existing function
+      const someFn = () => {
+        const hub = getCurrentHub();
+        hub.setTag('key', 'value');
+        hub.captureMessage('test');
+        return 'ok';
+      };
+      const value = hub.withScope(someFn); // runs someFn in a new scope
+      expect(value).toBe('ok');
+    });
   });
 
   test('getCurrentClient', () => {
