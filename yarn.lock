@@ -1184,19 +1184,19 @@
     reflect-metadata "^0.1.12"
     tslib "^1.8.1"
 
-"@forge/api@^2.0.1":
-  version "2.0.1"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/@forge/api/-/api-2.0.1.tgz#122277fa802e896af4afa4ceddb0034508bd17fb"
-  integrity sha1-EiJ3+oAuiWr0r6TO3bADRQi9F/s=
+"@forge/api@2.1.0-next.2":
+  version "2.1.0-next.2"
+  resolved "https://packages.atlassian.com/api/npm/npm-remote/@forge/api/-/api-2.1.0-next.2.tgz#c8e98ff0cdf1f338389a709de1366a19d3759393"
+  integrity sha1-yOmP8M3x8zg4mnCd4TZqGdN1k5M=
   dependencies:
-    "@forge/storage" "^1.0.3"
+    "@forge/storage" "^1.0.4-next.0"
     "@types/node-fetch" "^2.5.7"
     node-fetch "^2.6.1"
 
-"@forge/storage@^1.0.3":
-  version "1.0.3"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/@forge/storage/-/storage-1.0.3.tgz#2af65d967e8aad4d70433947552c9aae1675240b"
-  integrity sha1-KvZdln6KrU1wQzlHVSyarhZ1JAs=
+"@forge/storage@^1.0.4-next.0":
+  version "1.0.4-next.0"
+  resolved "https://packages.atlassian.com/api/npm/npm-remote/@forge/storage/-/storage-1.0.4-next.0.tgz#5ccf92a0cf75c55831f84ebcb1d6f18fc9806fcc"
+  integrity sha1-XM+SoM91xVgx+E68sdbxj8mAb8w=
 
 "@glimmer/component@^1.0.0":
   version "1.0.4"
