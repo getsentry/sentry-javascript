@@ -75,12 +75,8 @@ function _wrapCloudEventFunction(
     return Promise.resolve()
       .then(() => (fn as CloudEventFunction)(context))
       .then(
-        result => {
-          return newCallback(null, result);
-        },
-        err => {
-          return newCallback(err, undefined);
-        },
+        result => newCallback(null, result),
+        err => newCallback(err, undefined),
       );
   };
 }
