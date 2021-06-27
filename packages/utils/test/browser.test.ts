@@ -40,7 +40,7 @@ describe('htmlTreeAsString', () => {
     </li>`;
     document.body.appendChild(el);
 
-    expect(htmlTreeAsString(document.getElementById('cat-2'), 'test-id')).toBe(
+    expect(htmlTreeAsString(document.getElementById('cat-2'), ['test-id'])).toBe(
       'body > ul > li.li-class[title="li-title"] > img[test-id="cat-2-test-id"]',
     );
   });
