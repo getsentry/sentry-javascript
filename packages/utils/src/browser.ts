@@ -6,7 +6,7 @@ import { isString } from './is';
  * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-export function htmlTreeAsString(elem: unknown, keyAttr?: string): string {
+export function htmlTreeAsString(elem: unknown, keyAttrs?: string[]): string {
   type SimpleNode = {
     parentNode: SimpleNode;
   } | null;
@@ -28,7 +28,7 @@ export function htmlTreeAsString(elem: unknown, keyAttr?: string): string {
 
     // eslint-disable-next-line no-plusplus
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-      nextStr = _htmlElementAsString(currentElem, keyAttr);
+      nextStr = _htmlElementAsString(currentElem, keyAttrs);
       // bail out if
       // - nextStr is the 'html' element
       // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
@@ -54,7 +54,7 @@ export function htmlTreeAsString(elem: unknown, keyAttr?: string): string {
  * e.g. [HTMLElement] => input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-function _htmlElementAsString(el: unknown, keyAttr?: string): string {
+function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   const elem = el as {
     tagName?: string;
     id?: string;
@@ -75,9 +75,15 @@ function _htmlElementAsString(el: unknown, keyAttr?: string): string {
 
   out.push(elem.tagName.toLowerCase());
 
-  const keyAttrValue = keyAttr ? elem.getAttribute(keyAttr) : null;
-  if (keyAttrValue) {
-    out.push(`[${keyAttr}="${keyAttrValue}"]`);
+  // Pairs of attribute keys defined in `serializeAttribute` and their values on element.
+  const keyAttrPairs = keyAttrs?.length
+    ? keyAttrs.filter(keyAttr => elem.getAttribute(keyAttr)).map(keyAttr => [keyAttr, elem.getAttribute(keyAttr)])
+    : null;
+
+  if (keyAttrPairs?.length) {
+    keyAttrPairs.forEach(keyAttrPair => {
+      out.push(`[${keyAttrPair[0]}="${keyAttrPair[1]}"]`);
+    });
   } else {
     if (elem.id) {
       out.push(`#${elem.id}`);
