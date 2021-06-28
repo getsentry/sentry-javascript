@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 const { onCreateWebpackConfig } = require('../gatsby-node');
 
 describe('onCreateWebpackConfig', () => {
@@ -18,7 +17,7 @@ describe('onCreateWebpackConfig', () => {
     expect(plugins.define).toHaveBeenCalledTimes(1);
     expect(plugins.define).toHaveBeenLastCalledWith({
       __SENTRY_DSN__: expect.any(String),
-      __SENTRY_RELEASE__: undefined,
+      __SENTRY_RELEASE__: expect.any(String),
     });
 
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
