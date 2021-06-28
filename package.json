@@ -17,6 +17,10 @@
     "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish",
     "circularDepCheck": "lerna run --parallel circularDepCheck"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getsentry/sentry-javascript.git"
+  },
   "volta": {
     "node": "14.17.0",
     "yarn": "1.22.5"
