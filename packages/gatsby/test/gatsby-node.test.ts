@@ -18,7 +18,7 @@ describe('onCreateWebpackConfig', () => {
     expect(plugins.define).toHaveBeenCalledTimes(1);
     expect(plugins.define).toHaveBeenLastCalledWith({
       __SENTRY_DSN__: expect.any(String),
-      __SENTRY_RELEASE__: expect.any(String),
+      __SENTRY_RELEASE__: undefined,
     });
 
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
