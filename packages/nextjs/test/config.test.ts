@@ -47,7 +47,8 @@ const clientWebpackConfig = {
   target: 'web',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
-const buildContext = { isServer: true, dev: false, buildId: 'doGsaREgReaT' };
+const serverBuildContext = { isServer: true, dev: false, buildId: 'doGsaREgReaT' };
+const clientBuildContext = { isServer: false, dev: false, buildId: 'doGsaREgReaT' };
 
 /**
  * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
@@ -162,7 +163,7 @@ describe('webpack config', () => {
       userNextConfig,
       userSentryWebpackPluginConfig,
       incomingWebpackConfig: serverWebpackConfig,
-      incomingWebpackBuildContext: buildContext,
+      incomingWebpackBuildContext: serverBuildContext,
     });
 
     expect(finalWebpackConfig).toEqual(
@@ -179,12 +180,12 @@ describe('webpack config', () => {
       userNextConfig,
       userSentryWebpackPluginConfig,
       incomingWebpackConfig: serverWebpackConfig,
-      incomingWebpackBuildContext: buildContext,
+      incomingWebpackBuildContext: serverBuildContext,
     });
 
     // Run the user's webpack config function, so we can check the results against ours. Delete `entry` because we'll
     // test it separately, and besides, it's one that we *should* be overwriting.
-    const materializedUserWebpackConfig = userNextConfig.webpack(serverWebpackConfig, buildContext);
+    const materializedUserWebpackConfig = userNextConfig.webpack(serverWebpackConfig, serverBuildContext);
     // @ts-ignore `entry` may be required in real life, but we don't need it for our tests
     delete materializedUserWebpackConfig.entry;
 
@@ -197,7 +198,7 @@ describe('webpack config', () => {
         userNextConfig,
         userSentryWebpackPluginConfig,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: buildContext,
+        incomingWebpackBuildContext: serverBuildContext,
       });
 
       expect(finalWebpackConfig.entry).toEqual(
@@ -212,7 +213,7 @@ describe('webpack config', () => {
         userNextConfig,
         userSentryWebpackPluginConfig,
         incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: { ...buildContext, isServer: false },
+        incomingWebpackBuildContext: clientBuildContext,
       });
 
       expect(finalWebpackConfig.entry).toEqual(
@@ -229,7 +230,7 @@ describe('webpack config', () => {
           ...clientWebpackConfig,
           entry: () => Promise.resolve({ main: './src/index.ts', 'main.js': ['sitLieDownRollOver.config.js'] }),
         },
-        incomingWebpackBuildContext: { ...buildContext, isServer: false },
+        incomingWebpackBuildContext: clientBuildContext,
       });
 
       expect(finalWebpackConfig.entry).toEqual(
