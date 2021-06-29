@@ -63,7 +63,7 @@ const clientBuildContext = { isServer: false, dev: false, buildId: 'doGsaREgReaT
  */
 function materializeFinalNextConfig(
   userNextConfig: ExportedNextConfig,
-  userSentryWebpackPluginConfig: SentryWebpackPluginOptions,
+  userSentryWebpackPluginConfig?: SentryWebpackPluginOptions,
 ): NextConfigObject {
   const sentrifiedConfig = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
   let finalConfigValues = sentrifiedConfig;
@@ -94,7 +94,7 @@ function materializeFinalNextConfig(
  */
 async function materializeFinalWebpackConfig(options: {
   userNextConfig: ExportedNextConfig;
-  userSentryWebpackPluginConfig: SentryWebpackPluginOptions;
+  userSentryWebpackPluginConfig?: SentryWebpackPluginOptions;
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
 }): Promise<WebpackConfigObject> {
@@ -113,7 +113,7 @@ async function materializeFinalWebpackConfig(options: {
 
 describe('withSentryConfig', () => {
   it('includes expected properties', () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfig);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -123,13 +123,13 @@ describe('withSentryConfig', () => {
   });
 
   it('preserves unrelated next config options', () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfig);
 
     expect(finalConfig.publicRuntimeConfig).toEqual(userNextConfig.publicRuntimeConfig);
   });
 
   it("works when user's overall config is an object", () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfig);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -142,7 +142,7 @@ describe('withSentryConfig', () => {
   it("works when user's overall config is a function", () => {
     const userNextConfigFunction = () => userNextConfig;
 
-    const finalConfig = materializeFinalNextConfig(userNextConfigFunction, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfigFunction);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -157,7 +157,6 @@ describe('webpack config', () => {
   it('includes expected properties', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
       userNextConfig,
-      userSentryWebpackPluginConfig,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
@@ -174,7 +173,6 @@ describe('webpack config', () => {
   it('preserves unrelated webpack config options', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
       userNextConfig,
-      userSentryWebpackPluginConfig,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
@@ -192,7 +190,6 @@ describe('webpack config', () => {
     it('injects correct code when building server bundle', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
-        userSentryWebpackPluginConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
@@ -207,7 +204,6 @@ describe('webpack config', () => {
     it('injects correct code when building client bundle', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
-        userSentryWebpackPluginConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
@@ -221,7 +217,6 @@ describe('webpack config', () => {
     it('handles non-empty `main.js` entry point', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
-        userSentryWebpackPluginConfig,
         incomingWebpackConfig: {
           ...clientWebpackConfig,
           entry: () => Promise.resolve({ main: './src/index.ts', 'main.js': ['sitLieDownRollOver.config.js'] }),
