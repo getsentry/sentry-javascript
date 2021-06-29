@@ -7,7 +7,7 @@ import {
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
-import { SENTRY_SERVER_CONFIG_FILE, SERVER_SDK_INIT_PATH, storeServerConfigFileLocation } from '../src/config/utils';
+import { SENTRY_SERVER_CONFIG_FILE, SERVER_SDK_INIT_PATH } from '../src/config/utils';
 import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../src/config/webpack';
 
 // mock `storeServerConfigFileLocation` in order to make it a no-op when necessary
@@ -15,7 +15,8 @@ jest.mock('../src/config/utils', () => {
   const original = jest.requireActual('../src/config/utils');
   return {
     ...original,
-    storeServerConfigFileLocation: jest.fn().mockImplementation(original.setRuntimeEnvVars),
+    // nuke this so it won't try to look for our dummy paths
+    storeServerConfigFileLocation: jest.fn(),
   };
 });
 
@@ -153,11 +154,6 @@ describe('withSentryConfig', () => {
 });
 
 describe('webpack config', () => {
-  beforeEach(() => {
-    // nuke this so it won't try to look for our dummy paths
-    (storeServerConfigFileLocation as jest.Mock).mockImplementationOnce(() => undefined);
-  });
-
   it('includes expected properties', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
       userNextConfig,
