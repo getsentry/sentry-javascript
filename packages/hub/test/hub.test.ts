@@ -121,8 +121,13 @@ describe('Hub', () => {
   });
 
   describe('withScope', () => {
+    let hub: Hub;
+
+    beforeEach(() => {
+      hub = new Hub();
+    });
+
     test('simple', () => {
-      const hub = new Hub();
       hub.withScope(() => {
         expect(hub.getStack()).toHaveLength(2);
       });
@@ -130,7 +135,6 @@ describe('Hub', () => {
     });
 
     test('bindClient', () => {
-      const hub = new Hub();
       const testClient: any = { bla: 'a' };
       hub.withScope(() => {
         hub.bindClient(testClient);
@@ -138,6 +142,15 @@ describe('Hub', () => {
         expect(hub.getStack()[1].client).toBe(testClient);
       });
       expect(hub.getStack()).toHaveLength(1);
+    });
+
+    test('should bubble up exceptions', () => {
+      const error = new Error('test');
+      expect(() => {
+        hub.withScope(() => {
+          throw error;
+        });
+      }).toThrow(error);
     });
   });
 
@@ -277,18 +290,30 @@ describe('Hub', () => {
     expect(eventId).toBe(hub.lastEventId());
   });
 
-  test('run', () => {
-    const currentHub = getCurrentHub();
-    const myScope = new Scope();
-    const myClient: any = { a: 'b' };
-    myScope.setExtra('a', 'b');
-    const myHub = new Hub(myClient, myScope);
-    myHub.run(hub => {
-      expect(hub.getScope()).toBe(myScope);
-      expect(hub.getClient()).toBe(myClient);
-      expect(hub).toBe(getCurrentHub());
+  describe('run', () => {
+    test('simple', () => {
+      const currentHub = getCurrentHub();
+      const myScope = new Scope();
+      const myClient: any = { a: 'b' };
+      myScope.setExtra('a', 'b');
+      const myHub = new Hub(myClient, myScope);
+      myHub.run(hub => {
+        expect(hub.getScope()).toBe(myScope);
+        expect(hub.getClient()).toBe(myClient);
+        expect(hub).toBe(getCurrentHub());
+      });
+      expect(currentHub).toBe(getCurrentHub());
     });
-    expect(currentHub).toBe(getCurrentHub());
+
+    test('should bubble up exceptions', () => {
+      const hub = new Hub();
+      const error = new Error('test');
+      expect(() => {
+        hub.run(() => {
+          throw error;
+        });
+      }).toThrow(error);
+    });
   });
 
   describe('breadcrumbs', () => {
