@@ -11,7 +11,7 @@ const sentryRelease = JSON.stringify(
     process.env.ZEIT_GITHUB_COMMIT_SHA ||
     process.env.ZEIT_GITLAB_COMMIT_SHA ||
     process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
-    '',
+    undefined,
 );
 
 const sentryDsn = JSON.stringify(process.env.SENTRY_DSN || '');

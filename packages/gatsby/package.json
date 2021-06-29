@@ -86,7 +86,10 @@
         "tsConfig": "./tsconfig.json",
         "diagnostics": false
       }
-    }
+    },
+    "setupFiles": [
+      "<rootDir>/test/setEnvVars.ts"
+    ]
   },
   "sideEffects": false
 }
