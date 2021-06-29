@@ -59,7 +59,7 @@ describe('Hub', () => {
     });
 
     describe('bindClient', () => {
-      test('should override curent client', () => {
+      test('should override current client', () => {
         const testClient: any = { setupIntegrations: jest.fn() };
         const nextClient: any = { setupIntegrations: jest.fn() };
         const hub = new Hub(testClient);
