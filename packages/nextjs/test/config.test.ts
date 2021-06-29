@@ -244,15 +244,15 @@ describe('webpack config', () => {
 
 describe('Sentry webpack plugin config', () => {
   it('includes expected properties', () => {
-    // pass
+    // TODO
   });
 
   it('preserves unrelated plugin config options', () => {
-    // pass
+    // TODO
   });
 
   it('warns when overriding certain default values', () => {
-    // pass
+    // TODO
   });
 
   it("merges default include and ignore/ignoreFile options with user's values", () => {
