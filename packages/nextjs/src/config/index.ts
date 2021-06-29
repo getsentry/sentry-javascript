@@ -12,21 +12,17 @@ export function withSentryConfig(
   userNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): NextConfigFunction | NextConfigObject {
-  const partialConfig = {
-    // TODO When we add a way to disable the webpack plugin, doing so should turn this off, too
-    productionBrowserSourceMaps: true,
-    webpack: constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginOptions),
-  };
+  const newWebpackConfig = constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginOptions);
 
   // If the user has passed us a function, we need to return a function, so that we have access to `phase` and
   // `defaults` in order to pass them along to the user's function
   if (typeof userNextConfig === 'function') {
     return (phase: string, defaults: { defaultConfig: { [key: string]: unknown } }): NextConfigObject => ({
       ...userNextConfig(phase, defaults),
-      ...partialConfig,
+      webpack: newWebpackConfig,
     });
   }
 
   // Otherwise, we can just merge their config with ours and return an object.
-  return { ...userNextConfig, ...partialConfig };
+  return { ...userNextConfig, webpack: newWebpackConfig };
 }
