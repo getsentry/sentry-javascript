@@ -39,6 +39,14 @@ describe('Hub', () => {
     expect(hub.isOlderThan(0)).toBeFalsy();
   });
 
+  test('binds client to scope', () => {
+    const testClient: any = { bla: 'a' };
+    const hub = new Hub(testClient);
+
+    expect(hub.getScope()?.getClient()).toEqual(testClient);
+    expect(hub.getScope()?.getClient()).toEqual(hub.getClient());
+  });
+
   describe('pushScope', () => {
     test('simple', () => {
       const localScope = new Scope();

@@ -118,6 +118,8 @@ export class Hub implements HubInterface {
    */
   public bindClient(client?: Client): void {
     const top = this.getStackTop();
+    // TODO: Only bind client to scope, don't store in stack
+    if (top.scope) top.scope.bindClient(client);
     top.client = client;
     if (client && client.setupIntegrations) {
       client.setupIntegrations();

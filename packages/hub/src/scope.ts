@@ -2,6 +2,7 @@
 import {
   Breadcrumb,
   CaptureContext,
+  Client,
   Context,
   Contexts,
   Event,
@@ -75,6 +76,9 @@ export class Scope implements ScopeInterface {
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
 
+  /** Client */
+  protected _client?: Client;
+
   /**
    * Inherit values from the parent scope.
    * @param scope to clone.
@@ -94,6 +98,7 @@ export class Scope implements ScopeInterface {
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
       newScope._requestSession = scope._requestSession;
+      newScope._client = scope._client;
     }
     return newScope;
   }
@@ -396,6 +401,20 @@ export class Scope implements ScopeInterface {
     this._breadcrumbs = [];
     this._notifyScopeListeners();
     return this;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public getClient(): Client | undefined {
+    return this._client;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public bindClient(client?: Client): void {
+    this._client = client;
   }
 
   /**

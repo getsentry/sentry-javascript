@@ -1,4 +1,4 @@
-import { Event, EventHint, RequestSessionStatus, Severity } from '@sentry/types';
+import { Client, Event, EventHint, RequestSessionStatus, Severity } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';
@@ -135,6 +135,22 @@ describe('Scope', () => {
       expect((scope as any)._level).toEqual(Severity.Critical);
       expect((scope as any)._user).toEqual({ id: '1' });
     });
+
+    test('getClient with no client', () => {
+      const scope = new Scope();
+      const client = scope.getClient();
+      expect(client).toBeUndefined();
+    });
+
+    test('bindClient', () => {
+      const scope = new Scope();
+      const client = {
+        captureEvent: (_: Event) => undefined,
+      } as Client;
+
+      scope.bindClient(client);
+      expect(scope.getClient()).toEqual(client);
+    });
   });
 
   describe('clone', () => {
@@ -184,6 +200,17 @@ describe('Scope', () => {
 
       expect(parentScope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
       expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+    });
+
+    test('client', () => {
+      const parentScope = new Scope();
+      const client = {
+        captureEvent: (_: Event) => undefined,
+      } as Client;
+      parentScope.bindClient(client);
+
+      const newScope = Scope.clone(parentScope);
+      expect(newScope.getClient()).toEqual(client);
     });
   });
 
