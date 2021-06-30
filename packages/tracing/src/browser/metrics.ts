@@ -46,14 +46,14 @@ export class MetricsInstrumentation {
     const timeOrigin = msToSec(browserPerformanceTimeOrigin);
     let entryScriptSrc: string | undefined;
 
-    if (global.document) {
+    if (global.document && global.document.scripts) {
       // eslint-disable-next-line @typescript-eslint/prefer-for-of
-      for (let i = 0; i < document.scripts.length; i++) {
+      for (let i = 0; i < global.document.scripts.length; i++) {
         // We go through all scripts on the page and look for 'data-entry'
         // We remember the name and measure the time between this script finished loading and
         // our mark 'sentry-tracing-init'
-        if (document.scripts[i].dataset.entry === 'true') {
-          entryScriptSrc = document.scripts[i].src;
+        if (global.document.scripts[i].dataset.entry === 'true') {
+          entryScriptSrc = global.document.scripts[i].src;
           break;
         }
       }
