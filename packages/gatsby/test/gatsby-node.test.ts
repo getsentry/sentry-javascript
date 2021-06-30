@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 const { onCreateWebpackConfig } = require('../gatsby-node');
 
 describe('onCreateWebpackConfig', () => {

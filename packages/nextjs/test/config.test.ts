@@ -50,24 +50,31 @@ const clientWebpackConfig = {
 const buildContext = { isServer: true, dev: false, buildId: 'doGsaREgReaT' };
 
 /**
- * Derive the final values of all next config options, by first applying `withSentryConfig` and then running the
- * resulting function.
+ * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
+ *  function, running that function.
  *
  * @param userNextConfig Next config options provided by the user
  * @param userSentryWebpackPluginConfig SentryWebpackPlugin options provided by the user
  *
- * @returns The config values next will receive when it calls the function returned by `withSentryConfig`
+ * @returns The config values next will receive directly from `withSentryConfig` or when it calls the function returned
+ * by `withSentryConfig`
  */
 function materializeFinalNextConfig(
   userNextConfig: ExportedNextConfig,
   userSentryWebpackPluginConfig: SentryWebpackPluginOptions,
 ): NextConfigObject {
-  const configFunction = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
-  const finalConfigValues = configFunction('phase-production-build', {
-    defaultConfig: {},
-  });
+  const sentrifiedConfig = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
+  let finalConfigValues = sentrifiedConfig;
 
-  return finalConfigValues;
+  if (typeof sentrifiedConfig === 'function') {
+    // for some reason TS won't recognize that `finalConfigValues` is now a NextConfigObject, which is why the cast
+    // below is necessary
+    finalConfigValues = sentrifiedConfig('phase-production-build', {
+      defaultConfig: {},
+    });
+  }
+
+  return finalConfigValues as NextConfigObject;
 }
 
 /**
@@ -108,7 +115,6 @@ describe('withSentryConfig', () => {
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
-        productionBrowserSourceMaps: true,
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
@@ -126,7 +132,6 @@ describe('withSentryConfig', () => {
     expect(finalConfig).toEqual(
       expect.objectContaining({
         ...userNextConfig,
-        productionBrowserSourceMaps: true,
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
@@ -140,7 +145,6 @@ describe('withSentryConfig', () => {
     expect(finalConfig).toEqual(
       expect.objectContaining({
         ...userNextConfigFunction(),
-        productionBrowserSourceMaps: true,
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
