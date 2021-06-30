@@ -275,4 +275,43 @@ describe('Sentry webpack plugin config', () => {
   it("merges default include and ignore/ignoreFile options with user's values", () => {
     // do we even want to do this?
   });
+
+  it('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {
+    const clientFinalNextConfig = materializeFinalNextConfig({
+      ...userNextConfig,
+      sentry: { disableClientWebpackPlugin: true },
+    });
+    const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+    const serverFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+    expect(clientFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+    expect(serverFinalWebpackConfig?.plugins).toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+  });
+
+  it('allows SentryWebpackPlugin to be turned off for server code (independent of client code)', () => {
+    const serverFinalNextConfig = materializeFinalNextConfig({
+      ...userNextConfig,
+      sentry: { disableServerWebpackPlugin: true },
+    });
+    const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+    const clientFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+    expect(serverFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+    expect(clientFinalWebpackConfig?.plugins).toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+  });
+
+  it("doesn't set devtool if webpack plugin is disabled", () => {
+    const finalNextConfig = materializeFinalNextConfig({
+      ...userNextConfig,
+      webpack: () => ({ devtool: 'something-besides-source-map' } as any),
+      sentry: { disableServerWebpackPlugin: true },
+    });
+    const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+    expect(finalWebpackConfig?.devtool).not.toEqual('source-map');
+  });
 });
