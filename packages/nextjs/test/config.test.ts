@@ -115,7 +115,6 @@ describe('withSentryConfig', () => {
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
-        productionBrowserSourceMaps: true,
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
@@ -133,7 +132,6 @@ describe('withSentryConfig', () => {
     expect(finalConfig).toEqual(
       expect.objectContaining({
         ...userNextConfig,
-        productionBrowserSourceMaps: true,
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
@@ -147,7 +145,6 @@ describe('withSentryConfig', () => {
     expect(finalConfig).toEqual(
       expect.objectContaining({
         ...userNextConfigFunction(),
-        productionBrowserSourceMaps: true,
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
