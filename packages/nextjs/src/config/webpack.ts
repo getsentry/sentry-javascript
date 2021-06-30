@@ -69,16 +69,6 @@ export function constructWebpackConfigFunction(
       newConfig = userNextConfig.webpack(newConfig, options);
     }
 
-    // Ensure quality source maps in production. (Source maps aren't uploaded in dev, and besides, Next doesn't let you
-    // change this is dev even if you want to - see
-    // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md.)
-    if (!options.dev) {
-      // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
-      // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
-      // TODO Give user option to use `hidden-source-map` ?
-      newConfig.devtool = 'source-map';
-    }
-
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
     // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
     // this, we'll have a statement of the form `x.y = () => f(x.y)`, where one of the things `f` does is call `x.y`.
@@ -90,19 +80,36 @@ export function constructWebpackConfigFunction(
     const origEntryProperty = newConfig.entry;
     newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, options.isServer);
 
-    // Add the Sentry plugin, which uploads source maps to Sentry when not in dev
-    checkWebpackPluginOverrides(userSentryWebpackPluginOptions);
-    newConfig.plugins = newConfig.plugins || [];
-    newConfig.plugins.push(
-      // @ts-ignore Our types for the plugin are messed up somehow - TS wants this to be `SentryWebpackPlugin.default`,
-      // but that's not actually a thing
-      new SentryWebpackPlugin({
-        dryRun: options.dev,
-        release: getSentryRelease(options.buildId),
-        ...defaultSentryWebpackPluginOptions,
-        ...userSentryWebpackPluginOptions,
-      }),
-    );
+    // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
+    const enableWebpackPlugin = options.isServer
+      ? !userNextConfig.sentry?.disableServerWebpackPlugin
+      : !userNextConfig.sentry?.disableClientWebpackPlugin;
+
+    if (enableWebpackPlugin) {
+      // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
+      // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
+      // TODO Give user option to use `hidden-source-map` ?
+
+      // Next doesn't let you change this is dev even if you want to - see
+      // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
+      if (!options.dev) {
+        newConfig.devtool = 'source-map';
+      }
+
+      checkWebpackPluginOverrides(userSentryWebpackPluginOptions);
+
+      newConfig.plugins = newConfig.plugins || [];
+      newConfig.plugins.push(
+        // @ts-ignore Our types for the plugin are messed up somehow - TS wants this to be `SentryWebpackPlugin.default`,
+        // but that's not actually a thing
+        new SentryWebpackPlugin({
+          dryRun: options.dev,
+          release: getSentryRelease(options.buildId),
+          ...defaultSentryWebpackPluginOptions,
+          ...userSentryWebpackPluginOptions,
+        }),
+      );
+    }
 
     return newConfig;
   };
