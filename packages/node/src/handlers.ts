@@ -43,12 +43,12 @@ export interface ExpressRequest {
  * Express-compatible tracing handler.
  * @see Exposed as `Handlers.tracingHandler`
  */
-export function tracingHandler (): (
+export function tracingHandler(): (
   req: http.IncomingMessage,
   res: http.ServerResponse,
   next: (error?: any) => void,
 ) => void {
-  return function sentryTracingMiddleware (
+  return function sentryTracingMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error?: any) => void,
@@ -97,7 +97,7 @@ export function tracingHandler (): (
  * Set parameterized as transaction name e.g.: `GET /users/:id`
  * Also adds more context data on the transaction from the request
  */
-function addExpressReqToTransaction (transaction: Transaction | undefined, req: ExpressRequest): void {
+function addExpressReqToTransaction(transaction: Transaction | undefined, req: ExpressRequest): void {
   if (!transaction) return;
   transaction.name = extractExpressTransactionName(req, { path: true, method: true });
   transaction.setData('url', req.originalUrl);
@@ -115,7 +115,7 @@ function addExpressReqToTransaction (transaction: Transaction | undefined, req: 
  *
  * @returns The fully constructed transaction name
  */
-function extractExpressTransactionName (
+function extractExpressTransactionName(
   req: ExpressRequest,
   options: { path?: boolean; method?: boolean } = {},
 ): string {
@@ -145,7 +145,7 @@ function extractExpressTransactionName (
 type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction (req: ExpressRequest, type: boolean | TransactionNamingScheme): string {
+function extractTransaction(req: ExpressRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
     case 'path': {
       return extractExpressTransactionName(req, { path: true });
@@ -164,7 +164,7 @@ function extractTransaction (req: ExpressRequest, type: boolean | TransactionNam
 const DEFAULT_USER_KEYS = ['id', 'username', 'email'];
 
 /** JSDoc */
-function extractUserData (
+function extractUserData(
   user: {
     [key: string]: any;
   },
@@ -193,7 +193,7 @@ const DEFAULT_REQUEST_KEYS = ['cookies', 'data', 'headers', 'method', 'query_str
  * provided.
  * @returns An object containing normalized request data
  */
-export function extractRequestData (
+export function extractRequestData(
   req: { [key: string]: any },
   keys: string[] = DEFAULT_REQUEST_KEYS,
 ): ExtractedNodeRequestData {
@@ -297,7 +297,7 @@ export interface ParseRequestOptions {
  * @param options object containing flags to enable functionality
  * @hidden
  */
-export function parseRequest (event: Event, req: ExpressRequest, options?: ParseRequestOptions): Event {
+export function parseRequest(event: Event, req: ExpressRequest, options?: ParseRequestOptions): Event {
   // eslint-disable-next-line no-param-reassign
   options = {
     ip: false,
@@ -375,7 +375,7 @@ export type RequestHandlerOptions = ParseRequestOptions & {
  * Express compatible request handler.
  * @see Exposed as `Handlers.requestHandler`
  */
-export function requestHandler (
+export function requestHandler(
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   const currentHub = getCurrentHub();
@@ -391,7 +391,7 @@ export function requestHandler (
       scope.setSession();
     }
   }
-  return function sentryRequestMiddleware (
+  return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error?: any) => void,
@@ -399,7 +399,7 @@ export function requestHandler (
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
-      res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
+      res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
         void flush(options.flushTimeout)
           .then(() => {
             _end.call(this, chunk, encoding, cb);
@@ -459,13 +459,13 @@ interface MiddlewareError extends Error {
 }
 
 /** JSDoc */
-function getStatusCodeFromResponse (error: MiddlewareError): number {
+function getStatusCodeFromResponse(error: MiddlewareError): number {
   const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 
 /** Returns true if response code is internal server error */
-function defaultShouldHandleError (error: MiddlewareError): boolean {
+function defaultShouldHandleError(error: MiddlewareError): boolean {
   const status = getStatusCodeFromResponse(error);
   return status >= 500;
 }
@@ -474,19 +474,19 @@ function defaultShouldHandleError (error: MiddlewareError): boolean {
  * Express compatible error handler.
  * @see Exposed as `Handlers.errorHandler`
  */
-export function errorHandler (options?: {
+export function errorHandler(options?: {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry
    * @param error Captured middleware error
    */
   shouldHandleError?(error: MiddlewareError): boolean;
 }): (
-    error: MiddlewareError,
-    req: http.IncomingMessage,
-    res: http.ServerResponse,
-    next: (error: MiddlewareError) => void,
-  ) => void {
-  return function sentryErrorMiddleware (
+  error: MiddlewareError,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  next: (error: MiddlewareError) => void,
+) => void {
+  return function sentryErrorMiddleware(
     error: MiddlewareError,
     _req: http.IncomingMessage,
     res: http.ServerResponse,
