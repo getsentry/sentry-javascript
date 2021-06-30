@@ -9,6 +9,10 @@ export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
 export type NextConfigObject = {
   // custom webpack options
   webpack?: WebpackConfigFunction;
+  sentry?: {
+    disableServerWebpackPlugin?: boolean;
+    disableClientWebpackPlugin?: boolean;
+  };
 } & {
   // other `next.config.js` options
   [key: string]: unknown;
