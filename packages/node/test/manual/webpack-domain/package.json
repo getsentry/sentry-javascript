@@ -2,7 +2,7 @@
   "name": "webpack-domain",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "dependencies": {
     "webpack": "^4.42.1"
   },
