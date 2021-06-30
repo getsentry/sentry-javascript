@@ -35,6 +35,10 @@ const userNextConfig = {
 };
 const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator', include: './thirdPartyMaps' };
 
+/** mocks of the arguments passed to the result of `withSentryConfig` (when it's a function) */
+const runtimePhase = 'puppy-phase-chew-everything-in-sight';
+const defaultNextConfig = { nappingHoursPerDay: 20, oversizeFeet: true, shouldChaseTail: true };
+
 /** mocks of the arguments passed to `nextConfig.webpack` */
 const serverWebpackConfig = {
   entry: () => Promise.resolve({ 'pages/api/dogs/[name]': 'private-next-pages/api/dogs/[name].js' }),
@@ -71,8 +75,8 @@ function materializeFinalNextConfig(
   if (typeof sentrifiedConfig === 'function') {
     // for some reason TS won't recognize that `finalConfigValues` is now a NextConfigObject, which is why the cast
     // below is necessary
-    finalConfigValues = sentrifiedConfig('phase-production-build', {
-      defaultConfig: {},
+    finalConfigValues = sentrifiedConfig(runtimePhase, {
+      defaultConfig: defaultNextConfig,
     });
   }
 
@@ -161,6 +165,16 @@ describe('withSentryConfig', () => {
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
+  });
+
+  it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
+    const userNextConfigFunction = jest.fn().mockReturnValue(userNextConfig);
+
+    materializeFinalNextConfig(userNextConfigFunction);
+
+    expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, {
+      defaultConfig: defaultNextConfig,
+    });
   });
 });
 
