@@ -6,7 +6,7 @@ import {
   BuildContext,
   EntryPointObject,
   EntryPropertyObject,
-  ExportedNextConfig,
+  NextConfigObject,
   SentryWebpackPluginOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
@@ -50,7 +50,7 @@ const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(
-  userNextConfig: ExportedNextConfig = {},
+  userNextConfig: NextConfigObject = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
   const newWebpackFunction = (config: WebpackConfigObject, options: BuildContext): WebpackConfigObject => {

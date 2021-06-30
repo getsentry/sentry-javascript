@@ -100,8 +100,19 @@ async function materializeFinalWebpackConfig(options: {
 }): Promise<WebpackConfigObject> {
   const { userNextConfig, userSentryWebpackPluginConfig, incomingWebpackConfig, incomingWebpackBuildContext } = options;
 
+  // if the user's next config is a function, run it so we have access to the values
+  const materializedUserNextConfig =
+    typeof userNextConfig === 'function'
+      ? userNextConfig('phase-production-build', {
+          defaultConfig: {},
+        })
+      : userNextConfig;
+
   // get the webpack config function we'd normally pass back to next
-  const webpackConfigFunction = constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginConfig);
+  const webpackConfigFunction = constructWebpackConfigFunction(
+    materializedUserNextConfig,
+    userSentryWebpackPluginConfig,
+  );
 
   // call it to get concrete values for comparison
   const finalWebpackConfigValue = webpackConfigFunction(incomingWebpackConfig, incomingWebpackBuildContext);
