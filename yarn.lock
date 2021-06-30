@@ -1186,8 +1186,8 @@
 
 "@forge/api@^2.1.0":
   version "2.1.0"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/@forge/api/-/api-2.1.0.tgz#dd632a0b04c605061ab832987ae4bb1c0a343b07"
-  integrity sha1-3WMqCwTGBQYauDKYeuS7HAo0Owc=
+  resolved "https://registry.yarnpkg.com/@forge/api/-/api-2.1.0.tgz#dd632a0b04c605061ab832987ae4bb1c0a343b07"
+  integrity sha512-hxbIL2coZtKLcLO/N1GhokB1aJ3kjQtjsP3kziSrsjjF0Fh014UA36mpKg//xDae0gRPtditRMR6wFgxP9z8vg==
   dependencies:
     "@forge/auth" "^0.0.1"
     "@forge/storage" "^1.0.4"
@@ -1196,15 +1196,15 @@
 
 "@forge/auth@^0.0.1":
   version "0.0.1"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/@forge/auth/-/auth-0.0.1.tgz#3fb4e82e90bd555d4ae9ef45b3aed6782a282d0c"
-  integrity sha1-P7ToLpC9VV1K6e9Fs67WeCooLQw=
+  resolved "https://registry.yarnpkg.com/@forge/auth/-/auth-0.0.1.tgz#3fb4e82e90bd555d4ae9ef45b3aed6782a282d0c"
+  integrity sha512-twZjWbIk+PrW2XzrUfVCzYhh1qe5igS4h9NpapZLHNm2CaCi1gjh8klVcGJijcYJWT1Sj6Qr9gBUtkZjCinJXw==
   dependencies:
     tslib "^1.11.0"
 
 "@forge/storage@^1.0.4":
   version "1.0.4"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/@forge/storage/-/storage-1.0.4.tgz#41a8ee741415ce432a1d104b02e0802f35212247"
-  integrity sha1-QajudBQVzkMqHRBLAuCALzUhIkc=
+  resolved "https://registry.yarnpkg.com/@forge/storage/-/storage-1.0.4.tgz#41a8ee741415ce432a1d104b02e0802f35212247"
+  integrity sha512-sHNSfV6H3/8/hnVAfoSy5qQd29hggnigLZy8UBOpRy1yM0qB/wo0Dsf0W0jE/ImbborLW35mgM6CB0BhriW1BQ==
 
 "@glimmer/component@^1.0.0":
   version "1.0.4"
@@ -3259,8 +3259,8 @@
 
 "@types/node-fetch@^2.5.7":
   version "2.5.10"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/@types/node-fetch/-/node-fetch-2.5.10.tgz#9b4d4a0425562f9fcea70b12cb3fcdd946ca8132"
-  integrity sha1-m01KBCVWL5/OpwsSyz/N2UbKgTI=
+  resolved "https://registry.yarnpkg.com/@types/node-fetch/-/node-fetch-2.5.10.tgz#9b4d4a0425562f9fcea70b12cb3fcdd946ca8132"
+  integrity sha512-IpkX0AasN44hgEad0gEF/V6EgR5n69VEqPEgnmoM8GsIGro3PowbWs4tR6IhxUTyPLpOn+fiGG6nrQhcmoCuIQ==
   dependencies:
     "@types/node" "*"
     form-data "^3.0.0"
@@ -10239,8 +10239,8 @@ forever-agent@~0.6.1:
 
 form-data@^3.0.0:
   version "3.0.1"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/form-data/-/form-data-3.0.1.tgz#ebd53791b78356a99af9a300d4282c4d5eb9755f"
-  integrity sha1-69U3kbeDVqma+aMA1CgsTV65dV8=
+  resolved "https://registry.yarnpkg.com/form-data/-/form-data-3.0.1.tgz#ebd53791b78356a99af9a300d4282c4d5eb9755f"
+  integrity sha512-RHkBKtLWUVwd7SqRIvCZMEvAMoGUp0XU+seQiZejj0COz3RI3hWP4sCv3gZWWLjJTd7rGwcsF5eKZGii0r/hbg==
   dependencies:
     asynckit "^0.4.0"
     combined-stream "^1.0.8"
@@ -20834,9 +20834,9 @@ ws@^5.2.0:
     async-limiter "~1.0.0"
 
 ws@^7.0.0, ws@^7.2.3, ws@^7.3.1, ws@^7.4.4, ws@~7.4.2:
-  version "7.4.6"
-  resolved "https://packages.atlassian.com/api/npm/npm-remote/ws/-/ws-7.4.6.tgz#5654ca8ecdeee47c33a9a4bf6d28e2be2980377c"
-  integrity sha1-VlTKjs3u5HwzqaS/bSjivimAN3w=
+  version "7.4.4"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-7.4.4.tgz#383bc9742cb202292c9077ceab6f6047b17f2d59"
+  integrity sha512-Qm8k8ojNQIMx7S+Zp8u/uHOx7Qazv3Yv4q68MiWWWOJhiwG5W3x7iqmRtJo8xxrciZUY4vRxUTJCKuRnF28ZZw==
 
 ws@~3.3.1:
   version "3.3.3"
