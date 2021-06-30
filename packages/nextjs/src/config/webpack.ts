@@ -54,18 +54,19 @@ export function constructWebpackConfigFunction(
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
   const newWebpackFunction = (config: WebpackConfigObject, options: BuildContext): WebpackConfigObject => {
+    // clone to avoid mutability issues
+    let newConfig = { ...config };
+
     // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
     // webpack-processed version of `sentry.server.config.js` when we need it
-    if (config.target === 'node') {
-      storeServerConfigFileLocation(config);
+    if (newConfig.target === 'node') {
+      storeServerConfigFileLocation(newConfig);
     }
-
-    let newConfig = config;
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
     // work with
     if ('webpack' in userNextConfig && typeof userNextConfig.webpack === 'function') {
-      newConfig = userNextConfig.webpack(config, options);
+      newConfig = userNextConfig.webpack(newConfig, options);
     }
 
     // Ensure quality source maps in production. (Source maps aren't uploaded in dev, and besides, Next doesn't let you
