@@ -214,7 +214,8 @@ export class MetricsInstrumentation {
       transaction.setTag('lcp.size', this._lcpEntry.size);
     }
 
-    if (this._clsEntry) {
+    // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
+    if (this._clsEntry && this._clsEntry.sources) {
       logger.log('[Measurements] Adding CLS Data');
       this._clsEntry.sources.map((source, index) =>
         transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
