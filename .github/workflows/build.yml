@@ -18,7 +18,7 @@ env:
     ${{ github.workspace }}/packages/**/dist
     ${{ github.workspace }}/packages/**/esm
     ${{ github.workspace }}/packages/ember/*.d.ts
-    ${{ github.workspace }}/packages/ember/instance-initializer
+    ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   BUILD_CACHE_KEY: ${{ github.sha }}
