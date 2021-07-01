@@ -7,11 +7,12 @@ export { SentryCliPluginOptions as SentryWebpackPluginOptions } from '@sentry/we
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
 
 export type NextConfigObject = {
-  // whether or not next should create source maps for browser code
-  // see: https://nextjs.org/docs/advanced-features/source-maps
-  productionBrowserSourceMaps?: boolean;
   // custom webpack options
   webpack?: WebpackConfigFunction;
+  sentry?: {
+    disableServerWebpackPlugin?: boolean;
+    disableClientWebpackPlugin?: boolean;
+  };
 } & {
   // other `next.config.js` options
   [key: string]: unknown;

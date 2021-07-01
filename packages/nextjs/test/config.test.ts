@@ -7,7 +7,7 @@ import {
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
-import { SENTRY_SERVER_CONFIG_FILE, SERVER_SDK_INIT_PATH, storeServerConfigFileLocation } from '../src/config/utils';
+import { SENTRY_SERVER_CONFIG_FILE, SERVER_SDK_INIT_PATH } from '../src/config/utils';
 import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../src/config/webpack';
 
 // mock `storeServerConfigFileLocation` in order to make it a no-op when necessary
@@ -15,7 +15,8 @@ jest.mock('../src/config/utils', () => {
   const original = jest.requireActual('../src/config/utils');
   return {
     ...original,
-    storeServerConfigFileLocation: jest.fn().mockImplementation(original.setRuntimeEnvVars),
+    // nuke this so it won't try to look for our dummy paths
+    storeServerConfigFileLocation: jest.fn(),
   };
 });
 
@@ -34,6 +35,10 @@ const userNextConfig = {
 };
 const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator', include: './thirdPartyMaps' };
 
+/** mocks of the arguments passed to the result of `withSentryConfig` (when it's a function) */
+const runtimePhase = 'puppy-phase-chew-everything-in-sight';
+const defaultNextConfig = { nappingHoursPerDay: 20, oversizeFeet: true, shouldChaseTail: true };
+
 /** mocks of the arguments passed to `nextConfig.webpack` */
 const serverWebpackConfig = {
   entry: () => Promise.resolve({ 'pages/api/dogs/[name]': 'private-next-pages/api/dogs/[name].js' }),
@@ -47,7 +52,8 @@ const clientWebpackConfig = {
   target: 'web',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
-const buildContext = { isServer: true, dev: false, buildId: 'doGsaREgReaT' };
+const serverBuildContext = { isServer: true, dev: false, buildId: 'doGsaREgReaT' };
+const clientBuildContext = { isServer: false, dev: false, buildId: 'doGsaREgReaT' };
 
 /**
  * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
@@ -61,7 +67,7 @@ const buildContext = { isServer: true, dev: false, buildId: 'doGsaREgReaT' };
  */
 function materializeFinalNextConfig(
   userNextConfig: ExportedNextConfig,
-  userSentryWebpackPluginConfig: SentryWebpackPluginOptions,
+  userSentryWebpackPluginConfig?: SentryWebpackPluginOptions,
 ): NextConfigObject {
   const sentrifiedConfig = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
   let finalConfigValues = sentrifiedConfig;
@@ -69,8 +75,8 @@ function materializeFinalNextConfig(
   if (typeof sentrifiedConfig === 'function') {
     // for some reason TS won't recognize that `finalConfigValues` is now a NextConfigObject, which is why the cast
     // below is necessary
-    finalConfigValues = sentrifiedConfig('phase-production-build', {
-      defaultConfig: {},
+    finalConfigValues = sentrifiedConfig(runtimePhase, {
+      defaultConfig: defaultNextConfig,
     });
   }
 
@@ -92,14 +98,25 @@ function materializeFinalNextConfig(
  */
 async function materializeFinalWebpackConfig(options: {
   userNextConfig: ExportedNextConfig;
-  userSentryWebpackPluginConfig: SentryWebpackPluginOptions;
+  userSentryWebpackPluginConfig?: SentryWebpackPluginOptions;
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
 }): Promise<WebpackConfigObject> {
   const { userNextConfig, userSentryWebpackPluginConfig, incomingWebpackConfig, incomingWebpackBuildContext } = options;
 
+  // if the user's next config is a function, run it so we have access to the values
+  const materializedUserNextConfig =
+    typeof userNextConfig === 'function'
+      ? userNextConfig('phase-production-build', {
+          defaultConfig: {},
+        })
+      : userNextConfig;
+
   // get the webpack config function we'd normally pass back to next
-  const webpackConfigFunction = constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginConfig);
+  const webpackConfigFunction = constructWebpackConfigFunction(
+    materializedUserNextConfig,
+    userSentryWebpackPluginConfig,
+  );
 
   // call it to get concrete values for comparison
   const finalWebpackConfigValue = webpackConfigFunction(incomingWebpackConfig, incomingWebpackBuildContext);
@@ -111,7 +128,7 @@ async function materializeFinalWebpackConfig(options: {
 
 describe('withSentryConfig', () => {
   it('includes expected properties', () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfig);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -121,13 +138,13 @@ describe('withSentryConfig', () => {
   });
 
   it('preserves unrelated next config options', () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfig);
 
     expect(finalConfig.publicRuntimeConfig).toEqual(userNextConfig.publicRuntimeConfig);
   });
 
   it("works when user's overall config is an object", () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfig);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -140,7 +157,7 @@ describe('withSentryConfig', () => {
   it("works when user's overall config is a function", () => {
     const userNextConfigFunction = () => userNextConfig;
 
-    const finalConfig = materializeFinalNextConfig(userNextConfigFunction, userSentryWebpackPluginConfig);
+    const finalConfig = materializeFinalNextConfig(userNextConfigFunction);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -149,20 +166,24 @@ describe('withSentryConfig', () => {
       }),
     );
   });
+
+  it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
+    const userNextConfigFunction = jest.fn().mockReturnValue(userNextConfig);
+
+    materializeFinalNextConfig(userNextConfigFunction);
+
+    expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, {
+      defaultConfig: defaultNextConfig,
+    });
+  });
 });
 
 describe('webpack config', () => {
-  beforeEach(() => {
-    // nuke this so it won't try to look for our dummy paths
-    (storeServerConfigFileLocation as jest.Mock).mockImplementationOnce(() => undefined);
-  });
-
   it('includes expected properties', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
       userNextConfig,
-      userSentryWebpackPluginConfig,
       incomingWebpackConfig: serverWebpackConfig,
-      incomingWebpackBuildContext: buildContext,
+      incomingWebpackBuildContext: serverBuildContext,
     });
 
     expect(finalWebpackConfig).toEqual(
@@ -177,14 +198,13 @@ describe('webpack config', () => {
   it('preserves unrelated webpack config options', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
       userNextConfig,
-      userSentryWebpackPluginConfig,
       incomingWebpackConfig: serverWebpackConfig,
-      incomingWebpackBuildContext: buildContext,
+      incomingWebpackBuildContext: serverBuildContext,
     });
 
     // Run the user's webpack config function, so we can check the results against ours. Delete `entry` because we'll
     // test it separately, and besides, it's one that we *should* be overwriting.
-    const materializedUserWebpackConfig = userNextConfig.webpack(serverWebpackConfig, buildContext);
+    const materializedUserWebpackConfig = userNextConfig.webpack(serverWebpackConfig, serverBuildContext);
     // @ts-ignore `entry` may be required in real life, but we don't need it for our tests
     delete materializedUserWebpackConfig.entry;
 
@@ -195,9 +215,8 @@ describe('webpack config', () => {
     it('injects correct code when building server bundle', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
-        userSentryWebpackPluginConfig,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: buildContext,
+        incomingWebpackBuildContext: serverBuildContext,
       });
 
       expect(finalWebpackConfig.entry).toEqual(
@@ -210,9 +229,8 @@ describe('webpack config', () => {
     it('injects correct code when building client bundle', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
-        userSentryWebpackPluginConfig,
         incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: { ...buildContext, isServer: false },
+        incomingWebpackBuildContext: clientBuildContext,
       });
 
       expect(finalWebpackConfig.entry).toEqual(
@@ -224,12 +242,11 @@ describe('webpack config', () => {
     it('handles non-empty `main.js` entry point', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
-        userSentryWebpackPluginConfig,
         incomingWebpackConfig: {
           ...clientWebpackConfig,
           entry: () => Promise.resolve({ main: './src/index.ts', 'main.js': ['sitLieDownRollOver.config.js'] }),
         },
-        incomingWebpackBuildContext: { ...buildContext, isServer: false },
+        incomingWebpackBuildContext: clientBuildContext,
       });
 
       expect(finalWebpackConfig.entry).toEqual(
@@ -244,18 +261,57 @@ describe('webpack config', () => {
 
 describe('Sentry webpack plugin config', () => {
   it('includes expected properties', () => {
-    // pass
+    // TODO
   });
 
   it('preserves unrelated plugin config options', () => {
-    // pass
+    // TODO
   });
 
   it('warns when overriding certain default values', () => {
-    // pass
+    // TODO
   });
 
   it("merges default include and ignore/ignoreFile options with user's values", () => {
     // do we even want to do this?
+  });
+
+  it('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {
+    const clientFinalNextConfig = materializeFinalNextConfig({
+      ...userNextConfig,
+      sentry: { disableClientWebpackPlugin: true },
+    });
+    const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+    const serverFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+    expect(clientFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+    expect(serverFinalWebpackConfig?.plugins).toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+  });
+
+  it('allows SentryWebpackPlugin to be turned off for server code (independent of client code)', () => {
+    const serverFinalNextConfig = materializeFinalNextConfig({
+      ...userNextConfig,
+      sentry: { disableServerWebpackPlugin: true },
+    });
+    const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+    const clientFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+    expect(serverFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+    expect(clientFinalWebpackConfig?.plugins).toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+  });
+
+  it("doesn't set devtool if webpack plugin is disabled", () => {
+    const finalNextConfig = materializeFinalNextConfig({
+      ...userNextConfig,
+      webpack: () => ({ devtool: 'something-besides-source-map' } as any),
+      sentry: { disableServerWebpackPlugin: true },
+    });
+    const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+    expect(finalWebpackConfig?.devtool).not.toEqual('source-map');
   });
 });
