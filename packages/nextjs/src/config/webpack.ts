@@ -6,7 +6,7 @@ import {
   BuildContext,
   EntryPointObject,
   EntryPropertyObject,
-  ExportedNextConfig,
+  NextConfigObject,
   SentryWebpackPluginOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
@@ -50,32 +50,23 @@ const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(
-  userNextConfig: ExportedNextConfig = {},
+  userNextConfig: NextConfigObject = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
   const newWebpackFunction = (config: WebpackConfigObject, options: BuildContext): WebpackConfigObject => {
+    // clone to avoid mutability issues
+    let newConfig = { ...config };
+
     // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
     // webpack-processed version of `sentry.server.config.js` when we need it
-    if (config.target === 'node') {
-      storeServerConfigFileLocation(config);
+    if (newConfig.target === 'node') {
+      storeServerConfigFileLocation(newConfig);
     }
-
-    let newConfig = config;
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
     // work with
     if ('webpack' in userNextConfig && typeof userNextConfig.webpack === 'function') {
-      newConfig = userNextConfig.webpack(config, options);
-    }
-
-    // Ensure quality source maps in production. (Source maps aren't uploaded in dev, and besides, Next doesn't let you
-    // change this is dev even if you want to - see
-    // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md.)
-    if (!options.dev) {
-      // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
-      // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
-      // TODO Give user option to use `hidden-source-map` ?
-      newConfig.devtool = 'source-map';
+      newConfig = userNextConfig.webpack(newConfig, options);
     }
 
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
@@ -89,19 +80,36 @@ export function constructWebpackConfigFunction(
     const origEntryProperty = newConfig.entry;
     newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, options.isServer);
 
-    // Add the Sentry plugin, which uploads source maps to Sentry when not in dev
-    checkWebpackPluginOverrides(userSentryWebpackPluginOptions);
-    newConfig.plugins = newConfig.plugins || [];
-    newConfig.plugins.push(
-      // @ts-ignore Our types for the plugin are messed up somehow - TS wants this to be `SentryWebpackPlugin.default`,
-      // but that's not actually a thing
-      new SentryWebpackPlugin({
-        dryRun: options.dev,
-        release: getSentryRelease(options.buildId),
-        ...defaultSentryWebpackPluginOptions,
-        ...userSentryWebpackPluginOptions,
-      }),
-    );
+    // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
+    const enableWebpackPlugin = options.isServer
+      ? !userNextConfig.sentry?.disableServerWebpackPlugin
+      : !userNextConfig.sentry?.disableClientWebpackPlugin;
+
+    if (enableWebpackPlugin) {
+      // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
+      // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
+      // TODO Give user option to use `hidden-source-map` ?
+
+      // Next doesn't let you change this is dev even if you want to - see
+      // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
+      if (!options.dev) {
+        newConfig.devtool = 'source-map';
+      }
+
+      checkWebpackPluginOverrides(userSentryWebpackPluginOptions);
+
+      newConfig.plugins = newConfig.plugins || [];
+      newConfig.plugins.push(
+        // @ts-ignore Our types for the plugin are messed up somehow - TS wants this to be `SentryWebpackPlugin.default`,
+        // but that's not actually a thing
+        new SentryWebpackPlugin({
+          dryRun: options.dev,
+          release: getSentryRelease(options.buildId),
+          ...defaultSentryWebpackPluginOptions,
+          ...userSentryWebpackPluginOptions,
+        }),
+      );
+    }
 
     return newConfig;
   };

@@ -68,9 +68,9 @@ describe('Session', () => {
       ['sets an environment', { environment: 'staging' }, { attrs: { environment: 'staging' } }],
       ['sets an ipAddress', { ipAddress: '0.0.0.0' }, { attrs: { ip_address: '0.0.0.0' } }],
       [
-        'overwrites user ip_address did with custom ipAddress',
+        'should not overwrite user ip_address did with custom ipAddress',
         { ipAddress: '0.0.0.0', user: { ip_address: '1.1.1.1' } },
-        { attrs: { ip_address: '0.0.0.0' } },
+        { attrs: { ip_address: '1.1.1.1' } },
       ],
       ['sets an userAgent', { userAgent: 'Mozilla/5.0' }, { attrs: { user_agent: 'Mozilla/5.0' } }],
       ['sets errors', { errors: 3 }, { errors: 3 }],

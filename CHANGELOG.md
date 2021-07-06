@@ -4,6 +4,26 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.8.0
+
+- [browser] feat: Enable serialization of multiple DOM attributes for breadcrumbs. (#3755)
+- [browser] feat: Make dedupe integration default for browser (#3730)
+- [core] fix: Correctly limit Buffer requests (#3736)
+- [ember] ref: Allow initing Ember without config entry (#3745)
+- [serverless] fix: wrapEventFunction does not await for async code (#3740)
+
+## 6.7.2
+
+- [core] fix: Do not track sessions if not enabled (#3686)
+- [core] fix: Prevent sending terminal status session updates (#3701)
+- [core] ref: Make `beforeSend` more strict (#3713)
+- [browser] ref: Log which request type has been limited (#3687)
+- [nextjs] feat: Auto enable node http integration on server (#3675)
+- [nextjs] fix: Correctly handle functional next config in `withSentryConfig` (#3698)
+- [nextjs] fix: Fix conflict with other libraries modifying webpack `entry` property (#3703)
+- [nextjs] fix: Update @sentry/webpack-plugin to 1.15.1 in @sentry/nextjs to resolve build timeouts issue (#3708)
+- [nextjs] ref: Split up config code and add tests (#3693)
+
 ## 6.7.1
 
 - [core] fix: Add event type to item header when envelopes are forced (#3676)
@@ -59,7 +79,7 @@
 
 ## 6.4.0
 
-- [core] feat: initalScope in SDK Options (#3544)
+- [core] feat: initialScope in SDK Options (#3544)
 - [node] feat: Release Health for Node (Session Aggregates) (#3319)
 - [node] feat: Autoload Database Integrations in Node environment (#3483)
 - [react] feat: Add support for React 17 Error Boundaries (#3532)

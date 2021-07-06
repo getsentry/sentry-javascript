@@ -18,13 +18,15 @@ export class PromiseBuffer<T> {
   /**
    * Add a promise to the queue.
    *
-   * @param task Can be any PromiseLike<T>
+   * @param taskProducer A function producing any PromiseLike<T>; In previous versions this used to be `task: PromiseLike<T>`,
+   *        however, Promises were instantly created on the call-site, making them fall through the buffer limit.
    * @returns The original promise.
    */
-  public add(task: PromiseLike<T>): PromiseLike<T> {
+  public add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
     if (!this.isReady()) {
       return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
+    const task = taskProducer();
     if (this._buffer.indexOf(task) === -1) {
       this._buffer.push(task);
     }

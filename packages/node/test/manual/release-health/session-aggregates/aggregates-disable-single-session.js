@@ -5,7 +5,6 @@ const Sentry = require('../../../../dist');
 const { assertSessions, BaseDummyTransport } = require('../test-utils');
 
 function cleanUpAndExitSuccessfully() {
-  console.log('SUCCESS: Session Aggregates payload is correct!');
   server.close();
   clearInterval(flusher._intervalId);
   process.exit(0);

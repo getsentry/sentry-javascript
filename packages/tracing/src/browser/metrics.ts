@@ -6,7 +6,7 @@ import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNode
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
-import { getCLS } from './web-vitals/getCLS';
+import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
 import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
@@ -20,6 +20,7 @@ export class MetricsInstrumentation {
 
   private _performanceCursor: number = 0;
   private _lcpEntry: LargestContentfulPaint | undefined;
+  private _clsEntry: LayoutShift | undefined;
 
   public constructor() {
     if (!isNodeEnv() && global?.performance) {
@@ -45,14 +46,14 @@ export class MetricsInstrumentation {
     const timeOrigin = msToSec(browserPerformanceTimeOrigin);
     let entryScriptSrc: string | undefined;
 
-    if (global.document) {
+    if (global.document && global.document.scripts) {
       // eslint-disable-next-line @typescript-eslint/prefer-for-of
-      for (let i = 0; i < document.scripts.length; i++) {
+      for (let i = 0; i < global.document.scripts.length; i++) {
         // We go through all scripts on the page and look for 'data-entry'
         // We remember the name and measure the time between this script finished loading and
         // our mark 'sentry-tracing-init'
-        if (document.scripts[i].dataset.entry === 'true') {
-          entryScriptSrc = document.scripts[i].src;
+        if (global.document.scripts[i].dataset.entry === 'true') {
+          entryScriptSrc = global.document.scripts[i].src;
           break;
         }
       }
@@ -187,26 +188,38 @@ export class MetricsInstrumentation {
       }
 
       transaction.setMeasurements(this._measurements);
+      this._tagMetricInfo(transaction);
+    }
+  }
 
-      if (this._lcpEntry) {
-        logger.log('[Measurements] Adding LCP Data');
-        // Capture Properties of the LCP element that contributes to the LCP.
+  /** Add LCP / CLS data to transaction to allow debugging */
+  private _tagMetricInfo(transaction: Transaction): void {
+    if (this._lcpEntry) {
+      logger.log('[Measurements] Adding LCP Data');
+      // Capture Properties of the LCP element that contributes to the LCP.
 
-        if (this._lcpEntry.element) {
-          transaction.setTag('lcp.element', htmlTreeAsString(this._lcpEntry.element));
-        }
-
-        if (this._lcpEntry.id) {
-          transaction.setTag('lcp.id', this._lcpEntry.id);
-        }
-
-        if (this._lcpEntry.url) {
-          // Trim URL to the first 200 characters.
-          transaction.setTag('lcp.url', this._lcpEntry.url.trim().slice(0, 200));
-        }
-
-        transaction.setTag('lcp.size', this._lcpEntry.size);
+      if (this._lcpEntry.element) {
+        transaction.setTag('lcp.element', htmlTreeAsString(this._lcpEntry.element));
       }
+
+      if (this._lcpEntry.id) {
+        transaction.setTag('lcp.id', this._lcpEntry.id);
+      }
+
+      if (this._lcpEntry.url) {
+        // Trim URL to the first 200 characters.
+        transaction.setTag('lcp.url', this._lcpEntry.url.trim().slice(0, 200));
+      }
+
+      transaction.setTag('lcp.size', this._lcpEntry.size);
+    }
+
+    // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
+    if (this._clsEntry && this._clsEntry.sources) {
+      logger.log('[Measurements] Adding CLS Data');
+      this._clsEntry.sources.map((source, index) =>
+        transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+      );
     }
   }
 
@@ -221,6 +234,7 @@ export class MetricsInstrumentation {
 
       logger.log('[Measurements] Adding CLS');
       this._measurements['cls'] = { value: metric.value };
+      this._clsEntry = entry as LayoutShift;
     });
   }
 

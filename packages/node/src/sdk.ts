@@ -110,10 +110,6 @@ export function init(options: NodeOptions = {}): void {
     }
   }
 
-  if (options.autoSessionTracking === undefined) {
-    options.autoSessionTracking = false;
-  }
-
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }

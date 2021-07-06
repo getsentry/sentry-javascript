@@ -19,8 +19,8 @@ class DummyTransport extends BaseDummyTransport {
 
     assertSessions(constructStrippedSessionObject(session), {
       init: true,
-      status: 'exited',
-      errors: 0,
+      status: 'crashed',
+      errors: 1,
       release: '1.1',
     });
 
@@ -36,6 +36,19 @@ Sentry.init({
 });
 
 /**
- * This script or process, start a Session on init object, and calls endSession on `beforeExit` of the process, which
- * sends a healthy session to the Server.
+ * The following code snippet will throw an exception of `mechanism.handled` equal to `false`, and so this session
+ * is treated as a Crashed Session.
+ * However we want to ensure that once a crashed terminal state is achieved, no more session updates are sent regardless
+ * of whether more crashes happen or not
  */
+new Promise(function(resolve, reject) {
+  reject();
+}).then(function() {
+  console.log('Promise Resolved');
+});
+
+new Promise(function(resolve, reject) {
+  reject();
+}).then(function() {
+  console.log('Promise Resolved');
+});
