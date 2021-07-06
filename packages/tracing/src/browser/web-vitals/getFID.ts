@@ -18,19 +18,17 @@ import { bindReporter } from './lib/bindReporter';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe, PerformanceEntryHandler } from './lib/observe';
-import { onBFCacheRestore } from './lib/onBFCacheRestore';
 import { onHidden } from './lib/onHidden';
-import { firstInputPolyfill, resetFirstInputPolyfill } from './lib/polyfills/firstInputPolyfill';
-import { FirstInputPolyfillCallback, PerformanceEventTiming, ReportHandler } from './types';
+import { PerformanceEventTiming, ReportHandler } from './types';
 
 export const getFID = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
   const visibilityWatcher = getVisibilityWatcher();
-  let metric = initMetric('FID');
+  const metric = initMetric('FID');
   let report: ReturnType<typeof bindReporter>;
 
   const entryHandler = (entry: PerformanceEventTiming): void => {
     // Only report if the page wasn't hidden prior to the first input.
-    if (entry.startTime < visibilityWatcher.firstHiddenTime) {
+    if (report && entry.startTime < visibilityWatcher.firstHiddenTime) {
       metric.value = entry.processingStart - entry.startTime;
       metric.entries.push(entry);
       report(true);
@@ -38,22 +36,11 @@ export const getFID = (onReport: ReportHandler, reportAllChanges?: boolean): voi
   };
 
   const po = observe('first-input', entryHandler as PerformanceEntryHandler);
-  report = bindReporter(onReport, metric, reportAllChanges);
-
   if (po) {
+    report = bindReporter(onReport, metric, reportAllChanges);
     onHidden(() => {
       po.takeRecords().map(entryHandler as PerformanceEntryHandler);
       po.disconnect();
     }, true);
-  }
-
-  // Only monitor bfcache restores if the browser supports FID natively.
-  if (po) {
-    onBFCacheRestore(() => {
-      metric = initMetric('FID');
-      report = bindReporter(onReport, metric, reportAllChanges);
-      resetFirstInputPolyfill();
-      firstInputPolyfill(entryHandler as FirstInputPolyfillCallback);
-    });
   }
 };

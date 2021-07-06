@@ -18,7 +18,6 @@ import { bindReporter } from './lib/bindReporter';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe, PerformanceEntryHandler } from './lib/observe';
-import { onBFCacheRestore } from './lib/onBFCacheRestore';
 import { onHidden } from './lib/onHidden';
 import { ReportHandler } from './types';
 
@@ -37,7 +36,7 @@ const reportedMetricIDs: Set<string> = new Set();
 
 export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
   const visibilityWatcher = getVisibilityWatcher();
-  let metric = initMetric('LCP');
+  const metric = initMetric('LCP');
   let report: ReturnType<typeof bindReporter>;
 
   const entryHandler = (entry: PerformanceEntry): void => {
@@ -77,17 +76,5 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): voi
     });
 
     onHidden(stopListening, true);
-
-    onBFCacheRestore(event => {
-      metric = initMetric('LCP');
-      report = bindReporter(onReport, metric, reportAllChanges);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          metric.value = performance.now() - event.timeStamp;
-          reportedMetricIDs.add(metric.id);
-          report(true);
-        });
-      });
-    });
   }
 };

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { onBFCacheRestore } from './onBFCacheRestore';
 import { onHidden } from './onHidden';
 
 let firstHiddenTime = -1;
@@ -40,17 +39,6 @@ export const getVisibilityWatcher = (): {
     // visibilityState.
     firstHiddenTime = initHiddenTime();
     trackChanges();
-
-    // Reset the time on bfcache restores.
-    onBFCacheRestore(() => {
-      // Schedule a task in order to track the `visibilityState` once it's
-      // had an opportunity to change to visible in all browsers.
-      // https://bugs.chromium.org/p/chromium/issues/detail?id=1133363
-      setTimeout(() => {
-        firstHiddenTime = initHiddenTime();
-        trackChanges();
-      }, 0);
-    });
   }
   return {
     get firstHiddenTime() {

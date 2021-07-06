@@ -16,10 +16,6 @@ Current vendored web vitals are:
 
 [Apache 2.0](https://github.com/GoogleChrome/web-vitals/blob/master/LICENSE)
 
- ## Notable differences from `web-vitals` library
-
- TODO(abhi): Fill this out
-
 ## CHANGELOG
 
 https://github.com/getsentry/sentry-javascript/pull/3515

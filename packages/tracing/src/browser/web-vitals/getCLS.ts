@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-import { getFCP } from './getFCP';
 import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
 import { observe, PerformanceEntryHandler } from './lib/observe';
-import { onBFCacheRestore } from './lib/onBFCacheRestore';
 import { onHidden } from './lib/onHidden';
 import { ReportHandler } from './types';
 
@@ -36,26 +34,8 @@ export interface LayoutShiftAttribution {
   currentRect: DOMRectReadOnly;
 }
 
-let isMonitoringFCP = false;
-let fcpValue = -1;
-
 export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
-  // Start monitoring FCP so we can only report CLS if FCP is also reported.
-  // Note: this is done to match the current behavior of CrUX.
-  if (!isMonitoringFCP) {
-    getFCP(metric => {
-      fcpValue = metric.value;
-    });
-    isMonitoringFCP = true;
-  }
-
-  const onReportWrapped: ReportHandler = arg => {
-    if (fcpValue > -1) {
-      onReport(arg);
-    }
-  };
-
-  let metric = initMetric('CLS', 0);
+  const metric = initMetric('CLS', 0);
   let report: ReturnType<typeof bindReporter>;
 
   let sessionValue = 0;
@@ -94,18 +74,11 @@ export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): voi
 
   const po = observe('layout-shift', entryHandler as PerformanceEntryHandler);
   if (po) {
-    report = bindReporter(onReportWrapped, metric, reportAllChanges);
+    report = bindReporter(onReport, metric, reportAllChanges);
 
     onHidden(() => {
       po.takeRecords().map(entryHandler as PerformanceEntryHandler);
       report(true);
-    });
-
-    onBFCacheRestore(() => {
-      sessionValue = 0;
-      fcpValue = -1;
-      metric = initMetric('CLS', 0);
-      report = bindReporter(onReportWrapped, metric, reportAllChanges);
     });
   }
 };
