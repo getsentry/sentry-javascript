@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-let inputPromise: Promise<Event>;
+interface OnBFCacheRestoreCallback {
+  (event: PageTransitionEvent): void;
+}
 
-export const whenInput = (): Promise<Event> => {
-  if (!inputPromise) {
-    inputPromise = new Promise(r => {
-      return ['scroll', 'keydown', 'pointerdown'].map(type => {
-        addEventListener(type, r, {
-          once: true,
-          passive: true,
-          capture: true,
-        });
-      });
-    });
-  }
-  return inputPromise;
+export const onBFCacheRestore = (cb: OnBFCacheRestoreCallback): void => {
+  addEventListener(
+    'pageshow',
+    event => {
+      if (event.persisted) {
+        cb(event);
+      }
+    },
+    true,
+  );
 };

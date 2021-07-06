@@ -9,7 +9,7 @@ import { msToSec } from '../utils';
 import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
-import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
+import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
 const global = getGlobalObject<Window>();
@@ -92,9 +92,9 @@ export class MetricsInstrumentation {
 
             // capture web vitals
 
-            const firstHidden = getFirstHidden();
+            const firstHidden = getVisibilityWatcher();
             // Only report if the page wasn't hidden prior to the web vital.
-            const shouldRecord = entry.startTime < firstHidden.timeStamp;
+            const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
             if (entry.name === 'first-paint' && shouldRecord) {
               logger.log('[Measurements] Adding FP');
@@ -243,13 +243,11 @@ export class MetricsInstrumentation {
    */
   private _trackNavigator(transaction: Transaction): void {
     const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
-
     if (!navigator) {
       return;
     }
 
     // track network connectivity
-
     const connection = navigator.connection;
     if (connection) {
       if (connection.effectiveType) {
