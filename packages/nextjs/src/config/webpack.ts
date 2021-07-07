@@ -54,9 +54,12 @@ export function constructWebpackConfigFunction(
   userNextConfig: NextConfigObject = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
-  const newWebpackFunction = (config: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
+  // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
+  // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
+  // `currentWebpackConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
+  const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
     // clone to avoid mutability issues
-    let newConfig = { ...config };
+    let newConfig = { ...incomingConfig };
 
     // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
     // webpack-processed version of `sentry.server.config.js` when we need it
