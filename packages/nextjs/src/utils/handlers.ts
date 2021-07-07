@@ -20,7 +20,6 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
       if (currentScope) {
         currentScope.addEventProcessor(event => addRequestDataToEvent(event, req as NextRequest));
 
-        // We only want to record page and API requests
         if (hasTracingEnabled()) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
@@ -34,20 +33,18 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
           let reqPath = stripUrlQueryAndFragment(url);
           // Replace with placeholder
           if (req.query) {
+            // TODO get this from next if possible, to avoid accidentally replacing non-dynamic parts of the path if
+            // they match dynamic parts
             for (const [key, value] of Object.entries(req.query)) {
               reqPath = reqPath.replace(`${value}`, `[${key}]`);
             }
           }
-
-          // requests for pages will only ever be GET requests, so don't bother to include the method in the transaction
-          // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
-          const namePrefix = `${(req.method || 'GET').toUpperCase()} `;
+          const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
           const transaction = startTransaction(
             {
-              name: `${namePrefix}${reqPath}`,
+              name: `${reqMethod}${reqPath}`,
               op: 'http.server',
-              metadata: { requestPath: reqPath },
               ...traceparentData,
             },
             // extra context passed to the `tracesSampler`
@@ -57,7 +54,7 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
         }
       }
 
-      return await handler(req, res); // Call Handler
+      return await handler(req, res); // Call original handler
     } catch (e) {
       withScope(scope => {
         scope.addEventProcessor(event => {
@@ -74,10 +71,6 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
       if (transaction) {
         transaction.setHttpStatus(res.statusCode);
 
-        // we'll collect this data in a more targeted way in the event processor we added above,
-        // `addRequestDataToEvent`
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        delete transaction.metadata.requestPath;
 
         transaction.finish();
       }
