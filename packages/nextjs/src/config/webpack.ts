@@ -199,30 +199,30 @@ function addFileToExistingEntryPoint(
   filepath: string,
 ): void {
   // can be a string, array of strings, or object whose `import` property is one of those two
-  let injectedInto = entryProperty[entryPointName];
+  let newEntryPoint = entryProperty[entryPointName];
 
   // We inject the user's client config file after the existing code so that the config file has access to
   // `publicRuntimeConfig`. See https://github.com/getsentry/sentry-javascript/issues/3485
-  if (typeof injectedInto === 'string') {
-    injectedInto = [injectedInto, filepath];
-  } else if (Array.isArray(injectedInto)) {
-    injectedInto = [...injectedInto, filepath];
+  if (typeof newEntryPoint === 'string') {
+    newEntryPoint = [newEntryPoint, filepath];
+  } else if (Array.isArray(newEntryPoint)) {
+    newEntryPoint = [...newEntryPoint, filepath];
   } else {
     let newImportValue: string | string[];
 
-    if (typeof injectedInto.import === 'string') {
-      newImportValue = [injectedInto.import, filepath];
+    if (typeof newEntryPoint.import === 'string') {
+      newImportValue = [newEntryPoint.import, filepath];
     } else {
-      newImportValue = [...injectedInto.import, filepath];
+      newImportValue = [...newEntryPoint.import, filepath];
     }
 
-    injectedInto = {
-      ...injectedInto,
+    newEntryPoint = {
+      ...newEntryPoint,
       import: newImportValue,
     };
   }
 
-  entryProperty[entryPointName] = injectedInto;
+  entryProperty[entryPointName] = newEntryPoint;
 }
 
 /**
