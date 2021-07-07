@@ -4,7 +4,6 @@ import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 
 import {
   BuildContext,
-  EntryPointObject,
   EntryPointValue,
   EntryPropertyObject,
   NextConfigObject,
@@ -13,7 +12,6 @@ import {
   WebpackConfigObject,
   WebpackEntryProperty,
 } from './types';
-import { SERVER_SDK_INIT_PATH, storeServerConfigFileLocation } from './utils';
 
 export { SentryWebpackPlugin };
 
@@ -57,12 +55,6 @@ export function constructWebpackConfigFunction(
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
   const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
     let newConfig = { ...incomingConfig };
-
-    // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
-    // webpack-processed version of `sentry.server.config.js` when we need it
-    if (newConfig.target === 'node') {
-      storeServerConfigFileLocation(newConfig);
-    }
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
     // work with
@@ -140,39 +132,11 @@ async function addSentryToEntryProperty(
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
-  // Add a new element to the `entry` array, we force webpack to create a bundle out of the user's
-  // `sentry.server.config.js` file and output it to `SERVER_INIT_LOCATION`. (See
-  // https://webpack.js.org/guides/code-splitting/#entry-points.) We do this so that the user's config file is run
-  // through babel (and any other processors through which next runs the rest of the user-provided code - pages, API
-  // routes, etc.). Specifically, we need any ESM-style `import` code to get transpiled into ES5, so that we can call
-  // `require()` on the resulting file when we're instrumenting the sesrver. (We can't use a dynamic import there
-  // because that then forces the user into a particular TS config.)
+  const userConfigFile = buildContext.isServer ? SERVER_SDK_CONFIG_FILE : CLIENT_SDK_CONFIG_FILE;
 
-  // On the server, create a separate bundle, as there's no one entry point depended on by all the others
-  if (buildContext.isServer) {
-    // slice off the final `.js` since webpack is going to add it back in for us, and we don't want to end up with
-    // `.js.js` as the extension
-    newEntryProperty[SERVER_SDK_INIT_PATH.slice(0, -3)] = SERVER_SDK_CONFIG_FILE;
-  }
-  // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
-  else {
-    addFileToExistingEntryPoint(newEntryProperty, 'main', CLIENT_SDK_CONFIG_FILE);
-
-    // To work around a bug in nextjs, we need to ensure that the `main.js` entry is empty (otherwise it'll choose that
-    // over `main` and we'll lose the change we just made). In case some other library has put something into it, copy
-    // its contents over before emptying it out. See
-    // https://github.com/getsentry/sentry-javascript/pull/3696#issuecomment-863363803.)
-    const mainjsValue = newEntryProperty['main.js'];
-    if (Array.isArray(mainjsValue) && mainjsValue.length > 0) {
-      const mainValue = newEntryProperty.main;
-
-      // copy the `main.js` entries over
-      newEntryProperty.main = Array.isArray(mainValue)
-        ? [...mainjsValue, ...mainValue]
-        : { ...(mainValue as EntryPointObject), import: [...mainjsValue, ...(mainValue as EntryPointObject).import] };
-
-      // nuke the entries
-      newEntryProperty['main.js'] = [];
+  for (const entryPointName in newEntryProperty) {
+    if (entryPointName === 'pages/_app' || entryPointName.includes('pages/api')) {
+      addFileToExistingEntryPoint(newEntryProperty, entryPointName, userConfigFile);
     }
   }
 
