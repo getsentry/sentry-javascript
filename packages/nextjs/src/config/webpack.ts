@@ -59,7 +59,6 @@ export function constructWebpackConfigFunction(
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `currentWebpackConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
   const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
-    // clone to avoid mutability issues
     let newConfig = { ...incomingConfig };
 
     // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
@@ -208,7 +207,9 @@ function addFileToExistingEntryPoint(
     newEntryPoint = [currentEntryPoint, filepath];
   } else if (Array.isArray(currentEntryPoint)) {
     newEntryPoint = [...currentEntryPoint, filepath];
-  } else {
+  }
+  // descriptor object (webpack 5+)
+  else {
     const currentImportValue = currentEntryPoint.import;
     let newImportValue: string | string[];
 
