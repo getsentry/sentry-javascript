@@ -5,6 +5,7 @@ import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 import {
   BuildContext,
   EntryPointObject,
+  EntryPointValue,
   EntryPropertyObject,
   NextConfigObject,
   SentryWebpackPluginOptions,
@@ -198,16 +199,17 @@ function addFileToExistingEntryPoint(
   filepath: string,
 ): void {
   // can be a string, array of strings, or object whose `import` property is one of those two
-  let newEntryPoint = entryProperty[entryPointName];
+  const currentEntryPoint = entryProperty[entryPointName];
+  let newEntryPoint: EntryPointValue;
 
   // We inject the user's client config file after the existing code so that the config file has access to
   // `publicRuntimeConfig`. See https://github.com/getsentry/sentry-javascript/issues/3485
-  if (typeof newEntryPoint === 'string') {
-    newEntryPoint = [newEntryPoint, filepath];
-  } else if (Array.isArray(newEntryPoint)) {
-    newEntryPoint = [...newEntryPoint, filepath];
+  if (typeof currentEntryPoint === 'string') {
+    newEntryPoint = [currentEntryPoint, filepath];
+  } else if (Array.isArray(currentEntryPoint)) {
+    newEntryPoint = [...currentEntryPoint, filepath];
   } else {
-    const currentImportValue = newEntryPoint.import;
+    const currentImportValue = currentEntryPoint.import;
     let newImportValue: string | string[];
 
     if (typeof currentImportValue === 'string') {
@@ -217,7 +219,7 @@ function addFileToExistingEntryPoint(
     }
 
     newEntryPoint = {
-      ...newEntryPoint,
+      ...currentEntryPoint,
       import: newImportValue,
     };
   }
