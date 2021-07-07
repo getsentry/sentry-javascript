@@ -13,10 +13,7 @@ import {
   WebpackConfigObject,
   WebpackEntryProperty,
 } from './types';
-import {
-  SERVER_SDK_INIT_PATH,
-  storeServerConfigFileLocation,
-} from './utils';
+import { SERVER_SDK_INIT_PATH, storeServerConfigFileLocation } from './utils';
 
 export { SentryWebpackPlugin };
 

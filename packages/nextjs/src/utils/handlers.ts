@@ -71,7 +71,6 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
       if (transaction) {
         transaction.setHttpStatus(res.statusCode);
 
-
         transaction.finish();
       }
       try {
