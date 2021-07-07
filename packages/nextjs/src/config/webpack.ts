@@ -82,7 +82,7 @@ export function constructWebpackConfigFunction(
     // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
     // be fixed by using `bind`, but this is way simpler.)
     const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext.isServer);
+    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
 
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     const enableWebpackPlugin = buildContext.isServer
@@ -126,14 +126,13 @@ export function constructWebpackConfigFunction(
  * included in the the necessary bundles.
  *
  * @param origEntryProperty The value of the property before Sentry code has been injected
- * @param isServer A boolean provided by nextjs indicating whether we're handling the server bundles or the browser
- * bundles
+ * @param buildContext Object passed by nextjs containing metadata about the build
  * @returns The value which the new `entry` property (which will be a function) will return (TODO: this should return
  * the function, rather than the function's return value)
  */
 async function addSentryToEntryProperty(
   origEntryProperty: WebpackEntryProperty,
-  isServer: boolean,
+  buildContext: BuildContext,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -156,7 +155,7 @@ async function addSentryToEntryProperty(
   // because that then forces the user into a particular TS config.)
 
   // On the server, create a separate bundle, as there's no one entry point depended on by all the others
-  if (isServer) {
+  if (buildContext.isServer) {
     // slice off the final `.js` since webpack is going to add it back in for us, and we don't want to end up with
     // `.js.js` as the extension
     newEntryProperty[SERVER_SDK_INIT_PATH.slice(0, -3)] = SERVER_SDK_CONFIG_FILE;
