@@ -65,7 +65,7 @@ function createReactRouterInstrumentation(
   }
 
   function getTransactionName(pathname: string): string {
-    if (allRoutes === [] || !matchPath) {
+    if (allRoutes.length === 0 || !matchPath) {
       return pathname;
     }
 
