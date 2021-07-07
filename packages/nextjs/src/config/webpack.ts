@@ -140,11 +140,8 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  let newEntryProperty = currentEntryProperty;
-  if (typeof currentEntryProperty === 'function') {
-    newEntryProperty = await currentEntryProperty();
-  }
-  newEntryProperty = newEntryProperty as EntryPropertyObject;
+  const newEntryProperty =
+    typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
   // Add a new element to the `entry` array, we force webpack to create a bundle out of the user's
   // `sentry.server.config.js` file and output it to `SERVER_INIT_LOCATION`. (See
