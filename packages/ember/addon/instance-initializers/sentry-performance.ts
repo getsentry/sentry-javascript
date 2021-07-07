@@ -1,7 +1,7 @@
 import ApplicationInstance from '@ember/application/instance';
 import Ember from 'ember';
 import { run } from '@ember/runloop';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/ember';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
