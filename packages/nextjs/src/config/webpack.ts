@@ -207,12 +207,13 @@ function addFileToExistingEntryPoint(
   } else if (Array.isArray(newEntryPoint)) {
     newEntryPoint = [...newEntryPoint, filepath];
   } else {
+    const currentImportValue = newEntryPoint.import;
     let newImportValue: string | string[];
 
-    if (typeof newEntryPoint.import === 'string') {
-      newImportValue = [newEntryPoint.import, filepath];
+    if (typeof currentImportValue === 'string') {
+      newImportValue = [currentImportValue, filepath];
     } else {
-      newImportValue = [...newEntryPoint.import, filepath];
+      newImportValue = [...currentImportValue, filepath];
     }
 
     newEntryPoint = {
