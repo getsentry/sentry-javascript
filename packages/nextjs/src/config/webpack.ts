@@ -125,13 +125,13 @@ export function constructWebpackConfigFunction(
  * Modify the webpack `entry` property so that the code in `sentry.server.config.js` and `sentry.client.config.js` is
  * included in the the necessary bundles.
  *
- * @param origEntryProperty The value of the property before Sentry code has been injected
+ * @param currentEntryProperty The value of the property before Sentry code has been injected
  * @param buildContext Object passed by nextjs containing metadata about the build
  * @returns The value which the new `entry` property (which will be a function) will return (TODO: this should return
  * the function, rather than the function's return value)
  */
 async function addSentryToEntryProperty(
-  origEntryProperty: WebpackEntryProperty,
+  currentEntryProperty: WebpackEntryProperty,
   buildContext: BuildContext,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
@@ -140,9 +140,9 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  let newEntryProperty = origEntryProperty;
-  if (typeof origEntryProperty === 'function') {
-    newEntryProperty = await origEntryProperty();
+  let newEntryProperty = currentEntryProperty;
+  if (typeof currentEntryProperty === 'function') {
+    newEntryProperty = await currentEntryProperty();
   }
   newEntryProperty = newEntryProperty as EntryPropertyObject;
 
