@@ -13,8 +13,6 @@ import {
   WebpackEntryProperty,
 } from './types';
 import {
-  SENTRY_CLIENT_CONFIG_FILE,
-  SENTRY_SERVER_CONFIG_FILE,
   SERVER_SDK_INIT_PATH,
   storeServerConfigFileLocation,
 } from './utils';
@@ -24,6 +22,9 @@ export { SentryWebpackPlugin };
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
+
+const CLIENT_SDK_CONFIG_FILE = './sentry.client.config.js';
+const SERVER_SDK_CONFIG_FILE = './sentry.server.config.js';
 
 const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
   url: process.env.SENTRY_URL,
@@ -155,11 +156,11 @@ async function addSentryToEntryProperty(
   if (isServer) {
     // slice off the final `.js` since webpack is going to add it back in for us, and we don't want to end up with
     // `.js.js` as the extension
-    newEntryProperty[SERVER_SDK_INIT_PATH.slice(0, -3)] = SENTRY_SERVER_CONFIG_FILE;
+    newEntryProperty[SERVER_SDK_INIT_PATH.slice(0, -3)] = SERVER_SDK_CONFIG_FILE;
   }
   // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
   else {
-    addFileToExistingEntryPoint(newEntryProperty, 'main', SENTRY_CLIENT_CONFIG_FILE);
+    addFileToExistingEntryPoint(newEntryProperty, 'main', CLIENT_SDK_CONFIG_FILE);
 
     // To work around a bug in nextjs, we need to ensure that the `main.js` entry is empty (otherwise it'll choose that
     // over `main` and we'll lose the change we just made). In case some other library has put something into it, copy
