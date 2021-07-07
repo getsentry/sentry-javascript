@@ -208,17 +208,17 @@ function addFileToExistingEntryPoint(
   } else if (Array.isArray(injectedInto)) {
     injectedInto = [...injectedInto, filepath];
   } else {
-    let importVal: string | string[];
+    let newImportValue: string | string[];
 
     if (typeof injectedInto.import === 'string') {
-      importVal = [injectedInto.import, filepath];
+      newImportValue = [injectedInto.import, filepath];
     } else {
-      importVal = [...injectedInto.import, filepath];
+      newImportValue = [...injectedInto.import, filepath];
     }
 
     injectedInto = {
       ...injectedInto,
-      import: importVal,
+      import: newImportValue,
     };
   }
 
