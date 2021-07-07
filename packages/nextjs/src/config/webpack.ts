@@ -198,13 +198,6 @@ function addFileToExistingEntryPoint(
   // can be a string, array of strings, or object whose `import` property is one of those two
   let injectedInto = entryProperty[entryPointName];
 
-  // Sometimes especially for older next.js versions it happens we don't have an entry point
-  if (!injectedInto) {
-    // eslint-disable-next-line no-console
-    console.error(`[Sentry] Can't inject ${filepath}, no entrypoint is defined.`);
-    return;
-  }
-
   // We inject the user's client config file after the existing code so that the config file has access to
   // `publicRuntimeConfig`. See https://github.com/getsentry/sentry-javascript/issues/3485
   if (typeof injectedInto === 'string') {
