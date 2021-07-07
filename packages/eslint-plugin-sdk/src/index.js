@@ -11,5 +11,6 @@
 module.exports = {
   rules: {
     'no-async-await': require('./rules/no-async-await'),
+    'no-eq-empty': require('./rules/no-eq-empty'),
   },
 };

@@ -20,6 +20,9 @@ module.exports = {
       plugins: ['@typescript-eslint', 'jsdoc', 'deprecation'],
       parser: '@typescript-eslint/parser',
       rules: {
+        // We want to guard against using the equality operator with empty arrays
+        '@sentry-internal/sdk/no-eq-empty': 'error',
+
         // Unused variables should be removed unless they are marked with and underscore (ex. _varName).
         '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
 
