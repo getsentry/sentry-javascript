@@ -52,18 +52,14 @@ export type BuildContext = { dev: boolean; isServer: boolean; buildId: string };
 // For our purposes, the value for `entry` is either an object, or an async function which returns such an object
 export type WebpackEntryProperty = EntryPropertyObject | EntryPropertyFunction;
 
-// Each value in that object is either a string representing a single entry point, an array of such strings, or an
-// object containing either of those, along with other configuration options. In that third case, the entry point(s) are
-// listed under the key `import`.
 export type EntryPropertyObject = {
-  [key: string]:
-    | string
-    | Array<string>
-    // only in webpack 5
-    | EntryPointObject;
+  [key: string]: EntryPointValue;
 };
 
 export type EntryPropertyFunction = () => Promise<EntryPropertyObject>;
 
-// An object with options for a single entry point, potentially one of many in the webpack `entry` property
+// Each value in that object is either a string representing a single entry point, an array of such strings, or an
+// object containing either of those, along with other configuration options. In that third case, the entry point(s) are
+// listed under the key `import`.
+export type EntryPointValue = string | Array<string> | EntryPointObject;
 export type EntryPointObject = { import: string | Array<string> };
