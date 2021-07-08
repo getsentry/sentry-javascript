@@ -54,7 +54,7 @@ export function constructWebpackConfigFunction(
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
-  // `currentWebpackConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
+  // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
   const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
     let newConfig = { ...incomingConfig };
 
@@ -203,7 +203,7 @@ function addFileToExistingEntryPoint(
     newEntryPoint = [...currentEntryPoint, filepath];
   }
   // descriptor object (webpack 5+)
-  else {
+  else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
     let newImportValue: string | string[];
 
@@ -217,6 +217,16 @@ function addFileToExistingEntryPoint(
       ...currentEntryPoint,
       import: newImportValue,
     };
+  } else {
+    // mimic the logger prefix in order to use `console.warn` (which will always be printed, regardless of SDK settings)
+    // eslint-disable-next-line no-console
+    console.error(
+      'Sentry Logger [Error]:',
+      `Could not inject SDK initialization code into entry point ${entryPointName}, as it is not a recognized format.\n`,
+      `Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n`,
+      `Got: ${currentEntryPoint}`,
+    );
+    return;
   }
 
   entryProperty[entryPointName] = newEntryPoint;
