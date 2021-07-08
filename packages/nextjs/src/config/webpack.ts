@@ -159,22 +159,20 @@ function addFileToExistingEntryPoint(
   const currentEntryPoint = entryProperty[entryPointName];
   let newEntryPoint: EntryPointValue;
 
-  // We inject the user's client config file after the existing code so that the config file has access to
-  // `publicRuntimeConfig`. See https://github.com/getsentry/sentry-javascript/issues/3485
   if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [currentEntryPoint, filepath];
+    newEntryPoint = [filepath, currentEntryPoint];
   } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [...currentEntryPoint, filepath];
+    newEntryPoint = [filepath, ...currentEntryPoint];
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
-    let newImportValue: string | string[];
+    let newImportValue;
 
     if (typeof currentImportValue === 'string') {
-      newImportValue = [currentImportValue, filepath];
+      newImportValue = [filepath, currentImportValue];
     } else {
-      newImportValue = [...currentImportValue, filepath];
+      newImportValue = [filepath, ...currentImportValue];
     }
 
     newEntryPoint = {
