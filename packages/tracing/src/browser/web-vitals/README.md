@@ -18,6 +18,9 @@ Current vendored web vitals are:
 
 ## CHANGELOG
 
+https://github.com/getsentry/sentry-javascript/pull/3781
+- Bumped from Web Vitals v0.2.4 to v2.1.0
+
 https://github.com/getsentry/sentry-javascript/pull/3515
 - Remove support for Time to First Byte (TTFB)
 

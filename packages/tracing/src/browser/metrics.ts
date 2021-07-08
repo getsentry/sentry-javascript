@@ -9,6 +9,7 @@ import { msToSec } from '../utils';
 import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
+import { getUpdatedCLS } from './web-vitals/getUpdatedCLS';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
@@ -21,6 +22,7 @@ export class MetricsInstrumentation {
   private _performanceCursor: number = 0;
   private _lcpEntry: LargestContentfulPaint | undefined;
   private _clsEntry: LayoutShift | undefined;
+  private _updatedClsEntry: LayoutShift | undefined;
 
   public constructor() {
     if (!isNodeEnv() && global?.performance) {
@@ -221,13 +223,19 @@ export class MetricsInstrumentation {
         transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
       );
     }
+
+    if (this._updatedClsEntry && this._updatedClsEntry.sources) {
+      logger.log('[Measurements] Adding Updated CLS Data');
+      this._updatedClsEntry.sources.map((source, index) =>
+        transaction.setTag(`updated-cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+      );
+    }
   }
 
   /** Starts tracking the Cumulative Layout Shift on the current page. */
   private _trackCLS(): void {
     getCLS(metric => {
       const entry = metric.entries.pop();
-
       if (!entry) {
         return;
       }
@@ -235,6 +243,17 @@ export class MetricsInstrumentation {
       logger.log('[Measurements] Adding CLS');
       this._measurements['cls'] = { value: metric.value };
       this._clsEntry = entry as LayoutShift;
+    });
+
+    getUpdatedCLS(metric => {
+      const entry = metric.entries.pop();
+      if (!entry) {
+        return;
+      }
+
+      logger.log('[Measurements] Adding Updated CLS');
+      this._measurements['updated-cls'] = { value: metric.value };
+      this._updatedClsEntry = entry as LayoutShift;
     });
   }
 

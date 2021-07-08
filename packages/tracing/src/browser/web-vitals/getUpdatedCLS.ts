@@ -34,16 +34,42 @@ export interface LayoutShiftAttribution {
   currentRect: DOMRectReadOnly;
 }
 
-export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
-  const metric = initMetric('CLS', 0);
+export const getUpdatedCLS = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
+  const metric = initMetric('UpdatedCLS', 0);
   let report: ReturnType<typeof bindReporter>;
 
+  let sessionValue = 0;
+  let sessionEntries: PerformanceEntry[] = [];
+
   const entryHandler = (entry: LayoutShift): void => {
+    // Only count layout shifts without recent user input.
     if (!entry.hadRecentInput) {
-      (metric.value as number) += entry.value;
-      metric.entries.push(entry);
-      if (report) {
-        report();
+      const firstSessionEntry = sessionEntries[0];
+      const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
+
+      // If the entry occurred less than 1 second after the previous entry and
+      // less than 5 seconds after the first entry in the session, include the
+      // entry in the current session. Otherwise, start a new session.
+      if (
+        sessionValue &&
+        entry.startTime - lastSessionEntry.startTime < 1000 &&
+        entry.startTime - firstSessionEntry.startTime < 5000
+      ) {
+        sessionValue += entry.value;
+        sessionEntries.push(entry);
+      } else {
+        sessionValue = entry.value;
+        sessionEntries = [entry];
+      }
+
+      // If the current session value is larger than the current CLS value,
+      // update CLS and the entries contributing to it.
+      if (sessionValue > metric.value) {
+        metric.value = sessionValue;
+        metric.entries = sessionEntries;
+        if (report) {
+          report();
+        }
       }
     }
   };
