@@ -34,7 +34,7 @@ export function init(options: NextjsOptions): void {
 }
 
 const defaultBrowserTracingIntegration = new BrowserTracing({
-  tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+  tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /(api\/)/],
   routingInstrumentation: nextRouterInstrumentation,
 });
 
