@@ -19,8 +19,8 @@ export { SentryWebpackPlugin };
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
 
-const CLIENT_SDK_CONFIG_FILE = './sentry.client.config.js';
-const SERVER_SDK_CONFIG_FILE = './sentry.server.config.js';
+export const CLIENT_SDK_CONFIG_FILE = './sentry.client.config.js';
+export const SERVER_SDK_CONFIG_FILE = './sentry.server.config.js';
 
 const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
   url: process.env.SENTRY_URL,

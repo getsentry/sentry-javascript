@@ -7,20 +7,14 @@ import {
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
-import { SENTRY_SERVER_CONFIG_FILE, SERVER_SDK_INIT_PATH } from '../src/config/utils';
-import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../src/config/webpack';
+import {
+  CLIENT_SDK_CONFIG_FILE,
+  constructWebpackConfigFunction,
+  SentryWebpackPlugin,
+  SERVER_SDK_CONFIG_FILE,
+} from '../src/config/webpack';
 
-// mock `storeServerConfigFileLocation` in order to make it a no-op when necessary
-jest.mock('../src/config/utils', () => {
-  const original = jest.requireActual('../src/config/utils');
-  return {
-    ...original,
-    // nuke this so it won't try to look for our dummy paths
-    storeServerConfigFileLocation: jest.fn(),
-  };
-});
-
-/** mocks of the arguments passed to `withSentryConfig` */
+/** Mocks of the arguments passed to `withSentryConfig` */
 const userNextConfig = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
   webpack: (config: WebpackConfigObject, _options: BuildContext) => ({
@@ -35,19 +29,36 @@ const userNextConfig = {
 };
 const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator', include: './thirdPartyMaps' };
 
-/** mocks of the arguments passed to the result of `withSentryConfig` (when it's a function) */
-const runtimePhase = 'puppy-phase-chew-everything-in-sight';
+/** Mocks of the arguments passed to the result of `withSentryConfig` (when it's a function). */
+const runtimePhase = 'ball-fetching';
 const defaultNextConfig = { nappingHoursPerDay: 20, oversizeFeet: true, shouldChaseTail: true };
 
 /** mocks of the arguments passed to `nextConfig.webpack` */
 const serverWebpackConfig = {
-  entry: () => Promise.resolve({ 'pages/api/dogs/[name]': 'private-next-pages/api/dogs/[name].js' }),
+  entry: () =>
+    Promise.resolve({
+      'pages/api/dogs/[name]': 'private-next-pages/api/dogs/[name].js',
+      'pages/_app': ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+      'pages/api/simulator/dogStats/[name]': { import: 'private-next-pages/api/simulator/dogStats/[name].js' },
+      'pages/api/simulator/leaderboard': {
+        import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'],
+      },
+      'pages/api/tricks/[trickName]': {
+        import: 'private-next-pages/api/tricks/[trickName].js',
+        dependOn: 'treats',
+      },
+      treats: './node_modules/dogTreats/treatProvider.js',
+    }),
   output: { filename: '[name].js', path: '/Users/Maisey/projects/squirrelChasingSimulator/.next' },
   target: 'node',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
 const clientWebpackConfig = {
-  entry: () => Promise.resolve({ main: './src/index.ts' }),
+  entry: () =>
+    Promise.resolve({
+      main: './src/index.ts',
+      'pages/_app': 'next-client-pages-loader?page=%2F_app',
+    }),
   output: { filename: 'static/chunks/[name].js', path: '/Users/Maisey/projects/squirrelChasingSimulator/.next' },
   target: 'web',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
@@ -212,7 +223,7 @@ describe('webpack config', () => {
   });
 
   describe('webpack `entry` property config', () => {
-    it('injects correct code when building server bundle', async () => {
+    it('handles various entrypoint shapes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -221,12 +232,41 @@ describe('webpack config', () => {
 
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          [SERVER_SDK_INIT_PATH.slice(0, -3)]: SENTRY_SERVER_CONFIG_FILE,
+          // original entry point value is a string
+          // (was 'private-next-pages/api/dogs/[name].js')
+          'pages/api/dogs/[name]': [SERVER_SDK_CONFIG_FILE, 'private-next-pages/api/dogs/[name].js'],
+
+          // original entry point value is a string array
+          // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
+          'pages/_app': [SERVER_SDK_CONFIG_FILE, './node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+
+          // original entry point value is an object containing a string `import` value
+          // (`import` was 'private-next-pages/api/simulator/dogStats/[name].js')
+          'pages/api/simulator/dogStats/[name]': {
+            import: [SERVER_SDK_CONFIG_FILE, 'private-next-pages/api/simulator/dogStats/[name].js'],
+          },
+
+          // original entry point value is an object containing a string array `import` value
+          // (`import` was ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'])
+          'pages/api/simulator/leaderboard': {
+            import: [
+              SERVER_SDK_CONFIG_FILE,
+              './node_modules/dogPoints/converter.js',
+              'private-next-pages/api/simulator/leaderboard.js',
+            ],
+          },
+
+          // original entry point value is an object containg properties besides `import`
+          // (`dependOn` remains untouched)
+          'pages/api/tricks/[trickName]': {
+            import: [SERVER_SDK_CONFIG_FILE, 'private-next-pages/api/tricks/[trickName].js'],
+            dependOn: 'treats',
+          },
         }),
       );
     });
 
-    it('injects correct code when building client bundle', async () => {
+    it('does not inject into non-_app, non-API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
@@ -234,25 +274,11 @@ describe('webpack config', () => {
       });
 
       expect(finalWebpackConfig.entry).toEqual(
-        expect.objectContaining({ main: ['./src/index.ts', './sentry.client.config.js'] }),
-      );
-    });
-
-    // see https://github.com/getsentry/sentry-javascript/pull/3696#issuecomment-863363803
-    it('handles non-empty `main.js` entry point', async () => {
-      const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
-        incomingWebpackConfig: {
-          ...clientWebpackConfig,
-          entry: () => Promise.resolve({ main: './src/index.ts', 'main.js': ['sitLieDownRollOver.config.js'] }),
-        },
-        incomingWebpackBuildContext: clientBuildContext,
-      });
-
-      expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          main: ['sitLieDownRollOver.config.js', './src/index.ts', './sentry.client.config.js'],
-          'main.js': [],
+          // no injected file
+          main: './src/index.ts',
+          // was 'next-client-pages-loader?page=%2F_app'
+          'pages/_app': [CLIENT_SDK_CONFIG_FILE, 'next-client-pages-loader?page=%2F_app'],
         }),
       );
     });
