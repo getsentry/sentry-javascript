@@ -12,6 +12,11 @@ Current vendored web vitals are:
 - FID (First Input Delay)
 - CLS (Cumulative Layout Shift)
 
+## Notable Changes from web-vitals library
+
+This vendored web-vitals library is meant to be used in conjugtion with the `@sentry/tracing` `BrowserTracing` integration.
+As such, logic around `BFCache` and multiple reports were removed from the library as our web-vitals only report once per pageload.
+
 ## License
 
 [Apache 2.0](https://github.com/GoogleChrome/web-vitals/blob/master/LICENSE)

@@ -189,6 +189,12 @@ export class MetricsInstrumentation {
         });
       }
 
+      // If FCP is not recorded we should not record the updated cls value
+      // according to the new definition of CLS.
+      if (!('fcp' in this._measurements)) {
+        delete this._measurements['updated-cls'];
+      }
+
       transaction.setMeasurements(this._measurements);
       this._tagMetricInfo(transaction);
     }
@@ -245,6 +251,9 @@ export class MetricsInstrumentation {
       this._clsEntry = entry as LayoutShift;
     });
 
+    // See:
+    // https://web.dev/evolving-cls/
+    // https://web.dev/cls-web-tooling/
     getUpdatedCLS(metric => {
       const entry = metric.entries.pop();
       if (!entry) {
