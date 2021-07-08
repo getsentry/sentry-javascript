@@ -67,7 +67,9 @@ export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): voi
       if (sessionValue > metric.value) {
         metric.value = sessionValue;
         metric.entries = sessionEntries;
-        report();
+        if (report) {
+          report();
+        }
       }
     }
   };

@@ -51,7 +51,9 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): voi
       metric.entries.push(entry);
     }
 
-    report();
+    if (report) {
+      report();
+    }
   };
 
   const po = observe('largest-contentful-paint', entryHandler);
