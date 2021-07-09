@@ -15,6 +15,7 @@ import {
   init,
   Integrations,
   Scope,
+  showReportDialog,
   wrap,
 } from '../../src';
 import { SimpleTransport } from './mocks/simpletransport';
@@ -69,6 +70,39 @@ describe('SentryBrowser', () => {
       });
       expect(global.__SENTRY__.hub._stack[1].scope._user).to.deep.equal({
         id: 'def',
+      });
+    });
+  });
+
+  describe('showReportDialog', () => {
+    describe.only('user', () => {
+      const EX_USER = { email: 'test@example.com' };
+      const client = new BrowserClient({ dsn });
+      spy(client, 'showReportDialog');
+
+      it('uses the user on the scope', () => {
+        configureScope(scope => {
+          scope.setUser(EX_USER);
+        });
+        getCurrentHub().bindClient(client);
+
+        showReportDialog();
+
+        expect((client.showReportDialog as SinonSpy).called).to.be.true;
+        expect((client.showReportDialog as SinonSpy).lastCall.args[0].user.email).to.eq(EX_USER.email);
+      });
+
+      it('prioritizes options user over scope user', () => {
+        configureScope(scope => {
+          scope.setUser(EX_USER);
+        });
+        getCurrentHub().bindClient(client);
+
+        const DIALOG_OPTION_USER = { email: 'option@example.com' };
+        showReportDialog({ user: DIALOG_OPTION_USER });
+
+        expect((client.showReportDialog as SinonSpy).called).to.be.true;
+        expect((client.showReportDialog as SinonSpy).lastCall.args[0].user.email).to.eq(DIALOG_OPTION_USER.email);
       });
     });
   });

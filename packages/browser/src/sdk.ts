@@ -102,10 +102,19 @@ export function init(options: BrowserOptions = {}): void {
  * @param options Everything is optional, we try to fetch all info need from the global scope.
  */
 export function showReportDialog(options: ReportDialogOptions = {}): void {
-  if (!options.eventId) {
-    options.eventId = getCurrentHub().lastEventId();
+  const hub = getCurrentHub();
+  const scope = hub.getScope();
+  if (scope) {
+    options.user = {
+      ...scope.getUser(),
+      ...options.user,
+    };
   }
-  const client = getCurrentHub().getClient<BrowserClient>();
+
+  if (!options.eventId) {
+    options.eventId = hub.lastEventId();
+  }
+  const client = hub.getClient<BrowserClient>();
   if (client) {
     client.showReportDialog(options);
   }
