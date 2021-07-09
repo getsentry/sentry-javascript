@@ -5,12 +5,16 @@ import * as Sentry from '@sentry/browser';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
-import { browserPerformanceTimeOrigin, timestampWithMs } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getGlobalObject, timestampWithMs } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
-import { EmberSentryConfig, OwnConfig } from '../types';
+import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 
 function getSentryConfig() {
-  return getOwnConfig<OwnConfig>().sentryConfig;
+  const _global = getGlobalObject<GlobalConfig>();
+  _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
+  const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
+  Object.assign(environmentConfig.sentry, _global.__sentryEmberConfig);
+  return environmentConfig;
 }
 
 export function initialize(appInstance: ApplicationInstance): void {

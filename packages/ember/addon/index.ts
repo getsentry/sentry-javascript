@@ -5,26 +5,33 @@ import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
 import { timestampWithMs } from '@sentry/utils';
-import { OwnConfig } from './types';
+import { GlobalConfig, OwnConfig } from './types';
+import { getGlobalObject } from '@sentry/utils';
 
 declare module '@ember/debug' {
   export function assert(desc: string, test: unknown): void;
 }
 
+function _getSentryInitConfig() {
+  const _global = getGlobalObject<GlobalConfig>();
+  _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
+  return _global.__sentryEmberConfig;
+}
+
 export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
-  const config = getOwnConfig<OwnConfig>().sentryConfig;
+  const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
 
-  assert('Missing configuration.', config);
-  assert('Missing configuration for Sentry.', config.sentry || _runtimeConfig);
+  assert('Missing configuration.', environmentConfig);
+  assert('Missing configuration for Sentry.', environmentConfig.sentry || _runtimeConfig);
 
-  if (!config.sentry) {
+  if (!environmentConfig.sentry) {
     // If environment config is not specified but the above assertion passes, use runtime config.
-    config.sentry = { ..._runtimeConfig } as any;
+    environmentConfig.sentry = { ..._runtimeConfig } as any;
   }
 
-  // Permanently merge options into config, preferring runtime config
-  Object.assign(config.sentry, _runtimeConfig || {});
-  const initConfig = Object.assign({}, config.sentry);
+  // Merge runtime config into environment config, preferring runtime.
+  Object.assign(environmentConfig.sentry, _runtimeConfig || {});
+  const initConfig = Object.assign({}, environmentConfig.sentry);
 
   initConfig._metadata = initConfig._metadata || {};
   initConfig._metadata.sdk = {
@@ -38,10 +45,14 @@ export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
     version: SDK_VERSION,
   };
 
+  // Persist Sentry init options so they are identical when performance initializers call init again.
+  const sentryInitConfig = _getSentryInitConfig();
+  Object.assign(sentryInitConfig, initConfig);
+
   Sentry.init(initConfig);
 
   if (macroCondition(isDevelopingApp())) {
-    if (config.ignoreEmberOnErrorWarning) {
+    if (environmentConfig.ignoreEmberOnErrorWarning) {
       return;
     }
     next(null, function() {
