@@ -47,7 +47,7 @@
     "build:watch": "run-p build:watch:es5 build:watch:esm",
     "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
-    "clean": "rimraf dist coverage",
+    "clean": "rimraf dist esm coverage",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
