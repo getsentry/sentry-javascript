@@ -64,7 +64,7 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "build:watch": "run-p build:dist:watch build:esm:watch build:bundle:watch",
-    "clean": "rimraf dist coverage .rpt2_cache build esm",
+    "clean": "rimraf dist esm build coverage .rpt2_cache",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
