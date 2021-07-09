@@ -1,8 +1,5 @@
 import { captureException } from '@sentry/browser';
 import { Transaction, TransactionContext } from '@sentry/types';
-import VueRouter from 'vue-router';
-
-export type Action = 'PUSH' | 'REPLACE' | 'POP';
 
 export type VueRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
@@ -10,7 +7,18 @@ export type VueRouterInstrumentation = <T extends Transaction>(
   startTransactionOnLocationChange?: boolean,
 ) => void;
 
-let firstLoad = true;
+// This is not great, but kinda nacessary to make it woth with VueRouter@3 and VueRouter@4 at the same time.
+type Route = {
+  params: any;
+  query: any;
+  name: any;
+  path: any;
+  matched: any[];
+};
+interface VueRouter {
+  onError: (fn: (err: Error) => void) => void;
+  beforeEach: (fn: (to: Route, from: Route, next: () => void) => void) => void;
+}
 
 /**
  * Creates routing instrumentation for Vue Router v2
@@ -25,17 +33,24 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
   ) => {
     router.onError(error => captureException(error));
 
-    const tags = {
-      'routing.instrumentation': 'vue-router',
-    };
+    router.beforeEach((to, from, next) => {
+      // According to docs we could use `from === VueRouter.START_LOCATION` but I couldnt get it working for Vue 2
+      // https://router.vuejs.org/api/#router-start-location
+      // https://next.router.vuejs.org/api/#start-location
 
-    router.beforeEach((to, _from, next) => {
+      // Vue2 - null
+      // Vue3 - undefined
+      const isPageLoadNavigation = from.name == null && from.matched.length === 0;
+
+      const tags = {
+        'routing.instrumentation': 'vue-router',
+      };
       const data = {
         params: to.params,
         query: to.query,
       };
 
-      if (startTransactionOnPageLoad && firstLoad) {
+      if (startTransactionOnPageLoad && isPageLoadNavigation) {
         startTransaction({
           name: to.name || to.path,
           op: 'pageload',
@@ -44,7 +59,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
         });
       }
 
-      if (startTransactionOnLocationChange && !firstLoad) {
+      if (startTransactionOnLocationChange && !isPageLoadNavigation) {
         startTransaction({
           name: to.name || to.matched[0].path || to.path,
           op: 'navigation',
@@ -53,7 +68,6 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
         });
       }
 
-      firstLoad = false;
       next();
     });
   };
