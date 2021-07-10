@@ -4,7 +4,7 @@ import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 
 import {
   BuildContext,
-  EntryPointObject,
+  EntryPointValue,
   EntryPropertyObject,
   NextConfigObject,
   SentryWebpackPluginOptions,
@@ -12,18 +12,15 @@ import {
   WebpackConfigObject,
   WebpackEntryProperty,
 } from './types';
-import {
-  SENTRY_CLIENT_CONFIG_FILE,
-  SENTRY_SERVER_CONFIG_FILE,
-  SERVER_SDK_INIT_PATH,
-  storeServerConfigFileLocation,
-} from './utils';
 
 export { SentryWebpackPlugin };
 
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
+
+export const CLIENT_SDK_CONFIG_FILE = './sentry.client.config.js';
+export const SERVER_SDK_CONFIG_FILE = './sentry.server.config.js';
 
 const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
   url: process.env.SENTRY_URL,
@@ -53,20 +50,16 @@ export function constructWebpackConfigFunction(
   userNextConfig: NextConfigObject = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
-  const newWebpackFunction = (config: WebpackConfigObject, options: BuildContext): WebpackConfigObject => {
-    // clone to avoid mutability issues
-    let newConfig = { ...config };
-
-    // if we're building server code, store the webpack output path as an env variable, so we know where to look for the
-    // webpack-processed version of `sentry.server.config.js` when we need it
-    if (newConfig.target === 'node') {
-      storeServerConfigFileLocation(newConfig);
-    }
+  // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
+  // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
+  // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
+  const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
+    let newConfig = { ...incomingConfig };
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
     // work with
     if ('webpack' in userNextConfig && typeof userNextConfig.webpack === 'function') {
-      newConfig = userNextConfig.webpack(newConfig, options);
+      newConfig = userNextConfig.webpack(newConfig, buildContext);
     }
 
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
@@ -78,10 +71,10 @@ export function constructWebpackConfigFunction(
     // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
     // be fixed by using `bind`, but this is way simpler.)
     const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, options.isServer);
+    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
 
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
-    const enableWebpackPlugin = options.isServer
+    const enableWebpackPlugin = buildContext.isServer
       ? !userNextConfig.sentry?.disableServerWebpackPlugin
       : !userNextConfig.sentry?.disableClientWebpackPlugin;
 
@@ -92,7 +85,7 @@ export function constructWebpackConfigFunction(
 
       // Next doesn't let you change this is dev even if you want to - see
       // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
-      if (!options.dev) {
+      if (!buildContext.dev) {
         newConfig.devtool = 'source-map';
       }
 
@@ -103,8 +96,8 @@ export function constructWebpackConfigFunction(
         // @ts-ignore Our types for the plugin are messed up somehow - TS wants this to be `SentryWebpackPlugin.default`,
         // but that's not actually a thing
         new SentryWebpackPlugin({
-          dryRun: options.dev,
-          release: getSentryRelease(options.buildId),
+          dryRun: buildContext.dev,
+          release: getSentryRelease(buildContext.buildId),
           ...defaultSentryWebpackPluginOptions,
           ...userSentryWebpackPluginOptions,
         }),
@@ -121,15 +114,14 @@ export function constructWebpackConfigFunction(
  * Modify the webpack `entry` property so that the code in `sentry.server.config.js` and `sentry.client.config.js` is
  * included in the the necessary bundles.
  *
- * @param origEntryProperty The value of the property before Sentry code has been injected
- * @param isServer A boolean provided by nextjs indicating whether we're handling the server bundles or the browser
- * bundles
+ * @param currentEntryProperty The value of the property before Sentry code has been injected
+ * @param buildContext Object passed by nextjs containing metadata about the build
  * @returns The value which the new `entry` property (which will be a function) will return (TODO: this should return
  * the function, rather than the function's return value)
  */
 async function addSentryToEntryProperty(
-  origEntryProperty: WebpackEntryProperty,
-  isServer: boolean,
+  currentEntryProperty: WebpackEntryProperty,
+  buildContext: BuildContext,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -137,45 +129,14 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  let newEntryProperty = origEntryProperty;
-  if (typeof origEntryProperty === 'function') {
-    newEntryProperty = await origEntryProperty();
-  }
-  newEntryProperty = newEntryProperty as EntryPropertyObject;
+  const newEntryProperty =
+    typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
-  // Add a new element to the `entry` array, we force webpack to create a bundle out of the user's
-  // `sentry.server.config.js` file and output it to `SERVER_INIT_LOCATION`. (See
-  // https://webpack.js.org/guides/code-splitting/#entry-points.) We do this so that the user's config file is run
-  // through babel (and any other processors through which next runs the rest of the user-provided code - pages, API
-  // routes, etc.). Specifically, we need any ESM-style `import` code to get transpiled into ES5, so that we can call
-  // `require()` on the resulting file when we're instrumenting the sesrver. (We can't use a dynamic import there
-  // because that then forces the user into a particular TS config.)
+  const userConfigFile = buildContext.isServer ? SERVER_SDK_CONFIG_FILE : CLIENT_SDK_CONFIG_FILE;
 
-  // On the server, create a separate bundle, as there's no one entry point depended on by all the others
-  if (isServer) {
-    // slice off the final `.js` since webpack is going to add it back in for us, and we don't want to end up with
-    // `.js.js` as the extension
-    newEntryProperty[SERVER_SDK_INIT_PATH.slice(0, -3)] = SENTRY_SERVER_CONFIG_FILE;
-  }
-  // On the client, it's sufficient to inject it into the `main` JS code, which is included in every browser page.
-  else {
-    addFileToExistingEntryPoint(newEntryProperty, 'main', SENTRY_CLIENT_CONFIG_FILE);
-
-    // To work around a bug in nextjs, we need to ensure that the `main.js` entry is empty (otherwise it'll choose that
-    // over `main` and we'll lose the change we just made). In case some other library has put something into it, copy
-    // its contents over before emptying it out. See
-    // https://github.com/getsentry/sentry-javascript/pull/3696#issuecomment-863363803.)
-    const mainjsValue = newEntryProperty['main.js'];
-    if (Array.isArray(mainjsValue) && mainjsValue.length > 0) {
-      const mainValue = newEntryProperty.main;
-
-      // copy the `main.js` entries over
-      newEntryProperty.main = Array.isArray(mainValue)
-        ? [...mainjsValue, ...mainValue]
-        : { ...(mainValue as EntryPointObject), import: [...mainjsValue, ...(mainValue as EntryPointObject).import] };
-
-      // nuke the entries
-      newEntryProperty['main.js'] = [];
+  for (const entryPointName in newEntryProperty) {
+    if (entryPointName === 'pages/_app' || entryPointName.includes('pages/api')) {
+      addFileToExistingEntryPoint(newEntryProperty, entryPointName, userConfigFile);
     }
   }
 
@@ -195,37 +156,42 @@ function addFileToExistingEntryPoint(
   filepath: string,
 ): void {
   // can be a string, array of strings, or object whose `import` property is one of those two
-  let injectedInto = entryProperty[entryPointName];
+  const currentEntryPoint = entryProperty[entryPointName];
+  let newEntryPoint: EntryPointValue;
 
-  // Sometimes especially for older next.js versions it happens we don't have an entry point
-  if (!injectedInto) {
+  if (typeof currentEntryPoint === 'string') {
+    newEntryPoint = [filepath, currentEntryPoint];
+  } else if (Array.isArray(currentEntryPoint)) {
+    newEntryPoint = [filepath, ...currentEntryPoint];
+  }
+  // descriptor object (webpack 5+)
+  else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
+    const currentImportValue = currentEntryPoint.import;
+    let newImportValue;
+
+    if (typeof currentImportValue === 'string') {
+      newImportValue = [filepath, currentImportValue];
+    } else {
+      newImportValue = [filepath, ...currentImportValue];
+    }
+
+    newEntryPoint = {
+      ...currentEntryPoint,
+      import: newImportValue,
+    };
+  } else {
+    // mimic the logger prefix in order to use `console.warn` (which will always be printed, regardless of SDK settings)
     // eslint-disable-next-line no-console
-    console.error(`[Sentry] Can't inject ${filepath}, no entrypoint is defined.`);
+    console.error(
+      'Sentry Logger [Error]:',
+      `Could not inject SDK initialization code into entry point ${entryPointName}, as it is not a recognized format.\n`,
+      `Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n`,
+      `Got: ${currentEntryPoint}`,
+    );
     return;
   }
 
-  // We inject the user's client config file after the existing code so that the config file has access to
-  // `publicRuntimeConfig`. See https://github.com/getsentry/sentry-javascript/issues/3485
-  if (typeof injectedInto === 'string') {
-    injectedInto = [injectedInto, filepath];
-  } else if (Array.isArray(injectedInto)) {
-    injectedInto = [...injectedInto, filepath];
-  } else {
-    let importVal: string | string[];
-
-    if (typeof injectedInto.import === 'string') {
-      importVal = [injectedInto.import, filepath];
-    } else {
-      importVal = [...injectedInto.import, filepath];
-    }
-
-    injectedInto = {
-      ...injectedInto,
-      import: importVal,
-    };
-  }
-
-  entryProperty[entryPointName] = injectedInto;
+  entryProperty[entryPointName] = newEntryPoint;
 }
 
 /**

@@ -5,7 +5,6 @@ import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils'
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
-import * as path from 'path';
 import * as querystring from 'querystring';
 import * as url from 'url';
 
@@ -111,18 +110,6 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
   // Otherwise, it's just a pass-through to the original method.
   const wrappedHandlerGetter = async function(this: NextServer): Promise<ReqHandler> {
     if (!sdkSetupComplete) {
-      try {
-        // `SENTRY_SERVER_INIT_PATH` is set at build time, and points to a webpack-processed version of the user's
-        // `sentry.server.config.js`. Requiring it starts the SDK.
-        require(path.resolve(process.env.SENTRY_SERVER_INIT_PATH as string));
-      } catch (err) {
-        // Log the error but don't bail - we still want the wrapping to happen, in case the user is doing something weird
-        // and manually calling `Sentry.init()` somewhere else. We log to console instead of using logger from utils
-        // because Sentry is not initialized.
-        // eslint-disable-next-line no-console
-        console.error(`[Sentry] Could not initialize SDK. Received error:\n${err}`);
-      }
-
       // stash this in the closure so that `makeWrappedReqHandler` can use it
       liveServer = this.server;
       const serverPrototype = Object.getPrototypeOf(liveServer);
