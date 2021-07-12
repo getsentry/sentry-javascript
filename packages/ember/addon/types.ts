@@ -18,3 +18,7 @@ export type EmberSentryConfig = {
 export type OwnConfig = {
   sentryConfig: EmberSentryConfig;
 };
+
+export type GlobalConfig = {
+  __sentryEmberConfig: EmberSentryConfig['sentry'];
+};
