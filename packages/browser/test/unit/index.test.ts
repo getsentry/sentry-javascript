@@ -75,7 +75,7 @@ describe('SentryBrowser', () => {
   });
 
   describe('showReportDialog', () => {
-    describe.only('user', () => {
+    describe('user', () => {
       const EX_USER = { email: 'test@example.com' };
       const client = new BrowserClient({ dsn });
       spy(client, 'showReportDialog');
