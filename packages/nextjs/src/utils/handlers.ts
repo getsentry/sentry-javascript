@@ -84,9 +84,12 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
           transaction.finish();
         }
         try {
+          logger.log('Flushing events...');
           await flush(2000);
         } catch (e) {
-          // no-empty
+          logger.log(`Error while flushing events:\n${e}`);
+        } finally {
+          logger.log('Done flushing events');
         }
       }
     });
