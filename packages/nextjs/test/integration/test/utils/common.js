@@ -2,6 +2,7 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const { stat } = require('fs').promises;
 const next = require('next');
+const { inspect } = require('util');
 
 const createNextServer = async config => {
   const app = next(config);
