@@ -2,7 +2,6 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const { stat } = require('fs').promises;
 const next = require('next');
-const { inspect } = require('util');
 
 const createNextServer = async config => {
   const app = next(config);
@@ -38,7 +37,7 @@ const logIf = (condition, message, input, depth = 4) => {
   if (condition) {
     console.log(message);
     if (input) {
-      console.log(inspect(input, { depth }));
+      console.dir(input, { depth, colors: true });
     }
   }
 };
