@@ -24,7 +24,7 @@ for NEXTJS_VERSION in 10 11; do
   fi
 
   # Next.js v11 requires at least Node v12
-  if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -eq "10" ]; then
+  if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -eq "11" ]; then
     echo "[nextjs$NEXTJS_VERSION] Not compatible with Node $NODE_VERSION"
     exit 0
   fi
