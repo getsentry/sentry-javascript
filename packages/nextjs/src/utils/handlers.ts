@@ -2,7 +2,7 @@ import { captureException, flush, getCurrentHub, Handlers, startTransaction, wit
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { addExceptionMechanism, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
-import { NextApiHandler } from 'next';
+import { NextApiHandler, NextApiResponse } from 'next';
 
 import { addRequestDataToEvent, NextRequest } from './instrumentServer';
 
@@ -15,6 +15,31 @@ type WrappedNextApiHandler = NextApiHandler;
 export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return async (req, res) => {
+    const origEnd = res.end;
+
+    async function newEnd(this: NextApiResponse, ...args: any[]) {
+      const transaction = getActiveTransaction();
+
+      if (transaction) {
+        transaction.setHttpStatus(res.statusCode);
+
+        transaction.finish();
+      }
+      try {
+        logger.log('Flushing events...');
+        await flush(2000);
+      } catch (e) {
+        logger.log(`Error while flushing events:\n${e}`);
+      } finally {
+        logger.log('Done flushing events');
+        // res.end();
+      }
+
+      return origEnd.call(this, ...args);
+    }
+
+    res.end = newEnd;
+
     // wrap everything in a domain in order to prevent scope bleed between requests
     const local = domain.create();
     local.add(req);
@@ -76,21 +101,6 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
           captureException(e);
         });
         throw e;
-      } finally {
-        const transaction = getActiveTransaction();
-        if (transaction) {
-          transaction.setHttpStatus(res.statusCode);
-
-          transaction.finish();
-        }
-        try {
-          logger.log('Flushing events...');
-          await flush(2000);
-        } catch (e) {
-          logger.log(`Error while flushing events:\n${e}`);
-        } finally {
-          logger.log('Done flushing events');
-        }
       }
     });
 
