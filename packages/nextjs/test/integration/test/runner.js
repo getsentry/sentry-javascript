@@ -66,7 +66,7 @@ module.exports.run = async ({
 
     let scenarios = await fs.readdir(scenariosDir);
     if (argv.filter) {
-      scenarios = scenarios.filter(file => file.toLowerCase().includes(argv.filter));
+      scenarios = scenarios.filter(file => file.toLowerCase().includes(argv.filter.toLowerCase()));
     }
     scenarios = scenarios.map(s => path.resolve(scenariosDir, s));
 
