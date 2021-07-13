@@ -60,6 +60,7 @@ for NEXTJS_VERSION in 10 11; do
       args="--silent"
     fi
 
+    # we keep this updated as we run the tests, so that if it's ever non-zero, we can bail
     EXIT_CODE=0
 
     echo "Running server tests with options: $args"
@@ -73,7 +74,6 @@ for NEXTJS_VERSION in 10 11; do
       exit 1
     fi
 
-    EXIT_CODE=0
     echo "Running client tests with options: $args"
     node test/client.js $args || EXIT_CODE=$?
     if [ $EXIT_CODE -eq 0 ]
