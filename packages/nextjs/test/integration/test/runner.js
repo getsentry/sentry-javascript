@@ -21,7 +21,7 @@ const argv = yargs(process.argv.slice(2))
   })
   .option('depth', {
     type: 'number',
-    description: 'Set the logging depth for intercepted requests',
+    description: 'Set the logging depth for intercepted requests (default = 4)',
   }).argv;
 
 const runScenario = async (scenario, execute, env) => {
