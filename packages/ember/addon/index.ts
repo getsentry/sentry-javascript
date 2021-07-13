@@ -18,7 +18,7 @@ function _getSentryInitConfig() {
   return _global.__sentryEmberConfig;
 }
 
-export function InitSentryForEmber(_runtimeConfig: BrowserOptions | undefined) {
+export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
 
   assert('Missing configuration.', environmentConfig);
