@@ -20,7 +20,10 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
     local.add(req);
     local.add(res);
 
-    local.run(async () => {
+    // `local.bind` causes everything to run inside a domain, just like `local.run` does, but it also lets the callback
+    // return a value. In our case, all any of the codepaths return is a promise of `void`, but nextjs still counts on
+    // getting that before it will finish the response.
+    const boundHandler = local.bind(async () => {
       try {
         const currentScope = getCurrentHub().getScope();
 
@@ -87,5 +90,7 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
         }
       }
     });
+
+    return await boundHandler();
   };
 };
