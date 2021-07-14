@@ -54,6 +54,7 @@ import { getGlobalObject } from '@sentry/utils';
 export { init } from './sdk';
 export { vueRouterInstrumentation } from './router';
 export { attachErrorHandler } from './errorhandler';
+export { createTracingMixins } from './tracing';
 
 let windowIntegrations = {};
 
