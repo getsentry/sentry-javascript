@@ -37,15 +37,9 @@ export function init(
     ...config,
   };
 
-  if (!options.app) {
-    options.app = options.Vue;
-  }
-
   browserInit(options);
 
-  const { app } = options;
-
-  if (!app) {
+  if (!options.Vue && !options.app) {
     logger.warn(
       'Misconfigured SDK. Vue specific errors will not be captured.\n' +
         'Update your `Sentry.init` call with an appropriate config option:\n' +
@@ -54,6 +48,15 @@ export function init(
     return;
   }
 
+  if (options.Vue) {
+    vueInit(options.Vue, options);
+  } else if (options.app) {
+    const apps = Array.isArray(options.app) ? options.app : [options.app];
+    apps.forEach(app => vueInit(app, options));
+  }
+}
+
+const vueInit = (app: Vue, options: Options): void => {
   attachErrorHandler(options, app);
 
   if ('tracesSampleRate' in options || 'tracesSampler' in options) {
@@ -64,4 +67,4 @@ export function init(
       }),
     );
   }
-}
+};
