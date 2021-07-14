@@ -11,7 +11,7 @@ export const attachErrorHandler = (options: Options, app: Vue): void => {
   app.config.errorHandler = (error: Error, vm: ViewModel, info: string): void => {
     const metadata: {
       componentName?: string;
-      propsData?: { [key: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+      propsData?: { [key: string]: any };
       lifecycleHook?: string;
     } = {};
 

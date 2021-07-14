@@ -48,7 +48,7 @@ export const generateComponentTrace = (vm?: ViewModel): string => {
     let currentRecursiveSequence = 0;
     while (vm) {
       if (tree.length > 0) {
-        const last = tree[tree.length - 1] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const last = tree[tree.length - 1] as any;
         if (last.constructor === vm.constructor) {
           currentRecursiveSequence += 1;
           vm = vm.$parent; // eslint-disable-line no-param-reassign

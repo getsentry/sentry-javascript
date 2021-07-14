@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { BrowserOptions } from '@sentry/browser';
 
 // This is not great, but kinda nacessary to make it woth with Vue@2 and Vue@3 at the same time.
