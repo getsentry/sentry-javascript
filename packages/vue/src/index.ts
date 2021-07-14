@@ -1,4 +1,5 @@
 export * from '@sentry/browser';
 
 export { init } from './sdk';
-export { vueRouterInstrumentation } from './vuerouter';
+export { vueRouterInstrumentation } from './router';
+export { attachErrorHandler } from './errorhandler';

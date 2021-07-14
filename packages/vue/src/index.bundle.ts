@@ -52,6 +52,8 @@ import { Integrations as BrowserIntegrations } from '@sentry/browser';
 import { getGlobalObject } from '@sentry/utils';
 
 export { init } from './sdk';
+export { vueRouterInstrumentation } from './router';
+export { attachErrorHandler } from './errorhandler';
 
 let windowIntegrations = {};
 

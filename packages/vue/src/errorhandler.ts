@@ -4,8 +4,7 @@ import { logger } from '@sentry/utils';
 import { formatComponentName, generateComponentTrace } from './components';
 import { Options, ViewModel, Vue } from './types';
 
-export const attachErrorHandler = (options: Options, app: Vue): void => {
-  // eslint-disable-next-line @typescript-eslint/unbound-method
+export const attachErrorHandler = (app: Vue, options: Options): void => {
   const { errorHandler, warnHandler, silent } = app.config;
 
   app.config.errorHandler = (error: Error, vm: ViewModel, info: string): void => {
@@ -38,7 +37,7 @@ export const attachErrorHandler = (options: Options, app: Vue): void => {
     });
 
     if (typeof errorHandler === 'function') {
-      errorHandler.call(options.app, error, vm, info);
+      errorHandler.call(app, error, vm, info);
     }
 
     if (options.logErrors) {

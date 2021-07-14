@@ -57,7 +57,7 @@ export function init(
 }
 
 const vueInit = (app: Vue, options: Options): void => {
-  attachErrorHandler(options, app);
+  attachErrorHandler(app, options);
 
   if ('tracesSampleRate' in options || 'tracesSampler' in options) {
     app.mixin(
