@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { captureException } from '@sentry/browser';
 import { Transaction, TransactionContext } from '@sentry/types';
 

@@ -2,7 +2,7 @@ import { getCurrentHub } from '@sentry/browser';
 import { logger } from '@sentry/utils';
 
 import { formatComponentName, generateComponentTrace } from './components';
-import { Options, Vue, ViewModel } from './types';
+import { Options, ViewModel, Vue } from './types';
 
 export const attachErrorHandler = (options: Options, app: Vue): void => {
   // eslint-disable-next-line @typescript-eslint/unbound-method

@@ -3,7 +3,7 @@ import { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { formatComponentName } from './components';
-import { Hook, Operation, Vue, TracingOptions, ViewModel } from './types';
+import { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 
 type Mixins = Parameters<Vue['mixin']>[0];
 

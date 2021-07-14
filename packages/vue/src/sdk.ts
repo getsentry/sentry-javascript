@@ -3,7 +3,7 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { attachErrorHandler } from './errorhandler';
 import { createTracingMixins } from './tracing';
-import { Options, Vue, TracingOptions } from './types';
+import { Options, TracingOptions, Vue } from './types';
 
 const DEFAULT_CONFIG: Options = {
   Vue: getGlobalObject<{ Vue: Vue }>().Vue,
