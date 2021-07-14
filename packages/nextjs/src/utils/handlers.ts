@@ -1,5 +1,6 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction, withScope } from '@sentry/node';
-import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
+import { Transaction } from '@sentry/types';
 import { addExceptionMechanism, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiResponse } from 'next';
@@ -11,36 +12,18 @@ const { parseRequest } = Handlers;
 // purely for clarity
 type WrappedNextApiHandler = NextApiHandler;
 
+type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction };
+
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return async (req, res) => {
-    const origEnd = res.end;
+    // first order of business: monkeypatch `res.end()` so that it will wait for us to send events to sentry before it
+    // fires (if we don't do this, the lambda will close too early and events will be either delayed or lost)
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    res.end = wrapEndMethod(res.end);
 
-    async function newEnd(this: NextApiResponse, ...args: any[]) {
-      const transaction = getActiveTransaction();
-
-      if (transaction) {
-        transaction.setHttpStatus(res.statusCode);
-
-        transaction.finish();
-      }
-      try {
-        logger.log('Flushing events...');
-        await flush(2000);
-      } catch (e) {
-        logger.log(`Error while flushing events:\n${e}`);
-      } finally {
-        logger.log('Done flushing events');
-        // res.end();
-      }
-
-      return origEnd.call(this, ...args);
-    }
-
-    res.end = newEnd;
-
-    // wrap everything in a domain in order to prevent scope bleed between requests
+    // use a domain in order to prevent scope bleed between requests
     const local = domain.create();
     local.add(req);
     local.add(res);
@@ -86,6 +69,10 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
               { request: req },
             );
             currentScope.setSpan(transaction);
+
+            // save a link to the transaction on the response, so that even if there's an error (landing us outside of
+            // the domain), we can still finish it (albeit possibly missing some scope data)
+            (res as AugmentedResponse).__sentryTransaction = transaction;
           }
         }
 
@@ -107,3 +94,41 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
     return await boundHandler();
   };
 };
+
+type ResponseEndMethod = AugmentedResponse['end'];
+type WrappedResponseEndMethod = AugmentedResponse['end'];
+
+function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
+  return async function newEnd(this: AugmentedResponse, ...args: unknown[]) {
+    // TODO: if the handler errored, it will have popped us out of the domain, so all of our scope data will be missing
+
+    const transaction = this.__sentryTransaction;
+
+    if (transaction) {
+      transaction.setHttpStatus(this.statusCode);
+
+      // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
+      // transaction closes, and make sure to wait until that's done before flushing events
+      const transactionFinished: Promise<void> = new Promise(resolve => {
+        setImmediate(() => {
+          transaction.finish();
+          resolve();
+        });
+      });
+      await transactionFinished;
+    }
+
+    // flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
+    // ends
+    try {
+      logger.log('Flushing events...');
+      await flush(2000);
+    } catch (e) {
+      logger.log(`Error while flushing events:\n${e}`);
+    } finally {
+      logger.log('Done flushing events');
+    }
+
+    return origEnd.call(this, ...args);
+  };
+}
