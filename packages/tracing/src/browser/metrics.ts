@@ -225,14 +225,14 @@ export class MetricsInstrumentation {
     // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
     if (this._clsEntry && this._clsEntry.sources) {
       logger.log('[Measurements] Adding CLS Data');
-      this._clsEntry.sources.map((source, index) =>
+      this._clsEntry.sources.forEach((source, index) =>
         transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
       );
     }
 
     if (this._updatedClsEntry && this._updatedClsEntry.sources) {
       logger.log('[Measurements] Adding Updated CLS Data');
-      this._updatedClsEntry.sources.map((source, index) =>
+      this._updatedClsEntry.sources.forEach((source, index) =>
         transaction.setTag(`updated-cls.source.${index + 1}`, htmlTreeAsString(source.node)),
       );
     }
