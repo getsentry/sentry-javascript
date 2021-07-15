@@ -39,7 +39,6 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
   }
 
   ROOT_SPAN_TIMER = setTimeout(() => {
-    // We should always finish the span, only should pop activity if using @sentry/apm
     if (vm.$root?.$_sentryRootSpan) {
       vm.$root.$_sentryRootSpan.finish(timestamp);
       vm.$root.$_sentryRootSpan = undefined;

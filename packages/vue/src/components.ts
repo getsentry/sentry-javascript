@@ -1,9 +1,11 @@
 import { ViewModel } from './types';
 
-// Based on https://github.com/vuejs/vue/blob/master/src/core/util/debug.js
-
+// Vendored directly from https://github.com/vuejs/vue/blob/master/src/core/util/debug.js with types only changes.
 const classifyRE = /(?:^|[-_])(\w)/g;
 const classify = (str: string): string => str.replace(classifyRE, c => c.toUpperCase()).replace(/[-_]/g, '');
+
+const ROOT_COMPONENT_NAME = '<Root>';
+const ANONYMOUS_COMPONENT_NAME = '<Anonymous>';
 
 const repeat = (str: string, n: number): string => {
   let res = '';
@@ -21,11 +23,11 @@ const repeat = (str: string, n: number): string => {
 
 export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): string => {
   if (!vm) {
-    return '<Anonymous>';
+    return ANONYMOUS_COMPONENT_NAME;
   }
 
   if (vm.$root === vm) {
-    return '<Root>';
+    return ROOT_COMPONENT_NAME;
   }
 
   const options = vm.$options;
@@ -39,7 +41,9 @@ export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): stri
     }
   }
 
-  return (name ? `<${classify(name)}>` : `<Anonymous>`) + (file && includeFile !== false ? ` at ${file}` : ``);
+  return (
+    (name ? `<${classify(name)}>` : ANONYMOUS_COMPONENT_NAME) + (file && includeFile !== false ? ` at ${file}` : ``)
+  );
 };
 
 export const generateComponentTrace = (vm?: ViewModel): string => {

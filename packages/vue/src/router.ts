@@ -7,7 +7,7 @@ export type VueRouterInstrumentation = <T extends Transaction>(
   startTransactionOnLocationChange?: boolean,
 ) => void;
 
-// This is not great, but kinda nacessary to make it woth with VueRouter@3 and VueRouter@4 at the same time.
+// This is not great, but kinda necessary to make it work with VueRouter@3 and VueRouter@4 at the same time.
 type Route = {
   params: any;
   query: any;
