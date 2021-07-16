@@ -121,10 +121,9 @@ function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
     try {
       logger.log('Flushing events...');
       await flush(2000);
+      logger.log('Done flushing events');
     } catch (e) {
       logger.log(`Error while flushing events:\n${e}`);
-    } finally {
-      logger.log('Done flushing events');
     }
 
     return origEnd.call(this, ...args);
