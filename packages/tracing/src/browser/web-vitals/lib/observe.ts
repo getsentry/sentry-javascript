@@ -29,6 +29,12 @@ export interface PerformanceEntryHandler {
 export const observe = (type: string, callback: PerformanceEntryHandler): PerformanceObserver | undefined => {
   try {
     if (PerformanceObserver.supportedEntryTypes.includes(type)) {
+      // More extensive feature detect needed for Firefox due to:
+      // https://github.com/GoogleChrome/web-vitals/issues/142
+      if (type === 'first-input' && !('PerformanceEventTiming' in self)) {
+        return;
+      }
+
       const po: PerformanceObserver = new PerformanceObserver(l => l.getEntries().map(callback));
 
       po.observe({ type, buffered: true });
