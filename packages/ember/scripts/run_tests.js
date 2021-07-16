@@ -6,8 +6,10 @@ const { spawnSync } = require('child_process');
 
 if (process.env.TRAVIS || process.env.GITHUB_ACTIONS) {
   console.log('In CI - running tests against multiple versions of Ember');
-  spawnSync('yarn npm-run-all lint:* test:*', { shell: true });
+  const result = spawnSync('yarn npm-run-all lint:* test:*', { shell: true, stdio: 'inherit' });
+  process.exit(result.status);
 } else {
   console.log('Tests running locally - will only run tests against default version of Ember');
-  spawnSync('yarn npm-run-all lint:* test:ember', { shell: true });
+  const result = spawnSync('yarn npm-run-all lint:* test:ember', { shell: true, stdio: 'inherit' });
+  process.exit(result.status);
 }
