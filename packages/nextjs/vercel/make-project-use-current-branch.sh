@@ -58,5 +58,5 @@ cd $NEXTJS_SDK_DIR
 echo " "
 echo "SUCCESS!"
 echo "Your project will now use this branch of the SDK repo when deployed to Vercel. If you haven't done so already, go to your project settings in Vercel and set a custom install command:"
-echo "  $(source .sentry/install-sentry-from-branch.sh)"
+echo "  $(bash .sentry/install-sentry-from-branch.sh)"
 echo " "

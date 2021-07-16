@@ -1,7 +1,7 @@
 # SCRIPT TO INCLUDE AS PART OF A VERCEL-DEPLOYED PROJECT, SO THAT IT USES A BRANCH FROM THE SDK REPO
 # USE `yarn vercel:project <path-to-project>` TO HAVE IT AUTOMATICALLY ADDED TO YOUR PROJECT
 
-# CUSTOM INSTALL COMMAND FOR PROJECT ON VERCEL: `source .sentry/install-sentry-from-branch.sh`
+# CUSTOM INSTALL COMMAND FOR PROJECT ON VERCEL: `bash .sentry/install-sentry-from-branch.sh`
 
 PROJECT_DIR=$(pwd)
 
