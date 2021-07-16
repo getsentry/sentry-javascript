@@ -24,6 +24,7 @@ module.exports = async ({ url, argv }) => {
       transaction: 'GET /api/error',
     },
     argv,
+    'errorApiEndpoint',
   );
 
   await getAsync(`${url}/api/error`);

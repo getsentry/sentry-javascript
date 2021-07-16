@@ -20,6 +20,7 @@ module.exports = async ({ url, argv }) => {
       },
     },
     argv,
+    'tracing200',
   );
 
   await getAsync(`${url}/api/users`);

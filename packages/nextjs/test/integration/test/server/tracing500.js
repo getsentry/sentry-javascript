@@ -20,6 +20,7 @@ module.exports = async ({ url, argv }) => {
       },
     },
     argv,
+    'tracing500',
   );
 
   await getAsync(`${url}/api/broken`);

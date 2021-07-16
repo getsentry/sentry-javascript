@@ -20,6 +20,7 @@ module.exports = async ({ url, argv }) => {
       },
     },
     argv,
+    'tracing404',
   );
 
   await getAsync(`${url}/api/missing`);

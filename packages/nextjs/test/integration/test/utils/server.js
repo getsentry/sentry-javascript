@@ -21,30 +21,45 @@ const getAsync = url => {
   });
 };
 
-const interceptEventRequest = (expectedEvent, argv) => {
+const interceptEventRequest = (expectedEvent, argv, testName = '') => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/store/', body => {
-      logIf(argv.debug, 'Intercepted Event', body, argv.depth);
+      logIf(
+        argv.debug,
+        '\nIntercepted Event' + (testName.length ? ` (from test \`${testName}\`)` : ''),
+        body,
+        argv.depth,
+      );
       return objectMatches(body, expectedEvent);
     })
     .reply(200);
 };
 
-const interceptSessionRequest = (expectedItem, argv) => {
+const interceptSessionRequest = (expectedItem, argv, testName = '') => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
-      logIf(argv.debug, 'Intercepted Transaction', { envelopeHeader, itemHeader, item }, argv.depth);
+      logIf(
+        argv.debug,
+        '\nIntercepted Session' + (testName.length ? ` (from test \`${testName}\`)` : ''),
+        { envelopeHeader, itemHeader, item },
+        argv.depth,
+      );
       return itemHeader.type === 'session' && objectMatches(item, expectedItem);
     })
     .reply(200);
 };
 
-const interceptTracingRequest = (expectedItem, argv) => {
+const interceptTracingRequest = (expectedItem, argv, testName = '') => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
-      logIf(argv.debug, 'Intercepted Transaction', { envelopeHeader, itemHeader, item }, argv.depth);
+      logIf(
+        argv.debug,
+        '\nIntercepted Transaction' + (testName.length ? ` (from test \`${testName}\`)` : ''),
+        { envelopeHeader, itemHeader, item },
+        argv.depth,
+      );
       return itemHeader.type === 'transaction' && objectMatches(item, expectedItem);
     })
     .reply(200);
