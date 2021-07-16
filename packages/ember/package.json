@@ -23,7 +23,7 @@
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint . --cache --cache-location '../../eslintcache/'",
     "start": "ember serve",
-    "test": "bash ./scripts/run_tests.sh",
+    "test": "node ./scripts/run_tests.js",
     "test:ember": "ember test",
     "test:ember-compatibility": "ember try:each",
     "prepublishOnly": "ember ts:precompile",
