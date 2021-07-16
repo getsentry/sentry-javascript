@@ -3,7 +3,9 @@ const assert = require('assert');
 const { sleep } = require('../utils/common');
 const { getAsync, interceptTracingRequest } = require('../utils/server');
 
-module.exports = async ({ url, argv }) => {
+module.exports = async ({ url: urlBase, argv }) => {
+  const url = `${urlBase}/api/users`;
+
   const capturedRequest = interceptTracingRequest(
     {
       contexts: {
@@ -16,14 +18,14 @@ module.exports = async ({ url, argv }) => {
       transaction: 'GET /api/users',
       type: 'transaction',
       request: {
-        url: '/api/users',
+        url,
       },
     },
     argv,
     'tracing200',
   );
 
-  await getAsync(`${url}/api/users`);
+  await getAsync(url);
   await sleep(100);
 
   assert.ok(capturedRequest.isDone(), 'Did not intercept expected request');
