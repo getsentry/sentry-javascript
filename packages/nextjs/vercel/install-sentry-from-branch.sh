@@ -33,6 +33,34 @@ yarn build:es5
 # We need to build esm versions because that's what `next` actually uses when it builds the app
 yarn build:esm
 
+# Set all packages in the repo to point to their siblings as file dependencies. That way, when we install the local copy
+# of @sentry/nextjs, it'll pull the local copy of each of its @sentry/* dependents. This mimics what Lerna does with
+# symlinks, just with file dependencies (which we have to use because linking seems to lead to module resolution
+# errors).
+echo " "
+echo "POINTING SIBLING DEPENDENCIES IN PACKAGE.JSON AT LOCAL DIRECTORIES"
+PACKAGES_DIR="$REPO_DIR/packages"
+# Escape all of the slashes in the path for use in sed
+ESCAPED_PACKAGES_DIR=$(echo $PACKAGES_DIR | sed s/'\/'/'\\\/'/g)
+
+# Get the names of all of the packages
+package_names=()
+for abs_package_path in ${PACKAGES_DIR}/*; do
+  package_names+=($(basename $abs_package_path))
+done
+
+# Modify each package's package.json file by searching in it for sentry dependencies from the monorepo and, for each
+# sibling dependency found, replacing the version number with a file dependency pointing to the sibling itself (so
+# `"@sentry/utils": "6.9.0"` becomes `"@sentry/utils": "file:/abs/path/to/sentry-javascript/packages/utils"`)
+for package in ${package_names[@]}; do
+  cd ${PACKAGES_DIR}/${package}
+
+  # Within a given package.json file, search for each of the other packages in turn, and if found, make the replacement
+  for package_dep in ${package_names[@]}; do
+    sed -Ei /"@sentry\/${package_dep}"/s/"[0-9]+\.[0-9]+\.[0-9]+"/"file:${ESCAPED_PACKAGES_DIR}\/${package_dep}"/ package.json
+  done
+done
+
 echo " "
 echo "MOVING BACK TO PROJECT DIRECTORY"
 cd $PROJECT_DIR
