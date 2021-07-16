@@ -37,6 +37,33 @@ echo " "
 echo "MOVING BACK TO PROJECT DIRECTORY"
 cd $PROJECT_DIR
 
+# TODO move this into `yarn vercel:project` script, accounting for differences in SDK repo location between running the
+# test app locally and on vercel
+echo " "
+echo "PATCHING SENTRY.SERVER.CONFIG.JS AND SENTRY.CLIENT.CONFIG.JS"
+echo "Removing frame limit on stacktraces"
+echo "Tagging events with $(vercel) tag"
+echo "Tagging events with SDK repo's most recent commit message"
+echo "Tagging events with test project repo's most recent commit message"
+
+INFINITE_STACKTRACE_CODE="
+Error.stackTraceLimit = Infinity;
+  "
+
+SDK_COMMIT_MESSAGE=$(cd sentry-javascript && git log --format="%C(auto)%s" | head -n 1)
+CONFIGURE_SCOPE_CODE="
+Sentry.configureScope(scope => {
+  if (process.env.VERCEL) {
+    scope.setTag('vercel', true);
+  }
+  scope.setTag('commitMessage', process.env.VERCEL_GIT_COMMIT_MESSAGE);
+  scope.setTag('sdkCommitMessage', \"$SDK_COMMIT_MESSAGE\");
+});
+  "
+
+echo "$INFINITE_STACKTRACE_CODE" "$CONFIGURE_SCOPE_CODE" >>sentry.server.config.js
+echo "$INFINITE_STACKTRACE_CODE" "$CONFIGURE_SCOPE_CODE" >>sentry.client.config.js
+
 # Add built SDK as a file dependency. This has the side effect of forcing yarn to install all of the other dependencies,
 # saving us the trouble of needing to call `yarn` separately after this
 echo " "
