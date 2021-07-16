@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.10.0-beta
+
+- feat(tracing): Upgrade to web-vitals 2.1.0 (#3781)
+- feat(vue): Rework tracing and add support for Vue 3 (#3804)
+- fix(ember): Make argument to InitSentryForEmber optional (#3802)
+- fix(nextjs): Small integration test runner fixes (#3801)
+- fix(nextjs): Use domains to prevent scope bleed (#3788)
+- fix(react): Make Route typing more generic (#3809)
 
 ## 6.9.0
 
