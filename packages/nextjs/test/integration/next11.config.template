@@ -1,0 +1,16 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
+// NOTE: This will be used by integration tests to distinguish between Webpack 4 and Webpack 5
+const moduleExports = {
+  webpack5: %RUN_WEBPACK_5%,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+};
+
+const SentryWebpackPluginOptions = {
+  dryRun: true,
+  silent: true,
+};
+
+module.exports = withSentryConfig(moduleExports, SentryWebpackPluginOptions);

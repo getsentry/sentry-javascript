@@ -4,16 +4,45 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+
+## 6.9.0
+
+- feat(browser): Use scope data in report dialog (#3792)
+- feat(core): Add `ensureNoCircularStructures` experiment to help debug serialization bugs (#3776)
+- feat(nextjs): Add options to disable webpack plugin (#3771)
+- feat(react): Support render props in `ErrorBoundary` (#3793)
+- fix(ember): Correctly cache ember types from prepublish hook (#3749)
+- fix(ember): Fix runtime config options not being merged (#3791)
+- fix(metrics): Check for cls entry sources (#3775)
+- fix(nextjs): Make `withSentryConfig` return type match given config type (#3760)
+- fix(node): Check if `captureRequestSession` is available before its called (#3773)
+- fix(node): Enable `autoSessionTracking` correctly (#3758)
+- fix(react): `allRoutes` cannot triple equal a new array instance (#3779)
+- fix(tracing): Add check for `document.scripts` in metrics (#3766)
+- fix(types): Update `ExtractedNodeRequestData` to include valid `query_params` for `tracesSampler` (#3715)
+- ref(gatsby): Default release to empty string (#3759)
+- ref(nextjs): Inject init code in `_app` and API routes (#3786)
+- ref(nextjs): Pre-disable-plugin-option config cleanup (#3770)
+- ref(nextjs): Stop setting redundant `productionBrowserSourceMaps` in config (#3765)
+
+## 6.8.0
+
+- [browser] feat: Enable serialization of multiple DOM attributes for breadcrumbs. (#3755)
+- [browser] feat: Make dedupe integration default for browser (#3730)
+- [core] fix: Correctly limit Buffer requests (#3736)
+- [ember] ref: Allow initing Ember without config entry (#3745)
+- [serverless] fix: wrapEventFunction does not await for async code (#3740)
+
 ## 6.7.2
 
 - [core] fix: Do not track sessions if not enabled (#3686)
-- [core] fix: Prevent sending terminal status session updates (#3701)  
+- [core] fix: Prevent sending terminal status session updates (#3701)
 - [core] ref: Make `beforeSend` more strict (#3713)
 - [browser] ref: Log which request type has been limited (#3687)
 - [nextjs] feat: Auto enable node http integration on server (#3675)
 - [nextjs] fix: Correctly handle functional next config in `withSentryConfig` (#3698)
 - [nextjs] fix: Fix conflict with other libraries modifying webpack `entry` property (#3703)
-- [nextjs] fix: Update @sentry/webpack-plugin to 1.15.1 in @sentry/nextjs to resolve build timeouts issue (#3708) 
+- [nextjs] fix: Update @sentry/webpack-plugin to 1.15.1 in @sentry/nextjs to resolve build timeouts issue (#3708)
 - [nextjs] ref: Split up config code and add tests (#3693)
 
 ## 6.7.1

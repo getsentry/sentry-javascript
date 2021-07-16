@@ -206,6 +206,49 @@ describe('GCPFunction', () => {
     });
   });
 
+  describe('wrapEventFunction() as Promise', () => {
+    test('successful execution', async () => {
+      expect.assertions(5);
+
+      const func: EventFunction = (_data, _context) =>
+        new Promise(resolve => {
+          setTimeout(() => {
+            resolve(42);
+          }, 10);
+        });
+      const wrappedHandler = wrapEventFunction(func);
+      await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
+      expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.event' });
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeTransaction.finish).toBeCalled();
+      expect(Sentry.flush).toBeCalledWith(2000);
+    });
+
+    test('capture error', async () => {
+      expect.assertions(6);
+
+      const error = new Error('wat');
+      const handler: EventFunction = (_data, _context) =>
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(error);
+          }, 10);
+        });
+
+      const wrappedHandler = wrapEventFunction(handler);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      expect(Sentry.startTransaction).toBeCalledWith({ name: 'event.type', op: 'gcp.function.event' });
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      expect(Sentry.captureException).toBeCalledWith(error);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeTransaction.finish).toBeCalled();
+      expect(Sentry.flush).toBeCalled();
+    });
+  });
+
   describe('wrapEventFunction() with callback', () => {
     test('successful execution', async () => {
       expect.assertions(5);

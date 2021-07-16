@@ -21,7 +21,7 @@ const argv = yargs(process.argv.slice(2))
   })
   .option('depth', {
     type: 'number',
-    description: 'Set the logging depth for intercepted requests',
+    description: 'Set the logging depth for intercepted requests (default = 4)',
   }).argv;
 
 const runScenario = async (scenario, execute, env) => {
@@ -66,7 +66,7 @@ module.exports.run = async ({
 
     let scenarios = await fs.readdir(scenariosDir);
     if (argv.filter) {
-      scenarios = scenarios.filter(file => file.toLowerCase().includes(argv.filter));
+      scenarios = scenarios.filter(file => file.toLowerCase().includes(argv.filter.toLowerCase()));
     }
     scenarios = scenarios.map(s => path.resolve(scenariosDir, s));
 

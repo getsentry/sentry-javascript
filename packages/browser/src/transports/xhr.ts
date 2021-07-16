@@ -37,27 +37,28 @@ export class XHRTransport extends BaseTransport {
     }
 
     return this._buffer.add(
-      new SyncPromise<Response>((resolve, reject) => {
-        const request = new XMLHttpRequest();
+      () =>
+        new SyncPromise<Response>((resolve, reject) => {
+          const request = new XMLHttpRequest();
 
-        request.onreadystatechange = (): void => {
-          if (request.readyState === 4) {
-            const headers = {
-              'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
-              'retry-after': request.getResponseHeader('Retry-After'),
-            };
-            this._handleResponse({ requestType: sentryRequest.type, response: request, headers, resolve, reject });
-          }
-        };
+          request.onreadystatechange = (): void => {
+            if (request.readyState === 4) {
+              const headers = {
+                'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
+                'retry-after': request.getResponseHeader('Retry-After'),
+              };
+              this._handleResponse({ requestType: sentryRequest.type, response: request, headers, resolve, reject });
+            }
+          };
 
-        request.open('POST', sentryRequest.url);
-        for (const header in this.options.headers) {
-          if (this.options.headers.hasOwnProperty(header)) {
-            request.setRequestHeader(header, this.options.headers[header]);
+          request.open('POST', sentryRequest.url);
+          for (const header in this.options.headers) {
+            if (this.options.headers.hasOwnProperty(header)) {
+              request.setRequestHeader(header, this.options.headers[header]);
+            }
           }
-        }
-        request.send(sentryRequest.body);
-      }),
+          request.send(sentryRequest.body);
+        }),
     );
   }
 }

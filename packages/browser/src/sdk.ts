@@ -4,7 +4,7 @@ import { addInstrumentationHandler, getGlobalObject, logger, SyncPromise } from 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
-import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -13,6 +13,7 @@ export const defaultIntegrations = [
   new Breadcrumbs(),
   new GlobalHandlers(),
   new LinkedErrors(),
+  new Dedupe(),
   new UserAgent(),
 ];
 
@@ -101,10 +102,19 @@ export function init(options: BrowserOptions = {}): void {
  * @param options Everything is optional, we try to fetch all info need from the global scope.
  */
 export function showReportDialog(options: ReportDialogOptions = {}): void {
-  if (!options.eventId) {
-    options.eventId = getCurrentHub().lastEventId();
+  const hub = getCurrentHub();
+  const scope = hub.getScope();
+  if (scope) {
+    options.user = {
+      ...scope.getUser(),
+      ...options.user,
+    };
   }
-  const client = getCurrentHub().getClient<BrowserClient>();
+
+  if (!options.eventId) {
+    options.eventId = hub.lastEventId();
+  }
+  const client = hub.getClient<BrowserClient>();
   if (client) {
     client.showReportDialog(options);
   }

@@ -21,36 +21,40 @@ import { onHidden } from './lib/onHidden';
 import { ReportHandler } from './types';
 
 // https://wicg.github.io/layout-instability/#sec-layout-shift
-interface LayoutShift extends PerformanceEntry {
+export interface LayoutShift extends PerformanceEntry {
   value: number;
   hadRecentInput: boolean;
+  sources: Array<LayoutShiftAttribution>;
+  toJSON(): Record<string, unknown>;
 }
 
-export const getCLS = (onReport: ReportHandler, reportAllChanges = false): void => {
-  const metric = initMetric('CLS', 0);
+export interface LayoutShiftAttribution {
+  node?: Node;
+  previousRect: DOMRectReadOnly;
+  currentRect: DOMRectReadOnly;
+}
 
+export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
+  const metric = initMetric('CLS', 0);
   let report: ReturnType<typeof bindReporter>;
 
   const entryHandler = (entry: LayoutShift): void => {
-    // Only count layout shifts without recent user input.
     if (!entry.hadRecentInput) {
       (metric.value as number) += entry.value;
       metric.entries.push(entry);
-      report();
+      if (report) {
+        report();
+      }
     }
   };
 
   const po = observe('layout-shift', entryHandler as PerformanceEntryHandler);
   if (po) {
-    report = bindReporter(onReport, metric, po, reportAllChanges);
+    report = bindReporter(onReport, metric, reportAllChanges);
 
-    onHidden(({ isUnloading }) => {
+    onHidden(() => {
       po.takeRecords().map(entryHandler as PerformanceEntryHandler);
-
-      if (isUnloading) {
-        metric.isFinal = true;
-      }
-      report();
+      report(true);
     });
   }
 };

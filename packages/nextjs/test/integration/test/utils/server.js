@@ -57,13 +57,14 @@ const objectMatches = (actual, expected) => {
 
   for (const key in expected) {
     const expectedValue = expected[key];
+    const actualValue = actual[key];
 
     if (Object.prototype.toString.call(expectedValue) === '[object Object]' || Array.isArray(expectedValue)) {
-      if (!objectMatches(actual[key], expectedValue)) {
+      if (!objectMatches(actualValue, expectedValue)) {
         return false;
       }
     } else {
-      if (actual[key] !== expectedValue) {
+      if (actualValue !== expectedValue) {
         return false;
       }
     }
