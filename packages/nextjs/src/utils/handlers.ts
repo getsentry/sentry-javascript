@@ -5,8 +5,6 @@ import { addExceptionMechanism, isString, logger, stripUrlQueryAndFragment } fro
 import * as domain from 'domain';
 import { NextApiHandler, NextApiResponse } from 'next';
 
-import { addRequestDataToEvent, NextRequest } from './instrumentServer';
-
 const { parseRequest } = Handlers;
 
 // purely for clarity
@@ -35,7 +33,7 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req as NextRequest));
+        currentScope.addEventProcessor(event => parseRequest(event, req));
 
         if (hasTracingEnabled()) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
@@ -83,7 +81,7 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
             addExceptionMechanism(event, {
               handled: false,
             });
-            return parseRequest(event, req);
+            return event;
           });
           captureException(e);
         }
