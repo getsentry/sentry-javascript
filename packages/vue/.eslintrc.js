@@ -17,15 +17,10 @@ module.exports = {
         project: './tsconfig.json',
       },
     },
-    {
-      files: ['test/**'],
-      rules: {
-        '@typescript-eslint/no-explicit-any': 'off',
-      },
-    },
   ],
   rules: {
     'react/prop-types': 'off',
     '@typescript-eslint/no-unsafe-member-access': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
   },
 };
