@@ -44,6 +44,7 @@ for NEXTJS_VERSION in 10 11; do
       WEBPACK_VERSION=5 ||
       WEBPACK_VERSION=4
 
+    # next 10 defaults to webpack 4 and next 11 defaults to webpack 5, but each can use either based on settings
     if [ "$NEXTJS_VERSION" -eq "10" ]; then
       sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next10.config.template >next.config.js
     else
@@ -53,10 +54,9 @@ for NEXTJS_VERSION in 10 11; do
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
     yarn build | grep "Using webpack"
 
-    # if no arguments were passed, default to outputting nothing other than success and failure messages ($* gets all
-    # passed args as a single string)
     args=$*
     if [[ ! $args ]]; then
+      # restrict each test to only output success and failure messages
       args="--silent"
     fi
 

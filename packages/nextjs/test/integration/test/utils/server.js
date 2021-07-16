@@ -65,7 +65,13 @@ const interceptTracingRequest = (expectedItem, argv, testName = '') => {
     .reply(200);
 };
 
+/**
+ * Recursively checks that every path/value pair in `expected` matches that in `actual` (but not vice-versa).
+ *
+ * Only works for JSONifiable data.
+ */
 const objectMatches = (actual, expected) => {
+  // each will output either '[object Object]' or '[object <ClassName>]'
   if (Object.prototype.toString.call(actual) !== Object.prototype.toString.call(expected)) {
     return false;
   }
@@ -74,11 +80,14 @@ const objectMatches = (actual, expected) => {
     const expectedValue = expected[key];
     const actualValue = actual[key];
 
+    // recurse
     if (Object.prototype.toString.call(expectedValue) === '[object Object]' || Array.isArray(expectedValue)) {
       if (!objectMatches(actualValue, expectedValue)) {
         return false;
       }
-    } else {
+    }
+    // base case
+    else {
       if (actualValue !== expectedValue) {
         return false;
       }
