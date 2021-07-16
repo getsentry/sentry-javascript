@@ -27,10 +27,10 @@ yarn --prod false
 
 echo " "
 echo "BUILDING SDK"
-# we need to build es5 versions because `next.config.js` calls `require` on the SDK (to get `withSentryConfig`) and
+# We need to build es5 versions because `next.config.js` calls `require` on the SDK (to get `withSentryConfig`) and
 # therefore it looks for `dist/index.js`
 yarn build:es5
-# we need to build esm versions because that's what `next` actually uses when it builds the app
+# We need to build esm versions because that's what `next` actually uses when it builds the app
 yarn build:esm
 
 echo " "
@@ -46,11 +46,9 @@ yarn add file:sentry-javascript/packages/nextjs
 
 # In case for any reason we ever need to link the local SDK rather than adding it as a file dependency:
 
-# for abs_package_path in ${PROJECT_DIR}/sentry-javascript/packages/*; do
 # echo " "
 # echo "LINKING LOCAL SDK INTO PROJECT"
 
-# # link the built packages into project dependencies
 # for abs_package_path in sentry-javascript/packages/*; do
 #   package=$(basename $abs_package_path)
 
