@@ -37,7 +37,7 @@ const logIf = (condition, message, input, depth = 4) => {
   if (condition) {
     console.log(message);
     if (input) {
-      console.log(inspect(input, { depth }));
+      console.dir(input, { depth, colors: true });
     }
   }
 };

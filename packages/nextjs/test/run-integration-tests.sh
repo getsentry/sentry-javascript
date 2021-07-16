@@ -24,7 +24,7 @@ for NEXTJS_VERSION in 10 11; do
   fi
 
   # Next.js v11 requires at least Node v12
-  if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -eq "10" ]; then
+  if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -eq "11" ]; then
     echo "[nextjs$NEXTJS_VERSION] Not compatible with Node $NODE_VERSION"
     exit 0
   fi
@@ -53,8 +53,19 @@ for NEXTJS_VERSION in 10 11; do
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
     yarn build | grep "Using webpack"
 
+    # if no arguments were passed, default to outputting nothing other than success and failure messages ($* gets all
+    # passed args as a single string)
+    args=$*
+    if [[ ! $args ]]; then
+      args="--silent"
+    fi
+
+    # we keep this updated as we run the tests, so that if it's ever non-zero, we can bail
     EXIT_CODE=0
-    node test/server.js --silent || EXIT_CODE=$?
+
+    echo "Running server tests with options: $args"
+    node test/server.js $args || EXIT_CODE=$?
+
     if [ $EXIT_CODE -eq 0 ]
     then
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Server integration tests passed"
@@ -63,8 +74,8 @@ for NEXTJS_VERSION in 10 11; do
       exit 1
     fi
 
-    EXIT_CODE=0
-    node test/client.js --silent || EXIT_CODE=$?
+    echo "Running client tests with options: $args"
+    node test/client.js $args || EXIT_CODE=$?
     if [ $EXIT_CODE -eq 0 ]
     then
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"

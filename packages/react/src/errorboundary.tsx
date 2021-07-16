@@ -156,7 +156,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   public render(): React.ReactNode {
-    const { fallback } = this.props;
+    const { fallback, children } = this.props;
     const { error, componentStack, eventId } = this.state;
 
     if (error) {
@@ -171,7 +171,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       return null;
     }
 
-    return this.props.children;
+    if (typeof children === 'function') {
+      return children();
+    }
+    return children;
   }
 }
 

@@ -9,7 +9,8 @@ import { msToSec } from '../utils';
 import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
-import { getFirstHidden } from './web-vitals/lib/getFirstHidden';
+import { getUpdatedCLS } from './web-vitals/getUpdatedCLS';
+import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
 const global = getGlobalObject<Window>();
@@ -21,6 +22,7 @@ export class MetricsInstrumentation {
   private _performanceCursor: number = 0;
   private _lcpEntry: LargestContentfulPaint | undefined;
   private _clsEntry: LayoutShift | undefined;
+  private _updatedClsEntry: LayoutShift | undefined;
 
   public constructor() {
     if (!isNodeEnv() && global?.performance) {
@@ -92,9 +94,9 @@ export class MetricsInstrumentation {
 
             // capture web vitals
 
-            const firstHidden = getFirstHidden();
+            const firstHidden = getVisibilityWatcher();
             // Only report if the page wasn't hidden prior to the web vital.
-            const shouldRecord = entry.startTime < firstHidden.timeStamp;
+            const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
             if (entry.name === 'first-paint' && shouldRecord) {
               logger.log('[Measurements] Adding FP');
@@ -187,6 +189,12 @@ export class MetricsInstrumentation {
         });
       }
 
+      // If FCP is not recorded we should not record the updated cls value
+      // according to the new definition of CLS.
+      if (!('fcp' in this._measurements)) {
+        delete this._measurements['updated-cls'];
+      }
+
       transaction.setMeasurements(this._measurements);
       this._tagMetricInfo(transaction);
     }
@@ -214,10 +222,18 @@ export class MetricsInstrumentation {
       transaction.setTag('lcp.size', this._lcpEntry.size);
     }
 
-    if (this._clsEntry) {
+    // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
+    if (this._clsEntry && this._clsEntry.sources) {
       logger.log('[Measurements] Adding CLS Data');
-      this._clsEntry.sources.map((source, index) =>
+      this._clsEntry.sources.forEach((source, index) =>
         transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+      );
+    }
+
+    if (this._updatedClsEntry && this._updatedClsEntry.sources) {
+      logger.log('[Measurements] Adding Updated CLS Data');
+      this._updatedClsEntry.sources.forEach((source, index) =>
+        transaction.setTag(`updated-cls.source.${index + 1}`, htmlTreeAsString(source.node)),
       );
     }
   }
@@ -226,7 +242,6 @@ export class MetricsInstrumentation {
   private _trackCLS(): void {
     getCLS(metric => {
       const entry = metric.entries.pop();
-
       if (!entry) {
         return;
       }
@@ -235,6 +250,20 @@ export class MetricsInstrumentation {
       this._measurements['cls'] = { value: metric.value };
       this._clsEntry = entry as LayoutShift;
     });
+
+    // See:
+    // https://web.dev/evolving-cls/
+    // https://web.dev/cls-web-tooling/
+    getUpdatedCLS(metric => {
+      const entry = metric.entries.pop();
+      if (!entry) {
+        return;
+      }
+
+      logger.log('[Measurements] Adding Updated CLS');
+      this._measurements['updated-cls'] = { value: metric.value };
+      this._updatedClsEntry = entry as LayoutShift;
+    });
   }
 
   /**
@@ -242,13 +271,11 @@ export class MetricsInstrumentation {
    */
   private _trackNavigator(transaction: Transaction): void {
     const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
-
     if (!navigator) {
       return;
     }
 
     // track network connectivity
-
     const connection = navigator.connection;
     if (connection) {
       if (connection.effectiveType) {

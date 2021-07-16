@@ -17,13 +17,12 @@
 import { Metric } from '../types';
 import { generateUniqueID } from './generateUniqueID';
 
-export const initMetric = (name: Metric['name'], value = -1): Metric => {
+export const initMetric = (name: Metric['name'], value?: number): Metric => {
   return {
     name,
-    value,
+    value: value ?? -1,
     delta: 0,
     entries: [],
     id: generateUniqueID(),
-    isFinal: false,
   };
 };

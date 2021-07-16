@@ -76,8 +76,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
 
-  /** Number of call being processed */
-  protected _processing: number = 0;
+  /** Number of calls being processed */
+  protected _numProcessing: number = 0;
 
   /**
    * Initializes this client instance.
@@ -185,11 +185,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public flush(timeout?: number): PromiseLike<boolean> {
-    return this._isClientProcessing(timeout).then(ready => {
+    return this._isClientDoneProcessing(timeout).then(clientFinished => {
       return this._getBackend()
         .getTransport()
         .close(timeout)
-        .then(transportFlushed => ready && transportFlushed);
+        .then(transportFlushed => clientFinished && transportFlushed);
     });
   }
 
@@ -262,14 +262,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     this._getBackend().sendSession(session);
   }
 
-  /** Waits for the client to be done with processing. */
-  protected _isClientProcessing(timeout?: number): PromiseLike<boolean> {
+  /**
+   * Determine if the client is finished processing. Returns a promise because it will wait `timeout` ms before saying
+   * "no" (resolving to `false`) in order to give the client a chance to potentially finish first.
+   *
+   * @param timeout The time, in ms, after which to resolve to `false` if the client is still busy. Passing `0` (or not
+   * passing anything) will make the promise wait as long as it takes for processing to finish before resolving to
+   * `true`.
+   * @returns A promise which will resolve to `true` if processing is already done or finishes before the timeout, and
+   * `false` otherwise
+   */
+  protected _isClientDoneProcessing(timeout?: number): PromiseLike<boolean> {
     return new SyncPromise(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
 
       const interval = setInterval(() => {
-        if (this._processing == 0) {
+        if (this._numProcessing == 0) {
           clearInterval(interval);
           resolve(true);
         } else {
@@ -389,6 +398,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       normalized.contexts.trace = event.contexts.trace;
     }
+
+    const { _experiments = {} } = this.getOptions();
+    if (_experiments.ensureNoCircularStructures) {
+      return normalize(normalized);
+    }
+
     return normalized;
   }
 
@@ -548,14 +563,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * Occupies the client with processing and event
    */
   protected _process<T>(promise: PromiseLike<T>): void {
-    this._processing += 1;
+    this._numProcessing += 1;
     void promise.then(
       value => {
-        this._processing -= 1;
+        this._numProcessing -= 1;
         return value;
       },
       reason => {
-        this._processing -= 1;
+        this._numProcessing -= 1;
         return reason;
       },
     );

@@ -8,9 +8,8 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require('../../../src/rules/no-async-await'),
-  path = require('path'),
-  RuleTester = require('eslint').RuleTester;
+const rule = require('../../../src/rules/no-async-await');
+const RuleTester = require('eslint').RuleTester;
 
 //------------------------------------------------------------------------------
 // Tests
@@ -21,7 +20,7 @@ RuleTester.setDefaultConfig({
     ecmaVersion: 8,
   },
 });
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run('no-async-await', rule, {
   valid: [],

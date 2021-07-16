@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+
+## 6.9.0
+
+- feat(browser): Use scope data in report dialog (#3792)
+- feat(core): Add `ensureNoCircularStructures` experiment to help debug serialization bugs (#3776)
+- feat(nextjs): Add options to disable webpack plugin (#3771)
+- feat(react): Support render props in `ErrorBoundary` (#3793)
+- fix(ember): Correctly cache ember types from prepublish hook (#3749)
+- fix(ember): Fix runtime config options not being merged (#3791)
+- fix(metrics): Check for cls entry sources (#3775)
+- fix(nextjs): Make `withSentryConfig` return type match given config type (#3760)
+- fix(node): Check if `captureRequestSession` is available before its called (#3773)
+- fix(node): Enable `autoSessionTracking` correctly (#3758)
+- fix(react): `allRoutes` cannot triple equal a new array instance (#3779)
+- fix(tracing): Add check for `document.scripts` in metrics (#3766)
+- fix(types): Update `ExtractedNodeRequestData` to include valid `query_params` for `tracesSampler` (#3715)
+- ref(gatsby): Default release to empty string (#3759)
+- ref(nextjs): Inject init code in `_app` and API routes (#3786)
+- ref(nextjs): Pre-disable-plugin-option config cleanup (#3770)
+- ref(nextjs): Stop setting redundant `productionBrowserSourceMaps` in config (#3765)
+
 ## 6.8.0
 
 - [browser] feat: Enable serialization of multiple DOM attributes for breadcrumbs. (#3755)

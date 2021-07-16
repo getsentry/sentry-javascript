@@ -132,6 +132,14 @@ describe('ErrorBoundary', () => {
     expect(container.innerHTML).toBe('<h1>children</h1>');
   });
 
+  it('supports rendering children as a function', () => {
+    const { container } = render(
+      <ErrorBoundary fallback={<h1>Error Component</h1>}>{() => <h1>children</h1>}</ErrorBoundary>,
+    );
+
+    expect(container.innerHTML).toBe('<h1>children</h1>');
+  });
+
   describe('fallback', () => {
     it('renders a fallback component', async () => {
       const { container } = render(
