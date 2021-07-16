@@ -43,21 +43,15 @@ PACKAGES_DIR="$REPO_DIR/packages"
 # Escape all of the slashes in the path for use in sed
 ESCAPED_PACKAGES_DIR=$(echo $PACKAGES_DIR | sed s/'\/'/'\\\/'/g)
 
-# Get the names of all of the packages
-package_names=()
-for abs_package_path in ${PACKAGES_DIR}/*; do
-  package_names+=($(basename $abs_package_path))
-done
+PACKAGE_NAMES=$(ls PACKAGES_DIR)
 
 # Modify each package's package.json file by searching in it for sentry dependencies from the monorepo and, for each
 # sibling dependency found, replacing the version number with a file dependency pointing to the sibling itself (so
 # `"@sentry/utils": "6.9.0"` becomes `"@sentry/utils": "file:/abs/path/to/sentry-javascript/packages/utils"`)
-for package in ${package_names[@]}; do
-  cd ${PACKAGES_DIR}/${package}
-
+for package in $PACKAGE_NAMES; do
   # Within a given package.json file, search for each of the other packages in turn, and if found, make the replacement
-  for package_dep in ${package_names[@]}; do
-    sed -Ei /"@sentry\/${package_dep}"/s/"[0-9]+\.[0-9]+\.[0-9]+"/"file:${ESCAPED_PACKAGES_DIR}\/${package_dep}"/ package.json
+  for package_dep in $PACKAGE_NAMES; do
+    sed -Ei /"@sentry\/${package_dep}"/s/"[0-9]+\.[0-9]+\.[0-9]+"/"file:${ESCAPED_PACKAGES_DIR}\/${package_dep}"/ ${PACKAGES_DIR}/${package}/package.json
   done
 done
 
