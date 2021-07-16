@@ -16,7 +16,7 @@
 
 export interface Metric {
   // The name of the metric (in acronym form).
-  name: 'CLS' | 'FCP' | 'FID' | 'LCP' | 'TTFB';
+  name: 'CLS' | 'FCP' | 'FID' | 'LCP' | 'TTFB' | 'UpdatedCLS';
 
   // The current value of the metric.
   value: number;
@@ -25,23 +25,37 @@ export interface Metric {
   // On the first report, `delta` and `value` will always be the same.
   delta: number;
 
-  // A unique ID representing this particular metric that's specific to the
-  // current page. This ID can be used by an analytics tool to dedupe
-  // multiple values sent for the same metric, or to group multiple deltas
-  // together and calculate a total.
+  // A unique ID representing this particular metric instance. This ID can
+  // be used by an analytics tool to dedupe multiple values sent for the same
+  // metric instance, or to group multiple deltas together and calculate a
+  // total. It can also be used to differentiate multiple different metric
+  // instances sent from the same page, which can happen if the page is
+  // restored from the back/forward cache (in that case new metrics object
+  // get created).
   id: string;
-
-  // `false` if the value of the metric may change in the future,
-  // for the current page.
-  isFinal: boolean;
 
   // Any performance entries used in the metric value calculation.
   // Note, entries will be added to the array as the value changes.
-  entries: PerformanceEntry[];
+  entries: (PerformanceEntry | FirstInputPolyfillEntry | NavigationTimingPolyfillEntry)[];
 }
 
 export interface ReportHandler {
   (metric: Metric): void;
+}
+
+// https://wicg.github.io/event-timing/#sec-performance-event-timing
+export interface PerformanceEventTiming extends PerformanceEntry {
+  processingStart: DOMHighResTimeStamp;
+  processingEnd: DOMHighResTimeStamp;
+  duration: DOMHighResTimeStamp;
+  cancelable?: boolean;
+  target?: Element;
+}
+
+export type FirstInputPolyfillEntry = Omit<PerformanceEventTiming, 'processingEnd' | 'toJSON'>;
+
+export interface FirstInputPolyfillCallback {
+  (entry: FirstInputPolyfillEntry): void;
 }
 
 // http://wicg.github.io/netinfo/#navigatornetworkinformation-interface
@@ -93,3 +107,18 @@ export type NavigationTimingPolyfillEntry = Omit<
   | 'decodedBodySize'
   | 'toJSON'
 >;
+
+export interface WebVitalsGlobal {
+  firstInputPolyfill: (onFirstInput: FirstInputPolyfillCallback) => void;
+  resetFirstInputPolyfill: () => void;
+  firstHiddenTime: number;
+}
+
+declare global {
+  interface Window {
+    webVitals: WebVitalsGlobal;
+
+    // Build flags:
+    __WEB_VITALS_POLYFILL__: boolean;
+  }
+}
