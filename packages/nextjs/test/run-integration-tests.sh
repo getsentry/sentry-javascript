@@ -13,9 +13,11 @@ trap cleanup EXIT
 
 cd "$(dirname "$0")/integration"
 
+NODE_VERSION=$(node -v)
+NODE_MAJOR=$(echo "$NODE_VERSION" | cut -c2- | cut -d. -f1)
+echo "Running integration tests on Node $NODE_VERSION"
+
 for NEXTJS_VERSION in 10 11; do
-  NODE_VERSION=$(node -v)
-  NODE_MAJOR=$(echo "$NODE_VERSION" | cut -c2- | cut -d. -f1)
 
   # Next 10 requires at least Node v10
   if [ "$NODE_MAJOR" -lt "10" ]; then
@@ -28,8 +30,6 @@ for NEXTJS_VERSION in 10 11; do
     echo "[nextjs$NEXTJS_VERSION] Not compatible with Node $NODE_VERSION"
     exit 0
   fi
-
-  echo "[nextjs@$NEXTJS_VERSION] Running integration tests on $NODE_VERSION"
 
   echo "[nextjs@$NEXTJS_VERSION] Preparing environment..."
   mv next.config.js next.config.js.bak
