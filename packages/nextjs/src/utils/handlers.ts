@@ -32,50 +32,50 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
     // return a value. In our case, all any of the codepaths return is a promise of `void`, but nextjs still counts on
     // getting that before it will finish the response.
     const boundHandler = local.bind(async () => {
-      try {
-        const currentScope = getCurrentHub().getScope();
+      const currentScope = getCurrentHub().getScope();
 
-        if (currentScope) {
-          currentScope.addEventProcessor(event => addRequestDataToEvent(event, req as NextRequest));
+      if (currentScope) {
+        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req as NextRequest));
 
-          if (hasTracingEnabled()) {
-            // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
-            let traceparentData;
-            if (req.headers && isString(req.headers['sentry-trace'])) {
-              traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
-              logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
-            }
-
-            const url = `${req.url}`;
-            // pull off query string, if any
-            let reqPath = stripUrlQueryAndFragment(url);
-            // Replace with placeholder
-            if (req.query) {
-              // TODO get this from next if possible, to avoid accidentally replacing non-dynamic parts of the path if
-              // they match dynamic parts
-              for (const [key, value] of Object.entries(req.query)) {
-                reqPath = reqPath.replace(`${value}`, `[${key}]`);
-              }
-            }
-            const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
-
-            const transaction = startTransaction(
-              {
-                name: `${reqMethod}${reqPath}`,
-                op: 'http.server',
-                ...traceparentData,
-              },
-              // extra context passed to the `tracesSampler`
-              { request: req },
-            );
-            currentScope.setSpan(transaction);
-
-            // save a link to the transaction on the response, so that even if there's an error (landing us outside of
-            // the domain), we can still finish it (albeit possibly missing some scope data)
-            (res as AugmentedResponse).__sentryTransaction = transaction;
+        if (hasTracingEnabled()) {
+          // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
+          let traceparentData;
+          if (req.headers && isString(req.headers['sentry-trace'])) {
+            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
+            logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
-        }
 
+          const url = `${req.url}`;
+          // pull off query string, if any
+          let reqPath = stripUrlQueryAndFragment(url);
+          // Replace with placeholder
+          if (req.query) {
+            // TODO get this from next if possible, to avoid accidentally replacing non-dynamic parts of the path if
+            // they match dynamic parts
+            for (const [key, value] of Object.entries(req.query)) {
+              reqPath = reqPath.replace(`${value}`, `[${key}]`);
+            }
+          }
+          const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
+
+          const transaction = startTransaction(
+            {
+              name: `${reqMethod}${reqPath}`,
+              op: 'http.server',
+              ...traceparentData,
+            },
+            // extra context passed to the `tracesSampler`
+            { request: req },
+          );
+          currentScope.setSpan(transaction);
+
+          // save a link to the transaction on the response, so that even if there's an error (landing us outside of
+          // the domain), we can still finish it (albeit possibly missing some scope data)
+          (res as AugmentedResponse).__sentryTransaction = transaction;
+        }
+      }
+
+      try {
         return await handler(req, res); // Call original handler
       } catch (e) {
         withScope(scope => {
