@@ -4,8 +4,8 @@ set -e
 
 function cleanup {
   echo "[nextjs] Cleaning up..."
-  mv next.config.js.bak next.config.js 2> /dev/null || true
-  yarn remove next > /dev/null 2>&1 || true
+  mv next.config.js.bak next.config.js 2>/dev/null || true
+  yarn remove next >/dev/null 2>&1 || true
   echo "[nextjs] Test run complete"
 }
 
@@ -33,11 +33,11 @@ for NEXTJS_VERSION in 10 11; do
 
   echo "[nextjs@$NEXTJS_VERSION] Preparing environment..."
   mv next.config.js next.config.js.bak
-  rm -rf node_modules .next .env.local 2> /dev/null || true
+  rm -rf node_modules .next .env.local 2>/dev/null || true
 
   echo "[nextjs@$NEXTJS_VERSION] Installing dependencies..."
-  yarn --no-lockfile --silent > /dev/null 2>&1
-  yarn add "next@$NEXTJS_VERSION" > /dev/null 2>&1
+  yarn --no-lockfile --silent >/dev/null 2>&1
+  yarn add "next@$NEXTJS_VERSION" >/dev/null 2>&1
 
   for RUN_WEBPACK_5 in false true; do
     [ "$RUN_WEBPACK_5" == true ] &&
@@ -45,9 +45,9 @@ for NEXTJS_VERSION in 10 11; do
       WEBPACK_VERSION=4
 
     if [ "$NEXTJS_VERSION" -eq "10" ]; then
-      sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" < next10.config.template > next.config.js
+      sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next10.config.template >next.config.js
     else
-      sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" < next11.config.template > next.config.js
+      sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next11.config.template >next.config.js
     fi
 
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
@@ -66,8 +66,7 @@ for NEXTJS_VERSION in 10 11; do
     echo "Running server tests with options: $args"
     node test/server.js $args || EXIT_CODE=$?
 
-    if [ $EXIT_CODE -eq 0 ]
-    then
+    if [ $EXIT_CODE -eq 0 ]; then
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Server integration tests passed"
     else
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Server integration tests failed"
@@ -76,12 +75,11 @@ for NEXTJS_VERSION in 10 11; do
 
     echo "Running client tests with options: $args"
     node test/client.js $args || EXIT_CODE=$?
-    if [ $EXIT_CODE -eq 0 ]
-    then
+    if [ $EXIT_CODE -eq 0 ]; then
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"
     else
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests failed"
       exit 1
     fi
   done
-done;
+done
