@@ -69,62 +69,73 @@ export class MetricsInstrumentation {
     global.performance
       .getEntries()
       .slice(this._performanceCursor)
-      .forEach((entry: Record<string, any>) => {
-        const startTime = msToSec(entry.startTime as number);
-        const duration = msToSec(entry.duration as number);
+      .forEach(
+        // eslint-disable-next-line complexity
+        (entry: Record<string, any>) => {
+          const startTime = msToSec(entry.startTime as number);
+          const duration = msToSec(entry.duration as number);
 
-        if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
-          return;
-        }
-
-        switch (entry.entryType) {
-          case 'navigation': {
-            addNavigationSpans(transaction, entry, timeOrigin);
-            responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
-            requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
-            break;
+          if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
+            return;
           }
-          case 'mark':
-          case 'paint':
-          case 'measure': {
-            const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
-            if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
-              tracingInitMarkStartTime = startTimestamp;
+
+          switch (entry.entryType) {
+            case 'navigation': {
+              addNavigationSpans(transaction, entry, timeOrigin);
+              responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
+              requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
+              break;
             }
+            case 'mark':
+            case 'paint':
+            case 'measure': {
+              const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
+              if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
+                tracingInitMarkStartTime = startTimestamp;
+              }
 
-            // capture web vitals
+              // capture web vitals
 
-            const firstHidden = getVisibilityWatcher();
-            // Only report if the page wasn't hidden prior to the web vital.
-            const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
+              const firstHidden = getVisibilityWatcher();
+              // Only report if the page wasn't hidden prior to the web vital.
+              const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
-            if (entry.name === 'first-paint' && shouldRecord) {
-              logger.log('[Measurements] Adding FP');
-              this._measurements['fp'] = { value: entry.startTime };
-              this._measurements['mark.fp'] = { value: startTimestamp };
+              if (entry.name === 'first-paint' && shouldRecord) {
+                logger.log('[Measurements] Adding FP');
+                this._measurements['fp'] = { value: entry.startTime };
+                this._measurements['mark.fp'] = { value: startTimestamp };
+              }
+
+              if (entry.name === 'first-contentful-paint' && shouldRecord) {
+                logger.log('[Measurements] Adding FCP');
+                this._measurements['fcp'] = { value: entry.startTime };
+                this._measurements['mark.fcp'] = { value: startTimestamp };
+              }
+
+              if (this._measurements['fcp']?.value && entry.startTime > this._measurements['fcp'].value) {
+                logger.log('[Measurements] Adding TBT');
+                const entryBlockingTime = entry.duration - 50;
+                if (entryBlockingTime > 0) {
+                  this._measurements['tbt'] = { value: (this._measurements['tbt']?.value || 0) + entryBlockingTime };
+                }
+              }
+
+              break;
             }
-
-            if (entry.name === 'first-contentful-paint' && shouldRecord) {
-              logger.log('[Measurements] Adding FCP');
-              this._measurements['fcp'] = { value: entry.startTime };
-              this._measurements['mark.fcp'] = { value: startTimestamp };
+            case 'resource': {
+              const resourceName = (entry.name as string).replace(window.location.origin, '');
+              const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
+              // We remember the entry script end time to calculate the difference to the first init mark
+              if (entryScriptStartTimestamp === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
+                entryScriptStartTimestamp = endTimestamp;
+              }
+              break;
             }
-
-            break;
+            default:
+            // Ignore other entry types.
           }
-          case 'resource': {
-            const resourceName = (entry.name as string).replace(window.location.origin, '');
-            const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
-            // We remember the entry script end time to calculate the difference to the first init mark
-            if (entryScriptStartTimestamp === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
-              entryScriptStartTimestamp = endTimestamp;
-            }
-            break;
-          }
-          default:
-          // Ignore other entry types.
-        }
-      });
+        },
+      );
 
     if (entryScriptStartTimestamp !== undefined && tracingInitMarkStartTime !== undefined) {
       _startChild(transaction, {

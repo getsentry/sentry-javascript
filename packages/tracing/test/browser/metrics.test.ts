@@ -1,3 +1,10 @@
+// `browserPerformanceTimeOrigin` is an IIFE
+// so we need to mock it before importing modules that reference @sentry/utils.
+jest.mock('@sentry/utils', () => ({
+  ...jest.requireActual('@sentry/utils'),
+  browserPerformanceTimeOrigin: 1,
+}));
+
 import { Span, Transaction } from '../../src';
 import { _startChild, addResourceSpans, MetricsInstrumentation, ResourceEntry } from '../../src/browser/metrics';
 import { addDOMPropertiesToGlobal } from '../testutils';
@@ -195,5 +202,69 @@ describe('MetricsInstrumentation', () => {
     global.process = backup;
 
     trackers.forEach(tracker => expect(tracker).toBeCalled());
+  });
+
+  describe('addPerformanceEntries', () => {
+    const transaction = new Transaction({ name: 'test_transaction' });
+
+    addDOMPropertiesToGlobal(['performance', 'document', 'addEventListener', 'window']);
+    global.performance.now = jest.fn();
+    global.performance.getEntries = jest.fn(() => [
+      {
+        startTime: 100,
+        duration: 100,
+        entryType: 'measure',
+        name: 'first-paint',
+      },
+      {
+        startTime: 400,
+        duration: 200,
+        entryType: 'measure',
+        name: 'first-contentful-paint',
+      },
+      {
+        startTime: 420,
+        duration: 150,
+        entryType: 'measure',
+      },
+      {
+        startTime: 450,
+        duration: 40,
+        entryType: 'measure',
+      },
+      {
+        startTime: 450,
+        duration: 50,
+        entryType: 'measure',
+      },
+      {
+        startTime: 440,
+        duration: 51,
+        entryType: 'measure',
+      },
+      {
+        startTime: 450,
+        duration: 83,
+        entryType: 'measure',
+      },
+    ]);
+
+    const instrumentation = new MetricsInstrumentation();
+    instrumentation.addPerformanceEntries(transaction);
+
+    it('records "first-paint" correctly.', () => {
+      expect((instrumentation as any)._measurements).toHaveProperty('fp');
+      expect((instrumentation as any)._measurements['fp']).toStrictEqual({ value: 100 });
+    });
+
+    it('records "first-contentful-paint" correctly.', () => {
+      expect((instrumentation as any)._measurements).toHaveProperty('fcp');
+      expect((instrumentation as any)._measurements['fcp']).toStrictEqual({ value: 400 });
+    });
+
+    it('records "total-blocking-time" correctly.', () => {
+      expect((instrumentation as any)._measurements).toHaveProperty('tbt');
+      expect((instrumentation as any)._measurements['tbt']).toStrictEqual({ value: 134 });
+    });
   });
 });
