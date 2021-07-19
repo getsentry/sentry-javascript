@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.10.0-beta.2
+
+- fix(nextjs): Do not start a navigation if from url is the same (#3814)
+- fix(nextjs): Use local copies for all sentry packages when testing on vercel (#3812)
+- fix(web-vitals): Check for valid entry in updatedCLS (#3816)
 
 ## 6.9.0
 
