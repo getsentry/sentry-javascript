@@ -53,6 +53,7 @@ export const getUpdatedCLS = (onReport: ReportHandler, reportAllChanges?: boolea
       // entry in the current session. Otherwise, start a new session.
       if (
         sessionValue &&
+        sessionEntries.length !== 0 &&
         entry.startTime - lastSessionEntry.startTime < 1000 &&
         entry.startTime - firstSessionEntry.startTime < 5000
       ) {
