@@ -2,10 +2,18 @@
 
 set -e
 
+START_TIME=$(date -R)
+
 function cleanup {
   echo "[nextjs] Cleaning up..."
   mv next.config.js.bak next.config.js 2>/dev/null || true
   yarn remove next >/dev/null 2>&1 || true
+
+  # Delete yarn's cached versions of sentry packages added during this test run, since every test run installs multiple
+  # copies of each package. Without this, the cache can balloon in size quickly if integration tests are being run
+  # multiple times in a row.
+  find $(yarn cache dir) -iname "npm-@sentry*" -newermt "$START_TIME" -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+
   echo "[nextjs] Test run complete"
 }
 
