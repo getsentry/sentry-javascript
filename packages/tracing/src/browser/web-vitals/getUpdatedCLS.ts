@@ -43,7 +43,8 @@ export const getUpdatedCLS = (onReport: ReportHandler, reportAllChanges?: boolea
 
   const entryHandler = (entry: LayoutShift): void => {
     // Only count layout shifts without recent user input.
-    if (!entry.hadRecentInput) {
+    // TODO: Figure out why entry can be undefined
+    if (entry && !entry.hadRecentInput) {
       const firstSessionEntry = sessionEntries[0];
       const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
 
@@ -52,6 +53,7 @@ export const getUpdatedCLS = (onReport: ReportHandler, reportAllChanges?: boolea
       // entry in the current session. Otherwise, start a new session.
       if (
         sessionValue &&
+        sessionEntries.length !== 0 &&
         entry.startTime - lastSessionEntry.startTime < 1000 &&
         entry.startTime - firstSessionEntry.startTime < 5000
       ) {

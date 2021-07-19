@@ -39,7 +39,7 @@ export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): voi
   let report: ReturnType<typeof bindReporter>;
 
   const entryHandler = (entry: LayoutShift): void => {
-    if (!entry.hadRecentInput) {
+    if (entry && !entry.hadRecentInput) {
       (metric.value as number) += entry.value;
       metric.entries.push(entry);
       if (report) {
