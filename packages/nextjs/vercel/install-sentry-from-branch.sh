@@ -48,9 +48,9 @@ PACKAGE_NAMES=$(ls PACKAGES_DIR)
 # Modify each package's package.json file by searching in it for sentry dependencies from the monorepo and, for each
 # sibling dependency found, replacing the version number with a file dependency pointing to the sibling itself (so
 # `"@sentry/utils": "6.9.0"` becomes `"@sentry/utils": "file:/abs/path/to/sentry-javascript/packages/utils"`)
-for package in $PACKAGE_NAMES; do
+for package in ${PACKAGE_NAMES[@]}; do
   # Within a given package.json file, search for each of the other packages in turn, and if found, make the replacement
-  for package_dep in $PACKAGE_NAMES; do
+  for package_dep in ${PACKAGE_NAMES[@]}; do
     sed -Ei /"@sentry\/${package_dep}"/s/"[0-9]+\.[0-9]+\.[0-9]+"/"file:${ESCAPED_PACKAGES_DIR}\/${package_dep}"/ ${PACKAGES_DIR}/${package}/package.json
   done
 done
