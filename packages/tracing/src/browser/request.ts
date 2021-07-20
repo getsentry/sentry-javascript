@@ -174,7 +174,7 @@ export function fetchCallback(
         type: 'fetch',
       },
       description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
-      op: 'http',
+      op: 'http.client',
     });
 
     handlerData.fetchData.__span = span.spanId;
@@ -246,7 +246,7 @@ export function xhrCallback(
         url: xhr.url,
       },
       description: `${xhr.method} ${xhr.url}`,
-      op: 'http',
+      op: 'http.client',
     });
 
     handlerData.xhr.__sentry_xhr_span_id__ = span.spanId;

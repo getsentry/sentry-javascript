@@ -143,7 +143,7 @@ describe('callbacks', () => {
         url: 'http://dogs.are.great/',
       });
       expect(newSpan!.description).toBe('GET http://dogs.are.great/');
-      expect(newSpan!.op).toBe('http');
+      expect(newSpan!.op).toBe('http.client');
       expect(fetchHandlerData.fetchData?.__span).toBeDefined();
 
       const postRequestFetchHandlerData = {
@@ -233,7 +233,7 @@ describe('callbacks', () => {
         url: 'http://dogs.are.great/',
       });
       expect(newSpan!.description).toBe('GET http://dogs.are.great/');
-      expect(newSpan!.op).toBe('http');
+      expect(newSpan!.op).toBe('http.client');
       expect(xhrHandlerData.xhr!.__sentry_xhr_span_id__).toBeDefined();
       expect(xhrHandlerData.xhr!.__sentry_xhr_span_id__).toEqual(newSpan?.spanId);
 
