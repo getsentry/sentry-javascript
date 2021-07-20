@@ -34,6 +34,7 @@ module.exports = async ({ url, argv }) => {
       },
     },
     argv,
+    'tracingHttp',
   );
 
   await getAsync(`${url}/api/http`);

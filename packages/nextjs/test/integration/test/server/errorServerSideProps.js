@@ -23,6 +23,7 @@ module.exports = async ({ url, argv }) => {
       },
     },
     argv,
+    'errorServerSideProps',
   );
 
   await getAsync(`${url}/withServerSideProps`);

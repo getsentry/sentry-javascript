@@ -54,6 +54,29 @@
       "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
     },
 
+    // @sentry/nextjs - run a specific integration test file
+    // must have file in currently active tab when hitting the play button
+    {
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/nextjs",
+      "name": "Debug @sentry/nextjs integration tests - just open file",
+      // TODO create a build task
+      // "preLaunchTask": "yarn build",
+      "program": "${workspaceFolder}/packages/nextjs/test/integration/test/server.js",
+      "args": [
+        "--debug",
+        // remove these two lines to run all integration tests
+        "--filter",
+        "${fileBasename}"
+      ],
+      "disableOptimisticBPs": true,
+      "sourceMaps": true,
+      "skipFiles": [
+        "<node_internals>/**", "**/tslib/**"
+      ],
+    },
+
     // @sentry/node - run a specific test file in watch mode
     // must have file in currently active tab when hitting the play button
     {
