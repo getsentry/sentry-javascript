@@ -46,8 +46,12 @@ for NEXTJS_VERSION in 10 11; do
   rm -rf node_modules .next .env.local 2>/dev/null || true
 
   echo "[nextjs@$NEXTJS_VERSION] Installing dependencies..."
+  # set the desired version of next long enough to run yarn, and then restore the old version (doing the restoration now
+  # rather than during overall cleanup lets us look for "latest" in both loops)
+  cp package.json package.json.bak
+  sed -i "" /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
   yarn --no-lockfile --silent >/dev/null 2>&1
-  yarn add "next@$NEXTJS_VERSION" >/dev/null 2>&1
+  mv -f package.json.bak package.json 2>/dev/null || true
 
   for RUN_WEBPACK_5 in false true; do
     [ "$RUN_WEBPACK_5" == true ] &&
