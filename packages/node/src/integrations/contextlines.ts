@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
+import { Event, EventProcessor, Integration } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFileSync } from 'fs';
 import { LRUMap } from 'lru_map';
@@ -44,7 +44,6 @@ export class ContextLines implements Integration {
 
   /** Processes an event and adds context lines */
   public process(event: Event): Event {
-    console.log(this);
     const frames = event.exception?.values?.[0].stacktrace?.frames;
 
     if (frames && this._linesOfContext > 0) {
