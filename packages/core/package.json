@@ -16,14 +16,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "6.9.0",
-    "@sentry/minimal": "6.9.0",
-    "@sentry/types": "6.9.0",
-    "@sentry/utils": "6.9.0",
+    "@sentry/hub": "6.10.0-beta.3",
+    "@sentry/minimal": "6.10.0-beta.3",
+    "@sentry/types": "6.10.0-beta.3",
+    "@sentry/utils": "6.10.0-beta.3",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.9.0",
+    "@sentry-internal/eslint-config-sdk": "6.10.0-beta.3",
     "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
     "prettier": "1.19.0",
