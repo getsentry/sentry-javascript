@@ -49,7 +49,11 @@ for NEXTJS_VERSION in 10 11; do
   # set the desired version of next long enough to run yarn, and then restore the old version (doing the restoration now
   # rather than during overall cleanup lets us look for "latest" in both loops)
   cp package.json package.json.bak
-  sed -i "" /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
+  if [[ $(uname) == "Darwin" ]]; then
+    sed -i "" /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
+  else
+    sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
+  fi
   yarn --no-lockfile --silent >/dev/null 2>&1
   mv -f package.json.bak package.json 2>/dev/null || true
 
