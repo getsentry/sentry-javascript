@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.10.0-beta.3
+
+- ref(nextjs): Small changes to `nextjs` integration test runner (#3819)
+- fix(nextjs): Let `flush` finish in API routes (#3811)
+- ref(tracing): Remove updated CLS from web-vitals (#3822) - CHERRY PICKED (NOT
+  MERGED TO MASTER)
+
 ## 6.10.0-beta.2
 
 - fix(nextjs): Do not start a navigation if from url is the same (#3814)
