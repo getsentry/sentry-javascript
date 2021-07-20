@@ -25,6 +25,9 @@ NODE_VERSION=$(node -v)
 NODE_MAJOR=$(echo "$NODE_VERSION" | cut -c2- | cut -d. -f1)
 echo "Running integration tests on Node $NODE_VERSION"
 
+# make a backup of our config file so we can restore it when we're done
+mv next.config.js next.config.js.bak
+
 for NEXTJS_VERSION in 10 11; do
 
   # Next 10 requires at least Node v10
@@ -40,7 +43,6 @@ for NEXTJS_VERSION in 10 11; do
   fi
 
   echo "[nextjs@$NEXTJS_VERSION] Preparing environment..."
-  mv next.config.js next.config.js.bak
   rm -rf node_modules .next .env.local 2>/dev/null || true
 
   echo "[nextjs@$NEXTJS_VERSION] Installing dependencies..."
