@@ -187,11 +187,9 @@ Raven.setUserContext({
 _New_:
 
 ```js
-Sentry.configureScope(scope => {
-  scope.setUser({
-    id: '123',
-    email: 'david@example.com',
-  });
+Sentry.setUser({
+  id: '123',
+  email: 'david@example.com',
 });
 ```
 
