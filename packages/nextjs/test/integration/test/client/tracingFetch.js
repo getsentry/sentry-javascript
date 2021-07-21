@@ -17,7 +17,7 @@ module.exports = async ({ page, url, requests }) => {
       {
         data: { method: 'GET', url: 'http://example.com', type: 'fetch' },
         description: 'GET http://example.com',
-        op: 'http',
+        op: 'http.client',
       },
     ],
   });
