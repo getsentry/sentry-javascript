@@ -10,14 +10,14 @@ import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/util
  */
 const TRACING_GETTER = ({
   id: 'Tracing',
-} as any) as IntegrationClass<Integration>;
+} as any) as IntegrationClass;
 
 /**
  * Used to extract BrowserTracing integration from @sentry/tracing
  */
 const BROWSER_TRACING_GETTER = ({
   id: 'BrowserTracing',
-} as any) as IntegrationClass<Integration>;
+} as any) as IntegrationClass;
 
 /** Global Vue object limited to the methods/attributes we require */
 interface VueInstance {

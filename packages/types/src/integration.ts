@@ -2,7 +2,7 @@ import { EventProcessor } from './eventprocessor';
 import { Hub } from './hub';
 
 /** Integration Class Interface */
-export interface IntegrationClass<T> {
+export interface IntegrationClass<T = Integration> {
   /**
    * Property that holds the integration name
    */

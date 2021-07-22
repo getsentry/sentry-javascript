@@ -232,20 +232,20 @@ function _autoloadDatabaseIntegrations(): void {
 
   const packageToIntegrationMapping: Record<string, () => Integration> = {
     mongodb() {
-      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass<Integration> };
+      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass };
       return new integration.Mongo();
     },
     mongoose() {
-      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass<Integration> };
+      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass };
       return new integration.Mongo({ mongoose: true });
     },
     mysql() {
-      const integration = dynamicRequire(module, './integrations/mysql') as { Mysql: IntegrationClass<Integration> };
+      const integration = dynamicRequire(module, './integrations/mysql') as { Mysql: IntegrationClass };
       return new integration.Mysql();
     },
     pg() {
       const integration = dynamicRequire(module, './integrations/postgres') as {
-        Postgres: IntegrationClass<Integration>;
+        Postgres: IntegrationClass;
       };
       return new integration.Postgres();
     },

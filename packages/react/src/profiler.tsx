@@ -9,7 +9,7 @@ export const UNKNOWN_COMPONENT = 'unknown';
 
 const TRACING_GETTER = ({
   id: 'Tracing',
-} as any) as IntegrationClass<Integration>;
+} as any) as IntegrationClass;
 
 let globalTracingIntegration: Integration | null = null;
 /** @deprecated remove when @sentry/apm no longer used */
