@@ -29,7 +29,7 @@ for (const dir of scenariosDirs) {
 
 const processes = scenarios.map(([filename, filepath]) => {
   return new Promise(resolve => {
-    const scenarioProcess = spawn('/usr/bin/env', ['node', filepath]);
+    const scenarioProcess = spawn('node', [filepath]);
     const output = [];
     const errors = [];
 
