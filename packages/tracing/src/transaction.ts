@@ -116,6 +116,14 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
+    // if this transaction (or any of its descendants) is currently set on the scope, pop it off so that no future
+    // errors or spans get associated with it
+    const currentScope = this._hub.getScope();
+    const spanOnScope = currentScope?.getSpan();
+    if (currentScope && spanOnScope?.transaction === this) {
+      currentScope.setSpan(undefined);
+    }
+
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),

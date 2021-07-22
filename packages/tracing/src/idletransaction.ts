@@ -76,18 +76,15 @@ export class IdleTransaction extends Transaction {
 
   public constructor(
     transactionContext: TransactionContext,
-    private readonly _idleHub?: Hub,
+    _idleHub?: Hub,
     // The time to wait in ms until the idle transaction will be finished. Default: 1000
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
-    // If an idle transaction should be put itself on and off the scope automatically.
-    private readonly _onScope: boolean = false,
+    // If an idle transaction should be put itself on the scope automatically.
+    _onScope: boolean = false,
   ) {
     super(transactionContext, _idleHub);
 
     if (_idleHub && _onScope) {
-      // There should only be one active transaction on the scope
-      clearActiveTransaction(_idleHub);
-
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
       logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
@@ -139,11 +136,6 @@ export class IdleTransaction extends Transaction {
       logger.log('[Tracing] flushing IdleTransaction');
     } else {
       logger.log('[Tracing] No active IdleTransaction');
-    }
-
-    // this._onScope is true if the transaction was previously on the scope.
-    if (this._onScope) {
-      clearActiveTransaction(this._idleHub);
     }
 
     return super.finish(endTimestamp);
@@ -267,20 +259,5 @@ export class IdleTransaction extends Transaction {
     this._heartbeatTimer = (setTimeout(() => {
       this._beat();
     }, 5000) as unknown) as number;
-  }
-}
-
-/**
- * Reset active transaction on scope
- */
-function clearActiveTransaction(hub?: Hub): void {
-  if (hub) {
-    const scope = hub.getScope();
-    if (scope) {
-      const transaction = scope.getTransaction();
-      if (transaction) {
-        scope.setSpan(undefined);
-      }
-    }
   }
 }
