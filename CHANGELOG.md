@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.10.0
+
+- feat(vue): Rework tracing and add support for `Vue 3` (#3804)
+- feat(tracing): Upgrade to `web-vitals 2.1.0` (#3781)
+- fix(ember): Make argument to `InitSentryForEmber` optional (#3802)
+- fix(nextjs): Do not start a navigation if the from URL is the same (#3814)
+- fix(nextjs): Let `flush` finish in API routes (#3811)
+- fix(nextjs): Use `domains` to prevent scope bleed (#3788)
+- fix(react): Make `Route` typing more generic (#3809)
+- ref(tracing): Update span op for outgoing HTTP requests (#3821)
+- ref(tracing): Remove updated CLS from web-vitals (#3822)
 
 ## 6.9.0
 
