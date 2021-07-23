@@ -167,7 +167,7 @@ describe('SentryNode', () => {
       }
     });
 
-    test('capture an exception no pre/post context', done => {
+    test('capture an exception with pre/post context', done => {
       expect.assertions(10);
       getCurrentHub().bindClient(
         new NodeClient({
@@ -177,8 +177,8 @@ describe('SentryNode', () => {
             expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![2].post_context).toBeUndefined();
+            expect(Array.isArray(event.exception!.values![0].stacktrace!.frames![2].pre_context)).toBe(true);
+            expect(Array.isArray(event.exception!.values![0].stacktrace!.frames![2].post_context)).toBe(true);
             expect(event.exception!.values![0].type).toBe('Error');
             expect(event.exception!.values![0].value).toBe('test');
             expect(event.exception!.values![0].stacktrace).toBeTruthy();
@@ -186,7 +186,6 @@ describe('SentryNode', () => {
             return null;
           },
           dsn,
-          frameContextLines: 0,
         }),
       );
       configureScope((scope: Scope) => {
