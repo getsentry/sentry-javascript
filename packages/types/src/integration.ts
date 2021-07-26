@@ -1,7 +1,10 @@
 import { EventProcessor } from './eventprocessor';
 import { Hub } from './hub';
 
-/** Integration Class Interface */
+/**
+ * Integration class interface. Note that this is separate from the {@link Integration} interface, which is for
+ * instances of the class described by this interface.
+ */
 export interface IntegrationClass<T = Integration> {
   /**
    * Property that holds the integration name
@@ -11,7 +14,10 @@ export interface IntegrationClass<T = Integration> {
   new (...args: any[]): T;
 }
 
-/** Integration interface */
+/**
+ * Interface for instances of the `Integration` class. Note that this is separate from the {@link IntegrationClass}
+ * interface.
+ */
 export interface Integration {
   /**
    * Returns {@link IntegrationClass.id}
