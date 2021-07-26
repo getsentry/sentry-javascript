@@ -1,8 +1,10 @@
+import { IntegrationClass } from '@sentry/types';
+
 import { BrowserTracing } from './browser';
 import { addExtensionMethods } from './hubextensions';
 import * as TracingIntegrations from './integrations';
 
-const Integrations = { ...TracingIntegrations, BrowserTracing };
+const Integrations: { [key: string]: IntegrationClass } = { ...TracingIntegrations, BrowserTracing };
 
 export { Integrations };
 export { Span } from './span';
