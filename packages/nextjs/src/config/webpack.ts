@@ -88,7 +88,7 @@ export function constructWebpackConfigFunction(
         newConfig.devtool = 'source-map';
       }
 
-      checkWebpackPluginOverrides(userSentryWebpackPluginOptions);
+      checkWebpackPluginOverrides(defaultSentryWebpackPluginOptions, userSentryWebpackPluginOptions);
 
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
@@ -221,13 +221,15 @@ function addFileToExistingEntryPoint(
  * our default options are getting overridden. (Note: If any of our default values is undefined, it won't be included in
  * the warning.)
  *
- * @param userSentryWebpackPluginOptions The user's SentryWebpackPlugin options
+ * @param defaultOptions Default SentryWebpackPlugin options
+ * @param userOptions The user's SentryWebpackPlugin options
  */
-function checkWebpackPluginOverrides(userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>): void {
+function checkWebpackPluginOverrides(
+  defaultOptions: SentryWebpackPluginOptions,
+  userOptions: Partial<SentryWebpackPluginOptions>,
+): void {
   // warn if any of the default options for the webpack plugin are getting overridden
-  const sentryWebpackPluginOptionOverrides = Object.keys(defaultSentryWebpackPluginOptions)
-    .concat('dryrun')
-    .filter(key => key in userSentryWebpackPluginOptions);
+  const sentryWebpackPluginOptionOverrides = Object.keys(defaultOptions).filter(key => key in userOptions);
   if (sentryWebpackPluginOptionOverrides.length > 0) {
     logger.warn(
       '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
