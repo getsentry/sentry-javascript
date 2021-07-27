@@ -1,4 +1,13 @@
-import { Event, EventHint, Exception, Severity, SeverityLevel, StackFrame, StackParser } from '@sentry/types';
+import {
+  Event,
+  EventHint,
+  Exception,
+  Mechanism,
+  Severity,
+  SeverityLevel,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -149,8 +158,17 @@ export function eventFromException(
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
   const event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
-  addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
+  const providedMechanism: Mechanism | undefined =
+    hint && hint.data && (hint.data as { mechanism: Mechanism }).mechanism;
+  const mechanism: Mechanism = providedMechanism || {
+    handled: true,
+    type: 'generic',
+  };
+
+  addExceptionMechanism(event, mechanism);
+
   event.level = 'error';
+
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
