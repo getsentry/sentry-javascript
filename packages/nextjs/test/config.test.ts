@@ -80,10 +80,12 @@ const clientWebpackConfig = {
   target: 'web',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
+
 const baseBuildContext = {
   dev: false,
   buildId: 'doGsaREgReaT',
   dir: '/Users/Maisey/projects/squirrelChasingSimulator',
+  config: { target: 'server' as const },
 };
 const serverBuildContext = { isServer: true, ...baseBuildContext };
 const clientBuildContext = { isServer: false, ...baseBuildContext };
