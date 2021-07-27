@@ -190,7 +190,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private _getLastUrl(frames: StackFrame[]): string | null {
+  private _getLastValidUrl(frames: StackFrame[] = []): string | null {
     for (let i = frames.length - 1; i >= 0; i--) {
       const frame = frames[i];
 
@@ -207,12 +207,12 @@ export class InboundFilters implements Integration {
     try {
       if (event.stacktrace) {
         const frames = event.stacktrace.frames;
-        return frames ? this._getLastUrl(frames) : null;
+        return this._getLastValidUrl(frames);
       }
       if (event.exception) {
         const frames =
           event.exception.values && event.exception.values[0].stacktrace && event.exception.values[0].stacktrace.frames;
-        return frames ? this._getLastUrl(frames) : null;
+        return this._getLastValidUrl(frames);
       }
       return null;
     } catch (oO) {
