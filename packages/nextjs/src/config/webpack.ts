@@ -136,7 +136,7 @@ async function addSentryToEntryProperty(
     : getUserConfigFile(buildContext.dir, 'client');
 
   for (const entryPointName in newEntryProperty) {
-    if (entryPointName === 'pages/_app' || entryPointName.includes('pages/api')) {
+    if (shouldAddSentryToEntryPoint(entryPointName)) {
       // we need to turn the filename into a path so webpack can find it
       addFileToExistingEntryPoint(newEntryProperty, entryPointName, `./${userConfigFile}`);
     }
@@ -235,4 +235,14 @@ function checkWebpackPluginOverrides(userSentryWebpackPluginOptions: Partial<Sen
         "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
     );
   }
+}
+
+/**
+ * Determine if this is an entry point into which both `Sentry.init()` code and the release value should be injected
+ *
+ * @param entryPointName The name of the entry point in question
+ * @returns `true` if sentry code should be injected, and `false` otherwise
+ */
+function shouldAddSentryToEntryPoint(entryPointName: string): boolean {
+  return entryPointName === 'pages/_app' || entryPointName.includes('pages/api');
 }
