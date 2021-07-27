@@ -1,4 +1,7 @@
-export { SentryCliPluginOptions as SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
+import { SentryCliPluginOptions } from '@sentry/webpack-plugin';
+
+export type SentryWebpackPluginOptions = SentryCliPluginOptions;
+export type SentryWebpackPlugin = { options: SentryWebpackPluginOptions };
 
 /**
  * Overall Nextjs config
