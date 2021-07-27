@@ -156,7 +156,8 @@ export function flush(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  return SyncPromise.reject(false);
+  logger.warn('Cannot flush events. No client defined.');
+  return SyncPromise.resolve(false);
 }
 
 /**
@@ -170,7 +171,8 @@ export function close(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  return SyncPromise.reject(false);
+  logger.warn('Cannot flush events and disable SDK. No client defined.');
+  return SyncPromise.resolve(false);
 }
 
 /**
