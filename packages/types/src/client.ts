@@ -60,18 +60,22 @@ export interface Client<O extends Options = Options> {
   getOptions(): O;
 
   /**
-   * A promise that resolves when all current events have been sent.
-   * If you provide a timeout and the queue takes longer to drain the promise returns false.
+   * Flush the event queue and set the client to `enabled = false`. See {@link Client.flush}.
    *
-   * @param timeout Maximum time in ms the client should wait.
+   * @param timeout Maximum time in ms the client should wait before shutting down. Omitting this parameter will cause
+   *   the client to wait until all events are sent before disabling itself.
+   * @returns A promise which resolves to `true` if the flush completes successfully before the timeout, or `false` if
+   * it doesn't.
    */
   close(timeout?: number): PromiseLike<boolean>;
 
   /**
-   * A promise that resolves when all current events have been sent.
-   * If you provide a timeout and the queue takes longer to drain the promise returns false.
+   * Wait for all events to be sent or the timeout to expire, whichever comes first.
    *
-   * @param timeout Maximum time in ms the client should wait.
+   * @param timeout Maximum time in ms the client should wait for events to be flushed. Omitting this parameter will
+   *   cause the client to wait until all events are sent before resolving the promise.
+   * @returns A promise that will resolve with `true` if all events are sent before the timeout, or `false` if there are
+   * still events in the queue when the timeout is reached.
    */
   flush(timeout?: number): PromiseLike<boolean>;
 
