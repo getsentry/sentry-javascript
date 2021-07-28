@@ -21,9 +21,12 @@ export interface Transport {
   sendSession?(session: Session | SessionAggregates): PromiseLike<Response>;
 
   /**
-   * Call this function to wait until all pending requests have been sent.
+   * Wait for all events to be sent or the timeout to expire, whichever comes first.
    *
-   * @param timeout Number time in ms to wait until the buffer is drained.
+   * @param timeout Maximum time in ms the transport should wait for events to be flushed. Omitting this parameter will
+   *   cause the transport to wait until all events are sent before resolving the promise.
+   * @returns A promise that will resolve with `true` if all events are sent before the timeout, or `false` if there are
+   * still events in the queue when the timeout is reached.
    */
   close(timeout?: number): PromiseLike<boolean>;
 }
