@@ -1,3 +1,8 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as rimraf from 'rimraf';
+
 import { withSentryConfig } from '../src/config';
 import {
   BuildContext,
@@ -7,7 +12,7 @@ import {
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
-import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../src/config/webpack';
+import { constructWebpackConfigFunction, getUserConfigFile, SentryWebpackPlugin } from '../src/config/webpack';
 
 const SERVER_SDK_CONFIG_FILE = 'sentry.server.config.js';
 const CLIENT_SDK_CONFIG_FILE = 'sentry.client.config.js';
@@ -359,5 +364,51 @@ describe('Sentry webpack plugin config', () => {
     const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
 
     expect(finalWebpackConfig?.devtool).not.toEqual('source-map');
+  });
+
+  describe('getUserConfigFile', () => {
+    let tempDir: string;
+
+    beforeAll(() => {
+      exitsSync.mockImplementation(realExistsSync);
+    });
+
+    beforeEach(() => {
+      const tempDirPathPrefix = path.join(os.tmpdir(), 'sentry-nextjs-test-');
+      tempDir = fs.mkdtempSync(tempDirPathPrefix);
+    });
+
+    afterEach(() => {
+      rimraf.sync(tempDir);
+    });
+
+    afterAll(() => {
+      exitsSync.mockImplementation(mockExistsSync);
+    });
+
+    it('successfully finds js files', () => {
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.server.config.js'), 'Dogs are great!');
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.client.config.js'), 'Squirrel!');
+
+      expect(getUserConfigFile(tempDir, 'server')).toEqual('sentry.server.config.js');
+      expect(getUserConfigFile(tempDir, 'client')).toEqual('sentry.client.config.js');
+    });
+
+    it('successfully finds ts files', () => {
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.server.config.ts'), 'Sit. Stay. Lie Down.');
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.client.config.ts'), 'Good dog!');
+
+      expect(getUserConfigFile(tempDir, 'server')).toEqual('sentry.server.config.ts');
+      expect(getUserConfigFile(tempDir, 'client')).toEqual('sentry.client.config.ts');
+    });
+
+    it('errors when files are missing', () => {
+      expect(() => getUserConfigFile(tempDir, 'server')).toThrowError(
+        `Cannot find 'sentry.server.config.ts' or 'sentry.server.config.js' in '${tempDir}'`,
+      );
+      expect(() => getUserConfigFile(tempDir, 'client')).toThrowError(
+        `Cannot find 'sentry.client.config.ts' or 'sentry.client.config.js' in '${tempDir}'`,
+      );
+    });
   });
 });

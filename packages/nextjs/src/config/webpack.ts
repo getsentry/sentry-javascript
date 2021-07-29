@@ -153,7 +153,7 @@ async function addSentryToEntryProperty(
  * @param platform Either "server" or "client", so that we know which file to look for
  * @returns The name of the relevant file. If no file is found, this method throws an error.
  */
-function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string {
+export function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string {
   let configFile;
 
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
