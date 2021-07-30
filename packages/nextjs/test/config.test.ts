@@ -1,3 +1,8 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as rimraf from 'rimraf';
+
 import { withSentryConfig } from '../src/config';
 import {
   BuildContext,
@@ -7,12 +12,24 @@ import {
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
-import {
-  CLIENT_SDK_CONFIG_FILE,
-  constructWebpackConfigFunction,
-  SentryWebpackPlugin,
-  SERVER_SDK_CONFIG_FILE,
-} from '../src/config/webpack';
+import { constructWebpackConfigFunction, getUserConfigFile, SentryWebpackPlugin } from '../src/config/webpack';
+
+const SERVER_SDK_CONFIG_FILE = 'sentry.server.config.js';
+const CLIENT_SDK_CONFIG_FILE = 'sentry.client.config.js';
+
+// We use `fs.existsSync()` in `getUserConfigFile()`. When we're not testing `getUserConfigFile()` specifically, all we
+// need is for it to give us any valid answer, so make it always find what it's looking for. Since this is a core node
+// built-in, though, which jest itself uses, otherwise let it do the normal thing. Storing the real version of the
+// function also lets us restore the original when we do want to test `getUserConfigFile()`.
+const realExistsSync = jest.requireActual('fs').existsSync;
+const mockExistsSync = (path: fs.PathLike) => {
+  if ((path as string).endsWith(SERVER_SDK_CONFIG_FILE) || (path as string).endsWith(CLIENT_SDK_CONFIG_FILE)) {
+    return true;
+  }
+
+  return realExistsSync(path);
+};
+const exitsSync = jest.spyOn(fs, 'existsSync').mockImplementation(mockExistsSync);
 
 /** Mocks of the arguments passed to `withSentryConfig` */
 const userNextConfig = {
@@ -63,8 +80,13 @@ const clientWebpackConfig = {
   target: 'web',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
-const serverBuildContext = { isServer: true, dev: false, buildId: 'doGsaREgReaT' };
-const clientBuildContext = { isServer: false, dev: false, buildId: 'doGsaREgReaT' };
+const baseBuildContext = {
+  dev: false,
+  buildId: 'doGsaREgReaT',
+  dir: '/Users/Maisey/projects/squirrelChasingSimulator',
+};
+const serverBuildContext = { isServer: true, ...baseBuildContext };
+const clientBuildContext = { isServer: false, ...baseBuildContext };
 
 /**
  * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
@@ -223,6 +245,9 @@ describe('webpack config', () => {
   });
 
   describe('webpack `entry` property config', () => {
+    const serverConfigFilePath = `./${SERVER_SDK_CONFIG_FILE}`;
+    const clientConfigFilePath = `./${CLIENT_SDK_CONFIG_FILE}`;
+
     it('handles various entrypoint shapes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
@@ -234,23 +259,23 @@ describe('webpack config', () => {
         expect.objectContaining({
           // original entry point value is a string
           // (was 'private-next-pages/api/dogs/[name].js')
-          'pages/api/dogs/[name]': [SERVER_SDK_CONFIG_FILE, 'private-next-pages/api/dogs/[name].js'],
+          'pages/api/dogs/[name]': [serverConfigFilePath, 'private-next-pages/api/dogs/[name].js'],
 
           // original entry point value is a string array
           // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
-          'pages/_app': [SERVER_SDK_CONFIG_FILE, './node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+          'pages/_app': [serverConfigFilePath, './node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
 
           // original entry point value is an object containing a string `import` value
           // (`import` was 'private-next-pages/api/simulator/dogStats/[name].js')
           'pages/api/simulator/dogStats/[name]': {
-            import: [SERVER_SDK_CONFIG_FILE, 'private-next-pages/api/simulator/dogStats/[name].js'],
+            import: [serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
           },
 
           // original entry point value is an object containing a string array `import` value
           // (`import` was ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'])
           'pages/api/simulator/leaderboard': {
             import: [
-              SERVER_SDK_CONFIG_FILE,
+              serverConfigFilePath,
               './node_modules/dogPoints/converter.js',
               'private-next-pages/api/simulator/leaderboard.js',
             ],
@@ -259,7 +284,7 @@ describe('webpack config', () => {
           // original entry point value is an object containg properties besides `import`
           // (`dependOn` remains untouched)
           'pages/api/tricks/[trickName]': {
-            import: [SERVER_SDK_CONFIG_FILE, 'private-next-pages/api/tricks/[trickName].js'],
+            import: [serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
             dependOn: 'treats',
           },
         }),
@@ -278,7 +303,7 @@ describe('webpack config', () => {
           // no injected file
           main: './src/index.ts',
           // was 'next-client-pages-loader?page=%2F_app'
-          'pages/_app': [CLIENT_SDK_CONFIG_FILE, 'next-client-pages-loader?page=%2F_app'],
+          'pages/_app': [clientConfigFilePath, 'next-client-pages-loader?page=%2F_app'],
         }),
       );
     });
@@ -339,5 +364,51 @@ describe('Sentry webpack plugin config', () => {
     const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
 
     expect(finalWebpackConfig?.devtool).not.toEqual('source-map');
+  });
+
+  describe('getUserConfigFile', () => {
+    let tempDir: string;
+
+    beforeAll(() => {
+      exitsSync.mockImplementation(realExistsSync);
+    });
+
+    beforeEach(() => {
+      const tempDirPathPrefix = path.join(os.tmpdir(), 'sentry-nextjs-test-');
+      tempDir = fs.mkdtempSync(tempDirPathPrefix);
+    });
+
+    afterEach(() => {
+      rimraf.sync(tempDir);
+    });
+
+    afterAll(() => {
+      exitsSync.mockImplementation(mockExistsSync);
+    });
+
+    it('successfully finds js files', () => {
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.server.config.js'), 'Dogs are great!');
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.client.config.js'), 'Squirrel!');
+
+      expect(getUserConfigFile(tempDir, 'server')).toEqual('sentry.server.config.js');
+      expect(getUserConfigFile(tempDir, 'client')).toEqual('sentry.client.config.js');
+    });
+
+    it('successfully finds ts files', () => {
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.server.config.ts'), 'Sit. Stay. Lie Down.');
+      fs.writeFileSync(path.resolve(tempDir, 'sentry.client.config.ts'), 'Good dog!');
+
+      expect(getUserConfigFile(tempDir, 'server')).toEqual('sentry.server.config.ts');
+      expect(getUserConfigFile(tempDir, 'client')).toEqual('sentry.client.config.ts');
+    });
+
+    it('errors when files are missing', () => {
+      expect(() => getUserConfigFile(tempDir, 'server')).toThrowError(
+        `Cannot find 'sentry.server.config.ts' or 'sentry.server.config.js' in '${tempDir}'`,
+      );
+      expect(() => getUserConfigFile(tempDir, 'client')).toThrowError(
+        `Cannot find 'sentry.client.config.ts' or 'sentry.client.config.js' in '${tempDir}'`,
+      );
+    });
   });
 });
