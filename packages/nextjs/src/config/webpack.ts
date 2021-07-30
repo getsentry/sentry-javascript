@@ -154,22 +154,15 @@ async function addSentryToEntryProperty(
  * @returns The name of the relevant file. If no file is found, this method throws an error.
  */
 export function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string {
-  let configFile;
-
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
 
   for (const filename of possibilities) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
-      configFile = filename;
-      break;
+      return filename;
     }
   }
 
-  if (!configFile) {
-    throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
-  }
-
-  return configFile;
+  throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
 }
 
 /**
