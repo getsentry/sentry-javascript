@@ -171,10 +171,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         return element;
       }
 
-      if (fallback) {
-        console.log('ErrorBoundary: fallback did not produce a ReactElement');
-      }
-
       // Fail gracefully if no fallback provided or is not valid
       return null;
     }
