@@ -33,7 +33,7 @@ commit (but not push) this change.
 
 Go into your project settings on Vercel and change the install command to
 
-  `source .sentry/install-sentry-from-branch.sh`.
+  `bash .sentry/install-sentry-from-branch.sh`.
 
 If you're using bundle analyzer, change the build command to
 

@@ -38,12 +38,40 @@ export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): voi
   const metric = initMetric('CLS', 0);
   let report: ReturnType<typeof bindReporter>;
 
+  let sessionValue = 0;
+  let sessionEntries: PerformanceEntry[] = [];
+
   const entryHandler = (entry: LayoutShift): void => {
-    if (!entry.hadRecentInput) {
-      (metric.value as number) += entry.value;
-      metric.entries.push(entry);
-      if (report) {
-        report();
+    // Only count layout shifts without recent user input.
+    // TODO: Figure out why entry can be undefined
+    if (entry && !entry.hadRecentInput) {
+      const firstSessionEntry = sessionEntries[0];
+      const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
+
+      // If the entry occurred less than 1 second after the previous entry and
+      // less than 5 seconds after the first entry in the session, include the
+      // entry in the current session. Otherwise, start a new session.
+      if (
+        sessionValue &&
+        sessionEntries.length !== 0 &&
+        entry.startTime - lastSessionEntry.startTime < 1000 &&
+        entry.startTime - firstSessionEntry.startTime < 5000
+      ) {
+        sessionValue += entry.value;
+        sessionEntries.push(entry);
+      } else {
+        sessionValue = entry.value;
+        sessionEntries = [entry];
+      }
+
+      // If the current session value is larger than the current CLS value,
+      // update CLS and the entries contributing to it.
+      if (sessionValue > metric.value) {
+        metric.value = sessionValue;
+        metric.entries = sessionEntries;
+        if (report) {
+          report();
+        }
       }
     }
   };

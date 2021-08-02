@@ -3,7 +3,9 @@ const assert = require('assert');
 const { sleep } = require('../utils/common');
 const { getAsync, interceptEventRequest } = require('../utils/server');
 
-module.exports = async ({ url, argv }) => {
+module.exports = async ({ url: urlBase, argv }) => {
+  const url = `${urlBase}/withServerSideProps`;
+
   const capturedRequest = interceptEventRequest(
     {
       exception: {
@@ -18,14 +20,15 @@ module.exports = async ({ url, argv }) => {
         runtime: 'node',
       },
       request: {
-        url: '/withServerSideProps',
+        url,
         method: 'GET',
       },
     },
     argv,
+    'errorServerSideProps',
   );
 
-  await getAsync(`${url}/withServerSideProps`);
+  await getAsync(url);
   await sleep(100);
 
   assert.ok(capturedRequest.isDone(), 'Did not intercept expected request');

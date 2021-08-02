@@ -86,7 +86,9 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
     // internal API.
     ...args: any[]
   ): Promise<boolean> {
-    if (startTransaction !== undefined) {
+    const newTransactionName = stripUrlQueryAndFragment(url);
+    // do not start a transaction if it's from the same page
+    if (startTransaction !== undefined && prevTransactionName !== newTransactionName) {
       if (activeTransaction) {
         activeTransaction.finish();
       }
@@ -98,7 +100,7 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
       if (prevTransactionName) {
         tags.from = prevTransactionName;
       }
-      prevTransactionName = stripUrlQueryAndFragment(url);
+      prevTransactionName = newTransactionName;
       activeTransaction = startTransaction({
         name: prevTransactionName,
         op: 'navigation',

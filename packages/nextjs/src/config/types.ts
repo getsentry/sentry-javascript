@@ -43,7 +43,7 @@ export type WebpackConfigObject = {
 };
 
 // Information about the current build environment
-export type BuildContext = { dev: boolean; isServer: boolean; buildId: string };
+export type BuildContext = { dev: boolean; isServer: boolean; buildId: string; dir: string };
 
 /**
  * Webpack `entry` config

@@ -1,6 +1,8 @@
 import { getSentryRelease } from '@sentry/node';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import {
   BuildContext,
@@ -18,9 +20,6 @@ export { SentryWebpackPlugin };
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
-
-export const CLIENT_SDK_CONFIG_FILE = './sentry.client.config.js';
-export const SERVER_SDK_CONFIG_FILE = './sentry.server.config.js';
 
 const defaultSentryWebpackPluginOptions = dropUndefinedKeys({
   url: process.env.SENTRY_URL,
@@ -132,15 +131,38 @@ async function addSentryToEntryProperty(
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
-  const userConfigFile = buildContext.isServer ? SERVER_SDK_CONFIG_FILE : CLIENT_SDK_CONFIG_FILE;
+  const userConfigFile = buildContext.isServer
+    ? getUserConfigFile(buildContext.dir, 'server')
+    : getUserConfigFile(buildContext.dir, 'client');
 
   for (const entryPointName in newEntryProperty) {
     if (entryPointName === 'pages/_app' || entryPointName.includes('pages/api')) {
-      addFileToExistingEntryPoint(newEntryProperty, entryPointName, userConfigFile);
+      // we need to turn the filename into a path so webpack can find it
+      addFileToExistingEntryPoint(newEntryProperty, entryPointName, `./${userConfigFile}`);
     }
   }
 
   return newEntryProperty;
+}
+
+/**
+ * Search the project directory for a valid user config file for the given platform, allowing for it to be either a
+ * TypeScript or JavaScript file.
+ *
+ * @param projectDir The root directory of the project, where the file should be located
+ * @param platform Either "server" or "client", so that we know which file to look for
+ * @returns The name of the relevant file. If no file is found, this method throws an error.
+ */
+export function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string {
+  const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
+
+  for (const filename of possibilities) {
+    if (fs.existsSync(path.resolve(projectDir, filename))) {
+      return filename;
+    }
+  }
+
+  throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
 }
 
 /**

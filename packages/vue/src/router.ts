@@ -11,7 +11,7 @@ export type VueRouterInstrumentation = <T extends Transaction>(
 type Route = {
   params: any;
   query: any;
-  name: any;
+  name?: any;
   path: any;
   matched: any[];
 };
