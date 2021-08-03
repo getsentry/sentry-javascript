@@ -103,7 +103,9 @@ export class Hub implements HubInterface {
    */
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
     this.getStackTop().scope = scope;
-    this.bindClient(client);
+    if (client) {
+      this.bindClient(client);
+    }
   }
 
   /**

@@ -2,6 +2,7 @@ import { Hub, Scope, Session } from '@sentry/hub';
 import { Event, Severity, Span } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
+import * as integrationModule from '../../src/integration';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
@@ -871,6 +872,26 @@ describe('BaseClient', () => {
       client.setupIntegrations();
       expect(Object.keys((client as any)._integrations).length).toBe(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
+    });
+
+    test('skips installation if integrations are already installed', () => {
+      expect.assertions(4);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        integrations: [new TestIntegration()],
+      });
+      // note: not the `Client` method `setupIntegrations`, but the free-standing function which that method calls
+      const setupIntegrationsHelper = jest.spyOn(integrationModule, 'setupIntegrations');
+
+      // it should install the first time, because integrations aren't yet installed...
+      client.setupIntegrations();
+      expect(Object.keys((client as any)._integrations).length).toBe(1);
+      expect(client.getIntegration(TestIntegration)).toBeTruthy();
+      expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
+
+      // ...but it shouldn't try to install a second time
+      client.setupIntegrations();
+      expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
     });
   });
 

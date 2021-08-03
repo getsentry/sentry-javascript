@@ -5,9 +5,9 @@ import { logger } from '@sentry/utils';
 export const installedIntegrations: string[] = [];
 
 /** Map of integrations assigned to a client */
-export interface IntegrationIndex {
+export type IntegrationIndex = {
   [key: string]: Integration;
-}
+} & { initialized?: boolean };
 
 /**
  * @private
@@ -74,5 +74,9 @@ export function setupIntegrations<O extends Options>(options: O): IntegrationInd
     integrations[integration.name] = integration;
     setupIntegration(integration);
   });
+  // set the `initialized` flag so we don't run through the process again unecessarily; use `Object.defineProperty`
+  // because by default it creates a property which is nonenumerable, which we want since `initialized` shouldn't be
+  // considered a member of the index the way the actual integrations are
+  Object.defineProperty(integrations, 'initialized', { value: true });
   return integrations;
 }
