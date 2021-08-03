@@ -54,7 +54,7 @@ function addServerIntegrations(options: NextjsOptions): void {
 }
 
 export { withSentryConfig } from './config';
-export { withSentry } from './utils/handlers';
+export { withSentry } from './utils/withSentry';
 
 // wrap various server methods to enable error monitoring and tracing
 instrumentServer();
