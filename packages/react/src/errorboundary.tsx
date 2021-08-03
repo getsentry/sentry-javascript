@@ -8,7 +8,7 @@ import {
   withScope,
 } from '@sentry/browser';
 import { Event } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
+import { logger, parseSemver } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -169,6 +169,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
       if (React.isValidElement(element)) {
         return element;
+      }
+
+      if (fallback) {
+        logger.warn('fallback did not produce a valid ReactElement');
       }
 
       // Fail gracefully if no fallback provided or is not valid
