@@ -45,7 +45,8 @@ export class LinkedErrors implements Integration {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
-        return self._handler(event, hint);
+        const handler = self._handler && self._handler.bind(self);
+        return typeof handler === 'function' ? handler(event, hint) : event;
       }
       return event;
     });
