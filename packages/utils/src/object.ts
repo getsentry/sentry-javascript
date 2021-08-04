@@ -108,9 +108,11 @@ function getWalkSource(
       [key: string]: any;
     } = {};
 
+    // Accessing event attributes can throw (see https://github.com/getsentry/sentry-javascript/issues/768 and
+    // https://github.com/getsentry/sentry-javascript/issues/838), but accessing `type` hasn't been wrapped in a
+    // try-catch in at least two years and no one's complained, so that's likely not an issue anymore
     source.type = event.type;
 
-    // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
       source.target = isElement(event.target)
         ? htmlTreeAsString(event.target)
