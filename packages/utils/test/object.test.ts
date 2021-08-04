@@ -4,6 +4,7 @@
 
 import * as isModule from '../src/is';
 import { dropUndefinedKeys, extractExceptionKeysForMessage, fill, normalize, urlEncode } from '../src/object';
+import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('fill()', () => {
   test('wraps a method by calling a replacement function on it', () => {
@@ -150,7 +151,7 @@ describe('normalize()', () => {
       });
     });
 
-    test('extracts data from `Event` objects', () => {
+    testOnlyIfNodeVersionAtLeast(8)('extracts data from `Event` objects', () => {
       const isElement = jest.spyOn(isModule, 'isElement').mockReturnValue(true);
       const getAttribute = () => undefined;
 
