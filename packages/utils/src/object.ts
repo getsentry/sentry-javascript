@@ -133,7 +133,7 @@ function getWalkSource(
 
     for (const i in event) {
       if (Object.prototype.hasOwnProperty.call(event, i)) {
-        source[i] = event;
+        source[i] = event[i];
       }
     }
 
