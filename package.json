@@ -67,7 +67,7 @@
     "sinon": "^7.3.2",
     "size-limit": "^4.5.5",
     "ts-jest": "^24.0.2",
-    "typedoc": "^0.18.0",
+    "typedoc": "0.18.0",
     "typescript": "3.7.5"
   },
   "resolutions": {

@@ -87,6 +87,11 @@ jobs:
       - name: Run prepublishOnly script
         if: startsWith(github.ref, 'refs/heads/release/')
         run: yarn prepublishOnly
+      - name: Build docs
+        run: make build-docs
+      - name: ZIP docs
+        run: zip -r gh-pages ./docs/
+
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -141,31 +146,6 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run linter
         run: yarn lint
-
-  job_typedocs:
-    name: Typedocs
-    needs: job_build
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out current commit (${{ github.sha }})
-        uses: actions/checkout@v2
-      - name: Set up Node
-        uses: actions/setup-node@v1
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Build docs
-        run: make build-docs
-      - name: ZIP docs
-        run: zip -r gh-pages ./docs/
 
   job_circular_dep_check:
     name: Circular Dependency Check
