@@ -14,7 +14,6 @@
     "codecov": "codecov",
     "pack:changed": "lerna run pack --since",
     "prepublishOnly": "lerna run --stream --concurrency 1 prepublishOnly",
-    "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish",
     "circularDepCheck": "lerna run --parallel circularDepCheck"
   },
   "volta": {
