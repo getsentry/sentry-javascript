@@ -1,5 +1,6 @@
 import { RewriteFrames } from '@sentry/integrations';
-import { configureScope, init as nodeInit, Integrations } from '@sentry/node';
+import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { logger } from '@sentry/utils';
 
 import { instrumentServer } from './utils/instrumentServer';
 import { MetadataBuilder } from './utils/metadataBuilder';
@@ -14,6 +15,17 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
+  if (options.debug) {
+    logger.enable();
+  }
+
+  logger.log('Initializing SDK...');
+
+  if (sdkAlreadyInitialized()) {
+    logger.log('SDK already initialized');
+    return;
+  }
+
   const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
   metadataBuilder.addSdkMetadata();
   options.environment = options.environment || process.env.NODE_ENV;
@@ -26,6 +38,13 @@ export function init(options: NextjsOptions): void {
   configureScope(scope => {
     scope.setTag('runtime', 'node');
   });
+
+  logger.log('SDK successfully initialized');
+}
+
+function sdkAlreadyInitialized(): boolean {
+  const hub = getCurrentHub();
+  return !!hub.getClient();
 }
 
 const SOURCEMAP_FILENAME_REGEX = /^.*\/\.next\//;
@@ -54,7 +73,7 @@ function addServerIntegrations(options: NextjsOptions): void {
 }
 
 export { withSentryConfig } from './config';
-export { withSentry } from './utils/handlers';
+export { withSentry } from './utils/withSentry';
 
 // wrap various server methods to enable error monitoring and tracing
 instrumentServer();

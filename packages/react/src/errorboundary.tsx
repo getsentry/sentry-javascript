@@ -8,7 +8,7 @@ import {
   withScope,
 } from '@sentry/browser';
 import { Event } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
+import { logger, parseSemver } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -21,7 +21,7 @@ export type FallbackRender = (errorData: {
   componentStack: string | null;
   eventId: string | null;
   resetError(): void;
-}) => React.ReactNode;
+}) => React.ReactElement;
 
 export type ErrorBoundaryProps = {
   /** If a Sentry report dialog should be rendered on error */
@@ -39,7 +39,7 @@ export type ErrorBoundaryProps = {
    * the error, the component stack, and an function that resets the error boundary on error.
    *
    */
-  fallback?: React.ReactNode | FallbackRender;
+  fallback?: React.ReactElement | FallbackRender;
   /** Called with the error boundary encounters an error */
   onError?(error: Error, componentStack: string, eventId: string): void;
   /** Called on componentDidMount() */
@@ -160,14 +160,22 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { error, componentStack, eventId } = this.state;
 
     if (error) {
-      if (React.isValidElement(fallback)) {
-        return fallback;
-      }
+      let element: React.ReactElement | undefined = undefined;
       if (typeof fallback === 'function') {
-        return fallback({ error, componentStack, resetError: this.resetErrorBoundary, eventId }) as FallbackRender;
+        element = fallback({ error, componentStack, resetError: this.resetErrorBoundary, eventId });
+      } else {
+        element = fallback;
       }
 
-      // Fail gracefully if no fallback provided
+      if (React.isValidElement(element)) {
+        return element;
+      }
+
+      if (fallback) {
+        logger.warn('fallback did not produce a valid ReactElement');
+      }
+
+      // Fail gracefully if no fallback provided or is not valid
       return null;
     }
 
