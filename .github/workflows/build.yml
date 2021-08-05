@@ -14,6 +14,7 @@ env:
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
   CACHED_BUILD_PATHS: |
+    ${{ github.workspace }}/gh-pages.zip
     ${{ github.workspace }}/packages/**/build
     ${{ github.workspace }}/packages/**/dist
     ${{ github.workspace }}/packages/**/esm
@@ -140,6 +141,31 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run linter
         run: yarn lint
+
+  job_typedocs:
+    name: Typedocs
+    needs: job_build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Build docs
+        run: make build-docs
+      - name: ZIP docs
+        run: zip -r gh-pages ./docs/
 
   job_circular_dep_check:
     name: Circular Dependency Check
