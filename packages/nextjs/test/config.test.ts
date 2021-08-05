@@ -9,6 +9,7 @@ import {
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
+  SentryWebpackPlugin as SentryWebpackPluginType,
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
@@ -44,7 +45,9 @@ const userNextConfig = {
       }),
   }),
 };
-const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator', include: './thirdPartyMaps' };
+const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator' };
+process.env.SENTRY_AUTH_TOKEN = 'dogsarebadatkeepingsecrets';
+process.env.SENTRY_RELEASE = 'doGsaREgReaT';
 
 /** Mocks of the arguments passed to the result of `withSentryConfig` (when it's a function). */
 const runtimePhase = 'ball-fetching';
@@ -80,10 +83,12 @@ const clientWebpackConfig = {
   target: 'web',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
+
 const baseBuildContext = {
   dev: false,
-  buildId: 'doGsaREgReaT',
+  buildId: 'sItStAyLiEdOwN',
   dir: '/Users/Maisey/projects/squirrelChasingSimulator',
+  config: { target: 'server' as const },
 };
 const serverBuildContext = { isServer: true, ...baseBuildContext };
 const clientBuildContext = { isServer: false, ...baseBuildContext };
@@ -100,7 +105,7 @@ const clientBuildContext = { isServer: false, ...baseBuildContext };
  */
 function materializeFinalNextConfig(
   userNextConfig: ExportedNextConfig,
-  userSentryWebpackPluginConfig?: SentryWebpackPluginOptions,
+  userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
   const sentrifiedConfig = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
   let finalConfigValues = sentrifiedConfig;
@@ -131,7 +136,7 @@ function materializeFinalNextConfig(
  */
 async function materializeFinalWebpackConfig(options: {
   userNextConfig: ExportedNextConfig;
-  userSentryWebpackPluginConfig?: SentryWebpackPluginOptions;
+  userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>;
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
 }): Promise<WebpackConfigObject> {
@@ -311,12 +316,40 @@ describe('webpack config', () => {
 });
 
 describe('Sentry webpack plugin config', () => {
-  it('includes expected properties', () => {
-    // TODO
+  it('includes expected properties', async () => {
+    // also, can pull from either env or user config (see notes on specific properties below)
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      userNextConfig,
+      userSentryWebpackPluginConfig,
+      incomingWebpackConfig: serverWebpackConfig,
+      incomingWebpackBuildContext: serverBuildContext,
+    });
+
+    expect(finalWebpackConfig.plugins?.[0].options).toEqual(
+      expect.objectContaining({
+        include: expect.any(Array), // default, tested separately elsewhere
+        ignore: [], // default
+        org: 'squirrelChasers', // from user webpack plugin config
+        project: 'simulator', // from user webpack plugin config
+        authToken: 'dogsarebadatkeepingsecrets', // picked up from env
+        stripPrefix: ['webpack://_N_E/'], // default
+        urlPrefix: `~/_next`, // default
+        entries: expect.any(Function), // default, tested separately elsewhere
+        release: 'doGsaREgReaT', // picked up from env
+        dryRun: false, // based on buildContext.dev being false
+      }),
+    );
   });
 
-  it('preserves unrelated plugin config options', () => {
-    // TODO
+  it('preserves unrelated plugin config options', async () => {
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      userNextConfig,
+      userSentryWebpackPluginConfig: { ...userSentryWebpackPluginConfig, debug: true },
+      incomingWebpackConfig: serverWebpackConfig,
+      incomingWebpackBuildContext: serverBuildContext,
+    });
+
+    expect((finalWebpackConfig.plugins?.[0].options as SentryWebpackPluginOptions).debug).toEqual(true);
   });
 
   it('warns when overriding certain default values', () => {
@@ -325,6 +358,51 @@ describe('Sentry webpack plugin config', () => {
 
   it("merges default include and ignore/ignoreFile options with user's values", () => {
     // do we even want to do this?
+  });
+
+  describe('Sentry webpack plugin `include` option', () => {
+    it('has the correct value when building client bundles', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/static/chunks/pages'], urlPrefix: '~/_next/static/chunks/pages' },
+      ]);
+    });
+
+    it('has the correct value when building serverless server bundles', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: { ...serverBuildContext, config: { target: 'experimental-serverless-trace' } },
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/serverless/'], urlPrefix: '~/_next/serverless' },
+      ]);
+    });
+
+    it('has the correct value when building serverful server bundles', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' },
+        { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
+      ]);
+    });
   });
 
   it('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {

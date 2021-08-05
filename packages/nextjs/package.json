@@ -23,7 +23,7 @@
     "@sentry/react": "6.10.0",
     "@sentry/tracing": "6.10.0",
     "@sentry/utils": "6.10.0",
-    "@sentry/webpack-plugin": "1.15.1",
+    "@sentry/webpack-plugin": "1.17.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
