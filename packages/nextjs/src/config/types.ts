@@ -9,6 +9,8 @@ export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
 export type NextConfigObject = {
   // custom webpack options
   webpack?: WebpackConfigFunction;
+  // whether to build serverless functions for all pages, not just API routes
+  target?: 'server' | 'experimental-serverless-trace';
   sentry?: {
     disableServerWebpackPlugin?: boolean;
     disableClientWebpackPlugin?: boolean;
