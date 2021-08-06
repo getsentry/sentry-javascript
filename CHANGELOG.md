@@ -6,17 +6,17 @@
 
 ## 6.11.0
 
-feat(nextjs): Allow for TypeScript user config files (#3847)
-fix(browser): Make sure handler exists for LinkedErrors Integration (#3861)
-fix(core): Skip anonymous callbacks while searching frame URLs. (#3842)
-fix(core): Stop rejecting in `flush` and `close` when client undefined (#3846)
-fix(nextjs): Stop `SentryWebpackPlugin` from uploading unnecessary files (#3845)
-fix(react): Require ReactElement in ErrorBoundary props and render (#3857)
-fix(tests): Allow tests to run on Windows without WSL (#3813)
-fix(utils): Fix false-positive circular references when normalizing `Event` objects (#3864)
-fix(vue): Make Router.name type optional to match VueRouter (#3843)
-ref(core): Prevent redundant setup work (#3862)
-ref(nextjs): Stop reinitializing the server SDK unnecessarily (#3860)
+- feat(nextjs): Allow for TypeScript user config files (#3847)
+- fix(browser): Make sure handler exists for LinkedErrors Integration (#3861)
+- fix(core): Skip anonymous callbacks while searching frame URLs. (#3842)
+- fix(core): Stop rejecting in `flush` and `close` when client undefined (#3846)
+- fix(nextjs): Stop `SentryWebpackPlugin` from uploading unnecessary files (#3845)
+- fix(react): Require ReactElement in ErrorBoundary props and render (#3857)
+- fix(tests): Allow tests to run on Windows without WSL (#3813)
+- fix(utils): Fix false-positive circular references when normalizing `Event` objects (#3864)
+- fix(vue): Make Router.name type optional to match VueRouter (#3843)
+- ref(core): Prevent redundant setup work (#3862)
+- ref(nextjs): Stop reinitializing the server SDK unnecessarily (#3860)
 
 ## 6.10.0
 
