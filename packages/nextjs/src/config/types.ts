@@ -54,6 +54,7 @@ export type BuildContext = {
   buildId: string;
   dir: string;
   config: Partial<NextConfigObject>;
+  webpack: { version: string };
 };
 
 /**
