@@ -6,6 +6,7 @@ import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNode
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
+import { BrowserMetricOptions } from './browsertracing';
 import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
@@ -22,15 +23,15 @@ export class MetricsInstrumentation {
   private _lcpEntry: LargestContentfulPaint | undefined;
   private _clsEntry: LayoutShift | undefined;
 
-  public constructor() {
+  public constructor(_options?: BrowserMetricOptions) {
     if (!isNodeEnv() && global?.performance) {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
 
-      this._trackCLS();
-      this._trackLCP();
-      this._trackFID();
+      this._trackCLS(_options);
+      this._trackLCP(_options);
+      this._trackFID(_options);
     }
   }
 
@@ -230,7 +231,7 @@ export class MetricsInstrumentation {
   }
 
   /** Starts tracking the Cumulative Layout Shift on the current page. */
-  private _trackCLS(): void {
+  private _trackCLS(_options?: BrowserMetricOptions): void {
     // See:
     // https://web.dev/evolving-cls/
     // https://web.dev/cls-web-tooling/
@@ -285,7 +286,7 @@ export class MetricsInstrumentation {
   }
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
-  private _trackLCP(): void {
+  private _trackLCP(_options?: BrowserMetricOptions): void {
     getLCP(metric => {
       const entry = metric.entries.pop();
 
@@ -299,11 +300,11 @@ export class MetricsInstrumentation {
       this._measurements['lcp'] = { value: metric.value };
       this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
       this._lcpEntry = entry as LargestContentfulPaint;
-    });
+    }, _options?._reportAllChanges);
   }
 
   /** Starts tracking the First Input Delay on the current page. */
-  private _trackFID(): void {
+  private _trackFID(_options?: BrowserMetricOptions): void {
     getFID(metric => {
       const entry = metric.entries.pop();
 

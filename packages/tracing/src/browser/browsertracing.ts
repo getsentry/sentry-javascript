@@ -61,6 +61,15 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   markBackgroundTransactions: boolean;
 
   /**
+   * _metricOptions allows the user to send options to change how metrics are collected.
+   *
+   * _metricOptions is currently experimental.
+   *
+   * Default: undefined
+   */
+  _metricOptions?: BrowserMetricOptions;
+
+  /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
    * context data, or drop the transaction entirely (by setting `sampled = false` in the context).
    *
@@ -81,6 +90,13 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
   ): void;
+}
+
+/**
+ * Exports a way to add options to our metric collection. Currently experimental.
+ */
+export interface BrowserMetricOptions {
+  _reportAllChanges?: boolean;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS = {
@@ -116,7 +132,7 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
-  private readonly _metrics: MetricsInstrumentation = new MetricsInstrumentation();
+  private readonly _metrics: MetricsInstrumentation;
 
   private readonly _emitOptionsWarning: boolean = false;
 
@@ -139,6 +155,8 @@ export class BrowserTracing implements Integration {
       ..._options,
       tracingOrigins,
     };
+
+    this._metrics = new MetricsInstrumentation(this.options._metricOptions);
   }
 
   /**
