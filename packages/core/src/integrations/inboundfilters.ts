@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Event, Integration } from '@sentry/types';
+import { Event, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, isMatchingPattern, logger } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
@@ -190,16 +190,29 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
+  private _getLastValidUrl(frames: StackFrame[] = []): string | null {
+    for (let i = frames.length - 1; i >= 0; i--) {
+      const frame = frames[i];
+
+      if (frame?.filename !== '<anonymous>') {
+        return frame.filename || null;
+      }
+    }
+
+    return null;
+  }
+
+  /** JSDoc */
   private _getEventFilterUrl(event: Event): string | null {
     try {
       if (event.stacktrace) {
         const frames = event.stacktrace.frames;
-        return (frames && frames[frames.length - 1].filename) || null;
+        return this._getLastValidUrl(frames);
       }
       if (event.exception) {
         const frames =
           event.exception.values && event.exception.values[0].stacktrace && event.exception.values[0].stacktrace.frames;
-        return (frames && frames[frames.length - 1].filename) || null;
+        return this._getLastValidUrl(frames);
       }
       return null;
     } catch (oO) {

@@ -19,9 +19,14 @@ jest.mock('next/router', () => {
   };
 });
 
-type Table<I = string, O = string> = Array<{ in: I; out: O }>;
-
 describe('client', () => {
+  beforeEach(() => {
+    readyCalled = false;
+    if (Router.router) {
+      Router.router.changeState('pushState', '/[user]/posts/[id]', '/abhi/posts/123', {});
+    }
+  });
+
   describe('nextRouterInstrumentation', () => {
     it('waits for Router.ready()', () => {
       const mockStartTransaction = jest.fn();
@@ -49,54 +54,83 @@ describe('client', () => {
       expect(mockStartTransaction).toHaveBeenCalledTimes(0);
     });
 
-    it('creates navigation transactions', () => {
-      const mockStartTransaction = jest.fn();
-      nextRouterInstrumentation(mockStartTransaction, false);
-      expect(mockStartTransaction).toHaveBeenCalledTimes(0);
-
-      const table: Table<Array<string | unknown>, Record<string, unknown>> = [
-        {
-          in: ['pushState', '/posts/[id]', '/posts/32', {}],
-          out: {
+    describe('navigation transactions', () => {
+      // [name, in, out]
+      const table: Array<[string, [string, string, string, Record<string, unknown>], Record<string, unknown>]> = [
+        [
+          'creates parameterized transaction',
+          ['pushState', '/posts/[id]', '/posts/32', {}],
+          {
             name: '/posts/[id]',
             op: 'navigation',
             tags: {
-              from: '/posts/[id]',
+              from: '/[user]/posts/[id]',
               method: 'pushState',
               'routing.instrumentation': 'next-router',
             },
           },
-        },
-        {
-          in: ['replaceState', '/posts/[id]?name=cat', '/posts/32?name=cat', {}],
-          out: {
+        ],
+        [
+          'strips query parameters',
+          ['replaceState', '/posts/[id]?name=cat', '/posts/32?name=cat', {}],
+          {
             name: '/posts/[id]',
             op: 'navigation',
             tags: {
-              from: '/posts/[id]',
+              from: '/[user]/posts/[id]',
               method: 'replaceState',
               'routing.instrumentation': 'next-router',
             },
           },
-        },
-        {
-          in: ['pushState', '/about', '/about', {}],
-          out: {
+        ],
+        [
+          'creates regular transactions',
+          ['pushState', '/about', '/about', {}],
+          {
             name: '/about',
             op: 'navigation',
             tags: {
-              from: '/about',
+              from: '/[user]/posts/[id]',
               method: 'pushState',
               'routing.instrumentation': 'next-router',
             },
           },
-        },
+        ],
       ];
 
-      table.forEach(test => {
-        // @ts-ignore changeState can be called with array spread
-        Router.router?.changeState(...test.in);
-        expect(mockStartTransaction).toHaveBeenLastCalledWith(test.out);
+      it.each(table)('%s', (...test) => {
+        const mockStartTransaction = jest.fn();
+        nextRouterInstrumentation(mockStartTransaction, false);
+        expect(mockStartTransaction).toHaveBeenCalledTimes(0);
+
+        // @ts-ignore we can spread into test
+        Router.router?.changeState(...test[1]);
+        expect(mockStartTransaction).toHaveBeenLastCalledWith(test[2]);
+      });
+    });
+
+    it('does not create navigation transaction with the same name', () => {
+      const mockStartTransaction = jest.fn();
+      nextRouterInstrumentation(mockStartTransaction, false);
+      expect(mockStartTransaction).toHaveBeenCalledTimes(0);
+
+      Router.router?.changeState('pushState', '/login', '/login', {});
+      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/login',
+        op: 'navigation',
+        tags: { from: '/[user]/posts/[id]', method: 'pushState', 'routing.instrumentation': 'next-router' },
+      });
+
+      Router.router?.changeState('pushState', '/login', '/login', {});
+      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+
+      Router.router?.changeState('pushState', '/posts/[id]', '/posts/123', {});
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/posts/[id]',
+        op: 'navigation',
+        tags: { from: '/login', method: 'pushState', 'routing.instrumentation': 'next-router' },
       });
     });
   });

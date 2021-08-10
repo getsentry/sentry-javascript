@@ -1,7 +1,7 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
@@ -142,31 +142,37 @@ export function lastEventId(): string | undefined {
 }
 
 /**
- * A promise that resolves when all current events have been sent.
- * If you provide a timeout and the queue takes longer to drain the promise returns false.
+ * Call `flush()` on the current client, if there is one. See {@link Client.flush}.
  *
- * @param timeout Maximum time in ms the client should wait.
+ * @param timeout Maximum time in ms the client should wait to flush its event queue. Omitting this parameter will cause
+ * the client to wait until all events are sent before resolving the promise.
+ * @returns A promise which resolves to `true` if the queue successfully drains before the timeout, or `false` if it
+ * doesn't (or if there's no client defined).
  */
 export async function flush(timeout?: number): Promise<boolean> {
   const client = getCurrentHub().getClient<NodeClient>();
   if (client) {
     return client.flush(timeout);
   }
-  return Promise.reject(false);
+  logger.warn('Cannot flush events. No client defined.');
+  return Promise.resolve(false);
 }
 
 /**
- * A promise that resolves when all current events have been sent.
- * If you provide a timeout and the queue takes longer to drain the promise returns false.
+ * Call `close()` on the current client, if there is one. See {@link Client.close}.
  *
- * @param timeout Maximum time in ms the client should wait.
+ * @param timeout Maximum time in ms the client should wait to flush its event queue before shutting down. Omitting this
+ * parameter will cause the client to wait until all events are sent before disabling itself.
+ * @returns A promise which resolves to `true` if the queue successfully drains before the timeout, or `false` if it
+ * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
   const client = getCurrentHub().getClient<NodeClient>();
   if (client) {
     return client.close(timeout);
   }
-  return Promise.reject(false);
+  logger.warn('Cannot flush events and disable SDK. No client defined.');
+  return Promise.resolve(false);
 }
 
 /**

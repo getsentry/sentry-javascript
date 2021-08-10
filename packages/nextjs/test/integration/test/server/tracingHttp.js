@@ -5,7 +5,9 @@ const nock = require('nock');
 const { sleep } = require('../utils/common');
 const { getAsync, interceptTracingRequest } = require('../utils/server');
 
-module.exports = async ({ url, argv }) => {
+module.exports = async ({ url: urlBase, argv }) => {
+  const url = `${urlBase}/api/http`;
+
   nock('http://example.com')
     .get('/')
     .reply(200, 'ok');
@@ -30,13 +32,14 @@ module.exports = async ({ url, argv }) => {
       transaction: 'GET /api/http',
       type: 'transaction',
       request: {
-        url: '/api/http',
+        url,
       },
     },
     argv,
+    'tracingHttp',
   );
 
-  await getAsync(`${url}/api/http`);
+  await getAsync(url);
   await sleep(100);
 
   assert.ok(capturedRequest.isDone(), 'Did not intercept expected request');

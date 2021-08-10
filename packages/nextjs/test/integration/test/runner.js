@@ -52,7 +52,11 @@ const runScenario = async (scenario, execute, env) => {
 };
 
 const runScenarios = async (scenarios, execute, env) => {
-  return Promise.all(scenarios.map(scenario => runScenario(scenario, execute, env)));
+  return Promise.all(
+    scenarios.map(scenario => {
+      return runScenario(scenario, execute, env);
+    }),
+  );
 };
 
 module.exports.run = async ({

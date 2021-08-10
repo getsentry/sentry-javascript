@@ -80,7 +80,17 @@ describe('ErrorBoundary', () => {
 
   it('renders null if not given a valid `fallback` prop', () => {
     const { container } = render(
-      <ErrorBoundary fallback={new Error('true')}>
+      <ErrorBoundary fallback="Not a ReactElement">
+        <Bam />
+      </ErrorBoundary>,
+    );
+
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('renders null if not given a valid `fallback` prop function', () => {
+    const { container } = render(
+      <ErrorBoundary fallback={() => 'Not a ReactElement'}>
         <Bam />
       </ErrorBoundary>,
     );

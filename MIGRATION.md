@@ -173,6 +173,26 @@ _New_:
 Sentry.setTag('key', 'value');
 ```
 
+#### Set user context
+
+_Old_:
+
+```js
+Raven.setUserContext({
+  id: '123',
+  email: 'david@example.com',
+});
+```
+
+_New_:
+
+```js
+Sentry.setUser({
+  id: '123',
+  email: 'david@example.com',
+});
+```
+
 #### Capture custom exception
 
 > A scope must now be sent around a capture to add extra information. [Docs](https://docs.sentry.io/platforms/javascript/#unsetting-context)

@@ -103,7 +103,9 @@ export class Hub implements HubInterface {
    */
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
     this.getStackTop().scope = scope;
-    this.bindClient(client);
+    if (client) {
+      this.bindClient(client);
+    }
   }
 
   /**
@@ -187,7 +189,7 @@ export class Hub implements HubInterface {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
 
-    // If there's no explicit hint provided, mimick the same thing that would happen
+    // If there's no explicit hint provided, mimic the same thing that would happen
     // in the minimal itself to create a consistent behavior.
     // We don't do this in the client, as it's the lowest level API, and doing this,
     // would prevent user from having full control over direct calls.
@@ -218,7 +220,7 @@ export class Hub implements HubInterface {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
 
-    // If there's no explicit hint provided, mimick the same thing that would happen
+    // If there's no explicit hint provided, mimic the same thing that would happen
     // in the minimal itself to create a consistent behavior.
     // We don't do this in the client, as it's the lowest level API, and doing this,
     // would prevent user from having full control over direct calls.

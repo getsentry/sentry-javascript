@@ -1,48 +1,52 @@
 import { RewriteFrames } from '@sentry/integrations';
-import { Integrations } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
 import { Integration } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 
 import { init, Scope } from '../src/index.server';
 import { NextjsOptions } from '../src/utils/nextjsOptions';
 
-const mockInit = jest.fn();
-let configureScopeCallback: (scope: Scope) => void = () => undefined;
+const { Integrations } = SentryNode;
 
-jest.mock('@sentry/node', () => {
-  const actual = jest.requireActual('@sentry/node');
-  return {
-    ...actual,
-    init: (options: NextjsOptions) => {
-      mockInit(options);
-    },
-    configureScope: (callback: (scope: Scope) => void) => {
-      configureScopeCallback = callback;
-    },
-  };
-});
+const global = getGlobalObject();
+
+let configureScopeCallback: (scope: Scope) => void = () => undefined;
+jest.spyOn(SentryNode, 'configureScope').mockImplementation(callback => (configureScopeCallback = callback));
+const nodeInit = jest.spyOn(SentryNode, 'init');
 
 describe('Server init()', () => {
   afterEach(() => {
-    mockInit.mockClear();
+    nodeInit.mockClear();
     configureScopeCallback = () => undefined;
+    global.__SENTRY__.hub = undefined;
   });
 
   it('inits the Node SDK', () => {
-    expect(mockInit).toHaveBeenCalledTimes(0);
+    expect(nodeInit).toHaveBeenCalledTimes(0);
     init({});
-    expect(mockInit).toHaveBeenCalledTimes(1);
-    expect(mockInit).toHaveBeenLastCalledWith({
-      _metadata: {
-        sdk: {
-          name: 'sentry.javascript.nextjs',
-          version: expect.any(String),
-          packages: expect.any(Array),
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+    expect(nodeInit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        _metadata: {
+          sdk: {
+            name: 'sentry.javascript.nextjs',
+            version: expect.any(String),
+            packages: expect.any(Array),
+          },
         },
-      },
-      autoSessionTracking: false,
-      environment: 'test',
-      integrations: [expect.any(RewriteFrames)],
-    });
+        autoSessionTracking: false,
+        environment: 'test',
+        integrations: [expect.any(RewriteFrames)],
+      }),
+    );
+  });
+
+  it("doesn't reinitialize the node SDK if already initialized", () => {
+    expect(nodeInit).toHaveBeenCalledTimes(0);
+    init({});
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+    init({});
+    expect(nodeInit).toHaveBeenCalledTimes(1);
   });
 
   it('sets runtime on scope', () => {
@@ -57,45 +61,45 @@ describe('Server init()', () => {
     it('adds RewriteFrames integration by default', () => {
       init({});
 
-      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
-      expect(reactInitOptions.integrations).toHaveLength(1);
-      const integrations = reactInitOptions.integrations as Integration[];
+      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
+      expect(nodeInitOptions.integrations).toHaveLength(1);
+      const integrations = nodeInitOptions.integrations as Integration[];
       expect(integrations[0]).toEqual(expect.any(RewriteFrames));
     });
 
     it('adds Http integration by default if tracesSampleRate is set', () => {
       init({ tracesSampleRate: 1.0 });
 
-      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
-      expect(reactInitOptions.integrations).toHaveLength(2);
-      const integrations = reactInitOptions.integrations as Integration[];
+      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
+      expect(nodeInitOptions.integrations).toHaveLength(2);
+      const integrations = nodeInitOptions.integrations as Integration[];
       expect(integrations[1]).toEqual(expect.any(Integrations.Http));
     });
 
     it('adds Http integration by default if tracesSampler is set', () => {
       init({ tracesSampler: () => true });
 
-      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
-      expect(reactInitOptions.integrations).toHaveLength(2);
-      const integrations = reactInitOptions.integrations as Integration[];
+      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
+      expect(nodeInitOptions.integrations).toHaveLength(2);
+      const integrations = nodeInitOptions.integrations as Integration[];
       expect(integrations[1]).toEqual(expect.any(Integrations.Http));
     });
 
     it('adds Http integration with tracing true', () => {
       init({ tracesSampleRate: 1.0 });
-      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
-      expect(reactInitOptions.integrations).toHaveLength(2);
+      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
+      expect(nodeInitOptions.integrations).toHaveLength(2);
 
-      const integrations = reactInitOptions.integrations as Integration[];
+      const integrations = nodeInitOptions.integrations as Integration[];
       expect((integrations[1] as any)._tracing).toBe(true);
     });
 
     it('supports passing integration through options', () => {
       init({ tracesSampleRate: 1.0, integrations: [new Integrations.Console()] });
-      const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
-      expect(reactInitOptions.integrations).toHaveLength(3);
+      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
+      expect(nodeInitOptions.integrations).toHaveLength(3);
 
-      const integrations = reactInitOptions.integrations as Integration[];
+      const integrations = nodeInitOptions.integrations as Integration[];
       expect(integrations).toEqual([
         expect.any(Integrations.Console),
         expect.any(RewriteFrames),
@@ -110,9 +114,9 @@ describe('Server init()', () => {
           integrations: [new Integrations.Http({ tracing: false })],
         });
 
-        const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
-        expect(reactInitOptions.integrations).toHaveLength(2);
-        const integrations = reactInitOptions.integrations as Integration[];
+        const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
+        expect(nodeInitOptions.integrations).toHaveLength(2);
+        const integrations = nodeInitOptions.integrations as Integration[];
         expect(integrations[0] as InstanceType<typeof Integrations.Http>).toEqual(
           expect.objectContaining({ _breadcrumbs: true, _tracing: true, name: 'Http' }),
         );
@@ -124,9 +128,9 @@ describe('Server init()', () => {
           integrations: [new Integrations.Http({ tracing: false })],
         });
 
-        const reactInitOptions: NextjsOptions = mockInit.mock.calls[0][0];
-        expect(reactInitOptions.integrations).toHaveLength(2);
-        const integrations = reactInitOptions.integrations as Integration[];
+        const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
+        expect(nodeInitOptions.integrations).toHaveLength(2);
+        const integrations = nodeInitOptions.integrations as Integration[];
         expect(integrations[0] as InstanceType<typeof Integrations.Http>).toEqual(
           expect.objectContaining({ _breadcrumbs: true, _tracing: true, name: 'Http' }),
         );

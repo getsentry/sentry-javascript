@@ -1,12 +1,13 @@
-import { captureException, deepReadDirSync, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException, deepReadDirSync, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { Event as SentryEvent } from '@sentry/types';
 import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
 import * as querystring from 'querystring';
 import * as url from 'url';
+
+const { parseRequest } = Handlers;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -193,7 +194,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
+        currentScope.addEventProcessor(event => parseRequest(event, req));
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
@@ -287,28 +288,4 @@ function makeWrappedMethodForGettingParameterizedPath(
 function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
   // `static` is a deprecated but still-functional location for static resources
   return !url.startsWith('/_next/') && !url.startsWith('/static/') && !publicDirFiles.has(url);
-}
-
-/**
- * Harvest specific data from the request, and add it to the event.
- *
- * @param event The event to which to add request data
- * @param req The request whose data is being added
- * @returns The modified event
- */
-export function addRequestDataToEvent(event: SentryEvent, req: NextRequest): SentryEvent {
-  // TODO (breaking change): Replace all calls to this function with `parseRequest(event, req, { transaction: false })`
-  // (this is breaking because doing so will change `event.request.url` from a path into an absolute URL, which might
-  // mess up various automations in the Sentry web app - alert rules, auto assignment, saved searches, etc)
-  event.request = {
-    ...event.request,
-    data: req.body,
-    url: req.url.split('?')[0],
-    cookies: req.cookies,
-    headers: req.headers,
-    method: req.method,
-    query_string: req.query,
-  };
-
-  return event;
 }
