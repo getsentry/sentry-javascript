@@ -1,7 +1,10 @@
+import { getCurrentHub } from '@sentry/core';
 import { Event, EventProcessor, Integration } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFileSync } from 'fs';
 import { LRUMap } from 'lru_map';
+
+import { NodeClient } from '../client';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 
@@ -29,24 +32,30 @@ export class ContextLines implements Integration {
    */
   public name: string = ContextLines.id;
 
-  private _linesOfContext: number;
+  private _linesOfContext?: number;
 
   public constructor(options: ContextLinesOptions = {}) {
-    this._linesOfContext = options.frameContextLines ?? 7;
+    this._linesOfContext = options.frameContextLines;
   }
 
   /**
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(event => this.process(event));
+    const optLinesOfContext = getCurrentHub()
+      .getClient<NodeClient>()
+      ?.getOptions()?.frameContextLines;
+
+    addGlobalEventProcessor(event => this.process(event, optLinesOfContext));
   }
 
   /** Processes an event and adds context lines */
-  public process(event: Event): Event {
+  public process(event: Event, optLinesOfContext?: number): Event {
+    const contextLines = optLinesOfContext || this._linesOfContext || 7;
+
     const frames = event.exception?.values?.[0].stacktrace?.frames;
 
-    if (frames && this._linesOfContext > 0) {
+    if (frames && contextLines > 0) {
       const filenames: string[] = [];
 
       for (const frame of frames) {
@@ -61,7 +70,7 @@ export class ContextLines implements Integration {
         if (frame.filename && sourceFiles[frame.filename]) {
           try {
             const lines = (sourceFiles[frame.filename] as string).split('\n');
-            addContextToFrame(lines, frame, this._linesOfContext);
+            addContextToFrame(lines, frame, contextLines);
           } catch (e) {
             // anomaly, being defensive in case
             // unlikely to ever happen in practice but can definitely happen in theory
