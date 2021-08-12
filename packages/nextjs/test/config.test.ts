@@ -312,6 +312,46 @@ describe('webpack config', () => {
         }),
       );
     });
+
+    it('allows webpack entry modification to be turned off for client code', async () => {
+      const clientOriginalWebpackConfig = userNextConfig.webpack(clientWebpackConfig, clientBuildContext);
+      const clientFinalNextConfig = materializeFinalNextConfig({
+        ...userNextConfig,
+        sentry: { disableClientWebpackEntry: true },
+      });
+      const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+      const serverOriginalWebpackConfig = userNextConfig.webpack(serverWebpackConfig, serverBuildContext);
+      const serverFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+      const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+      expect(await clientOriginalWebpackConfig.entry()).toEqual(
+        typeof clientFinalWebpackConfig?.entry === 'function' && (await clientFinalWebpackConfig.entry()),
+      );
+      expect(await serverOriginalWebpackConfig.entry()).not.toEqual(
+        typeof serverFinalWebpackConfig?.entry === 'function' && (await serverFinalWebpackConfig.entry()),
+      );
+    });
+
+    it('allows SentryWebpackPlugin to be turned off for server code', async () => {
+      const serverOriginalWebpackConfig = userNextConfig.webpack(serverWebpackConfig, serverBuildContext);
+      const serverFinalNextConfig = materializeFinalNextConfig({
+        ...userNextConfig,
+        sentry: { disableServerWebpackEntry: true },
+      });
+      const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+      const clientOriginalWebpackConfig = userNextConfig.webpack(clientWebpackConfig, clientBuildContext);
+      const clientFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+      const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+      expect(await clientOriginalWebpackConfig.entry()).not.toEqual(
+        typeof clientFinalWebpackConfig?.entry === 'function' && (await clientFinalWebpackConfig.entry()),
+      );
+      expect(await serverOriginalWebpackConfig.entry()).toEqual(
+        typeof serverFinalWebpackConfig?.entry === 'function' && (await serverFinalWebpackConfig.entry()),
+      );
+    });
   });
 });
 
