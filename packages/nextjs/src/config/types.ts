@@ -15,6 +15,8 @@ export type NextConfigObject = {
   // whether to build serverless functions for all pages, not just API routes
   target?: 'server' | 'experimental-serverless-trace';
   sentry?: {
+    disableServerWebpackEntry?: boolean;
+    disableClientWebpackEntry?: boolean;
     disableServerWebpackPlugin?: boolean;
     disableClientWebpackPlugin?: boolean;
   };
