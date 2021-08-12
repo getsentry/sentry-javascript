@@ -49,16 +49,23 @@ export function constructWebpackConfigFunction(
       newConfig = userNextConfig.webpack(newConfig, buildContext);
     }
 
-    // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
-    // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
-    // this, we'll have a statement of the form `x.y = () => f(x.y)`, where one of the things `f` does is call `x.y`.
-    // Since we're setting `x.y` to be a callback (which, by definition, won't run until some time later), by the time
-    // the function runs (causing `f` to run, causing `x.y` to run), `x.y` will point to the callback itself, rather
-    // than its original value. So calling it will call the callback which will call `f` which will call `x.y` which
-    // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
-    // be fixed by using `bind`, but this is way simpler.)
-    const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
+    // Enable the Sentry entry property by default
+    const enableWebpackEntry = buildContext.isServer
+      ? !userNextConfig.sentry?.disableServerWebpackEntry
+      : !userNextConfig.sentry?.disableClientWebpackEntry;
+
+    if (enableWebpackEntry) {
+      // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
+      // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
+      // this, we'll have a statement of the form `x.y = () => f(x.y)`, where one of the things `f` does is call `x.y`.
+      // Since we're setting `x.y` to be a callback (which, by definition, won't run until some time later), by the time
+      // the function runs (causing `f` to run, causing `x.y` to run), `x.y` will point to the callback itself, rather
+      // than its original value. So calling it will call the callback which will call `f` which will call `x.y` which
+      // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
+      // be fixed by using `bind`, but this is way simpler.)
+      const origEntryProperty = newConfig.entry;
+      newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
+    }
 
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     const enableWebpackPlugin = buildContext.isServer
