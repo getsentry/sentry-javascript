@@ -8,6 +8,10 @@ interface PgClient {
   };
 }
 
+interface PgOptions {
+  usePgNative?: boolean;
+}
+
 /** Tracing integration for node-postgres package */
 export class Postgres implements Integration {
   /**
@@ -20,16 +24,29 @@ export class Postgres implements Integration {
    */
   public name: string = Postgres.id;
 
+  private _usePgNative: boolean;
+
+  public constructor(options: PgOptions = {}) {
+    this._usePgNative = !!options.usePgNative;
+  }
+
   /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const pkg = loadModule<{ Client: PgClient }>('pg');
+    const pkg = loadModule<{ Client: PgClient; native: { Client: PgClient } }>('pg');
 
     if (!pkg) {
       logger.error('Postgres Integration was unable to require `pg` package.');
       return;
     }
+
+    if (this._usePgNative && !pkg.native?.Client) {
+      logger.error(`Postgres Integration was unable to access 'pg-native' bindings.`);
+      return;
+    }
+
+    const { Client } = this._usePgNative ? pkg.native : pkg;
 
     /**
      * function (query, callback) => void
@@ -38,7 +55,7 @@ export class Postgres implements Integration {
      * function (query, params) => Promise
      * function (pg.Cursor) => pg.Cursor
      */
-    fill(pkg.Client.prototype, 'query', function(orig: () => void | Promise<unknown>) {
+    fill(Client.prototype, 'query', function(orig: () => void | Promise<unknown>) {
       return function(this: unknown, config: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
