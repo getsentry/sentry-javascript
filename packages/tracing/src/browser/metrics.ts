@@ -21,7 +21,7 @@ export interface MetricsInstrumentationOptions {
   _reportAllChanges: boolean;
 }
 
-const DEFAULT_METRICS_INSTR_OPTIONS: MetricsInstrumentationOptions = {
+export const DEFAULT_METRICS_INSTR_OPTIONS: MetricsInstrumentationOptions = {
   _reportAllChanges: false,
 };
 
@@ -33,7 +33,7 @@ export class MetricsInstrumentation {
   private _lcpEntry: LargestContentfulPaint | undefined;
   private _clsEntry: LayoutShift | undefined;
 
-  public constructor(_options: MetricsInstrumentationOptions = DEFAULT_METRICS_INSTR_OPTIONS) {
+  public constructor(_options: MetricsInstrumentationOptions) {
     if (!isNodeEnv() && global?.performance) {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
