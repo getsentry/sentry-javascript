@@ -7,7 +7,7 @@ import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
 import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { MetricsInstrumentation, MetricsInstrumentationOptions } from './metrics';
+import { DEFAULT_METRICS_INSTR_OPTIONS, MetricsInstrumentation, MetricsInstrumentationOptions } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -149,7 +149,7 @@ export class BrowserTracing implements Integration {
       tracingOrigins,
     };
 
-    this._metrics = new MetricsInstrumentation(this.options._metricOptions);
+    this._metrics = new MetricsInstrumentation({ ...this.options._metricOptions, ...DEFAULT_METRICS_INSTR_OPTIONS });
   }
 
   /**
