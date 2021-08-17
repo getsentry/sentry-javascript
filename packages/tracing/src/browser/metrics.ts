@@ -6,7 +6,6 @@ import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNode
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
-import { BrowserMetricOptions } from './browsertracing';
 import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
@@ -14,6 +13,17 @@ import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
 
 const global = getGlobalObject<Window>();
+
+/**
+ * Exports a way to add options to our metric collection. Currently experimental.
+ */
+export interface MetricsInstrumentationOptions {
+  _reportAllChanges: boolean;
+}
+
+const DEFAULT_METRICS_INSTR_OPTIONS: MetricsInstrumentationOptions = {
+  _reportAllChanges: false,
+};
 
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
@@ -23,15 +33,15 @@ export class MetricsInstrumentation {
   private _lcpEntry: LargestContentfulPaint | undefined;
   private _clsEntry: LayoutShift | undefined;
 
-  public constructor(_options?: BrowserMetricOptions) {
+  public constructor(_options: MetricsInstrumentationOptions = DEFAULT_METRICS_INSTR_OPTIONS) {
     if (!isNodeEnv() && global?.performance) {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
 
-      this._trackCLS(_options);
-      this._trackLCP(_options);
-      this._trackFID(_options);
+      this._trackCLS();
+      this._trackLCP(_options._reportAllChanges);
+      this._trackFID();
     }
   }
 
@@ -231,7 +241,7 @@ export class MetricsInstrumentation {
   }
 
   /** Starts tracking the Cumulative Layout Shift on the current page. */
-  private _trackCLS(_options?: BrowserMetricOptions): void {
+  private _trackCLS(): void {
     // See:
     // https://web.dev/evolving-cls/
     // https://web.dev/cls-web-tooling/
@@ -286,7 +296,7 @@ export class MetricsInstrumentation {
   }
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
-  private _trackLCP(_options?: BrowserMetricOptions): void {
+  private _trackLCP(reportAllChanges: boolean): void {
     getLCP(metric => {
       const entry = metric.entries.pop();
 
@@ -300,11 +310,11 @@ export class MetricsInstrumentation {
       this._measurements['lcp'] = { value: metric.value };
       this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
       this._lcpEntry = entry as LargestContentfulPaint;
-    }, _options?._reportAllChanges);
+    }, reportAllChanges);
   }
 
   /** Starts tracking the First Input Delay on the current page. */
-  private _trackFID(_options?: BrowserMetricOptions): void {
+  private _trackFID(): void {
     getFID(metric => {
       const entry = metric.entries.pop();
 
