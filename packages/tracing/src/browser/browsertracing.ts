@@ -7,7 +7,7 @@ import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
 import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { MetricsInstrumentation } from './metrics';
+import { MetricsInstrumentation, MetricsInstrumentationOptions } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -67,7 +67,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * Default: undefined
    */
-  _metricOptions?: BrowserMetricOptions;
+  _metricOptions?: Partial<MetricsInstrumentationOptions>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -90,13 +90,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
   ): void;
-}
-
-/**
- * Exports a way to add options to our metric collection. Currently experimental.
- */
-export interface BrowserMetricOptions {
-  _reportAllChanges?: boolean;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS = {
