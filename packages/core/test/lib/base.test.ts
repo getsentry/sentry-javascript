@@ -177,7 +177,6 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       client.captureException(new Error('test exception'));
       expect(TestBackend.instance!.event).toEqual({
-        environment: 'production',
         event_id: '42',
         exception: {
           values: [
@@ -246,7 +245,6 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       client.captureMessage('test message');
       expect(TestBackend.instance!.event).toEqual({
-        environment: 'production',
         event_id: '42',
         level: 'info',
         message: 'test message',
@@ -322,7 +320,6 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
-        environment: 'production',
         event_id: '42',
         message: 'message',
         timestamp: 2020,
@@ -336,7 +333,6 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'message', timestamp: 1234 }, undefined, scope);
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
-        environment: 'production',
         event_id: '42',
         message: 'message',
         timestamp: 1234,
@@ -349,23 +345,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       client.captureEvent({ message: 'message' }, { event_id: 'wat' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
-        environment: 'production',
         event_id: 'wat',
-        message: 'message',
-        timestamp: 2020,
-      });
-    });
-
-    test('sets default environment to `production` it none provided', () => {
-      expect.assertions(1);
-      const client = new TestClient({
-        dsn: PUBLIC_DSN,
-      });
-      const scope = new Scope();
-      client.captureEvent({ message: 'message' }, undefined, scope);
-      expect(TestBackend.instance!.event!).toEqual({
-        environment: 'production',
-        event_id: '42',
         message: 'message',
         timestamp: 2020,
       });
@@ -412,7 +392,6 @@ describe('BaseClient', () => {
       const scope = new Scope();
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
-        environment: 'production',
         event_id: '42',
         message: 'message',
         release: 'v1.0.0',
@@ -453,7 +432,6 @@ describe('BaseClient', () => {
       scope.setUser({ id: 'user' });
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
-        environment: 'production',
         event_id: '42',
         extra: { b: 'b' },
         message: 'message',
@@ -470,7 +448,6 @@ describe('BaseClient', () => {
       scope.setFingerprint(['abcd']);
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
-        environment: 'production',
         event_id: '42',
         fingerprint: ['abcd'],
         message: 'message',
@@ -525,7 +502,6 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
         contexts: normalizedObject,
-        environment: 'production',
         event_id: '42',
         extra: normalizedObject,
         timestamp: 2020,
@@ -571,7 +547,6 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
         contexts: normalizedObject,
-        environment: 'production',
         event_id: '42',
         extra: normalizedObject,
         timestamp: 2020,
@@ -622,7 +597,6 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
         contexts: normalizedObject,
-        environment: 'production',
         event_id: '42',
         extra: normalizedObject,
         timestamp: 2020,
