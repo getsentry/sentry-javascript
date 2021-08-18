@@ -5,7 +5,7 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
-import { extractTraceparentData, secToMs } from '../utils';
+import { extractSentrytraceData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
@@ -237,7 +237,7 @@ export class BrowserTracing implements Integration {
 export function getHeaderContext(): Partial<TransactionContext> | undefined {
   const header = getMetaContent('sentry-trace');
   if (header) {
-    return extractTraceparentData(header);
+    return extractSentrytraceData(header);
   }
 
   return undefined;

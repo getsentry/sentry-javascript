@@ -1,5 +1,5 @@
 import { captureException, deepReadDirSync, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
-import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { extractSentrytraceData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -201,7 +201,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {
-            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
+            traceparentData = extractSentrytraceData(req.headers['sentry-trace'] as string);
             logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 

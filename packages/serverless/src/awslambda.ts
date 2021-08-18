@@ -9,7 +9,7 @@ import {
   withScope,
 } from '@sentry/node';
 import * as Sentry from '@sentry/node';
-import { extractTraceparentData } from '@sentry/tracing';
+import { extractSentrytraceData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
@@ -256,7 +256,7 @@ export function wrapHandler<TEvent, TResult>(
     let traceparentData;
     const eventWithHeaders = event as { headers?: { [key: string]: string } };
     if (eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace'] as string);
+      traceparentData = extractSentrytraceData(eventWithHeaders.headers['sentry-trace'] as string);
     }
     const transaction = startTransaction({
       name: context.functionName,

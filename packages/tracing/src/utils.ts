@@ -32,7 +32,7 @@ export function hasTracingEnabled(
  *
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
  */
-export function extractTraceparentData(traceparent: string): TraceparentData | undefined {
+export function extractSentrytraceData(traceparent: string): TraceparentData | undefined {
   const matches = traceparent.match(SENTRY_TRACE_REGEX);
   if (matches) {
     let parentSampled: boolean | undefined;

@@ -1,5 +1,5 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
-import { extractTraceparentData } from '@sentry/tracing';
+import { extractSentrytraceData } from '@sentry/tracing';
 import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
@@ -53,7 +53,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     let traceparentData;
     const reqWithHeaders = req as { headers?: { [key: string]: string } };
     if (reqWithHeaders.headers && isString(reqWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(reqWithHeaders.headers['sentry-trace'] as string);
+      traceparentData = extractSentrytraceData(reqWithHeaders.headers['sentry-trace'] as string);
     }
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,

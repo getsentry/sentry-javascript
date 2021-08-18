@@ -1,5 +1,5 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
-import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
+import { extractSentrytraceData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import { addExceptionMechanism, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
@@ -39,7 +39,7 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {
-            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
+            traceparentData = extractSentrytraceData(req.headers['sentry-trace'] as string);
             logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
