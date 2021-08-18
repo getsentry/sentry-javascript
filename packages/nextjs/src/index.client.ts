@@ -9,7 +9,7 @@ import { addIntegration, UserIntegrations } from './utils/userIntegrations';
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
 
-const { BrowserTracing } = TracingIntegrations;
+const { BrowserTracing } = TracingIntegrations || {};
 export const Integrations = { ...BrowserIntegrations, BrowserTracing };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
@@ -33,12 +33,12 @@ export function init(options: NextjsOptions): void {
   });
 }
 
-const defaultBrowserTracingIntegration = new BrowserTracing({
-  tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
-  routingInstrumentation: nextRouterInstrumentation,
-});
-
 function createClientIntegrations(integrations?: UserIntegrations): UserIntegrations {
+  const defaultBrowserTracingIntegration = new BrowserTracing({
+    tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+    routingInstrumentation: nextRouterInstrumentation,
+  });
+
   if (integrations) {
     return addIntegration(defaultBrowserTracingIntegration, integrations, {
       BrowserTracing: { keyPath: 'options.routingInstrumentation', value: nextRouterInstrumentation },
