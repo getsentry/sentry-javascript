@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.11.1
+
+- fix(nextjs): Differentiate between webpack 4 and 5 in server builds  (#3878)
+
 ## 6.11.0
 
 - feat(nextjs): Allow for TypeScript user config files (#3847)
