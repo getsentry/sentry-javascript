@@ -394,7 +394,7 @@ describe('Sentry webpack plugin config', () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: { ...serverBuildContext, webpack: { version: '4' } },
+        incomingWebpackBuildContext: { ...serverBuildContext, webpack: { version: '4.15.13' } },
       });
 
       const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
