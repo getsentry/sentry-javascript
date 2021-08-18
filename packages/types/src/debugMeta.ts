@@ -1,10 +1,11 @@
+import { TransactionMetadata } from './transaction';
+
 /**
  * Holds meta information to customize the behavior of sentry's event processing.
  **/
-export interface DebugMeta {
+export type DebugMeta = {
   images?: Array<DebugImage>;
-  transactionSampling?: { rate?: number; method?: string };
-}
+} & TransactionMetadata;
 
 /**
  * Possible choices for debug images.
