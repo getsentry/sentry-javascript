@@ -1,7 +1,7 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Options, TraceparentData, Transaction } from '@sentry/types';
 
-export const TRACEPARENT_REGEXP = new RegExp(
+export const SENTRY_TRACE_REGEX = new RegExp(
   '^[ \\t]*' + // whitespace
   '([0-9a-f]{32})?' + // trace_id
   '-?([0-9a-f]{16})?' + // span_id
@@ -33,7 +33,7 @@ export function hasTracingEnabled(
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
  */
 export function extractTraceparentData(traceparent: string): TraceparentData | undefined {
-  const matches = traceparent.match(TRACEPARENT_REGEXP);
+  const matches = traceparent.match(SENTRY_TRACE_REGEX);
   if (matches) {
     let parentSampled: boolean | undefined;
     if (matches[3] === '1') {

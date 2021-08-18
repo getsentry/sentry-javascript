@@ -8,7 +8,7 @@ import { logger } from '@sentry/utils';
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
 import { Transaction } from '../src/transaction';
-import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
+import { extractTraceparentData, SENTRY_TRACE_REGEX } from '../src/utils';
 import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName, testOnlyIfNodeVersionAtLeast } from './testutils';
 
 addExtensionMethods();
@@ -371,7 +371,7 @@ describe('Hub', () => {
 
           // check that sentry-trace header is added to request
           expect(headers).toEqual(
-            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(SENTRY_TRACE_REGEX) }),
           );
 
           // check that sampling decision is passed down correctly
@@ -413,7 +413,7 @@ describe('Hub', () => {
 
           // check that sentry-trace header is added to request
           expect(headers).toEqual(
-            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(SENTRY_TRACE_REGEX) }),
           );
 
           // check that sampling decision is passed down correctly
