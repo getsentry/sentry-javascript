@@ -194,7 +194,7 @@ export class InboundFilters implements Integration {
     for (let i = frames.length - 1; i >= 0; i--) {
       const frame = frames[i];
 
-      if (frame?.filename !== '<anonymous>') {
+      if (frame?.filename !== '<anonymous>' && frame?.filename !== '[native code]') {
         return frame.filename || null;
       }
     }
