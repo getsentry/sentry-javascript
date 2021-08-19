@@ -1,5 +1,6 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Options, TraceparentData, Transaction } from '@sentry/types';
+import { dropUndefinedKeys, SentryError, unicodeToBase64 } from '@sentry/utils';
 
 export const SENTRY_TRACE_REGEX = new RegExp(
   '^[ \\t]*' + // whitespace
@@ -75,3 +76,36 @@ export function secToMs(time: number): number {
 
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
 export { stripUrlQueryAndFragment } from '@sentry/utils';
+
+type SentryTracestateData = {
+  trace_id: string;
+  environment?: string;
+  release?: string;
+  public_key: string;
+  user?: { id?: string; segment?: string };
+};
+
+/**
+ * Compute the value of a Sentry tracestate header.
+ *
+ * @throws SentryError (because using the logger creates a circular dependency)
+ * @returns the base64-encoded header value
+ */
+export function computeTracestateValue(data: SentryTracestateData): string {
+  // `JSON.stringify` will drop keys with undefined values, but not ones with null values, so this prevents
+  // these values from being dropped if they haven't been set by `Sentry.init`
+
+  // See https://www.w3.org/TR/trace-context/#tracestate-header-field-values
+  // The spec for tracestate header values calls for a string of the form
+  //
+  //    identifier1=value1,identifier2=value2,...
+  //
+  // which means the value can't include any equals signs, since they already have meaning. Equals signs are commonly
+  // used to pad the end of base64 values though, so to avoid confusion, we strip them off. (Most languages' base64
+  // decoding functions (including those in JS) are able to function without the padding.)
+  try {
+    return unicodeToBase64(JSON.stringify(dropUndefinedKeys(data))).replace(/={1,2}$/, '');
+  } catch (err) {
+    throw new SentryError(`[Tracing] Error computing tracestate value from data: ${err}\nData: ${data}`);
+  }
+}
