@@ -61,12 +61,9 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
     url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
   };
 
-  // https://develop.sentry.dev/sdk/envelopes/
-
-  // Since we don't need to manipulate envelopes nor store them, there is no
-  // exported concept of an Envelope with operations including serialization and
-  // deserialization. Instead, we only implement a minimal subset of the spec to
-  // serialize events inline here.
+  // Since we don't need to manipulate envelopes nor store them, there is no exported concept of an Envelope with
+  // operations including serialization and deserialization. Instead, we only implement a minimal subset of the spec to
+  // serialize events inline here. See https://develop.sentry.dev/sdk/envelopes/.
   if (useEnvelope) {
     // Extract header information from event
     const { transactionSampling, tracestate, ...metadata } = event.debug_meta || {};
@@ -101,19 +98,17 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
     const itemHeaderEntries: { [key: string]: unknown } = {
       type: eventType,
 
-      // The content-type is assumed to be 'application/json' and not part of
-      // the current spec for transaction items, so we don't bloat the request
-      // body with it.
+      // Note: as mentioned above, `content_type` and `length` were left out on purpose.
       //
-      // content_type: 'application/json',
+      // `content_type`:
+      // Assumed to be 'application/json' and not part of the current spec for transaction items. No point in bloating the
+      // request body with it. (Would be `content_type: 'application/json'`.)
       //
-      // The length is optional. It must be the number of bytes in req.Body
-      // encoded as UTF-8. Since the server can figure this out and would
-      // otherwise refuse events that report the length incorrectly, we decided
-      // not to send the length to avoid problems related to reporting the wrong
-      // size and to reduce request body size.
-      //
-      // length: new TextEncoder().encode(req.body).length,
+      // `length`:
+      // Optional and equal to the number of bytes in `req.Body` encoded as UTF-8. Since the server can figure this out
+      // and will refuse events that report the length incorrectly, we decided not to send the length to reduce request
+      // body size and to avoid problems related to reporting the wrong size.(Would be
+      // `length: new TextEncoder().encode(req.body).length`.)
     };
 
     if (eventType === 'transaction') {
@@ -123,10 +118,8 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
 
     const itemHeaders = JSON.stringify(itemHeaderEntries);
 
-    // The trailing newline is optional. We intentionally don't send it to avoid
-    // sending unnecessary bytes.
-    //
-    // const envelope = `${envelopeHeaders}\n${itemHeaders}\n${req.body}\n`;
+    // The trailing newline is optional; leave it off to avoid sending unnecessary bytes. (Would be
+    // `const envelope = `${envelopeHeaders}\n${itemHeaders}\n${req.body}\n`;`.)
     const envelope = `${envelopeHeaders}\n${itemHeaders}\n${req.body}`;
     req.body = envelope;
   }
