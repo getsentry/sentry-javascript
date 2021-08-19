@@ -126,7 +126,7 @@ export class Span implements SpanInterface {
     if (spanContext.parentSpanId) {
       this.parentSpanId = spanContext.parentSpanId;
     }
-    // We want to include booleans as well here
+    // check this way instead of the normal way to make sure we don't miss cases where sampled = false
     if ('sampled' in spanContext) {
       this.sampled = spanContext.sampled;
     }
@@ -241,11 +241,9 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    let sampledString = '';
-    if (this.sampled !== undefined) {
-      sampledString = this.sampled ? '-1' : '-0';
-    }
-    return `${this.traceId}-${this.spanId}${sampledString}`;
+    logger.warn('Direct use of `span.toTraceparent` is deprecated. Use `span.getTraceHeaders` instead.');
+
+    return this._toSentrytrace();
   }
 
   /**

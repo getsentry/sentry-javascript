@@ -149,8 +149,12 @@ export interface Span extends SpanContext {
    */
   isSuccess(): boolean;
 
-  /** Return a traceparent compatible header string */
-  toTraceparent(): string;
+  /**
+   * Return a traceparent-compatible header string
+   *
+   * @deprecated Do not use `span.toTraceparnt` directly. Use `span.getTraceHeaders` instead.
+   */
+  toTraceparent(): string; // TODO (kmclb) make this private
 
   /** Returns the current span properties as a `SpanContext` */
   toContext(): SpanContext;
