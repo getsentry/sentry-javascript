@@ -116,6 +116,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
+    // ensure that we have a tracestate to attach to the envelope header
+    if (!this.metadata.tracestate?.sentry) {
+      this.metadata.tracestate = { ...this.metadata.tracestate, sentry: this._getNewTracestate() };
+    }
+
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
