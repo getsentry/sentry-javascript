@@ -28,6 +28,29 @@ describe('Hub', () => {
     jest.clearAllMocks();
   });
 
+  describe('transaction creation', () => {
+    const hub = new Hub(
+      new BrowserClient({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        environment: 'dogpark',
+        release: 'off.leash.trail',
+      }),
+    );
+
+    it('uses inherited values when given in transaction context', () => {
+      const transactionContext = {
+        name: 'FETCH /ball',
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        metadata: { tracestate: { sentry: 'sentry=doGsaREgReaT', thirdparty: 'maisey=silly;charlie=goofy' } },
+      };
+
+      const transaction = hub.startTransaction(transactionContext);
+
+      expect(transaction).toEqual(expect.objectContaining(transactionContext));
+    });
+  });
+
   describe('getTransaction()', () => {
     it('should find a transaction which has been set on the scope if sampled = true', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
