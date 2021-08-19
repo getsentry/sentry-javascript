@@ -1,4 +1,5 @@
 import { Event, SdkInfo, SentryRequest, SentryRequestType, Session, SessionAggregates } from '@sentry/types';
+import { base64ToUnicode, logger } from '@sentry/utils';
 
 import { API } from './api';
 
@@ -68,11 +69,25 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   // serialize events inline here.
   if (useEnvelope) {
     // Extract header information from event
-    const { transactionSampling, ...metadata } = event.debug_meta || {};
+    const { transactionSampling, tracestate, ...metadata } = event.debug_meta || {};
     if (Object.keys(metadata).length === 0) {
       delete event.debug_meta;
     } else {
       event.debug_meta = metadata;
+    }
+
+    // the tracestate is stored in bas64-encoded JSON, but envelope header values are expected to be full JS values,
+    // so we have to decode and reinflate it
+    let reinflatedTracestate;
+    try {
+      // Because transaction metadata passes through a number of locations (transactionContext, transaction, event during
+      // processing, event as sent), each with different requirements, all of the parts are typed as optional. That said,
+      // if we get to this point and either `tracestate` or `tracestate.sentry` are undefined, something's gone very wrong.
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const encodedSentryValue = tracestate!.sentry!.replace('sentry=', '');
+      reinflatedTracestate = JSON.parse(base64ToUnicode(encodedSentryValue));
+    } catch (err) {
+      logger.warn(err);
     }
 
     const envelopeHeaders = JSON.stringify({
@@ -80,6 +95,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
       sent_at: new Date().toISOString(),
       ...(sdkInfo && { sdk: sdkInfo }),
       ...(api.forceEnvelope() && { dsn: api.getDsn().toString() }),
+      ...(reinflatedTracestate && { trace: reinflatedTracestate }), // trace context for dynamic sampling on relay
     });
 
     const itemHeaderEntries: { [key: string]: unknown } = {
