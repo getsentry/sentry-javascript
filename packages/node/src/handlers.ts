@@ -54,16 +54,16 @@ export function tracingHandler(): (
     next: (error?: any) => void,
   ): void {
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
-    let traceparentData;
+    let sentrytraceData;
     if (req.headers && isString(req.headers['sentry-trace'])) {
-      traceparentData = extractSentrytraceData(req.headers['sentry-trace'] as string);
+      sentrytraceData = extractSentrytraceData(req.headers['sentry-trace'] as string);
     }
 
     const transaction = startTransaction(
       {
         name: extractExpressTransactionName(req, { path: true, method: true }),
         op: 'http.server',
-        ...traceparentData,
+        ...sentrytraceData,
       },
       // extra context passed to the tracesSampler
       { request: extractRequestData(req) },

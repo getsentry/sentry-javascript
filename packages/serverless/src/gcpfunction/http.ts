@@ -50,15 +50,15 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     const reqUrl = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
 
     // Applying `sentry-trace` to context
-    let traceparentData;
+    let sentrytraceData;
     const reqWithHeaders = req as { headers?: { [key: string]: string } };
     if (reqWithHeaders.headers && isString(reqWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractSentrytraceData(reqWithHeaders.headers['sentry-trace'] as string);
+      sentrytraceData = extractSentrytraceData(reqWithHeaders.headers['sentry-trace'] as string);
     }
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,
       op: 'gcp.function.http',
-      ...traceparentData,
+      ...sentrytraceData,
     });
 
     // getCurrentHub() is expected to use current active domain as a carrier

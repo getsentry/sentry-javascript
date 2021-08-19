@@ -28,12 +28,13 @@ export function hasTracingEnabled(
 /**
  * Extract transaction context data from a `sentry-trace` header.
  *
- * @param traceparent Traceparent string
+ * @param header Traceparent string
  *
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
  */
-export function extractSentrytraceData(traceparent: string): TraceparentData | undefined {
-  const matches = traceparent.match(SENTRY_TRACE_REGEX);
+export function extractSentrytraceData(header: string): TraceparentData | undefined {
+  const matches = header.match(SENTRY_TRACE_REGEX);
+
   if (matches) {
     let parentSampled: boolean | undefined;
     if (matches[3] === '1') {
@@ -47,6 +48,7 @@ export function extractSentrytraceData(traceparent: string): TraceparentData | u
       parentSpanId: matches[2],
     };
   }
+
   return undefined;
 }
 

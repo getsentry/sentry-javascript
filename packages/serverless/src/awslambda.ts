@@ -253,15 +253,15 @@ export function wrapHandler<TEvent, TResult>(
     }
 
     // Applying `sentry-trace` to context
-    let traceparentData;
+    let sentrytraceData;
     const eventWithHeaders = event as { headers?: { [key: string]: string } };
     if (eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractSentrytraceData(eventWithHeaders.headers['sentry-trace'] as string);
+      sentrytraceData = extractSentrytraceData(eventWithHeaders.headers['sentry-trace'] as string);
     }
     const transaction = startTransaction({
       name: context.functionName,
       op: 'awslambda.handler',
-      ...traceparentData,
+      ...sentrytraceData,
     });
 
     const hub = getCurrentHub();
