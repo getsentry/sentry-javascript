@@ -1,4 +1,4 @@
-import { getGlobalObject } from './misc';
+import { getGlobalObject } from './crossplatform';
 import { SentryError } from './error';
 import { isRegExp, isString } from './is';
 
