@@ -1,5 +1,11 @@
 import { Span, Transaction } from '../../src';
-import { _startChild, addResourceSpans, MetricsInstrumentation, ResourceEntry } from '../../src/browser/metrics';
+import {
+  _startChild,
+  addResourceSpans,
+  DEFAULT_METRICS_INSTR_OPTIONS,
+  MetricsInstrumentation,
+  ResourceEntry,
+} from '../../src/browser/metrics';
 import { addDOMPropertiesToGlobal } from '../testutils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-var
@@ -182,7 +188,7 @@ describe('MetricsInstrumentation', () => {
       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
     );
 
-    new MetricsInstrumentation();
+    new MetricsInstrumentation(DEFAULT_METRICS_INSTR_OPTIONS);
 
     trackers.forEach(tracker => expect(tracker).not.toBeCalled());
   });
@@ -196,8 +202,7 @@ describe('MetricsInstrumentation', () => {
     const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
     );
-
-    new MetricsInstrumentation();
+    new MetricsInstrumentation(DEFAULT_METRICS_INSTR_OPTIONS);
     global.process = backup;
 
     trackers.forEach(tracker => expect(tracker).toBeCalled());
