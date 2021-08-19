@@ -54,14 +54,6 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   const eventType = event.type || 'event';
   const useEnvelope = eventType === 'transaction' || api.forceEnvelope();
 
-  const { transactionSampling, ...metadata } = event.debug_meta || {};
-  const { method: samplingMethod, rate: sampleRate } = transactionSampling || {};
-  if (Object.keys(metadata).length === 0) {
-    delete event.debug_meta;
-  } else {
-    event.debug_meta = metadata;
-  }
-
   const req: SentryRequest = {
     body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, api.metadata.sdk) : event),
     type: eventType,
@@ -75,18 +67,23 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   // deserialization. Instead, we only implement a minimal subset of the spec to
   // serialize events inline here.
   if (useEnvelope) {
+    // Extract header information from event
+    const { transactionSampling, ...metadata } = event.debug_meta || {};
+    if (Object.keys(metadata).length === 0) {
+      delete event.debug_meta;
+    } else {
+      event.debug_meta = metadata;
+    }
+
     const envelopeHeaders = JSON.stringify({
       event_id: event.event_id,
       sent_at: new Date().toISOString(),
       ...(sdkInfo && { sdk: sdkInfo }),
       ...(api.forceEnvelope() && { dsn: api.getDsn().toString() }),
     });
-    const itemHeaders = JSON.stringify({
-      type: eventType,
 
-      // TODO: Right now, sampleRate may or may not be defined (it won't be in the cases of inheritance and
-      // explicitly-set sampling decisions). Are we good with that?
-      sample_rates: [{ id: samplingMethod, rate: sampleRate }],
+    const itemHeaderEntries: { [key: string]: unknown } = {
+      type: eventType,
 
       // The content-type is assumed to be 'application/json' and not part of
       // the current spec for transaction items, so we don't bloat the request
@@ -101,7 +98,15 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
       // size and to reduce request body size.
       //
       // length: new TextEncoder().encode(req.body).length,
-    });
+    };
+
+    if (eventType === 'transaction') {
+      // TODO: Right now, `sampleRate` will be undefined in the cases of inheritance and explicitly-set sampling decisions.
+      itemHeaderEntries.sample_rates = [{ id: transactionSampling?.method, rate: transactionSampling?.rate }];
+    }
+
+    const itemHeaders = JSON.stringify(itemHeaderEntries);
+
     // The trailing newline is optional. We intentionally don't send it to avoid
     // sending unnecessary bytes.
     //
