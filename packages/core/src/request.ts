@@ -13,19 +13,20 @@ function getSdkMetadataForEnvelopeHeader(api: API): SdkInfo | undefined {
 }
 
 /**
- * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
- * Merge with existing data if any.
+ * Add SDK metadata (name, version, packages, integrations) to the event.
+ *
+ * Mutates the object in place. If prior metadata exists, it will be merged with the given metadata.
  **/
-function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
+function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): void {
   if (!sdkInfo) {
-    return event;
+    return;
   }
   event.sdk = event.sdk || {};
   event.sdk.name = event.sdk.name || sdkInfo.name;
   event.sdk.version = event.sdk.version || sdkInfo.version;
   event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
   event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
-  return event;
+  return;
 }
 
 /** Creates a SentryRequest from a Session. */
@@ -55,11 +56,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   const eventType = event.type || 'event';
   const useEnvelope = eventType === 'transaction' || api.forceEnvelope();
 
-  const req: SentryRequest = {
-    body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, api.metadata.sdk) : event),
-    type: eventType,
-    url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
-  };
+  enhanceEventWithSdkInfo(event, api.metadata.sdk);
 
   // Since we don't need to manipulate envelopes nor store them, there is no exported concept of an Envelope with
   // operations including serialization and deserialization. Instead, we only implement a minimal subset of the spec to
@@ -118,11 +115,22 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
 
     const itemHeaders = JSON.stringify(itemHeaderEntries);
 
+    const eventJSON = JSON.stringify(event);
+
     // The trailing newline is optional; leave it off to avoid sending unnecessary bytes. (Would be
     // `const envelope = `${envelopeHeaders}\n${itemHeaders}\n${req.body}\n`;`.)
-    const envelope = `${envelopeHeaders}\n${itemHeaders}\n${req.body}`;
-    req.body = envelope;
+    const envelope = `${envelopeHeaders}\n${itemHeaders}\n${eventJSON}`;
+
+    return {
+      body: envelope,
+      type: eventType,
+      url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
+    };
   }
 
-  return req;
+  return {
+    body: JSON.stringify(event),
+    type: eventType,
+    url: api.getStoreEndpointWithUrlEncodedAuth(),
+  };
 }
