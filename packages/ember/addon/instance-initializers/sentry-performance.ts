@@ -28,14 +28,14 @@ export function initialize(appInstance: ApplicationInstance): void {
   }
 }
 
-function getBackburner() {
+function getBackburner(): typeof _backburner {
   if (run.backburner) {
     return run.backburner;
   }
   return _backburner;
 }
 
-function getTransitionInformation(transition: any, router: any) {
+function getTransitionInformation(transition: any, router: any): { [key: string]: any } {
   const fromRoute = transition?.from?.name;
   const toRoute = transition && transition.to ? transition.to.name : router.currentRouteName;
   return {

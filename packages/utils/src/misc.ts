@@ -217,6 +217,7 @@ interface SemVer {
 /**
  * Parses input into a SemVer interface
  * @param input string representation of a semver version
+ * @returns A object containing each part of the version string as a separate entry
  */
 export function parseSemver(input: string): SemVer {
   const match = input.match(SEMVER_REGEXP) || [];
