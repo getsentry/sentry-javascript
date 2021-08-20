@@ -17,14 +17,9 @@ describe('base64ToUnicode/unicodeToBase64', () => {
     expect(BASE64_REGEX.test(unicodeToBase64(unicodeString))).to.be.true;
   });
 
-  it('works as expected', () => {
+  it('works as expected (and conversion functions are inverses)', () => {
     expect(unicodeToBase64(unicodeString)).to.equal(base64String);
     expect(base64ToUnicode(base64String)).to.equal(unicodeString);
-  });
-
-  it('conversion functions are inverses', () => {
-    expect(base64ToUnicode(unicodeToBase64(unicodeString))).to.equal(unicodeString);
-    expect(unicodeToBase64(base64ToUnicode(base64String))).to.equal(base64String);
   });
 
   it('can handle and preserve multi-byte characters in original string', () => {
@@ -56,9 +51,9 @@ describe('base64ToUnicode/unicodeToBase64', () => {
     expect(() => {
       base64ToUnicode({} as any);
     }).to.throw('Unable to convert from base64');
-
-    // Note that by design, in node base64 encoding and decoding will accept any string, whether or not it's valid
-    // base64, by ignoring all invalid characters, including whitespace. Therefore, no wacky strings have been included
-    // here because they don't actually error.
+    expect(() => {
+      // the exclamation point makes this invalid base64
+      base64ToUnicode('Dogs are great!');
+    }).to.throw('Unable to convert from base64');
   });
 });

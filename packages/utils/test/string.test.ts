@@ -61,14 +61,9 @@ describe('base64ToUnicode/unicodeToBase64', () => {
     expect(BASE64_REGEX.test(unicodeToBase64(unicodeString))).toBe(true);
   });
 
-  test('works as expected', () => {
+  test('works as expected (and conversion functions are inverses)', () => {
     expect(unicodeToBase64(unicodeString)).toEqual(base64String);
     expect(base64ToUnicode(base64String)).toEqual(unicodeString);
-  });
-
-  test('conversion functions are inverses', () => {
-    expect(base64ToUnicode(unicodeToBase64(unicodeString))).toEqual(unicodeString);
-    expect(unicodeToBase64(base64ToUnicode(base64String))).toEqual(base64String);
   });
 
   test('can handle and preserve multi-byte characters in original string', () => {
