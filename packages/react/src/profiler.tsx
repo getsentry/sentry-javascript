@@ -86,10 +86,14 @@ export type ProfilerProps = {
  * spans based on component lifecycles.
  */
 class Profiler extends React.Component<ProfilerProps> {
+  /**
+   * The span of the mount activity
+   * Made protected for the React Native SDK to access
+   */
+  protected _mountSpan: Span | undefined = undefined;
+
   // The activity representing how long it takes to mount a component.
   private _mountActivity: number | null = null;
-  // The span of the mount activity
-  private _mountSpan: Span | undefined = undefined;
 
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public static defaultProps: Partial<ProfilerProps> = {
