@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.12.0-beta.1
+
+- feat(perf): Add experimental option to improve LCP collection (https://github.com/getsentry/sentry-javascript/pull/3879)
+
 ## 6.11.1
 
 - fix(nextjs): Differentiate between webpack 4 and 5 in server builds  (#3878)
