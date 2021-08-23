@@ -89,6 +89,7 @@ const baseBuildContext = {
   buildId: 'sItStAyLiEdOwN',
   dir: '/Users/Maisey/projects/squirrelChasingSimulator',
   config: { target: 'server' as const },
+  webpack: { version: '5.4.15' },
 };
 const serverBuildContext = { isServer: true, ...baseBuildContext };
 const clientBuildContext = { isServer: false, ...baseBuildContext };
@@ -389,7 +390,21 @@ describe('Sentry webpack plugin config', () => {
       ]);
     });
 
-    it('has the correct value when building serverful server bundles', async () => {
+    it('has the correct value when building serverful server bundles using webpack 4', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: { ...serverBuildContext, webpack: { version: '4.15.13' } },
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
+      ]);
+    });
+
+    it('has the correct value when building serverful server bundles using webpack 5', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -399,8 +414,8 @@ describe('Sentry webpack plugin config', () => {
       const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
-        { paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' },
         { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
+        { paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' },
       ]);
     });
   });

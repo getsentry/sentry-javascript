@@ -233,7 +233,7 @@ jobs:
         id: changed-files-specific
         uses: tj-actions/changed-files@v6.2
         with:
-          files: .*packages\/(ember|browser|core|tracing|hub|minimal|types|utils)($|/.*)
+          files: .*packages\/ember($|/.*)
       # Only run ember tests if the files above have changed
       - name: Run Ember tests
         if: steps.changed-files-specific.outputs.any_changed == 'true' || github.event_name == 'push'

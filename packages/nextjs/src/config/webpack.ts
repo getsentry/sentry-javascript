@@ -242,17 +242,18 @@ function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): SentryWebpackPluginOptions {
-  const { isServer, dir: projectDir, buildId, dev: isDev, config: nextConfig } = buildContext;
+  const { isServer, dir: projectDir, buildId, dev: isDev, config: nextConfig, webpack } = buildContext;
 
+  const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = nextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
 
   const serverInclude = isServerless
     ? [{ paths: ['.next/serverless/'], urlPrefix: '~/_next/serverless' }]
-    : [
-        { paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' },
-        { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
-      ];
+    : [{ paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' }].concat(
+        isWebpack5 ? [{ paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' }] : [],
+      );
+
   const clientInclude = [{ paths: ['.next/static/chunks/pages'], urlPrefix: '~/_next/static/chunks/pages' }];
 
   const defaultPluginOptions = dropUndefinedKeys({
