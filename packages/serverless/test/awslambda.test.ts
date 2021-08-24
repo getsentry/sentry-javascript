@@ -221,6 +221,35 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     });
 
+    test('incoming trace headers are correctly parsed and used', async () => {
+      expect.assertions(1);
+
+      fakeEvent.headers = {
+        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+        tracestate: 'sentry=doGsaREgReaT,maisey=silly,charlie=goofy',
+      };
+
+      const handler: Handler = (_event, _context, callback) => {
+        expect(Sentry.startTransaction).toBeCalledWith(
+          expect.objectContaining({
+            traceId: '12312012123120121231201212312012',
+            parentSpanId: '1121201211212012',
+            parentSampled: false,
+            metadata: {
+              tracestate: {
+                sentry: 'sentry=doGsaREgReaT',
+                thirdparty: 'maisey=silly,charlie=goofy',
+              },
+            },
+          }),
+        );
+
+        callback(undefined, { its: 'fine' });
+      };
+      const wrappedHandler = wrapHandler(handler);
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+    });
+
     test('capture error', async () => {
       expect.assertions(10);
 
@@ -278,6 +307,35 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     });
 
+    test('incoming trace headers are correctly parsed and used', async () => {
+      expect.assertions(1);
+
+      fakeEvent.headers = {
+        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+        tracestate: 'sentry=doGsaREgReaT,maisey=silly,charlie=goofy',
+      };
+
+      const handler: Handler = async (_event, _context, callback) => {
+        expect(Sentry.startTransaction).toBeCalledWith(
+          expect.objectContaining({
+            traceId: '12312012123120121231201212312012',
+            parentSpanId: '1121201211212012',
+            parentSampled: false,
+            metadata: {
+              tracestate: {
+                sentry: 'sentry=doGsaREgReaT',
+                thirdparty: 'maisey=silly,charlie=goofy',
+              },
+            },
+          }),
+        );
+
+        callback(undefined, { its: 'fine' });
+      };
+      const wrappedHandler = wrapHandler(handler);
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+    });
+
     test('capture error', async () => {
       expect.assertions(10);
 
@@ -323,6 +381,35 @@ describe('AWSLambda', () => {
       const handler: Handler = async (event, context, _callback) => {
         expect(event).toHaveProperty('fortySix');
         expect(context).toHaveProperty('ytho');
+      };
+      const wrappedHandler = wrapHandler(handler);
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+    });
+
+    test('incoming trace headers are correctly parsed and used', async () => {
+      expect.assertions(1);
+
+      fakeEvent.headers = {
+        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+        tracestate: 'sentry=doGsaREgReaT,maisey=silly,charlie=goofy',
+      };
+
+      const handler: Handler = async (_event, _context, callback) => {
+        expect(Sentry.startTransaction).toBeCalledWith(
+          expect.objectContaining({
+            traceId: '12312012123120121231201212312012',
+            parentSpanId: '1121201211212012',
+            parentSampled: false,
+            metadata: {
+              tracestate: {
+                sentry: 'sentry=doGsaREgReaT',
+                thirdparty: 'maisey=silly,charlie=goofy',
+              },
+            },
+          }),
+        );
+
+        callback(undefined, { its: 'fine' });
       };
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);

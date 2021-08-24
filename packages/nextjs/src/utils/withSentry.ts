@@ -1,7 +1,7 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
-import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
+import { extractSentrytraceData, extractTracestateData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { addExceptionMechanism, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { addExceptionMechanism, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiResponse } from 'next';
 
@@ -36,11 +36,14 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
         currentScope.addEventProcessor(event => parseRequest(event, req));
 
         if (hasTracingEnabled()) {
-          // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
-          let traceparentData;
-          if (req.headers && isString(req.headers['sentry-trace'])) {
-            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
-            logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+          // Extract data from trace headers
+          let sentrytraceData, tracestateData;
+          if (req.headers?.['sentry-trace']) {
+            sentrytraceData = extractSentrytraceData(req.headers['sentry-trace'] as string);
+            logger.log(`[Tracing] Continuing trace ${sentrytraceData?.traceId}.`);
+          }
+          if (req.headers?.tracestate) {
+            tracestateData = extractTracestateData(req.headers.tracestate as string);
           }
 
           const url = `${req.url}`;
@@ -60,7 +63,8 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
             {
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
-              ...traceparentData,
+              ...sentrytraceData,
+              ...(tracestateData && { metadata: { tracestate: tracestateData } }),
             },
             // extra context passed to the `tracesSampler`
             { request: req },
