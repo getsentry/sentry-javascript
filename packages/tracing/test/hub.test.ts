@@ -8,7 +8,7 @@ import { logger } from '@sentry/utils';
 import { BrowserTracing } from '../src/browser/browsertracing';
 import { addExtensionMethods } from '../src/hubextensions';
 import { Transaction } from '../src/transaction';
-import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
+import { extractSentrytraceData, SENTRY_TRACE_REGEX } from '../src/utils';
 import { addDOMPropertiesToGlobal, getSymbolObjectKeyByName, testOnlyIfNodeVersionAtLeast } from './testutils';
 
 addExtensionMethods();
@@ -26,6 +26,29 @@ addDOMPropertiesToGlobal(['XMLHttpRequest', 'Event', 'location', 'document']);
 describe('Hub', () => {
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('transaction creation', () => {
+    const hub = new Hub(
+      new BrowserClient({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        environment: 'dogpark',
+        release: 'off.leash.trail',
+      }),
+    );
+
+    it('uses inherited values when given in transaction context', () => {
+      const transactionContext = {
+        name: 'FETCH /ball',
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        metadata: { tracestate: { sentry: 'sentry=doGsaREgReaT', thirdparty: 'maisey=silly;charlie=goofy' } },
+      };
+
+      const transaction = hub.startTransaction(transactionContext);
+
+      expect(transaction).toEqual(expect.objectContaining(transactionContext));
+    });
   });
 
   describe('getTransaction()', () => {
@@ -371,12 +394,12 @@ describe('Hub', () => {
 
           // check that sentry-trace header is added to request
           expect(headers).toEqual(
-            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(SENTRY_TRACE_REGEX) }),
           );
 
           // check that sampling decision is passed down correctly
           expect(transaction.sampled).toBe(true);
-          expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(true);
+          expect(extractSentrytraceData(headers['sentry-trace'])!.parentSampled).toBe(true);
         },
       );
 
@@ -413,12 +436,12 @@ describe('Hub', () => {
 
           // check that sentry-trace header is added to request
           expect(headers).toEqual(
-            expect.objectContaining({ 'sentry-trace': expect.stringMatching(TRACEPARENT_REGEXP) }),
+            expect.objectContaining({ 'sentry-trace': expect.stringMatching(SENTRY_TRACE_REGEX) }),
           );
 
           // check that sampling decision is passed down correctly
           expect(transaction.sampled).toBe(false);
-          expect(extractTraceparentData(headers['sentry-trace'])!.parentSampled).toBe(false);
+          expect(extractSentrytraceData(headers['sentry-trace'])!.parentSampled).toBe(false);
         },
       );
 

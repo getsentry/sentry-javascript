@@ -1,7 +1,7 @@
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
-import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
+import { addExtensionMethods, SENTRY_TRACE_REGEX, Span, Transaction } from '@sentry/tracing';
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -14,7 +14,7 @@ import { Http as HttpIntegration } from '../../src/integrations/http';
 const NODE_VERSION = parseSemver(process.versions.node);
 
 describe('tracing', () => {
-  function createTransactionOnScope() {
+  function createTransactionOnScope(): Transaction {
     const hub = new Hub(
       new NodeClient({
         dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
@@ -29,7 +29,10 @@ describe('tracing', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
 
-    const transaction = hub.startTransaction({ name: 'dogpark' });
+    // we have to cast this to a Transaction (the class) because hub.startTransaction only returns a Transaction (the
+    // interface, which doesn't have things like spanRecorder) (and because @sentry/hub can't depend on @sentry/tracing,
+    // we can't fix that)
+    const transaction = hub.startTransaction({ name: 'dogpark' }) as Transaction;
     hub.getScope()?.setSpan(transaction);
 
     return transaction;
@@ -41,7 +44,7 @@ describe('tracing', () => {
       .reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as Span).spanRecorder?.spans as Span[];
+    const spans = transaction.spanRecorder?.spans as Span[];
 
     http.get('http://dogs.are.great/');
 
@@ -60,7 +63,7 @@ describe('tracing', () => {
       .reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as Span).spanRecorder?.spans as Span[];
+    const spans = transaction.spanRecorder?.spans as Span[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
 
@@ -69,7 +72,7 @@ describe('tracing', () => {
     expect((spans[0] as Transaction).name).toEqual('dogpark');
   });
 
-  it('attaches the sentry-trace header to outgoing non-sentry requests', async () => {
+  it('attaches tracing headers to outgoing non-sentry requests', async () => {
     nock('http://dogs.are.great')
       .get('/')
       .reply(200);
@@ -77,13 +80,15 @@ describe('tracing', () => {
     createTransactionOnScope();
 
     const request = http.get('http://dogs.are.great/');
-    const sentryTraceHeader = request.getHeader('sentry-trace') as string;
+    const sentryTraceHeader = request.getHeader('sentry-trace');
+    const tracestateHeader = request.getHeader('tracestate');
 
     expect(sentryTraceHeader).toBeDefined();
-    expect(TRACEPARENT_REGEXP.test(sentryTraceHeader)).toBe(true);
+    expect(tracestateHeader).toBeDefined();
+    expect(SENTRY_TRACE_REGEX.test(sentryTraceHeader as string)).toBe(true);
   });
 
-  it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {
+  it("doesn't attach tracing headers to outgoing sentry requests", () => {
     nock('http://squirrelchasers.ingest.sentry.io')
       .get('/api/12312012/store/')
       .reply(200);
@@ -92,8 +97,10 @@ describe('tracing', () => {
 
     const request = http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
     const sentryTraceHeader = request.getHeader('sentry-trace');
+    const tracestateHeader = request.getHeader('tracestate');
 
     expect(sentryTraceHeader).not.toBeDefined();
+    expect(tracestateHeader).not.toBeDefined();
   });
 });
 

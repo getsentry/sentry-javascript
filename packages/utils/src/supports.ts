@@ -1,5 +1,5 @@
+import { getGlobalObject } from './crossplatform';
 import { logger } from './logger';
-import { getGlobalObject } from './misc';
 
 /**
  * Tells whether current environment supports ErrorEvent objects

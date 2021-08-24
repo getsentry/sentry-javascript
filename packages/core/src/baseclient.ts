@@ -417,8 +417,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const options = this.getOptions();
     const { environment, release, dist, maxValueLength = 250 } = options;
 
-    if (!('environment' in event)) {
-      event.environment = 'environment' in options ? environment : 'production';
+    if (event.environment === undefined && environment !== undefined) {
+      event.environment = environment;
     }
 
     if (event.release === undefined && release !== undefined) {

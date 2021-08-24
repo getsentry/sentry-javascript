@@ -30,7 +30,7 @@ function assertSessionAggregates(session, expected) {
 class DummyTransport extends BaseDummyTransport {
   sendSession(session) {
     assertSessionAggregates(session, {
-      attrs: { release: '1.1' },
+      attrs: { release: '1.1', environment: 'production' },
       aggregates: [{ crashed: 2, errored: 1, exited: 1 }],
     });
 

@@ -76,7 +76,7 @@
       "ts",
       "tsx"
     ],
-    "testEnvironment": "jsdom",
+    "testEnvironment": "../../.jest/dom-environment",
     "testMatch": [
       "**/*.test.ts",
       "**/*.test.tsx"

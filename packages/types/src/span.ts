@@ -149,14 +149,25 @@ export interface Span extends SpanContext {
    */
   isSuccess(): boolean;
 
-  /** Return a traceparent compatible header string */
-  toTraceparent(): string;
+  /**
+   * Return a traceparent-compatible header string
+   *
+   * @deprecated Do not use `span.toTraceparnt` directly. Use `span.getTraceHeaders` instead.
+   */
+  toTraceparent(): string; // TODO (kmclb) make this private
 
   /** Returns the current span properties as a `SpanContext` */
   toContext(): SpanContext;
 
   /** Updates the current span with a new `SpanContext` */
   updateWithContext(spanContext: SpanContext): this;
+
+  /**
+   * Get headers to attach to any outgoing requests made by the operation corresponding to the current span
+   *
+   * @returns An object containing the headers
+   */
+  getTraceHeaders(): TraceHeaders;
 
   /** Convert the object to JSON for w. spans array info only */
   getTraceContext(): {
@@ -169,6 +180,7 @@ export interface Span extends SpanContext {
     tags?: { [key: string]: Primitive };
     trace_id: string;
   };
+
   /** Convert the object to JSON */
   toJSON(): {
     data?: { [key: string]: any };
@@ -183,3 +195,8 @@ export interface Span extends SpanContext {
     trace_id: string;
   };
 }
+
+export type TraceHeaders = {
+  'sentry-trace': string;
+  tracestate?: string;
+};

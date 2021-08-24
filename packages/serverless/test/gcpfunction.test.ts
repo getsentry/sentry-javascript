@@ -120,6 +120,35 @@ describe('GCPFunction', () => {
       expect(Sentry.flush).toBeCalledWith(2000);
     });
 
+    test('incoming trace headers are correctly parsed and used', async () => {
+      expect.assertions(1);
+
+      const handler: HttpFunction = (_req, res) => {
+        res.statusCode = 200;
+        res.end();
+      };
+      const wrappedHandler = wrapHttpFunction(handler);
+      const traceHeaders = {
+        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+        tracestate: 'sentry=doGsaREgReaT,maisey=silly,charlie=goofy',
+      };
+      await handleHttp(wrappedHandler, traceHeaders);
+
+      expect(Sentry.startTransaction).toBeCalledWith(
+        expect.objectContaining({
+          traceId: '12312012123120121231201212312012',
+          parentSpanId: '1121201211212012',
+          parentSampled: false,
+          metadata: {
+            tracestate: {
+              sentry: 'sentry=doGsaREgReaT',
+              thirdparty: 'maisey=silly,charlie=goofy',
+            },
+          },
+        }),
+      );
+    });
+
     test('capture error', async () => {
       expect.assertions(5);
 
