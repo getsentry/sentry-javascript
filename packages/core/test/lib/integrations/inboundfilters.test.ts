@@ -487,5 +487,36 @@ describe('InboundFilters', () => {
         ),
       ).toBe(true);
     });
+
+    it('should search for script names when the last frame is from native code', () => {
+      const messageEvent = {
+        message: 'any',
+        stacktrace: {
+          frames: [
+            { filename: 'https://our-side.com/js/bundle.js' },
+            { filename: 'https://awesome-analytics.io/some/file.js' },
+            { filename: '[native code]' },
+          ],
+        },
+      };
+
+      expect(
+        inboundFilters._isAllowedUrl(
+          messageEvent,
+          inboundFilters._mergeOptions({
+            allowUrls: ['https://awesome-analytics.io/some/file.js'],
+          }),
+        ),
+      ).toBe(true);
+
+      expect(
+        inboundFilters._isDeniedUrl(
+          messageEvent,
+          inboundFilters._mergeOptions({
+            denyUrls: ['https://awesome-analytics.io/some/file.js'],
+          }),
+        ),
+      ).toBe(true);
+    });
   });
 });
