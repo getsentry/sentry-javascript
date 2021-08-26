@@ -1,5 +1,6 @@
 import { DsnLike } from './dsn';
 import { Event } from './event';
+import { SentryRequestType } from './request';
 import { Response } from './response';
 import { SdkMetadata } from './sdkmetadata';
 import { Session, SessionAggregates } from './session';
@@ -50,6 +51,12 @@ export interface TransportOptions {
   fetchParameters?: { [key: string]: string };
   /** The envelope tunnel to use. */
   tunnel?: string;
+  /** The size of the transport buffer (total number of in-flight request) */
+  bufferSize?: number;
+  /** The size of the event type queues (total number of requests awaiting to be delivered) */
+  queueSize?: {
+    [key in SentryRequestType]?: number;
+  };
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.

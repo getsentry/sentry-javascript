@@ -5,6 +5,8 @@ export enum Status {
   Unknown = 'unknown',
   /** The event was skipped due to configuration or callbacks. */
   Skipped = 'skipped',
+  /** The event was accepted to being sent, but is still processing. */
+  Accepted = 'accepted',
   /** The event was sent to Sentry successfully. */
   Success = 'success',
   /** The client is currently rate limited and will try again later. */
@@ -24,6 +26,10 @@ export namespace Status {
    * @returns The send status or {@link Status.Unknown}.
    */
   export function fromHttpCode(code: number): Status {
+    if (code === 202) {
+      return Status.Accepted;
+    }
+
     if (code >= 200 && code < 300) {
       return Status.Success;
     }
