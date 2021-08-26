@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 import { API, SDK_VERSION } from '@sentry/core';
 import {
   DsnProtocol,
@@ -11,7 +13,7 @@ import {
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import { logger, parseRetryAfterHeader, PromiseBuffer, Queue, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -23,6 +25,9 @@ import { HTTPModule } from './http-module';
 export type URLParts = Pick<URL, 'hostname' | 'pathname' | 'port' | 'protocol'>;
 export type UrlParser = (url: string) => URLParts;
 
+type OriginalRequestPayload = Event | Session | SessionAggregates;
+type RequestsQueue = [SentryRequest, OriginalRequestPayload?];
+
 const CATEGORY_MAPPING: {
   [key in SentryRequestType]: string;
 } = {
@@ -31,6 +36,9 @@ const CATEGORY_MAPPING: {
   session: 'session',
   attachment: 'attachment',
 };
+
+const DEFAULT_BUFFER_SIZE = 30;
+const DEFAULT_QUEUE_SIZE = 10;
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
@@ -44,14 +52,23 @@ export abstract class BaseTransport implements Transport {
   protected _api: API;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<Response>;
 
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
 
+  private readonly _queues: { [key in SentryRequestType]: Queue<RequestsQueue> };
+  private readonly _queuesOrder: Array<SentryRequestType> = ['event', 'transaction', 'session'];
+  private _currentQueueIndex: number = 0;
+
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn, options._metadata, options.tunnel);
+    this._buffer = new PromiseBuffer(options.bufferSize ?? DEFAULT_BUFFER_SIZE);
+    this._queues = this._queuesOrder.reduce((acc, key) => {
+      acc[key] = new Queue(options.queueSize?.[key] ?? DEFAULT_QUEUE_SIZE);
+      return acc;
+    }, {} as { [key in SentryRequestType]: Queue<RequestsQueue> });
   }
 
   /** Default function used to parse URLs */
@@ -165,10 +182,9 @@ export abstract class BaseTransport implements Transport {
         for (const category of (parameters[1] && parameters[1].split(';')) || ['all']) {
           // categoriesAllowed is added here to ensure we are only storing rate limits for categories we support in this
           // sdk and any categories that are not supported will not be added redundantly to the rateLimits object
-          const categoriesAllowed = [
-            ...(Object.keys(CATEGORY_MAPPING) as [SentryRequestType]).map(k => CATEGORY_MAPPING[k]),
-            'all',
-          ];
+          const categoriesAllowed = (Object.keys(CATEGORY_MAPPING) as [SentryRequestType])
+            .map(k => CATEGORY_MAPPING[k])
+            .concat('all');
           if (categoriesAllowed.includes(category)) this._rateLimits[category] = new Date(now + delay);
         }
       }
@@ -181,10 +197,111 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async _send(
-    sentryRequest: SentryRequest,
-    originalPayload?: Event | Session | SessionAggregates,
-  ): Promise<Response> {
+  protected _createTask(sentryRequest: SentryRequest): () => Promise<Response> {
+    return () =>
+      new Promise<Response>((resolve, reject) => {
+        if (!this.module) {
+          throw new SentryError('No module available');
+        }
+        const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
+        const req = this.module.request(options, res => {
+          const statusCode = res.statusCode || 500;
+          const status = Status.fromHttpCode(statusCode);
+
+          res.setEncoding('utf8');
+
+          /**
+           * "Key-value pairs of header names and values. Header names are lower-cased."
+           * https://nodejs.org/api/http.html#http_message_headers
+           */
+          let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
+          retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
+
+          let rlHeader = res.headers ? res.headers['x-sentry-rate-limits'] : '';
+          rlHeader = (Array.isArray(rlHeader) ? rlHeader[0] : rlHeader) as string;
+
+          const headers = {
+            'x-sentry-rate-limits': rlHeader,
+            'retry-after': retryAfterHeader,
+          };
+
+          const limited = this._handleRateLimit(headers);
+          if (limited)
+            logger.warn(
+              `Too many ${sentryRequest.type} requests, backing off until: ${this._disabledUntil(sentryRequest.type)}`,
+            );
+
+          if (status === Status.Success) {
+            resolve({ status });
+          } else {
+            let rejectionMessage = `HTTP Error (${statusCode})`;
+            if (res.headers && res.headers['x-sentry-error']) {
+              rejectionMessage += `: ${res.headers['x-sentry-error']}`;
+            }
+            reject(new SentryError(rejectionMessage));
+          }
+
+          // Force the socket to drain
+          res.on('data', () => {
+            // Drain
+          });
+          res.on('end', () => {
+            // Drain
+          });
+        });
+        req.on('error', reject);
+        req.end(sentryRequest.body);
+      });
+  }
+
+  /** JSDoc */
+  protected _queueRequest(sentryRequest: SentryRequest, originalPayload?: OriginalRequestPayload): void {
+    let requestType = sentryRequest.type;
+    // @ts-ignore just why...
+    if (requestType === 'sessions') {
+      requestType = 'session';
+    }
+
+    const queue = this._queues[requestType];
+
+    if (!queue) {
+      throw new SentryError(`Incorrect queue type ${requestType}`);
+    }
+
+    try {
+      queue.enqueue([sentryRequest, originalPayload]);
+    } catch (e) {
+      throw new SentryError(`Error enqueueing ${requestType} request: ${(e as Error).message}`);
+    }
+  }
+
+  /** JSDoc */
+  protected _yieldQueue(): Queue<RequestsQueue> {
+    const currentQueue = this._queues[this._queuesOrder[this._currentQueueIndex]];
+    const totalQueues = this._queuesOrder.length;
+    const nextQueueIndex = this._currentQueueIndex + 1;
+    this._currentQueueIndex = nextQueueIndex >= totalQueues ? 0 : nextQueueIndex;
+    return currentQueue;
+  }
+
+  /** JSDoc */
+  protected _poolQueues(): void {
+    const totalQueues = this._queuesOrder.length;
+
+    for (let i = 0; i < totalQueues; i++) {
+      const queue = this._yieldQueue();
+      const queuedRequest = queue.dequeue();
+
+      if (queuedRequest) {
+        const [request, originalPayload] = queuedRequest;
+        void this._send(request, originalPayload);
+        break;
+      }
+    }
+  }
+
+  /** JSDoc */
+  protected async _send(sentryRequest: SentryRequest, originalPayload?: OriginalRequestPayload): Promise<Response> {
     if (!this.module) {
       throw new SentryError('No module available');
     }
@@ -200,65 +317,24 @@ export abstract class BaseTransport implements Transport {
     }
 
     if (!this._buffer.isReady()) {
-      return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+      logger.warn('Buffer limit reached. Adding task to the queue.');
+
+      try {
+        this._queueRequest(sentryRequest, originalPayload);
+        return Promise.resolve({ status: Status.Accepted });
+      } catch (e) {
+        return Promise.reject(e);
+      }
     }
-    return this._buffer.add(
-      () =>
-        new Promise<Response>((resolve, reject) => {
-          if (!this.module) {
-            throw new SentryError('No module available');
-          }
-          const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
-          const req = this.module.request(options, res => {
-            const statusCode = res.statusCode || 500;
-            const status = Status.fromHttpCode(statusCode);
 
-            res.setEncoding('utf8');
+    const task = this._createTask(sentryRequest);
+    const taskPromise = this._buffer.add(task);
 
-            /**
-             * "Key-value pairs of header names and values. Header names are lower-cased."
-             * https://nodejs.org/api/http.html#http_message_headers
-             */
-            let retryAfterHeader = res.headers ? res.headers['retry-after'] : '';
-            retryAfterHeader = (Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader) as string;
-
-            let rlHeader = res.headers ? res.headers['x-sentry-rate-limits'] : '';
-            rlHeader = (Array.isArray(rlHeader) ? rlHeader[0] : rlHeader) as string;
-
-            const headers = {
-              'x-sentry-rate-limits': rlHeader,
-              'retry-after': retryAfterHeader,
-            };
-
-            const limited = this._handleRateLimit(headers);
-            if (limited)
-              logger.warn(
-                `Too many ${sentryRequest.type} requests, backing off until: ${this._disabledUntil(
-                  sentryRequest.type,
-                )}`,
-              );
-
-            if (status === Status.Success) {
-              resolve({ status });
-            } else {
-              let rejectionMessage = `HTTP Error (${statusCode})`;
-              if (res.headers && res.headers['x-sentry-error']) {
-                rejectionMessage += `: ${res.headers['x-sentry-error']}`;
-              }
-              reject(new SentryError(rejectionMessage));
-            }
-
-            // Force the socket to drain
-            res.on('data', () => {
-              // Drain
-            });
-            res.on('end', () => {
-              // Drain
-            });
-          });
-          req.on('error', reject);
-          req.end(sentryRequest.body);
-        }),
+    void taskPromise.then(
+      () => this._poolQueues(),
+      () => this._poolQueues(),
     );
+
+    return taskPromise;
   }
 }
