@@ -11,7 +11,7 @@ export enum Status {
   RateLimit = 'rate_limit',
   /** The event could not be processed. */
   Invalid = 'invalid',
-  /** A server-side error ocurred during submission. */
+  /** A server-side error occurred during submission. */
   Failed = 'failed',
 }
 
