@@ -58,6 +58,7 @@ export abstract class BaseTransport implements Transport {
   protected readonly _rateLimits: Record<string, Date> = {};
 
   private readonly _queues: { [key in SentryRequestType]: Queue<RequestsQueue> };
+  // TODO: Should we include `attachment` here as well?
   private readonly _queuesOrder: Array<SentryRequestType> = ['event', 'transaction', 'session'];
   private _currentQueueIndex: number = 0;
 
@@ -330,6 +331,9 @@ export abstract class BaseTransport implements Transport {
     const task = this._createTask(sentryRequest);
     const taskPromise = this._buffer.add(task);
 
+    // TODO: Should we pool if buffer is not saturated?
+    // TODO: Verify that there is no race-condition between removing task and taking new one,
+    //       when someone sends event at the very same time
     void taskPromise.then(
       () => this._poolQueues(),
       () => this._poolQueues(),
