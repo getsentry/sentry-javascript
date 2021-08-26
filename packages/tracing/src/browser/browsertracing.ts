@@ -149,7 +149,7 @@ export class BrowserTracing implements Integration {
       tracingOrigins,
     };
 
-    this._metrics = new MetricsInstrumentation({ ...this.options._metricOptions, ...DEFAULT_METRICS_INSTR_OPTIONS });
+    this._metrics = new MetricsInstrumentation({ ...DEFAULT_METRICS_INSTR_OPTIONS, ...this.options._metricOptions });
   }
 
   /**
