@@ -1,6 +1,6 @@
 import ApplicationInstance from '@ember/application/instance';
 import Ember from 'ember';
-import { run } from '@ember/runloop';
+import { run, _backburner, scheduleOnce } from '@ember/runloop';
 import * as Sentry from '@sentry/browser';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
@@ -26,6 +26,13 @@ export function initialize(appInstance: ApplicationInstance): void {
   if (macroCondition(isTesting())) {
     (<any>window)._sentryPerformanceLoad = performancePromise;
   }
+}
+
+function getBackburner() {
+  if (run.backburner) {
+    return run.backburner;
+  }
+  return _backburner;
 }
 
 function getTransitionInformation(transition: any, router: any) {
@@ -86,7 +93,7 @@ export function _instrumentEmberRouter(
       return;
     }
     activeTransaction.finish();
-    run.backburner.off('end', finishActiveTransaction);
+    getBackburner().off('end', finishActiveTransaction);
   };
 
   routerService.on('routeWillChange', (transition: any) => {
@@ -118,7 +125,7 @@ export function _instrumentEmberRouter(
       return;
     }
 
-    run.backburner.on('end', finishActiveTransaction);
+    getBackburner().on('end', finishActiveTransaction);
   });
 
   return {
@@ -142,7 +149,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
     'destroy',
   ] as EmberRunQueues[];
 
-  run.backburner.on('begin', (_: any, previousInstance: any) => {
+  getBackburner().on('begin', (_: any, previousInstance: any) => {
     if (previousInstance) {
       return;
     }
@@ -156,8 +163,8 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
     currentQueueStart = timestampWithMs();
 
     instrumentedEmberQueues.forEach(queue => {
-      run.scheduleOnce(queue, null, () => {
-        run.scheduleOnce(queue, null, () => {
+      scheduleOnce(queue, null, () => {
+        scheduleOnce(queue, null, () => {
           // Process this queue using the end of the previous queue.
           if (currentQueueStart) {
             const now = timestampWithMs();
@@ -186,7 +193,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
       });
     });
   });
-  run.backburner.on('end', (_: any, nextInstance: any) => {
+  getBackburner().on('end', (_: any, nextInstance: any) => {
     if (nextInstance) {
       return;
     }
