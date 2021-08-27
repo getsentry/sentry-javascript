@@ -157,6 +157,7 @@ type SentryTracestateData = {
   release?: string;
   public_key: string;
   user?: { id?: string; segment?: string };
+  transaction?: string;
 };
 
 /**
