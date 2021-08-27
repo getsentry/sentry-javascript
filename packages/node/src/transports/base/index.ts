@@ -318,7 +318,7 @@ export abstract class BaseTransport implements Transport {
     }
 
     if (!this._buffer.isReady()) {
-      logger.warn('Buffer limit reached. Adding task to the queue.');
+      logger.warn(`Buffer limit reached. Adding ${sentryRequest.type} task to the queue.`);
 
       try {
         this._queueRequest(sentryRequest, originalPayload);
