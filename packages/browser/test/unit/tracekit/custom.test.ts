@@ -24,58 +24,130 @@ describe('Tracekit - Custom Tests', () => {
     ]);
   });
 
-  it('should parse exceptions for safari-extension', () => {
-    const SAFARI_EXTENSION_EXCEPTION = {
-      message: 'wat',
-      name: 'Error',
-      stack: `Error: wat
+  describe('Safari extensions', () => {
+    it('should parse exceptions for safari-extension', () => {
+      const SAFARI_EXTENSION_EXCEPTION = {
+        message: 'wat',
+        name: 'Error',
+        stack: `Error: wat
       at ClipperError@safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js:223036:10)
       at safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
-    };
-    const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
-    expect(stacktrace.stack).deep.equal([
-      {
-        url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-        func: 'ClipperError',
-        args: [],
-        line: 223036,
-        column: 10,
-      },
-      {
-        url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-        func: '?',
-        args: [],
-        line: 3313,
-        column: 26,
-      },
-    ]);
-  });
+      };
+      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+      expect(stacktrace.stack).deep.equal([
+        {
+          url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+          func: 'ClipperError',
+          args: [],
+          line: 223036,
+          column: 10,
+        },
+        {
+          url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+          func: '?',
+          args: [],
+          line: 3313,
+          column: 26,
+        },
+      ]);
+    });
 
-  it('should parse exceptions for safari-web-extension', () => {
-    const SAFARI_WEB_EXTENSION_EXCEPTION = {
-      message: 'wat',
-      name: 'Error',
-      stack: `Error: wat
+    it('should parse exceptions for safari-extension with frames-only stack', () => {
+      const SAFARI_EXTENSION_EXCEPTION = {
+        message: `undefined is not an object (evaluating 'e.groups.includes')`,
+        name: `TypeError`,
+        stack: `isClaimed@safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:929865
+        safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:1588410
+        promiseReactionJob@[native code]`,
+      };
+      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+
+      expect(stacktrace.stack).deep.equal([
+        {
+          url: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+          func: 'isClaimed',
+          args: [],
+          line: 2,
+          column: 929865,
+        },
+        {
+          url: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+          func: '?',
+          args: [],
+          line: 2,
+          column: 1588410,
+        },
+        {
+          url: '[native code]',
+          func: 'promiseReactionJob',
+          args: [],
+          line: null,
+          column: null,
+        },
+      ]);
+    });
+
+    it('should parse exceptions for safari-web-extension', () => {
+      const SAFARI_WEB_EXTENSION_EXCEPTION = {
+        message: 'wat',
+        name: 'Error',
+        stack: `Error: wat
       at ClipperError@safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js:223036:10)
       at safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
-    };
-    const stacktrace = computeStackTrace(SAFARI_WEB_EXTENSION_EXCEPTION);
-    expect(stacktrace.stack).deep.equal([
-      {
-        url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-        func: 'ClipperError',
-        args: [],
-        line: 223036,
-        column: 10,
-      },
-      {
-        url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-        func: '?',
-        args: [],
-        line: 3313,
-        column: 26,
-      },
-    ]);
+      };
+      const stacktrace = computeStackTrace(SAFARI_WEB_EXTENSION_EXCEPTION);
+      expect(stacktrace.stack).deep.equal([
+        {
+          url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+          func: 'ClipperError',
+          args: [],
+          line: 223036,
+          column: 10,
+        },
+        {
+          url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+          func: '?',
+          args: [],
+          line: 3313,
+          column: 26,
+        },
+      ]);
+    });
+
+    it('should parse exceptions for safari-web-extension with frames-only stack', () => {
+      const SAFARI_EXTENSION_EXCEPTION = {
+        message: `undefined is not an object (evaluating 'e.groups.includes')`,
+        name: `TypeError`,
+        stack: `p_@safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:33314
+      safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:56027
+      promiseReactionJob@[native code]`,
+      };
+      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+
+      expect(stacktrace.stack).deep.equal([
+        {
+          url: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+          func: 'p_',
+          args: [],
+          line: 29,
+          column: 33314,
+        },
+        {
+          url: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+          func: '?',
+          args: [],
+          line: 29,
+          column: 56027,
+        },
+        {
+          url: '[native code]',
+          func: 'promiseReactionJob',
+          args: [],
+          line: null,
+          column: null,
+        },
+      ]);
+    });
   });
 
   it('should parse exceptions for react-native-v8', () => {

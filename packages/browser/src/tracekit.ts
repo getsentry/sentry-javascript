@@ -128,11 +128,8 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
       // Kamil: One more hack won't hurt us right? Understanding and adding more rules on top of these regexps right now
       // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
       let func = parts[1] || UNKNOWN_FUNCTION;
-      const isSafariExtension = func.indexOf('safari-extension') !== -1;
-      const isSafariWebExtension = func.indexOf('safari-web-extension') !== -1;
-      if (isSafariExtension || isSafariWebExtension) {
-        func = func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION;
-        url = isSafariExtension ? `safari-extension:${url}` : `safari-web-extension:${url}`;
+      if (isSafariExtension(func) || isSafariWebExtension(func)) {
+        [func, url] = extractSafariExtensionDetails(func, url);
       }
 
       element = {
@@ -165,9 +162,17 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
         // NOTE: this hack doesn't work if top-most frame is eval
         stack[0].column = (ex.columnNumber as number) + 1;
       }
+
+      let url = parts[3];
+      let func = parts[1] || UNKNOWN_FUNCTION;
+
+      if (isSafariExtension(func) || isSafariWebExtension(func)) {
+        [func, url] = extractSafariExtensionDetails(func, url);
+      }
+
       element = {
-        url: parts[3],
-        func: parts[1] || UNKNOWN_FUNCTION,
+        url,
+        func,
         args: parts[2] ? parts[2].split(',') : [],
         line: parts[4] ? +parts[4] : null,
         column: parts[5] ? +parts[5] : null,
@@ -248,6 +253,15 @@ function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
     stack,
   };
 }
+
+const isSafariExtension = (func: string): boolean => func.indexOf('safari-extension') !== -1;
+const isSafariWebExtension = (func: string): boolean => func.indexOf('safari-web-extension') !== -1;
+const extractSafariExtensionDetails = (func: string, url: string): [string, string] => {
+  return [
+    func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION,
+    isSafariExtension(func) ? `safari-extension:${url}` : `safari-web-extension:${url}`,
+  ];
+};
 
 /** Remove N number of frames from the stack */
 function popFrames(stacktrace: StackTrace, popSize: number): StackTrace {
