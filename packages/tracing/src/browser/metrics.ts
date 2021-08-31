@@ -23,7 +23,7 @@ export class MetricsInstrumentation {
   private _clsEntry: LayoutShift | undefined;
 
   public constructor() {
-    if (!isNodeEnv() && global?.performance) {
+    if (!isNodeEnv() && global?.performance && global?.document) {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
