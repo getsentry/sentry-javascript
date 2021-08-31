@@ -33,7 +33,7 @@ const mockExistsSync = (path: fs.PathLike) => {
 const exitsSync = jest.spyOn(fs, 'existsSync').mockImplementation(mockExistsSync);
 
 /** Mocks of the arguments passed to `withSentryConfig` */
-const userNextConfig = {
+const userNextConfig: Partial<NextConfigObject> = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
   webpack: (config: WebpackConfigObject, _options: BuildContext) => ({
     ...config,
@@ -243,7 +243,7 @@ describe('webpack config', () => {
 
     // Run the user's webpack config function, so we can check the results against ours. Delete `entry` because we'll
     // test it separately, and besides, it's one that we *should* be overwriting.
-    const materializedUserWebpackConfig = userNextConfig.webpack(serverWebpackConfig, serverBuildContext);
+    const materializedUserWebpackConfig = userNextConfig.webpack!(serverWebpackConfig, serverBuildContext);
     // @ts-ignore `entry` may be required in real life, but we don't need it for our tests
     delete materializedUserWebpackConfig.entry;
 
