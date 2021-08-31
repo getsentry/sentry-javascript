@@ -86,19 +86,18 @@ const clientWebpackConfig = {
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
 
-// In real life, next will copy the userNextConfig into the buildContext. Since we're providing mocks for both of
-// those, though, we need to do that manually.
+// In real life, next will copy the `userNextConfig` into the `buildContext`. Since we're providing mocks for both of
+// those, we need to mimic that behavior, and since `userNextConfig` can vary per test, we need to have the option do it
+// dynamically.
 function getBuildContext(buildTarget: 'server' | 'client', userNextConfig: Partial<NextConfigObject>): BuildContext {
-  const baseBuildContext = {
+  return {
     dev: false,
     buildId: 'sItStAyLiEdOwN',
     dir: '/Users/Maisey/projects/squirrelChasingSimulator',
     config: { target: 'server', ...userNextConfig },
     webpack: { version: '5.4.15' },
+    isServer: buildTarget === 'server',
   };
-  const isServer = buildTarget === 'server';
-
-  return { isServer, ...baseBuildContext } as BuildContext;
 }
 const serverBuildContext = getBuildContext('server', userNextConfig);
 const clientBuildContext = getBuildContext('client', userNextConfig);
