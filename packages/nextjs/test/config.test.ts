@@ -51,7 +51,9 @@ process.env.SENTRY_RELEASE = 'doGsaREgReaT';
 
 /** Mocks of the arguments passed to the result of `withSentryConfig` (when it's a function). */
 const runtimePhase = 'ball-fetching';
-const defaultNextConfig = { nappingHoursPerDay: 20, oversizeFeet: true, shouldChaseTail: true };
+// `defaultConfig` is the defaults for all nextjs options (we don't use these at all in the tests, so for our purposes
+// here the values don't matter)
+const defaultsObject = { defaultConfig: {} };
 
 /** mocks of the arguments passed to `nextConfig.webpack` */
 const serverWebpackConfig = {
@@ -114,9 +116,7 @@ function materializeFinalNextConfig(
   if (typeof sentrifiedConfig === 'function') {
     // for some reason TS won't recognize that `finalConfigValues` is now a NextConfigObject, which is why the cast
     // below is necessary
-    finalConfigValues = sentrifiedConfig(runtimePhase, {
-      defaultConfig: defaultNextConfig,
-    });
+    finalConfigValues = sentrifiedConfig(runtimePhase, defaultsObject);
   }
 
   return finalConfigValues as NextConfigObject;
@@ -145,11 +145,7 @@ async function materializeFinalWebpackConfig(options: {
 
   // if the user's next config is a function, run it so we have access to the values
   const materializedUserNextConfig =
-    typeof userNextConfig === 'function'
-      ? userNextConfig('phase-production-build', {
-          defaultConfig: {},
-        })
-      : userNextConfig;
+    typeof userNextConfig === 'function' ? userNextConfig('phase-production-build', defaultsObject) : userNextConfig;
 
   // get the webpack config function we'd normally pass back to next
   const webpackConfigFunction = constructWebpackConfigFunction(
@@ -211,9 +207,7 @@ describe('withSentryConfig', () => {
 
     materializeFinalNextConfig(userNextConfigFunction);
 
-    expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, {
-      defaultConfig: defaultNextConfig,
-    });
+    expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, defaultsObject);
   });
 });
 
