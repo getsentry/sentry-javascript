@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-/* eslint-disable no-debugger */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
@@ -25,7 +22,6 @@ export class GraphQL implements Integration {
       [method: string]: (...args: unknown[]) => unknown;
     }>(`graphql/execution/execute.js`);
 
-    debugger;
     if (!pkg) {
       logger.error(`GraphQL Integration was unable to require @graphql/execution package.`);
       return;
