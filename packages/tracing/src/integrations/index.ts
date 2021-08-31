@@ -3,6 +3,7 @@ export { Postgres } from './node/postgres';
 export { Mysql } from './node/mysql';
 export { Mongo } from './node/mongo';
 export { Prisma } from './node/prisma';
+export { GraphQL } from './graphql';
 
 // TODO(v7): Remove this export
 // Please see `src/index.ts` for more details.
