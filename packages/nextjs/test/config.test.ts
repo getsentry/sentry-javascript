@@ -86,15 +86,22 @@ const clientWebpackConfig = {
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
 
-const baseBuildContext = {
-  dev: false,
-  buildId: 'sItStAyLiEdOwN',
-  dir: '/Users/Maisey/projects/squirrelChasingSimulator',
-  config: { target: 'server' as const },
-  webpack: { version: '5.4.15' },
-};
-const serverBuildContext = { isServer: true, ...baseBuildContext };
-const clientBuildContext = { isServer: false, ...baseBuildContext };
+// In real life, next will copy the userNextConfig into the buildContext. Since we're providing mocks for both of
+// those, though, we need to do that manually.
+function getBuildContext(buildTarget: 'server' | 'client', userNextConfig: Partial<NextConfigObject>): BuildContext {
+  const baseBuildContext = {
+    dev: false,
+    buildId: 'sItStAyLiEdOwN',
+    dir: '/Users/Maisey/projects/squirrelChasingSimulator',
+    config: { target: 'server', ...userNextConfig },
+    webpack: { version: '5.4.15' },
+  };
+  const isServer = buildTarget === 'server';
+
+  return { isServer, ...baseBuildContext } as BuildContext;
+}
+const serverBuildContext = getBuildContext('server', userNextConfig);
+const clientBuildContext = getBuildContext('client', userNextConfig);
 
 /**
  * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
@@ -371,10 +378,13 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverless server bundles', async () => {
+      const userNextConfigServerless = { ...userNextConfig };
+      userNextConfigServerless.target = 'experimental-serverless-trace';
+
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        userNextConfig: userNextConfigServerless,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: { ...serverBuildContext, config: { target: 'experimental-serverless-trace' } },
+        incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
       });
 
       const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
@@ -385,10 +395,13 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverful server bundles using webpack 4', async () => {
+      const serverBuildContextWebpack4 = getBuildContext('server', userNextConfig);
+      serverBuildContextWebpack4.webpack.version = '4.15.13';
+
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: { ...serverBuildContext, webpack: { version: '4.15.13' } },
+        incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
 
       const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
