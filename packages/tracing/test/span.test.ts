@@ -110,14 +110,20 @@ describe('Span', () => {
     const environment = 'dogpark';
     const traceId = '12312012123120121231201212312012';
     const user = { id: '1121', segment: 'bigs' };
+    const transactionName = 'FETCH /ball';
 
-    const computedTracestate = `sentry=${computeTracestateValue({
+    const baseTracestateData = {
       trace_id: traceId,
       environment,
       release,
       public_key: publicKey,
       user,
+    };
+    const computedTracestate = `sentry=${computeTracestateValue({
+      ...baseTracestateData,
+      transaction: transactionName,
     })}`;
+    const computedOrphanTracestate = `sentry=${computeTracestateValue(baseTracestateData)}`;
     const thirdpartyData = 'maisey=silly,charlie=goofy';
 
     const hub = new Hub(
@@ -134,14 +140,14 @@ describe('Span', () => {
     });
 
     test('no third-party data', () => {
-      const transaction = new Transaction({ name: 'FETCH /ball', traceId }, hub);
+      const transaction = new Transaction({ name: transactionName, traceId }, hub);
       const span = transaction.startChild({ op: 'dig.hole' });
 
       expect(span.getTraceHeaders().tracestate).toEqual(computedTracestate);
     });
 
     test('third-party data', () => {
-      const transaction = new Transaction({ name: 'FETCH /ball' }, hub);
+      const transaction = new Transaction({ name: transactionName }, hub);
       transaction.setMetadata({ tracestate: { sentry: computedTracestate, thirdparty: thirdpartyData } });
       const span = transaction.startChild({ op: 'dig.hole' });
 
@@ -153,7 +159,7 @@ describe('Span', () => {
       const span = new Span({ op: 'dig.hole' });
       span.traceId = traceId;
 
-      expect(span.getTraceHeaders().tracestate).toEqual(computedTracestate);
+      expect(span.getTraceHeaders().tracestate).toEqual(computedOrphanTracestate);
     });
   });
 

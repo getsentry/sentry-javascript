@@ -393,6 +393,7 @@ export class Span implements SpanInterface {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       public_key: dsn.publicKey!,
       user,
+      transaction: this.transaction?.name,
     })}`;
   }
 
