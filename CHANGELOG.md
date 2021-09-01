@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.13.0-beta.0
+
+- feat(tracing): Add `tracestate` header handling
+
 ## 6.12.0
 
 - fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
