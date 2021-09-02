@@ -3,7 +3,7 @@
  * largely modified and is now maintained as part of Sentry JS SDK.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, max-lines */
 
 /**
  * An object representing a single stack frame.
@@ -124,13 +124,10 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
       // Arpad: Working with the regexp above is super painful. it is quite a hack, but just stripping the `address at `
       // prefix here seems like the quickest solution for now.
       let url = parts[2] && parts[2].indexOf('address at ') === 0 ? parts[2].substr('address at '.length) : parts[2];
-
       // Kamil: One more hack won't hurt us right? Understanding and adding more rules on top of these regexps right now
       // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
       let func = parts[1] || UNKNOWN_FUNCTION;
-      if (isSafariExtension(func) || isSafariWebExtension(func)) {
-        [func, url] = extractSafariExtensionDetails(func, url);
-      }
+      [func, url] = extractSafariExtensionDetails(func, url);
 
       element = {
         url,
@@ -165,10 +162,7 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
 
       let url = parts[3];
       let func = parts[1] || UNKNOWN_FUNCTION;
-
-      if (isSafariExtension(func) || isSafariWebExtension(func)) {
-        [func, url] = extractSafariExtensionDetails(func, url);
-      }
+      [func, url] = extractSafariExtensionDetails(func, url);
 
       element = {
         url,
@@ -254,13 +248,36 @@ function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
   };
 }
 
-const isSafariExtension = (func: string): boolean => func.indexOf('safari-extension') !== -1;
-const isSafariWebExtension = (func: string): boolean => func.indexOf('safari-web-extension') !== -1;
+/**
+ * Safari web extensions, starting version unknown, can produce "frames-only" stacktraces.
+ * What it means, is that instead of format like:
+ *
+ * Error: wat
+ *   at function@url:row:col
+ *   at function@url:row:col
+ *   at function@url:row:col
+ *
+ * it produces something like:
+ *
+ *   function@url:row:col
+ *   function@url:row:col
+ *   function@url:row:col
+ *
+ * Because of that, it won't be captured by `chrome` RegExp and will fall into `Gecko` branch.
+ * This function is extracted so that we can use it in both places without duplicating the logic.
+ * Unfortunatelly "just" changing RegExp is too complicated now and making it pass all tests
+ * and fix this case seems like an impossible, or at least way too time-consuming task.
+ */
 const extractSafariExtensionDetails = (func: string, url: string): [string, string] => {
-  return [
-    func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION,
-    isSafariExtension(func) ? `safari-extension:${url}` : `safari-web-extension:${url}`,
-  ];
+  const isSafariExtension = func.indexOf('safari-extension') !== -1;
+  const isSafariWebExtension = func.indexOf('safari-web-extension') !== -1;
+
+  return isSafariExtension || isSafariWebExtension
+    ? [
+        func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION,
+        isSafariExtension ? `safari-extension:${url}` : `safari-web-extension:${url}`,
+      ]
+    : [func, url];
 };
 
 /** Remove N number of frames from the stack */
