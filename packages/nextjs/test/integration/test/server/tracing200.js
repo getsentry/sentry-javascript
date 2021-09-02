@@ -26,7 +26,7 @@ module.exports = async ({ url: urlBase, argv }) => {
   );
 
   await getAsync(url);
-  await sleep(100);
+  await sleep(250);
 
   assert.ok(capturedRequest.isDone(), 'Did not intercept expected request');
 };

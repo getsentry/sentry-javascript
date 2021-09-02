@@ -4,9 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 6.11.1
+## 6.12.0
 
-- fix(nextjs): Differentiate between webpack 4 and 5 in server builds  (#3878)
+- fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
+- fix(core): Skip native frames while searching frame URLs. (#3897)
+- fix(vue): Attach props only if VM is available (#3902)
+- feat(tracing): Add pg-native support to Postgres integration. (#3894)
+- ref(ember): Update addon to support Ember 4.0.0 (beta) (#3915)
+- feat(react): Make Profiler _mountSpan attribute protected (#3904)
+- fix(ember): allow ember-beta to fail (#3910)
+- fix(tracing): Prevent metrics erroring module load in web workers (#3941)
+- misc(browser): Log when event is dropped by Dedupe integration (#3943)
 
 ## 6.11.0
 

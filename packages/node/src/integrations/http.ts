@@ -94,7 +94,7 @@ function _createWrappedRequestMethodFactory(
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const httpModule = this;
 
-      const requestArgs = normalizeRequestArgs(args);
+      const requestArgs = normalizeRequestArgs(this, args);
       const requestOptions = requestArgs[0];
       const requestUrl = extractUrl(requestOptions);
 

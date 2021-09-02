@@ -173,6 +173,10 @@ describe('addResourceSpans', () => {
 });
 
 describe('MetricsInstrumentation', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('does not initialize trackers when on node', () => {
     const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
@@ -183,17 +187,38 @@ describe('MetricsInstrumentation', () => {
     trackers.forEach(tracker => expect(tracker).not.toBeCalled());
   });
 
-  it('initializes trackers when not on node and `global.performance` is available.', () => {
+  it('initializes trackers when not on node and `global.performance` and `global.document` are available.', () => {
     addDOMPropertiesToGlobal(['performance', 'document', 'addEventListener', 'window']);
+
     const backup = global.process;
     global.process = undefined;
 
     const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
     );
+
     new MetricsInstrumentation();
     global.process = backup;
 
     trackers.forEach(tracker => expect(tracker).toBeCalled());
+  });
+
+  it('does not initialize trackers when not on node but `global.document` is not available (in worker)', () => {
+    // window not necessary for this test, but it is here to exercise that it is absence of document that is checked
+    addDOMPropertiesToGlobal(['performance', 'addEventListener', 'window']);
+
+    const processBackup = global.process;
+    global.process = undefined;
+    const documentBackup = global.document;
+    global.document = undefined;
+
+    const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
+      jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
+    );
+    new MetricsInstrumentation();
+    global.process = processBackup;
+    global.document = documentBackup;
+
+    trackers.forEach(tracker => expect(tracker).not.toBeCalled());
   });
 });

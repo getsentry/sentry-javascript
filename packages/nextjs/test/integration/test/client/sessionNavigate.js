@@ -10,7 +10,7 @@ module.exports = async ({ page, url, requests }) => {
     errors: 0,
   });
 
-  await sleep(100);
+  await sleep(250);
 
   await waitForAll([
     page.click('a#alsoHealthy'),
@@ -24,7 +24,7 @@ module.exports = async ({ page, url, requests }) => {
     errors: 0,
   });
 
-  await sleep(100);
+  await sleep(250);
 
   expectSession(requests.sessions[2], {
     init: true,
@@ -32,7 +32,7 @@ module.exports = async ({ page, url, requests }) => {
     errors: 0,
   });
 
-  await sleep(100);
+  await sleep(250);
 
   await waitForAll([
     page.click('a#healthy'),

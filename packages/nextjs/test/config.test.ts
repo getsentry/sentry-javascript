@@ -33,7 +33,7 @@ const mockExistsSync = (path: fs.PathLike) => {
 const exitsSync = jest.spyOn(fs, 'existsSync').mockImplementation(mockExistsSync);
 
 /** Mocks of the arguments passed to `withSentryConfig` */
-const userNextConfig = {
+const userNextConfig: Partial<NextConfigObject> = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
   webpack: (config: WebpackConfigObject, _options: BuildContext) => ({
     ...config,
@@ -51,7 +51,9 @@ process.env.SENTRY_RELEASE = 'doGsaREgReaT';
 
 /** Mocks of the arguments passed to the result of `withSentryConfig` (when it's a function). */
 const runtimePhase = 'ball-fetching';
-const defaultNextConfig = { nappingHoursPerDay: 20, oversizeFeet: true, shouldChaseTail: true };
+// `defaultConfig` is the defaults for all nextjs options (we don't use these at all in the tests, so for our purposes
+// here the values don't matter)
+const defaultsObject = { defaultConfig: {} };
 
 /** mocks of the arguments passed to `nextConfig.webpack` */
 const serverWebpackConfig = {
@@ -84,15 +86,21 @@ const clientWebpackConfig = {
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
 
-const baseBuildContext = {
-  dev: false,
-  buildId: 'sItStAyLiEdOwN',
-  dir: '/Users/Maisey/projects/squirrelChasingSimulator',
-  config: { target: 'server' as const },
-  webpack: { version: '5.4.15' },
-};
-const serverBuildContext = { isServer: true, ...baseBuildContext };
-const clientBuildContext = { isServer: false, ...baseBuildContext };
+// In real life, next will copy the `userNextConfig` into the `buildContext`. Since we're providing mocks for both of
+// those, we need to mimic that behavior, and since `userNextConfig` can vary per test, we need to have the option do it
+// dynamically.
+function getBuildContext(buildTarget: 'server' | 'client', userNextConfig: Partial<NextConfigObject>): BuildContext {
+  return {
+    dev: false,
+    buildId: 'sItStAyLiEdOwN',
+    dir: '/Users/Maisey/projects/squirrelChasingSimulator',
+    config: { target: 'server', ...userNextConfig },
+    webpack: { version: '5.4.15' },
+    isServer: buildTarget === 'server',
+  };
+}
+const serverBuildContext = getBuildContext('server', userNextConfig);
+const clientBuildContext = getBuildContext('client', userNextConfig);
 
 /**
  * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
@@ -114,9 +122,7 @@ function materializeFinalNextConfig(
   if (typeof sentrifiedConfig === 'function') {
     // for some reason TS won't recognize that `finalConfigValues` is now a NextConfigObject, which is why the cast
     // below is necessary
-    finalConfigValues = sentrifiedConfig(runtimePhase, {
-      defaultConfig: defaultNextConfig,
-    });
+    finalConfigValues = sentrifiedConfig(runtimePhase, defaultsObject);
   }
 
   return finalConfigValues as NextConfigObject;
@@ -145,11 +151,7 @@ async function materializeFinalWebpackConfig(options: {
 
   // if the user's next config is a function, run it so we have access to the values
   const materializedUserNextConfig =
-    typeof userNextConfig === 'function'
-      ? userNextConfig('phase-production-build', {
-          defaultConfig: {},
-        })
-      : userNextConfig;
+    typeof userNextConfig === 'function' ? userNextConfig('phase-production-build', defaultsObject) : userNextConfig;
 
   // get the webpack config function we'd normally pass back to next
   const webpackConfigFunction = constructWebpackConfigFunction(
@@ -211,9 +213,7 @@ describe('withSentryConfig', () => {
 
     materializeFinalNextConfig(userNextConfigFunction);
 
-    expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, {
-      defaultConfig: defaultNextConfig,
-    });
+    expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, defaultsObject);
   });
 });
 
@@ -243,7 +243,7 @@ describe('webpack config', () => {
 
     // Run the user's webpack config function, so we can check the results against ours. Delete `entry` because we'll
     // test it separately, and besides, it's one that we *should* be overwriting.
-    const materializedUserWebpackConfig = userNextConfig.webpack(serverWebpackConfig, serverBuildContext);
+    const materializedUserWebpackConfig = userNextConfig.webpack!(serverWebpackConfig, serverBuildContext);
     // @ts-ignore `entry` may be required in real life, but we don't need it for our tests
     delete materializedUserWebpackConfig.entry;
 
@@ -377,10 +377,13 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverless server bundles', async () => {
+      const userNextConfigServerless = { ...userNextConfig };
+      userNextConfigServerless.target = 'experimental-serverless-trace';
+
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        userNextConfig: userNextConfigServerless,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: { ...serverBuildContext, config: { target: 'experimental-serverless-trace' } },
+        incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
       });
 
       const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
@@ -391,10 +394,13 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverful server bundles using webpack 4', async () => {
+      const serverBuildContextWebpack4 = getBuildContext('server', userNextConfig);
+      serverBuildContextWebpack4.webpack.version = '4.15.13';
+
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: { ...serverBuildContext, webpack: { version: '4.15.13' } },
+        incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
 
       const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
