@@ -1,3 +1,4 @@
+/* eslint-disable no-debugger */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
@@ -27,30 +28,33 @@ export class GraphQL implements Integration {
       return;
     }
 
-    ['execute', 'defaultFieldResolver', 'defaultTypeResolver', 'buildExecutionContext'].forEach(method => {
-      fill(pkg, method, function(orig: () => void | Promise<unknown>) {
-        return function(this: unknown, ...args: unknown[]) {
-          const scope = getCurrentHub().getScope();
-          const parentSpan = scope?.getSpan();
+    fill(pkg, 'execute', function(orig: () => void | Promise<unknown>) {
+      return function(this: unknown, ...args: unknown[]) {
+        const hub = getCurrentHub();
+        const scope = hub.getScope();
+        const parentSpan = scope?.getSpan();
 
-          const span = parentSpan?.startChild({
-            description: method,
-            op: 'graphql',
-          });
+        const span = parentSpan?.startChild({
+          description: 'execute',
+          op: 'graphql',
+        });
 
-          const rv = orig.call(this, ...args) as Promise<unknown>;
+        scope?.setSpan(span);
 
-          if (isThenable(rv)) {
-            return rv.then((res: unknown) => {
-              span?.finish();
-              return res;
-            });
-          } else {
+        const rv = orig.call(this, ...args) as Promise<unknown>;
+
+        if (isThenable(rv)) {
+          return rv.then((res: unknown) => {
             span?.finish();
-            return rv;
-          }
-        };
-      });
+            scope?.setSpan(parentSpan);
+            return res;
+          });
+        }
+
+        span?.finish();
+        scope?.setSpan(parentSpan);
+        return rv;
+      };
     });
   }
 }

@@ -243,6 +243,12 @@ function _autoloadDatabaseIntegrations(): void {
   }
 
   const packageToIntegrationMapping: Record<string, () => Integration> = {
+    apollo() {
+      const integration = dynamicRequire(module, './integrations/apollo') as {
+        Apollo: IntegrationClass<Integration>;
+      };
+      return new integration.Apollo();
+    },
     graphql() {
       const integration = dynamicRequire(module, './integrations/graphql') as {
         GraphQL: IntegrationClass<Integration>;
