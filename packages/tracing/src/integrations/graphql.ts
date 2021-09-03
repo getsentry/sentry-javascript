@@ -1,7 +1,7 @@
 /* eslint-disable no-debugger */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { fill, isThenable, loadModule, logger } from '@sentry/utils';
+import { fill, loadModule, logger } from '@sentry/utils';
 
 /** Tracing integration for graphql package */
 export class GraphQL implements Integration {
@@ -24,14 +24,13 @@ export class GraphQL implements Integration {
     }>(`graphql/execution/execute.js`);
 
     if (!pkg) {
-      logger.error(`GraphQL Integration was unable to require @graphql/execution package.`);
+      logger.error('GraphQL Integration was unable to require graphql/execution package.');
       return;
     }
 
     fill(pkg, 'execute', function(orig: () => void | Promise<unknown>) {
       return function(this: unknown, ...args: unknown[]) {
-        const hub = getCurrentHub();
-        const scope = hub.getScope();
+        const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
 
         const span = parentSpan?.startChild({
@@ -43,17 +42,11 @@ export class GraphQL implements Integration {
 
         const rv = orig.call(this, ...args) as Promise<unknown>;
 
-        if (isThenable(rv)) {
-          return rv.then((res: unknown) => {
-            span?.finish();
-            scope?.setSpan(parentSpan);
-            return res;
-          });
-        }
-
-        span?.finish();
-        scope?.setSpan(parentSpan);
-        return rv;
+        return rv.then((res: unknown) => {
+          span?.finish();
+          scope?.setSpan(parentSpan);
+          return res;
+        });
       };
     });
   }

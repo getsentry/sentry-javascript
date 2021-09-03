@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
 /* eslint-disable no-debugger */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
@@ -9,11 +7,11 @@ type ApolloResolverGroup = {
   [key: string]: () => any;
 };
 
-type ApolloField = {
+type ApolloModelResolvers = {
   [key: string]: ApolloResolverGroup;
 };
 
-/** Tracing integration for Apollo package */
+/** Tracing integration for Apollo */
 export class Apollo implements Integration {
   /**
    * @inheritDoc
@@ -37,26 +35,28 @@ export class Apollo implements Integration {
       };
     }>(`apollo-server-core`);
 
-    debugger;
     if (!pkg) {
-      logger.error(`Apollo Integration was unable to require apollo package.`);
+      logger.error('Apollo Integration was unable to require apollo-server-core package.');
       return;
     }
 
+    /**
+     * Iterate over resolvers of the ApolloServer instance before schemas are constructed.
+     */
     fill(pkg.ApolloServerBase.prototype, 'constructSchema', function(orig: () => void) {
-      return function(this: { config: { resolvers: ApolloField[] } }) {
-        this.config.resolvers = this.config.resolvers.map(field => {
-          Object.keys(field).forEach(resolverGroupName => {
-            Object.keys(field[resolverGroupName]).forEach(resolverName => {
-              if (typeof field[resolverGroupName][resolverName] !== 'function') {
+      return function(this: { config: { resolvers: ApolloModelResolvers[] } }) {
+        this.config.resolvers = this.config.resolvers.map(model => {
+          Object.keys(model).forEach(resolverGroupName => {
+            Object.keys(model[resolverGroupName]).forEach(resolverName => {
+              if (typeof model[resolverGroupName][resolverName] !== 'function') {
                 return;
               }
 
-              patchResolver(field, resolverGroupName, resolverName, getCurrentHub);
+              wrapResolver(model, resolverGroupName, resolverName, getCurrentHub);
             });
           });
 
-          return field;
+          return model;
         });
 
         return orig.call(this);
@@ -66,18 +66,15 @@ export class Apollo implements Integration {
 }
 
 /**
- *
- * @param field
- * @param resolverGroupName
- * @param resolverName
+ * Wrap a single resolver which can be a parent of other resolvers and/or db operations.
  */
-function patchResolver(
-  field: ApolloField,
+function wrapResolver(
+  model: ApolloModelResolvers,
   resolverGroupName: string,
   resolverName: string,
   getCurrentHub: () => Hub,
 ): void {
-  fill(field[resolverGroupName], resolverName, function(orig: () => unknown | Promise<unknown>) {
+  fill(model[resolverGroupName], resolverName, function(orig: () => unknown | Promise<unknown>) {
     return function(this: unknown, ...args: unknown[]) {
       const scope = getCurrentHub().getScope();
       const parentSpan = scope?.getSpan();
