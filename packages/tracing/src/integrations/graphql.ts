@@ -1,4 +1,3 @@
-/* eslint-disable no-debugger */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
