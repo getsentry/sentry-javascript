@@ -4,6 +4,15 @@ import { Response } from './response';
 import { SdkMetadata } from './sdkmetadata';
 import { Session, SessionAggregates } from './session';
 
+export enum Outcome {
+  BeforeSend = 'before_send',
+  EventProcessor = 'event_processor',
+  NetworkError = 'network_error',
+  QueueSize = 'queue_size',
+  RateLimit = 'backoff', // NOTE(kamil): I'd prefer to call it `rate_limit` instead of `backoff`
+  SampleRate = 'sample_rate',
+}
+
 /** Transport used sending data to Sentry */
 export interface Transport {
   /**
@@ -29,6 +38,11 @@ export interface Transport {
    * still events in the queue when the timeout is reached.
    */
   close(timeout?: number): PromiseLike<boolean>;
+
+  /**
+   * Increment the counter for the specific client outcome
+   */
+  recordLostEvent?(type: Outcome): void;
 }
 
 /** JSDoc */

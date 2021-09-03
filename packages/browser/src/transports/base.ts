@@ -1,6 +1,7 @@
 import { API } from '@sentry/core';
 import {
   Event,
+  Outcome,
   Response as SentryResponse,
   SentryRequestType,
   Status,
@@ -34,10 +35,18 @@ export abstract class BaseTransport implements Transport {
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
 
+  protected _outcomes: { [key in Outcome]?: number } = {};
+
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn, options._metadata, options.tunnel);
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        this._flushOutcomes();
+      }
+    });
   }
 
   /**
@@ -52,6 +61,48 @@ export abstract class BaseTransport implements Transport {
    */
   public close(timeout?: number): PromiseLike<boolean> {
     return this._buffer.drain(timeout);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public recordLostEvent(type: Outcome): void {
+    logger.log(`Adding ${type} outcome`);
+    this._outcomes[type] = (this._outcomes[type] ?? 0) + 1;
+  }
+
+  /**
+   * Send outcomes as an envelope
+   */
+  protected _flushOutcomes(): void {
+    if (!navigator || typeof navigator.sendBeacon !== 'function') {
+      logger.warn('Beacon API not available, skipping sending outcomes.');
+      return;
+    }
+
+    const outcomes = this._outcomes;
+
+    // Nothing to send
+    if (!Object.keys(outcomes).length) {
+      logger.log('No outcomes to flush');
+      return;
+    }
+
+    logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+
+    const url = this._api.getEnvelopeEndpointWithUrlEncodedAuth();
+    const itemHeaders = JSON.stringify({
+      type: 'client_report',
+    });
+    const item = JSON.stringify({
+      timestamp: Date.now(),
+      discarded_events: this._outcomes,
+    });
+    const envelope = `${itemHeaders}\n${item}`;
+
+    navigator.sendBeacon(url, envelope);
+
+    this._outcomes = {};
   }
 
   /**

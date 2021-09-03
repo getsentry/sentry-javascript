@@ -47,6 +47,6 @@ export {
   TransactionSamplingMethod,
 } from './transaction';
 export { Thread } from './thread';
-export { Transport, TransportOptions, TransportClass } from './transport';
+export { Outcome, Transport, TransportOptions, TransportClass } from './transport';
 export { User } from './user';
 export { WrappedFunction } from './wrappedfunction';

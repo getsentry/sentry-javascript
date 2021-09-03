@@ -199,9 +199,6 @@ export abstract class BaseTransport implements Transport {
       });
     }
 
-    if (!this._buffer.isReady()) {
-      return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
-    }
     return this._buffer.add(
       () =>
         new Promise<Response>((resolve, reject) => {

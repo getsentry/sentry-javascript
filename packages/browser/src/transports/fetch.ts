@@ -1,6 +1,13 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
-import { Event, Response, SentryRequest, Session, TransportOptions } from '@sentry/types';
-import { getGlobalObject, isNativeFetch, logger, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
+import { Event, Outcome, Response, SentryRequest, Session, TransportOptions } from '@sentry/types';
+import {
+  getGlobalObject,
+  isNativeFetch,
+  logger,
+  SentryError,
+  supportsReferrerPolicy,
+  SyncPromise,
+} from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
@@ -106,6 +113,8 @@ export class FetchTransport extends BaseTransport {
    */
   private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
     if (this._isRateLimited(sentryRequest.type)) {
+      this.recordLostEvent(Outcome.RateLimit);
+
       return Promise.reject({
         event: originalPayload,
         type: sentryRequest.type,
@@ -132,25 +141,34 @@ export class FetchTransport extends BaseTransport {
       options.headers = this.options.headers;
     }
 
-    return this._buffer.add(
-      () =>
-        new SyncPromise<Response>((resolve, reject) => {
-          void this._fetch(sentryRequest.url, options)
-            .then(response => {
-              const headers = {
-                'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-                'retry-after': response.headers.get('Retry-After'),
-              };
-              this._handleResponse({
-                requestType: sentryRequest.type,
-                response,
-                headers,
-                resolve,
-                reject,
-              });
-            })
-            .catch(reject);
-        }),
-    );
+    return this._buffer
+      .add(
+        () =>
+          new SyncPromise<Response>((resolve, reject) => {
+            void this._fetch(sentryRequest.url, options)
+              .then(response => {
+                const headers = {
+                  'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+                  'retry-after': response.headers.get('Retry-After'),
+                };
+                this._handleResponse({
+                  requestType: sentryRequest.type,
+                  response,
+                  headers,
+                  resolve,
+                  reject,
+                });
+              })
+              .catch(reject);
+          }),
+      )
+      .then(undefined, reason => {
+        if (reason instanceof SentryError) {
+          this.recordLostEvent(Outcome.QueueSize);
+        } else {
+          this.recordLostEvent(Outcome.NetworkError);
+        }
+        throw reason;
+      });
   }
 }
