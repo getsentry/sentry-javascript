@@ -402,7 +402,7 @@ describe('SentryNode initialization', () => {
     });
   });
 
-  describe.only('autoSessionTracking', () => {
+  describe('autoSessionTracking', () => {
     it('enables autoSessionTracking if there is a release', () => {
       init({
         dsn: '',
