@@ -1,3 +1,5 @@
+import { Outcome } from '@sentry/types';
+import { SentryError } from '@sentry/utils';
 import { fakeServer, SinonFakeServer } from 'sinon';
 
 import { Event, Response, Status, Transports } from '../../../src';
@@ -66,6 +68,30 @@ describe('XHRTransport', () => {
         expect(server.requests.length).toBe(1);
         expect(request.method).toBe('POST');
         expect(JSON.parse(request.requestBody)).toEqual(eventPayload);
+      }
+    });
+
+    it('should record dropped event when request fails', async () => {
+      server.respondWith('POST', storeUrl, [403, {}, '']);
+
+      const spy = jest.spyOn(transport, 'recordLostEvent');
+
+      try {
+        await transport.sendEvent(eventPayload);
+      } catch (_) {
+        expect(spy).toHaveBeenCalledWith(Outcome.NetworkError, 'event');
+      }
+    });
+
+    it('should record dropped event when queue buffer overflows', async () => {
+      // @ts-ignore private method
+      jest.spyOn(transport._buffer, 'add').mockRejectedValue(new SentryError('Buffer Full'));
+      const spy = jest.spyOn(transport, 'recordLostEvent');
+
+      try {
+        await transport.sendEvent(transactionPayload);
+      } catch (_) {
+        expect(spy).toHaveBeenCalledWith(Outcome.QueueOverflow, 'transaction');
       }
     });
 
@@ -379,6 +405,25 @@ describe('XHRTransport', () => {
         eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).toBe(Status.Success);
         expect(server.requests.length).toBe(2);
+      });
+
+      it('should record dropped event', async () => {
+        // @ts-ignore private method
+        jest.spyOn(transport, '_isRateLimited').mockReturnValue(true);
+
+        const spy = jest.spyOn(transport, 'recordLostEvent');
+
+        try {
+          await transport.sendEvent(eventPayload);
+        } catch (_) {
+          expect(spy).toHaveBeenCalledWith(Outcome.RateLimitBackoff, 'event');
+        }
+
+        try {
+          await transport.sendEvent(transactionPayload);
+        } catch (_) {
+          expect(spy).toHaveBeenCalledWith(Outcome.RateLimitBackoff, 'transaction');
+        }
       });
     });
   });

@@ -98,7 +98,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     if (!release) {
       logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
     } else {
-      this._sessionFlusher = new SessionFlusher(this._backend.getTransport(), {
+      this._sessionFlusher = new SessionFlusher(this.getTransport(), {
         release,
         environment,
       });

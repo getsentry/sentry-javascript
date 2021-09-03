@@ -1,6 +1,6 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
-import { Event, Response, SentryRequest, Session } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils';
+import { Event, Outcome, Response, SentryRequest, Session } from '@sentry/types';
+import { SentryError, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
@@ -26,6 +26,8 @@ export class XHRTransport extends BaseTransport {
    */
   private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
     if (this._isRateLimited(sentryRequest.type)) {
+      this.recordLostEvent(Outcome.RateLimitBackoff, sentryRequest.type);
+
       return Promise.reject({
         event: originalPayload,
         type: sentryRequest.type,
@@ -36,29 +38,39 @@ export class XHRTransport extends BaseTransport {
       });
     }
 
-    return this._buffer.add(
-      () =>
-        new SyncPromise<Response>((resolve, reject) => {
-          const request = new XMLHttpRequest();
+    return this._buffer
+      .add(
+        () =>
+          new SyncPromise<Response>((resolve, reject) => {
+            const request = new XMLHttpRequest();
 
-          request.onreadystatechange = (): void => {
-            if (request.readyState === 4) {
-              const headers = {
-                'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
-                'retry-after': request.getResponseHeader('Retry-After'),
-              };
-              this._handleResponse({ requestType: sentryRequest.type, response: request, headers, resolve, reject });
-            }
-          };
+            request.onreadystatechange = (): void => {
+              if (request.readyState === 4) {
+                const headers = {
+                  'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
+                  'retry-after': request.getResponseHeader('Retry-After'),
+                };
+                this._handleResponse({ requestType: sentryRequest.type, response: request, headers, resolve, reject });
+              }
+            };
 
-          request.open('POST', sentryRequest.url);
-          for (const header in this.options.headers) {
-            if (this.options.headers.hasOwnProperty(header)) {
-              request.setRequestHeader(header, this.options.headers[header]);
+            request.open('POST', sentryRequest.url);
+            for (const header in this.options.headers) {
+              if (this.options.headers.hasOwnProperty(header)) {
+                request.setRequestHeader(header, this.options.headers[header]);
+              }
             }
-          }
-          request.send(sentryRequest.body);
-        }),
-    );
+            request.send(sentryRequest.body);
+          }),
+      )
+      .then(undefined, reason => {
+        // It's either buffer rejection or any other xhr/fetch error, which are treated as NetworkError.
+        if (reason instanceof SentryError) {
+          this.recordLostEvent(Outcome.QueueOverflow, sentryRequest.type);
+        } else {
+          this.recordLostEvent(Outcome.NetworkError, sentryRequest.type);
+        }
+        throw reason;
+      });
   }
 }
