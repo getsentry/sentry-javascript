@@ -426,6 +426,76 @@ describe('Sentry webpack plugin config', () => {
     });
   });
 
+  describe("Sentry webpack plugin `include` option with basePath filled on next's config", () => {
+    const userNextConfigWithBasePath = {
+      ...userNextConfig,
+      basePath: '/city-park',
+    };
+
+    it('has the correct value when building client bundles', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig: userNextConfigWithBasePath,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithBasePath),
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/static/chunks/pages'], urlPrefix: '~/city-park/_next/static/chunks/pages' },
+      ]);
+    });
+
+    it('has the correct value when building serverless server bundles', async () => {
+      const userNextConfigServerless = { ...userNextConfigWithBasePath };
+      userNextConfigServerless.target = 'experimental-serverless-trace';
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig: userNextConfigServerless,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/serverless/'], urlPrefix: '~/city-park/_next/serverless' },
+      ]);
+    });
+
+    it('has the correct value when building serverful server bundles using webpack 4', async () => {
+      const serverBuildContextWebpack4 = getBuildContext('server', userNextConfigWithBasePath);
+      serverBuildContextWebpack4.webpack.version = '4.15.13';
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig: userNextConfigWithBasePath,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContextWebpack4,
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
+      ]);
+    });
+
+    it('has the correct value when building serverful server bundles using webpack 5', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig: userNextConfigWithBasePath,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: getBuildContext('server', userNextConfigWithBasePath),
+      });
+
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+
+      expect(sentryWebpackPlugin.options?.include).toEqual([
+        { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
+        { paths: ['.next/server/chunks/'], urlPrefix: '~/city-park/_next/server/chunks' },
+      ]);
+    });
+  });
+
   it('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {
     const clientFinalNextConfig = materializeFinalNextConfig({
       ...userNextConfig,
