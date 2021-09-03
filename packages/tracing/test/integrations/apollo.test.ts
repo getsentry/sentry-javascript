@@ -81,7 +81,7 @@ describe('setupOnce', () => {
     jest.spyOn(childSpan, 'finish');
   });
 
-  it(`should wrap a simple resolver`, () => {
+  it('should wrap a simple resolver', () => {
     ApolloServer.config.resolvers[0]?.['Query']?.['res_1']?.();
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
@@ -92,7 +92,7 @@ describe('setupOnce', () => {
     expect(scope.setSpan).toHaveBeenCalledTimes(2);
   });
 
-  it(`should wrap another simple resolver`, () => {
+  it('should wrap another simple resolver', () => {
     ApolloServer.config.resolvers[0]?.['Mutation']?.['res_2']?.();
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
