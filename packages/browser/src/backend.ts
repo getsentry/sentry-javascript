@@ -15,20 +15,20 @@ export interface BrowserOptions extends Options {
    * This is the opposite of {@link Options.denyUrls}.
    * By default, all errors will be sent.
    */
-  allowUrls?: Array<string | RegExp>;
+  allowUrls?: Array<string | RegExp> | undefined;
 
   /**
    * A pattern for error URLs which should not be sent to Sentry.
    * To allow certain errors instead, use {@link Options.allowUrls}.
    * By default, all errors will be sent.
    */
-  denyUrls?: Array<string | RegExp>;
+  denyUrls?: Array<string | RegExp> | undefined;
 
   /** @deprecated use {@link Options.allowUrls} instead. */
-  whitelistUrls?: Array<string | RegExp>;
+  whitelistUrls?: Array<string | RegExp> | undefined;
 
   /** @deprecated use {@link Options.denyUrls} instead. */
-  blacklistUrls?: Array<string | RegExp>;
+  blacklistUrls?: Array<string | RegExp> | undefined;
 }
 
 /**
@@ -39,13 +39,17 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
+  public eventFromException(exception: unknown, hint?: EventHint | undefined): PromiseLike<Event> {
     return eventFromException(this._options, exception, hint);
   }
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(
+    message: string,
+    level: Severity = Severity.Info,
+    hint?: EventHint | undefined,
+  ): PromiseLike<Event> {
     return eventFromMessage(this._options, message, level, hint);
   }
 
