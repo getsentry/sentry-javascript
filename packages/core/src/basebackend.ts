@@ -76,14 +76,18 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event> {
+  public eventFromException(_exception: any, _hint?: EventHint | undefined): PromiseLike<Event> {
     throw new SentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(
+    _message: string,
+    _level?: Severity | undefined,
+    _hint?: EventHint | undefined,
+  ): PromiseLike<Event> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 
