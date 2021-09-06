@@ -24,7 +24,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
+  public eventFromException(exception: any, hint?: EventHint | undefined): PromiseLike<Event> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let ex: any = exception;
     const providedMechanism: Mechanism | undefined =
@@ -73,7 +73,11 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(
+    message: string,
+    level: Severity = Severity.Info,
+    hint?: EventHint | undefined,
+  ): PromiseLike<Event> {
     const event: Event = {
       event_id: hint && hint.event_id,
       level,

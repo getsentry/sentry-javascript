@@ -6,23 +6,23 @@ import { Options } from '@sentry/types';
  */
 export interface NodeOptions extends Options {
   /** Sets an optional server name (device name) */
-  serverName?: string;
+  serverName?: string | undefined;
 
   /** Maximum time in milliseconds to wait to drain the request queue, before the process is allowed to exit. */
-  shutdownTimeout?: number;
+  shutdownTimeout?: number | undefined;
 
   /** Set a HTTP proxy that should be used for outbound requests. */
-  httpProxy?: string;
+  httpProxy?: string | undefined;
 
   /** Set a HTTPS proxy that should be used for outbound requests. */
-  httpsProxy?: string;
+  httpsProxy?: string | undefined;
 
   /** HTTPS proxy certificates path */
-  caCerts?: string;
+  caCerts?: string | undefined;
 
   /** Sets the number of context lines for each frame when loading a file. */
-  frameContextLines?: number;
+  frameContextLines?: number | undefined;
 
   /** Callback that is executed when a fatal global error occurs. */
-  onFatalError?(error: Error): void;
+  onFatalError?(error: Error): void | undefined;
 }
