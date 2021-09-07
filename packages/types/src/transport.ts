@@ -1,5 +1,6 @@
 import { DsnLike } from './dsn';
 import { Event } from './event';
+import { SentryRequestType } from './request';
 import { Response } from './response';
 import { SdkMetadata } from './sdkmetadata';
 import { Session, SessionAggregates } from './session';
@@ -42,7 +43,7 @@ export interface Transport {
   /**
    * Increment the counter for the specific client outcome
    */
-  recordLostEvent?(type: Outcome): void;
+  recordLostEvent?(type: Outcome, category: SentryRequestType): void;
 }
 
 /** JSDoc */

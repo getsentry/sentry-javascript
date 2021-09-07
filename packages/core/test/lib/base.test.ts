@@ -88,6 +88,16 @@ describe('BaseClient', () => {
     });
   });
 
+  describe('getTransport()', () => {
+    test('returns the transport from backend', () => {
+      expect.assertions(1);
+      const options = { dsn: PUBLIC_DSN, transport: FakeTransport };
+      const client = new TestClient(options);
+      expect(client.getTransport()).toBeInstanceOf(FakeTransport);
+      expect(TestBackend.instance!.getTransport()).toBe(client.getTransport());
+    });
+  });
+
   describe('getBreadcrumbs() / addBreadcrumb()', () => {
     test('adds a breadcrumb', () => {
       expect.assertions(1);
@@ -906,7 +916,7 @@ describe('BaseClient', () => {
       });
 
       const delay = 1;
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       client.captureMessage('test');
@@ -935,7 +945,7 @@ describe('BaseClient', () => {
             setTimeout(() => resolve({ message, level }), 150);
           }),
       );
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       client.captureMessage('test async');
@@ -959,7 +969,7 @@ describe('BaseClient', () => {
       });
 
       const delay = 1;
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       expect(client.captureMessage('test')).toBeTruthy();

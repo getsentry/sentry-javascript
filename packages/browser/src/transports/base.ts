@@ -35,7 +35,7 @@ export abstract class BaseTransport implements Transport {
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
 
-  protected _outcomes: { [key in Outcome]?: number } = {};
+  protected _outcomes: { [key: string]: number } = {};
 
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn, options._metadata, options.tunnel);
@@ -68,13 +68,13 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public recordLostEvent(type: Outcome): void {
+  public recordLostEvent(type: Outcome, category: SentryRequestType): void {
     if (!this.options.sendClientReport) {
       return;
     }
-
-    logger.log(`Adding ${type} outcome`);
-    this._outcomes[type] = (this._outcomes[type] ?? 0) + 1;
+    const key = `${type}:${CATEGORY_MAPPING[category]}`;
+    logger.log(`Adding ${key} outcome`);
+    this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
 
   /**
@@ -106,7 +106,14 @@ export abstract class BaseTransport implements Transport {
     });
     const item = JSON.stringify({
       timestamp: Date.now(),
-      discarded_events: this._outcomes,
+      discarded_events: Object.keys(outcomes).map(key => {
+        const [category, reason] = key.split(':');
+        return {
+          reason,
+          category,
+          quantity: outcomes[key],
+        };
+      }),
     });
     const envelope = `${itemHeaders}\n${item}`;
 

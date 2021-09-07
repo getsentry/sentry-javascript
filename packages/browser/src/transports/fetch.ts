@@ -113,7 +113,7 @@ export class FetchTransport extends BaseTransport {
    */
   private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
     if (this._isRateLimited(sentryRequest.type)) {
-      this.recordLostEvent(Outcome.RateLimit);
+      this.recordLostEvent(Outcome.RateLimit, sentryRequest.type);
 
       return Promise.reject({
         event: originalPayload,
@@ -164,9 +164,9 @@ export class FetchTransport extends BaseTransport {
       )
       .then(undefined, reason => {
         if (reason instanceof SentryError) {
-          this.recordLostEvent(Outcome.QueueSize);
+          this.recordLostEvent(Outcome.QueueSize, sentryRequest.type);
         } else {
-          this.recordLostEvent(Outcome.NetworkError);
+          this.recordLostEvent(Outcome.NetworkError, sentryRequest.type);
         }
         throw reason;
       });
