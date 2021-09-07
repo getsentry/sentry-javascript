@@ -42,11 +42,13 @@ export abstract class BaseTransport implements Transport {
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        this._flushOutcomes();
-      }
-    });
+    if (this.options.sendClientReport) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          this._flushOutcomes();
+        }
+      });
+    }
   }
 
   /**
@@ -67,6 +69,10 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public recordLostEvent(type: Outcome): void {
+    if (!this.options.sendClientReport) {
+      return;
+    }
+
     logger.log(`Adding ${type} outcome`);
     this._outcomes[type] = (this._outcomes[type] ?? 0) + 1;
   }
@@ -75,6 +81,10 @@ export abstract class BaseTransport implements Transport {
    * Send outcomes as an envelope
    */
   protected _flushOutcomes(): void {
+    if (!this.options.sendClientReport) {
+      return;
+    }
+
     if (!navigator || typeof navigator.sendBeacon !== 'function') {
       logger.warn('Beacon API not available, skipping sending outcomes.');
       return;

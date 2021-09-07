@@ -133,6 +133,11 @@ export interface Options {
   autoSessionTracking?: boolean;
 
   /**
+   * Automatically send SDK Client Report
+   */
+  sendClientReports?: boolean;
+
+  /**
    * Initial data to populate scope.
    */
   initialScope?: CaptureContext;
