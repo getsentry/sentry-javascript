@@ -68,12 +68,17 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public recordLostEvent(type: Outcome, category: SentryRequestType): void {
+  public recordLostEvent(reason: Outcome, category: SentryRequestType): void {
     if (!this.options.sendClientReport) {
       return;
     }
-    const key = `${type}:${CATEGORY_MAPPING[category]}`;
-    logger.log(`Adding ${key} outcome`);
+    // We want to track each category (event, transaction, session) separately
+    // but still keep the distinction between different type of outcomes.
+    // We could use nested maps, but it's much easier to read and type this way.
+    // A correct type for map-based implementation if we want to go that route
+    // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
+    const key = `${CATEGORY_MAPPING[category]}:${reason}}`;
+    logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
 
@@ -91,6 +96,7 @@ export abstract class BaseTransport implements Transport {
     }
 
     const outcomes = this._outcomes;
+    this._outcomes = {};
 
     // Nothing to send
     if (!Object.keys(outcomes).length) {
@@ -118,8 +124,6 @@ export abstract class BaseTransport implements Transport {
     const envelope = `${itemHeaders}\n${item}`;
 
     navigator.sendBeacon(url, envelope);
-
-    this._outcomes = {};
   }
 
   /**

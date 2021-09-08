@@ -90,7 +90,7 @@ describe('BaseClient', () => {
 
   describe('getTransport()', () => {
     test('returns the transport from backend', () => {
-      expect.assertions(1);
+      expect.assertions(2);
       const options = { dsn: PUBLIC_DSN, transport: FakeTransport };
       const client = new TestClient(options);
       expect(client.getTransport()).toBeInstanceOf(FakeTransport);

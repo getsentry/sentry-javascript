@@ -133,7 +133,8 @@ export interface Options {
   autoSessionTracking?: boolean;
 
   /**
-   * Automatically send SDK Client Report
+   * Send SDK Client Reports.
+   * By default, Client Reports are enabled.
    */
   sendClientReports?: boolean;
 

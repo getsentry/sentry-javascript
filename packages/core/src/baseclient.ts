@@ -187,7 +187,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public getTransport(): Transport {
-    return this.getTransport();
+    return this._getBackend().getTransport();
   }
 
   /**
