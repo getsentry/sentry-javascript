@@ -1,7 +1,6 @@
-import { expect } from 'chai';
-import { fakeServer, SinonFakeServer, stub } from 'sinon';
+import { fakeServer, SinonFakeServer } from 'sinon';
 
-import { Event, Status, Transports } from '../../../src';
+import { Event, Response, Status, Transports } from '../../../src';
 
 const testDsn = 'https://123@sentry.io/42';
 const storeUrl = 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7';
@@ -31,20 +30,20 @@ describe('XHRTransport', () => {
 
   it('inherits composeEndpointUrl() implementation', () => {
     // eslint-disable-next-line deprecation/deprecation
-    expect(transport.url).equal(storeUrl);
+    expect(transport.url).toBe(storeUrl);
   });
 
-  describe('sendEvent()', async () => {
+  describe('sendEvent()', () => {
     it('sends a request to Sentry servers', async () => {
       server.respondWith('POST', storeUrl, [200, {}, '']);
 
       const res = await transport.sendEvent(eventPayload);
 
-      expect(res.status).equal(Status.Success);
+      expect((res as Response).status).toBe(Status.Success);
       const request = server.requests[0];
-      expect(server.requests.length).equal(1);
-      expect(request.method).equal('POST');
-      expect(JSON.parse(request.requestBody)).deep.equal(eventPayload);
+      expect(server.requests.length).toBe(1);
+      expect(request.method).toBe('POST');
+      expect(JSON.parse(request.requestBody)).toEqual(eventPayload);
     });
 
     it('sends a request to tunnel if configured', async () => {
@@ -53,7 +52,7 @@ describe('XHRTransport', () => {
 
       await transport.sendEvent(eventPayload);
 
-      expect(server.requests[0].url).equal(tunnel);
+      expect(server.requests[0].url).toBe(tunnel);
     });
 
     it('rejects with non-200 status code', async () => {
@@ -62,11 +61,11 @@ describe('XHRTransport', () => {
       try {
         await transport.sendEvent(eventPayload);
       } catch (res) {
-        expect(res.status).equal(403);
+        expect((res as Response).status).toBe(403);
         const request = server.requests[0];
-        expect(server.requests.length).equal(1);
-        expect(request.method).equal('POST');
-        expect(JSON.parse(request.requestBody)).deep.equal(eventPayload);
+        expect(server.requests.length).toBe(1);
+        expect(request.method).toBe('POST');
+        expect(JSON.parse(request.requestBody)).toEqual(eventPayload);
       }
     });
 
@@ -82,9 +81,9 @@ describe('XHRTransport', () => {
       const res = await transport.sendEvent(eventPayload);
       const request = server.requests[0];
 
-      expect(res.status).equal(Status.Success);
+      expect((res as Response).status).toBe(Status.Success);
       const requestHeaders: { [key: string]: string } = request.requestHeaders as { [key: string]: string };
-      expect(requestHeaders['Accept']).equal('application/json');
+      expect(requestHeaders['Accept']).toBe('application/json');
     });
 
     describe('Rate-limiting', () => {
@@ -96,50 +95,44 @@ describe('XHRTransport', () => {
 
         server.respondWith('POST', storeUrl, [429, { 'Retry-After': `${retryAfterSeconds}` }, '']);
 
-        const dateStub = stub(Date, 'now')
+        jest
+          .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
-          .onCall(0)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
-          .onCall(1)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true
-          .onCall(2)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - false
-          .onCall(3)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 3rd event - _handleRateLimit
-          .onCall(4)
-          .returns(afterLimit);
+          .mockImplementationOnce(() => afterLimit);
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(undefined);
-          expect(server.requests.length).equal(1);
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBeUndefined();
+          expect(server.requests.length).toBe(1);
         }
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBe(
             `Transport for event requests locked till ${new Date(afterLimit)} due to too many requests.`,
           );
-          expect(server.requests.length).equal(1);
+          expect(server.requests.length).toBe(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(2);
-
-        dateStub.restore();
+        expect(eventRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(2);
       });
 
       it('back-off using X-Sentry-Rate-Limits with single category', async () => {
@@ -151,60 +144,52 @@ describe('XHRTransport', () => {
         server.respondWith('POST', storeUrl, [429, { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:error:scope` }, '']);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
-        const dateStub = stub(Date, 'now')
+        jest
+          .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
-          .onCall(0)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
-          .onCall(1)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - false (different category)
-          .onCall(2)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 2nd event - _handleRateLimit
-          .onCall(3)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - true
-          .onCall(4)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 4th event - _isRateLimited - false
-          .onCall(5)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 4th event - _handleRateLimit
-          .onCall(6)
-          .returns(afterLimit);
+          .mockImplementationOnce(() => afterLimit);
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(undefined);
-          expect(server.requests.length).equal(1);
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBeUndefined();
+          expect(server.requests.length).toBe(1);
         }
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(2);
+        expect(transactionRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(2);
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBe(
             `Transport for event requests locked till ${new Date(afterLimit)} due to too many requests.`,
           );
-          expect(server.requests.length).equal(2);
+          expect(server.requests.length).toBe(2);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(3);
-
-        dateStub.restore();
+        expect(eventRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(3);
       });
 
       it('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
@@ -220,75 +205,66 @@ describe('XHRTransport', () => {
         ]);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
-        const dateStub = stub(Date, 'now')
+        jest
+          .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
-          .onCall(0)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
-          .onCall(1)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true (event category)
-          .onCall(2)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - true (transaction category)
-          .onCall(3)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 4th event - _isRateLimited - false (event category)
-          .onCall(4)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 4th event - _handleRateLimit
-          .onCall(5)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 5th event - _isRateLimited - false (transaction category)
-          .onCall(6)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 5th event - _handleRateLimit
-          .onCall(7)
-          .returns(afterLimit);
+          .mockImplementationOnce(() => afterLimit);
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(undefined);
-          expect(server.requests.length).equal(1);
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBeUndefined();
+          expect(server.requests.length).toBe(1);
         }
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBe(
             `Transport for event requests locked till ${new Date(afterLimit)} due to too many requests.`,
           );
-          expect(server.requests.length).equal(1);
+          expect(server.requests.length).toBe(1);
         }
 
         try {
           await transport.sendEvent(transactionPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBe(
             `Transport for transaction requests locked till ${new Date(afterLimit)} due to too many requests.`,
           );
-          expect(server.requests.length).equal(1);
+          expect(server.requests.length).toBe(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(2);
+        expect(eventRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(3);
-
-        dateStub.restore();
+        expect(transactionRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(3);
       });
 
       it('back-off using X-Sentry-Rate-Limits with missing categories should lock them all', async () => {
@@ -300,75 +276,66 @@ describe('XHRTransport', () => {
         server.respondWith('POST', storeUrl, [429, { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}::scope` }, '']);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
-        const dateStub = stub(Date, 'now')
+        jest
+          .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
-          .onCall(0)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
-          .onCall(1)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true (event category)
-          .onCall(2)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - true (transaction category)
-          .onCall(3)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 4th event - _isRateLimited - false (event category)
-          .onCall(4)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 4th event - _handleRateLimit
-          .onCall(5)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 5th event - _isRateLimited - false (transaction category)
-          .onCall(6)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 5th event - _handleRateLimit
-          .onCall(7)
-          .returns(afterLimit);
+          .mockImplementationOnce(() => afterLimit);
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(undefined);
-          expect(server.requests.length).equal(1);
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBeUndefined();
+          expect(server.requests.length).toBe(1);
         }
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBe(
             `Transport for event requests locked till ${new Date(afterLimit)} due to too many requests.`,
           );
-          expect(server.requests.length).equal(1);
+          expect(server.requests.length).toBe(1);
         }
 
         try {
           await transport.sendEvent(transactionPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBe(
             `Transport for transaction requests locked till ${new Date(afterLimit)} due to too many requests.`,
           );
-          expect(server.requests.length).equal(1);
+          expect(server.requests.length).toBe(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(2);
+        expect(eventRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(3);
-
-        dateStub.restore();
+        expect(transactionRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(3);
       });
 
       it('back-off using X-Sentry-Rate-Limits should also trigger for 200 responses', async () => {
@@ -379,45 +346,39 @@ describe('XHRTransport', () => {
 
         server.respondWith('POST', storeUrl, [200, { 'X-Sentry-Rate-Limits': `${retryAfterSeconds}:error:scope` }, '']);
 
-        const dateStub = stub(Date, 'now')
+        jest
+          .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
-          .onCall(0)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
-          .onCall(1)
-          .returns(beforeLimit)
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true
-          .onCall(2)
-          .returns(withinLimit)
+          .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - false
-          .onCall(3)
-          .returns(afterLimit)
+          .mockImplementationOnce(() => afterLimit)
           // 3rd event - _handleRateLimit
-          .onCall(4)
-          .returns(afterLimit);
+          .mockImplementationOnce(() => afterLimit);
 
         let eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(1);
+        expect(eventRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(1);
 
         try {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          expect(res.status).equal(429);
-          expect(res.reason).equal(
+          expect((res as Response).status).toBe(429);
+          expect((res as Response).reason).toBe(
             `Transport for event requests locked till ${new Date(afterLimit)} due to too many requests.`,
           );
-          expect(server.requests.length).equal(1);
+          expect(server.requests.length).toBe(1);
         }
 
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).equal(Status.Success);
-        expect(server.requests.length).equal(2);
-
-        dateStub.restore();
+        expect(eventRes.status).toBe(Status.Success);
+        expect(server.requests.length).toBe(2);
       });
     });
   });
