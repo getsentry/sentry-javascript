@@ -10,7 +10,7 @@ export enum Outcome {
   EventProcessor = 'event_processor',
   NetworkError = 'network_error',
   QueueSize = 'queue_size',
-  RateLimit = 'backoff', // NOTE(kamil): I'd prefer to call it `rate_limit` instead of `backoff`
+  RateLimit = 'rate_limit',
   SampleRate = 'sample_rate',
 }
 
@@ -66,7 +66,7 @@ export interface TransportOptions {
   /** The envelope tunnel to use. */
   tunnel?: string;
   /** Automatically send SDK Client Report */
-  sendClientReport?: boolean;
+  sendClientReports?: boolean;
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.

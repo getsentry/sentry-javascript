@@ -42,7 +42,7 @@ export abstract class BaseTransport implements Transport {
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
 
-    if (this.options.sendClientReport) {
+    if (this.options.sendClientReports) {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
           this._flushOutcomes();
@@ -69,7 +69,7 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public recordLostEvent(reason: Outcome, category: SentryRequestType): void {
-    if (!this.options.sendClientReport) {
+    if (!this.options.sendClientReports) {
       return;
     }
     // We want to track each category (event, transaction, session) separately
@@ -77,7 +77,7 @@ export abstract class BaseTransport implements Transport {
     // We could use nested maps, but it's much easier to read and type this way.
     // A correct type for map-based implementation if we want to go that route
     // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
-    const key = `${CATEGORY_MAPPING[category]}:${reason}}`;
+    const key = `${CATEGORY_MAPPING[category]}:${reason}`;
     logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
@@ -86,7 +86,7 @@ export abstract class BaseTransport implements Transport {
    * Send outcomes as an envelope
    */
   protected _flushOutcomes(): void {
-    if (!this.options.sendClientReport) {
+    if (!this.options.sendClientReports) {
       return;
     }
 

@@ -1,3 +1,6 @@
+import { Outcome } from '@sentry/types';
+import { SentryError } from '@sentry/utils';
+
 import { Event, Response, Status, Transports } from '../../../src';
 
 const testDsn = 'https://123@sentry.io/42';
@@ -101,6 +104,32 @@ describe('FetchTransport', () => {
         await transport.sendEvent(eventPayload);
       } catch (res) {
         expect(res).toBe(response);
+      }
+    });
+
+    it('should record dropped event when fetch fails', async () => {
+      const response = { status: 403, headers: new Headers() };
+
+      window.fetch.mockImplementation(() => Promise.reject(response));
+
+      const spy = jest.spyOn(transport, 'recordLostEvent');
+
+      try {
+        await transport.sendEvent(eventPayload);
+      } catch (_) {
+        expect(spy).toHaveBeenCalledWith(Outcome.NetworkError, 'event');
+      }
+    });
+
+    it('should record dropped event when queue buffer overflows', async () => {
+      // @ts-ignore private method
+      jest.spyOn(transport._buffer, 'add').mockRejectedValue(new SentryError('Buffer Full'));
+      const spy = jest.spyOn(transport, 'recordLostEvent');
+
+      try {
+        await transport.sendEvent(transactionPayload);
+      } catch (_) {
+        expect(spy).toHaveBeenCalledWith(Outcome.QueueSize, 'transaction');
       }
     });
 
@@ -450,6 +479,25 @@ describe('FetchTransport', () => {
         eventRes = await transport.sendEvent(eventPayload);
         expect(eventRes.status).toBe(Status.Success);
         expect(fetch).toHaveBeenCalledTimes(2);
+      });
+
+      it('should record dropped event', async () => {
+        // @ts-ignore private method
+        jest.spyOn(transport, '_isRateLimited').mockReturnValue(true);
+
+        const spy = jest.spyOn(transport, 'recordLostEvent');
+
+        try {
+          await transport.sendEvent(eventPayload);
+        } catch (_) {
+          expect(spy).toHaveBeenCalledWith(Outcome.RateLimit, 'event');
+        }
+
+        try {
+          await transport.sendEvent(transactionPayload);
+        } catch (_) {
+          expect(spy).toHaveBeenCalledWith(Outcome.RateLimit, 'transaction');
+        }
       });
     });
   });
