@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import { computeStackTrace } from '../../../src/tracekit';
 
 describe('Tracekit - Custom Tests', () => {
@@ -13,7 +11,7 @@ describe('Tracekit - Custom Tests', () => {
 
     const stacktrace = computeStackTrace(CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME);
 
-    expect(stacktrace.stack).deep.equal([
+    expect(stacktrace.stack).toEqual([
       {
         args: [],
         column: 15,
@@ -24,58 +22,130 @@ describe('Tracekit - Custom Tests', () => {
     ]);
   });
 
-  it('should parse exceptions for safari-extension', () => {
-    const SAFARI_EXTENSION_EXCEPTION = {
-      message: 'wat',
-      name: 'Error',
-      stack: `Error: wat
+  describe('Safari extensions', () => {
+    it('should parse exceptions for safari-extension', () => {
+      const SAFARI_EXTENSION_EXCEPTION = {
+        message: 'wat',
+        name: 'Error',
+        stack: `Error: wat
       at ClipperError@safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js:223036:10)
       at safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
-    };
-    const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
-    expect(stacktrace.stack).deep.equal([
-      {
-        url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-        func: 'ClipperError',
-        args: [],
-        line: 223036,
-        column: 10,
-      },
-      {
-        url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-        func: '?',
-        args: [],
-        line: 3313,
-        column: 26,
-      },
-    ]);
-  });
+      };
+      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+      expect(stacktrace.stack).toEqual([
+        {
+          url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+          func: 'ClipperError',
+          args: [],
+          line: 223036,
+          column: 10,
+        },
+        {
+          url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+          func: '?',
+          args: [],
+          line: 3313,
+          column: 26,
+        },
+      ]);
+    });
 
-  it('should parse exceptions for safari-web-extension', () => {
-    const SAFARI_WEB_EXTENSION_EXCEPTION = {
-      message: 'wat',
-      name: 'Error',
-      stack: `Error: wat
+    it('should parse exceptions for safari-extension with frames-only stack', () => {
+      const SAFARI_EXTENSION_EXCEPTION = {
+        message: `undefined is not an object (evaluating 'e.groups.includes')`,
+        name: `TypeError`,
+        stack: `isClaimed@safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:929865
+        safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:1588410
+        promiseReactionJob@[native code]`,
+      };
+      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+
+      expect(stacktrace.stack).toEqual([
+        {
+          url: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+          func: 'isClaimed',
+          args: [],
+          line: 2,
+          column: 929865,
+        },
+        {
+          url: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+          func: '?',
+          args: [],
+          line: 2,
+          column: 1588410,
+        },
+        {
+          url: '[native code]',
+          func: 'promiseReactionJob',
+          args: [],
+          line: null,
+          column: null,
+        },
+      ]);
+    });
+
+    it('should parse exceptions for safari-web-extension', () => {
+      const SAFARI_WEB_EXTENSION_EXCEPTION = {
+        message: 'wat',
+        name: 'Error',
+        stack: `Error: wat
       at ClipperError@safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js:223036:10)
       at safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
-    };
-    const stacktrace = computeStackTrace(SAFARI_WEB_EXTENSION_EXCEPTION);
-    expect(stacktrace.stack).deep.equal([
-      {
-        url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-        func: 'ClipperError',
-        args: [],
-        line: 223036,
-        column: 10,
-      },
-      {
-        url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-        func: '?',
-        args: [],
-        line: 3313,
-        column: 26,
-      },
-    ]);
+      };
+      const stacktrace = computeStackTrace(SAFARI_WEB_EXTENSION_EXCEPTION);
+      expect(stacktrace.stack).toEqual([
+        {
+          url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+          func: 'ClipperError',
+          args: [],
+          line: 223036,
+          column: 10,
+        },
+        {
+          url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+          func: '?',
+          args: [],
+          line: 3313,
+          column: 26,
+        },
+      ]);
+    });
+
+    it('should parse exceptions for safari-web-extension with frames-only stack', () => {
+      const SAFARI_EXTENSION_EXCEPTION = {
+        message: `undefined is not an object (evaluating 'e.groups.includes')`,
+        name: `TypeError`,
+        stack: `p_@safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:33314
+      safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:56027
+      promiseReactionJob@[native code]`,
+      };
+      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+
+      expect(stacktrace.stack).toEqual([
+        {
+          url: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+          func: 'p_',
+          args: [],
+          line: 29,
+          column: 33314,
+        },
+        {
+          url: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+          func: '?',
+          args: [],
+          line: 29,
+          column: 56027,
+        },
+        {
+          url: '[native code]',
+          func: 'promiseReactionJob',
+          args: [],
+          line: null,
+          column: null,
+        },
+      ]);
+    });
   });
 
   it('should parse exceptions for react-native-v8', () => {
@@ -92,7 +162,7 @@ describe('Tracekit - Custom Tests', () => {
           at P(index.android.bundle:93:714)`,
     };
     const stacktrace = computeStackTrace(REACT_NATIVE_V8_EXCEPTION);
-    expect(stacktrace.stack).deep.equal([
+    expect(stacktrace.stack).toEqual([
       { url: 'index.android.bundle', func: 'Object.onPress', args: [], line: 2342, column: 3773 },
       { url: 'index.android.bundle', func: 's.touchableHandlePress', args: [], line: 214, column: 2048 },
       { url: 'index.android.bundle', func: 's._performSideEffectsForTransition', args: [], line: 198, column: 9608 },
@@ -114,7 +184,7 @@ describe('Tracekit - Custom Tests', () => {
           forEach@[native code]`,
     };
     const stacktrace = computeStackTrace(REACT_NATIVE_EXPO_EXCEPTION);
-    expect(stacktrace.stack).deep.equal([
+    expect(stacktrace.stack).toEqual([
       {
         url:
           '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
@@ -171,7 +241,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(CHROME73_NATIVE_CODE_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { args: [], column: 17, func: 'fooIterator', line: 20, url: 'http://localhost:5000/test' },
         { args: [], column: null, func: 'Array.map', line: null, url: '<anonymous>' },
         { args: [], column: 19, func: 'foo', line: 19, url: 'http://localhost:5000/test' },
@@ -190,7 +260,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(FIREFOX66_NATIVE_CODE_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { args: [], column: 17, func: 'fooIterator', line: 20, url: 'http://localhost:5000/test' },
         { args: [], column: 19, func: 'foo', line: 19, url: 'http://localhost:5000/test' },
         { args: [], column: 7, func: '?', line: 24, url: 'http://localhost:5000/test' },
@@ -209,7 +279,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(SAFARI12_NATIVE_CODE_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { args: [], column: 26, func: 'fooIterator', line: 20, url: 'http://localhost:5000/test' },
         { args: [], column: null, func: 'map', line: null, url: '[native code]' },
         { args: [], column: 22, func: 'foo', line: 19, url: 'http://localhost:5000/test' },
@@ -230,7 +300,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(EDGE44_NATIVE_CODE_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { args: [], column: 11, func: 'fooIterator', line: 20, url: 'http://localhost:5000/test' },
         {
           args: ['native code'],
@@ -265,7 +335,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(CHROME73_EVAL_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { column: 13, url: 'http://localhost:5000/', func: 'Object.aha', line: 19, args: [] },
         { column: 16, url: 'http://localhost:5000/', func: 'callAnotherThing', line: 20, args: [] },
         { column: 7, url: 'http://localhost:5000/', func: 'Object.callback', line: 25, args: [] },
@@ -296,7 +366,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(FIREFOX66_EVAL_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { column: 13, url: 'http://localhost:5000/', func: 'aha', line: 19, args: [] },
         { column: 15, url: 'http://localhost:5000/', func: 'callAnotherThing', line: 20, args: [] },
         { column: 7, url: 'http://localhost:5000/', func: 'callback', line: 25, args: [] },
@@ -329,7 +399,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(SAFARI12_EVAL_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { column: 22, url: 'http://localhost:5000/', func: 'aha', line: 19, args: [] },
         { column: null, url: '[native code]', func: 'aha', line: null, args: [] },
         { column: 16, url: 'http://localhost:5000/', func: 'callAnotherThing', line: 20, args: [] },
@@ -363,7 +433,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(EDGE44_EVAL_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         { column: 7, url: 'http://localhost:5000/', func: 'aha', line: 19, args: [] },
         { column: 6, url: 'http://localhost:5000/', func: 'callAnotherThing', line: 18, args: [] },
         { column: 7, url: 'http://localhost:5000/', func: 'callback', line: 25, args: [] },
@@ -401,7 +471,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(CHROME_ELECTRON_RENDERER);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         {
           args: [],
           column: 108,
@@ -429,7 +499,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(REACT_INVARIANT_VIOLATION_EXCEPTION);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         {
           args: [],
           column: 21738,
@@ -475,7 +545,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(REACT_PRODUCTION_ERROR);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         {
           args: [],
           column: 21738,
@@ -522,7 +592,7 @@ describe('Tracekit - Custom Tests', () => {
 
       const stacktrace = computeStackTrace(REACT_PRODUCTION_ERROR);
 
-      expect(stacktrace.stack).deep.equal([
+      expect(stacktrace.stack).toEqual([
         {
           args: [],
           column: 21738,

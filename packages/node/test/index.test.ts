@@ -377,7 +377,7 @@ describe('SentryNode initialization', () => {
           defaultIntegrations: [new MockIntegration('bar')],
         });
         const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
-        expect(integrations.map(i => i.name)).toEqual(['bar', 'foo']);
+        expect(integrations.map((i: { name: string }) => i.name)).toEqual(['bar', 'foo']);
       });
     });
 
@@ -387,7 +387,7 @@ describe('SentryNode initialization', () => {
           defaultIntegrations: [new MockIntegration('baz'), new MockIntegration('qux')],
         });
         const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
-        expect(integrations.map(i => i.name)).toEqual(['baz', 'qux', 'foo', 'bar']);
+        expect(integrations.map((i: { name: string }) => i.name)).toEqual(['baz', 'qux', 'foo', 'bar']);
       });
     });
 
@@ -399,6 +399,27 @@ describe('SentryNode initialization', () => {
         const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
         expect(integrations).toEqual([]);
       });
+    });
+  });
+
+  describe('autoSessionTracking', () => {
+    it('enables autoSessionTracking if there is a release', () => {
+      init({
+        dsn: '',
+        release: '3.5.7',
+      });
+
+      const options = (initAndBind as jest.Mock).mock.calls[0][1];
+      expect(options.autoSessionTracking).toBe(true);
+    });
+
+    it('disables autoSessionTracking if dsn is undefined', () => {
+      init({
+        release: '3.5.7',
+      });
+
+      const options = (initAndBind as jest.Mock).mock.calls[0][1];
+      expect(options.autoSessionTracking).toBe(undefined);
     });
   });
 });

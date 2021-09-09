@@ -1,11 +1,9 @@
 import { ExtendedError } from '@sentry/types';
-import { expect } from 'chai';
 import { stub } from 'sinon';
 
 import { BrowserBackend } from '../../../src/backend';
 import { LinkedErrors } from '../../../src/integrations/linkederrors';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let linkedErrors: any;
 
 describe('LinkedErrors', () => {
@@ -20,8 +18,8 @@ describe('LinkedErrors', () => {
         message: 'foo',
       };
       const result = linkedErrors._handler(event);
-      expect(spy.called).equal(false);
-      expect(result).to.deep.equal(event);
+      expect(spy.called).toBe(false);
+      expect(result).toEqual(event);
     });
 
     it('should bail out if event contains exception, but no hint', () => {
@@ -33,8 +31,8 @@ describe('LinkedErrors', () => {
         message: 'foo',
       };
       const result = linkedErrors._handler(event);
-      expect(spy.called).equal(false);
-      expect(result).to.deep.equal(event);
+      expect(spy.called).toBe(false);
+      expect(result).toEqual(event);
     });
 
     it('should call walkErrorTree if event contains exception and hint with originalException', () => {
@@ -49,7 +47,7 @@ describe('LinkedErrors', () => {
         originalException: new Error('originalException'),
       };
       linkedErrors._handler(event, hint);
-      expect(spy.calledOnce).equal(true);
+      expect(spy.calledOnce).toBe(true);
     });
 
     it('should recursively walk error to find linked exceptions and assign them to the event', async () => {
@@ -69,16 +67,16 @@ describe('LinkedErrors', () => {
         });
 
         // It shouldn't include root exception, as it's already processed in the event by the main error handler
-        expect(result.exception.values.length).equal(3);
-        expect(result.exception.values[0].type).equal('SyntaxError');
-        expect(result.exception.values[0].value).equal('three');
-        expect(result.exception.values[0].stacktrace).to.have.property('frames');
-        expect(result.exception.values[1].type).equal('TypeError');
-        expect(result.exception.values[1].value).equal('two');
-        expect(result.exception.values[1].stacktrace).to.have.property('frames');
-        expect(result.exception.values[2].type).equal('Error');
-        expect(result.exception.values[2].value).equal('one');
-        expect(result.exception.values[2].stacktrace).to.have.property('frames');
+        expect(result.exception.values.length).toBe(3);
+        expect(result.exception.values[0].type).toBe('SyntaxError');
+        expect(result.exception.values[0].value).toBe('three');
+        expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[1].type).toBe('TypeError');
+        expect(result.exception.values[1].value).toBe('two');
+        expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[2].type).toBe('Error');
+        expect(result.exception.values[2].value).toBe('one');
+        expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
       });
     });
 
@@ -102,16 +100,16 @@ describe('LinkedErrors', () => {
           originalException,
         });
 
-        expect(result.exception.values.length).equal(3);
-        expect(result.exception.values[0].type).equal('SyntaxError');
-        expect(result.exception.values[0].value).equal('three');
-        expect(result.exception.values[0].stacktrace).to.have.property('frames');
-        expect(result.exception.values[1].type).equal('TypeError');
-        expect(result.exception.values[1].value).equal('two');
-        expect(result.exception.values[1].stacktrace).to.have.property('frames');
-        expect(result.exception.values[2].type).equal('Error');
-        expect(result.exception.values[2].value).equal('one');
-        expect(result.exception.values[2].stacktrace).to.have.property('frames');
+        expect(result.exception.values.length).toBe(3);
+        expect(result.exception.values[0].type).toBe('SyntaxError');
+        expect(result.exception.values[0].value).toBe('three');
+        expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[1].type).toBe('TypeError');
+        expect(result.exception.values[1].value).toBe('two');
+        expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[2].type).toBe('Error');
+        expect(result.exception.values[2].value).toBe('one');
+        expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
       });
     });
 
@@ -132,13 +130,13 @@ describe('LinkedErrors', () => {
           originalException: one,
         });
 
-        expect(result.exception.values.length).equal(2);
-        expect(result.exception.values[0].type).equal('TypeError');
-        expect(result.exception.values[0].value).equal('two');
-        expect(result.exception.values[0].stacktrace).to.have.property('frames');
-        expect(result.exception.values[1].type).equal('Error');
-        expect(result.exception.values[1].value).equal('one');
-        expect(result.exception.values[1].stacktrace).to.have.property('frames');
+        expect(result.exception.values.length).toBe(2);
+        expect(result.exception.values[0].type).toBe('TypeError');
+        expect(result.exception.values[0].value).toBe('two');
+        expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[1].type).toBe('Error');
+        expect(result.exception.values[1].value).toBe('one');
+        expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
       });
     });
   });
