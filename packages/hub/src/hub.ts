@@ -248,7 +248,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = (this._lastEventId = uuid4());
+    const eventId = event.type === 'transaction' ? uuid4() : (this._lastEventId = uuid4());
     this._invokeClient('captureEvent', event, {
       ...hint,
       event_id: eventId,
