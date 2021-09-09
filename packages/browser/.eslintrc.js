@@ -25,6 +25,8 @@ module.exports = {
         'prefer-template': 'off',
         'no-unused-expressions': 'off',
         'guard-for-in': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
       },
     },
     {

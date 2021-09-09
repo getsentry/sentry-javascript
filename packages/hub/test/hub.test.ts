@@ -279,6 +279,29 @@ describe('Hub', () => {
       // @ts-ignore Says mock object is type unknown
       expect(spy.mock.calls[0][2].event_id).toBeTruthy();
     });
+
+    test('sets lastEventId', () => {
+      const event: Event = {
+        extra: { b: 3 },
+      };
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureEvent(event);
+      // @ts-ignore Says mock object is type unknown
+      expect(spy.mock.calls[0][2].event_id).toEqual(hub.lastEventId());
+    });
+
+    test('transactions do not set lastEventId', () => {
+      const event: Event = {
+        extra: { b: 3 },
+        type: 'transaction',
+      };
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureEvent(event);
+      // @ts-ignore Says mock object is type unknown
+      expect(spy.mock.calls[0][2].event_id).not.toEqual(hub.lastEventId());
+    });
   });
 
   test('lastEventId should be the same as last created', () => {
