@@ -1,6 +1,4 @@
 import { SDK_VERSION } from '@sentry/core';
-import { expect } from 'chai';
-import { SinonSpy, spy } from 'sinon';
 
 import {
   addBreadcrumb,
@@ -22,13 +20,13 @@ import { SimpleTransport } from './mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, no-var
+// eslint-disable-next-line no-var
 declare var global: any;
 
 describe('SentryBrowser', () => {
-  const beforeSend: SinonSpy<[Event], Event> = spy((event: Event) => event);
+  const beforeSend = jest.fn();
 
-  before(() => {
+  beforeAll(() => {
     init({
       beforeSend,
       dsn,
@@ -42,7 +40,7 @@ describe('SentryBrowser', () => {
 
   afterEach(() => {
     getCurrentHub().popScope();
-    beforeSend.resetHistory();
+    beforeSend.mockReset();
   });
 
   describe('getContext() / setContext()', () => {
@@ -50,7 +48,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).to.deep.equal({
+      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
@@ -59,7 +57,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setTag('abc', 'def');
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).to.deep.equal({
+      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
         abc: 'def',
       });
     });
@@ -68,7 +66,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).to.deep.equal({
+      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: 'def',
       });
     });
@@ -78,7 +76,11 @@ describe('SentryBrowser', () => {
     describe('user', () => {
       const EX_USER = { email: 'test@example.com' };
       const client = new BrowserClient({ dsn });
-      spy(client, 'showReportDialog');
+      const reportDialogSpy = jest.spyOn(client, 'showReportDialog');
+
+      beforeEach(() => {
+        reportDialogSpy.mockReset();
+      });
 
       it('uses the user on the scope', () => {
         configureScope(scope => {
@@ -88,8 +90,8 @@ describe('SentryBrowser', () => {
 
         showReportDialog();
 
-        expect((client.showReportDialog as SinonSpy).called).to.be.true;
-        expect((client.showReportDialog as SinonSpy).lastCall.args[0].user.email).to.eq(EX_USER.email);
+        expect(reportDialogSpy).toBeCalled();
+        expect(reportDialogSpy.mock.calls[0][0]!.user!.email).toBe(EX_USER.email);
       });
 
       it('prioritizes options user over scope user', () => {
@@ -101,8 +103,8 @@ describe('SentryBrowser', () => {
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
         showReportDialog({ user: DIALOG_OPTION_USER });
 
-        expect((client.showReportDialog as SinonSpy).called).to.be.true;
-        expect((client.showReportDialog as SinonSpy).lastCall.args[0].user.email).to.eq(DIALOG_OPTION_USER.email);
+        expect(reportDialogSpy).toBeCalled();
+        expect(reportDialogSpy.mock.calls[0][0]!.user!.email).toBe(DIALOG_OPTION_USER.email);
       });
     });
   });
@@ -114,7 +116,7 @@ describe('SentryBrowser', () => {
 
       captureMessage('event');
       await flush(2000);
-      expect(beforeSend.args[0][0].breadcrumbs).to.have.lengthOf(2);
+      expect(beforeSend.mock.calls[0][0].breadcrumbs).toHaveLength(2);
     });
   });
 
@@ -128,22 +130,20 @@ describe('SentryBrowser', () => {
 
       await flush(2000);
 
-      const event = beforeSend.args[0][0];
-      expect(event.exception).to.not.be.undefined;
-      /* eslint-disable @typescript-eslint/no-non-null-assertion */
-      expect(event.exception!.values![0]).to.not.be.undefined;
-      expect(event.exception!.values![0].type).to.equal('Error');
-      expect(event.exception!.values![0].value).to.equal('test');
-      expect(event.exception!.values![0].stacktrace).to.not.be.empty;
-      /* eslint-enable @typescript-eslint/no-non-null-assertion */
+      const event = beforeSend.mock.calls[0][0];
+      expect(event.exception).toBeDefined();
+      expect(event.exception.values[0]).toBeDefined();
+      expect(event.exception.values[0].type).toBe('Error');
+      expect(event.exception.values[0].value).toBe('test');
+      expect(event.exception.values[0].stacktrace.frames).not.toHaveLength(0);
     });
 
     it('should capture a message', done => {
       getCurrentHub().bindClient(
         new BrowserClient({
           beforeSend: (event: Event): Event | null => {
-            expect(event.message).to.equal('test');
-            expect(event.exception).to.be.undefined;
+            expect(event.message).toBe('test');
+            expect(event.exception).toBeUndefined();
             done();
             return event;
           },
@@ -157,8 +157,8 @@ describe('SentryBrowser', () => {
       getCurrentHub().bindClient(
         new BrowserClient({
           beforeSend: (event: Event): Event | null => {
-            expect(event.message).to.equal('event');
-            expect(event.exception).to.be.undefined;
+            expect(event.message).toBe('event');
+            expect(event.exception).toBeUndefined();
             done();
             return event;
           },
@@ -169,7 +169,7 @@ describe('SentryBrowser', () => {
     });
 
     it('should not dedupe an event on bound client', async () => {
-      const localBeforeSend = spy();
+      const localBeforeSend = jest.fn();
       getCurrentHub().bindClient(
         new BrowserClient({
           beforeSend: localBeforeSend,
@@ -183,11 +183,11 @@ describe('SentryBrowser', () => {
 
       await flush(10);
 
-      expect(localBeforeSend.calledTwice).to.be.true;
+      expect(localBeforeSend).toHaveBeenCalledTimes(2);
     });
 
     it('should use inboundfilter rules of bound client', async () => {
-      const localBeforeSend = spy();
+      const localBeforeSend = jest.fn();
       getCurrentHub().bindClient(
         new BrowserClient({
           beforeSend: localBeforeSend,
@@ -200,7 +200,7 @@ describe('SentryBrowser', () => {
 
       await flush(2000);
 
-      expect(localBeforeSend.called).to.be.false;
+      expect(localBeforeSend).not.toHaveBeenCalled();
     });
   });
 });
@@ -209,20 +209,20 @@ describe('SentryBrowser initialization', () => {
   it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
-    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).to.equal('foobar');
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBe('foobar');
     delete global.SENTRY_RELEASE;
   });
 
   it('should use initialScope', () => {
     init({ dsn, initialScope: { tags: { a: 'b' } } });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should use initialScope Scope', () => {
     const scope = new Scope();
     scope.setTags({ a: 'b' });
     init({ dsn, initialScope: scope });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should use initialScope callback', () => {
@@ -233,38 +233,36 @@ describe('SentryBrowser initialization', () => {
         return scope;
       },
     });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).to.deep.equal({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {
     // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
     init({ dsn });
-    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).to.be.undefined;
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBeUndefined();
   });
 
   describe('SDK metadata', () => {
     it('should set SDK data when Sentry.init() is called', () => {
       init({ dsn });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
 
-      expect(sdkData.name).to.equal('sentry.javascript.browser');
-      expect(sdkData.packages[0].name).to.equal('npm:@sentry/browser');
-      expect(sdkData.packages[0].version).to.equal(SDK_VERSION);
-      expect(sdkData.version).to.equal(SDK_VERSION);
+      expect(sdkData.name).toBe('sentry.javascript.browser');
+      expect(sdkData.packages[0].name).toBe('npm:@sentry/browser');
+      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData.version).toBe(SDK_VERSION);
     });
 
     it('should set SDK data when instantiating a client directly', () => {
       const client = new BrowserClient({ dsn });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sdkData = (client as any)._backend._transport._api.metadata?.sdk;
 
-      expect(sdkData.name).to.equal('sentry.javascript.browser');
-      expect(sdkData.packages[0].name).to.equal('npm:@sentry/browser');
-      expect(sdkData.packages[0].version).to.equal(SDK_VERSION);
-      expect(sdkData.version).to.equal(SDK_VERSION);
+      expect(sdkData.name).toBe('sentry.javascript.browser');
+      expect(sdkData.packages[0].name).toBe('npm:@sentry/browser');
+      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData.version).toBe(SDK_VERSION);
     });
 
     // wrapper packages (like @sentry/angular and @sentry/react) set their SDK data in their `init` methods, which are
@@ -287,13 +285,12 @@ describe('SentryBrowser initialization', () => {
         },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
 
-      expect(sdkData.name).to.equal('sentry.javascript.angular');
-      expect(sdkData.packages[0].name).to.equal('npm:@sentry/angular');
-      expect(sdkData.packages[0].version).to.equal(SDK_VERSION);
-      expect(sdkData.version).to.equal(SDK_VERSION);
+      expect(sdkData.name).toBe('sentry.javascript.angular');
+      expect(sdkData.packages[0].name).toBe('npm:@sentry/angular');
+      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData.version).toBe(SDK_VERSION);
     });
   });
 });
@@ -303,10 +300,8 @@ describe('wrap()', () => {
     getCurrentHub().bindClient(
       new BrowserClient({
         beforeSend: (event: Event): Event | null => {
-          /* eslint-disable @typescript-eslint/no-non-null-assertion */
-          expect(event.exception!.values![0].type).to.equal('TypeError');
-          expect(event.exception!.values![0].value).to.equal('mkey');
-          /* eslint-enable @typescript-eslint/no-non-null-assertion */
+          expect(event.exception!.values![0].type).toBe('TypeError');
+          expect(event.exception!.values![0].value).toBe('mkey');
           done();
           return null;
         },
@@ -314,14 +309,18 @@ describe('wrap()', () => {
       }),
     );
 
-    wrap(() => {
-      throw new TypeError('mkey');
-    });
+    try {
+      wrap(() => {
+        throw new TypeError('mkey');
+      });
+    } catch (e) {
+      // no-empty
+    }
   });
 
   it('should return result of a function call', () => {
     const result = wrap(() => 2);
-    expect(result).to.equal(2);
+    expect(result).toBe(2);
   });
 
   it('should allow for passing this and arguments through binding', () => {
@@ -331,9 +330,9 @@ describe('wrap()', () => {
       }.bind({ context: 'this' }, 'b', 42),
     );
 
-    expect((result as unknown[])[0]).to.deep.equal({ context: 'this' });
-    expect((result as unknown[])[1]).to.equal('b');
-    expect((result as unknown[])[2]).to.equal(42);
+    expect((result as unknown[])[0]).toEqual({ context: 'this' });
+    expect((result as unknown[])[1]).toBe('b');
+    expect((result as unknown[])[2]).toBe(42);
 
     const result2 = wrap(
       function(this: { x: number }): number {
@@ -341,6 +340,6 @@ describe('wrap()', () => {
       }.bind({ x: 42 }),
     );
 
-    expect(result2).to.equal(42);
+    expect(result2).toBe(42);
   });
 });
