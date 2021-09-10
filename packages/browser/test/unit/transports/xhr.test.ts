@@ -91,7 +91,7 @@ describe('XHRTransport', () => {
       try {
         await transport.sendEvent(transactionPayload);
       } catch (_) {
-        expect(spy).toHaveBeenCalledWith(Outcome.QueueSize, 'transaction');
+        expect(spy).toHaveBeenCalledWith(Outcome.QueueOverflow, 'transaction');
       }
     });
 
@@ -416,13 +416,13 @@ describe('XHRTransport', () => {
         try {
           await transport.sendEvent(eventPayload);
         } catch (_) {
-          expect(spy).toHaveBeenCalledWith(Outcome.RateLimit, 'event');
+          expect(spy).toHaveBeenCalledWith(Outcome.RateLimitBackoff, 'event');
         }
 
         try {
           await transport.sendEvent(transactionPayload);
         } catch (_) {
-          expect(spy).toHaveBeenCalledWith(Outcome.RateLimit, 'transaction');
+          expect(spy).toHaveBeenCalledWith(Outcome.RateLimitBackoff, 'transaction');
         }
       });
     });

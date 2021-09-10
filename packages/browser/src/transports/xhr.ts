@@ -26,7 +26,7 @@ export class XHRTransport extends BaseTransport {
    */
   private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
     if (this._isRateLimited(sentryRequest.type)) {
-      this.recordLostEvent(Outcome.RateLimit, sentryRequest.type);
+      this.recordLostEvent(Outcome.RateLimitBackoff, sentryRequest.type);
 
       return Promise.reject({
         event: originalPayload,
@@ -65,7 +65,7 @@ export class XHRTransport extends BaseTransport {
       )
       .then(undefined, reason => {
         if (reason instanceof SentryError) {
-          this.recordLostEvent(Outcome.QueueSize, sentryRequest.type);
+          this.recordLostEvent(Outcome.QueueOverflow, sentryRequest.type);
         } else {
           this.recordLostEvent(Outcome.NetworkError, sentryRequest.type);
         }

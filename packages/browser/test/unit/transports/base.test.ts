@@ -49,7 +49,7 @@ describe('BaseTransport', () => {
       visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
 
-      const outcomes = [{ reason: 'before_send', category: 'error', quantity: 1 }];
+      const outcomes = [{ reason: Outcome.BeforeSend, category: 'error', quantity: 1 }];
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
         envelopeEndpoint,
@@ -75,16 +75,16 @@ describe('BaseTransport', () => {
       transport.recordLostEvent(Outcome.SampleRate, 'transaction');
       transport.recordLostEvent(Outcome.NetworkError, 'session');
       transport.recordLostEvent(Outcome.NetworkError, 'session');
-      transport.recordLostEvent(Outcome.RateLimit, 'event');
+      transport.recordLostEvent(Outcome.RateLimitBackoff, 'event');
 
       visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
 
       const outcomes = [
-        { reason: 'before_send', category: 'error', quantity: 2 },
-        { reason: 'sample_rate', category: 'transaction', quantity: 1 },
-        { reason: 'network_error', category: 'session', quantity: 2 },
-        { reason: 'rate_limit', category: 'error', quantity: 1 },
+        { reason: Outcome.BeforeSend, category: 'error', quantity: 2 },
+        { reason: Outcome.SampleRate, category: 'transaction', quantity: 1 },
+        { reason: Outcome.NetworkError, category: 'session', quantity: 2 },
+        { reason: Outcome.RateLimitBackoff, category: 'error', quantity: 1 },
       ];
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(

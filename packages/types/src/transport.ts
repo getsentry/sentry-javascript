@@ -9,8 +9,8 @@ export enum Outcome {
   BeforeSend = 'before_send',
   EventProcessor = 'event_processor',
   NetworkError = 'network_error',
-  QueueSize = 'queue_size',
-  RateLimit = 'rate_limit',
+  QueueOverflow = 'queue_overflow',
+  RateLimitBackoff = 'ratelimit_backoff',
   SampleRate = 'sample_rate',
 }
 
