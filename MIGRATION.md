@@ -1,4 +1,4 @@
-# Upgrading from 4.x to 5.x
+# Upgrading from 4.x to 5.x/6.x
 
 In this version upgrade, there are a few breaking changes. This guide should help you update your code accordingly.
 
