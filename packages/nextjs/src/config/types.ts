@@ -42,6 +42,9 @@ export type WebpackConfigObject = {
   output: { filename: string; path: string };
   target: string;
   context: string;
+  resolve?: {
+    alias?: { [key: string]: string | boolean };
+  };
 } & {
   // other webpack options
   [key: string]: unknown;
