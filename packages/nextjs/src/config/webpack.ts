@@ -72,6 +72,8 @@ export function constructWebpackConfigFunction(
         alias: {
           ...newConfig.resolve?.alias,
           [path.resolve(buildContext.dir, `./node_modules/@sentry/tracing/esm/${excludedTracingDir}`)]: false,
+          // TODO It's not clear if it will ever pull from `dist` (in testing it never does), so we may not need this.
+          [path.resolve(buildContext.dir, `./node_modules/@sentry/tracing/dist/${excludedTracingDir}`)]: false,
         },
       };
     }
