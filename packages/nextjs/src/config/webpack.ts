@@ -60,6 +60,22 @@ export function constructWebpackConfigFunction(
     const origEntryProperty = newConfig.entry;
     newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
 
+    // In webpack 5, you can get webpack to replace any module you'd like with an empty object, just by setting its
+    // `resolve.alias` value to `false`. Not much of our code is neatly separated into "things node needs" and "things
+    // the browser needs," but where it is, we can save ~1.6 kb in eventual bundle size by excluding code we know we
+    // don't need. (Normally this would only matter for the client side, but because vercel turns backend code into
+    // serverless functions, it's worthwhile to do it for both.)
+    if (buildContext.webpack.version.startsWith('5')) {
+      const excludedTracingDir = buildContext.isServer ? 'browser' : 'integrations/node';
+      newConfig.resolve = {
+        ...newConfig.resolve,
+        alias: {
+          ...newConfig.resolve?.alias,
+          [path.resolve(buildContext.dir, `./node_modules/@sentry/tracing/esm/${excludedTracingDir}`)]: false,
+        },
+      };
+    }
+
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     const enableWebpackPlugin = buildContext.isServer
       ? !userNextConfig.sentry?.disableServerWebpackPlugin
