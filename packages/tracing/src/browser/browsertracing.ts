@@ -7,7 +7,7 @@ import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
 import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { MetricsInstrumentation } from './metrics';
+import { DEFAULT_METRICS_INSTR_OPTIONS, MetricsInstrumentation, MetricsInstrumentationOptions } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -59,6 +59,15 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Default: true
    */
   markBackgroundTransactions: boolean;
+
+  /**
+   * _metricOptions allows the user to send options to change how metrics are collected.
+   *
+   * _metricOptions is currently experimental.
+   *
+   * Default: undefined
+   */
+  _metricOptions?: Partial<MetricsInstrumentationOptions>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -116,7 +125,7 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
-  private readonly _metrics: MetricsInstrumentation = new MetricsInstrumentation();
+  private readonly _metrics: MetricsInstrumentation;
 
   private readonly _emitOptionsWarning: boolean = false;
 
@@ -139,6 +148,8 @@ export class BrowserTracing implements Integration {
       ..._options,
       tracingOrigins,
     };
+
+    this._metrics = new MetricsInstrumentation({ ...DEFAULT_METRICS_INSTR_OPTIONS, ...this.options._metricOptions });
   }
 
   /**
