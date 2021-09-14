@@ -163,6 +163,7 @@ export class FetchTransport extends BaseTransport {
           }),
       )
       .then(undefined, reason => {
+        // It's either buffer rejection or any other xhr/fetch error, which are treated as NetworkError.
         if (reason instanceof SentryError) {
           this.recordLostEvent(Outcome.QueueOverflow, sentryRequest.type);
         } else {

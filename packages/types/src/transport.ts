@@ -65,7 +65,7 @@ export interface TransportOptions {
   fetchParameters?: { [key: string]: string };
   /** The envelope tunnel to use. */
   tunnel?: string;
-  /** Automatically send SDK Client Report */
+  /** Send SDK Client Reports. Enabled by default. */
   sendClientReports?: boolean;
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
