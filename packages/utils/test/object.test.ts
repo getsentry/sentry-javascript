@@ -1,4 +1,10 @@
+/**
+ * @jest-environment jsdom
+ */
+
+import * as isModule from '../src/is';
 import { dropUndefinedKeys, extractExceptionKeysForMessage, fill, normalize, urlEncode } from '../src/object';
+import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('fill()', () => {
   test('wraps a method by calling a replacement function on it', () => {
@@ -119,28 +125,54 @@ describe('normalize()', () => {
     });
   });
 
-  test('extracts extra properties from error objects', () => {
-    const obj = new Error('Wubba Lubba Dub Dub') as any;
-    obj.reason = new TypeError("I'm pickle Riiick!");
-    obj.extra = 'some extra prop';
+  describe('getWalkSource()', () => {
+    test('extracts extra properties from error objects', () => {
+      const obj = new Error('Wubba Lubba Dub Dub') as any;
+      obj.reason = new TypeError("I'm pickle Riiick!");
+      obj.extra = 'some extra prop';
 
-    obj.stack = 'x';
-    obj.reason.stack = 'x';
+      obj.stack = 'x';
+      obj.reason.stack = 'x';
 
-    // IE 10/11
-    delete obj.description;
-    delete obj.reason.description;
+      // IE 10/11
+      delete obj.description;
+      delete obj.reason.description;
 
-    expect(normalize(obj)).toEqual({
-      message: 'Wubba Lubba Dub Dub',
-      name: 'Error',
-      stack: 'x',
-      reason: {
-        message: "I'm pickle Riiick!",
-        name: 'TypeError',
+      expect(normalize(obj)).toEqual({
+        message: 'Wubba Lubba Dub Dub',
+        name: 'Error',
         stack: 'x',
-      },
-      extra: 'some extra prop',
+        reason: {
+          message: "I'm pickle Riiick!",
+          name: 'TypeError',
+          stack: 'x',
+        },
+        extra: 'some extra prop',
+      });
+    });
+
+    testOnlyIfNodeVersionAtLeast(8)('extracts data from `Event` objects', () => {
+      const isElement = jest.spyOn(isModule, 'isElement').mockReturnValue(true);
+      const getAttribute = () => undefined;
+
+      const parkElement = { tagName: 'PARK', getAttribute };
+      const treeElement = { tagName: 'TREE', parentNode: parkElement, getAttribute };
+      const squirrelElement = { tagName: 'SQUIRREL', parentNode: treeElement, getAttribute };
+
+      const chaseEvent = new Event('chase');
+      Object.defineProperty(chaseEvent, 'target', { value: squirrelElement });
+      Object.defineProperty(chaseEvent, 'currentTarget', { value: parkElement });
+      Object.defineProperty(chaseEvent, 'wagging', { value: true, enumerable: false });
+
+      expect(normalize(chaseEvent)).toEqual({
+        currentTarget: 'park',
+        isTrusted: false,
+        target: 'park > tree > squirrel',
+        type: 'chase',
+        // notice that `wagging` isn't included because it's not enumerable and not one of the ones we specifically extract
+      });
+
+      isElement.mockRestore();
     });
   });
 

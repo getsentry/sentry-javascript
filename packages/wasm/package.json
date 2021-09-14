@@ -1,6 +1,6 @@
 {
   "name": "@sentry/wasm",
-  "version": "6.10.0",
+  "version": "6.12.0",
   "description": "Support for WASM.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/wasm",
@@ -16,14 +16,15 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "6.10.0",
-    "@sentry/types": "6.10.0",
+    "@sentry/browser": "6.12.0",
+    "@sentry/types": "6.12.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.10.0",
+    "@sentry-internal/eslint-config-sdk": "6.12.0",
     "@types/jest-environment-puppeteer": "^4.4.0",
     "@types/puppeteer": "^5.4.0",
+    "cross-env": "^7.0.3",
     "express": "^4.17.1",
     "jest": "^24.7.1",
     "jest-puppeteer": "^4.4.0",
@@ -54,7 +55,7 @@
     "fix": "run-s fix:eslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:eslint": "eslint . --format stylish --fix",
-    "test": "PORT=1337 jest",
+    "test": "cross-env PORT=1337 jest",
     "test:watch": "jest --watch",
     "pack": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts"

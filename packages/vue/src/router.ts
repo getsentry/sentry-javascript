@@ -61,7 +61,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
 
       if (startTransactionOnLocationChange && !isPageLoadNavigation) {
         startTransaction({
-          name: to.name || to.matched[0].path || to.path,
+          name: to.name || (to.matched[0] && to.matched[0].path) || to.path,
           op: 'navigation',
           tags,
           data,

@@ -4,6 +4,32 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.12.0
+
+- fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
+- fix(core): Skip native frames while searching frame URLs. (#3897)
+- fix(vue): Attach props only if VM is available (#3902)
+- feat(tracing): Add pg-native support to Postgres integration. (#3894)
+- ref(ember): Update addon to support Ember 4.0.0 (beta) (#3915)
+- feat(react): Make Profiler _mountSpan attribute protected (#3904)
+- fix(ember): allow ember-beta to fail (#3910)
+- fix(tracing): Prevent metrics erroring module load in web workers (#3941)
+- misc(browser): Log when event is dropped by Dedupe integration (#3943)
+
+## 6.11.0
+
+- feat(nextjs): Allow for TypeScript user config files (#3847)
+- fix(browser): Make sure handler exists for LinkedErrors Integration (#3861)
+- fix(core): Skip anonymous callbacks while searching frame URLs. (#3842)
+- fix(core): Stop rejecting in `flush` and `close` when client undefined (#3846)
+- fix(nextjs): Stop `SentryWebpackPlugin` from uploading unnecessary files (#3845)
+- fix(react): Require ReactElement in ErrorBoundary props and render (#3857)
+- fix(tests): Allow tests to run on Windows without WSL (#3813)
+- fix(utils): Fix false-positive circular references when normalizing `Event` objects (#3864)
+- fix(vue): Make Router.name type optional to match VueRouter (#3843)
+- ref(core): Prevent redundant setup work (#3862)
+- ref(nextjs): Stop reinitializing the server SDK unnecessarily (#3860)
+
 ## 6.10.0
 
 - feat(vue): Rework tracing and add support for `Vue 3` (#3804)

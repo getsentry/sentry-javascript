@@ -32,22 +32,27 @@ Sentry.init({
   dsn: 'http://test@example.com/1337',
   transport: DummyTransport,
   beforeSend(event) {
-    if (event.message === 'Error: foo') {
+    if (event.transaction === 'GET /foo') {
       assertTags(event.tags, {
         global: 'wat',
         foo: 'wat',
       });
-    } else if (event.message === 'Error: bar') {
+    } else if (event.transaction === 'GET /bar') {
       assertTags(event.tags, {
         global: 'wat',
         bar: 'wat',
       });
-    } else if (event.message === 'Error: baz') {
+    } else if (event.transaction === 'GET /baz') {
       assertTags(event.tags, {
         global: 'wat',
         baz: 'wat',
       });
+    } else {
+      assertTags(event.tags, {
+        global: 'wat',
+      });
     }
+
     return event;
   },
 });

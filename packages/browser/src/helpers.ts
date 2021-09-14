@@ -211,5 +211,9 @@ export function injectReportDialog(options: ReportDialogOptions = {}): void {
     script.onload = options.onLoad;
   }
 
-  (document.head || document.body).appendChild(script);
+  const injectionPoint = document.head || document.body;
+
+  if (injectionPoint) {
+    injectionPoint.appendChild(script);
+  }
 }

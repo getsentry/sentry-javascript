@@ -13,6 +13,7 @@ interface ExtendedBackburner extends Backburner {
  */
 declare module '@ember/runloop' {
   interface RunNamespace {
-    backburner: ExtendedBackburner;
+    backburner?: ExtendedBackburner;
   }
+  export const _backburner: ExtendedBackburner; // Ember 4.0
 }

@@ -2,11 +2,16 @@ import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
+import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
+import * as https from 'https';
 import * as nock from 'nock';
 
+import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
+
+const NODE_VERSION = parseSemver(process.versions.node);
 
 describe('tracing', () => {
   function createTransactionOnScope() {
@@ -89,5 +94,85 @@ describe('tracing', () => {
     const sentryTraceHeader = request.getHeader('sentry-trace');
 
     expect(sentryTraceHeader).not.toBeDefined();
+  });
+});
+
+describe('default protocols', () => {
+  function captureBreadcrumb(key: string): Promise<Breadcrumb> {
+    const hub = new Hub();
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    let resolve: (value: Breadcrumb | PromiseLike<Breadcrumb>) => void;
+    const p = new Promise<Breadcrumb>(r => {
+      resolve = r;
+    });
+    hub.bindClient(
+      new NodeClient({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        integrations: [new HttpIntegration({ breadcrumbs: true })],
+        beforeBreadcrumb: (b: Breadcrumb) => {
+          if ((b.data?.url as string).includes(key)) {
+            resolve(b);
+          }
+          return b;
+        },
+      }),
+    );
+
+    return p;
+  }
+
+  it('http module', async () => {
+    const key = 'catrunners';
+    const p = captureBreadcrumb(key);
+
+    nock(`http://${key}.ingest.sentry.io`)
+      .get('/api/123122332/store/')
+      .reply(200);
+
+    http.get({
+      host: `${key}.ingest.sentry.io`,
+      path: '/api/123122332/store/',
+    });
+
+    const b = await p;
+    expect(b.data?.url).toEqual(expect.stringContaining('http://'));
+  });
+
+  it('https module', async () => {
+    const key = 'catcatchers';
+    const p = captureBreadcrumb(key);
+
+    let nockProtocol = 'https:';
+    // NOTE: Prior to Node 9, `https` used internals of `http` module, so
+    // the integration doesn't patch the `https` module. However this then
+    // causes issues with nock, because nock will patch the `https` module
+    // regardless (if it asked to mock a https:// url), preventing the
+    // request from reaching the integrations patch of the `http` module.
+    // The result is test failures in Node v8 and lower.
+    //
+    // We can work around this by telling giving nock a http:// url, so it
+    // only patches the `http` module, then Nodes usage of the `http` module
+    // in the `https` module results in both nock's and the integrations
+    // patch being called. All this relies on nock not properly checking
+    // the agent passed to `http.get` / `http.request`, thus resulting in it
+    // intercepting a https:// request with http:// mock. It's a safe bet
+    // because the latest versions of nock no longer support Node v8 and lower,
+    // so won't bother dealing with this old Node edge case.
+    if (NODE_VERSION.major && NODE_VERSION.major < 9) {
+      nockProtocol = 'http:';
+    }
+    nock(`${nockProtocol}://${key}.ingest.sentry.io`)
+      .get('/api/123122332/store/')
+      .reply(200);
+
+    https.get({
+      host: `${key}.ingest.sentry.io`,
+      path: '/api/123122332/store/',
+      timeout: 300,
+    });
+
+    const b = await p;
+    expect(b.data?.url).toEqual(expect.stringContaining('https://'));
   });
 });

@@ -8,24 +8,24 @@ import { deepReadDirSync } from '../src/utils';
 
 describe('deepReadDirSync', () => {
   it('handles nested files', () => {
+    const expected = [
+      // root level
+      'debra.txt',
+      // one level deep
+      'cats/eddy.txt',
+      'cats/persephone.txt',
+      'cats/piper.txt',
+      'cats/sassafras.txt',
+      'cats/teaberry.txt',
+      // two levels deep
+      'dogs/theBigs/charlie.txt',
+      'dogs/theBigs/maisey.txt',
+      'dogs/theSmalls/bodhi.txt',
+      'dogs/theSmalls/cory.txt',
+    ].map(p => (process.platform === 'win32' ? p.replace(/\//g, '\\') : p));
+
     // compare sets so that order doesn't matter
-    expect(new Set(deepReadDirSync('./test/fixtures/testDeepReadDirSync'))).toEqual(
-      new Set([
-        // root level
-        'debra.txt',
-        // one level deep
-        'cats/eddy.txt',
-        'cats/persephone.txt',
-        'cats/piper.txt',
-        'cats/sassafras.txt',
-        'cats/teaberry.txt',
-        // two levels deep
-        'dogs/theBigs/charlie.txt',
-        'dogs/theBigs/maisey.txt',
-        'dogs/theSmalls/bodhi.txt',
-        'dogs/theSmalls/cory.txt',
-      ]),
-    );
+    expect(new Set(deepReadDirSync('./test/fixtures/testDeepReadDirSync'))).toEqual(new Set(expected));
   });
 
   it('handles empty target directory', (done: (error?: Error) => void) => {

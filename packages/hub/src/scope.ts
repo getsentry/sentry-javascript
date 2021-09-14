@@ -33,7 +33,7 @@ const MAX_BREADCRUMBS = 100;
  * called by the client before an event will be sent.
  */
 export class Scope implements ScopeInterface {
-  /** Flag if notifiying is happening. */
+  /** Flag if notifying is happening. */
   protected _notifyingListeners: boolean = false;
 
   /** Callback for client to receive scope changes. */
@@ -403,7 +403,7 @@ export class Scope implements ScopeInterface {
    * Note that breadcrumbs will be added by the client.
    * Also if the event has already breadcrumbs on it, we do not merge them.
    * @param event Event
-   * @param hint May contain additional informartion about the original exception.
+   * @param hint May contain additional information about the original exception.
    * @hidden
    */
   public applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null> {
@@ -427,7 +427,7 @@ export class Scope implements ScopeInterface {
     }
     // We want to set the trace context for normal events only if there isn't already
     // a trace context on the event. There is a product feature in place where we link
-    // errors with transaction and it relys on that.
+    // errors with transaction and it relies on that.
     if (this._span) {
       event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
       const transactionName = this._span.transaction?.name;
@@ -513,7 +513,7 @@ export class Scope implements ScopeInterface {
 }
 
 /**
- * Retruns the global event processors.
+ * Returns the global event processors.
  */
 function getGlobalEventProcessors(): EventProcessor[] {
   /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access  */

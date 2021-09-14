@@ -189,7 +189,7 @@ export class Hub implements HubInterface {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
 
-    // If there's no explicit hint provided, mimick the same thing that would happen
+    // If there's no explicit hint provided, mimic the same thing that would happen
     // in the minimal itself to create a consistent behavior.
     // We don't do this in the client, as it's the lowest level API, and doing this,
     // would prevent user from having full control over direct calls.
@@ -220,7 +220,7 @@ export class Hub implements HubInterface {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
 
-    // If there's no explicit hint provided, mimick the same thing that would happen
+    // If there's no explicit hint provided, mimic the same thing that would happen
     // in the minimal itself to create a consistent behavior.
     // We don't do this in the client, as it's the lowest level API, and doing this,
     // would prevent user from having full control over direct calls.
@@ -248,7 +248,11 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = (this._lastEventId = uuid4());
+    const eventId = uuid4();
+    if (event.type !== 'transaction') {
+      this._lastEventId = eventId;
+    }
+
     this._invokeClient('captureEvent', event, {
       ...hint,
       event_id: eventId,
