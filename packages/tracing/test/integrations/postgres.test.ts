@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/hub';
 
-import { Postgres } from '../../src/integrations/postgres';
+import { Postgres } from '../../src/integrations/node/postgres';
 import { Span } from '../../src/span';
 
 class PgClient {
