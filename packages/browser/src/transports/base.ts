@@ -107,6 +107,8 @@ export abstract class BaseTransport implements Transport {
     logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
 
     const url = this._api.getEnvelopeEndpointWithUrlEncodedAuth();
+    // Envelope header is required to be at least an empty object
+    const envelopeHeader = JSON.stringify({});
     const itemHeaders = JSON.stringify({
       type: 'client_report',
     });
@@ -121,7 +123,7 @@ export abstract class BaseTransport implements Transport {
         };
       }),
     });
-    const envelope = `${itemHeaders}\n${item}`;
+    const envelope = `${envelopeHeader}\n${itemHeaders}\n${item}`;
 
     navigator.sendBeacon(url, envelope);
   }
