@@ -4,17 +4,32 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.13.0-beta.1
+
+- feat(browser): Client Report Support (#3955)
+- feat(perf): Add experimental option to improve LCP collection (#3879)
+- fix(browser): Make sure that `document.head` or `document.body` exists for `injectReportDialog` (#3972)
+- fix(browser): Parse frames-only `safari(-web)-extension` stack (#3929)
+- fix(ember): Move `ember-source` to `devDependencies` (#3962)
+- fix(hub): Don't set `lastEventID` for transactions (#3966)
+- fix(nextjs): Include nextjs config's `basePath` on `urlPrefix` (#3922)
+- fix(node): Add protocol detection for get/request calls without explict protocol (#3950)
+- fix(node): Disable `autoSessionTracking` if dsn undefined (#3954)
+- fix(vue): Check for matched route existence before starting transaction (#3973)
+- ref(browser): Migrate unit tests from Chai and Karma to Jest (#3965)
+- ref(nextjs): Exclude cross-platform tracing code from bundles (#3978)
+
 ## 6.12.0
 
-- fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
-- fix(core): Skip native frames while searching frame URLs. (#3897)
-- fix(vue): Attach props only if VM is available (#3902)
-- feat(tracing): Add pg-native support to Postgres integration. (#3894)
-- ref(ember): Update addon to support Ember 4.0.0 (beta) (#3915)
 - feat(react): Make Profiler _mountSpan attribute protected (#3904)
+- feat(tracing): Add pg-native support to Postgres integration. (#3894)
+- fix(core): Skip native frames while searching frame URLs. (#3897)
 - fix(ember): allow ember-beta to fail (#3910)
+- fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
 - fix(tracing): Prevent metrics erroring module load in web workers (#3941)
+- fix(vue): Attach props only if VM is available (#3902)
 - misc(browser): Log when event is dropped by Dedupe integration (#3943)
+- ref(ember): Update addon to support Ember 4.0.0 (beta) (#3915)
 
 ## 6.11.0
 
@@ -32,15 +47,15 @@
 
 ## 6.10.0
 
-- feat(vue): Rework tracing and add support for `Vue 3` (#3804)
 - feat(tracing): Upgrade to `web-vitals 2.1.0` (#3781)
+- feat(vue): Rework tracing and add support for `Vue 3` (#3804)
 - fix(ember): Make argument to `InitSentryForEmber` optional (#3802)
 - fix(nextjs): Do not start a navigation if the from URL is the same (#3814)
 - fix(nextjs): Let `flush` finish in API routes (#3811)
 - fix(nextjs): Use `domains` to prevent scope bleed (#3788)
 - fix(react): Make `Route` typing more generic (#3809)
-- ref(tracing): Update span op for outgoing HTTP requests (#3821)
 - ref(tracing): Remove updated CLS from web-vitals (#3822)
+- ref(tracing): Update span op for outgoing HTTP requests (#3821)
 
 ## 6.9.0
 
