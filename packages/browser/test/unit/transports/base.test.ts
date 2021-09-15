@@ -53,7 +53,7 @@ describe('BaseTransport', () => {
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
         envelopeEndpoint,
-        `{"type":"client_report"}\n{"timestamp":1337,"discarded_events":${JSON.stringify(outcomes)}}`,
+        `{}\n{"type":"client_report"}\n{"timestamp":1337,"discarded_events":${JSON.stringify(outcomes)}}`,
       );
     });
 
@@ -89,7 +89,7 @@ describe('BaseTransport', () => {
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
         envelopeEndpoint,
-        `{"type":"client_report"}\n{"timestamp":1337,"discarded_events":${JSON.stringify(outcomes)}}`,
+        `{}\n{"type":"client_report"}\n{"timestamp":1337,"discarded_events":${JSON.stringify(outcomes)}}`,
       );
     });
   });
