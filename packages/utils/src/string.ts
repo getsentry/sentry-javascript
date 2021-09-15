@@ -104,11 +104,11 @@ export function isMatchingPattern(value: string, pattern: RegExp | string): bool
   return false;
 }
 
-type GlobalWithBase64Helpers = {
-  // browser
+export type GlobalBase64Helpers = {
+  // browser and Node 16+
   atob?: (base64String: string) => string;
   btoa?: (utf8String: string) => string;
-  // Node
+  // all versions of Node
   Buffer?: { from: (input: string, encoding: string) => { toString: (encoding: string) => string } };
 };
 
@@ -120,7 +120,7 @@ type GlobalWithBase64Helpers = {
  * @returns A base64-encoded version of the string
  */
 export function unicodeToBase64(plaintext: string): string {
-  const globalObject = getGlobalObject<GlobalWithBase64Helpers>();
+  const globalObject = getGlobalObject<GlobalBase64Helpers>();
 
   // To account for the fact that different platforms use different character encodings natively, our `tracestate`
   // spec calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder.
@@ -129,7 +129,7 @@ export function unicodeToBase64(plaintext: string): string {
       throw new Error(`Input must be a string. Received input of type '${typeof plaintext}'.`);
     }
 
-    // browser
+    // browser and Node 16+
     if ('btoa' in globalObject) {
       // encode using UTF-8
       const bytes = new TextEncoder().encode(plaintext);
@@ -142,7 +142,7 @@ export function unicodeToBase64(plaintext: string): string {
       return globalObject.btoa!(bytesAsString);
     }
 
-    // Node
+    // fallback for Node <= 14
     if ('Buffer' in globalObject) {
       // encode using UTF-8
       // TODO: if TS ever learns about "in", we can get rid of the non-null assertion
@@ -173,7 +173,7 @@ export function unicodeToBase64(plaintext: string): string {
  * @returns A Unicode string
  */
 export function base64ToUnicode(base64String: string): string {
-  const globalObject = getGlobalObject<GlobalWithBase64Helpers>();
+  const globalObject = getGlobalObject<GlobalBase64Helpers>();
 
   // To account for the fact that different platforms use different character encodings natively, our `tracestate` spec
   // calls for all jsonified data to be encoded in UTF-8 bytes before being passed to the base64 encoder. So to reverse
@@ -183,7 +183,7 @@ export function base64ToUnicode(base64String: string): string {
       throw new Error(`Input must be a string. Received input of type '${typeof base64String}'.`);
     }
 
-    // browser
+    // browser and Node 16+
     if ('atob' in globalObject) {
       // `atob` returns a string rather than bytes, so we first need to encode using the native encoding (UTF-16)
       // TODO: if TS ever learns about "in", we can get rid of the non-null assertion
@@ -195,7 +195,7 @@ export function base64ToUnicode(base64String: string): string {
       return new TextDecoder().decode(Uint8Array.from(bytes));
     }
 
-    // Node
+    // fallback for Node <= 14
     if ('Buffer' in globalObject) {
       // unlike the browser, Node can go straight from base64 to bytes
       // TODO: if TS ever learns about "in", we can get rid of the non-null assertion

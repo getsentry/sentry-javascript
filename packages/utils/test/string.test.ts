@@ -1,4 +1,7 @@
-import { base64ToUnicode, isMatchingPattern, truncate, unicodeToBase64 } from '../src/string';
+import { JSDOM } from 'jsdom';
+
+import * as crossPlatformUtils from '../src/crossplatform';
+import { base64ToUnicode, GlobalBase64Helpers, isMatchingPattern, truncate, unicodeToBase64 } from '../src/string';
 
 // See https://tools.ietf.org/html/rfc4648#section-4 for base64 spec
 // eslint-disable-next-line no-useless-escape
@@ -50,12 +53,50 @@ describe('isMatchingPattern()', () => {
   });
 });
 
-// NOTE: These tests are copied (and adapted for chai syntax) to `string.test.ts` in `@sentry/browser`. The
-// base64-conversion functions have a different implementation in browser and node, so they're copied there to prove
-// they work in a real live browser. If you make changes here, make sure to also port them over to that copy.
-describe('base64ToUnicode/unicodeToBase64', () => {
+// these functions use different built-ins depending on whether the code is running in Node or in the browser, so test
+// both environments
+describe.each(['node', 'browser'])('base64ToUnicode/unicodeToBase64 (%s)', (testEnv: string) => {
   const unicodeString = 'Dogs are great!';
   const base64String = 'RG9ncyBhcmUgZ3JlYXQh';
+
+  let atobSpy: jest.SpyInstance, btoaSpy: jest.SpyInstance, bufferSpy: jest.SpyInstance;
+
+  beforeAll(() => {
+    const { Buffer, ...nonBufferGlobals } = global as typeof global & GlobalBase64Helpers;
+
+    // By default, all tests in run in a node environment. To mimic the behavior of a browser, we need to adjust what is
+    // available globally.
+    if (testEnv === 'browser') {
+      const { window } = new JSDOM('', { url: 'http://dogs.are.great/' });
+
+      atobSpy = jest.spyOn(window, 'atob');
+      btoaSpy = jest.spyOn(window, 'btoa');
+
+      jest
+        .spyOn(crossPlatformUtils, 'getGlobalObject')
+        .mockReturnValue({ atob: atobSpy, btoa: btoaSpy, ...nonBufferGlobals } as any);
+    }
+    // no need to adjust what's in `global`, but set up a spy so we can make sure the right functions are getting called
+    // in the right environments
+    else {
+      bufferSpy = jest.spyOn(Buffer, 'from');
+    }
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('meta: uses the right mock given test env', () => {
+    unicodeToBase64(unicodeString);
+    base64ToUnicode(base64String);
+    if (testEnv === 'browser') {
+      expect(atobSpy).toHaveBeenCalled();
+      expect(btoaSpy).toHaveBeenCalled();
+    } else {
+      expect(bufferSpy).toHaveBeenCalled();
+    }
+  });
 
   test('converts to valid base64', () => {
     expect(BASE64_REGEX.test(unicodeToBase64(unicodeString))).toBe(true);
