@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.13.0-beta.3
+
+- fix(browser): Use `dateTimestampInSeconds` instead of `Date.now` to send seconds-based timestamp
+
 ## 6.13.0-beta.2
 
 - fix(browser): Add required empty envelope header to Client Report envelope payload
