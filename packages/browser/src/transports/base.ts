@@ -8,7 +8,7 @@ import {
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import { dateTimestampInSeconds, logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 
 const CATEGORY_MAPPING: {
   [key in SentryRequestType]: string;
@@ -113,7 +113,7 @@ export abstract class BaseTransport implements Transport {
       type: 'client_report',
     });
     const item = JSON.stringify({
-      timestamp: Date.now(),
+      timestamp: dateTimestampInSeconds(),
       discarded_events: Object.keys(outcomes).map(key => {
         const [category, reason] = key.split(':');
         return {
