@@ -20,7 +20,7 @@ describe('BaseTransport', () => {
           return visibilityState;
         },
       });
-      jest.spyOn(Date, 'now').mockImplementation(() => 1337);
+      jest.spyOn(Date, 'now').mockImplementation(() => 12345);
     });
 
     beforeEach(() => {
@@ -53,7 +53,7 @@ describe('BaseTransport', () => {
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
         envelopeEndpoint,
-        `{}\n{"type":"client_report"}\n{"timestamp":1337,"discarded_events":${JSON.stringify(outcomes)}}`,
+        `{}\n{"type":"client_report"}\n{"timestamp":12.345,"discarded_events":${JSON.stringify(outcomes)}}`,
       );
     });
 
@@ -89,7 +89,7 @@ describe('BaseTransport', () => {
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
         envelopeEndpoint,
-        `{}\n{"type":"client_report"}\n{"timestamp":1337,"discarded_events":${JSON.stringify(outcomes)}}`,
+        `{}\n{"type":"client_report"}\n{"timestamp":12.345,"discarded_events":${JSON.stringify(outcomes)}}`,
       );
     });
   });
