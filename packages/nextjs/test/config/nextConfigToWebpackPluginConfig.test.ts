@@ -1,13 +1,13 @@
 import { includeDistDir } from '../../src/config/nextConfigToWebpackPluginConfig';
 
 describe('next config to webpack plugin config', () => {
-  const warnMock = jest.fn();
-  const errorMock = jest.fn();
-
   describe('includeDistDir', () => {
+    const consoleWarnMock = jest.fn();
+    const consoleErrorMock = jest.fn();
+
     beforeAll(() => {
-      global.console.warn = warnMock;
-      global.console.error = errorMock;
+      global.console.warn = consoleWarnMock;
+      global.console.error = consoleErrorMock;
     });
 
     afterAll(() => {
@@ -48,8 +48,8 @@ describe('next config to webpack plugin config', () => {
     ])('webpack plugin config as object with other prop', (nextConfig, webpackPluginConfig, expectedConfig) => {
       // @ts-ignore Other props don't match types
       expect(includeDistDir(nextConfig, webpackPluginConfig)).toMatchObject(expectedConfig);
-      expect(warnMock).toHaveBeenCalledTimes(1);
-      warnMock.mockClear();
+      expect(consoleWarnMock).toHaveBeenCalledTimes(1);
+      consoleWarnMock.mockClear();
     });
 
     test.each([
@@ -58,8 +58,8 @@ describe('next config to webpack plugin config', () => {
     ])('webpack plugin config as object with bad structure', (nextConfig, webpackPluginConfig, expectedConfig) => {
       // @ts-ignore Bad structures don't match types
       expect(includeDistDir(nextConfig, webpackPluginConfig)).toMatchObject(expectedConfig);
-      expect(errorMock).toHaveBeenCalledTimes(1);
-      errorMock.mockClear();
+      expect(consoleErrorMock).toHaveBeenCalledTimes(1);
+      consoleErrorMock.mockClear();
     });
   });
 });
