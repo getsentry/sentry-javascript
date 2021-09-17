@@ -43,7 +43,7 @@ class ApolloServerBase {
   }
 }
 
-// mock for 'graphql/execution/execution.js' package
+// mock for ApolloServer package
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
