@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/hub';
 
-import { GraphQL } from '../../src/integrations/graphql';
+import { GraphQL } from '../../src/integrations/node/graphql';
 import { Span } from '../../src/span';
 
 const GQLExecute = {

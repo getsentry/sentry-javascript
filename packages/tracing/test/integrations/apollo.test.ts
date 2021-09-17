@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/hub';
 
-import { Apollo } from '../../src/integrations/apollo';
+import { Apollo } from '../../src/integrations/node/apollo';
 import { Span } from '../../src/span';
 
 type ApolloResolverGroup = {
