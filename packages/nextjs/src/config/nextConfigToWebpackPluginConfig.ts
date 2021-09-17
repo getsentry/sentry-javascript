@@ -1,4 +1,4 @@
-import { ExportedNextConfig, SentryWebpackPluginOptions } from './types';
+import { NextConfigObject, SentryWebpackPluginOptions } from './types';
 
 /**
  * Creates a new Sentry Webpack Plugin config with the `distDir` option from Next.js config
@@ -14,12 +14,13 @@ import { ExportedNextConfig, SentryWebpackPluginOptions } from './types';
  * @returns New Sentry Webpack Plugin config
  */
 export function includeDistDir(
-  nextConfig: ExportedNextConfig,
+  nextConfig: NextConfigObject,
   sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): Partial<SentryWebpackPluginOptions> {
   if (!nextConfig.distDir) {
     return { ...sentryWebpackPluginOptions };
   }
+  // It's assumed `distDir` is a string as that's what Next.js is expecting. If it's not, Next.js itself will complain
   const usersInclude = sentryWebpackPluginOptions.include;
 
   let sourcesToInclude;
@@ -28,11 +29,12 @@ export function includeDistDir(
   } else if (typeof usersInclude === 'string') {
     sourcesToInclude = usersInclude === nextConfig.distDir ? usersInclude : [usersInclude, nextConfig.distDir];
   } else if (Array.isArray(usersInclude)) {
+    // @ts-ignore '__spreadArray' import from tslib, ts(2343)
     sourcesToInclude = [...new Set(usersInclude.concat(nextConfig.distDir))];
   } else {
     // Object
     if (Array.isArray(usersInclude.paths)) {
-      const uniquePaths = [...new Set(usersInclude.paths.concat(nextConfig.distDir))];
+      const uniquePaths = [...new Set(usersInclude.paths.concat(nextConfig.distDir as string))];
       sourcesToInclude = { ...usersInclude, paths: uniquePaths };
     } else if (typeof usersInclude.paths === 'undefined') {
       // eslint-disable-next-line no-console
@@ -50,7 +52,8 @@ export function includeDistDir(
           'See https://github.com/getsentry/sentry-webpack-plugin#optionsinclude',
       );
       // Keep the same object even if it's incorrect, so that the user can get a more precise error from sentry-cli
-      sourcesToInclude = usersInclude;
+      // Casting to `any` for TS not complaining about it being `unknown`
+      sourcesToInclude = usersInclude as any;
     }
   }
 

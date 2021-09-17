@@ -13,8 +13,6 @@ export function withSentryConfig(
   userNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): NextConfigFunction | NextConfigObject {
-  const webpackPluginOptionsWithSources = includeDistDir(userNextConfig, userSentryWebpackPluginOptions);
-
   // If the user has passed us a function, we need to return a function, so that we have access to `phase` and
   // `defaults` in order to pass them along to the user's function
   if (typeof userNextConfig === 'function') {
@@ -31,6 +29,7 @@ export function withSentryConfig(
     };
   }
 
+  const webpackPluginOptionsWithSources = includeDistDir(userNextConfig, userSentryWebpackPluginOptions);
   // Otherwise, we can just merge their config with ours and return an object.
   return {
     ...userNextConfig,
