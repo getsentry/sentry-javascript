@@ -1,7 +1,12 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
 
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction, IdleTransactionSpanRecorder } from '../src/idletransaction';
+import {
+  DEFAULT_IDLE_TIMEOUT,
+  HEARTBEAT_INTERVAL,
+  IdleTransaction,
+  IdleTransactionSpanRecorder,
+} from '../src/idletransaction';
 import { Span } from '../src/span';
 import { SpanStatus } from '../src/spanstatus';
 
@@ -177,7 +182,6 @@ describe('IdleTransaction', () => {
 
   describe('heartbeat', () => {
     it('does not mark transaction as `DeadlineExceeded` if idle timeout has not been reached', () => {
-      const HEARTBEAT_INTERVAL = 5000;
       // 20s to exceed 3 heartbeats
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
       const mockFinish = jest.spyOn(transaction, 'finish');

@@ -7,6 +7,7 @@ import { SpanStatus } from './spanstatus';
 import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
+export const HEARTBEAT_INTERVAL = 5000;
 
 /**
  * @inheritDoc
@@ -265,7 +266,7 @@ export class IdleTransaction extends Transaction {
     logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
     setTimeout(() => {
       this._beat();
-    }, 5000);
+    }, HEARTBEAT_INTERVAL);
   }
 }
 
