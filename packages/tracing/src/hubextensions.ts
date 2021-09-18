@@ -249,6 +249,10 @@ function _autoloadDatabaseIntegrations(): void {
       };
       return new integration.Postgres();
     },
+    ioredis() {
+      const integration = dynamicRequire(module, './integration/ioredis') as { IORedis: IntegrationClass<Integration> };
+      return new integration.IORedis();
+    },
   };
 
   const mappedPackages = Object.keys(packageToIntegrationMapping)

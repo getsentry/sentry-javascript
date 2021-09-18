@@ -16,9 +16,13 @@ interface IORedisInstance {
 }
 
 interface IORedisOptions {
-  // location of the ioredis package
-  // allows users to specify the direct in case they are using
-  // libraries that are wrappers around ioredis
+  /**
+   * Location of the IORedis package
+   * This allows users to specify the package directory in case
+   * they are using wrappers around IORedis
+   *
+   * Default is 'ioredis'
+   */
   moduleLocation?: string;
 }
 
@@ -42,8 +46,8 @@ export class IORedis implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: IORedisOptions = {}) {
-    this._moduleLocation = options.moduleLocation ?? 'ioredis';
+  public constructor({ moduleLocation = 'ioredis' }: IORedisOptions = {}) {
+    this._moduleLocation = moduleLocation;
   }
 
   /**
@@ -64,14 +68,18 @@ export class IORedis implements Integration {
    *  Patches the sendCommand function to utilize tracing
    */
   private _patchOperation(ioredis: IORedisInstance, getCurrentHub: () => Hub): void {
-    const getSpanContext = this._getSpanContextFromCommandArguments.bind(this);
-
     fill(ioredis.prototype, 'sendCommand', function(orig: () => Promise<unknown>) {
       return function(this: unknown, command: Command, ...args: unknown[]) {
-        const scope = getCurrentHub().getScope();
-        const parentSpan = scope?.getSpan();
+        const parentSpan = getCurrentHub().getScope()?.getSpan();
 
-        const span = parentSpan?.startChild(getSpanContext(command));
+        const span = parentSpan?.startChild({
+          op: 'redis',
+          description: command.name,
+          data: {
+            arguments: command.args.toString(),
+          }
+        });
+
         const responsePromise = orig.call(this, command, ...args) as Promise<unknown>;
 
         return responsePromise.then((res: unknown) => {
@@ -80,22 +88,5 @@ export class IORedis implements Integration {
         });
       };
     });
-  }
-
-  /**
-   *
-   */
-  private _getSpanContextFromCommandArguments(command: Command): SpanContext {
-    const data: { [key: string]: string } = {
-      arguments: command.args.toString(),
-    };
-
-    const spanContext: SpanContext = {
-      op: 'redis',
-      description: command.name,
-      data,
-    };
-
-    return spanContext;
   }
 }
