@@ -69,15 +69,19 @@ export class IdleTransaction extends Transaction {
 
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
-  // If a transaction is created and no activities are added, we want to make sure that
-  // it times out properly. This is cleared and not used when activities are added.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _initTimeout: any;
+  /**
+   * If a transaction is created and no activities are added, we want to make sure that
+   * it times out properly. This is cleared and not used when activities are added.
+   */
+  private _initTimeout: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
     private readonly _idleHub?: Hub,
-    // The time to wait in ms until the idle transaction will be finished. Default: 1000
+    /**
+     * The time to wait in ms until the idle transaction will be finished.
+     * @default 1000
+     */
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
     // If an idle transaction should be put itself on and off the scope automatically.
     private readonly _onScope: boolean = false,
