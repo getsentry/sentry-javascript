@@ -55,9 +55,6 @@ export class IdleTransaction extends Transaction {
   // Activities store a list of active spans
   public activities: Record<string, boolean> = {};
 
-  // Stores reference to the timeout that calls _beat().
-  private _heartbeatTimer: number = 0;
-
   // Track state of activities in previous heartbeat
   private _prevHeartbeatString: string | undefined;
 
@@ -236,7 +233,6 @@ export class IdleTransaction extends Transaction {
    * If this occurs we finish the transaction.
    */
   private _beat(): void {
-    clearTimeout(this._heartbeatTimer);
     // We should not be running heartbeat if the idle transaction is finished.
     if (this._finished) {
       return;
@@ -267,9 +263,9 @@ export class IdleTransaction extends Transaction {
    */
   private _pingHeartbeat(): void {
     logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
-    this._heartbeatTimer = (setTimeout(() => {
+    setTimeout(() => {
       this._beat();
-    }, 5000) as unknown) as number;
+    }, 5000);
   }
 }
 
