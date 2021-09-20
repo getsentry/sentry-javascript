@@ -42,7 +42,8 @@ export default function includeAllNextjsProps(
 
 /**
  * Creates a new Sentry Webpack Plugin config from the given one, and applying the corresponding
- * modifications to the given next properties.
+ * modifications to the given next properties. If more than one option generates the same
+ * properties, the values generated last will override previous ones.
  *
  * @param nextConfig User's Next.js config.
  * @param sentryWebpackPluginOptions User's Sentry Webapck Plugin config.
