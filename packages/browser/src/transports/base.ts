@@ -42,7 +42,7 @@ export abstract class BaseTransport implements Transport {
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
 
-    if (this.options.sendClientReports && document) {
+    if (this.options.sendClientReports && self.document) {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
           this._flushOutcomes();
