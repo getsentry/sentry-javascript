@@ -2,7 +2,12 @@ import { BrowserClient, Transports } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
 import { Outcome } from '@sentry/types';
 
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction, IdleTransactionSpanRecorder } from '../src/idletransaction';
+import {
+  DEFAULT_IDLE_TIMEOUT,
+  HEARTBEAT_INTERVAL,
+  IdleTransaction,
+  IdleTransactionSpanRecorder,
+} from '../src/idletransaction';
 import { Span } from '../src/span';
 import { SpanStatus } from '../src/spanstatus';
 
@@ -17,7 +22,7 @@ beforeEach(() => {
 describe('IdleTransaction', () => {
   describe('onScope', () => {
     it('sets the transaction on the scope on creation if onScope is true', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000, true);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT, true);
       transaction.initSpanRecorder(10);
 
       hub.configureScope(s => {
@@ -26,7 +31,7 @@ describe('IdleTransaction', () => {
     });
 
     it('does not set the transaction on the scope on creation if onScope is falsey', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
       transaction.initSpanRecorder(10);
 
       hub.configureScope(s => {
@@ -35,7 +40,7 @@ describe('IdleTransaction', () => {
     });
 
     it('removes sampled transaction from scope on finish if onScope is true', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000, true);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT, true);
       transaction.initSpanRecorder(10);
 
       transaction.finish();
@@ -47,7 +52,7 @@ describe('IdleTransaction', () => {
     });
 
     it('removes unsampled transaction from scope on finish if onScope is true', () => {
-      const transaction = new IdleTransaction({ name: 'foo', sampled: false }, hub, 1000, true);
+      const transaction = new IdleTransaction({ name: 'foo', sampled: false }, hub, DEFAULT_IDLE_TIMEOUT, true);
 
       transaction.finish();
       jest.runAllTimers();
@@ -63,7 +68,7 @@ describe('IdleTransaction', () => {
   });
 
   it('push and pops activities', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+    const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     const mockFinish = jest.spyOn(transaction, 'finish');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
@@ -81,7 +86,7 @@ describe('IdleTransaction', () => {
   });
 
   it('does not push activities if a span already has an end timestamp', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+    const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
 
@@ -90,7 +95,7 @@ describe('IdleTransaction', () => {
   });
 
   it('does not finish if there are still active activities', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+    const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     const mockFinish = jest.spyOn(transaction, 'finish');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
@@ -109,7 +114,7 @@ describe('IdleTransaction', () => {
   it('calls beforeFinish callback before finishing', () => {
     const mockCallback1 = jest.fn();
     const mockCallback2 = jest.fn();
-    const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+    const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     transaction.initSpanRecorder(10);
     transaction.registerBeforeFinishCallback(mockCallback1);
     transaction.registerBeforeFinishCallback(mockCallback2);
@@ -128,7 +133,7 @@ describe('IdleTransaction', () => {
   });
 
   it('filters spans on finish', () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000);
+    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, DEFAULT_IDLE_TIMEOUT);
     transaction.initSpanRecorder(10);
 
     // regular child - should be kept
@@ -175,7 +180,7 @@ describe('IdleTransaction', () => {
 
   describe('_initTimeout', () => {
     it('finishes if no activities are added to the transaction', () => {
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, DEFAULT_IDLE_TIMEOUT);
       transaction.initSpanRecorder(10);
 
       jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
@@ -183,7 +188,7 @@ describe('IdleTransaction', () => {
     });
 
     it('does not finish if a activity is started', () => {
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, DEFAULT_IDLE_TIMEOUT);
       transaction.initSpanRecorder(10);
       transaction.startChild({});
 
@@ -194,7 +199,6 @@ describe('IdleTransaction', () => {
 
   describe('heartbeat', () => {
     it('does not mark transaction as `DeadlineExceeded` if idle timeout has not been reached', () => {
-      const HEARTBEAT_INTERVAL = 5000;
       // 20s to exceed 3 heartbeats
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
       const mockFinish = jest.spyOn(transaction, 'finish');
@@ -219,7 +223,7 @@ describe('IdleTransaction', () => {
     });
 
     it('finishes a transaction after 3 beats', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
       const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
@@ -240,7 +244,7 @@ describe('IdleTransaction', () => {
     });
 
     it('resets after new activities are added', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
       const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
@@ -332,7 +336,7 @@ describe('IdleTransactionSpanRecorder', () => {
     const mockPushActivity = jest.fn();
     const mockPopActivity = jest.fn();
 
-    const transaction = new IdleTransaction({ name: 'foo' }, hub, 1000);
+    const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, transaction.spanId, 10);
 
     spanRecorder.add(transaction);
