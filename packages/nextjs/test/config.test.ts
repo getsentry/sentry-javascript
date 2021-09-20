@@ -591,27 +591,39 @@ describe('Sentry webpack plugin config', () => {
     });
   });
 
-  it.each([
-    /** `distDir` is not defined */
-    [getBuildContext('client', {}), '.next'],
-    [getBuildContext('server', { target: 'experimental-serverless-trace' }), '.next'], // serverless
-    [getBuildContext('server', {}, '4'), '.next'],
-    [getBuildContext('server', {}, '5'), '.next'],
+  describe('correct paths from `distDir` in WebpackPluginOptions', () => {
+    it.each([
+      [getBuildContext('client', {}), '.next'],
+      [getBuildContext('server', { target: 'experimental-serverless-trace' }), '.next'], // serverless
+      [getBuildContext('server', {}, '4'), '.next'],
+      [getBuildContext('server', {}, '5'), '.next'],
+    ])('`distDir` is not defined', (buildContext: BuildContext, expectedDistDir) => {
+      const includePaths = getWebpackPluginOptions(buildContext, {
+        /** userPluginOptions */
+      }).include as { paths: [] }[];
 
-    /** `distDir` is defined */
-    [getBuildContext('client', { distDir: 'tmpDir' }), 'tmpDir'],
-    [getBuildContext('server', { distDir: 'tmpDir', target: 'experimental-serverless-trace' }), 'tmpDir'], // serverless
-    [getBuildContext('server', { distDir: 'tmpDir' }, '4'), 'tmpDir'],
-    [getBuildContext('server', { distDir: 'tmpDir' }, '5'), 'tmpDir'],
-  ])('correct paths from `distDir` in WebpackPluginOptions', (buildContext: BuildContext, expectedDistDir) => {
-    const includePaths = getWebpackPluginOptions(buildContext, {
-      /** userPluginOptions */
-    }).include as { paths: [] }[];
-
-    for (const pathDescriptor of includePaths) {
-      for (const path of pathDescriptor.paths) {
-        expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+      for (const pathDescriptor of includePaths) {
+        for (const path of pathDescriptor.paths) {
+          expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+        }
       }
-    }
+    });
+
+    it.each([
+      [getBuildContext('client', { distDir: 'tmpDir' }), 'tmpDir'],
+      [getBuildContext('server', { distDir: 'tmpDir', target: 'experimental-serverless-trace' }), 'tmpDir'], // serverless
+      [getBuildContext('server', { distDir: 'tmpDir' }, '4'), 'tmpDir'],
+      [getBuildContext('server', { distDir: 'tmpDir' }, '5'), 'tmpDir'],
+    ])('`distDir` is defined', (buildContext: BuildContext, expectedDistDir) => {
+      const includePaths = getWebpackPluginOptions(buildContext, {
+        /** userPluginOptions */
+      }).include as { paths: [] }[];
+
+      for (const pathDescriptor of includePaths) {
+        for (const path of pathDescriptor.paths) {
+          expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+        }
+      }
+    });
   });
 });
