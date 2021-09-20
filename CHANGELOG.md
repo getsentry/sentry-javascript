@@ -4,6 +4,22 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.13.0
+
+- feat(browser): Client Report Support (#3955)
+- feat(perf): Add experimental option to improve LCP collection (#3879)
+- fix(browser): Make sure that `document.head` or `document.body` exists for `injectReportDialog` (#3972)
+- fix(browser): Parse frames-only `safari(-web)-extension` stack (#3929)
+- fix(ember): Move `ember-source` to `devDependencies` (#3962)
+- fix(hub): Don't set `lastEventID` for transactions (#3966)
+- fix(nextjs): Include nextjs config's `basePath` on `urlPrefix` (#3922)
+- fix(node): Add protocol detection for get/request calls without explict protocol (#3950)
+- fix(node): Disable `autoSessionTracking` if dsn undefined (#3954)
+- fix(vue): Check for matched route existence before starting transaction (#3973)
+- ref(browser): Migrate unit tests from Chai and Karma to Jest (#3965)
+- ref(nextjs): Exclude cross-platform tracing code from bundles (#3978)
+- ref(tracing): Idle transaction refactoring (#3988)
+
 ## 6.12.0
 
 - fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
