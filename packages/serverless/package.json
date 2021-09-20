@@ -1,6 +1,6 @@
 {
   "name": "@sentry/serverless",
-  "version": "6.13.0",
+  "version": "6.13.1",
   "description": "Official Sentry SDK for various serverless solutions",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
@@ -16,11 +16,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/minimal": "6.13.0",
-    "@sentry/node": "6.13.0",
-    "@sentry/tracing": "6.13.0",
-    "@sentry/types": "6.13.0",
-    "@sentry/utils": "6.13.0",
+    "@sentry/minimal": "6.13.1",
+    "@sentry/node": "6.13.1",
+    "@sentry/tracing": "6.13.1",
+    "@sentry/types": "6.13.1",
+    "@sentry/utils": "6.13.1",
     "@types/aws-lambda": "^8.10.62",
     "@types/express": "^4.17.2",
     "tslib": "^1.9.3"
@@ -30,7 +30,7 @@
     "@google-cloud/common": "^3.4.1",
     "@google-cloud/functions-framework": "^1.7.1",
     "@google-cloud/pubsub": "^2.5.0",
-    "@sentry-internal/eslint-config-sdk": "6.13.0",
+    "@sentry-internal/eslint-config-sdk": "6.13.1",
     "@types/node": "^14.6.4",
     "aws-sdk": "^2.765.0",
     "find-up": "^5.0.0",
