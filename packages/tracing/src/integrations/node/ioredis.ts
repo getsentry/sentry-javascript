@@ -1,5 +1,5 @@
 import { Hub } from '@sentry/hub';
-import { EventProcessor, Integration, SpanContext } from '@sentry/types';
+import { EventProcessor, Integration } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
 type CommandArgs = string | Buffer | number | unknown[];
@@ -70,14 +70,16 @@ export class IORedis implements Integration {
   private _patchOperation(ioredis: IORedisInstance, getCurrentHub: () => Hub): void {
     fill(ioredis.prototype, 'sendCommand', function(orig: () => Promise<unknown>) {
       return function(this: unknown, command: Command, ...args: unknown[]) {
-        const parentSpan = getCurrentHub().getScope()?.getSpan();
+        const parentSpan = getCurrentHub()
+          .getScope()
+          ?.getSpan();
 
         const span = parentSpan?.startChild({
           op: 'redis',
           description: command.name,
           data: {
             arguments: command.args.toString(),
-          }
+          },
         });
 
         const responsePromise = orig.call(this, command, ...args) as Promise<unknown>;
