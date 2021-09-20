@@ -593,16 +593,16 @@ describe('Sentry webpack plugin config', () => {
 
   it.each([
     /** `distDir` is not defined */
-    [getBuildContext('client', {}), '.next'], // client
+    [getBuildContext('client', {}), '.next'],
     [getBuildContext('server', { target: 'experimental-serverless-trace' }), '.next'], // serverless
-    [getBuildContext('server', {}, '4'), '.next'], // server, webpack < 5
-    [getBuildContext('server', {}, '5'), '.next'], // server, webpack == 5
+    [getBuildContext('server', {}, '4'), '.next'],
+    [getBuildContext('server', {}, '5'), '.next'],
 
     /** `distDir` is defined */
-    [getBuildContext('client', { distDir: 'tmpDir' }), 'tmpDir'], // client
+    [getBuildContext('client', { distDir: 'tmpDir' }), 'tmpDir'],
     [getBuildContext('server', { distDir: 'tmpDir', target: 'experimental-serverless-trace' }), 'tmpDir'], // serverless
-    [getBuildContext('server', { distDir: 'tmpDir' }, '4'), 'tmpDir'], // server, webpack < 5
-    [getBuildContext('server', { distDir: 'tmpDir' }, '5'), 'tmpDir'], // server, webpack == 5
+    [getBuildContext('server', { distDir: 'tmpDir' }, '4'), 'tmpDir'],
+    [getBuildContext('server', { distDir: 'tmpDir' }, '5'), 'tmpDir'],
   ])('correct paths from `distDir` in WebpackPluginOptions', (buildContext: BuildContext, expectedDistDir) => {
     const includePaths = getWebpackPluginOptions(buildContext, {
       /** userPluginOptions */
