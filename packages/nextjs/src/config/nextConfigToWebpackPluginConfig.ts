@@ -1,6 +1,72 @@
 import { NextConfigObject, SentryWebpackPluginOptions } from './types';
 
 /**
+ * About types:
+ * It's not possible to set strong types because they end up forcing you to explicitly
+ * set `undefined` for properties you don't want to include, which is quite
+ * inconvenient. The workaround to this is to relax type requirements at some point,
+ * which means not enforcing types (why have strong typing then?) and still having code
+ * that is hard to read.
+ */
+
+/**
+ * Next.js properties that should modify the webpack plugin properties.
+ * They should have an includer function in the map.
+ */
+export const SUPPORTED_NEXTJS_PROPERTIES = ['distDir'];
+
+type PropIncluderFn = (
+  nextConfig: NextConfigObject,
+  sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
+) => Partial<SentryWebpackPluginOptions>;
+
+export type PropsIncluderMapType = Record<string, PropIncluderFn>;
+export const PROPS_INCLUDER_MAP: PropsIncluderMapType = {
+  distDir: includeDistDir,
+};
+
+/**
+ * Creates a new Sentry Webpack Plugin config from the given one, including all available
+ * properties in the Nextjs Config.
+ *
+ * @param nextConfig User's Next.js config.
+ * @param sentryWebpackPluginOptions User's Sentry Webpack Plugin config.
+ * @returns New Sentry Webpack Plugin Config.
+ */
+export default function includeAllNextjsProps(
+  nextConfig: NextConfigObject,
+  sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
+): Partial<SentryWebpackPluginOptions> {
+  return includeNextjsProps(nextConfig, sentryWebpackPluginOptions, PROPS_INCLUDER_MAP, SUPPORTED_NEXTJS_PROPERTIES);
+}
+
+/**
+ * Creates a new Sentry Webpack Plugin config from the given one, and applying the corresponding
+ * modifications to the given next properties.
+ *
+ * @param nextConfig User's Next.js config.
+ * @param sentryWebpackPluginOptions User's Sentry Webapck Plugin config.
+ * @param nextProps Next.js config's properties that should modify webpack plugin properties.
+ * @returns New Sentry Webpack Plugin config.
+ */
+export function includeNextjsProps(
+  nextConfig: NextConfigObject,
+  sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
+  propsIncluderMap: Record<string, PropIncluderFn>,
+  nextProps: string[],
+): Partial<SentryWebpackPluginOptions> {
+  // @ts-ignore '__spreadArray' import from tslib, ts(2343)
+  const propsToInclude = [...new Set(nextProps)];
+  return (
+    propsToInclude
+      // Types are not strict enought to ensure there's a function in the map
+      .filter(prop => propsIncluderMap[prop])
+      .map(prop => propsIncluderMap[prop](nextConfig, sentryWebpackPluginOptions))
+      .reduce((prev, current) => ({ ...prev, ...current }), {})
+  );
+}
+
+/**
  * Creates a new Sentry Webpack Plugin config with the `distDir` option from Next.js config
  * in the `include` property.
  *

@@ -1,4 +1,41 @@
-import { includeDistDir } from '../../src/config/nextConfigToWebpackPluginConfig';
+import includeAllNextjsProps, {
+  includeDistDir,
+  includeNextjsProps,
+  PropsIncluderMapType,
+} from '../../src/config/nextConfigToWebpackPluginConfig';
+import { SentryWebpackPluginOptions } from '../../src/config/types';
+
+test('includeAllNextjsProps', () => {
+  expect(includeAllNextjsProps({ distDir: 'test' }, {})).toMatchObject({ include: 'test' });
+});
+
+describe('includeNextjsProps', () => {
+  const includerMap: PropsIncluderMapType = {
+    test: includeEverythingFn,
+  };
+  const includeEverything = {
+    include: 'everything',
+  };
+  function includeEverythingFn(): Partial<SentryWebpackPluginOptions> {
+    return includeEverything;
+  }
+
+  test('a prop and an includer', () => {
+    expect(includeNextjsProps({ test: true }, {}, includerMap, ['test'])).toMatchObject(includeEverything);
+  });
+
+  test('a prop without includer', () => {
+    expect(includeNextjsProps({ noExist: false }, {}, includerMap, ['noExist'])).toMatchObject({});
+  });
+
+  test('an includer without a prop', () => {
+    expect(includeNextjsProps({ noExist: false }, {}, includerMap, ['test'])).toMatchObject({});
+  });
+
+  test('neither prop nor includer', () => {
+    expect(includeNextjsProps({}, {}, {}, [])).toMatchObject({});
+  });
+});
 
 describe('next config to webpack plugin config', () => {
   describe('includeDistDir', () => {
