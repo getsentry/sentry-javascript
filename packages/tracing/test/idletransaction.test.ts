@@ -1,5 +1,6 @@
-import { BrowserClient } from '@sentry/browser';
+import { BrowserClient, Transports } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
+import { Outcome } from '@sentry/types';
 
 import {
   DEFAULT_IDLE_TIMEOUT,
@@ -10,9 +11,12 @@ import {
 import { Span } from '../src/span';
 import { SpanStatus } from '../src/spanstatus';
 
+export class SimpleTransport extends Transports.BaseTransport {}
+
+const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
 beforeEach(() => {
-  hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+  hub = new Hub(new BrowserClient({ dsn, tracesSampleRate: 1, transport: SimpleTransport }));
 });
 
 describe('IdleTransaction', () => {
@@ -159,6 +163,19 @@ describe('IdleTransaction', () => {
       expect(spans[2].status).toBe(SpanStatus.Cancelled);
       expect(spans[2].endTimestamp).toBe(transaction.endTimestamp);
     }
+  });
+
+  it('should record dropped transactions', async () => {
+    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
+
+    const transport = hub.getClient()?.getTransport();
+
+    const spy = jest.spyOn(transport!, 'recordLostEvent');
+
+    transaction.initSpanRecorder(10);
+    transaction.finish(transaction.startTimestamp + 10);
+
+    expect(spy).toHaveBeenCalledWith(Outcome.SampleRate, 'transaction');
   });
 
   describe('_initTimeout', () => {

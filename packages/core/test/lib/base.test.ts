@@ -1,5 +1,5 @@
 import { Hub, Scope, Session } from '@sentry/hub';
-import { Event, Severity, Span } from '@sentry/types';
+import { Event, Outcome, Severity, Span, Transport } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
@@ -85,6 +85,16 @@ describe('BaseClient', () => {
       const options = { dsn: PUBLIC_DSN, test: true };
       const client = new TestClient(options);
       expect(client.getOptions()).toEqual(options);
+    });
+  });
+
+  describe('getTransport()', () => {
+    test('returns the transport from backend', () => {
+      expect.assertions(2);
+      const options = { dsn: PUBLIC_DSN, transport: FakeTransport };
+      const client = new TestClient(options);
+      expect(client.getTransport()).toBeInstanceOf(FakeTransport);
+      expect(TestBackend.instance!.getTransport()).toBe(client.getTransport());
     });
   });
 
@@ -797,6 +807,28 @@ describe('BaseClient', () => {
       expect((TestBackend.instance!.event! as any).data).toBe('someRandomThing');
     });
 
+    test('beforeSend records dropped events', () => {
+      expect.assertions(1);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        beforeSend() {
+          return null;
+        },
+      });
+
+      const recordLostEventSpy = jest.fn();
+      jest.spyOn(client, 'getTransport').mockImplementationOnce(
+        () =>
+          (({
+            recordLostEvent: recordLostEventSpy,
+          } as any) as Transport),
+      );
+
+      client.captureEvent({ message: 'hello' }, {});
+
+      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.BeforeSend, 'event');
+    });
+
     test('eventProcessor can drop the even when it returns null', () => {
       expect.assertions(3);
       const client = new TestClient({ dsn: PUBLIC_DSN });
@@ -808,6 +840,25 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toBeCalled();
       expect(loggerErrorSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    });
+
+    test('eventProcessor records dropped events', () => {
+      expect.assertions(1);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+
+      const recordLostEventSpy = jest.fn();
+      jest.spyOn(client, 'getTransport').mockImplementationOnce(
+        () =>
+          (({
+            recordLostEvent: recordLostEventSpy,
+          } as any) as Transport),
+      );
+
+      const scope = new Scope();
+      scope.addEventProcessor(() => null);
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.EventProcessor, 'event');
     });
 
     test('eventProcessor sends an event and logs when it crashes', () => {
@@ -833,6 +884,25 @@ describe('BaseClient', () => {
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
         ),
       );
+    });
+
+    test('records events dropped due to sampleRate', () => {
+      expect.assertions(1);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        sampleRate: 0,
+      });
+
+      const recordLostEventSpy = jest.fn();
+      jest.spyOn(client, 'getTransport').mockImplementationOnce(
+        () =>
+          (({
+            recordLostEvent: recordLostEventSpy,
+          } as any) as Transport),
+      );
+
+      client.captureEvent({ message: 'hello' }, {});
+      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.SampleRate, 'event');
     });
   });
 
@@ -906,7 +976,7 @@ describe('BaseClient', () => {
       });
 
       const delay = 1;
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       client.captureMessage('test');
@@ -935,7 +1005,7 @@ describe('BaseClient', () => {
             setTimeout(() => resolve({ message, level }), 150);
           }),
       );
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       client.captureMessage('test async');
@@ -959,7 +1029,7 @@ describe('BaseClient', () => {
       });
 
       const delay = 1;
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       expect(client.captureMessage('test')).toBeTruthy();

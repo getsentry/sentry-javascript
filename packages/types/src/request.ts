@@ -1,4 +1,5 @@
 /** Possible SentryRequest types that can be used to make a distinction between Sentry features */
+// NOTE(kamil): It would be nice if we make it a valid enum instead
 export type SentryRequestType = 'event' | 'transaction' | 'session' | 'attachment';
 
 /** A generic client request. */
