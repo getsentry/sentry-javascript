@@ -7,6 +7,7 @@ import { SpanStatus } from './spanstatus';
 import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
+export const HEARTBEAT_INTERVAL = 5000;
 
 /**
  * @inheritDoc
@@ -55,9 +56,6 @@ export class IdleTransaction extends Transaction {
   // Activities store a list of active spans
   public activities: Record<string, boolean> = {};
 
-  // Stores reference to the timeout that calls _beat().
-  private _heartbeatTimer: number = 0;
-
   // Track state of activities in previous heartbeat
   private _prevHeartbeatString: string | undefined;
 
@@ -69,15 +67,19 @@ export class IdleTransaction extends Transaction {
 
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
-  // If a transaction is created and no activities are added, we want to make sure that
-  // it times out properly. This is cleared and not used when activities are added.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _initTimeout: any;
+  /**
+   * If a transaction is created and no activities are added, we want to make sure that
+   * it times out properly. This is cleared and not used when activities are added.
+   */
+  private _initTimeout: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
     private readonly _idleHub?: Hub,
-    // The time to wait in ms until the idle transaction will be finished. Default: 1000
+    /**
+     * The time to wait in ms until the idle transaction will be finished.
+     * @default 1000
+     */
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
     // If an idle transaction should be put itself on and off the scope automatically.
     private readonly _onScope: boolean = false,
@@ -232,14 +234,12 @@ export class IdleTransaction extends Transaction {
    * If this occurs we finish the transaction.
    */
   private _beat(): void {
-    clearTimeout(this._heartbeatTimer);
     // We should not be running heartbeat if the idle transaction is finished.
     if (this._finished) {
       return;
     }
 
-    const keys = Object.keys(this.activities);
-    const heartbeatString = keys.length ? keys.reduce((prev: string, current: string) => prev + current) : '';
+    const heartbeatString = Object.keys(this.activities).join('');
 
     if (heartbeatString === this._prevHeartbeatString) {
       this._heartbeatCounter += 1;
@@ -264,9 +264,9 @@ export class IdleTransaction extends Transaction {
    */
   private _pingHeartbeat(): void {
     logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
-    this._heartbeatTimer = (setTimeout(() => {
+    setTimeout(() => {
       this._beat();
-    }, 5000) as unknown) as number;
+    }, HEARTBEAT_INTERVAL);
   }
 }
 
