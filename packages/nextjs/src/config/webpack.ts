@@ -256,7 +256,7 @@ function shouldAddSentryToEntryPoint(entryPointName: string): boolean {
  * @param userPluginOptions User-provided SentryWebpackPlugin options
  * @returns Final set of combined options
  */
-function getWebpackPluginOptions(
+export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): SentryWebpackPluginOptions {

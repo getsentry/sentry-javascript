@@ -13,7 +13,12 @@ import {
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
-import { constructWebpackConfigFunction, getUserConfigFile, SentryWebpackPlugin } from '../src/config/webpack';
+import {
+  constructWebpackConfigFunction,
+  getUserConfigFile,
+  getWebpackPluginOptions,
+  SentryWebpackPlugin,
+} from '../src/config/webpack';
 
 const SERVER_SDK_CONFIG_FILE = 'sentry.server.config.js';
 const CLIENT_SDK_CONFIG_FILE = 'sentry.client.config.js';
@@ -89,16 +94,21 @@ const clientWebpackConfig = {
 // In real life, next will copy the `userNextConfig` into the `buildContext`. Since we're providing mocks for both of
 // those, we need to mimic that behavior, and since `userNextConfig` can vary per test, we need to have the option do it
 // dynamically.
-function getBuildContext(buildTarget: 'server' | 'client', userNextConfig: Partial<NextConfigObject>): BuildContext {
+function getBuildContext(
+  buildTarget: 'server' | 'client',
+  userNextConfig: Partial<NextConfigObject>,
+  webpackVersion: string = '5.4.15',
+): BuildContext {
   return {
     dev: false,
     buildId: 'sItStAyLiEdOwN',
     dir: '/Users/Maisey/projects/squirrelChasingSimulator',
     config: { target: 'server', ...userNextConfig },
-    webpack: { version: '5.4.15' },
+    webpack: { version: webpackVersion },
     isServer: buildTarget === 'server',
   };
 }
+
 const serverBuildContext = getBuildContext('server', userNextConfig);
 const clientBuildContext = getBuildContext('client', userNextConfig);
 
@@ -579,5 +589,29 @@ describe('Sentry webpack plugin config', () => {
         `Cannot find 'sentry.client.config.ts' or 'sentry.client.config.js' in '${tempDir}'`,
       );
     });
+  });
+
+  it.each([
+    /** `distDir` is not defined */
+    [getBuildContext('client', {}), '.next'], // client
+    [getBuildContext('server', { target: 'experimental-serverless-trace' }), '.next'], // serverless
+    [getBuildContext('server', {}, '4'), '.next'], // server, webpack < 5
+    [getBuildContext('server', {}, '5'), '.next'], // server, webpack == 5
+
+    /** `distDir` is defined */
+    [getBuildContext('client', { distDir: 'tmpDir' }), 'tmpDir'], // client
+    [getBuildContext('server', { distDir: 'tmpDir', target: 'experimental-serverless-trace' }), 'tmpDir'], // serverless
+    [getBuildContext('server', { distDir: 'tmpDir' }, '4'), 'tmpDir'], // server, webpack < 5
+    [getBuildContext('server', { distDir: 'tmpDir' }, '5'), 'tmpDir'], // server, webpack == 5
+  ])('correct paths from `distDir` in WebpackPluginOptions', (buildContext: BuildContext, expectedDistDir) => {
+    const includePaths = getWebpackPluginOptions(buildContext, {
+      /** userPluginOptions */
+    }).include as { paths: [] }[];
+
+    for (const pathDescriptor of includePaths) {
+      for (const path of pathDescriptor.paths) {
+        expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+      }
+    }
   });
 });
