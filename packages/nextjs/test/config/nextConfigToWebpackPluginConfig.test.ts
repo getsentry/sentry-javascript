@@ -1,7 +1,7 @@
 import includeAllNextjsProps, {
   includeDistDir,
   includeNextjsProps,
-  PropsIncluderMapType,
+  PropIncluderFn,
 } from '../../src/config/nextConfigToWebpackPluginConfig';
 import { SentryWebpackPluginOptions } from '../../src/config/types';
 
@@ -10,7 +10,7 @@ test('includeAllNextjsProps', () => {
 });
 
 describe('includeNextjsProps', () => {
-  const includerMap: PropsIncluderMapType = {
+  const includerMap: Record<string, PropIncluderFn> = {
     test: includeEverythingFn,
   };
   const includeEverything = {
@@ -43,7 +43,7 @@ describe('includeNextjsProps', () => {
       counter += 1;
       return { call: current };
     });
-    const map: PropsIncluderMapType = {
+    const map: Record<string, PropIncluderFn> = {
       dup: mock,
     };
 

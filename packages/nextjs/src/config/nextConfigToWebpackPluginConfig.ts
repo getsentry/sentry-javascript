@@ -15,7 +15,7 @@ import { NextConfigObject, SentryWebpackPluginOptions } from './types';
  */
 export const SUPPORTED_NEXTJS_PROPERTIES = ['distDir'];
 
-type PropIncluderFn = (
+export type PropIncluderFn = (
   nextConfig: NextConfigObject,
   sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ) => Partial<SentryWebpackPluginOptions>;
