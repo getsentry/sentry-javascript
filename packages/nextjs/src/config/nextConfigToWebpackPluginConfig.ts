@@ -20,8 +20,7 @@ type PropIncluderFn = (
   sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ) => Partial<SentryWebpackPluginOptions>;
 
-export type PropsIncluderMapType = Record<string, PropIncluderFn>;
-export const PROPS_INCLUDER_MAP: PropsIncluderMapType = {
+export const PROPS_INCLUDER_MAP: Record<string, PropIncluderFn> = {
   distDir: includeDistDir,
 };
 
@@ -69,23 +68,23 @@ export function includeNextjsProps(
 
 /**
  * Creates a new Sentry Webpack Plugin config with the `distDir` option from Next.js config
- * in the `include` property.
+ * in the `include` property, if `distDir` is provided.
  *
- * If no `distDir` is provided, the Webpack Plugin config doesn't change.
+ * If no `distDir` is provided, the Webpack Plugin config doesn't change and the same object is returned.
  * If no `include` has been defined defined, the `distDir` value is assigned.
  * The `distDir` directory is merged to the directories in `include`, if defined.
  * Duplicated paths are removed while merging.
  *
  * @param nextConfig User's Next.js config
  * @param sentryWebpackPluginOptions User's Sentry Webpack Plugin config
- * @returns New Sentry Webpack Plugin config
+ * @returns Sentry Webpack Plugin config
  */
 export function includeDistDir(
   nextConfig: NextConfigObject,
   sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): Partial<SentryWebpackPluginOptions> {
   if (!nextConfig.distDir) {
-    return { ...sentryWebpackPluginOptions };
+    return sentryWebpackPluginOptions;
   }
   // It's assumed `distDir` is a string as that's what Next.js is expecting. If it's not, Next.js itself will complain
   const usersInclude = sentryWebpackPluginOptions.include;
@@ -96,8 +95,7 @@ export function includeDistDir(
   } else if (typeof usersInclude === 'string') {
     sourcesToInclude = usersInclude === nextConfig.distDir ? usersInclude : [usersInclude, nextConfig.distDir];
   } else if (Array.isArray(usersInclude)) {
-    // @ts-ignore '__spreadArray' import from tslib, ts(2343)
-    sourcesToInclude = [...new Set(usersInclude.concat(nextConfig.distDir))];
+    sourcesToInclude = Array.from(new Set(usersInclude.concat(nextConfig.distDir as string)));
   } else {
     // Object
     if (Array.isArray(usersInclude.paths)) {
