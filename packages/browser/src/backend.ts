@@ -62,6 +62,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       ...this._options.transportOptions,
       dsn: this._options.dsn,
       tunnel: this._options.tunnel,
+      sendClientReports: this._options.sendClientReports,
       _metadata: this._options._metadata,
     };
 

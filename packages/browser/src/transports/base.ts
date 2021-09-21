@@ -1,13 +1,21 @@
 import { API } from '@sentry/core';
 import {
   Event,
+  Outcome,
   Response as SentryResponse,
   SentryRequestType,
   Status,
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import {
+  dateTimestampInSeconds,
+  getGlobalObject,
+  logger,
+  parseRetryAfterHeader,
+  PromiseBuffer,
+  SentryError,
+} from '@sentry/utils';
 
 const CATEGORY_MAPPING: {
   [key in SentryRequestType]: string;
@@ -17,6 +25,8 @@ const CATEGORY_MAPPING: {
   session: 'session',
   attachment: 'attachment',
 };
+
+const global = getGlobalObject<Window>();
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
@@ -34,10 +44,20 @@ export abstract class BaseTransport implements Transport {
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
 
+  protected _outcomes: { [key: string]: number } = {};
+
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn, options._metadata, options.tunnel);
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
+
+    if (this.options.sendClientReports && global.document) {
+      global.document.addEventListener('visibilitychange', () => {
+        if (global.document.visibilityState === 'hidden') {
+          this._flushOutcomes();
+        }
+      });
+    }
   }
 
   /**
@@ -52,6 +72,69 @@ export abstract class BaseTransport implements Transport {
    */
   public close(timeout?: number): PromiseLike<boolean> {
     return this._buffer.drain(timeout);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public recordLostEvent(reason: Outcome, category: SentryRequestType): void {
+    if (!this.options.sendClientReports) {
+      return;
+    }
+    // We want to track each category (event, transaction, session) separately
+    // but still keep the distinction between different type of outcomes.
+    // We could use nested maps, but it's much easier to read and type this way.
+    // A correct type for map-based implementation if we want to go that route
+    // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
+    const key = `${CATEGORY_MAPPING[category]}:${reason}`;
+    logger.log(`Adding outcome: ${key}`);
+    this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
+  }
+
+  /**
+   * Send outcomes as an envelope
+   */
+  protected _flushOutcomes(): void {
+    if (!this.options.sendClientReports) {
+      return;
+    }
+
+    if (!global.navigator || typeof global.navigator.sendBeacon !== 'function') {
+      logger.warn('Beacon API not available, skipping sending outcomes.');
+      return;
+    }
+
+    const outcomes = this._outcomes;
+    this._outcomes = {};
+
+    // Nothing to send
+    if (!Object.keys(outcomes).length) {
+      logger.log('No outcomes to flush');
+      return;
+    }
+
+    logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+
+    const url = this._api.getEnvelopeEndpointWithUrlEncodedAuth();
+    // Envelope header is required to be at least an empty object
+    const envelopeHeader = JSON.stringify({});
+    const itemHeaders = JSON.stringify({
+      type: 'client_report',
+    });
+    const item = JSON.stringify({
+      timestamp: dateTimestampInSeconds(),
+      discarded_events: Object.keys(outcomes).map(key => {
+        const [category, reason] = key.split(':');
+        return {
+          reason,
+          category,
+          quantity: outcomes[key],
+        };
+      }),
+    });
+    const envelope = `${envelopeHeader}\n${itemHeaders}\n${item}`;
+
+    global.navigator.sendBeacon(url, envelope);
   }
 
   /**

@@ -122,7 +122,7 @@ export class MetricsInstrumentation {
             break;
           }
           case 'resource': {
-            const resourceName = (entry.name as string).replace(window.location.origin, '');
+            const resourceName = (entry.name as string).replace(global.location.origin, '');
             const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
             // We remember the entry script end time to calculate the difference to the first init mark
             if (entryScriptStartTimestamp === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {

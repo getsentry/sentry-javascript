@@ -256,7 +256,7 @@ export function getHeaderContext(): Partial<TransactionContext> | undefined {
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | null {
-  const el = document.querySelector(`meta[name=${metaName}]`);
+  const el = getGlobalObject<Window>().document.querySelector(`meta[name=${metaName}]`);
   return el ? el.getAttribute('content') : null;
 }
 

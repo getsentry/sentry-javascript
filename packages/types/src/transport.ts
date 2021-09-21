@@ -1,8 +1,18 @@
 import { DsnLike } from './dsn';
 import { Event } from './event';
+import { SentryRequestType } from './request';
 import { Response } from './response';
 import { SdkMetadata } from './sdkmetadata';
 import { Session, SessionAggregates } from './session';
+
+export enum Outcome {
+  BeforeSend = 'before_send',
+  EventProcessor = 'event_processor',
+  NetworkError = 'network_error',
+  QueueOverflow = 'queue_overflow',
+  RateLimitBackoff = 'ratelimit_backoff',
+  SampleRate = 'sample_rate',
+}
 
 /** Transport used sending data to Sentry */
 export interface Transport {
@@ -29,6 +39,11 @@ export interface Transport {
    * still events in the queue when the timeout is reached.
    */
   close(timeout?: number): PromiseLike<boolean>;
+
+  /**
+   * Increment the counter for the specific client outcome
+   */
+  recordLostEvent?(type: Outcome, category: SentryRequestType): void;
 }
 
 /** JSDoc */
@@ -50,6 +65,8 @@ export interface TransportOptions {
   fetchParameters?: { [key: string]: string };
   /** The envelope tunnel to use. */
   tunnel?: string;
+  /** Send SDK Client Reports. Enabled by default. */
+  sendClientReports?: boolean;
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
