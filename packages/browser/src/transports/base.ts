@@ -51,7 +51,7 @@ export abstract class BaseTransport implements Transport {
     // eslint-disable-next-line deprecation/deprecation
     this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
 
-    if (this.options.sendClientReports && global && global.document) {
+    if (this.options.sendClientReports && global.document) {
       global.document.addEventListener('visibilitychange', () => {
         if (global.document.visibilityState === 'hidden') {
           this._flushOutcomes();
@@ -99,7 +99,7 @@ export abstract class BaseTransport implements Transport {
       return;
     }
 
-    if (!navigator || typeof navigator.sendBeacon !== 'function') {
+    if (!global.navigator || typeof global.navigator.sendBeacon !== 'function') {
       logger.warn('Beacon API not available, skipping sending outcomes.');
       return;
     }
@@ -134,7 +134,7 @@ export abstract class BaseTransport implements Transport {
     });
     const envelope = `${envelopeHeader}\n${itemHeaders}\n${item}`;
 
-    navigator.sendBeacon(url, envelope);
+    global.navigator.sendBeacon(url, envelope);
   }
 
   /**

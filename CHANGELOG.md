@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.13.2
+
+- fix(browser): Use getGlobalObject for document check (#3996)
+
 ## 6.13.1
 
 - fix(browser): Check for document when sending outcomes (#3993)

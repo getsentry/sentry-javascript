@@ -31,8 +31,8 @@ const fallbackGlobalObject = {};
 export function getGlobalObject<T>(): T & SentryGlobal {
   return (isNodeEnv()
     ? global
-    : typeof window !== 'undefined'
-    ? window
+    : typeof window !== 'undefined' // eslint-disable-line no-restricted-globals
+    ? window // eslint-disable-line no-restricted-globals
     : typeof self !== 'undefined'
     ? self
     : fallbackGlobalObject) as T & SentryGlobal;
@@ -227,8 +227,9 @@ export function addExceptionMechanism(
  * A safe form of location.href
  */
 export function getLocationHref(): string {
+  const global = getGlobalObject<Window>();
   try {
-    return document.location.href;
+    return global.document.location.href;
   } catch (oO) {
     return '';
   }
