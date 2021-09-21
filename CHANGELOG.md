@@ -7,6 +7,7 @@
 ## 6.13.2
 
 - fix(browser): Use getGlobalObject for document check (#3996)
+- misc(all): Disallow direct usage of globals (#3999)
 
 ## 6.13.1
 
