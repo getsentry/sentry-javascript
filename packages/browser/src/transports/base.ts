@@ -10,11 +10,11 @@ import {
 } from '@sentry/types';
 import {
   dateTimestampInSeconds,
+  getGlobalObject,
   logger,
   parseRetryAfterHeader,
   PromiseBuffer,
   SentryError,
-  getGlobalObject,
 } from '@sentry/utils';
 
 const CATEGORY_MAPPING: {
