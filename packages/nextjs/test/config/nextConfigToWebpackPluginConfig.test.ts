@@ -35,6 +35,21 @@ describe('includeNextjsProps', () => {
   test('neither prop nor includer', () => {
     expect(includeNextjsProps({}, {}, {}, [])).toMatchObject({});
   });
+
+  test('duplicated props', () => {
+    let counter: number = 0;
+    const mock = jest.fn().mockImplementation(() => {
+      const current = counter;
+      counter += 1;
+      return { call: current };
+    });
+    const map: PropsIncluderMapType = {
+      dup: mock,
+    };
+
+    expect(includeNextjsProps({}, {}, map, ['dup', 'dup'])).toMatchObject({ call: 0 });
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('next config to webpack plugin config', () => {
