@@ -55,8 +55,7 @@ export function includeNextjsProps(
   propsIncluderMap: Record<string, PropIncluderFn>,
   nextProps: string[],
 ): Partial<SentryWebpackPluginOptions> {
-  // @ts-ignore '__spreadArray' import from tslib, ts(2343)
-  const propsToInclude = [...new Set(nextProps)];
+  const propsToInclude = Array.from(new Set(nextProps));
   return (
     propsToInclude
       // Types are not strict enought to ensure there's a function in the map
@@ -99,7 +98,7 @@ export function includeDistDir(
   } else {
     // Object
     if (Array.isArray(usersInclude.paths)) {
-      const uniquePaths = [...new Set(usersInclude.paths.concat(nextConfig.distDir as string))];
+      const uniquePaths = Array.from(new Set(usersInclude.paths.concat(nextConfig.distDir as string)));
       sourcesToInclude = { ...usersInclude, paths: uniquePaths };
     } else if (typeof usersInclude.paths === 'undefined') {
       // eslint-disable-next-line no-console
