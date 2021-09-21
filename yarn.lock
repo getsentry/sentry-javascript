@@ -8715,7 +8715,7 @@ ember-cli-babel@^7.0.0, ember-cli-babel@^7.11.0, ember-cli-babel@^7.12.0, ember-
     rimraf "^3.0.1"
     semver "^5.5.0"
 
-ember-cli-babel@^7.26.4, ember-cli-babel@^7.26.6, ember-cli-babel@~7.26.6:
+ember-cli-babel@^7.19.0, ember-cli-babel@^7.26.4, ember-cli-babel@^7.26.6, ember-cli-babel@~7.26.6:
   version "7.26.6"
   resolved "https://registry.yarnpkg.com/ember-cli-babel/-/ember-cli-babel-7.26.6.tgz#322fbbd3baad9dd99e3276ff05bc6faef5e54b39"
   integrity sha512-040svtfj2RC35j/WMwdWJFusZaXmNoytLAMyBDGLMSlRvznudTxZjGlPV6UupmtTBApy58cEF8Fq4a+COWoEmQ==
@@ -9223,10 +9223,10 @@ ember-source-channel-url@~2.0.1:
   dependencies:
     got "^8.0.1"
 
-ember-source@~3.24.3:
-  version "3.24.5"
-  resolved "https://registry.yarnpkg.com/ember-source/-/ember-source-3.24.5.tgz#7e1da13286f7d1ac63b3d3a547aaeb40bc18a696"
-  integrity sha512-j39L7C+q9o9qkwrwNtRN1AVGzE8TlxHm0c6xMzFZFaWMyQt3E7ov72fz3oIn17h8H7zZ1i7dl471Rbqx1GZsLw==
+ember-source@~3.20.0:
+  version "3.20.7"
+  resolved "https://registry.yarnpkg.com/ember-source/-/ember-source-3.20.7.tgz#090e8f7f3e669b3f48ed9fee2ec5e6a50fe695e4"
+  integrity sha512-WeZ55BRi2kwFQCHydwLfbqJx04ONSrVsGs6IxK0VxNSgtSyQZ0ENLG5O9pad3uR7VeVhspazNPobaY38V8tEow==
   dependencies:
     "@babel/helper-module-imports" "^7.8.3"
     "@babel/plugin-transform-block-scoping" "^7.8.3"
@@ -9239,7 +9239,7 @@ ember-source@~3.24.3:
     broccoli-funnel "^2.0.2"
     broccoli-merge-trees "^4.2.0"
     chalk "^4.0.0"
-    ember-cli-babel "^7.23.0"
+    ember-cli-babel "^7.19.0"
     ember-cli-get-component-path-option "^1.0.0"
     ember-cli-is-package-missing "^1.0.0"
     ember-cli-normalize-entity-name "^1.0.0"
@@ -20062,9 +20062,9 @@ tmp@^0.2.1:
     rimraf "^3.0.0"
 
 tmpl@1.0.x:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/tmpl/-/tmpl-1.0.4.tgz#23640dd7b42d00433911140820e5cf440e521dd1"
-  integrity sha1-I2QN17QtAEM5ERQIIOXPRA5SHdE=
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/tmpl/-/tmpl-1.0.5.tgz#8683e0b902bb9c20c4f726e3c0b69f36518c07cc"
+  integrity sha512-3f0uOEAQwIqGuWW2MVzYg8fV/QNnc/IpuJNG837rLuczAaLVHslWHZQj4IGiEl5Hs3kkbhwL9Ab7Hrsmuj+Smw==
 
 to-array@0.1.4:
   version "0.1.4"
