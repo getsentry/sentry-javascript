@@ -1,7 +1,8 @@
 import { API, captureException, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, logger } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger } from '@sentry/utils';
 
+const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
 
 /**
@@ -193,16 +194,21 @@ export interface ReportDialogOptions {
  * @hidden
  */
 export function injectReportDialog(options: ReportDialogOptions = {}): void {
+  if (!global.document) {
+    return;
+  }
+
   if (!options.eventId) {
     logger.error(`Missing eventId option in showReportDialog call`);
     return;
   }
+
   if (!options.dsn) {
     logger.error(`Missing dsn option in showReportDialog call`);
     return;
   }
 
-  const script = document.createElement('script');
+  const script = global.document.createElement('script');
   script.async = true;
   script.src = new API(options.dsn).getReportDialogEndpoint(options);
 
@@ -211,7 +217,7 @@ export function injectReportDialog(options: ReportDialogOptions = {}): void {
     script.onload = options.onLoad;
   }
 
-  const injectionPoint = document.head || document.body;
+  const injectionPoint = global.document.head || global.document.body;
 
   if (injectionPoint) {
     injectionPoint.appendChild(script);

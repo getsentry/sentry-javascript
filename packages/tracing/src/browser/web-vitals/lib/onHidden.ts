@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
+import { getGlobalObject } from '@sentry/utils';
+
 export interface OnHiddenCallback {
   (event: Event): void;
 }
 
 export const onHidden = (cb: OnHiddenCallback, once?: boolean): void => {
   const onHiddenOrPageHide = (event: Event): void => {
-    if (event.type === 'pagehide' || document.visibilityState === 'hidden') {
+    if (event.type === 'pagehide' || getGlobalObject<Window>().document.visibilityState === 'hidden') {
       cb(event);
       if (once) {
         removeEventListener('visibilitychange', onHiddenOrPageHide, true);
