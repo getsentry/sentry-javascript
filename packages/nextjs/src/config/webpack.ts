@@ -256,11 +256,12 @@ function shouldAddSentryToEntryPoint(entryPointName: string): boolean {
  * @param userPluginOptions User-provided SentryWebpackPlugin options
  * @returns Final set of combined options
  */
-function getWebpackPluginOptions(
+export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): SentryWebpackPluginOptions {
   const { isServer, dir: projectDir, buildId, dev: isDev, config: nextConfig, webpack } = buildContext;
+  const distDir = nextConfig.distDir ?? '.next'; // `.next` is the default directory
 
   const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = nextConfig.target === 'experimental-serverless-trace';
@@ -268,12 +269,12 @@ function getWebpackPluginOptions(
   const urlPrefix = nextConfig.basePath ? `~${nextConfig.basePath}/_next` : '~/_next';
 
   const serverInclude = isServerless
-    ? [{ paths: ['.next/serverless/'], urlPrefix: `${urlPrefix}/serverless` }]
-    : [{ paths: ['.next/server/pages/'], urlPrefix: `${urlPrefix}/server/pages` }].concat(
-        isWebpack5 ? [{ paths: ['.next/server/chunks/'], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
+    ? [{ paths: [`${distDir}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
+    : [{ paths: [`${distDir}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` }].concat(
+        isWebpack5 ? [{ paths: [`${distDir}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
-  const clientInclude = [{ paths: ['.next/static/chunks/pages'], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
+  const clientInclude = [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
