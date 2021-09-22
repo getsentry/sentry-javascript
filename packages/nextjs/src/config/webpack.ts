@@ -122,7 +122,7 @@ const BASEPATH_VARNAME = 'PROJECT_BASEPATH';
 function updateRewriteFramesBasepath(distDir: string): void {
   if (distDir === PROJECT_BASEPATH) return;
   // esm
-  setProjectBasepath('./node_modules/@sentry/minimal/esm/index.server.js', 'var ', distDir);
+  setProjectBasepath('./node_modules/@sentry/nextjs/esm/index.server.js', 'var ', distDir);
   // es5
   setProjectBasepath('./node_modules/@sentry/nextjs/dist/index.server.js', 'exports.', distDir);
 }
