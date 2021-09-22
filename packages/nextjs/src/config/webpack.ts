@@ -52,8 +52,9 @@ export function constructWebpackConfigFunction(
 
     // If a user defines a custom build directory (`distDir`), we must update the `RewriteFrames` integration so that
     // the paths of the source maps match.
-    if (buildContext.isServer) {
-      // `distDir` is always defined. If the user hasn't defined a value, Next.js sets the default `.next`
+    // `distDir` is always defined in real life: either the user defines a value, or Next.js sets the default `.next`.
+    // The check is for different environments, such as in tests.
+    if (buildContext.isServer && buildContext.config.distDir) {
       updateRewriteFramesBasepath(buildContext.config.distDir as string);
     }
 
@@ -121,10 +122,20 @@ const BASEPATH_VARNAME = 'PROJECT_BASEPATH';
 
 function updateRewriteFramesBasepath(distDir: string): void {
   if (distDir === PROJECT_BASEPATH) return;
-  // esm
-  setProjectBasepath('./node_modules/@sentry/nextjs/esm/index.server.js', 'var ', distDir);
-  // es5
-  setProjectBasepath('./node_modules/@sentry/nextjs/dist/index.server.js', 'exports.', distDir);
+  try {
+    // esm
+    setProjectBasepath('./node_modules/@sentry/nextjs/esm/index.server.js', 'var ', distDir);
+    // es5
+    setProjectBasepath('./node_modules/@sentry/nextjs/dist/index.server.js', 'exports.', distDir);
+  } catch (error) {
+    console.warn(
+      'Sentry Logger [Warn]: ' +
+        `Could not set custom build directory \`${distDir}\`, required for correct display of source maps. `,
+      'In order to set your own `RewriteFrames`, visit\n' +
+        'https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/plugin/#rewriteframes\n',
+      error,
+    );
+  }
 }
 
 function setProjectBasepath(filePath: string, varPrefix: string, distDir: string): void {
