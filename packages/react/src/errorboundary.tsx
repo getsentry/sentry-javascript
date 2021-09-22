@@ -1,13 +1,4 @@
-import {
-  captureEvent,
-  captureException,
-  eventFromException,
-  ReportDialogOptions,
-  Scope,
-  showReportDialog,
-  withScope,
-} from '@sentry/browser';
-import { Event } from '@sentry/types';
+import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
 import { logger, parseSemver } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -71,31 +62,14 @@ const INITIAL_STATE = {
  * @param error An error captured by React Error Boundary
  * @param componentStack The component stacktrace
  */
-function captureReactErrorBoundaryError(error: Error, componentStack: string): string {
-  const errorBoundaryError = new Error(error.message);
-  errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
-  errorBoundaryError.stack = componentStack;
+function captureReactErrorBoundaryError(error: Error & { cause?: Error }, componentStack: string): string {
+  if (reactVersion.major && reactVersion.major >= 17) {
+    const errorBoundaryError = new Error(error.message);
+    errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+    errorBoundaryError.stack = componentStack;
 
-  let errorBoundaryEvent: Event = {};
-  void eventFromException({}, errorBoundaryError).then(e => {
-    errorBoundaryEvent = e;
-  });
-
-  if (
-    errorBoundaryEvent.exception &&
-    Array.isArray(errorBoundaryEvent.exception.values) &&
-    reactVersion.major &&
-    reactVersion.major >= 17
-  ) {
-    let originalEvent: Event = {};
-    void eventFromException({}, error).then(e => {
-      originalEvent = e;
-    });
-    if (originalEvent.exception && Array.isArray(originalEvent.exception.values)) {
-      originalEvent.exception.values = [...errorBoundaryEvent.exception.values, ...originalEvent.exception.values];
-    }
-
-    return captureEvent(originalEvent);
+    error.cause = errorBoundaryError;
+    return captureException(error);
   }
 
   return captureException(error, { contexts: { react: { componentStack } } });
