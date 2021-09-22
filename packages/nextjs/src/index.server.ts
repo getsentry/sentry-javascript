@@ -47,11 +47,13 @@ function sdkAlreadyInitialized(): boolean {
   return !!hub.getClient();
 }
 
-const SOURCEMAP_FILENAME_REGEX = /^.*\/\.next\//;
+export const PROJECT_BASEPATH = '.next';
+const projectBasepathRegexp = PROJECT_BASEPATH[0] === '.' ? `\\${PROJECT_BASEPATH}` : PROJECT_BASEPATH;
+const sourcemapFilenameRegex = new RegExp(`^.*/${projectBasepathRegexp}/`);
 
 const defaultRewriteFramesIntegration = new RewriteFrames({
   iteratee: frame => {
-    frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next/');
+    frame.filename = frame.filename?.replace(sourcemapFilenameRegex, 'app:///_next/');
     return frame;
   },
 });

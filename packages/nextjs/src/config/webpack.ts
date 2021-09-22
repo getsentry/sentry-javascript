@@ -4,6 +4,7 @@ import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { PROJECT_BASEPATH } from '../index.server';
 import {
   BuildContext,
   EntryPointValue,
@@ -47,6 +48,13 @@ export function constructWebpackConfigFunction(
     // work with
     if ('webpack' in userNextConfig && typeof userNextConfig.webpack === 'function') {
       newConfig = userNextConfig.webpack(newConfig, buildContext);
+    }
+
+    // If a user defines a custom build directory (`distDir`), we must update the `RewriteFrames` integration so that
+    // the paths of the source maps match.
+    if (buildContext.isServer) {
+      // `distDir` is always defined. If the user hasn't defined a value, Next.js sets the default `.next`
+      updateRewriteFramesBasepath(buildContext.config.distDir as string);
     }
 
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
@@ -106,6 +114,26 @@ export function constructWebpackConfigFunction(
   };
 
   return newWebpackFunction;
+}
+
+// TODO: make sure in tests that `PROJECT_BASEPATH` var exists in `index.server.ts`
+const BASEPATH_VARNAME = 'PROJECT_BASEPATH';
+
+function updateRewriteFramesBasepath(distDir: string): void {
+  if (distDir === PROJECT_BASEPATH) return;
+  // esm
+  setProjectBasepath('./node_modules/@sentry/minimal/esm/index.js', 'var ', distDir);
+  // es5
+  setProjectBasepath('./node_modules/@sentry/nextjs/dist/index.server.js', 'exports.', distDir);
+}
+
+function setProjectBasepath(filePath: string, varPrefix: string, distDir: string): void {
+  const fileContents = fs.readFileSync(filePath).toString();
+  const replacedContents = fileContents.replace(
+    new RegExp(`${varPrefix}${BASEPATH_VARNAME} = .*`),
+    `${varPrefix}${BASEPATH_VARNAME} = '${distDir}';`,
+  );
+  fs.writeFileSync(filePath, replacedContents);
 }
 
 /**
