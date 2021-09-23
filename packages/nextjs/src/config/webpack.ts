@@ -136,6 +136,7 @@ function updateRewriteFramesBasepath(projectRootDir: string, distDir: string): v
       distDir,
     );
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.warn(
       'Sentry Logger [Warn]: ' +
         `Could not set custom build directory \`${distDir}\`, required for correct display of source maps. `,

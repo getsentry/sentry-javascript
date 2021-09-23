@@ -117,6 +117,7 @@ export function includeDistDir(
       );
       // Keep the same object even if it's incorrect, so that the user can get a more precise error from sentry-cli
       // Casting to `any` for TS not complaining about it being `unknown`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       sourcesToInclude = usersInclude as any;
     }
   }
