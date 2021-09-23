@@ -103,7 +103,7 @@ function getBuildContext(
     dev: false,
     buildId: 'sItStAyLiEdOwN',
     dir: '/Users/Maisey/projects/squirrelChasingSimulator',
-    config: { target: 'server', ...userNextConfig },
+    config: { target: 'server', distDir: '.next', ...userNextConfig },
     webpack: { version: webpackVersion },
     isServer: buildTarget === 'server',
   };
@@ -322,6 +322,86 @@ describe('webpack config', () => {
           'pages/_app': [clientConfigFilePath, 'next-client-pages-loader?page=%2F_app'],
         }),
       );
+    });
+  });
+
+  describe('RewriteFrames on base path change', () => {
+    const testProjectBasepath = path.join(__dirname, 'testDir');
+    const testFilesPath = path.join(testProjectBasepath, 'node_modules', '@sentry', 'nextjs');
+
+    const moduleFormatExample = [
+      {
+        name: 'esm',
+        dir: 'esm',
+        file: 'index.server.js',
+        contents: "var PROJECT_BASEPATH = '.next'",
+      },
+      {
+        name: 'es5',
+        dir: 'dist',
+        file: 'index.server.js',
+        contents: "exports.PROJECT_BASEPATH = '.next'",
+      },
+    ];
+
+    beforeAll(async () => {
+      await fs.promises.mkdir(testFilesPath, { recursive: true });
+      moduleFormatExample.map(format => {
+        format.dir = path.join(testFilesPath, format.dir);
+        format.file = path.join(format.dir, format.file);
+        return fs.promises.mkdir(format.dir);
+      });
+    });
+
+    afterAll(() => rimraf.sync(testProjectBasepath));
+
+    beforeEach(() =>
+      moduleFormatExample.map(
+        // Using promises here make reading the contents of the files to be empty strings
+        format => fs.writeFileSync(format.file, format.contents),
+      ),
+    );
+
+    function addDistDirToBuildContext(buildCtxt: BuildContext, distDir: string): BuildContext {
+      const config = { ...buildCtxt.config, distDir };
+      const res = {
+        ...buildCtxt,
+        config,
+      };
+      return res;
+    }
+
+    test.each([
+      ['client without setting a dir', clientBuildContext, null],
+      ['client setting a normal dir', addDistDirToBuildContext(clientBuildContext, 'test'), null],
+      ['server without setting a dir', serverBuildContext, null],
+      [
+        'server setting normal dir',
+        addDistDirToBuildContext(serverBuildContext, 'test'),
+        {
+          esm: "var PROJECT_BASEPATH = 'test';",
+          es5: "exports.PROJECT_BASEPATH = 'test';",
+        },
+      ],
+      [
+        'server setting hidden dir',
+        addDistDirToBuildContext(serverBuildContext, '.test'),
+        {
+          esm: "var PROJECT_BASEPATH = '.test';",
+          es5: "exports.PROJECT_BASEPATH = '.test';",
+        },
+      ],
+      /** `expectedContents === null` => contents shouldn't change */
+    ])('%s', async (_testName, buildContext, expectedContents: null | Record<string, string>) => {
+      await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: { ...buildContext, dir: testProjectBasepath },
+      });
+      moduleFormatExample.map(format => {
+        const contents = fs.readFileSync(format.file).toString();
+        expect(contents).toStrictEqual(expectedContents ? expectedContents[format.name] : format.contents);
+      });
     });
   });
 });
