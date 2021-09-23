@@ -80,6 +80,7 @@ describe('ErrorBoundary', () => {
 
   it('renders null if not given a valid `fallback` prop', () => {
     const { container } = render(
+      // @ts-ignore Passing wrong type on purpose
       <ErrorBoundary fallback="Not a ReactElement">
         <Bam />
       </ErrorBoundary>,
@@ -90,6 +91,7 @@ describe('ErrorBoundary', () => {
 
   it('renders null if not given a valid `fallback` prop function', () => {
     const { container } = render(
+      // @ts-ignore Passing wrong type on purpose
       <ErrorBoundary fallback={() => 'Not a ReactElement'}>
         <Bam />
       </ErrorBoundary>,
