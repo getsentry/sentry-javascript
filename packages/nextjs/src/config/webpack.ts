@@ -55,7 +55,7 @@ export function constructWebpackConfigFunction(
     // `distDir` is always defined in real life: either the user defines a value, or Next.js sets the default `.next`.
     // The check is for different environments, such as in tests.
     if (buildContext.isServer && buildContext.config.distDir) {
-      updateRewriteFramesBasepath(buildContext.config.distDir as string);
+      updateRewriteFramesBasepath(buildContext.dir, buildContext.config.distDir as string);
     }
 
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
@@ -120,13 +120,21 @@ export function constructWebpackConfigFunction(
 // TODO: make sure in tests that `PROJECT_BASEPATH` var exists in `index.server.ts`
 const BASEPATH_VARNAME = 'PROJECT_BASEPATH';
 
-function updateRewriteFramesBasepath(distDir: string): void {
+function updateRewriteFramesBasepath(projectRootDir: string, distDir: string): void {
   if (distDir === PROJECT_BASEPATH) return;
   try {
     // esm
-    setProjectBasepath('./node_modules/@sentry/nextjs/esm/index.server.js', 'var ', distDir);
+    setProjectBasepath(
+      path.join(projectRootDir, 'node_modules', '@sentry', 'nextjs', 'esm', 'index.server.js'),
+      'var ',
+      distDir,
+    );
     // es5
-    setProjectBasepath('./node_modules/@sentry/nextjs/dist/index.server.js', 'exports.', distDir);
+    setProjectBasepath(
+      path.join(projectRootDir, 'node_modules', '@sentry', 'nextjs', 'dist', 'index.server.js'),
+      'exports.',
+      distDir,
+    );
   } catch (error) {
     console.warn(
       'Sentry Logger [Warn]: ' +
