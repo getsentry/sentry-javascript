@@ -51,7 +51,7 @@ export function constructWebpackConfigFunction(
     }
 
     // If a user defines a custom build directory (`distDir`), we must update the `RewriteFrames` integration so that
-    // the paths of the source maps match.
+    // the paths of the source maps match. This is required to correctly display server stack traces.
     // `distDir` is always defined in real life: either the user defines a value, or Next.js sets the default `.next`.
     // The check is for different environments, such as in tests.
     if (buildContext.isServer && buildContext.config.distDir) {
@@ -117,9 +117,26 @@ export function constructWebpackConfigFunction(
   return newWebpackFunction;
 }
 
-// TODO: make sure in tests that `PROJECT_BASEPATH` var exists in `index.server.ts`
-const BASEPATH_VARNAME = 'PROJECT_BASEPATH';
+/**
+ * WARNING: don't modify the contents of this variable.
+ * The variable it refers to must be available in `index.server.ts`, and it gets
+ * overridden at build time. If it isn't, the build may break.
+ */
+export const BASEPATH_VARNAME = 'PROJECT_BASEPATH';
 
+/**
+ * Updates the base path of the server's RewriteFrames integration to match the source
+ * map's paths with the given distribution directory.
+ *
+ * This action is required to view correct stack traces when using a custom
+ * distribution directory. The project root is required to build correct paths of the
+ * files that must be overwritten. This use case arises when you run the build step in
+ * a different directory from the one the project is; for example, in tests.
+ *
+ * The project root is
+ * @param projectRootDir Root directory of the Next.js project.
+ * @param distDir The distribution directory.
+ */
 function updateRewriteFramesBasepath(projectRootDir: string, distDir: string): void {
   if (distDir === PROJECT_BASEPATH) return;
   try {
@@ -147,6 +164,19 @@ function updateRewriteFramesBasepath(projectRootDir: string, distDir: string): v
   }
 }
 
+/**
+ * Overrides the base path variable with the distDir provided.
+ *
+ * Note that only replaces the first regex match.
+ * Different module formats have different variable prefixes and their output files
+ * are located in different paths.
+ *
+ * There's no error handling.
+ *
+ * @param filePath Path to the file.
+ * @param varPrefix Prefix of the variable declaration.
+ * @param distDir The distribution directory.
+ */
 function setProjectBasepath(filePath: string, varPrefix: string, distDir: string): void {
   const fileContents = fs.readFileSync(filePath).toString();
   const replacedContents = fileContents.replace(

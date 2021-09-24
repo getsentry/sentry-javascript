@@ -47,9 +47,26 @@ function sdkAlreadyInitialized(): boolean {
   return !!hub.getClient();
 }
 
+/**
+ * WARNING: don't refactor this variable.
+ * This variable gets overridden at build time to set the correct path -- what users
+ * defined in the `distDir` option in their Next.js configuration.
+ *
+ * Why this approach?
+ * There are two times to define the path: run time and build time. In any case,
+ * Next.js requires the user to set `distDir` in the options to compile the project.
+ * To get this path at run time and the SDK build it, users must also define the
+ * option in the SDK's server's configuration. However, to get the path at build time,
+ * users only need to set it once since the `withSentryConfig` wrapper can read the
+ * user's Next.js configuration. The SDK generates the `RewriteFrames` integration at
+ * initialization, meaning it's impossible to dynamically set the distribution directory
+ * path at build time if the option is only available at run time. To solve this issue,
+ * the SDK at build time rewrites the file where the default path of the integration is,
+ * so it's successfully generated at run time without additional configuration.
+ */
 export const PROJECT_BASEPATH = '.next';
-const projectBasepathRegexp = PROJECT_BASEPATH[0] === '.' ? `\\${PROJECT_BASEPATH}` : PROJECT_BASEPATH;
-const sourcemapFilenameRegex = new RegExp(`^.*/${projectBasepathRegexp}/`);
+const projectBasepathRegex = PROJECT_BASEPATH[0] === '.' ? `\\${PROJECT_BASEPATH}` : PROJECT_BASEPATH;
+const sourcemapFilenameRegex = new RegExp(`^.*/${projectBasepathRegex}/`);
 
 const defaultRewriteFramesIntegration = new RewriteFrames({
   iteratee: frame => {
