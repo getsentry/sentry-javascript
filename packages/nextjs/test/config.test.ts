@@ -14,6 +14,7 @@ import {
   WebpackConfigObject,
 } from '../src/config/types';
 import {
+  BASEPATH_VARNAME,
   constructWebpackConfigFunction,
   getUserConfigFile,
   getWebpackPluginOptions,
@@ -402,6 +403,12 @@ describe('webpack config', () => {
         const contents = fs.readFileSync(format.file).toString();
         expect(contents).toStrictEqual(expectedContents ? expectedContents[format.name] : format.contents);
       });
+    });
+
+    test(`\`${BASEPATH_VARNAME}\` is defined in \`index.server.ts\``, () => {
+      const indexServerPath = path.join(__dirname, '..', 'src', 'index.server.ts');
+      const fileContents = fs.readFileSync(indexServerPath).toString();
+      expect(fileContents).toMatch(new RegExp(`\\Wconst ${BASEPATH_VARNAME} =\\W`));
     });
   });
 });
