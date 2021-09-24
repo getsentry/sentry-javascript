@@ -133,6 +133,18 @@ export const BASEPATH_VARNAME = 'PROJECT_BASEPATH';
  * files that must be overwritten. This use case arises when you run the build step in
  * a different directory from the one the project is; for example, in tests.
  *
+ * Why this approach?
+ * There are two times to define the path: run time and build time. In any case,
+ * Next.js requires the user to set `distDir` in the options to compile the project.
+ * To get this path at run time and the SDK build it, users must also define the
+ * option in the SDK's server's configuration. However, to get the path at build time,
+ * users only need to set it once since the `withSentryConfig` wrapper can read the
+ * user's Next.js configuration. The SDK generates the `RewriteFrames` integration at
+ * initialization, meaning it's impossible to dynamically set the distribution directory
+ * path at build time if the option is only available at run time. To solve this issue,
+ * the SDK at build time rewrites the files where the default path of the integration is,
+ * so it's successfully generated at run time without additional configuration.
+ *
  * The project root is
  * @param projectRootDir Root directory of the Next.js project.
  * @param distDir The distribution directory.
