@@ -392,7 +392,7 @@ describe('webpack config', () => {
           es5: "exports.PROJECT_BASEPATH = '.test';",
         },
       ],
-      /** `expectedContents === null` => contents shouldn't change */
+      // `expectedContents === null` => contents shouldn't change
     ])('%s', async (_testName, buildContext, expectedContents: null | Record<string, string>) => {
       await materializeFinalWebpackConfig({
         userNextConfig,
