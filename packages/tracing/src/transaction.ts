@@ -106,7 +106,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
       this._hub
         .getClient()
-        ?.getTransport()
+        ?.getTransport?.()
         .recordLostEvent?.(Outcome.SampleRate, 'transaction');
 
       return undefined;
