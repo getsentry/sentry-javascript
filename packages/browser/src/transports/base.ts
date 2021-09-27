@@ -131,7 +131,11 @@ export abstract class BaseTransport implements Transport {
     });
     const envelope = `${envelopeHeader}\n${itemHeaders}\n${item}`;
 
-    sendReport(url, envelope);
+    try {
+      sendReport(url, envelope);
+    } catch (e) {
+      logger.error(e);
+    }
   }
 
   /**
