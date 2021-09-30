@@ -23,11 +23,16 @@ export class Dedupe implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((currentEvent: Event) => {
-      const self = getCurrentHub().getIntegration(Dedupe);
+      const hub = getCurrentHub();
+      const self = hub.getIntegration(Dedupe);
+
       if (self) {
         // Juuust in case something goes wrong
         try {
           if (self._shouldDropEvent(currentEvent, self._previousEvent)) {
+            if (self._previousEvent?.event_id) {
+              hub.setLastEventId(self._previousEvent?.event_id);
+            }
             logger.warn(`Event dropped due to being a duplicate of previously captured event.`);
             return null;
           }

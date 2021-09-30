@@ -117,6 +117,13 @@ export interface Hub {
   addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /**
+   * This is the setter for lastEventId.
+   *
+   * @returns The event id which has set.
+   */
+  setLastEventId(id: string): string;
+
+  /**
    * Updates user context information for future events.
    *
    * @param user User context object to be set in the current context. Pass `null` to unset the user.
