@@ -58,8 +58,7 @@ for NEXTJS_VERSION in 10 11; do
   fi
   yarn --no-lockfile --silent >/dev/null 2>&1
   # if applicable, use local versions of `@sentry/cli` and/or `@sentry/webpack-plugin` (these commands no-op unless
-  # LINK_CLI, CLI_REPO, LINK_PLUGIN, and WEBPACK_PLUGIN_REPO (or just the first two if only `@sentry/cli` is being
-  # linked) are set)
+  # LINKED_CLI_REPO and/or LINKED_PLUGIN_REPO is set)
   linkcli && linkplugin
   mv -f package.json.bak package.json 2>/dev/null || true
 
