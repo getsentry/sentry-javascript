@@ -121,7 +121,7 @@ export interface Hub {
    *
    * @returns The event id which has set.
    */
-  setLastEventId(id: string): string;
+  setLastEventId?(id: string): string;
 
   /**
    * Updates user context information for future events.
