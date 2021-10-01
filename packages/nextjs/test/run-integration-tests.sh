@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source test/integration_test_utils.sh
+
 set -e
 
 START_TIME=$(date -R)
@@ -55,6 +57,9 @@ for NEXTJS_VERSION in 10 11; do
     sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
   fi
   yarn --no-lockfile --silent >/dev/null 2>&1
+  # if applicable, use local versions of `@sentry/cli` and/or `@sentry/webpack-plugin` (these commands no-op unless
+  # LINKED_CLI_REPO and/or LINKED_PLUGIN_REPO is set)
+  linkcli && linkplugin
   mv -f package.json.bak package.json 2>/dev/null || true
 
   for RUN_WEBPACK_5 in false true; do
@@ -72,9 +77,10 @@ for NEXTJS_VERSION in 10 11; do
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
     yarn build | grep "Using webpack"
 
+    # if the user hasn't passed any args, use the default one, which restricts each test to only outputting success and
+    # failure messages
     args=$*
     if [[ ! $args ]]; then
-      # restrict each test to only output success and failure messages
       args="--silent"
     fi
 
