@@ -31,7 +31,7 @@ export class Dedupe implements Integration {
         try {
           if (self._shouldDropEvent(currentEvent, self._previousEvent)) {
             if (self._previousEvent?.event_id) {
-              hub.setLastEventId(self._previousEvent?.event_id);
+              hub.setLastEventId?.(self._previousEvent?.event_id);
             }
             logger.warn(`Event dropped due to being a duplicate of previously captured event.`);
             return null;
