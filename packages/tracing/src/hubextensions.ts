@@ -43,7 +43,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  */
 function sample<T extends Transaction>(transaction: T, options: Options, samplingContext: SamplingContext): T {
   // nothing to do if tracing is not enabled
-  if (!hasTracingEnabled()) {
+  if (!hasTracingEnabled(options)) {
     transaction.sampled = false;
     return transaction;
   }

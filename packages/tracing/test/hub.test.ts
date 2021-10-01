@@ -26,6 +26,9 @@ addDOMPropertiesToGlobal(['XMLHttpRequest', 'Event', 'location', 'document']);
 describe('Hub', () => {
   afterEach(() => {
     jest.clearAllMocks();
+    // Reset global carrier to the initial state
+    const hub = new Hub();
+    makeMain(hub);
   });
 
   describe('getTransaction()', () => {
@@ -125,6 +128,13 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(true);
       });
 
+      it('should set sampled = true if tracesSampleRate is 1 (without global hub)', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(transaction.sampled).toBe(true);
+      });
+
       it("should call tracesSampler if it's defined", () => {
         const tracesSampler = jest.fn();
         const hub = new Hub(new BrowserClient({ tracesSampler }));
@@ -148,6 +158,15 @@ describe('Hub', () => {
         const tracesSampler = jest.fn().mockReturnValue(1);
         const hub = new Hub(new BrowserClient({ tracesSampler }));
         makeMain(hub);
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it('should set sampled = true if tracesSampler returns 1 (without global hub)', () => {
+        const tracesSampler = jest.fn().mockReturnValue(1);
+        const hub = new Hub(new BrowserClient({ tracesSampler }));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
         expect(tracesSampler).toHaveBeenCalled();
