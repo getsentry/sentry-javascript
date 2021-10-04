@@ -10,7 +10,9 @@ const { parseRequest } = Handlers;
 // purely for clarity
 type WrappedNextApiHandler = NextApiHandler;
 
-type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction };
+export type AugmentedNextApiResponse = NextApiResponse & {
+  __sentryTransaction?: Transaction;
+};
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler => {
@@ -69,7 +71,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
 
           // save a link to the transaction on the response, so that even if there's an error (landing us outside of
           // the domain), we can still finish it (albeit possibly missing some scope data)
-          (res as AugmentedResponse).__sentryTransaction = transaction;
+          (res as AugmentedNextApiResponse).__sentryTransaction = transaction;
         }
       }
 
@@ -159,8 +161,8 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
   };
 };
 
-type ResponseEndMethod = AugmentedResponse['end'];
-type WrappedResponseEndMethod = AugmentedResponse['end'];
+type ResponseEndMethod = AugmentedNextApiResponse['end'];
+type WrappedResponseEndMethod = AugmentedNextApiResponse['end'];
 
 /**
  * Wrap `res.end()` so that it closes the transaction and flushes events before letting the request finish.
@@ -173,7 +175,7 @@ type WrappedResponseEndMethod = AugmentedResponse['end'];
  * @returns The wrapped version
  */
 function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
-  return async function newEnd(this: AugmentedResponse, ...args: unknown[]) {
+  return async function newEnd(this: AugmentedNextApiResponse, ...args: unknown[]) {
     const transaction = this.__sentryTransaction;
 
     if (transaction) {
