@@ -75,7 +75,6 @@ export class ExtraErrorData implements Integration {
    * Extract extra information from the Error object
    */
   private _extractErrorData(error: ExtendedError): { [key: string]: unknown } | null {
-    let result = null;
     // We are trying to enhance already existing event, so no harm done if it won't succeed
     try {
       const nativeKeys = ['name', 'message', 'stack', 'line', 'column', 'fileName', 'lineNumber', 'columnNumber'];
@@ -84,18 +83,15 @@ export class ExtraErrorData implements Integration {
       if (errorKeys.length) {
         const extraErrorInfo: { [key: string]: unknown } = {};
         for (const key of errorKeys) {
-          let value = error[key];
-          if (isError(value)) {
-            value = (value as Error).toString();
-          }
-          extraErrorInfo[key] = value;
+          const value = error[key];
+          extraErrorInfo[key] = isError(value) ? (value as Error).toString() : value;
         }
-        result = extraErrorInfo;
+        return extraErrorInfo;
       }
     } catch (oO) {
       logger.error('Unable to extract extra data from the Error object:', oO);
     }
 
-    return result;
+    return null;
   }
 }
