@@ -44,7 +44,7 @@ export type ErrorBoundaryProps = {
 };
 
 type ErrorBoundaryState = {
-  componentStack: string | null;
+  componentStack: React.ErrorInfo['componentStack'] | null;
   error: Error | null;
   eventId: string | null;
 };
@@ -56,25 +56,6 @@ const INITIAL_STATE = {
 };
 
 /**
- * Logs react error boundary errors to Sentry. If on React version >= 17, creates stack trace
- * from componentStack param, otherwise relies on error param for stacktrace.
- *
- * @param error An error captured by React Error Boundary
- * @param componentStack The component stacktrace
- */
-function captureReactErrorBoundaryError(error: Error & { cause?: Error }, componentStack: string): string {
-  if (reactVersion.major && reactVersion.major >= 17) {
-    const errorBoundaryError = new Error(error.message);
-    errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
-    errorBoundaryError.stack = componentStack;
-
-    error.cause = errorBoundaryError;
-  }
-
-  return captureException(error, { contexts: { react: { componentStack } } });
-}
-
-/**
  * A ErrorBoundary component that logs errors to Sentry. Requires React >= 16.
  * NOTE: If you are a Sentry user, and you are seeing this stack frame, it means the
  * Sentry React SDK ErrorBoundary caught an error invoking your application code. This
@@ -83,14 +64,26 @@ function captureReactErrorBoundaryError(error: Error & { cause?: Error }, compon
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = INITIAL_STATE;
 
-  public componentDidCatch(error: Error, { componentStack }: React.ErrorInfo): void {
+  public componentDidCatch(error: Error & { cause?: Error }, { componentStack }: React.ErrorInfo): void {
     const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
 
     withScope(scope => {
+      // If on React version >= 17, create stack trace from componentStack param and links
+      // to to the original error using `error.cause` otherwise relies on error param for stacktrace.
+      // Linking errors requires the `LinkedErrors` integration be enabled.
+      if (reactVersion.major && reactVersion.major >= 17) {
+        const errorBoundaryError = new Error(error.message);
+        errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+        errorBoundaryError.stack = componentStack;
+
+        // Using the `LinkedErrors` integration to link the errors together.
+        error.cause = errorBoundaryError;
+      }
+
       if (beforeCapture) {
         beforeCapture(scope, error, componentStack);
       }
-      const eventId = captureReactErrorBoundaryError(error, componentStack);
+      const eventId = captureException(error, { contexts: { react: { componentStack } } });
       if (onError) {
         onError(error, componentStack, eventId);
       }
