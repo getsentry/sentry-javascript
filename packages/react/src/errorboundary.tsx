@@ -69,7 +69,6 @@ function captureReactErrorBoundaryError(error: Error & { cause?: Error }, compon
     errorBoundaryError.stack = componentStack;
 
     error.cause = errorBoundaryError;
-    return captureException(error);
   }
 
   return captureException(error, { contexts: { react: { componentStack } } });
