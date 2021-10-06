@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.13.3
+
+- feat(nextjs): Add ability for integration tests to use linked `@sentry/xxxx` packages (#4019)
+- feat(nextjs): Support `distDir` Next.js option (#3990)
+- fix(tracing): Call hasTracingEnabled with correct options when invoking startTransaction (#4020)
+- ref(browser): Refactor sending client reports w. fetch fallback (#4008)
+- ref(core): Make getTransport method on client optional (#4013)
+- ref(ember): Update htmlbars dependency (#4026)
+- ref(integrations): Minor simplification of ExtraErrorData code (#4024)
+- ref(react): Rely on error.cause to link ErrorBoundary errors (#4005)
+
 ## 6.13.2
 
 - fix(browser): Use getGlobalObject for document check (#3996)
