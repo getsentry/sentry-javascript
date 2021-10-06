@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { ErrorBoundary, ErrorBoundaryProps, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
-const mockCaptureEvent = jest.fn();
+const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
 const EVENT_ID = 'test-id-123';
 
@@ -14,8 +14,8 @@ jest.mock('@sentry/browser', () => {
   const actual = jest.requireActual('@sentry/browser');
   return {
     ...actual,
-    captureEvent: (event: Event) => {
-      mockCaptureEvent(event);
+    captureException: (...args: unknown[]) => {
+      mockCaptureException(...args);
       return EVENT_ID;
     },
     showReportDialog: (options: any) => {
@@ -74,7 +74,7 @@ describe('ErrorBoundary', () => {
   jest.spyOn(console, 'error').mockImplementation();
 
   afterEach(() => {
-    mockCaptureEvent.mockClear();
+    mockCaptureException.mockClear();
     mockShowReportDialog.mockClear();
   });
 
@@ -220,7 +220,7 @@ describe('ErrorBoundary', () => {
       );
 
       expect(mockOnError).toHaveBeenCalledTimes(0);
-      expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
@@ -228,52 +228,26 @@ describe('ErrorBoundary', () => {
       expect(mockOnError).toHaveBeenCalledTimes(1);
       expect(mockOnError).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
 
-      expect(mockCaptureEvent).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
+        contexts: { react: { componentStack: expect.any(String) } },
+      });
 
-      // We do a detailed assert on the stacktrace as a regression test against future
-      // react changes (that way we can update the docs if frames change in a major way).
-      const event = mockCaptureEvent.mock.calls[0][0];
-      expect(event.exception.values).toHaveLength(2);
-      expect(event.level).toBe(Severity.Error);
+      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
 
-      expect(event.exception.values[0].type).toEqual('React ErrorBoundary Error');
-      expect(event.exception.values[0].stacktrace.frames).toEqual([
-        {
-          colno: expect.any(Number),
-          filename: expect.stringContaining('errorboundary.test.tsx'),
-          function: 'TestApp',
-          in_app: true,
-          lineno: expect.any(Number),
-        },
-        {
-          colno: expect.any(Number),
-          filename: expect.stringContaining('errorboundary.tsx'),
-          function: 'ErrorBoundary',
-          in_app: true,
-          lineno: expect.any(Number),
-        },
-        {
-          colno: expect.any(Number),
-          filename: expect.stringContaining('errorboundary.test.tsx'),
-          function: 'Bam',
-          in_app: true,
-          lineno: expect.any(Number),
-        },
-        {
-          colno: expect.any(Number),
-          filename: expect.stringContaining('errorboundary.test.tsx'),
-          function: 'Boo',
-          in_app: true,
-          lineno: expect.any(Number),
-        },
-      ]);
+      // Check if error.cause -> react component stack
+      const error = mockCaptureException.mock.calls[0][0];
+      const cause = error.cause;
+      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].contexts.react.componentStack);
+      expect(cause.name).toContain('React ErrorBoundary');
+      expect(cause.message).toEqual(error.message);
     });
 
     it('calls `beforeCapture()` when an error occurs', () => {
       const mockBeforeCapture = jest.fn();
 
       const testBeforeCapture = (...args: any[]) => {
-        expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+        expect(mockCaptureException).toHaveBeenCalledTimes(0);
         mockBeforeCapture(...args);
       };
 
@@ -284,14 +258,14 @@ describe('ErrorBoundary', () => {
       );
 
       expect(mockBeforeCapture).toHaveBeenCalledTimes(0);
-      expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
 
       expect(mockBeforeCapture).toHaveBeenCalledTimes(1);
       expect(mockBeforeCapture).toHaveBeenLastCalledWith(expect.any(Scope), expect.any(Error), expect.any(String));
-      expect(mockCaptureEvent).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
     });
 
     it('shows a Sentry Report Dialog with correct options', () => {
