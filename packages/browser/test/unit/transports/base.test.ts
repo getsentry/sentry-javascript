@@ -92,6 +92,25 @@ describe('BaseTransport', () => {
         `{}\n{"type":"client_report"}\n{"timestamp":12.345,"discarded_events":${JSON.stringify(outcomes)}}`,
       );
     });
+
+    it('attaches DSN to envelope header if tunnel is configured', () => {
+      const tunnel = 'https://hello.com/world';
+      const transport = new SimpleTransport({ dsn: testDsn, sendClientReports: true, tunnel });
+
+      transport.recordLostEvent(Outcome.BeforeSend, 'event');
+
+      visibilityState = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      const outcomes = [{ reason: Outcome.BeforeSend, category: 'error', quantity: 1 }];
+
+      expect(sendBeaconSpy).toHaveBeenCalledWith(
+        tunnel,
+        `{"dsn":"${testDsn}"}\n{"type":"client_report"}\n{"timestamp":12.345,"discarded_events":${JSON.stringify(
+          outcomes,
+        )}}`,
+      );
+    });
   });
 
   it('doesnt provide sendEvent() implementation', () => {

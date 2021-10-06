@@ -114,7 +114,7 @@ export abstract class BaseTransport implements Transport {
 
     const url = this._api.getEnvelopeEndpointWithUrlEncodedAuth();
     // Envelope header is required to be at least an empty object
-    const envelopeHeader = JSON.stringify({});
+    const envelopeHeader = JSON.stringify({ ...(this.options.tunnel && { dsn: this._api.getDsn().toString() }) });
     const itemHeaders = JSON.stringify({
       type: 'client_report',
     });
