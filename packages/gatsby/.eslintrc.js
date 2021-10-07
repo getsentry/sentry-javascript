@@ -19,7 +19,4 @@ module.exports = {
       },
     },
   ],
-  rules: {
-    'jsdoc/require-jsdoc': 0,
-  },
 };
