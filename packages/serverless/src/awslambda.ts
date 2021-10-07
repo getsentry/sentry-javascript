@@ -175,7 +175,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
       process.env.AWS_REGION
     }#logsV2:log-groups/log-group/${encodeURIComponent(context.logGroupName)}/log-events/${encodeURIComponent(
       context.logStreamName,
-    )}`,
+    )}?filterPattern="${context.awsRequestId}"`,
   });
 }
 
