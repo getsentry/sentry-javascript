@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@sentry-internal/eslint-config-sdk": "6.13.2",
-    "@sentry/types": "^6.13.2",
+    "@sentry/types": "6.13.2",
     "@testing-library/react": "^10.4.9",
     "@types/node": "^16.10.3",
     "jest": "^24.7.1",

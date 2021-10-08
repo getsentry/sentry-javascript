@@ -1,6 +1,6 @@
-import { init as reactInitRaw } from '@sentry/react';
+import { init as reactInitRaw, SDK_VERSION } from '@sentry/react';
 import { Integrations } from '@sentry/tracing';
-import { Integration } from '@sentry/types';
+import { Integration, Package } from '@sentry/types';
 
 import { defaultOptions, init as gatsbyInit } from '../src/sdk';
 import { GatsbyOptions } from '../src/utils/types';
@@ -16,6 +16,22 @@ describe('Initialize React SDK', () => {
     expect(reactInit).toHaveBeenCalledTimes(1);
     const calledWith = reactInit.mock.calls[0][0];
     expect(calledWith).toMatchObject(defaultOptions);
+  });
+
+  test('Has correct SDK metadata', () => {
+    gatsbyInit({});
+    const calledWith = reactInit.mock.calls[0][0];
+    const sdkMetadata = calledWith._metadata.sdk;
+    expect(sdkMetadata.name).toStrictEqual('sentry.javascript.gatsby');
+    expect(sdkMetadata.version).toBe(SDK_VERSION);
+    expect(sdkMetadata.packages).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "name": "npm:@sentry/gatsby",
+          "version": "6.13.3",
+        },
+      ]
+    `);
   });
 
   describe('Environment', () => {

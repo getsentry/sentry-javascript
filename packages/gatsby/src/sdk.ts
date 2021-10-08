@@ -1,7 +1,6 @@
-import { init as reactInit } from '@sentry/react';
+import { init as reactInit, SDK_VERSION } from '@sentry/react';
 
 import { getIntegrationsFromOptions } from './utils/integrations';
-import { MetadataBuilder } from './utils/metadataBuilder';
 import { GatsbyOptions } from './utils/types';
 
 export const defaultOptions = {
@@ -13,7 +12,18 @@ export const defaultOptions = {
  * Inits the Sentry Gatsby SDK.
  */
 export function init(options: GatsbyOptions): void {
-  new MetadataBuilder(options, ['gatsby']).addSdkMetadata();
+  options._metadata = options._metadata || {};
+  options._metadata.sdk = options._metadata.sdk || {
+    name: 'sentry.javascript.gatsby',
+    packages: [
+      {
+        name: 'npm:@sentry/gatsby',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
+
   const integrations = getIntegrationsFromOptions(options);
   reactInit({
     ...defaultOptions,
