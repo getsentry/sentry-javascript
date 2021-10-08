@@ -88,4 +88,27 @@ describe('ExtraErrorData()', () => {
 
     expect(enhancedEvent).toEqual(event);
   });
+
+  it('should call toJSON of original exception and add its properties', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error.baz = 42;
+    error.foo = 'bar';
+    error.toJSON = function() {
+      return {
+        bar: 1337,
+      };
+    };
+
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        bar: 1337,
+        baz: 42,
+        foo: 'bar',
+      },
+    });
+  });
 });
