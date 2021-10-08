@@ -63,9 +63,8 @@ export class CaptureConsole implements Integration {
                 hub.captureMessage(message);
               }
             } else if (level === 'error') {
-              const exception = args.find(arg => arg instanceof Error);
-              if (exception) {
-                hub.captureException(exception);
+              if (args[0] instanceof Error) {
+                hub.captureException(args[0]);
               } else {
                 hub.captureMessage(message);
               }
