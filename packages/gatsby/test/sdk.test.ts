@@ -9,9 +9,7 @@ const reactInit = reactInitRaw as jest.Mock;
 jest.mock('@sentry/react');
 
 describe('Initialize React SDK', () => {
-  afterEach(() => {
-    reactInit.mockReset();
-  });
+  afterEach(() => reactInit.mockReset());
 
   test('Default init props', () => {
     gatsbyInit({});
