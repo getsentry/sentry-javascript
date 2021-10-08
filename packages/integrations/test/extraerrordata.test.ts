@@ -96,6 +96,7 @@ describe('ExtraErrorData()', () => {
     error.toJSON = function() {
       return {
         bar: 1337,
+        qux: `${this.message} but nicer`,
       };
     };
 
@@ -108,6 +109,7 @@ describe('ExtraErrorData()', () => {
         bar: 1337,
         baz: 42,
         foo: 'bar',
+        qux: 'foo but nicer',
       },
     });
   });
