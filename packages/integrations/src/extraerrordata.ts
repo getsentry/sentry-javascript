@@ -105,9 +105,6 @@ export class ExtraErrorData implements Integration {
         const serializedError = error.toJSON() as Record<string, unknown>;
 
         for (const key of Object.keys(serializedError)) {
-          if (nativeKeys.indexOf(key) !== -1) {
-            continue;
-          }
           const value = serializedError[key];
           extraErrorInfo[key] = isError(value) ? (value as Error).toString() : value;
         }
