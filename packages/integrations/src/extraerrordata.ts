@@ -74,7 +74,7 @@ export class ExtraErrorData implements Integration {
   /**
    * Extract extra information from the Error object
    */
-  private _extractErrorData(error: ExtendedError): { [key: string]: unknown } | null {
+  private _extractErrorData(error: ExtendedError): Record<string, unknown> | null {
     // We are trying to enhance already existing event, so no harm done if it won't succeed
     try {
       const nativeKeys = [
@@ -89,7 +89,7 @@ export class ExtraErrorData implements Integration {
         'toJSON',
       ];
 
-      const extraErrorInfo: { [key: string]: unknown } = {};
+      const extraErrorInfo: Record<string, unknown> = {};
 
       // We want only enumerable properties, thus `getOwnPropertyNames` is redundant here, as we filter keys anyway.
       for (const key of Object.keys(error)) {
@@ -102,7 +102,7 @@ export class ExtraErrorData implements Integration {
 
       // Check if someone attached `toJSON` method to grab even more properties (eg. axios is doing that)
       if (typeof error.toJSON === 'function') {
-        const serializedError = error.toJSON() as { [key: string]: unknown };
+        const serializedError = error.toJSON() as Record<string, unknown>;
 
         for (const key of Object.keys(serializedError)) {
           if (nativeKeys.indexOf(key) !== -1) {
