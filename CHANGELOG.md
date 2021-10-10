@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 6.13.3
+## 💎6.13.3
 
 - feat(nextjs): Add ability for integration tests to use linked `@sentry/xxxx` packages (#4019)
 - feat(nextjs): Support `distDir` Next.js option (#3990)
@@ -15,16 +15,16 @@
 - ref(integrations): Minor simplification of ExtraErrorData code (#4024)
 - ref(react): Rely on error.cause to link ErrorBoundary errors (#4005)
 
-## 6.13.2
+## 💎6.13.2
 
 - fix(browser): Use getGlobalObject for document check (#3996)
 - misc(all): Disallow direct usage of globals (#3999)
 
-## 6.13.1
+## 💎6.13.1
 
 - fix(browser): Check for document when sending outcomes (#3993)
 
-## 6.13.0
+## 💎6.13.0
 
 - feat(browser): Client Report Support (#3955)
 - feat(perf): Add experimental option to improve LCP collection (#3879)
@@ -40,7 +40,7 @@
 - ref(nextjs): Exclude cross-platform tracing code from bundles (#3978)
 - ref(tracing): Idle transaction refactoring (#3988)
 
-## 6.12.0
+## 💎6.12.0
 
 - fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
 - fix(core): Skip native frames while searching frame URLs. (#3897)
@@ -52,7 +52,7 @@
 - fix(tracing): Prevent metrics erroring module load in web workers (#3941)
 - misc(browser): Log when event is dropped by Dedupe integration (#3943)
 
-## 6.11.0
+## 💎6.11.0
 
 - feat(nextjs): Allow for TypeScript user config files (#3847)
 - fix(browser): Make sure handler exists for LinkedErrors Integration (#3861)
@@ -66,7 +66,7 @@
 - ref(core): Prevent redundant setup work (#3862)
 - ref(nextjs): Stop reinitializing the server SDK unnecessarily (#3860)
 
-## 6.10.0
+## 💎6.10.0
 
 - feat(vue): Rework tracing and add support for `Vue 3` (#3804)
 - feat(tracing): Upgrade to `web-vitals 2.1.0` (#3781)
@@ -78,7 +78,7 @@
 - ref(tracing): Update span op for outgoing HTTP requests (#3821)
 - ref(tracing): Remove updated CLS from web-vitals (#3822)
 
-## 6.9.0
+## 💎6.9.0
 
 - feat(browser): Use scope data in report dialog (#3792)
 - feat(core): Add `ensureNoCircularStructures` experiment to help debug serialization bugs (#3776)
@@ -98,7 +98,7 @@
 - ref(nextjs): Pre-disable-plugin-option config cleanup (#3770)
 - ref(nextjs): Stop setting redundant `productionBrowserSourceMaps` in config (#3765)
 
-## 6.8.0
+## 💎6.8.0
 
 - [browser] feat: Enable serialization of multiple DOM attributes for breadcrumbs. (#3755)
 - [browser] feat: Make dedupe integration default for browser (#3730)
@@ -106,7 +106,7 @@
 - [ember] ref: Allow initing Ember without config entry (#3745)
 - [serverless] fix: wrapEventFunction does not await for async code (#3740)
 
-## 6.7.2
+## 💎6.7.2
 
 - [core] fix: Do not track sessions if not enabled (#3686)
 - [core] fix: Prevent sending terminal status session updates (#3701)
@@ -118,7 +118,7 @@
 - [nextjs] fix: Update @sentry/webpack-plugin to 1.15.1 in @sentry/nextjs to resolve build timeouts issue (#3708)
 - [nextjs] ref: Split up config code and add tests (#3693)
 
-## 6.7.1
+## 💎6.7.1
 
 - [core] fix: Add event type to item header when envelopes are forced (#3676)
 - [core] fix: Include DSN in envelope header for sessions (#3680)
@@ -126,11 +126,11 @@
 - [node] ref: Remove default http(s) import from http-module (#3681)
 - [nextjs] feat: Add body data to transaction `request` context (#3672)
 
-## 6.7.0
+## 💎6.7.0
 
 - [core] feat: Add `tunnel` option to support request tunneling for dealing with ad-blockers (#3521)
 
-## 6.6.0
+## 💎6.6.0
 
 - [node] feat: Allow for overriding custom `UrlParser` in Node.js transports (#3612)
 - [browser] feat: Add `serializeAttribute` option to DOM breadcrumbs. (#3620)
@@ -145,7 +145,7 @@
 - [node] ref: Make `HTTPModule` more abstract to be able to use it in non-Node.JS environments (#3655)
 - [nextjs] ref: Export `BrowserTracing` integration directly from `@sentry/nextjs` (#3647)
 
-## 6.5.1
+## 💎6.5.1
 
 - [nextjs] fix: Prevent webpack 5 from crashing server (#3642)
 - [eslint] build: Upgrade to eslint 7.27.0 (#3639)
@@ -153,14 +153,14 @@
 - [browser] ref: Don't send session duration in browser environments (#3616)
 - [hub] fix: Correctly compute session durations (#3616)
 
-## 6.5.0
+## 💎6.5.0
 
 - [angular] fix: prevent memory leak when the root view is removed (#3594)
 - [browser] fix: Do not trigger session on meaningless navigation (#3608)
 - [nextjs] feat: Frontend + withSentry Performance Monitoring (#3580)
 - [react] fix: Use history object for init transaction name (#3609)
 
-## 6.4.1
+## 💎6.4.1
 
 - [ember] ref: Fix merging of runtime config with environment config. (#3563)
 - [angular] ref: Allow angular v12 as a peer dependency. (#3569)
@@ -171,7 +171,7 @@
 - [nextjs] ref: Disable node session for next.js (#3558)
 - [eslint] feat: Add new eslint rules (#3545)
 
-## 6.4.0
+## 💎6.4.0
 
 - [core] feat: initialScope in SDK Options (#3544)
 - [node] feat: Release Health for Node (Session Aggregates) (#3319)
@@ -179,7 +179,7 @@
 - [react] feat: Add support for React 17 Error Boundaries (#3532)
 - [tracing] fix: Generate TTFB (Time to first byte) from span data (#3515)
 
-## 6.3.6
+## 💎6.3.6
 
 - [nextjs] fix: Fix error logging (#3512)
 - [nextjs] fix: Add environment automatically (#3495)
@@ -187,24 +187,24 @@
 - [node] fix: Set handled to false when it is a crash (#3493)
 - [tracing] fix: Mark tracing distributables as side effects (#3519)
 
-## 6.3.5
+## 💎6.3.5
 
 - [nextjs] fix: Add tslib dependecy; change inject order (#3487)
 
-## 6.3.4
+## 💎6.3.4
 
 - [nextjs] fix: API routes logging (#3479)
 
-## 6.3.3
+## 💎6.3.3
 
 - [nextjs] fix: User server types (#3471)
 
-## 6.3.2
+## 💎6.3.2
 
 - [nextjs] ref: Remove next.js plugin (#3462)
 - [core] fix: Prevent InboundFilters mergeOptions method from breaking users code (#3458)
 
-## 6.3.1
+## 💎6.3.1
 
 - [angular] fix: Make SentryErrorHandler extensible and export it publicly (#3438)
 - [browser] feat: Capture information about the LCP element culprit (#3427)
@@ -215,7 +215,7 @@
 - [node] fix: Fix for manual tests in node (#3428)
 - [transports] feat: Honor no_proxy env variable (#3412)
 
-## 6.3.0
+## 💎6.3.0
 
 - [browser] feat: Parse safari-extension and safari-web-extension errors (#3374)
 - [browser] fix: Provide better descriptions for the performance navigation timing spans (#3245)
@@ -234,11 +234,11 @@
 - [utils] fix: Use the more reliable timeOrigin (#3398)
 - [utils] fix: Wrap oldOnPopState.apply call in try/catch to prevent Firefox from crashing (#3377)
 
-## 6.2.5
+## 💎6.2.5
 
 - [utils] fix: Avoid performance.timeOrigin if too skewed (#3356)
 
-## 6.2.4
+## 💎6.2.4
 
 - [browser] fix: Add `SentryRequestType` to `RateLimitingCategory` mapping (#3328)
 - [browser] ref: Add fast-path to `fetchImpl` and cleanup redundant iframe (#3341)
@@ -249,11 +249,11 @@
 - [ember] ref: Fix tests to be forward compatible with component changes (#3347)
 - [ember] ref: Silence deprecation warnings in beta (#3346)
 
-## 6.2.3
+## 💎6.2.3
 
 - [gatsby] fix: Update Vercel environment variables to match their current system variables (#3337)
 
-## 6.2.2
+## 💎6.2.2
 
 - [hub] fix: Only create sessions if the correct methods are defined (#3281)
 - [core] fix: Don't override SDK metadata (#3304)
@@ -262,11 +262,11 @@
 - [ember] fix: Keep route hook context when performance-wrapping (#3274)
 - [integrations] fix: Normalized Event before caching. (#3305)
 
-## 6.2.1
+## 💎6.2.1
 
 - [core] fix: Moves SDK metadata-setting into the `NodeClient/BrowserClient` to protect it from being overwritten by other classes extending `BaseClient` like @sentry/serverless (#3279)
 
-## 6.2.0
+## 💎6.2.0
 
 - [tracing] feat: Mongoose tracing support added to MongoDB (#3252)
 - [tracing] fix: Add missing `find` method from mongo tracing list (#3253)
@@ -276,7 +276,7 @@
 - [ember] fix: Fixing fetching config during build step (#3246)
 - [serverless]: fix: Handle incoming `sentry-trace` header (#3261)
 
-## 6.1.0
+## 💎6.1.0
 
 We updated the way how we calculate errored and crashed sessions with this update. Please be aware that some numbers might change for you and they now should reflect the actual reality. Visit [our docs](https://docs.sentry.io/platforms/javascript/configuration/releases/#release-health) for more information.
 
@@ -285,7 +285,7 @@ We updated the way how we calculate errored and crashed sessions with this updat
 - [core] ref: Rename `user` to `publicKey` in `Dsn` type and class (#3225)
 - [ember] fix: Fix backwards compatibility with Embroider changes (#3230)
 
-## 6.0.4
+## 💎6.0.4
 
 - [browser] fix: Don't break when function call context is undefined (#3222)
 - [tracing] fix: Set default sampling context data where `startTransaction` is called (#3210)
@@ -294,7 +294,7 @@ We updated the way how we calculate errored and crashed sessions with this updat
 - [angular] ref: Add Angular 11 to possible peerDependencies list (#3201)
 - [vue] ref: Add `vue-router` to peerDependencies list (#3214)
 
-## 6.0.3
+## 💎6.0.3
 
 - [tracing] ref: feat(tracing): Add context update methods to Span and Transaction (#3192)
 - [node] ref: Make ExpressRequest not extend http.IncomingMessage anymore (#3211)
@@ -302,16 +302,16 @@ We updated the way how we calculate errored and crashed sessions with this updat
 - [ember] fix(ember): Fix location url for 'hash' location type (#3195)
 - [ember] fix(ember): Fix Ember to work with Embroider and Fastboot (#3181)
 
-## 6.0.2
+## 💎6.0.2
 
 - [browser] fix: Disable session tracking in non-browser environments (#3194)
 
-## 6.0.1
+## 💎6.0.1
 
 - [vue] fix: Make sure that error is present before logging it in Vue (#3183)
 - [serverless] fix: Fix issue when `/dist` didn't exist before building (#3190)
 
-## 6.0.0
+## 💎6.0.0
 
 _This major version release doesn't contain any breaking API/code changes._ Starting from the version `6.0.0`, all SDKs
 that support sending sessions data will do so by default. See our
@@ -329,7 +329,7 @@ during SDK initialization.
 - [build] feat: AWS Lambda layer target config for Craft (#3175)
 - [tracing] fix: Make sure that mongo method is thenable before calling it (#3173)
 
-## 5.30.0
+## 💎5.30.0
 
 - [node] fix: esbuild warning dynamic require (#3164)
 - [tracing] ref: Expose required things for React Native auto tracing (#3144)
@@ -339,17 +339,17 @@ during SDK initialization.
 - [build] ref: Remove TravisCI (#3149)
 - [build] ref: Upgrade action-prepare-release to latest version
 
-## 5.29.2
+## 💎5.29.2
 
 - Fix version
 
-## 5.29.1
+## 💎5.29.1
 
 - [types] ref: Loosen tag types, create new `Primitive` type (#3108)
 - [tracing] feat: Send sample rate and type in transaction item header in envelope (#3068)
 - [tracing] fix(web-vitals): Fix TTFB capture in Safari (#3106)
 
-## 5.29.0
+## 💎5.29.0
 
 - [tracing] feat: MongoDB Tracing Support (#3072)
 - [tracing] feat: MySQL Tracing Support (#3088)
@@ -357,7 +357,7 @@ during SDK initialization.
 - [tracing] fix: Add `sentry-trace` header to outgoing http(s) requests in node (#3053)
 - [node] fix: Revert express tracing integration type to use any (#3093)
 
-## 5.28.0
+## 💎5.28.0
 
 - [browser] fix: Handle expo file dir stack frames (#3070)
 - [vue] feat: @sentry/vue (#2953)
@@ -366,16 +366,16 @@ during SDK initialization.
 - [ember] fix: Use correct import from `@sentry/browser` (#3077)
 - [node] ref: Express integration span name change and path unification (#3078)
 
-## 5.27.6
+## 💎5.27.6
 
 - [hub] fix: Don't invoke scope updates in scope listeners
 
-## 5.27.5
+## 💎5.27.5
 
 - [hub] fix: Sync ScopeListeners (#3065)
 - [tracing] fix: Typo in constant name in @sentry/tracing (#3058)
 
-## 5.27.4
+## 💎5.27.4
 
 - [core] fix: Remove globalThis usage (#3033)
 - [react] ref: Add React 17.x to peerDependencies (#3034)
@@ -385,7 +385,7 @@ during SDK initialization.
 - [serverless] fix: Wrap google cloud functions with a Proxy(). (#3035)
 - [hub] fix: stop using @types/node in @sentry/hub (#3050)
 
-## 5.27.3
+## 💎5.27.3
 
 - [hub] fix: Make sure that `getSession` exists before calling it (#3017)
 - [browser] feat: Add `DOMException.code` as tag if it exists (#3018)
@@ -394,7 +394,7 @@ during SDK initialization.
 - [tracing] fix: Adjust some web vitals to be relative to fetchStart and some other improvements (#3019)
 - [tracing] fix: Add transaction name as tag on error events (#3024)
 
-## 5.27.2
+## 💎5.27.2
 
 - [apm] ref: Delete sentry/apm package (#2990)
 - [types] fix: make requestHandler options an own type (#2995)
