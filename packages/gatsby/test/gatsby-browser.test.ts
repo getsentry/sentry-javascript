@@ -7,8 +7,8 @@ const { onClientEntry } = require('../gatsby-browser');
 (global as any).__SENTRY_DSN__ = 'https://examplePublicKey@o0.ingest.sentry.io/0';
 
 let sentryInit = jest.fn();
-jest.mock('@sentry/react', () => {
-  const original = jest.requireActual('@sentry/react');
+jest.mock('@sentry/gatsby', () => {
+  const original = jest.requireActual('@sentry/gatsby');
   return {
     ...original,
     init: (...args: any[]) => {
@@ -38,40 +38,21 @@ describe('onClientEntry', () => {
     (window as any).Sentry = undefined;
   });
 
-  it('inits Sentry by default', () => {
-    onClientEntry(undefined, {});
+  it.each([
+    [{}, ['dsn', 'release']],
+    [{ key: 'value' }, ['dsn', 'release', 'key']],
+  ])('inits Sentry by default', (pluginParams, expectedKeys) => {
+    onClientEntry(undefined, pluginParams);
     expect(sentryInit).toHaveBeenCalledTimes(1);
-    expect(sentryInit).toHaveBeenLastCalledWith({
-      dsn: (global as any).__SENTRY_DSN__,
-      environment: process.env.NODE_ENV,
-      integrations: [],
-      release: (global as any).__SENTRY_RELEASE__,
-      autoSessionTracking: true,
-      _metadata: {
-        sdk: {
-          name: 'sentry.javascript.gatsby',
-          packages: [
-            {
-              name: 'npm:@sentry/gatsby',
-              version: expect.any(String),
-            },
-          ],
-          version: expect.any(String),
-        },
-      },
-    });
+    const calledWith = sentryInit.mock.calls[0][0];
+    for (const key of expectedKeys) {
+      expect(calledWith[key]).toBeDefined();
+    }
   });
 
   it('sets window.Sentry', () => {
     onClientEntry(undefined, {});
     expect((window as any).Sentry).not.toBeUndefined();
-  });
-
-  it('adds Tracing extension methods', () => {
-    onClientEntry(undefined, {});
-
-    expect(tracingAddExtensionMethods).toHaveBeenCalledTimes(1);
-    expect(tracingAddExtensionMethods).toHaveBeenLastCalledWith();
   });
 
   it('sets a tracesSampleRate if defined as option', () => {
@@ -89,25 +70,6 @@ describe('onClientEntry', () => {
     expect(sentryInit).toHaveBeenLastCalledWith(
       expect.objectContaining({
         tracesSampler,
-      }),
-    );
-  });
-
-  it('adds `BrowserTracing` integration if tracesSampleRate is defined', () => {
-    onClientEntry(undefined, { tracesSampleRate: 0.5 });
-    expect(sentryInit).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        integrations: [expect.objectContaining({ name: 'BrowserTracing' })],
-      }),
-    );
-  });
-
-  it('adds `BrowserTracing` integration if tracesSampler is defined', () => {
-    const tracesSampler = jest.fn();
-    onClientEntry(undefined, { tracesSampler });
-    expect(sentryInit).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        integrations: [expect.objectContaining({ name: 'BrowserTracing' })],
       }),
     );
   });
