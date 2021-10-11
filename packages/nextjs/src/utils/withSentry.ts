@@ -79,6 +79,7 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
         if (currentScope) {
           currentScope.addEventProcessor(event => {
             addExceptionMechanism(event, {
+              mechanism: 'withSentry',
               handled: false,
             });
             return event;
