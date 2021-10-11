@@ -88,4 +88,70 @@ describe('ExtraErrorData()', () => {
 
     expect(enhancedEvent).toEqual(event);
   });
+
+  it('should call toJSON of original exception and add its properties', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error.baz = 42;
+    error.foo = 'bar';
+    error.toJSON = function() {
+      return {
+        bar: 1337,
+        qux: `${this.message} but nicer`,
+      };
+    };
+
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        bar: 1337,
+        baz: 42,
+        foo: 'bar',
+        qux: 'foo but nicer',
+      },
+    });
+  });
+
+  it('toJSON props should have priority over directly assigned ones', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error.baz = 42;
+    error.toJSON = function() {
+      return {
+        baz: 1337,
+      };
+    };
+
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        baz: 1337,
+      },
+    });
+  });
+
+  it('toJSON props should allow for usage of native names', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error.baz = 42;
+    error.toJSON = function() {
+      return {
+        message: 'bar',
+      };
+    };
+
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        baz: 42,
+        message: 'bar',
+      },
+    });
+  });
 });
