@@ -336,7 +336,7 @@ describe('Sentry webpack plugin config', () => {
       incomingWebpackBuildContext: serverBuildContext,
     });
 
-    expect(finalWebpackConfig.plugins?.[0].options).toEqual(
+    expect((finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin).options).toEqual(
       expect.objectContaining({
         include: expect.any(Array), // default, tested separately elsewhere
         ignore: [], // default
@@ -360,7 +360,7 @@ describe('Sentry webpack plugin config', () => {
       incomingWebpackBuildContext: serverBuildContext,
     });
 
-    expect((finalWebpackConfig.plugins?.[0].options as SentryWebpackPluginOptions).debug).toEqual(true);
+    expect((finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin).options.debug).toEqual(true);
   });
 
   it('warns when overriding certain default values', () => {

@@ -1,7 +1,8 @@
 import { SentryCliPluginOptions } from '@sentry/webpack-plugin';
+import { WebpackPluginInstance } from 'webpack';
 
 export type SentryWebpackPluginOptions = SentryCliPluginOptions;
-export type SentryWebpackPlugin = { options: SentryWebpackPluginOptions };
+export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };
 
 /**
  * Overall Nextjs config
@@ -37,7 +38,7 @@ export type WebpackConfigFunction = (config: WebpackConfigObject, options: Build
 
 export type WebpackConfigObject = {
   devtool?: string;
-  plugins?: Array<{ [key: string]: unknown }>;
+  plugins?: Array<WebpackPluginInstance | SentryWebpackPlugin>;
   entry: WebpackEntryProperty;
   output: { filename: string; path: string };
   target: string;
