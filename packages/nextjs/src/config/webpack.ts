@@ -34,7 +34,7 @@ export { SentryWebpackPlugin };
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(
-  userNextConfig: NextConfigObject = {},
+  userNextConfig: Partial<NextConfigObject> = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether

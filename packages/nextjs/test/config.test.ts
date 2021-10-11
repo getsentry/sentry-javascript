@@ -58,7 +58,7 @@ process.env.SENTRY_RELEASE = 'doGsaREgReaT';
 const runtimePhase = 'ball-fetching';
 // `defaultConfig` is the defaults for all nextjs options (we don't use these at all in the tests, so for our purposes
 // here the values don't matter)
-const defaultsObject = { defaultConfig: {} };
+const defaultsObject = { defaultConfig: {} as NextConfigObject };
 
 /** mocks of the arguments passed to `nextConfig.webpack` */
 const serverWebpackConfig = {
@@ -103,7 +103,7 @@ function getBuildContext(
     dev: false,
     buildId: 'sItStAyLiEdOwN',
     dir: '/Users/Maisey/projects/squirrelChasingSimulator',
-    config: { target: 'server', ...userNextConfig },
+    config: { target: 'server', ...userNextConfig } as NextConfigObject,
     webpack: { version: webpackVersion },
     isServer: buildTarget === 'server',
   };
