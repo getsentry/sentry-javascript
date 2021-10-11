@@ -31,6 +31,7 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
 
   // To configure the SDK `sentry.config.js` is prioritized over `gatsby-config.js`,
   // since it isn't possible to set non-serializable parameters in the latter.
+  // Prioritization here means what `init` is being run first.
   if (!fs.existsSync(SENTRY_USER_CONFIG)) {
     // We don't want to warn users here, yet they may have their config in `gatsby-config.js`.
     return;
@@ -45,6 +46,8 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
 
 function injectSentryConfig(config) {
   const injectedEntries = {};
+  // TODO: investigate what entries need the Sentry config injected.
+  //    We may want to skip some.
   Object.keys(config.entry).map(prop => {
     const value = config.entry[prop];
     let injectedValue = value;
