@@ -9,7 +9,6 @@ import {
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
-  SentryWebpackPlugin as SentryWebpackPluginType,
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
@@ -379,7 +378,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: clientBuildContext,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/static/chunks/pages'], urlPrefix: '~/_next/static/chunks/pages' },
@@ -396,7 +395,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/serverless/'], urlPrefix: '~/_next/serverless' },
@@ -413,7 +412,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
@@ -427,7 +426,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: serverBuildContext,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
@@ -449,7 +448,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithBasePath),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/static/chunks/pages'], urlPrefix: '~/city-park/_next/static/chunks/pages' },
@@ -466,7 +465,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/serverless/'], urlPrefix: '~/city-park/_next/serverless' },
@@ -483,7 +482,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
@@ -497,7 +496,7 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('server', userNextConfigWithBasePath),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPlugin;
 
       expect(sentryWebpackPlugin.options?.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
