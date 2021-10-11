@@ -97,7 +97,7 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
   };
 };
 
-async function finishTransactionAndFlush(res: AugmentedResponse) {
+async function finishTransactionAndFlush(res: AugmentedResponse): Promise<void> {
   const transaction = res.__sentryTransaction;
 
   if (transaction) {
