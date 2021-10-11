@@ -1,8 +1,8 @@
 import { init as reactInitRaw, SDK_VERSION } from '@sentry/react';
 import { Integrations } from '@sentry/tracing';
-import { Integration, Package } from '@sentry/types';
+import { Integration } from '@sentry/types';
 
-import { defaultOptions, init as gatsbyInit } from '../src/sdk';
+import { init as gatsbyInit } from '../src/sdk';
 import { UserIntegrations } from '../src/utils/integrations';
 import { GatsbyOptions } from '../src/utils/types';
 
@@ -11,13 +11,6 @@ jest.mock('@sentry/react');
 
 describe('Initialize React SDK', () => {
   afterEach(() => reactInit.mockReset());
-
-  test('Default init props', () => {
-    gatsbyInit({});
-    expect(reactInit).toHaveBeenCalledTimes(1);
-    const calledWith = reactInit.mock.calls[0][0];
-    expect(calledWith).toMatchObject(defaultOptions);
-  });
 
   test('Has correct SDK metadata', () => {
     gatsbyInit({});
@@ -36,11 +29,11 @@ describe('Initialize React SDK', () => {
   });
 
   describe('Environment', () => {
-    test('process.env', () => {
+    test('not defined by default', () => {
       gatsbyInit({});
       expect(reactInit).toHaveBeenCalledTimes(1);
       const callingObject = reactInit.mock.calls[0][0];
-      expect(callingObject.environment).toStrictEqual('test');
+      expect(callingObject.environment).not.toBeDefined();
     });
 
     test('defined in the options', () => {
