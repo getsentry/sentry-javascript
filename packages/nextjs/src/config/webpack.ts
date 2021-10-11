@@ -274,7 +274,7 @@ export function getWebpackPluginOptions(
         isWebpack5 ? [{ paths: [`${distDir}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
-  const clientInclude = [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
+  const clientInclude = [{ paths: [`${distDir}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
