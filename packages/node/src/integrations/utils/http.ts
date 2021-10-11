@@ -154,7 +154,7 @@ export function normalizeRequestArgs(
     requestOptions.protocol =
       (requestOptions.agent as any)?.protocol ||
       (requestOptions._defaultAgent as any)?.protocol ||
-      (httpModule.globalAgent as any)?.protocol;
+      (httpModule?.globalAgent as any)?.protocol;
     /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
   }
 
