@@ -2,6 +2,7 @@ import { getSentryRelease } from '@sentry/node';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import {
@@ -127,14 +128,31 @@ async function addSentryToEntryProperty(
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
+  // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
   const userConfigFile = buildContext.isServer
     ? getUserConfigFile(buildContext.dir, 'server')
     : getUserConfigFile(buildContext.dir, 'client');
 
+  // we need to turn the filename into a path so webpack can find it
+  const filesToInject = [`./${userConfigFile}`];
+
+  // Support non-default output directories by making the output path (easy to get here at build-time) available to the
+  // server SDK's default `RewriteFrames` instance (which needs it at runtime).
+  if (buildContext.isServer) {
+    const rewriteFramesHelper = path.resolve(
+      fs.mkdtempSync(path.resolve(os.tmpdir(), 'sentry-')),
+      'rewriteFramesHelper.js',
+    );
+    fs.writeFileSync(rewriteFramesHelper, `global.__rewriteFramesDistDir__ = '${buildContext.config.distDir}';\n`);
+    // stick our helper file ahead of the user's config file so the value is in the global namespace *before*
+    // `Sentry.init()` is called
+    filesToInject.unshift(rewriteFramesHelper);
+  }
+
+  // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName)) {
-      // we need to turn the filename into a path so webpack can find it
-      addFileToExistingEntryPoint(newEntryProperty, entryPointName, `./${userConfigFile}`);
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     }
   }
 
