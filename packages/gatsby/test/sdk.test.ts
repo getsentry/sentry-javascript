@@ -28,11 +28,11 @@ describe('Initialize React SDK', () => {
   });
 
   describe('Environment', () => {
-    test('process.env', () => {
+    test('not defined by default', () => {
       gatsbyInit({});
       expect(reactInit).toHaveBeenCalledTimes(1);
       const callingObject = reactInit.mock.calls[0][0];
-      expect(callingObject.environment).toStrictEqual('test');
+      expect(callingObject.environment).not.toBeDefined();
     });
 
     test('defined in the options', () => {
