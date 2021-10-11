@@ -1,4 +1,4 @@
-import * as GatsbyIntegration from '../src';
+import * as GatsbyIntegration from '../src/index';
 
 describe('package', () => {
   it('exports init', () => {
