@@ -2820,6 +2820,36 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
+"@sentry-internal/eslint-config-sdk@6.13.2":
+  version "6.13.2"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/eslint-config-sdk/-/eslint-config-sdk-6.13.2.tgz#9ab680d6ea6faaf1915c4f51d5cae7832df96084"
+  integrity sha512-FuYLQwbVok+sC2kvJZyPrhllchgx6KixwNMQMk/w/WfqxNmhf0jt3W2sHFg5gIJyFHvPABdVqwKeAdFUi327BA==
+  dependencies:
+    "@sentry-internal/eslint-plugin-sdk" "6.13.2"
+    "@sentry-internal/typescript" "6.13.2"
+    "@typescript-eslint/eslint-plugin" "^3.9.0"
+    "@typescript-eslint/parser" "^3.9.0"
+    eslint-config-prettier "^6.11.0"
+    eslint-plugin-deprecation "^1.1.0"
+    eslint-plugin-import "^2.22.0"
+    eslint-plugin-jsdoc "^30.0.3"
+    eslint-plugin-simple-import-sort "^5.0.3"
+
+"@sentry-internal/eslint-plugin-sdk@6.13.2":
+  version "6.13.2"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/eslint-plugin-sdk/-/eslint-plugin-sdk-6.13.2.tgz#0549e916de80aee717fe1bd8b606ba61ba065913"
+  integrity sha512-hKwvZ83sLqb7JRmJl8FjjmiVm3QVtsYDQDr3PZioLvcSaw/TS/Fr/p955gK+H2m4p6wSML3iNRZ5xMXUd5wuvw==
+  dependencies:
+    requireindex "~1.1.0"
+
+"@sentry-internal/typescript@6.13.2":
+  version "6.13.2"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/typescript/-/typescript-6.13.2.tgz#9e84e5df44a8919d7a9920ed30751b29450c820c"
+  integrity sha512-Hd+OZHMsxKQdz3MQejdEdGqQ4Ey1Qg4WBFcBgmwRocAq6Ao6NKMeUbNhW+YZ0GzYryvd8Hy/ebzBRq4MdzxxKg==
+  dependencies:
+    tslint-config-prettier "^1.18.0"
+    tslint-consistent-codestyle "^1.15.1"
+
 "@sentry/cli@^1.68.0":
   version "1.68.0"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-1.68.0.tgz#2ced8fac67ee01e746a45e8ee45a518d4526937e"
@@ -2831,6 +2861,11 @@
     npmlog "^4.1.2"
     progress "^2.0.3"
     proxy-from-env "^1.1.0"
+
+"@sentry/types@6.13.2":
+  version "6.13.2"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-6.13.2.tgz#8388d5b92ea8608936e7aae842801dc90e0184e6"
+  integrity sha512-6WjGj/VjjN8LZDtqJH5ikeB1o39rO1gYS6anBxiS3d0sXNBb3Ux0pNNDFoBxQpOhmdDHXYS57MEptX9EV82gmg==
 
 "@sentry/webpack-plugin@1.17.3":
   version "1.17.3"
