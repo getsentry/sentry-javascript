@@ -6,7 +6,6 @@ import * as path from 'path';
 
 import {
   BuildContext,
-  EntryPointValue,
   EntryPropertyObject,
   NextConfigObject,
   SentryWebpackPluginOptions,
@@ -163,25 +162,25 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
 }
 
 /**
- * Add a file to a specific element of the given `entry` webpack config property.
+ * Add files to a specific element of the given `entry` webpack config property.
  *
  * @param entryProperty The existing `entry` config object
  * @param entryPointName The key where the file should be injected
- * @param filepath The path to the injected file
+ * @param filepaths An array of paths to the injected files
  */
-function addFileToExistingEntryPoint(
+function addFilesToExistingEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
-  filepath: string,
+  filepaths: string[],
 ): void {
   // can be a string, array of strings, or object whose `import` property is one of those two
   const currentEntryPoint = entryProperty[entryPointName];
-  let newEntryPoint: EntryPointValue;
+  let newEntryPoint = currentEntryPoint;
 
   if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [filepath, currentEntryPoint];
+    newEntryPoint = [...filepaths, currentEntryPoint];
   } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [filepath, ...currentEntryPoint];
+    newEntryPoint = [...filepaths, ...currentEntryPoint];
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
@@ -189,25 +188,26 @@ function addFileToExistingEntryPoint(
     let newImportValue;
 
     if (typeof currentImportValue === 'string') {
-      newImportValue = [filepath, currentImportValue];
+      newImportValue = [...filepaths, currentImportValue];
     } else {
-      newImportValue = [filepath, ...currentImportValue];
+      newImportValue = [...filepaths, ...currentImportValue];
     }
 
     newEntryPoint = {
       ...currentEntryPoint,
       import: newImportValue,
     };
-  } else {
-    // mimic the logger prefix in order to use `console.warn` (which will always be printed, regardless of SDK settings)
+  }
+  // malformed entry point (use `console.error` rather than `logger.error` because it will always be printed, regardless
+  // of SDK settings)
+  else {
     // eslint-disable-next-line no-console
     console.error(
       'Sentry Logger [Error]:',
-      `Could not inject SDK initialization code into entry point ${entryPointName}, as it is not a recognized format.\n`,
+      `Could not inject SDK initialization code into entry point ${entryPointName}, as its current value is not in a recognized format.\n`,
       `Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n`,
       `Got: ${currentEntryPoint}`,
     );
-    return;
   }
 
   entryProperty[entryPointName] = newEntryPoint;
