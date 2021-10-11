@@ -15,9 +15,8 @@ export interface Options {
   debug?: boolean;
 
   /**
-   * Specifies whether this SDK should activate and send events to Sentry.
-   * Disabling the SDK reduces all overhead from instrumentation, collecting
-   * breadcrumbs and capturing events. Defaults to true.
+   * Specifies whether this SDK should send events to Sentry.
+   * Defaults to true.
    */
   enabled?: boolean;
 
