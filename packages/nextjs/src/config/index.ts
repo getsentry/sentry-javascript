@@ -1,4 +1,3 @@
-import includeAllNextjsProps from './nextConfigToWebpackPluginConfig';
 import { ExportedNextConfig, NextConfigFunction, NextConfigObject, SentryWebpackPluginOptions } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
@@ -18,21 +17,16 @@ export function withSentryConfig(
   if (typeof userNextConfig === 'function') {
     return function(phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
       const materializedUserNextConfig = userNextConfig(phase, defaults);
-      const sentryWebpackPluginOptionsWithSources = includeAllNextjsProps(
-        materializedUserNextConfig,
-        userSentryWebpackPluginOptions,
-      );
       return {
         ...materializedUserNextConfig,
-        webpack: constructWebpackConfigFunction(materializedUserNextConfig, sentryWebpackPluginOptionsWithSources),
+        webpack: constructWebpackConfigFunction(materializedUserNextConfig, userSentryWebpackPluginOptions),
       };
     };
   }
 
-  const webpackPluginOptionsWithSources = includeAllNextjsProps(userNextConfig, userSentryWebpackPluginOptions);
   // Otherwise, we can just merge their config with ours and return an object.
   return {
     ...userNextConfig,
-    webpack: constructWebpackConfigFunction(userNextConfig, webpackPluginOptionsWithSources),
+    webpack: constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginOptions),
   };
 }
