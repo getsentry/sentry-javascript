@@ -10,7 +10,7 @@ const { parseRequest } = Handlers;
 // purely for clarity
 type WrappedNextApiHandler = NextApiHandler;
 
-type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction };
+type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction, __flushed?: boolean };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
@@ -84,6 +84,10 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
             return event;
           });
           captureException(e);
+
+          // Explicitly call function to finish transaction and flush in case the monkeypatched `res.end()` is
+          // never called; it isn't always called for Vercel deployment
+          await finishTransactionAndFlush(res);
         }
         throw e;
       }
@@ -93,35 +97,48 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
   };
 };
 
+async function finishTransactionAndFlush(res: AugmentedResponse) {
+  const transaction = res.__sentryTransaction;
+
+  if (transaction) {
+    transaction.setHttpStatus(res.statusCode);
+
+    // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
+    // transaction closes, and make sure to wait until that's done before flushing events
+    const transactionFinished: Promise<void> = new Promise((resolve) => {
+      setImmediate(() => {
+        transaction.finish();
+        resolve();
+      });
+    });
+    await transactionFinished;
+  }
+
+  // flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
+  // ends
+  try {
+    logger.log('Flushing events...');
+    await flush(2000);
+    logger.log('Done flushing events');
+  } catch (e) {
+    logger.log(`Error while flushing events:\n${e}`);
+  } finally {
+    // Flag response as already finished and flushed, to avoid double-flushing
+    // TODO Set at beginning of this function to better avoid double runs?
+    res.__flushed = true;
+  }
+}
+
 type ResponseEndMethod = AugmentedResponse['end'];
 type WrappedResponseEndMethod = AugmentedResponse['end'];
 
 function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
   return async function newEnd(this: AugmentedResponse, ...args: unknown[]) {
-    const transaction = this.__sentryTransaction;
 
-    if (transaction) {
-      transaction.setHttpStatus(this.statusCode);
-
-      // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
-      // transaction closes, and make sure to wait until that's done before flushing events
-      const transactionFinished: Promise<void> = new Promise(resolve => {
-        setImmediate(() => {
-          transaction.finish();
-          resolve();
-        });
-      });
-      await transactionFinished;
-    }
-
-    // flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
-    // ends
-    try {
-      logger.log('Flushing events...');
-      await flush(2000);
-      logger.log('Done flushing events');
-    } catch (e) {
-      logger.log(`Error while flushing events:\n${e}`);
+    if (this.__flushed) {
+      logger.log('Skip finish transaction and flush, already done');
+    } else {
+      await finishTransactionAndFlush(this);
     }
 
     return origEnd.call(this, ...args);
