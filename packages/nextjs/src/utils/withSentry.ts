@@ -10,7 +10,7 @@ const { parseRequest } = Handlers;
 // purely for clarity
 type WrappedNextApiHandler = NextApiHandler;
 
-type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction, __flushed?: boolean };
+type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction; __flushed?: boolean };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
@@ -105,7 +105,7 @@ async function finishTransactionAndFlush(res: AugmentedResponse) {
 
     // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
     // transaction closes, and make sure to wait until that's done before flushing events
-    const transactionFinished: Promise<void> = new Promise((resolve) => {
+    const transactionFinished: Promise<void> = new Promise(resolve => {
       setImmediate(() => {
         transaction.finish();
         resolve();
@@ -134,7 +134,6 @@ type WrappedResponseEndMethod = AugmentedResponse['end'];
 
 function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
   return async function newEnd(this: AugmentedResponse, ...args: unknown[]) {
-
     if (this.__flushed) {
       logger.log('Skip finish transaction and flush, already done');
     } else {
