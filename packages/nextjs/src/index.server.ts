@@ -14,6 +14,8 @@ export * from '@sentry/node';
 // because or SSR of next.js we can only use this.
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 
+type GlobalWithDistDir = typeof global & { __rewriteFramesDistDir__: string };
+
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
   if (options.debug) {
@@ -49,7 +51,7 @@ function sdkAlreadyInitialized(): boolean {
 
 function addServerIntegrations(options: NextjsOptions): void {
   // This value is injected at build time, based on the output directory specified in the build config
-  const distDirName = (global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__;
+  const distDirName = (global as GlobalWithDistDir).__rewriteFramesDistDir__ || '.next';
   // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
   // we can read in the project directory from the currently running process
   const distDirAbsPath = path.resolve(process.cwd(), distDirName);

@@ -57,11 +57,10 @@ afterAll(() => {
 // In order to know what to expect in the webpack config `entry` property, we need to know the path of the temporary
 // directory created when doing the file injection, so wrap the real `mkdtempSync` and store the resulting path where we
 // can access it
-let tempDir: string;
-const realMkdtempSync = jest.requireActual('fs').mkdtempSync;
-jest.spyOn(fs, 'mkdtempSync').mockImplementation(prefix => {
-  tempDir = realMkdtempSync(prefix);
-  return tempDir;
+const mkdtempSyncSpy = jest.spyOn(fs, 'mkdtempSync');
+
+afterEach(() => {
+  mkdtempSyncSpy.mockClear();
 });
 
 /** Mocks of the arguments passed to `withSentryConfig` */
@@ -311,6 +310,7 @@ describe('webpack config', () => {
         incomingWebpackBuildContext: serverBuildContext,
       });
 
+      const tempDir = mkdtempSyncSpy.mock.results[0].value;
       const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
 
       expect(finalWebpackConfig.entry).toEqual(
@@ -405,6 +405,8 @@ describe('webpack config', () => {
           incomingWebpackConfig: serverWebpackConfig,
           incomingWebpackBuildContext: getBuildContext('server', userNextConfigDistDir),
         });
+
+        const tempDir = mkdtempSyncSpy.mock.results[0].value;
         const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
 
         expect(fs.existsSync(rewriteFramesHelper)).toBe(true);
@@ -668,6 +670,8 @@ describe('Sentry webpack plugin config', () => {
   });
 
   describe('getUserConfigFile', () => {
+    let tempDir: string;
+
     beforeAll(() => {
       exitsSync.mockImplementation(realExistsSync);
     });
@@ -677,6 +681,7 @@ describe('Sentry webpack plugin config', () => {
       // that the location of the created folder is stored in `tempDir`
       const tempDirPathPrefix = path.join(os.tmpdir(), 'sentry-nextjs-test-');
       fs.mkdtempSync(tempDirPathPrefix);
+      tempDir = mkdtempSyncSpy.mock.results[0].value;
     });
 
     afterAll(() => {
