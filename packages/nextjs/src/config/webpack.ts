@@ -1,6 +1,6 @@
 import { getSentryRelease } from '@sentry/node';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
-import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
+import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -34,7 +34,7 @@ export { SentryWebpackPlugin };
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(
-  userNextConfig: NextConfigObject = {},
+  userNextConfig: Partial<NextConfigObject> = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
@@ -96,8 +96,6 @@ export function constructWebpackConfigFunction(
 
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
-        // @ts-ignore Our types for the plugin are messed up somehow - TS wants this to be `SentryWebpackPlugin.default`,
-        // but that's not actually a thing
         new SentryWebpackPlugin(getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions)),
       );
     }
