@@ -10,6 +10,9 @@ const { Integrations } = SentryNode;
 
 const global = getGlobalObject();
 
+// normally this is set as part of the build process, so mock it here
+(global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
+
 let configureScopeCallback: (scope: Scope) => void = () => undefined;
 jest.spyOn(SentryNode, 'configureScope').mockImplementation(callback => (configureScopeCallback = callback));
 const nodeInit = jest.spyOn(SentryNode, 'init');
