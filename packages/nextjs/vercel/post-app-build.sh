@@ -3,9 +3,9 @@
 
 # CUSTOM BUILD COMMAND FOR PROJECT ON VERCEL: `yarn build && bash .sentry/post-app-build.sh`
 
-if [[ -e .next/analyze ]]; then
+if [[ -e .next/analyze/ ]]; then
   echo " "
-  echo "Moving bundle analysis graphs from \`.next/analyze\` to \`/public\`"
+  echo "Moving bundle analysis graphs from \`.next/analyze/\` to \`/public\`"
   mv .next/analyze/* public
 fi
 if [[ -e .next/server/analyze/ ]]; then
