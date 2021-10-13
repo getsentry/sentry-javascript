@@ -13,7 +13,9 @@ const Sentry = require('@sentry/gatsby');
 exports.onClientEntry = function(_, pluginParams) {
   const isIntialized = isSentryInitialized();
   if (!areSentryOptionsDefined(pluginParams)) {
-    if (!isIntialized) {
+    if (isIntialized) {
+      window.Sentry = Sentry; // For backwards compatibility
+    } else {
       // eslint-disable-next-line no-console
       console.error(
         'Sentry Logger [Error]: No config for the Gatsby SDK was found. Learn how to configure it on\n' +
@@ -31,18 +33,17 @@ exports.onClientEntry = function(_, pluginParams) {
     );
     // TODO: link to the docs where the new approach is documented
     window.__SENTRY__.hub.getClient().getOptions().enabled = false;
-    return;
+  } else {
+    Sentry.init({
+      // eslint-disable-next-line no-undef
+      release: __SENTRY_RELEASE__,
+      // eslint-disable-next-line no-undef
+      dsn: __SENTRY_DSN__,
+      ...pluginParams,
+    });
   }
 
-  Sentry.init({
-    // eslint-disable-next-line no-undef
-    release: __SENTRY_RELEASE__,
-    // eslint-disable-next-line no-undef
-    dsn: __SENTRY_DSN__,
-    ...pluginParams,
-  });
-
-  window.Sentry = Sentry;
+  window.Sentry = Sentry; // For backwards compatibility
 };
 
 function isSentryInitialized() {
