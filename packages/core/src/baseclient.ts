@@ -13,6 +13,7 @@ import {
   Transport,
 } from '@sentry/types';
 import {
+  checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
   Dsn,
   isPlainObject,
@@ -101,6 +102,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+    // ensure we haven't captured this very object before
+    if (checkOrSetAlreadyCaught(exception)) {
+      return;
+    }
+
     let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
@@ -140,6 +146,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+    // ensure we haven't captured this very object before
+    if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
+      return;
+    }
+
     let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
