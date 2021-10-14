@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
+import { WebpackPluginInstance } from 'webpack';
 
 import { withSentryConfig } from '../src/config';
 import {
@@ -9,7 +10,6 @@ import {
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
-  SentryWebpackPlugin as SentryWebpackPluginType,
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
@@ -37,6 +37,32 @@ const mockExistsSync = (path: fs.PathLike) => {
 };
 const exitsSync = jest.spyOn(fs, 'existsSync').mockImplementation(mockExistsSync);
 
+// Make it so that all temporary folders, either created directly by tests or by the code they're testing, will go into
+// one spot that we know about, which we can then clean up when we're done
+const realTmpdir = jest.requireActual('os').tmpdir;
+const TEMP_DIR_PATH = path.join(realTmpdir(), 'sentry-nextjs-test');
+jest.spyOn(os, 'tmpdir').mockReturnValue(TEMP_DIR_PATH);
+// In theory, we should always land in the `else` here, but this saves the cases where the prior run got interrupted and
+// the `afterAll` below didn't happen.
+if (fs.existsSync(TEMP_DIR_PATH)) {
+  rimraf.sync(path.join(TEMP_DIR_PATH, '*'));
+} else {
+  fs.mkdirSync(TEMP_DIR_PATH);
+}
+
+afterAll(() => {
+  rimraf.sync(TEMP_DIR_PATH);
+});
+
+// In order to know what to expect in the webpack config `entry` property, we need to know the path of the temporary
+// directory created when doing the file injection, so wrap the real `mkdtempSync` and store the resulting path where we
+// can access it
+const mkdtempSyncSpy = jest.spyOn(fs, 'mkdtempSync');
+
+afterEach(() => {
+  mkdtempSyncSpy.mockClear();
+});
+
 /** Mocks of the arguments passed to `withSentryConfig` */
 const userNextConfig: Partial<NextConfigObject> = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
@@ -58,7 +84,7 @@ process.env.SENTRY_RELEASE = 'doGsaREgReaT';
 const runtimePhase = 'ball-fetching';
 // `defaultConfig` is the defaults for all nextjs options (we don't use these at all in the tests, so for our purposes
 // here the values don't matter)
-const defaultsObject = { defaultConfig: {} };
+const defaultsObject = { defaultConfig: {} as NextConfigObject };
 
 /** mocks of the arguments passed to `nextConfig.webpack` */
 const serverWebpackConfig = {
@@ -103,7 +129,12 @@ function getBuildContext(
     dev: false,
     buildId: 'sItStAyLiEdOwN',
     dir: '/Users/Maisey/projects/squirrelChasingSimulator',
-    config: { target: 'server', ...userNextConfig },
+    config: {
+      // nextjs's default values
+      target: 'server',
+      distDir: '.next',
+      ...userNextConfig,
+    } as NextConfigObject,
     webpack: { version: webpackVersion },
     isServer: buildTarget === 'server',
   };
@@ -175,6 +206,14 @@ async function materializeFinalWebpackConfig(options: {
   finalWebpackConfigValue.entry = await webpackEntryProperty();
 
   return finalWebpackConfigValue;
+}
+
+// helper function to make sure we're checking the correct plugin's data
+export function findWebpackPlugin(
+  webpackConfig: WebpackConfigObject,
+  pluginName: string,
+): WebpackPluginInstance | SentryWebpackPlugin | undefined {
+  return webpackConfig.plugins?.find(plugin => plugin.constructor.name === pluginName);
 }
 
 describe('withSentryConfig', () => {
@@ -271,26 +310,35 @@ describe('webpack config', () => {
         incomingWebpackBuildContext: serverBuildContext,
       });
 
+      const tempDir = mkdtempSyncSpy.mock.results[0].value;
+      const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
+
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
           // original entry point value is a string
           // (was 'private-next-pages/api/dogs/[name].js')
-          'pages/api/dogs/[name]': [serverConfigFilePath, 'private-next-pages/api/dogs/[name].js'],
+          'pages/api/dogs/[name]': [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/dogs/[name].js'],
 
           // original entry point value is a string array
           // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
-          'pages/_app': [serverConfigFilePath, './node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+          'pages/_app': [
+            rewriteFramesHelper,
+            serverConfigFilePath,
+            './node_modules/smellOVision/index.js',
+            'private-next-pages/_app.js',
+          ],
 
           // original entry point value is an object containing a string `import` value
           // (`import` was 'private-next-pages/api/simulator/dogStats/[name].js')
           'pages/api/simulator/dogStats/[name]': {
-            import: [serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
+            import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
           },
 
           // original entry point value is an object containing a string array `import` value
           // (`import` was ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'])
           'pages/api/simulator/leaderboard': {
             import: [
+              rewriteFramesHelper,
               serverConfigFilePath,
               './node_modules/dogPoints/converter.js',
               'private-next-pages/api/simulator/leaderboard.js',
@@ -300,14 +348,14 @@ describe('webpack config', () => {
           // original entry point value is an object containg properties besides `import`
           // (`dependOn` remains untouched)
           'pages/api/tricks/[trickName]': {
-            import: [serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
+            import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
             dependOn: 'treats',
           },
         }),
       );
     });
 
-    it('does not inject into non-_app, non-API routes', async () => {
+    it('does not inject anything into non-_app, non-API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
@@ -318,10 +366,60 @@ describe('webpack config', () => {
         expect.objectContaining({
           // no injected file
           main: './src/index.ts',
-          // was 'next-client-pages-loader?page=%2F_app'
+        }),
+      );
+    });
+
+    it('does not inject `RewriteFrames` helper into client routes', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          // was 'next-client-pages-loader?page=%2F_app', and now has client config but not`RewriteFrames` helper injected
           'pages/_app': [clientConfigFilePath, 'next-client-pages-loader?page=%2F_app'],
         }),
       );
+    });
+  });
+
+  describe('`distDir` value in default server-side `RewriteFrames` integration', () => {
+    it.each([
+      ['no custom `distDir`', undefined, '.next'],
+      ['custom `distDir`', 'dist', 'dist'],
+    ])(
+      'creates file injecting `distDir` value into `global` - %s',
+      async (_name, customDistDir, expectedInjectedValue) => {
+        // Note: the fact that the file tested here gets injected correctly is covered in the 'webpack `entry` property
+        // config' tests above
+
+        const userNextConfigDistDir = {
+          ...userNextConfig,
+          ...(customDistDir && { distDir: customDistDir }),
+        };
+        await materializeFinalWebpackConfig({
+          userNextConfig: userNextConfigDistDir,
+          incomingWebpackConfig: serverWebpackConfig,
+          incomingWebpackBuildContext: getBuildContext('server', userNextConfigDistDir),
+        });
+
+        const tempDir = mkdtempSyncSpy.mock.results[0].value;
+        const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
+
+        expect(fs.existsSync(rewriteFramesHelper)).toBe(true);
+
+        const injectedCode = fs.readFileSync(rewriteFramesHelper).toString();
+        expect(injectedCode).toEqual(`global.__rewriteFramesDistDir__ = '${expectedInjectedValue}';\n`);
+      },
+    );
+
+    describe('`RewriteFrames` ends up with correct `distDir` value', () => {
+      // TODO: this, along with any number of other parts of the build process, should be tested with an integration
+      // test which actually runs webpack and inspects the resulting bundles (and that integration test should test
+      // custom `distDir` values with and without a `.`, to make sure the regex escaping is working)
     });
   });
 });
@@ -335,8 +433,9 @@ describe('Sentry webpack plugin config', () => {
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
+    const sentryWebpackPluginInstance = findWebpackPlugin(finalWebpackConfig, 'SentryCliPlugin') as SentryWebpackPlugin;
 
-    expect(finalWebpackConfig.plugins?.[0].options).toEqual(
+    expect(sentryWebpackPluginInstance.options).toEqual(
       expect.objectContaining({
         include: expect.any(Array), // default, tested separately elsewhere
         ignore: [], // default
@@ -359,8 +458,9 @@ describe('Sentry webpack plugin config', () => {
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
+    const sentryWebpackPluginInstance = findWebpackPlugin(finalWebpackConfig, 'SentryCliPlugin') as SentryWebpackPlugin;
 
-    expect((finalWebpackConfig.plugins?.[0].options as SentryWebpackPluginOptions).debug).toEqual(true);
+    expect(sentryWebpackPluginInstance.options.debug).toEqual(true);
   });
 
   it('warns when overriding certain default values', () => {
@@ -379,9 +479,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: clientBuildContext,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/static/chunks/pages'], urlPrefix: '~/_next/static/chunks/pages' },
       ]);
     });
@@ -396,9 +499,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/serverless/'], urlPrefix: '~/_next/serverless' },
       ]);
     });
@@ -413,9 +519,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
       ]);
     });
@@ -427,9 +536,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: serverBuildContext,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
         { paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' },
       ]);
@@ -449,9 +561,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithBasePath),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/static/chunks/pages'], urlPrefix: '~/city-park/_next/static/chunks/pages' },
       ]);
     });
@@ -466,9 +581,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/serverless/'], urlPrefix: '~/city-park/_next/serverless' },
       ]);
     });
@@ -483,9 +601,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
       ]);
     });
@@ -497,9 +618,12 @@ describe('Sentry webpack plugin config', () => {
         incomingWebpackBuildContext: getBuildContext('server', userNextConfigWithBasePath),
       });
 
-      const sentryWebpackPlugin = finalWebpackConfig.plugins?.[0] as SentryWebpackPluginType;
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPlugin.options?.include).toEqual([
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
         { paths: ['.next/server/chunks/'], urlPrefix: '~/city-park/_next/server/chunks' },
       ]);
@@ -553,12 +677,11 @@ describe('Sentry webpack plugin config', () => {
     });
 
     beforeEach(() => {
+      // these will get cleaned up by the file's overall `afterAll` function, and the `mkdtempSync` mock above ensures
+      // that the location of the created folder is stored in `tempDir`
       const tempDirPathPrefix = path.join(os.tmpdir(), 'sentry-nextjs-test-');
-      tempDir = fs.mkdtempSync(tempDirPathPrefix);
-    });
-
-    afterEach(() => {
-      rimraf.sync(tempDir);
+      fs.mkdtempSync(tempDirPathPrefix);
+      tempDir = mkdtempSyncSpy.mock.results[0].value;
     });
 
     afterAll(() => {
