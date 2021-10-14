@@ -40,6 +40,7 @@ mkdir .sentry
 echo " "
 echo "Creating install scripts and committing the changes"
 cp $NEXTJS_SDK_DIR/vercel/install-sentry-from-branch.sh .sentry
+cp $NEXTJS_SDK_DIR/vercel/post-app-build.sh .sentry
 echo "export BRANCH_NAME=${SDK_BRANCH_NAME}" >>.sentry/set-branch-name.sh
 git add .
 git commit -m "add scripts for using ${SDK_BRANCH_NAME} branch of @sentry/nextjs"

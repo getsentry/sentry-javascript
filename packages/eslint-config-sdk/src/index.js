@@ -117,6 +117,30 @@ module.exports = {
       // Configuration for files under src
       files: ['src/**/*'],
       rules: {
+        'no-restricted-globals': [
+          'error',
+          {
+            name: 'window',
+            message:
+              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+          },
+          {
+            name: 'document',
+            message:
+              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+          },
+          {
+            name: 'location',
+            message:
+              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+          },
+          {
+            name: 'navigator',
+            message:
+              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+          },
+        ],
+
         // We want to prevent async await usage in our files to prevent uncessary bundle size.
         '@sentry-internal/sdk/no-async-await': 'error',
 

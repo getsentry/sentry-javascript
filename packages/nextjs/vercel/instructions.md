@@ -33,13 +33,14 @@ commit (but not push) this change.
 
 Go into your project settings on Vercel and change the install command to
 
-  `bash .sentry/install-sentry-from-branch.sh`.
+  `bash .sentry/install-sentry-from-branch.sh`
 
-If you're using bundle analyzer, change the build command to
+and the build command to
 
-  `yarn build && mv .next/analyze/* public`.
+  `yarn build && bash .sentry/post-app-build.sh`.
 
-The bundle visualizations will be available on your deployed site at `/client.html` and `/server.html`.
+If you're using bundle analyzer, the post-build script will move the visualizations it creates so that they're available
+on your deployed site at `/client.html` and `/server.html`.
 
 NOTE: You don't need to change the `@sentry/nextjs` dependency in your project's `package.json` file. That will happen
 on the fly each time your app is deployed.

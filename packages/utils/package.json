@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "6.13.0",
+  "version": "6.13.3",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -16,11 +16,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "6.13.0",
+    "@sentry/types": "6.13.3",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.13.0",
+    "@sentry-internal/eslint-config-sdk": "6.13.3",
     "chai": "^4.1.2",
     "jest": "^24.7.1",
     "jsdom": "^16.2.2",
@@ -31,23 +31,25 @@
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
+    "build:dev": "run-s build",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:watch:es5 build:watch:esm",
-    "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
-    "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "build:watch": "run-p build:es5:watch build:esm:watch",
+    "build:dev:watch": "run-s build:watch",
+    "build:es5:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm coverage *.js *.js.map *.d.ts",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "pack": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts"
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "volta": {
     "extends": "../../package.json"
