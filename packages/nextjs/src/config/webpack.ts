@@ -144,7 +144,7 @@ async function addSentryToEntryProperty(
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName)) {
+    if (shouldAddSentryToEntryPoint(entryPointName, isServer)) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     }
   }
@@ -251,10 +251,15 @@ function checkWebpackPluginOverrides(
  * Determine if this is an entry point into which both `Sentry.init()` code and the release value should be injected
  *
  * @param entryPointName The name of the entry point in question
+ * @param isServer Whether or not this function is being called in the context of a server build
  * @returns `true` if sentry code should be injected, and `false` otherwise
  */
-function shouldAddSentryToEntryPoint(entryPointName: string): boolean {
-  return entryPointName === 'pages/_app' || entryPointName.includes('pages/api');
+function shouldAddSentryToEntryPoint(entryPointName: string, isServer: boolean): boolean {
+  return (
+    entryPointName === 'pages/_app' ||
+    entryPointName.includes('pages/api') ||
+    (isServer && entryPointName === 'pages/_error')
+  );
 }
 
 /**
@@ -295,7 +300,7 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    entries: shouldAddSentryToEntryPoint,
+    entries: (entryPointName: string) => shouldAddSentryToEntryPoint(entryPointName, isServer),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
