@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, StackFrame } from '@sentry/types';
+import { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
 import { snipLine } from './string';
@@ -125,29 +125,25 @@ export function addExceptionTypeValue(event: Event, value?: string, type?: strin
 }
 
 /**
- * Adds exception mechanism to a given event.
+ * Adds exception mechanism data to a given event. Uses defaults if the second parameter is not passed.
+ *
  * @param event The event to modify.
- * @param mechanism Mechanism of the mechanism.
+ * @param newMechanism Mechanism data to add to the event.
  * @hidden
  */
-export function addExceptionMechanism(
-  event: Event,
-  mechanism: {
-    [key: string]: any;
-  } = {},
-): void {
-  // TODO: Use real type with `keyof Mechanism` thingy and maybe make it better?
-  try {
-    // @ts-ignore Type 'Mechanism | {}' is not assignable to type 'Mechanism | undefined'
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event.exception!.values![0].mechanism = event.exception!.values![0].mechanism || {};
-    Object.keys(mechanism).forEach(key => {
-      // @ts-ignore Mechanism has no index signature
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      event.exception!.values![0].mechanism[key] = mechanism[key];
-    });
-  } catch (_oO) {
-    // no-empty
+export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mechanism>): void {
+  if (!event.exception || !event.exception.values) {
+    return;
+  }
+  const exceptionValue0 = event.exception.values[0];
+
+  const defaultMechanism = { type: 'generic', handled: true };
+  const currentMechanism = exceptionValue0.mechanism;
+  exceptionValue0.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
+
+  if (newMechanism && 'data' in newMechanism) {
+    const mergedData = { ...currentMechanism?.data, ...newMechanism.data };
+    exceptionValue0.mechanism.data = mergedData;
   }
 }
 
