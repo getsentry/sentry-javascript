@@ -12,6 +12,9 @@ const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
 declare var global: any;
 
+const backendEventFromException = jest.spyOn(TestBackend.prototype, 'eventFromException');
+const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
+
 jest.mock('@sentry/utils', () => {
   const original = jest.requireActual('@sentry/utils');
   return {
@@ -57,7 +60,7 @@ describe('BaseClient', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('constructor() / getDsn()', () => {
@@ -249,6 +252,28 @@ describe('BaseClient', () => {
         }),
       );
     });
+
+    test.each([
+      ['`Error` instance', new Error('Will I get caught twice?')],
+      ['plain object', { 'Will I': 'get caught twice?' }],
+      ['primitive wrapper', new String('Will I get caught twice?')],
+      // primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
+      // to `captureException` (which is how we'd end up with a primitive wrapper as tested above)
+    ])("doesn't capture the same exception twice - %s", (_name: string, thrown: any) => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+
+      expect(thrown.__sentry_captured__).toBeUndefined();
+
+      client.captureException(thrown);
+
+      expect(thrown.__sentry_captured__).toBe(true);
+      expect(backendEventFromException).toHaveBeenCalledTimes(1);
+
+      client.captureException(thrown);
+
+      // `captureException` should bail right away this second time around and not get as far as calling this again
+      expect(backendEventFromException).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('captureMessage', () => {
@@ -323,6 +348,30 @@ describe('BaseClient', () => {
       const scope = new Scope();
       client.captureEvent({}, undefined, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
+    });
+
+    test.each([
+      ['`Error` instance', new Error('Will I get caught twice?')],
+      ['plain object', { 'Will I': 'get caught twice?' }],
+      ['primitive wrapper', new String('Will I get caught twice?')],
+      // primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
+      // to `captureEvent` (which is how we'd end up with a primitive wrapper as tested above)
+    ])("doesn't capture the same exception twice - %s", (_name: string, thrown: any) => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const event = { exception: { values: [{ type: 'Error', message: 'Will I get caught twice?' }] } };
+      const hint = { originalException: thrown };
+
+      expect(thrown.__sentry_captured__).toBeUndefined();
+
+      client.captureEvent(event, hint);
+
+      expect(thrown.__sentry_captured__).toBe(true);
+      expect(clientProcess).toHaveBeenCalledTimes(1);
+
+      client.captureEvent(event, hint);
+
+      // `captureEvent` should bail right away this second time around and not get as far as calling this again
+      expect(clientProcess).toHaveBeenCalledTimes(1);
     });
 
     test('sends an event', () => {
@@ -798,7 +847,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toBeUndefined();
     });
 
-    test('calls beforeSend gets an access to a hint as a second argument', () => {
+    test('beforeSend gets access to a hint as a second argument', () => {
       expect.assertions(2);
       const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
