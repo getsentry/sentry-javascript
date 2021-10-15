@@ -16,6 +16,7 @@ jest.mock('@sentry/gatsby', () => {
     },
   };
 });
+global.console.warn = jest.fn();
 global.console.error = jest.fn();
 
 let tracingAddExtensionMethods = jest.fn();
@@ -55,17 +56,15 @@ describe('onClientEntry', () => {
     afterEach(() => {
       delete (window as any).Sentry;
       delete (window as any).__SENTRY__;
+      (global.console.warn as jest.Mock).mockClear();
       (global.console.error as jest.Mock).mockClear();
     });
 
     function setMockedSentryInWindow() {
-      const sdkOptions = {
-        enabled: true,
-      };
       (window as any).__SENTRY__ = {
         hub: {
           getClient: () => ({
-            getOptions: () => sdkOptions,
+            // Empty object mocking the client
           }),
         },
       };
@@ -74,6 +73,8 @@ describe('onClientEntry', () => {
     it('initialized in injected config, without pluginParams', () => {
       setMockedSentryInWindow();
       onClientEntry(undefined, { plugins: [] });
+      // eslint-disable-next-line no-console
+      expect(console.warn).not.toHaveBeenCalled();
       // eslint-disable-next-line no-console
       expect(console.error).not.toHaveBeenCalled();
       expect(sentryInit).not.toHaveBeenCalled();
@@ -84,24 +85,27 @@ describe('onClientEntry', () => {
       setMockedSentryInWindow();
       onClientEntry(undefined, { plugins: [], dsn: 'dsn', release: 'release' });
       // eslint-disable-next-line no-console
-      expect((console.error as jest.Mock).mock.calls[0]).toMatchInlineSnapshot(`
+      expect((console.warn as jest.Mock).mock.calls[0]).toMatchInlineSnapshot(`
         Array [
-          "Sentry Logger [Error]: The SDK has been disabled because your Sentry config must live in one place.
-        Consider moving it all to your \`sentry.config.js\`.",
+          "Sentry Logger [Warn]: The SDK was initialized in the Sentry config file, but options were found in the Gatsby config. These have been ignored, merge them to the Sentry config if you want to use them.
+        Learn more about the Gatsby SDK on https://docs.sentry.io/platforms/javascript/guides/gatsby/",
         ]
       `);
+      // eslint-disable-next-line no-console
+      expect(console.error).not.toHaveBeenCalled();
       expect(sentryInit).not.toHaveBeenCalled();
-      expect((window as any).__SENTRY__.hub.getClient().getOptions().enabled).toBe(false);
       expect((window as any).Sentry).toBeDefined();
     });
 
     it('not initialized in injected config, without pluginParams', () => {
       onClientEntry(undefined, { plugins: [] });
       // eslint-disable-next-line no-console
+      expect(console.warn).not.toHaveBeenCalled();
+      // eslint-disable-next-line no-console
       expect((console.error as jest.Mock).mock.calls[0]).toMatchInlineSnapshot(`
         Array [
-          "Sentry Logger [Error]: No config for the Gatsby SDK was found. Learn how to configure it on
-        https://docs.sentry.io/platforms/javascript/guides/gatsby/",
+          "Sentry Logger [Error]: No config for the Gatsby SDK was found.
+        Learn how to configure it on https://docs.sentry.io/platforms/javascript/guides/gatsby/",
         ]
       `);
       expect((window as any).Sentry).not.toBeDefined();
@@ -109,6 +113,8 @@ describe('onClientEntry', () => {
 
     it('not initialized in injected config, with pluginParams', () => {
       onClientEntry(undefined, { plugins: [], dsn: 'dsn', release: 'release' });
+      // eslint-disable-next-line no-console
+      expect(console.warn).not.toHaveBeenCalled();
       // eslint-disable-next-line no-console
       expect(console.error).not.toHaveBeenCalled();
       expect(sentryInit).toHaveBeenCalledTimes(1);
