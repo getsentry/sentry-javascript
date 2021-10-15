@@ -151,18 +151,6 @@ export function addExceptionMechanism(
   }
 }
 
-/**
- * A safe form of location.href
- */
-export function getLocationHref(): string {
-  const global = getGlobalObject<Window>();
-  try {
-    return global.document.location.href;
-  } catch (oO) {
-    return '';
-  }
-}
-
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 const SEMVER_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
