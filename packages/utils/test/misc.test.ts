@@ -1,12 +1,6 @@
 import { StackFrame } from '@sentry/types';
 
-import {
-  addContextToFrame,
-  getEventDescription,
-  getGlobalObject,
-  parseRetryAfterHeader,
-  stripUrlQueryAndFragment,
-} from '../src/misc';
+import { addContextToFrame, getEventDescription, parseRetryAfterHeader, stripUrlQueryAndFragment } from '../src/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {
@@ -114,17 +108,6 @@ describe('getEventDescription()', () => {
         really: '?',
       } as any),
     ).toEqual('<unknown>');
-  });
-});
-
-describe('getGlobalObject()', () => {
-  test('should return the same object', () => {
-    const backup = global.process;
-    delete global.process;
-    const first = getGlobalObject();
-    const second = getGlobalObject();
-    expect(first).toEqual(second);
-    global.process = backup;
   });
 });
 
