@@ -2,6 +2,7 @@
 import { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
+import { logger } from './logger';
 import { snipLine } from './string';
 
 /**
@@ -236,4 +237,41 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
 export function stripUrlQueryAndFragment(urlPath: string): string {
   // eslint-disable-next-line no-useless-escape
   return urlPath.split(/[\?#]/, 1)[0];
+}
+
+/**
+ * Checks whether or not we've already captured the given exception (note: not an identical exception - the very object
+ * in question), and marks it captured if not.
+ *
+ * Sometimes an error gets captured by more than one mechanism. (This happens, for example, in frameworks where we
+ * intercept thrown errors, capture them, and then rethrow them so that the framework can handle them however it
+ * normally would, which may or may not lead to them being caught again by something like the global error handler.)
+ * This prevents us from actually recording it twice.
+ *
+ * Note: It will ignore primitives, as properties can't be set on them. {@link: Object.objectify} can be used on
+ * exceptions to convert any that are primitives into their equivalent object wrapper forms so that this check will
+ * always work. However, because we need to flag the exact object which will get rethrown, and because that rethrowing
+ * happens outside of the event processing pipeline, the objectification must be done before the exception captured.
+ *
+ * @param A thrown exception to check or flag as having been seen
+ * @returns `true` if the exception has already been captured, `false` if not (with the side effect of marking it seen)
+ */
+export function checkOrSetAlreadyCaught(exception: unknown): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if ((exception as any)?.__sentry_captured__) {
+    logger.log("Not capturing exception because it's already been captured.");
+    return true;
+  }
+
+  try {
+    // set it this way rather than by assignment so that it's not ennumerable and therefore isn't recorded by the
+    // `ExtraErrorData` integration
+    Object.defineProperty(exception, '__sentry_captured__', {
+      value: true,
+    });
+  } catch (err) {
+    // `exception` is a primitive, so we can't mark it seen
+  }
+
+  return false;
 }
