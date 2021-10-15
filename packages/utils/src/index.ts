@@ -2,6 +2,7 @@ export * from './async';
 export * from './browser';
 export * from './dsn';
 export * from './error';
+export * from './global';
 export * from './instrument';
 export * from './is';
 export * from './logger';

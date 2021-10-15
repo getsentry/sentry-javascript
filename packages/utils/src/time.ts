@@ -1,4 +1,4 @@
-import { getGlobalObject } from './misc';
+import { getGlobalObject } from './global';
 import { dynamicRequire, isNodeEnv } from './node';
 
 /**

@@ -1,42 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, Integration, StackFrame, WrappedFunction } from '@sentry/types';
+import { Event, StackFrame } from '@sentry/types';
 
-import { isNodeEnv } from './node';
+import { getGlobalObject } from './global';
 import { snipLine } from './string';
-
-/** Internal */
-interface SentryGlobal {
-  Sentry?: {
-    Integrations?: Integration[];
-  };
-  SENTRY_ENVIRONMENT?: string;
-  SENTRY_DSN?: string;
-  SENTRY_RELEASE?: {
-    id?: string;
-  };
-  __SENTRY__: {
-    globalEventProcessors: any;
-    hub: any;
-    logger: any;
-  };
-}
-
-const fallbackGlobalObject = {};
-
-/**
- * Safely get global scope object
- *
- * @returns Global scope object
- */
-export function getGlobalObject<T>(): T & SentryGlobal {
-  return (isNodeEnv()
-    ? global
-    : typeof window !== 'undefined' // eslint-disable-line no-restricted-globals
-    ? window // eslint-disable-line no-restricted-globals
-    : typeof self !== 'undefined'
-    ? self
-    : fallbackGlobalObject) as T & SentryGlobal;
-}
 
 /**
  * Extended Window interface that allows for Crypto API usage in IE browsers
@@ -143,44 +109,6 @@ export function getEventDescription(event: Event): string {
   return event.event_id || '<unknown>';
 }
 
-/** JSDoc */
-interface ExtensibleConsole extends Console {
-  [key: string]: any;
-}
-
-/** JSDoc */
-export function consoleSandbox(callback: () => any): any {
-  const global = getGlobalObject<Window>();
-  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
-
-  if (!('console' in global)) {
-    return callback();
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const originalConsole = (global as any).console as ExtensibleConsole;
-  const wrappedLevels: { [key: string]: any } = {};
-
-  // Restore all wrapped console methods
-  levels.forEach(level => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
-      wrappedLevels[level] = originalConsole[level] as WrappedFunction;
-      originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
-    }
-  });
-
-  // Perform callback manipulations
-  const result = callback();
-
-  // Revert restoration to wrapped state
-  Object.keys(wrappedLevels).forEach(level => {
-    originalConsole[level] = wrappedLevels[level];
-  });
-
-  return result;
-}
-
 /**
  * Adds exception values, type and value to an synthetic Exception.
  * @param event The event to modify.
@@ -220,18 +148,6 @@ export function addExceptionMechanism(
     });
   } catch (_oO) {
     // no-empty
-  }
-}
-
-/**
- * A safe form of location.href
- */
-export function getLocationHref(): string {
-  const global = getGlobalObject<Window>();
-  try {
-    return global.document.location.href;
-  } catch (oO) {
-    return '';
   }
 }
 
