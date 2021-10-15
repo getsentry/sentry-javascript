@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, StackFrame, WrappedFunction } from '@sentry/types';
+import { Event, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
 import { snipLine } from './string';
@@ -107,44 +107,6 @@ export function getEventDescription(event: Event): string {
     return exception.type || exception.value || event.event_id || '<unknown>';
   }
   return event.event_id || '<unknown>';
-}
-
-/** JSDoc */
-interface ExtensibleConsole extends Console {
-  [key: string]: any;
-}
-
-/** JSDoc */
-export function consoleSandbox(callback: () => any): any {
-  const global = getGlobalObject<Window>();
-  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
-
-  if (!('console' in global)) {
-    return callback();
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const originalConsole = (global as any).console as ExtensibleConsole;
-  const wrappedLevels: { [key: string]: any } = {};
-
-  // Restore all wrapped console methods
-  levels.forEach(level => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
-      wrappedLevels[level] = originalConsole[level] as WrappedFunction;
-      originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
-    }
-  });
-
-  // Perform callback manipulations
-  const result = callback();
-
-  // Revert restoration to wrapped state
-  Object.keys(wrappedLevels).forEach(level => {
-    originalConsole[level] = wrappedLevels[level];
-  });
-
-  return result;
 }
 
 /**
