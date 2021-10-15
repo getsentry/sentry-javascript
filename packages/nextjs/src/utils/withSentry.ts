@@ -1,7 +1,7 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { addExceptionMechanism, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { addExceptionMechanism, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiResponse } from 'next';
 
@@ -76,6 +76,12 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       try {
         return await origHandler(req, res);
       } catch (e) {
+        // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
+        // store a seen flag on it. (Because of the one-way-on-Vercel-one-way-off-of-Vercel approach we've been forced
+        // to take, it can happen that the same thrown object gets caught in two different ways, and flagging it is a
+        // way to prevent it from actually being reported twice.)
+        const objectifiedErr = objectify(e);
+
         if (currentScope) {
           currentScope.addEventProcessor(event => {
             addExceptionMechanism(event, {
@@ -88,9 +94,14 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
             });
             return event;
           });
-          captureException(e);
+
+          captureException(objectifiedErr);
         }
-        throw e;
+
+        // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
+        // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
+        // the error as already having been captured.)
+        throw objectifiedErr;
       }
     });
 
