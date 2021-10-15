@@ -398,3 +398,39 @@ export function dropUndefinedKeys<T>(val: T): T {
 
   return val;
 }
+
+/**
+ * Ensure that something is an object.
+ *
+ * Turns `undefined` and `null` into `String`s and all other primitives into instances of their respective wrapper
+ * classes (String, Boolean, Number, etc.). Acts as the identity function on non-primitives.
+ *
+ * @param wat The subject of the objectification
+ * @returns A version of "wat` which can safely be used with `Object` class methods
+ */
+export function objectify(wat: unknown): typeof Object {
+  let objectified;
+  switch (true) {
+    case wat === undefined || wat === null:
+      objectified = new String(wat);
+      break;
+
+    // Though symbols and bigints do have wrapper classes (`Symbol` and `BigInt`, respectively), for whatever reason
+    // those classes don't have constructors which can be used with the `new` keyword. We therefore need to cast each as
+    // an object in order to wrap it.
+    case typeof wat === 'symbol' || typeof wat === 'bigint':
+      objectified = Object(wat);
+      break;
+
+    // this will catch the remaining primitives: `String`, `Number`, and `Boolean`
+    case isPrimitive(wat):
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      objectified = new (wat as any).constructor(wat);
+      break;
+
+    default:
+      objectified = wat;
+      break;
+  }
+  return objectified;
+}
