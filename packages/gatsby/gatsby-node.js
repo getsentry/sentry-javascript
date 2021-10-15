@@ -17,7 +17,7 @@ const sentryRelease = JSON.stringify(
 );
 
 const sentryDsn = JSON.stringify(process.env.SENTRY_DSN || '');
-const SENTRY_USER_CONFIG = './sentry.config.js';
+const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 
 exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
   actions.setWebpackConfig({
@@ -29,22 +29,22 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
     ],
   });
 
-  // To configure the SDK `sentry.config.js` is prioritized over `gatsby-config.js`,
+  // To configure the SDK, SENTRY_USER_CONFIG is prioritized over `gatsby-config.js`,
   // since it isn't possible to set non-serializable parameters in the latter.
   // Prioritization here means what `init` is being run first.
-  if (!fs.existsSync(SENTRY_USER_CONFIG)) {
-    // We don't want to warn users here, yet they may have their config in `gatsby-config.js`.
+  const configFile = SENTRY_USER_CONFIG.find(file => fs.existsSync(file));
+  if (!configFile) {
     return;
   }
   // `setWebpackConfig` merges the Webpack config, ignoring some props like `entry`. See
   // https://www.gatsbyjs.com/docs/reference/config-files/actions/#setWebpackConfig
   // So it's not possible to inject the Sentry properties with that method. Instead, we
   // can replace the whole config with the modifications we need.
-  const finalConfig = injectSentryConfig(getConfig());
+  const finalConfig = injectSentryConfig(getConfig(), configFile);
   actions.replaceWebpackConfig(finalConfig);
 };
 
-function injectSentryConfig(config) {
+function injectSentryConfig(config, configFile) {
   const injectedEntries = {};
   // TODO: investigate what entries need the Sentry config injected.
   //    We may want to skip some.
@@ -52,9 +52,9 @@ function injectSentryConfig(config) {
     const value = config.entry[prop];
     let injectedValue = value;
     if (typeof value === 'string') {
-      injectedValue = [SENTRY_USER_CONFIG, value];
+      injectedValue = [configFile, value];
     } else if (Array.isArray(value)) {
-      injectedValue = [SENTRY_USER_CONFIG, ...value];
+      injectedValue = [configFile, ...value];
     } else {
       // eslint-disable-next-line no-console
       console.error(
