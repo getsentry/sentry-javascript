@@ -1,4 +1,10 @@
+/**
+ * NOTE: In order to avoid circular dependencies, if you add a function to this module and it needs to print something,
+ * you must either a) use `console.log` rather than the logger, or b) put your function elsewhere.
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Integration } from '@sentry/types';
 
 import { isNodeEnv } from './node';
