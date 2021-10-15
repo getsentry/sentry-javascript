@@ -78,7 +78,7 @@ export interface Hub {
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
-  captureException(exception: any, hint?: EventHint): string;
+  captureException(exception: any, hint?: EventHint): string | undefined;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -88,7 +88,7 @@ export interface Hub {
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
-  captureMessage(message: string, level?: Severity, hint?: EventHint): string;
+  captureMessage(message: string, level?: Severity, hint?: EventHint): string | undefined;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -96,7 +96,7 @@ export interface Hub {
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
    */
-  captureEvent(event: Event, hint?: EventHint): string;
+  captureEvent(event: Event, hint?: EventHint): string | undefined;
 
   /**
    * This is the getter for lastEventId.

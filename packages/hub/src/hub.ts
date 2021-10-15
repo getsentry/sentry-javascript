@@ -21,7 +21,7 @@ import {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
+import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger } from '@sentry/utils';
 
 import { Scope } from './scope';
 import { Session } from './session';
@@ -185,8 +185,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public captureException(exception: any, hint?: EventHint): string {
-    const eventId = (this._lastEventId = uuid4());
+  public captureException(exception: any, hint?: EventHint): string | undefined {
     let finalHint = hint;
 
     // If there's no explicit hint provided, mimic the same thing that would happen
@@ -206,18 +205,21 @@ export class Hub implements HubInterface {
       };
     }
 
-    this._invokeClient('captureException', exception, {
+    const eventId = this._invokeClient('captureException', exception, {
       ...finalHint,
-      event_id: eventId,
     });
+
+    if (eventId) {
+      this._lastEventId = eventId;
+    }
+
     return eventId;
   }
 
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
-    const eventId = (this._lastEventId = uuid4());
+  public captureMessage(message: string, level?: Severity, hint?: EventHint): string | undefined {
     let finalHint = hint;
 
     // If there's no explicit hint provided, mimic the same thing that would happen
@@ -237,26 +239,29 @@ export class Hub implements HubInterface {
       };
     }
 
-    this._invokeClient('captureMessage', message, level, {
+    const eventId = this._invokeClient('captureMessage', message, level, {
       ...finalHint,
-      event_id: eventId,
     });
+
+    if (eventId) {
+      this._lastEventId = eventId;
+    }
+
     return eventId;
   }
 
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = uuid4();
+  public captureEvent(event: Event, hint?: EventHint): string | undefined {
+    const eventId = this._invokeClient('captureEvent', event, {
+      ...hint,
+    });
+
     if (event.type !== 'transaction') {
       this._lastEventId = eventId;
     }
 
-    this._invokeClient('captureEvent', event, {
-      ...hint,
-      event_id: eventId,
-    });
     return eventId;
   }
 
@@ -480,12 +485,14 @@ export class Hub implements HubInterface {
    * @param args Arguments to pass to the client function.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
+  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): string | undefined {
     const { scope, client } = this.getStackTop();
     if (client && client[method]) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      (client as any)[method](...args, scope);
+      return (client as any)[method](...args, scope);
     }
+
+    return undefined;
   }
 
   /**

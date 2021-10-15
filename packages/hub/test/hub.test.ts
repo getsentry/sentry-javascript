@@ -1,8 +1,11 @@
+import { BrowserClient } from '@sentry/browser';
+import { NodeClient } from '@sentry/node';
 import { Event } from '@sentry/types';
 
 import { getCurrentHub, Hub, Scope } from '../src';
 
 const clientFn: any = jest.fn();
+const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 describe('Hub', () => {
   afterEach(() => {
@@ -203,14 +206,6 @@ describe('Hub', () => {
       expect(spy.mock.calls[0][1]).toBe('a');
     });
 
-    test('should set event_id in hint', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
-      hub.captureException('a');
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).toBeTruthy();
-    });
-
     test('should generate hint if not provided in the call', () => {
       const hub = new Hub();
       const spy = jest.spyOn(hub as any, '_invokeClient');
@@ -233,14 +228,6 @@ describe('Hub', () => {
       expect(spy).toHaveBeenCalled();
       expect(spy.mock.calls[0][0]).toBe('captureMessage');
       expect(spy.mock.calls[0][1]).toBe('a');
-    });
-
-    test('should set event_id in hint', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
-      hub.captureMessage('a');
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][3].event_id).toBeTruthy();
     });
 
     test('should generate hint if not provided in the call', () => {
@@ -269,26 +256,77 @@ describe('Hub', () => {
       expect(spy.mock.calls[0][1]).toBe(event);
     });
 
-    test('should set event_id in hint', () => {
-      const event: Event = {
-        extra: { b: 3 },
-      };
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
-      hub.captureEvent(event);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).toBeTruthy();
-    });
-
     test('sets lastEventId', () => {
       const event: Event = {
         extra: { b: 3 },
       };
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
-      hub.captureEvent(event);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).toEqual(hub.lastEventId());
+
+      [BrowserClient, NodeClient].forEach(Client => {
+        const hub = new Hub(new Client({ dsn }));
+        const eventId = hub.captureEvent(event);
+
+        expect(eventId).toBeDefined();
+        expect(eventId).toEqual(hub.lastEventId());
+      });
+    });
+
+    test('prefers to use eventId provided in the hint.', () => {
+      const event: Event = {
+        extra: { b: 3 },
+      };
+
+      const customEventId = 'test_event_id';
+
+      [BrowserClient, NodeClient].forEach(Client => {
+        const hub = new Hub(new Client({ dsn }));
+        const eventId = hub.captureEvent(event, { event_id: customEventId });
+
+        expect(eventId).toBe(customEventId);
+      });
+    });
+
+    test(`doesn't return eventId if beforeSend drops the event`, () => {
+      const event: Event = {
+        extra: { b: 3 },
+      };
+
+      [BrowserClient, NodeClient].forEach(Client => {
+        const hub = new Hub(
+          new Client({
+            dsn,
+            beforeSend: (_event: any) => null,
+          }),
+        );
+        const eventId = hub.captureEvent(event);
+
+        expect(eventId).toBeUndefined();
+      });
+    });
+
+    test(`doesn't return eventId if SDK is disabled`, () => {
+      const event: Event = {
+        extra: { b: 3 },
+      };
+
+      [BrowserClient, NodeClient].forEach(Client => {
+        const hub = new Hub(new Client({ dsn, enabled: false }));
+        const eventId = hub.captureEvent(event);
+
+        expect(eventId).toBeUndefined();
+      });
+    });
+
+    test(`doesn't return eventId if sampling drops the event`, () => {
+      const event: Event = {
+        extra: { b: 3 },
+      };
+
+      [BrowserClient, NodeClient].forEach(Client => {
+        const hub = new Hub(new Client({ dsn, sampleRate: 0 }));
+        const eventId = hub.captureEvent(event);
+
+        expect(eventId).toBeUndefined();
+      });
     });
 
     test('transactions do not set lastEventId', () => {
@@ -296,11 +334,14 @@ describe('Hub', () => {
         extra: { b: 3 },
         type: 'transaction',
       };
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
-      hub.captureEvent(event);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).not.toEqual(hub.lastEventId());
+
+      [BrowserClient, NodeClient].forEach(Client => {
+        const hub = new Hub(new Client({ dsn }));
+        const eventId = hub.captureEvent(event);
+
+        expect(eventId).toBeDefined();
+        expect(eventId).not.toEqual(hub.lastEventId());
+      });
     });
   });
 
@@ -308,9 +349,14 @@ describe('Hub', () => {
     const event: Event = {
       extra: { b: 3 },
     };
-    const hub = new Hub();
-    const eventId = hub.captureEvent(event);
-    expect(eventId).toBe(hub.lastEventId());
+
+    [BrowserClient, NodeClient].forEach(Client => {
+      const hub = new Hub(new Client({ dsn }));
+      const eventId = hub.captureEvent(event);
+
+      expect(eventId).toBeDefined();
+      expect(eventId).toBe(hub.lastEventId());
+    });
   });
 
   describe('run', () => {
