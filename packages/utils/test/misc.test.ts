@@ -3,6 +3,7 @@ import { Event, Mechanism, StackFrame } from '@sentry/types';
 import {
   addContextToFrame,
   addExceptionMechanism,
+  checkOrSetAlreadyCaught,
   getEventDescription,
   parseRetryAfterHeader,
   stripUrlQueryAndFragment,
@@ -286,5 +287,34 @@ describe('addExceptionMechanism', () => {
       handler: 'organizeShoes',
       target: 'closet',
     });
+  });
+});
+
+describe('checkOrSetAlreadyCaught()', () => {
+  describe('ignores primitives', () => {
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['number', 1231],
+      ['boolean', true],
+      ['string', 'Dogs are great!'],
+    ])('%s', (_case: string, exception: unknown): void => {
+      // in this case, "ignore" just means reporting them as unseen without actually doing anything to them (which of
+      // course it can't anyway, because primitives are immutable)
+      expect(checkOrSetAlreadyCaught(exception)).toBe(false);
+    });
+  });
+
+  it("recognizes exceptions it's seen before", () => {
+    const exception = { message: 'Oh, no! Charlie ate the flip-flops! :-(', __sentry_captured__: true };
+
+    expect(checkOrSetAlreadyCaught(exception)).toBe(true);
+  });
+
+  it('recognizes new exceptions as new and marks them as seen', () => {
+    const exception = { message: 'Oh, no! Charlie ate the flip-flops! :-(' };
+
+    expect(checkOrSetAlreadyCaught(exception)).toBe(false);
+    expect((exception as any).__sentry_captured__).toBe(true);
   });
 });
