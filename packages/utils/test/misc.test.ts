@@ -248,7 +248,6 @@ describe('addExceptionMechanism', () => {
     addExceptionMechanism(event, newMechanism);
 
     // the new `handled` value took precedence
-    expect(event.exception.values[0].mechanism.handled).toEqual(true);
-    expect(event.exception.values[0].mechanism.synthetic).toEqual(true);
+    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
   });
 });
