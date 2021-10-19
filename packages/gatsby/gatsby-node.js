@@ -32,7 +32,14 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
   // To configure the SDK, SENTRY_USER_CONFIG is prioritized over `gatsby-config.js`,
   // since it isn't possible to set non-serializable parameters in the latter.
   // Prioritization here means what `init` is run.
-  const configFile = SENTRY_USER_CONFIG.find(file => fs.existsSync(file));
+  let configFile = null;
+  try {
+    configFile = SENTRY_USER_CONFIG.find(file => fs.existsSync(file));
+  } catch (error) {
+    // Some node versions (like v11) throw an exception on `existsSync` instead of
+    // returning false. See https://github.com/tschaub/mock-fs/issues/256
+  }
+
   if (!configFile) {
     return;
   }
