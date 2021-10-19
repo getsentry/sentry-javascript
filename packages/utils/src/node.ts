@@ -40,6 +40,19 @@ export function loadModule<T>(moduleName: string): T | undefined {
   let mod: T | undefined;
 
   try {
+    if (require.main) {
+      const { createRequire } = dynamicRequire(module, 'module');
+      const req = createRequire(require.main.filename);
+      mod = req(moduleName);
+      if (mod) {
+        return mod;
+      }
+    }
+  } catch (e) {
+    // no-empty
+  }
+
+  try {
     mod = dynamicRequire(module, moduleName);
   } catch (e) {
     // no-empty
