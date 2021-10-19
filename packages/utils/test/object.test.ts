@@ -647,34 +647,19 @@ describe('dropUndefinedKeys()', () => {
 });
 
 describe('objectify()', () => {
-  it('turns undefined and null into `String` objects', () => {
-    const objectifiedUndefined = objectify(undefined);
-    const objectifiedNull = objectify(null);
+  describe('stringifies nullish values', () => {
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+    ])('%s', (stringifiedValue, origValue): void => {
+      const objectifiedNullish = objectify(origValue);
 
-    // not string literals but instances of the class `String`
-    expect(objectifiedUndefined).toEqual(expect.any(String));
-    expect(objectifiedNull).toEqual(expect.any(String));
-
-    expect(objectifiedUndefined.valueOf()).toEqual('undefined');
-    expect(objectifiedNull.valueOf()).toEqual('null');
+      expect(objectifiedNullish).toEqual(expect.any(String));
+      expect(objectifiedNullish.valueOf()).toEqual(stringifiedValue);
+    });
   });
 
-  it('wraps other primitives with their respective object wrapper classes', () => {
-    // Note: BigInts are tested separately in order to be able to restrict the Node version on which the tests run
-    const numberPrimitive = 1121;
-    const stringPrimitive = 'Dogs are great!';
-    const booleanPrimitive = true;
-    const symbolPrimitive = Symbol('Maisey');
-
-    const objectifiedNumber = objectify(numberPrimitive);
-    const objectifiedString = objectify(stringPrimitive);
-    const objectifiedBoolean = objectify(booleanPrimitive);
-    const objectifiedSymbol = objectify(symbolPrimitive);
-
-    // not literals but instances of the respective wrapper classes
-    expect(objectifiedNumber).toEqual(expect.any(Number));
-    expect(objectifiedString).toEqual(expect.any(String));
-
+  describe('wraps other primitives with their respective object wrapper classes', () => {
     // TODO: There's currently a bug in Jest - if you give it the `Boolean` class, it runs `typeof received ===
     // 'boolean'` but not `received instanceof Boolean` (the way it correctly does for other primitive wrappers, like
     // `Number` and `String). (See https://github.com/facebook/jest/pull/11976.) Once that is fixed and we upgrade jest,
@@ -682,26 +667,30 @@ describe('objectify()', () => {
     // version of jest is sufficiently old that they're not even considered in the relevant check and just fall to the
     // default `instanceof` check jest uses for all unknown classes.)
 
-    // expect(objectifiedBoolean).toEqual(expect.any(Boolean));
-    expect(objectifiedSymbol).toEqual(expect.any(Symbol));
+    it.each([
+      ['number', Number, 1121],
+      ['string', String, 'Dogs are great!'],
+      // ["boolean", Boolean, true],
+      ['symbol', Symbol, Symbol('Maisey')],
+    ])('%s', (_caseName, wrapperClass, primitive) => {
+      const objectifiedPrimitive = objectify(primitive);
 
-    expect(objectifiedNumber.valueOf()).toEqual(numberPrimitive);
-    expect(objectifiedString.valueOf()).toEqual(stringPrimitive);
-    expect(objectifiedBoolean.valueOf()).toEqual(booleanPrimitive);
-    expect(objectifiedSymbol.valueOf()).toEqual(symbolPrimitive);
-  });
+      expect(objectifiedPrimitive).toEqual(expect.any(wrapperClass));
+      expect(objectifiedPrimitive.valueOf()).toEqual(primitive);
+    });
 
-  // `BigInt` doesn't exist in Node < 10.
-  testOnlyIfNodeVersionAtLeast(10)('wraps bigints with the `BigInt` class', () => {
-    // Hack to get around the fact that literal bigints cause a syntax error in older versions of Node, so the
-    // assignment needs to not even be parsed as code in those versions
-    let bigintPrimitive;
-    eval('bigintPrimitive = 1231n;');
+    // `BigInt` doesn't exist in Node < 10, so we test it separately here.
+    testOnlyIfNodeVersionAtLeast(10)('bigint', () => {
+      // Hack to get around the fact that literal bigints cause a syntax error in older versions of Node, so the
+      // assignment needs to not even be parsed as code in those versions
+      let bigintPrimitive;
+      eval('bigintPrimitive = 1231n;');
 
-    const objectifiedBigInt = objectify(bigintPrimitive);
+      const objectifiedBigInt = objectify(bigintPrimitive);
 
-    expect(objectifiedBigInt).toEqual(expect.any(BigInt));
-    expect(objectifiedBigInt.valueOf()).toEqual(bigintPrimitive);
+      expect(objectifiedBigInt).toEqual(expect.any(BigInt));
+      expect(objectifiedBigInt.valueOf()).toEqual(bigintPrimitive);
+    });
   });
 
   it('leaves objects alone', () => {
