@@ -306,6 +306,7 @@ describe('checkOrSetAlreadyCaught()', () => {
   });
 
   it("recognizes exceptions it's seen before", () => {
+    // `exception` can be any object - an `Error`, a class instance, or a plain object
     const exception = { message: 'Oh, no! Charlie ate the flip-flops! :-(', __sentry_captured__: true };
 
     expect(checkOrSetAlreadyCaught(exception)).toBe(true);

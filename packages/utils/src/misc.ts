@@ -248,10 +248,11 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
  * normally would, which may or may not lead to them being caught again by something like the global error handler.)
  * This prevents us from actually recording it twice.
  *
- * Note: It will ignore primitives, as properties can't be set on them. {@link: Object.objectify} can be used on
- * exceptions to convert any that are primitives into their equivalent object wrapper forms so that this check will
- * always work. However, because we need to flag the exact object which will get rethrown, and because that rethrowing
- * happens outside of the event processing pipeline, the objectification must be done before the exception captured.
+ * Note: It will ignore primitives (always return `false` and not mark them as seen), as properties can't be set on
+ * them. {@link: Object.objectify} can be used on exceptions to convert any that are primitives into their equivalent
+ * object wrapper forms so that this check will always work. However, because we need to flag the exact object which
+ * will get rethrown, and because that rethrowing happens outside of the event processing pipeline, the objectification
+ * must be done before the exception captured.
  *
  * @param A thrown exception to check or flag as having been seen
  * @returns `true` if the exception has already been captured, `false` if not (with the side effect of marking it seen)

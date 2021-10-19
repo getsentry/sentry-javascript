@@ -257,8 +257,10 @@ describe('BaseClient', () => {
       ['`Error` instance', new Error('Will I get caught twice?')],
       ['plain object', { 'Will I': 'get caught twice?' }],
       ['primitive wrapper', new String('Will I get caught twice?')],
-      // primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
-      // to `captureException` (which is how we'd end up with a primitive wrapper as tested above)
+      // Primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
+      // to `captureException` (which is how we'd end up with a primitive wrapper as tested above) in order for the
+      // already-seen check to work . Any primitive which is passed without being wrapped will be captured each time it
+      // is encountered, so this test doesn't apply.
     ])("doesn't capture the same exception twice - %s", (_name: string, thrown: any) => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
 
@@ -354,9 +356,14 @@ describe('BaseClient', () => {
       ['`Error` instance', new Error('Will I get caught twice?')],
       ['plain object', { 'Will I': 'get caught twice?' }],
       ['primitive wrapper', new String('Will I get caught twice?')],
-      // primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
-      // to `captureEvent` (which is how we'd end up with a primitive wrapper as tested above)
+      // Primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
+      // to `captureEvent` (which is how we'd end up with a primitive wrapper as tested above) in order for the
+      // already-seen check to work . Any primitive which is passed without being wrapped will be captured each time it
+      // is encountered, so this test doesn't apply.
     ])("doesn't capture the same exception twice - %s", (_name: string, thrown: any) => {
+      // Note: this is the same test as in `describe(captureException)`, except with the exception already wrapped in a
+      // hint and accompanying an event. Duplicated here because some methods skip `captureException` and go straight to
+      // `captureEvent`.
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const event = { exception: { values: [{ type: 'Error', message: 'Will I get caught twice?' }] } };
       const hint = { originalException: thrown };

@@ -406,7 +406,7 @@ export function dropUndefinedKeys<T>(val: T): T {
  * classes (String, Boolean, Number, etc.). Acts as the identity function on non-primitives.
  *
  * @param wat The subject of the objectification
- * @returns A version of "wat` which can safely be used with `Object` class methods
+ * @returns A version of `wat` which can safely be used with `Object` class methods
  */
 export function objectify(wat: unknown): typeof Object {
   let objectified;
@@ -428,6 +428,7 @@ export function objectify(wat: unknown): typeof Object {
       objectified = new (wat as any).constructor(wat);
       break;
 
+    // by process of elimination, at this point we know that `wat` must already be an object
     default:
       objectified = wat;
       break;
