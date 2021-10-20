@@ -228,6 +228,8 @@ describe('stripQueryStringAndFragment', () => {
 });
 
 describe('addExceptionMechanism', () => {
+  const defaultMechanism = { type: 'generic', handled: true };
+
   type EventWithException = Event & {
     exception: {
       values: [{ type?: string; value?: string; mechanism?: Mechanism }];
@@ -238,7 +240,26 @@ describe('addExceptionMechanism', () => {
     exception: { values: [{ type: 'Error', value: 'Oh, no! Charlie ate the flip-flops! :-(' }] },
   };
 
-  it('adds data to event, preferring incoming values to current values', () => {
+  it('uses default values', () => {
+    const event = { ...baseEvent };
+
+    addExceptionMechanism(event);
+
+    expect(event.exception.values[0].mechanism).toEqual(defaultMechanism);
+  });
+
+  it('prefers current values to defaults', () => {
+    const event = { ...baseEvent };
+
+    const nonDefaultMechanism = { type: 'instrument', handled: false };
+    event.exception.values[0].mechanism = nonDefaultMechanism;
+
+    addExceptionMechanism(event);
+
+    expect(event.exception.values[0].mechanism).toEqual(nonDefaultMechanism);
+  });
+
+  it('prefers incoming values to current values', () => {
     const event = { ...baseEvent };
 
     const currentMechanism = { type: 'instrument', handled: false };
@@ -249,5 +270,21 @@ describe('addExceptionMechanism', () => {
 
     // the new `handled` value took precedence
     expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+  });
+
+  it('merges data values', () => {
+    const event = { ...baseEvent };
+
+    const currentMechanism = { ...defaultMechanism, data: { function: 'addEventListener' } };
+    const newMechanism = { data: { handler: 'organizeShoes', target: 'closet' } };
+    event.exception.values[0].mechanism = currentMechanism;
+
+    addExceptionMechanism(event, newMechanism);
+
+    expect(event.exception.values[0].mechanism.data).toEqual({
+      function: 'addEventListener',
+      handler: 'organizeShoes',
+      target: 'closet',
+    });
   });
 });
