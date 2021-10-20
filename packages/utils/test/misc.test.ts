@@ -1,6 +1,12 @@
-import { StackFrame } from '@sentry/types';
+import { Event, Mechanism, StackFrame } from '@sentry/types';
 
-import { addContextToFrame, getEventDescription, parseRetryAfterHeader, stripUrlQueryAndFragment } from '../src/misc';
+import {
+  addContextToFrame,
+  addExceptionMechanism,
+  getEventDescription,
+  parseRetryAfterHeader,
+  stripUrlQueryAndFragment,
+} from '../src/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {
@@ -218,5 +224,30 @@ describe('stripQueryStringAndFragment', () => {
   it('strips query string and fragment from url', () => {
     const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
     expect(stripUrlQueryAndFragment(urlWithQueryStringAndFragment)).toBe(urlString);
+  });
+});
+
+describe('addExceptionMechanism', () => {
+  type EventWithException = Event & {
+    exception: {
+      values: [{ type?: string; value?: string; mechanism?: Mechanism }];
+    };
+  };
+
+  const baseEvent: EventWithException = {
+    exception: { values: [{ type: 'Error', value: 'Oh, no! Charlie ate the flip-flops! :-(' }] },
+  };
+
+  it('adds data to event, preferring incoming values to current values', () => {
+    const event = { ...baseEvent };
+
+    const currentMechanism = { type: 'instrument', handled: false };
+    const newMechanism = { handled: true, synthetic: true };
+    event.exception.values[0].mechanism = currentMechanism;
+
+    addExceptionMechanism(event, newMechanism);
+
+    // the new `handled` value took precedence
+    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
   });
 });
