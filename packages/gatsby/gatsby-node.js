@@ -55,7 +55,7 @@ function injectSentryConfig(config, configFile) {
   const injectedEntries = {};
   // TODO: investigate what entries need the Sentry config injected.
   //    We may want to skip some.
-  Object.keys(config.entry).map(prop => {
+  Object.keys(config.entry).forEach(prop => {
     const value = config.entry[prop];
     let injectedValue = value;
     if (typeof value === 'string') {
