@@ -242,10 +242,13 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
  * Checks whether or not we've already captured the given exception (note: not an identical exception - the very object
  * in question), and marks it captured if not.
  *
- * Sometimes an error gets captured by more than one mechanism. (This happens, for example, in frameworks where we
- * intercept thrown errors, capture them, and then rethrow them so that the framework can handle them however it
- * normally would, which may or may not lead to them being caught again by something like the global error handler.)
- * This prevents us from actually recording it twice.
+ * This is useful because it's possible for an error to get captured by more than one mechanism. After we intercept and
+ * record an error, we rethrow it (assuming we've intercepted it before it's reached the top-level global handlers), so
+ * that we don't interfere with whatever effects the error might have had were the SDK not there. At that point, because
+ * the error has been rethrown, it's possible for it to bubble up to some other code we've instrumented. If it's not
+ * caught after that, it will bubble all the way up to the global handlers (which of course we also instrument). This
+ * function helps us ensure that even if we encounter the same error more than once, we only record it the first time we
+ * see it.
  *
  * Note: It will ignore primitives (always return `false` and not mark them as seen), as properties can't be set on
  * them. {@link: Object.objectify} can be used on exceptions to convert any that are primitives into their equivalent
