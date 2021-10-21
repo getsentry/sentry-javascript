@@ -2,7 +2,6 @@
 import { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
-import { logger } from './logger';
 import { snipLine } from './string';
 
 /**
@@ -260,7 +259,6 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
 export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if ((exception as any)?.__sentry_captured__) {
-    logger.log("Not capturing exception because it's already been captured.");
     return true;
   }
 

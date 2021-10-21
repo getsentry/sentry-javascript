@@ -30,6 +30,8 @@ import {
 import { Backend, BackendClass } from './basebackend';
 import { IntegrationIndex, setupIntegrations } from './integration';
 
+const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
+
 /**
  * Base implementation for all JavaScript SDK clients.
  *
@@ -104,6 +106,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
+      logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -148,6 +151,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
+      logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
