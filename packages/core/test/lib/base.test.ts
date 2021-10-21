@@ -360,7 +360,7 @@ describe('BaseClient', () => {
       // to `captureEvent` (which is how we'd end up with a primitive wrapper as tested above) in order for the
       // already-seen check to work . Any primitive which is passed without being wrapped will be captured each time it
       // is encountered, so this test doesn't apply.
-    ])("doesn't capture the same exception twice - %s", (_name: string, thrown: any) => {
+    ])("doesn't capture an event wrapping the same exception twice - %s", (_name: string, thrown: any) => {
       // Note: this is the same test as in `describe(captureException)`, except with the exception already wrapped in a
       // hint and accompanying an event. Duplicated here because some methods skip `captureException` and go straight to
       // `captureEvent`.
