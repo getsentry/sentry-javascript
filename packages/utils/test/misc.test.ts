@@ -1,9 +1,9 @@
-import { StackFrame } from '@sentry/types';
+import { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import {
   addContextToFrame,
+  addExceptionMechanism,
   getEventDescription,
-  getGlobalObject,
   parseRetryAfterHeader,
   stripUrlQueryAndFragment,
 } from '../src/misc';
@@ -117,17 +117,6 @@ describe('getEventDescription()', () => {
   });
 });
 
-describe('getGlobalObject()', () => {
-  test('should return the same object', () => {
-    const backup = global.process;
-    delete global.process;
-    const first = getGlobalObject();
-    const second = getGlobalObject();
-    expect(first).toEqual(second);
-    global.process = backup;
-  });
-});
-
 describe('parseRetryAfterHeader', () => {
   test('no header', () => {
     expect(parseRetryAfterHeader(Date.now())).toEqual(60 * 1000);
@@ -235,5 +224,67 @@ describe('stripQueryStringAndFragment', () => {
   it('strips query string and fragment from url', () => {
     const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
     expect(stripUrlQueryAndFragment(urlWithQueryStringAndFragment)).toBe(urlString);
+  });
+});
+
+describe('addExceptionMechanism', () => {
+  const defaultMechanism = { type: 'generic', handled: true };
+
+  type EventWithException = Event & {
+    exception: {
+      values: [{ type?: string; value?: string; mechanism?: Mechanism }];
+    };
+  };
+
+  const baseEvent: EventWithException = {
+    exception: { values: [{ type: 'Error', value: 'Oh, no! Charlie ate the flip-flops! :-(' }] },
+  };
+
+  it('uses default values', () => {
+    const event = { ...baseEvent };
+
+    addExceptionMechanism(event);
+
+    expect(event.exception.values[0].mechanism).toEqual(defaultMechanism);
+  });
+
+  it('prefers current values to defaults', () => {
+    const event = { ...baseEvent };
+
+    const nonDefaultMechanism = { type: 'instrument', handled: false };
+    event.exception.values[0].mechanism = nonDefaultMechanism;
+
+    addExceptionMechanism(event);
+
+    expect(event.exception.values[0].mechanism).toEqual(nonDefaultMechanism);
+  });
+
+  it('prefers incoming values to current values', () => {
+    const event = { ...baseEvent };
+
+    const currentMechanism = { type: 'instrument', handled: false };
+    const newMechanism = { handled: true, synthetic: true };
+    event.exception.values[0].mechanism = currentMechanism;
+
+    addExceptionMechanism(event, newMechanism);
+
+    // the new `handled` value took precedence
+    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+  });
+
+  it('merges data values', () => {
+    const event = { ...baseEvent };
+
+    const currentMechanism = { ...defaultMechanism, data: { function: 'addEventListener' } };
+    const newMechanism = { data: { handler: 'organizeShoes', target: 'closet' } };
+    event.exception.values[0].mechanism = currentMechanism;
+
+    addExceptionMechanism(event, newMechanism);
+
+    expect(event.exception.values[0].mechanism.data).toEqual({
+      function: 'addEventListener',
+      handler: 'organizeShoes',
+      target: 'closet',
+    });
   });
 });

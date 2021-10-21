@@ -1,3 +1,4 @@
+import { getGlobalObject } from './global';
 import { isString } from './is';
 
 /**
@@ -107,4 +108,16 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
     }
   }
   return out.join('');
+}
+
+/**
+ * A safe form of location.href
+ */
+export function getLocationHref(): string {
+  const global = getGlobalObject<Window>();
+  try {
+    return global.document.location.href;
+  } catch (oO) {
+    return '';
+  }
 }

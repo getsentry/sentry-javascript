@@ -13,7 +13,7 @@ type WrappedNextApiHandler = NextApiHandler;
 type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
+export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler => {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return async (req, res) => {
     // first order of business: monkeypatch `res.end()` so that it will wait for us to send events to sentry before it
@@ -74,13 +74,17 @@ export const withSentry = (handler: NextApiHandler): WrappedNextApiHandler => {
       }
 
       try {
-        return await handler(req, res); // Call original handler
+        return await origHandler(req, res);
       } catch (e) {
         if (currentScope) {
           currentScope.addEventProcessor(event => {
             addExceptionMechanism(event, {
-              mechanism: 'withSentry',
-              handled: false,
+              type: 'instrument',
+              handled: true,
+              data: {
+                wrapped_handler: origHandler.name,
+                function: 'withSentry',
+              },
             });
             return event;
           });
