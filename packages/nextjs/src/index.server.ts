@@ -53,6 +53,9 @@ export function init(options: NextjsOptions): void {
 
   configureScope(scope => {
     scope.setTag('runtime', 'node');
+    if (process.env.VERCEL) {
+      scope.setTag('vercel', true);
+    }
   });
 
   if (activeDomain) {

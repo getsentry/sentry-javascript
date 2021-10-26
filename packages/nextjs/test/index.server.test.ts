@@ -63,6 +63,30 @@ describe('Server init()', () => {
     expect(currentScope._tags).toEqual({ runtime: 'node' });
   });
 
+  it('applies `vercel` tag when running on vercel', () => {
+    const currentScope = getCurrentHub().getScope();
+
+    process.env.VERCEL = '1';
+
+    init({});
+
+    // @ts-ignore need access to protected _tags attribute
+    expect(currentScope._tags.vercel).toEqual(true);
+
+    delete process.env.VERCEL;
+  });
+
+  it('does not apply `vercel` tag when not running on vercel', () => {
+    const currentScope = getCurrentHub().getScope();
+
+    expect(process.env.VERCEL).toBeUndefined();
+
+    init({});
+
+    // @ts-ignore need access to protected _tags attribute
+    expect(currentScope._tags.vercel).toBeUndefined();
+  });
+
   it("initializes both global hub and domain hub when there's an active domain", () => {
     const globalHub = getCurrentHub();
     const local = domain.create();
