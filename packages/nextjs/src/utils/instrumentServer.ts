@@ -294,7 +294,13 @@ function makeWrappedMethodForGettingParameterizedPath(
     // replace specific URL with parameterized version
     if (transaction && transaction.metadata.requestPath) {
       const origPath = transaction.metadata.requestPath;
-      transaction.name = transaction.name.replace(origPath, parameterizedPath);
+      // in cases where something goes wrong, nextjs replaces the original path with the path of the route to which the
+      // request gets redirected, which isn't what we want for the transaction name
+      // TODO: in these cases, we still don't get the parameterization (matters in dynamic routes)
+      const errorPages = new Set(['/400', '/404', '/405', '/412', '/500', '/_error']);
+      if (!errorPages.has(parameterizedPath)) {
+        transaction.name = transaction.name.replace(origPath, parameterizedPath);
+      }
     }
 
     return origMethod.call(this, parameterizedPath, ...args);
