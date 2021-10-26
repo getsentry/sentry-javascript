@@ -5,6 +5,7 @@ import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sen
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
+import * as HttpsProxyAgent from 'https-proxy-agent';
 import * as nock from 'nock';
 
 import { Breadcrumb } from '../../src';
@@ -170,6 +171,33 @@ describe('default protocols', () => {
       host: `${key}.ingest.sentry.io`,
       path: '/api/123122332/store/',
       timeout: 300,
+    });
+
+    const b = await p;
+    expect(b.data?.url).toEqual(expect.stringContaining('https://'));
+  });
+
+  it('makes https request over http proxy', async () => {
+    const key = 'catcatchers';
+    const p = captureBreadcrumb(key);
+    let nockProtocol = 'https:';
+
+    const proxy = 'http://<PROXY_URL>:3128';
+    const agent = new HttpsProxyAgent(proxy);
+
+    if (NODE_VERSION.major && NODE_VERSION.major < 9) {
+      nockProtocol = 'http:';
+    }
+
+    nock(`${nockProtocol}://${key}.ingest.sentry.io`)
+      .get('/api/123122332/store/')
+      .reply(200);
+
+    https.get({
+      host: `${key}.ingest.sentry.io`,
+      path: '/api/123122332/store/',
+      timeout: 300,
+      agent,
     });
 
     const b = await p;

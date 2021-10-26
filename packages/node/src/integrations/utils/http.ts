@@ -152,9 +152,9 @@ export function normalizeRequestArgs(
     // Worst case we end up populating protocol with undefined, which it already is
     /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
     requestOptions.protocol =
+      (httpModule?.globalAgent as any)?.protocol ||
       (requestOptions.agent as any)?.protocol ||
-      (requestOptions._defaultAgent as any)?.protocol ||
-      (httpModule?.globalAgent as any)?.protocol;
+      (requestOptions._defaultAgent as any)?.protocol;
     /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
   }
 
