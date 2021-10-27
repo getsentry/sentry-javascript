@@ -1,13 +1,13 @@
+import { getCurrentHub } from '@sentry/hub';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 
-import { init, Integrations, nextRouterInstrumentation, Scope } from '../src/index.client';
+import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
 import { NextjsOptions } from '../src/utils/nextjsOptions';
 
 const { BrowserTracing } = TracingIntegrations;
 
 const mockInit = jest.fn();
-let configureScopeCallback: (scope: Scope) => void = () => undefined;
 
 jest.mock('@sentry/react', () => {
   const actual = jest.requireActual('@sentry/react');
@@ -16,16 +16,12 @@ jest.mock('@sentry/react', () => {
     init: (options: NextjsOptions) => {
       mockInit(options);
     },
-    configureScope: (callback: (scope: Scope) => void) => {
-      configureScopeCallback = callback;
-    },
   };
 });
 
 describe('Client init()', () => {
   afterEach(() => {
     mockInit.mockClear();
-    configureScopeCallback = () => undefined;
   });
 
   it('inits the React SDK', () => {
@@ -46,11 +42,15 @@ describe('Client init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const mockScope = new Scope();
-    init({});
-    configureScopeCallback(mockScope);
+    const currentScope = getCurrentHub().getScope();
+
     // @ts-ignore need access to protected _tags attribute
-    expect(mockScope._tags).toEqual({ runtime: 'browser' });
+    expect(currentScope._tags).toEqual({});
+
+    init({});
+
+    // @ts-ignore need access to protected _tags attribute
+    expect(currentScope._tags).toEqual({ runtime: 'browser' });
   });
 
   describe('integrations', () => {
