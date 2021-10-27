@@ -1,3 +1,4 @@
+import { BaseClient } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
@@ -16,11 +17,12 @@ const global = getGlobalObject();
 (global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
+const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
 const logError = jest.spyOn(logger, 'error');
 
 describe('Server init()', () => {
   afterEach(() => {
-    nodeInit.mockClear();
+    jest.clearAllMocks();
     global.__SENTRY__.hub = undefined;
   });
 
@@ -93,10 +95,14 @@ describe('Server init()', () => {
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
     });
+    const hub = getCurrentHub();
+    const sendEvent = jest.spyOn(hub.getClient()!.getTransport!(), 'sendEvent');
 
-    const transaction = getCurrentHub().startTransaction({ name: '/404' });
+    const transaction = hub.startTransaction({ name: '/404' });
     transaction.finish();
 
+    expect(sendEvent).not.toHaveBeenCalled();
+    expect(captureEvent.mock.results[0].value).toBeUndefined();
     expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 

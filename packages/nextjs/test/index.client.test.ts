@@ -1,3 +1,4 @@
+import { BaseClient } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
@@ -12,11 +13,12 @@ const { BrowserTracing } = TracingIntegrations;
 const global = getGlobalObject();
 
 const reactInit = jest.spyOn(SentryReact, 'init');
+const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
 const logError = jest.spyOn(logger, 'error');
 
 describe('Client init()', () => {
   afterEach(() => {
-    reactInit.mockClear();
+    jest.clearAllMocks();
     global.__SENTRY__.hub = undefined;
   });
 
@@ -56,10 +58,14 @@ describe('Client init()', () => {
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
     });
+    const hub = getCurrentHub();
+    const sendEvent = jest.spyOn(hub.getClient()!.getTransport!(), 'sendEvent');
 
-    const transaction = getCurrentHub().startTransaction({ name: '/404' });
+    const transaction = hub.startTransaction({ name: '/404' });
     transaction.finish();
 
+    expect(sendEvent).not.toHaveBeenCalled();
+    expect(captureEvent.mock.results[0].value).toBeUndefined();
     expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 
