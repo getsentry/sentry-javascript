@@ -2,7 +2,7 @@ import { RewriteFrames } from '@sentry/integrations';
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
 import { Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, logger, SentryError } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { init } from '../src/index.server';
@@ -16,6 +16,7 @@ const global = getGlobalObject();
 (global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
+const logError = jest.spyOn(logger, 'error');
 
 describe('Server init()', () => {
   afterEach(() => {
@@ -85,6 +86,18 @@ describe('Server init()', () => {
 
     // @ts-ignore need access to protected _tags attribute
     expect(currentScope._tags.vercel).toBeUndefined();
+  });
+
+  it('adds 404 transaction filter', () => {
+    init({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+    });
+
+    const transaction = getCurrentHub().startTransaction({ name: '/404' });
+    transaction.finish();
+
+    expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {
