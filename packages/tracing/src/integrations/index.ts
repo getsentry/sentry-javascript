@@ -1,4 +1,5 @@
 export { Express } from './node/express';
-export { Postgres } from './node/postgres';
-export { Mysql } from './node/mysql';
 export { Mongo } from './node/mongo';
+export { Mysql } from './node/mysql';
+export { Postgres } from './node/postgres';
+export { SocketIO } from './node/socket.io';
