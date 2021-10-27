@@ -62,13 +62,13 @@ for NEXTJS_VERSION in 10 11 12; do
   linkcli && linkplugin
   mv -f package.json.bak package.json 2>/dev/null || true
 
-  WEBPACK_VAR=(true)
+  SHOULD_RUN_WEBPACK_5=(true)
   # Only run Webpack 4 tests for Next 10 and Next 11
   if [ "$NEXTJS_VERSION" -eq "10" ] || [ "$NEXTJS_VERSION" -eq "11" ]; then
-    WEBPACK_VAR+=(false)
+    SHOULD_RUN_WEBPACK_5+=(false)
   fi
 
-  for RUN_WEBPACK_5 in ${WEBPACK_VAR[*]}; do
+  for RUN_WEBPACK_5 in ${SHOULD_RUN_WEBPACK_5[*]}; do
     [ "$RUN_WEBPACK_5" == true ] &&
       WEBPACK_VERSION=5 ||
       WEBPACK_VERSION=4
