@@ -3,6 +3,8 @@ import { getCurrentHub } from '@sentry/browser';
 import { formatComponentName, generateComponentTrace } from './components';
 import { Options, ViewModel, Vue } from './types';
 
+type UnknownFunc = (...args: unknown[]) => void;
+
 export const attachErrorHandler = (app: Vue, options: Options): void => {
   const { errorHandler, warnHandler, silent } = app.config;
 
@@ -30,7 +32,7 @@ export const attachErrorHandler = (app: Vue, options: Options): void => {
     });
 
     if (typeof errorHandler === 'function') {
-      errorHandler.call(app, error, vm, lifecycleHook);
+      (errorHandler as UnknownFunc).call(app, error, vm, lifecycleHook);
     }
 
     if (options.logErrors) {
@@ -38,7 +40,7 @@ export const attachErrorHandler = (app: Vue, options: Options): void => {
       const message = `Error in ${lifecycleHook}: "${error && error.toString()}"`;
 
       if (warnHandler) {
-        warnHandler.call(null, message, vm, trace);
+        (warnHandler as UnknownFunc).call(null, message, vm, trace);
       } else if (hasConsole && !silent) {
         // eslint-disable-next-line no-console
         console.error(`[Vue warn]: ${message}${trace}`);

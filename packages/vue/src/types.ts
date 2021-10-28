@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BrowserOptions } from '@sentry/browser';
 
-// This is not great, but kinda nacessary to make it woth with Vue@2 and Vue@3 at the same time.
+// This is not great, but kinda necessary to make it woth with Vue@2 and Vue@3 at the same time.
 export interface Vue {
   config: {
     errorHandler?: any;
     warnHandler?: any;
     silent?: boolean;
   };
-  mixin: (mixins: any) => void;
+  mixin: (mixins: Partial<Record<Hook, any>>) => void;
 }
 
 export type ViewModel = {

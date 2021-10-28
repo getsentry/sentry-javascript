@@ -163,7 +163,7 @@ module.exports = {
       env: {
         jest: true,
       },
-      files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx'],
+      files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx', 'test/**/*.ts', 'test/**/*.js'],
       rules: {
         'max-lines': 'off',
 
