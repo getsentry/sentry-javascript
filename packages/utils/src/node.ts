@@ -1,4 +1,9 @@
 /**
+ * NOTE: In order to avoid circular dependencies, if you add a function to this module and it needs to print something,
+ * you must either a) use `console.log` rather than the logger, or b) put your function elsewhere.
+ */
+
+/**
  * Checks whether we're in the Node.js or Browser environment
  *
  * @returns Answer to given question
