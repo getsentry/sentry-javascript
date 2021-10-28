@@ -1,4 +1,4 @@
-import { init } from "@sentry/browser";
+import { init, startTransaction } from "@sentry/browser";
 import "@sentry/tracing";
 
 init({
@@ -6,7 +6,7 @@ init({
   tracesSampleRate: 1.0,
 });
 
-const transaction = Sentry.startTransaction({ op: "task", name: "Important Stuff" });
+const transaction = startTransaction({ op: "task", name: "Important Stuff" });
 
 setTimeout(() => {
   transaction.finish();
