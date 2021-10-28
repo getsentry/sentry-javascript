@@ -13,6 +13,7 @@ interface VueSentry extends ViewModel {
     [key: string]: Span;
   };
   $_sentryRootSpan?: Span;
+  $_sentryRootSpanTimer?: ReturnType<typeof setTimeout>;
 }
 
 // Mappings from operation to corresponding lifecycle hook.
@@ -23,7 +24,6 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   mount: ['beforeMount', 'mounted'],
   update: ['beforeUpdate', 'updated'],
 };
-let ROOT_SPAN_TIMER: ReturnType<typeof setTimeout>;
 
 /** Grabs active transaction off scope, if any */
 function getActiveTransaction(): Transaction | undefined {
@@ -34,11 +34,11 @@ function getActiveTransaction(): Transaction | undefined {
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */
 function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void {
-  if (ROOT_SPAN_TIMER) {
-    clearTimeout(ROOT_SPAN_TIMER);
+  if (vm.$_sentryRootSpanTimer) {
+    clearTimeout(vm.$_sentryRootSpanTimer);
   }
 
-  ROOT_SPAN_TIMER = setTimeout(() => {
+  vm.$_sentryRootSpanTimer = setTimeout(() => {
     if (vm.$root?.$_sentryRootSpan) {
       vm.$root.$_sentryRootSpan.finish(timestamp);
       vm.$root.$_sentryRootSpan = undefined;
@@ -71,7 +71,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               this.$_sentryRootSpan ||
               activeTransaction.startChild({
                 description: 'Application Render',
-                op: 'Vue',
+                op: 'vue',
               });
           }
         }

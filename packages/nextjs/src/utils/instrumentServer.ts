@@ -1,6 +1,13 @@
-import { captureException, deepReadDirSync, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
+import {
+  captureException,
+  configureScope,
+  deepReadDirSync,
+  getCurrentHub,
+  Handlers,
+  startTransaction,
+} from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { addExceptionMechanism, fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
@@ -145,8 +152,26 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
  */
 function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogger {
   return function(this: Server, err: Error): void {
-    // TODO add context data here
+    // TODO add more context data here
+
+    // We can use `configureScope` rather than `withScope` here because we're using domains to ensure that each request
+    // gets its own scope. (`configureScope` has the advantage of not creating a clone of the current scope before
+    // modifying it, which in this case is unnecessary.)
+    configureScope(scope => {
+      scope.addEventProcessor(event => {
+        addExceptionMechanism(event, {
+          type: 'instrument',
+          handled: true,
+          data: {
+            function: 'logError',
+          },
+        });
+        return event;
+      });
+    });
+
     captureException(err);
+
     return origErrorLogger.call(this, err);
   };
 }

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, StackFrame } from '@sentry/types';
+import { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
 import { snipLine } from './string';
@@ -125,29 +125,25 @@ export function addExceptionTypeValue(event: Event, value?: string, type?: strin
 }
 
 /**
- * Adds exception mechanism to a given event.
+ * Adds exception mechanism data to a given event. Uses defaults if the second parameter is not passed.
+ *
  * @param event The event to modify.
- * @param mechanism Mechanism of the mechanism.
+ * @param newMechanism Mechanism data to add to the event.
  * @hidden
  */
-export function addExceptionMechanism(
-  event: Event,
-  mechanism: {
-    [key: string]: any;
-  } = {},
-): void {
-  // TODO: Use real type with `keyof Mechanism` thingy and maybe make it better?
-  try {
-    // @ts-ignore Type 'Mechanism | {}' is not assignable to type 'Mechanism | undefined'
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event.exception!.values![0].mechanism = event.exception!.values![0].mechanism || {};
-    Object.keys(mechanism).forEach(key => {
-      // @ts-ignore Mechanism has no index signature
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      event.exception!.values![0].mechanism[key] = mechanism[key];
-    });
-  } catch (_oO) {
-    // no-empty
+export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mechanism>): void {
+  if (!event.exception || !event.exception.values) {
+    return;
+  }
+  const exceptionValue0 = event.exception.values[0];
+
+  const defaultMechanism = { type: 'generic', handled: true };
+  const currentMechanism = exceptionValue0.mechanism;
+  exceptionValue0.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
+
+  if (newMechanism && 'data' in newMechanism) {
+    const mergedData = { ...currentMechanism?.data, ...newMechanism.data };
+    exceptionValue0.mechanism.data = mergedData;
   }
 }
 
@@ -240,4 +236,44 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
 export function stripUrlQueryAndFragment(urlPath: string): string {
   // eslint-disable-next-line no-useless-escape
   return urlPath.split(/[\?#]/, 1)[0];
+}
+
+/**
+ * Checks whether or not we've already captured the given exception (note: not an identical exception - the very object
+ * in question), and marks it captured if not.
+ *
+ * This is useful because it's possible for an error to get captured by more than one mechanism. After we intercept and
+ * record an error, we rethrow it (assuming we've intercepted it before it's reached the top-level global handlers), so
+ * that we don't interfere with whatever effects the error might have had were the SDK not there. At that point, because
+ * the error has been rethrown, it's possible for it to bubble up to some other code we've instrumented. If it's not
+ * caught after that, it will bubble all the way up to the global handlers (which of course we also instrument). This
+ * function helps us ensure that even if we encounter the same error more than once, we only record it the first time we
+ * see it.
+ *
+ * Note: It will ignore primitives (always return `false` and not mark them as seen), as properties can't be set on
+ * them. {@link: Object.objectify} can be used on exceptions to convert any that are primitives into their equivalent
+ * object wrapper forms so that this check will always work. However, because we need to flag the exact object which
+ * will get rethrown, and because that rethrowing happens outside of the event processing pipeline, the objectification
+ * must be done before the exception captured.
+ *
+ * @param A thrown exception to check or flag as having been seen
+ * @returns `true` if the exception has already been captured, `false` if not (with the side effect of marking it seen)
+ */
+export function checkOrSetAlreadyCaught(exception: unknown): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if ((exception as any)?.__sentry_captured__) {
+    return true;
+  }
+
+  try {
+    // set it this way rather than by assignment so that it's not ennumerable and therefore isn't recorded by the
+    // `ExtraErrorData` integration
+    Object.defineProperty(exception, '__sentry_captured__', {
+      value: true,
+    });
+  } catch (err) {
+    // `exception` is a primitive, so we can't mark it seen
+  }
+
+  return false;
 }

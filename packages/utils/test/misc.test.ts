@@ -1,6 +1,13 @@
-import { StackFrame } from '@sentry/types';
+import { Event, Mechanism, StackFrame } from '@sentry/types';
 
-import { addContextToFrame, getEventDescription, parseRetryAfterHeader, stripUrlQueryAndFragment } from '../src/misc';
+import {
+  addContextToFrame,
+  addExceptionMechanism,
+  checkOrSetAlreadyCaught,
+  getEventDescription,
+  parseRetryAfterHeader,
+  stripUrlQueryAndFragment,
+} from '../src/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {
@@ -218,5 +225,97 @@ describe('stripQueryStringAndFragment', () => {
   it('strips query string and fragment from url', () => {
     const urlWithQueryStringAndFragment = `${urlString}${queryString}${fragment}`;
     expect(stripUrlQueryAndFragment(urlWithQueryStringAndFragment)).toBe(urlString);
+  });
+});
+
+describe('addExceptionMechanism', () => {
+  const defaultMechanism = { type: 'generic', handled: true };
+
+  type EventWithException = Event & {
+    exception: {
+      values: [{ type?: string; value?: string; mechanism?: Mechanism }];
+    };
+  };
+
+  const baseEvent: EventWithException = {
+    exception: { values: [{ type: 'Error', value: 'Oh, no! Charlie ate the flip-flops! :-(' }] },
+  };
+
+  it('uses default values', () => {
+    const event = { ...baseEvent };
+
+    addExceptionMechanism(event);
+
+    expect(event.exception.values[0].mechanism).toEqual(defaultMechanism);
+  });
+
+  it('prefers current values to defaults', () => {
+    const event = { ...baseEvent };
+
+    const nonDefaultMechanism = { type: 'instrument', handled: false };
+    event.exception.values[0].mechanism = nonDefaultMechanism;
+
+    addExceptionMechanism(event);
+
+    expect(event.exception.values[0].mechanism).toEqual(nonDefaultMechanism);
+  });
+
+  it('prefers incoming values to current values', () => {
+    const event = { ...baseEvent };
+
+    const currentMechanism = { type: 'instrument', handled: false };
+    const newMechanism = { handled: true, synthetic: true };
+    event.exception.values[0].mechanism = currentMechanism;
+
+    addExceptionMechanism(event, newMechanism);
+
+    // the new `handled` value took precedence
+    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+  });
+
+  it('merges data values', () => {
+    const event = { ...baseEvent };
+
+    const currentMechanism = { ...defaultMechanism, data: { function: 'addEventListener' } };
+    const newMechanism = { data: { handler: 'organizeShoes', target: 'closet' } };
+    event.exception.values[0].mechanism = currentMechanism;
+
+    addExceptionMechanism(event, newMechanism);
+
+    expect(event.exception.values[0].mechanism.data).toEqual({
+      function: 'addEventListener',
+      handler: 'organizeShoes',
+      target: 'closet',
+    });
+  });
+});
+
+describe('checkOrSetAlreadyCaught()', () => {
+  describe('ignores primitives', () => {
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['number', 1231],
+      ['boolean', true],
+      ['string', 'Dogs are great!'],
+    ])('%s', (_case: string, exception: unknown): void => {
+      // in this case, "ignore" just means reporting them as unseen without actually doing anything to them (which of
+      // course it can't anyway, because primitives are immutable)
+      expect(checkOrSetAlreadyCaught(exception)).toBe(false);
+    });
+  });
+
+  it("recognizes exceptions it's seen before", () => {
+    // `exception` can be any object - an `Error`, a class instance, or a plain object
+    const exception = { message: 'Oh, no! Charlie ate the flip-flops! :-(', __sentry_captured__: true };
+
+    expect(checkOrSetAlreadyCaught(exception)).toBe(true);
+  });
+
+  it('recognizes new exceptions as new and marks them as seen', () => {
+    const exception = { message: 'Oh, no! Charlie ate the flip-flops! :-(' };
+
+    expect(checkOrSetAlreadyCaught(exception)).toBe(false);
+    expect((exception as any).__sentry_captured__).toBe(true);
   });
 });
