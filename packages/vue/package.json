@@ -28,7 +28,6 @@
     "vue-router": "3.x || 4.x"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.13.3",
     "jest": "^24.7.1",
     "jsdom": "^16.2.2",
     "npm-run-all": "^4.1.2",

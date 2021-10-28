@@ -33,7 +33,6 @@
     "gatsby": "^2.0.0 || ^3.0.0"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.13.3",
     "@sentry/types": "6.13.3",
     "@testing-library/react": "^10.4.9",
     "jest": "^24.7.1",

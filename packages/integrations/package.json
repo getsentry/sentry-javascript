@@ -22,7 +22,6 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.13.3",
     "chai": "^4.1.2",
     "jest": "^24.7.1",
     "npm-run-all": "^4.1.2",
