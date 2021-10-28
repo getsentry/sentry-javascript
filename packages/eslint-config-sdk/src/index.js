@@ -172,6 +172,8 @@ module.exports = {
         '@typescript-eslint/no-unused-expressions': 'off',
         '@typescript-eslint/no-unsafe-member-access': 'off',
         '@typescript-eslint/explicit-member-accessibility': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
       },
     },
     {
