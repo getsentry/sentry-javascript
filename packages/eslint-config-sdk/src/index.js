@@ -166,7 +166,6 @@ module.exports = {
       files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx', 'test/**/*.ts', 'test/**/*.js'],
       rules: {
         'max-lines': 'off',
-
         '@typescript-eslint/explicit-function-return-type': 'off',
         'no-unused-expressions': 'off',
         '@typescript-eslint/no-unused-expressions': 'off',
