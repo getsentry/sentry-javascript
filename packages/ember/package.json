@@ -31,7 +31,7 @@
     "test:ember-compatibility": "ember try:each"
   },
   "dependencies": {
-    "@embroider/macros": "~0.37.0",
+    "@embroider/macros": "^0.47.1",
     "@sentry/browser": "6.13.3",
     "@sentry/tracing": "6.13.3",
     "@sentry/types": "6.13.3",
