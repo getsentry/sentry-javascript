@@ -12,7 +12,6 @@ module.exports = {
     'build/**',
     'dist/**',
     'esm/**',
-    'cjs/**',
     'examples/**',
     'scripts/**',
     'test/manual/**',
