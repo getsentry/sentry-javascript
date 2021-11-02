@@ -22,6 +22,13 @@ module.exports = {
       parserOptions: {
         project: './tsconfig.json',
       },
-    }
+    },
+    {
+      files: ['*.tsx'],
+      rules: {
+        // Turn off jsdoc on tsx files until jsdoc is fixed for tsx files
+        'jsdoc/require-jsdoc': 'off',
+      },
+    },
   ],
 };
