@@ -31,5 +31,11 @@ module.exports = {
         'jsdoc/require-jsdoc': 'off',
       },
     },
+    {
+      files: ["scenarios/**"],
+      parserOptions: {
+        sourceType: "module",
+      },
+    },
   ],
 };

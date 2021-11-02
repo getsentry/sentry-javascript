@@ -1,0 +1,6 @@
+{
+  "name": "basic-with-sessions",
+  "main": "index.js",
+  "private": true,
+  "version": "0.0.0"
+}
