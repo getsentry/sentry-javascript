@@ -6,29 +6,26 @@
 
 ## 6.14.0
 
-- fix(browser): Send client outcomes through tunnel if configured (#4031)
-- feat(awslambda): add requestId filter to aws.cloudwatch.logs URL (#4032)
-- fix(node): Check for potentially undefined httpModule (#4037)
-- feat(integrations): Call toJSON of originalException to extract more data (#4038)
-- feat(integrations): console.error is captured as an exception (#4034)
-- feat(gatsby): Support user integrations as a function (#4050)
-- feat(nextjs): Add mechanism to withSentry-caught errors (#4046)
-- fix(docs): Fix docstring for enabled option (#4052)
-- fix(nextjs): Remove logic merging include values in withSentryConfig (#4056)
-- fix(nextjs): Fix types in config code (#4057)
 - chore(deps): Bump @sentry/webpack-plugin to 1.18.1 (#4063)
-- fix(utils): Prevent logger circular dependencies (#4069)
-- fix(core): Be stricter about mechanism values (#4068)
-- feat(nextjs): Add mechanism to error-logger-caught errors (#4061)
-- fix(core): Prevent exception recapturing (#4067)
+- feat(awslambda): Add requestId filter to aws.cloudwatch.logs URL (#4032)
 - feat(gatsby): Support non-serializable SDK options (#4064)
-- fix(vue): Move ROOT_SPAN_TIMER into Vue context. (#4081)
-- fix(tracing): Update paths for DB drivers auto-instrumentation (#4083)
-- fix(vue): Make vue span operation lowercase (#4084)
-- fix(nextjs): Always initialize SDK with global hub (#4086)
+- feat(gatsby): Support user integrations as a function (#4050)
+- feat(integrations): Call toJSON of originalException to extract more data (#4038)
+- feat(integrations): Capture console.error as an exception (#4034)
+- feat(nextjs): Add mechanism to error-logger-caught errors (#4061)
+- feat(nextjs): Add mechanism to withSentry-caught errors (#4046)
 - feat(nextjs): Tag backend events when running on vercel (#4091)
+- fix(browser): Send client outcomes through tunnel if configured (#4031)
+- fix(core): Be stricter about mechanism values (#4068)
+- fix(core): Prevent exception recapturing (#4067)
+- fix(nextjs): Always initialize SDK with global hub (#4086)
+- fix(nextjs): Fix types in config code (#4057)
+- fix(nextjs): Remove logic merging include values in withSentryConfig (#4056)
+- fix(node): Check for potentially undefined httpModule (#4037)
+- fix(tracing): Update paths for DB drivers auto-instrumentation (#4083)
+- fix(vue): Move ROOT_SPAN_TIMER into Vue context. (#4081)
 
-Features, fixes and improvements in this release have been contributed by: @tmilar, @deammer, @freekii. Thank you for your contributions!
+Features, fixes, and improvements in this release have been contributed by: @tmilar, @deammer, @freekii. Thank you for your contributions!
 
 ## 6.13.3
 
