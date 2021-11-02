@@ -23,7 +23,6 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.13.3",
     "@sentry/browser": "6.13.3",
     "@types/express": "^4.17.1",
     "@types/jsdom": "^16.2.3",
