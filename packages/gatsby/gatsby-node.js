@@ -1,4 +1,5 @@
 const fs = require('fs');
+
 const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 
 const sentryRelease = JSON.stringify(
