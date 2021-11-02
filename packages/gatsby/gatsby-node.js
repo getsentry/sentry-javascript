@@ -1,4 +1,5 @@
 const fs = require('fs');
+const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 
 const sentryRelease = JSON.stringify(
   // Always read first as Sentry takes this as precedence
@@ -28,6 +29,26 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
       }),
     ],
   });
+
+  if (process.env.NODE_ENV === 'production') {
+    actions.setWebpackConfig({
+      plugins: [
+        new SentryWebpackPlugin({
+          include: 'public',
+          ignore: ['app-*', 'polyfill-*', 'framework-*', 'webpack-runtime-*'],
+          // Handle sentry-cli configuration errors when the user has not done it not to break
+          // the build.
+          errorHandler(err, invokeErr) {
+            const { message } = err;
+            if (message.includes('organization slug is required') || message.includes('project slug is required')) {
+              return;
+            }
+            invokeErr(err);
+          },
+        }),
+      ],
+    });
+  }
 
   // To configure the SDK, SENTRY_USER_CONFIG is prioritized over `gatsby-config.js`,
   // since it isn't possible to set non-serializable parameters in the latter.
