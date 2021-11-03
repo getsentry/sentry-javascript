@@ -27,6 +27,7 @@ module.exports = {
       files: ['*.tsx'],
       rules: {
         // Turn off jsdoc on tsx files until jsdoc is fixed for tsx files
+        // See: https://github.com/getsentry/sentry-javascript/issues/3871
         'jsdoc/require-jsdoc': 'off',
       },
     },
