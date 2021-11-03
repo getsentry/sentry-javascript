@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException } from '@sentry/browser';
 import { Transaction, TransactionContext } from '@sentry/types';
 
@@ -61,6 +62,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
 
       if (startTransactionOnLocationChange && !isPageLoadNavigation) {
         startTransaction({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           name: to.name || (to.matched[0] && to.matched[0].path) || to.path,
           op: 'navigation',
           tags,

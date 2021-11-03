@@ -17,6 +17,10 @@
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
+## Compatibility
+
+Currently, the Sentry Next.js SDK supports Next.js versions `10.0.8` - `11.1.3`. The SDK may work with some projects using Next.js 12, but it is not yet officially supported.
+
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Next.js.
