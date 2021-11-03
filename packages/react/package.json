@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react",
-  "version": "6.11.0",
+  "version": "6.14.0",
   "description": "Official Sentry SDK for React.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
@@ -16,10 +16,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "6.11.0",
-    "@sentry/minimal": "6.11.0",
-    "@sentry/types": "6.11.0",
-    "@sentry/utils": "6.11.0",
+    "@sentry/browser": "6.14.0",
+    "@sentry/minimal": "6.14.0",
+    "@sentry/types": "6.14.0",
+    "@sentry/utils": "6.14.0",
     "hoist-non-react-statics": "^3.3.2",
     "tslib": "^1.9.3"
   },
@@ -27,7 +27,7 @@
     "react": "15.x || 16.x || 17.x"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.11.0",
+    "@sentry-internal/eslint-config-sdk": "6.14.0",
     "@testing-library/react": "^11.2.6",
     "@testing-library/react-hooks": "^5.1.1",
     "@types/history-4": "npm:@types/history@4.7.8",
@@ -57,23 +57,25 @@
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
+    "build:dev": "run-s build",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:watch:es5 build:watch:esm",
-    "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
-    "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "build:watch": "run-p build:es5:watch build:esm:watch",
+    "build:dev:watch": "run-s build:watch",
+    "build:es5:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm build coverage",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "pack": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts"
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "volta": {
     "extends": "../../package.json"

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/hub';
 
-import { Mongo } from '../../src/integrations/mongo';
-import { Span } from '../../src/span';
+import { Mongo } from '../../../src/integrations/node/mongo';
+import { Span } from '../../../src/span';
 
 class Collection {
   public collectionName: string = 'mockedCollectionName';

@@ -43,7 +43,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  */
 function sample<T extends Transaction>(transaction: T, options: Options, samplingContext: SamplingContext): T {
   // nothing to do if tracing is not enabled
-  if (!hasTracingEnabled()) {
+  if (!hasTracingEnabled(options)) {
     transaction.sampled = false;
     return transaction;
   }
@@ -232,19 +232,25 @@ function _autoloadDatabaseIntegrations(): void {
 
   const packageToIntegrationMapping: Record<string, () => Integration> = {
     mongodb() {
-      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass<Integration> };
+      const integration = dynamicRequire(module, './integrations/node/mongo') as {
+        Mongo: IntegrationClass<Integration>;
+      };
       return new integration.Mongo();
     },
     mongoose() {
-      const integration = dynamicRequire(module, './integrations/mongo') as { Mongo: IntegrationClass<Integration> };
+      const integration = dynamicRequire(module, './integrations/node/mongo') as {
+        Mongo: IntegrationClass<Integration>;
+      };
       return new integration.Mongo({ mongoose: true });
     },
     mysql() {
-      const integration = dynamicRequire(module, './integrations/mysql') as { Mysql: IntegrationClass<Integration> };
+      const integration = dynamicRequire(module, './integrations/node/mysql') as {
+        Mysql: IntegrationClass<Integration>;
+      };
       return new integration.Mysql();
     },
     pg() {
-      const integration = dynamicRequire(module, './integrations/postgres') as {
+      const integration = dynamicRequire(module, './integrations/node/postgres') as {
         Postgres: IntegrationClass<Integration>;
       };
       return new integration.Postgres();

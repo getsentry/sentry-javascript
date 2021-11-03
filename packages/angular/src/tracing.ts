@@ -2,7 +2,7 @@ import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnIni
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
-import { logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
+import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
 import { Observable, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
@@ -11,6 +11,8 @@ import { runOutsideAngular } from './zone';
 let instrumentationInitialized: boolean;
 let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let stashedStartTransactionOnLocationChange: boolean;
+
+const global = getGlobalObject<Window>();
 
 /**
  * Creates routing instrumentation for Angular Router.
@@ -26,7 +28,7 @@ export function routingInstrumentation(
 
   if (startTransactionOnPageLoad) {
     customStartTransaction({
-      name: window.location.pathname,
+      name: global.location.pathname,
       op: 'pageload',
     });
   }

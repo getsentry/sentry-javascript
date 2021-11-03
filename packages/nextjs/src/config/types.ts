@@ -1,19 +1,22 @@
 import { SentryCliPluginOptions } from '@sentry/webpack-plugin';
+import { WebpackPluginInstance } from 'webpack';
 
 export type SentryWebpackPluginOptions = SentryCliPluginOptions;
-export type SentryWebpackPlugin = { options: SentryWebpackPluginOptions };
+export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };
 
 /**
  * Overall Nextjs config
  */
 
-export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
+export type ExportedNextConfig = Partial<NextConfigObject> | NextConfigFunction;
 
 export type NextConfigObject = {
   // custom webpack options
-  webpack?: WebpackConfigFunction;
+  webpack: WebpackConfigFunction;
   // whether to build serverless functions for all pages, not just API routes
-  target?: 'server' | 'experimental-serverless-trace';
+  target: 'server' | 'experimental-serverless-trace';
+  // the output directory for the built app (defaults to ".next")
+  distDir: string;
   sentry?: {
     disableServerWebpackPlugin?: boolean;
     disableClientWebpackPlugin?: boolean;
@@ -25,8 +28,8 @@ export type NextConfigObject = {
 
 export type NextConfigFunction = (
   phase: string,
-  defaults: { defaultConfig: { [key: string]: unknown } },
-) => NextConfigObject;
+  defaults: { defaultConfig: NextConfigObject },
+) => Partial<NextConfigObject>;
 
 /**
  * Webpack config
@@ -37,11 +40,14 @@ export type WebpackConfigFunction = (config: WebpackConfigObject, options: Build
 
 export type WebpackConfigObject = {
   devtool?: string;
-  plugins?: Array<{ [key: string]: unknown }>;
+  plugins?: Array<WebpackPluginInstance | SentryWebpackPlugin>;
   entry: WebpackEntryProperty;
   output: { filename: string; path: string };
   target: string;
   context: string;
+  resolve?: {
+    alias?: { [key: string]: string | boolean };
+  };
 } & {
   // other webpack options
   [key: string]: unknown;
@@ -53,7 +59,7 @@ export type BuildContext = {
   isServer: boolean;
   buildId: string;
   dir: string;
-  config: Partial<NextConfigObject>;
+  config: NextConfigObject;
   webpack: { version: string };
 };
 

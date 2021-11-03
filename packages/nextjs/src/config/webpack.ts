@@ -1,12 +1,12 @@
 import { getSentryRelease } from '@sentry/node';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
-import * as SentryWebpackPlugin from '@sentry/webpack-plugin';
+import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import {
   BuildContext,
-  EntryPointValue,
   EntryPropertyObject,
   NextConfigObject,
   SentryWebpackPluginOptions,
@@ -34,7 +34,7 @@ export { SentryWebpackPlugin };
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(
-  userNextConfig: NextConfigObject = {},
+  userNextConfig: Partial<NextConfigObject> = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
@@ -60,6 +60,24 @@ export function constructWebpackConfigFunction(
     const origEntryProperty = newConfig.entry;
     newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
 
+    // In webpack 5, you can get webpack to replace any module you'd like with an empty object, just by setting its
+    // `resolve.alias` value to `false`. Not much of our code is neatly separated into "things node needs" and "things
+    // the browser needs," but where it is, we can save ~1.6 kb in eventual bundle size by excluding code we know we
+    // don't need. (Normally this would only matter for the client side, but because vercel turns backend code into
+    // serverless functions, it's worthwhile to do it for both.)
+    if (buildContext.webpack.version.startsWith('5')) {
+      const excludedTracingDir = buildContext.isServer ? 'browser' : 'integrations/node';
+      newConfig.resolve = {
+        ...newConfig.resolve,
+        alias: {
+          ...newConfig.resolve?.alias,
+          [path.resolve(buildContext.dir, `./node_modules/@sentry/tracing/esm/${excludedTracingDir}`)]: false,
+          // TODO It's not clear if it will ever pull from `dist` (in testing it never does), so we may not need this.
+          [path.resolve(buildContext.dir, `./node_modules/@sentry/tracing/dist/${excludedTracingDir}`)]: false,
+        },
+      };
+    }
+
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     const enableWebpackPlugin = buildContext.isServer
       ? !userNextConfig.sentry?.disableServerWebpackPlugin
@@ -78,8 +96,6 @@ export function constructWebpackConfigFunction(
 
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
-        // @ts-ignore Our types for the plugin are messed up somehow - TS wants this to be `SentryWebpackPlugin.default`,
-        // but that's not actually a thing
         new SentryWebpackPlugin(getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions)),
       );
     }
@@ -112,14 +128,31 @@ async function addSentryToEntryProperty(
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
+  // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
   const userConfigFile = buildContext.isServer
     ? getUserConfigFile(buildContext.dir, 'server')
     : getUserConfigFile(buildContext.dir, 'client');
 
+  // we need to turn the filename into a path so webpack can find it
+  const filesToInject = [`./${userConfigFile}`];
+
+  // Support non-default output directories by making the output path (easy to get here at build-time) available to the
+  // server SDK's default `RewriteFrames` instance (which needs it at runtime).
+  if (buildContext.isServer) {
+    const rewriteFramesHelper = path.resolve(
+      fs.mkdtempSync(path.resolve(os.tmpdir(), 'sentry-')),
+      'rewriteFramesHelper.js',
+    );
+    fs.writeFileSync(rewriteFramesHelper, `global.__rewriteFramesDistDir__ = '${buildContext.config.distDir}';\n`);
+    // stick our helper file ahead of the user's config file so the value is in the global namespace *before*
+    // `Sentry.init()` is called
+    filesToInject.unshift(rewriteFramesHelper);
+  }
+
+  // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName)) {
-      // we need to turn the filename into a path so webpack can find it
-      addFileToExistingEntryPoint(newEntryProperty, entryPointName, `./${userConfigFile}`);
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     }
   }
 
@@ -147,25 +180,25 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
 }
 
 /**
- * Add a file to a specific element of the given `entry` webpack config property.
+ * Add files to a specific element of the given `entry` webpack config property.
  *
  * @param entryProperty The existing `entry` config object
  * @param entryPointName The key where the file should be injected
- * @param filepath The path to the injected file
+ * @param filepaths An array of paths to the injected files
  */
-function addFileToExistingEntryPoint(
+function addFilesToExistingEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
-  filepath: string,
+  filepaths: string[],
 ): void {
   // can be a string, array of strings, or object whose `import` property is one of those two
   const currentEntryPoint = entryProperty[entryPointName];
-  let newEntryPoint: EntryPointValue;
+  let newEntryPoint = currentEntryPoint;
 
   if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [filepath, currentEntryPoint];
+    newEntryPoint = [...filepaths, currentEntryPoint];
   } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [filepath, ...currentEntryPoint];
+    newEntryPoint = [...filepaths, ...currentEntryPoint];
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
@@ -173,25 +206,26 @@ function addFileToExistingEntryPoint(
     let newImportValue;
 
     if (typeof currentImportValue === 'string') {
-      newImportValue = [filepath, currentImportValue];
+      newImportValue = [...filepaths, currentImportValue];
     } else {
-      newImportValue = [filepath, ...currentImportValue];
+      newImportValue = [...filepaths, ...currentImportValue];
     }
 
     newEntryPoint = {
       ...currentEntryPoint,
       import: newImportValue,
     };
-  } else {
-    // mimic the logger prefix in order to use `console.warn` (which will always be printed, regardless of SDK settings)
+  }
+  // malformed entry point (use `console.error` rather than `logger.error` because it will always be printed, regardless
+  // of SDK settings)
+  else {
     // eslint-disable-next-line no-console
     console.error(
       'Sentry Logger [Error]:',
-      `Could not inject SDK initialization code into entry point ${entryPointName}, as it is not a recognized format.\n`,
+      `Could not inject SDK initialization code into entry point ${entryPointName}, as its current value is not in a recognized format.\n`,
       `Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n`,
       `Got: ${currentEntryPoint}`,
     );
-    return;
   }
 
   entryProperty[entryPointName] = newEntryPoint;
@@ -238,23 +272,25 @@ function shouldAddSentryToEntryPoint(entryPointName: string): boolean {
  * @param userPluginOptions User-provided SentryWebpackPlugin options
  * @returns Final set of combined options
  */
-function getWebpackPluginOptions(
+export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): SentryWebpackPluginOptions {
   const { isServer, dir: projectDir, buildId, dev: isDev, config: nextConfig, webpack } = buildContext;
+  const distDir = nextConfig.distDir ?? '.next'; // `.next` is the default directory
 
   const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = nextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
+  const urlPrefix = nextConfig.basePath ? `~${nextConfig.basePath}/_next` : '~/_next';
 
   const serverInclude = isServerless
-    ? [{ paths: ['.next/serverless/'], urlPrefix: '~/_next/serverless' }]
-    : [{ paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' }].concat(
-        isWebpack5 ? [{ paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' }] : [],
+    ? [{ paths: [`${distDir}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
+    : [{ paths: [`${distDir}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` }].concat(
+        isWebpack5 ? [{ paths: [`${distDir}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
-  const clientInclude = [{ paths: ['.next/static/chunks/pages'], urlPrefix: '~/_next/static/chunks/pages' }];
+  const clientInclude = [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
@@ -265,7 +301,7 @@ function getWebpackPluginOptions(
     authToken: process.env.SENTRY_AUTH_TOKEN,
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
-    urlPrefix: `~/_next`,
+    urlPrefix,
     entries: shouldAddSentryToEntryPoint,
     release: getSentryRelease(buildId),
     dryRun: isDev,

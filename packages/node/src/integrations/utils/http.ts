@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import * as http from 'http';
+import * as https from 'https';
 import { URL } from 'url';
 
 /**
@@ -122,6 +123,7 @@ export function urlToOptions(url: URL): RequestOptions {
  * @returns Equivalent args of the form [ RequestOptions ] or [ RequestOptions, RequestCallback ].
  */
 export function normalizeRequestArgs(
+  httpModule: typeof http | typeof https,
   requestArgs: RequestMethodArgs,
 ): [RequestOptions] | [RequestOptions, RequestCallback] {
   let callback, requestOptions;
@@ -143,6 +145,17 @@ export function normalizeRequestArgs(
   // if the options were given separately from the URL, fold them in
   if (requestArgs.length === 2) {
     requestOptions = { ...requestOptions, ...requestArgs[1] };
+  }
+
+  // Figure out the protocol if it's currently missing
+  if (requestOptions.protocol === undefined) {
+    // Worst case we end up populating protocol with undefined, which it already is
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
+    requestOptions.protocol =
+      (requestOptions.agent as any)?.protocol ||
+      (requestOptions._defaultAgent as any)?.protocol ||
+      (httpModule?.globalAgent as any)?.protocol;
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
   }
 
   // return args in standardized form

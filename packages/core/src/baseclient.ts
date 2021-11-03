@@ -7,10 +7,13 @@ import {
   Integration,
   IntegrationClass,
   Options,
+  Outcome,
   SessionStatus,
   Severity,
+  Transport,
 } from '@sentry/types';
 import {
+  checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
   Dsn,
   isPlainObject,
@@ -26,6 +29,8 @@ import {
 
 import { Backend, BackendClass } from './basebackend';
 import { IntegrationIndex, setupIntegrations } from './integration';
+
+const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -99,6 +104,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+    // ensure we haven't captured this very object before
+    if (checkOrSetAlreadyCaught(exception)) {
+      logger.log(ALREADY_SEEN_ERROR);
+      return;
+    }
+
     let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
@@ -138,6 +149,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+    // ensure we haven't captured this very object before
+    if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
+      logger.log(ALREADY_SEEN_ERROR);
+      return;
+    }
+
     let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
@@ -184,10 +201,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
+  public getTransport(): Transport {
+    return this._getBackend().getTransport();
+  }
+
+  /**
+   * @inheritDoc
+   */
   public flush(timeout?: number): PromiseLike<boolean> {
     return this._isClientDoneProcessing(timeout).then(clientFinished => {
-      return this._getBackend()
-        .getTransport()
+      return this.getTransport()
         .close(timeout)
         .then(transportFlushed => clientFinished && transportFlushed);
     });
@@ -498,6 +521,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
+    const transport = this.getTransport();
 
     if (!this._isEnabled()) {
       return SyncPromise.reject(new SentryError('SDK not enabled, will not capture event.'));
@@ -508,6 +532,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
+      transport.recordLostEvent?.(Outcome.SampleRate, 'event');
       return SyncPromise.reject(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -518,6 +543,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     return this._prepareEvent(event, scope, hint)
       .then(prepared => {
         if (prepared === null) {
+          transport.recordLostEvent?.(Outcome.EventProcessor, event.type || 'event');
           throw new SentryError('An event processor returned null, will not send event.');
         }
 
@@ -531,6 +557,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       })
       .then(processedEvent => {
         if (processedEvent === null) {
+          transport.recordLostEvent?.(Outcome.BeforeSend, event.type || 'event');
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 

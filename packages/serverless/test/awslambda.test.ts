@@ -390,6 +390,7 @@ describe('AWSLambda', () => {
             {
               mechanism: {
                 handled: false,
+                type: 'generic',
               },
             },
           ],

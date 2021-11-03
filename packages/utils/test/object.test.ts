@@ -3,7 +3,14 @@
  */
 
 import * as isModule from '../src/is';
-import { dropUndefinedKeys, extractExceptionKeysForMessage, fill, normalize, urlEncode } from '../src/object';
+import {
+  dropUndefinedKeys,
+  extractExceptionKeysForMessage,
+  fill,
+  normalize,
+  objectify,
+  urlEncode,
+} from '../src/object';
 import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('fill()', () => {
@@ -636,5 +643,61 @@ describe('dropUndefinedKeys()', () => {
         },
       },
     });
+  });
+});
+
+describe('objectify()', () => {
+  describe('stringifies nullish values', () => {
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+    ])('%s', (stringifiedValue, origValue): void => {
+      const objectifiedNullish = objectify(origValue);
+
+      expect(objectifiedNullish).toEqual(expect.any(String));
+      expect(objectifiedNullish.valueOf()).toEqual(stringifiedValue);
+    });
+  });
+
+  describe('wraps other primitives with their respective object wrapper classes', () => {
+    // TODO: There's currently a bug in Jest - if you give it the `Boolean` class, it runs `typeof received ===
+    // 'boolean'` but not `received instanceof Boolean` (the way it correctly does for other primitive wrappers, like
+    // `Number` and `String). (See https://github.com/facebook/jest/pull/11976.) Once that is fixed and we upgrade jest,
+    // we can comment the test below back in. (The tests for symbols and bigints are working only because our current
+    // version of jest is sufficiently old that they're not even considered in the relevant check and just fall to the
+    // default `instanceof` check jest uses for all unknown classes.)
+
+    it.each([
+      ['number', Number, 1121],
+      ['string', String, 'Dogs are great!'],
+      // ["boolean", Boolean, true],
+      ['symbol', Symbol, Symbol('Maisey')],
+    ])('%s', (_caseName, wrapperClass, primitive) => {
+      const objectifiedPrimitive = objectify(primitive);
+
+      expect(objectifiedPrimitive).toEqual(expect.any(wrapperClass));
+      expect(objectifiedPrimitive.valueOf()).toEqual(primitive);
+    });
+
+    // `BigInt` doesn't exist in Node < 10, so we test it separately here.
+    testOnlyIfNodeVersionAtLeast(10)('bigint', () => {
+      // Hack to get around the fact that literal bigints cause a syntax error in older versions of Node, so the
+      // assignment needs to not even be parsed as code in those versions
+      let bigintPrimitive;
+      eval('bigintPrimitive = 1231n;');
+
+      const objectifiedBigInt = objectify(bigintPrimitive);
+
+      expect(objectifiedBigInt).toEqual(expect.any(BigInt));
+      expect(objectifiedBigInt.valueOf()).toEqual(bigintPrimitive);
+    });
+  });
+
+  it('leaves objects alone', () => {
+    const notAPrimitive = new Object();
+    const objectifiedNonPrimtive = objectify(notAPrimitive);
+
+    // `.toBe()` tests on identity, so this shows no wrapping has occurred
+    expect(objectifiedNonPrimtive).toBe(notAPrimitive);
   });
 });

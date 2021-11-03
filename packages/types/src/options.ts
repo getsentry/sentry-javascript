@@ -15,9 +15,8 @@ export interface Options {
   debug?: boolean;
 
   /**
-   * Specifies whether this SDK should activate and send events to Sentry.
-   * Disabling the SDK reduces all overhead from instrumentation, collecting
-   * breadcrumbs and capturing events. Defaults to true.
+   * Specifies whether this SDK should send events to Sentry.
+   * Defaults to true.
    */
   enabled?: boolean;
 
@@ -131,6 +130,12 @@ export interface Options {
    * By default, Sessions Tracking is enabled.
    */
   autoSessionTracking?: boolean;
+
+  /**
+   * Send SDK Client Reports.
+   * By default, Client Reports are enabled.
+   */
+  sendClientReports?: boolean;
 
   /**
    * Initial data to populate scope.

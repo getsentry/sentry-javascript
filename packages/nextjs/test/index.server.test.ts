@@ -1,23 +1,25 @@
 import { RewriteFrames } from '@sentry/integrations';
 import * as SentryNode from '@sentry/node';
+import { getCurrentHub, NodeClient } from '@sentry/node';
 import { Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
+import * as domain from 'domain';
 
-import { init, Scope } from '../src/index.server';
+import { init } from '../src/index.server';
 import { NextjsOptions } from '../src/utils/nextjsOptions';
 
 const { Integrations } = SentryNode;
 
 const global = getGlobalObject();
 
-let configureScopeCallback: (scope: Scope) => void = () => undefined;
-jest.spyOn(SentryNode, 'configureScope').mockImplementation(callback => (configureScopeCallback = callback));
+// normally this is set as part of the build process, so mock it here
+(global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
+
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
 describe('Server init()', () => {
   afterEach(() => {
     nodeInit.mockClear();
-    configureScopeCallback = () => undefined;
     global.__SENTRY__.hub = undefined;
   });
 
@@ -50,11 +52,64 @@ describe('Server init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const mockScope = new Scope();
-    init({});
-    configureScopeCallback(mockScope);
+    const currentScope = getCurrentHub().getScope();
+
     // @ts-ignore need access to protected _tags attribute
-    expect(mockScope._tags).toEqual({ runtime: 'node' });
+    expect(currentScope._tags).toEqual({});
+
+    init({});
+
+    // @ts-ignore need access to protected _tags attribute
+    expect(currentScope._tags).toEqual({ runtime: 'node' });
+  });
+
+  it('applies `vercel` tag when running on vercel', () => {
+    const currentScope = getCurrentHub().getScope();
+
+    process.env.VERCEL = '1';
+
+    init({});
+
+    // @ts-ignore need access to protected _tags attribute
+    expect(currentScope._tags.vercel).toEqual(true);
+
+    delete process.env.VERCEL;
+  });
+
+  it('does not apply `vercel` tag when not running on vercel', () => {
+    const currentScope = getCurrentHub().getScope();
+
+    expect(process.env.VERCEL).toBeUndefined();
+
+    init({});
+
+    // @ts-ignore need access to protected _tags attribute
+    expect(currentScope._tags.vercel).toBeUndefined();
+  });
+
+  it("initializes both global hub and domain hub when there's an active domain", () => {
+    const globalHub = getCurrentHub();
+    const local = domain.create();
+    local.run(() => {
+      const domainHub = getCurrentHub();
+
+      // they are in fact two different hubs, and neither one yet has a client
+      expect(domainHub).not.toBe(globalHub);
+      expect(globalHub.getClient()).toBeUndefined();
+      expect(domainHub.getClient()).toBeUndefined();
+
+      // this tag should end up only in the domain hub
+      domainHub.setTag('dogs', 'areGreat');
+
+      init({});
+
+      expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
+      expect(domainHub.getClient()).toBe(globalHub.getClient());
+      // @ts-ignore need access to protected _tags attribute
+      expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
+      // @ts-ignore need access to protected _tags attribute
+      expect(domainHub.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
+    });
   });
 
   describe('integrations', () => {

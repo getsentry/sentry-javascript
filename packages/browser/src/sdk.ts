@@ -88,6 +88,9 @@ export function init(options: BrowserOptions = {}): void {
   if (options.autoSessionTracking === undefined) {
     options.autoSessionTracking = true;
   }
+  if (options.sendClientReports === undefined) {
+    options.sendClientReports = true;
+  }
 
   initAndBind(BrowserClient, options);
 

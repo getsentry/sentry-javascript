@@ -62,6 +62,8 @@ export class CaptureConsole implements Integration {
                 scope.setExtra('arguments', args.slice(1));
                 hub.captureMessage(message);
               }
+            } else if (level === 'error' && args[0] instanceof Error) {
+              hub.captureException(args[0]);
             } else {
               hub.captureMessage(message);
             }

@@ -28,9 +28,13 @@ export function setupSentryTest(hooks) {
     this.fetchStub = sinon.stub(window, 'fetch');
 
     /**
-     * Stops global test suite failures from unhandled rejections and allows assertion on them
+     * Stops global test suite failures from unhandled rejections and allows assertion on them.
+     * onUncaughtException is used in QUnit 2.17 onwards.
      */
-    this.qunitOnUnhandledRejection = sinon.stub(QUnit, 'onUnhandledRejection');
+    this.qunitOnUnhandledRejection = sinon.stub(
+      QUnit,
+      QUnit.onUncaughtException ? 'onUncaughtException' : 'onUnhandledRejection',
+    );
 
     QUnit.onError = function({ message }) {
       errorMessages.push(message.split('Error: ')[1]);

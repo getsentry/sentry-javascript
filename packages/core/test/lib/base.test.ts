@@ -1,5 +1,5 @@
 import { Hub, Scope, Session } from '@sentry/hub';
-import { Event, Severity, Span } from '@sentry/types';
+import { Event, Outcome, Severity, Span, Transport } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
@@ -11,6 +11,9 @@ import { FakeTransport } from '../mocks/transport';
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
 declare var global: any;
+
+const backendEventFromException = jest.spyOn(TestBackend.prototype, 'eventFromException');
+const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
 
 jest.mock('@sentry/utils', () => {
   const original = jest.requireActual('@sentry/utils');
@@ -57,7 +60,7 @@ describe('BaseClient', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('constructor() / getDsn()', () => {
@@ -85,6 +88,16 @@ describe('BaseClient', () => {
       const options = { dsn: PUBLIC_DSN, test: true };
       const client = new TestClient(options);
       expect(client.getOptions()).toEqual(options);
+    });
+  });
+
+  describe('getTransport()', () => {
+    test('returns the transport from backend', () => {
+      expect.assertions(2);
+      const options = { dsn: PUBLIC_DSN, transport: FakeTransport };
+      const client = new TestClient(options);
+      expect(client.getTransport()).toBeInstanceOf(FakeTransport);
+      expect(TestBackend.instance!.getTransport()).toBe(client.getTransport());
     });
   });
 
@@ -239,6 +252,30 @@ describe('BaseClient', () => {
         }),
       );
     });
+
+    test.each([
+      ['`Error` instance', new Error('Will I get caught twice?')],
+      ['plain object', { 'Will I': 'get caught twice?' }],
+      ['primitive wrapper', new String('Will I get caught twice?')],
+      // Primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
+      // to `captureException` (which is how we'd end up with a primitive wrapper as tested above) in order for the
+      // already-seen check to work . Any primitive which is passed without being wrapped will be captured each time it
+      // is encountered, so this test doesn't apply.
+    ])("doesn't capture the same exception twice - %s", (_name: string, thrown: any) => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+
+      expect(thrown.__sentry_captured__).toBeUndefined();
+
+      client.captureException(thrown);
+
+      expect(thrown.__sentry_captured__).toBe(true);
+      expect(backendEventFromException).toHaveBeenCalledTimes(1);
+
+      client.captureException(thrown);
+
+      // `captureException` should bail right away this second time around and not get as far as calling this again
+      expect(backendEventFromException).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('captureMessage', () => {
@@ -313,6 +350,35 @@ describe('BaseClient', () => {
       const scope = new Scope();
       client.captureEvent({}, undefined, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
+    });
+
+    test.each([
+      ['`Error` instance', new Error('Will I get caught twice?')],
+      ['plain object', { 'Will I': 'get caught twice?' }],
+      ['primitive wrapper', new String('Will I get caught twice?')],
+      // Primitives aren't tested directly here because they need to be wrapped with `objectify` *before*  being passed
+      // to `captureEvent` (which is how we'd end up with a primitive wrapper as tested above) in order for the
+      // already-seen check to work . Any primitive which is passed without being wrapped will be captured each time it
+      // is encountered, so this test doesn't apply.
+    ])("doesn't capture an event wrapping the same exception twice - %s", (_name: string, thrown: any) => {
+      // Note: this is the same test as in `describe(captureException)`, except with the exception already wrapped in a
+      // hint and accompanying an event. Duplicated here because some methods skip `captureException` and go straight to
+      // `captureEvent`.
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const event = { exception: { values: [{ type: 'Error', message: 'Will I get caught twice?' }] } };
+      const hint = { originalException: thrown };
+
+      expect(thrown.__sentry_captured__).toBeUndefined();
+
+      client.captureEvent(event, hint);
+
+      expect(thrown.__sentry_captured__).toBe(true);
+      expect(clientProcess).toHaveBeenCalledTimes(1);
+
+      client.captureEvent(event, hint);
+
+      // `captureEvent` should bail right away this second time around and not get as far as calling this again
+      expect(clientProcess).toHaveBeenCalledTimes(1);
     });
 
     test('sends an event', () => {
@@ -788,13 +854,35 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toBeUndefined();
     });
 
-    test('calls beforeSend gets an access to a hint as a second argument', () => {
+    test('beforeSend gets access to a hint as a second argument', () => {
       expect.assertions(2);
       const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
       expect(TestBackend.instance!.event!.message).toBe('hello');
       expect((TestBackend.instance!.event! as any).data).toBe('someRandomThing');
+    });
+
+    test('beforeSend records dropped events', () => {
+      expect.assertions(1);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        beforeSend() {
+          return null;
+        },
+      });
+
+      const recordLostEventSpy = jest.fn();
+      jest.spyOn(client, 'getTransport').mockImplementationOnce(
+        () =>
+          (({
+            recordLostEvent: recordLostEventSpy,
+          } as any) as Transport),
+      );
+
+      client.captureEvent({ message: 'hello' }, {});
+
+      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.BeforeSend, 'event');
     });
 
     test('eventProcessor can drop the even when it returns null', () => {
@@ -808,6 +896,25 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toBeCalled();
       expect(loggerErrorSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    });
+
+    test('eventProcessor records dropped events', () => {
+      expect.assertions(1);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+
+      const recordLostEventSpy = jest.fn();
+      jest.spyOn(client, 'getTransport').mockImplementationOnce(
+        () =>
+          (({
+            recordLostEvent: recordLostEventSpy,
+          } as any) as Transport),
+      );
+
+      const scope = new Scope();
+      scope.addEventProcessor(() => null);
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.EventProcessor, 'event');
     });
 
     test('eventProcessor sends an event and logs when it crashes', () => {
@@ -833,6 +940,25 @@ describe('BaseClient', () => {
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
         ),
       );
+    });
+
+    test('records events dropped due to sampleRate', () => {
+      expect.assertions(1);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        sampleRate: 0,
+      });
+
+      const recordLostEventSpy = jest.fn();
+      jest.spyOn(client, 'getTransport').mockImplementationOnce(
+        () =>
+          (({
+            recordLostEvent: recordLostEventSpy,
+          } as any) as Transport),
+      );
+
+      client.captureEvent({ message: 'hello' }, {});
+      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.SampleRate, 'event');
     });
   });
 
@@ -906,7 +1032,7 @@ describe('BaseClient', () => {
       });
 
       const delay = 1;
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       client.captureMessage('test');
@@ -935,7 +1061,7 @@ describe('BaseClient', () => {
             setTimeout(() => resolve({ message, level }), 150);
           }),
       );
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       client.captureMessage('test async');
@@ -959,7 +1085,7 @@ describe('BaseClient', () => {
       });
 
       const delay = 1;
-      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;
 
       expect(client.captureMessage('test')).toBeTruthy();

@@ -268,7 +268,7 @@ export class Vue implements Integration {
             if (transaction) {
               this._rootSpan = transaction.startChild({
                 description: 'Application Render',
-                op: 'Vue',
+                op: 'vue',
               });
             }
             // Use functionality from @sentry/tracing
@@ -277,7 +277,7 @@ export class Vue implements Integration {
             if (activeTransaction) {
               this._rootSpan = activeTransaction.startChild({
                 description: 'Application Render',
-                op: 'Vue',
+                op: 'vue',
               });
             }
           }

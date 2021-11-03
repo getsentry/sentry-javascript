@@ -30,6 +30,7 @@ module.exports = async function() {
             'ember-source': await getChannelURL('beta'),
           },
         },
+        allowedToFail: true,
       },
       embroiderSafe(),
       {

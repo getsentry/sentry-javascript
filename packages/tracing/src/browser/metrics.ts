@@ -14,6 +14,17 @@ import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals
 
 const global = getGlobalObject<Window>();
 
+/**
+ * Exports a way to add options to our metric collection. Currently experimental.
+ */
+export interface MetricsInstrumentationOptions {
+  _reportAllChanges: boolean;
+}
+
+export const DEFAULT_METRICS_INSTR_OPTIONS: MetricsInstrumentationOptions = {
+  _reportAllChanges: false,
+};
+
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
   private _measurements: Measurements = {};
@@ -22,14 +33,14 @@ export class MetricsInstrumentation {
   private _lcpEntry: LargestContentfulPaint | undefined;
   private _clsEntry: LayoutShift | undefined;
 
-  public constructor() {
-    if (!isNodeEnv() && global?.performance) {
+  public constructor(_options: MetricsInstrumentationOptions) {
+    if (!isNodeEnv() && global?.performance && global?.document) {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
 
       this._trackCLS();
-      this._trackLCP();
+      this._trackLCP(_options._reportAllChanges);
       this._trackFID();
     }
   }
@@ -111,7 +122,7 @@ export class MetricsInstrumentation {
             break;
           }
           case 'resource': {
-            const resourceName = (entry.name as string).replace(window.location.origin, '');
+            const resourceName = (entry.name as string).replace(global.location.origin, '');
             const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
             // We remember the entry script end time to calculate the difference to the first init mark
             if (entryScriptStartTimestamp === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
@@ -285,7 +296,7 @@ export class MetricsInstrumentation {
   }
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
-  private _trackLCP(): void {
+  private _trackLCP(reportAllChanges: boolean): void {
     getLCP(metric => {
       const entry = metric.entries.pop();
 
@@ -299,7 +310,7 @@ export class MetricsInstrumentation {
       this._measurements['lcp'] = { value: metric.value };
       this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
       this._lcpEntry = entry as LargestContentfulPaint;
-    });
+    }, reportAllChanges);
   }
 
   /** Starts tracking the First Input Delay on the current page. */

@@ -458,6 +458,7 @@ describe('GCPFunction', () => {
             {
               mechanism: {
                 handled: false,
+                type: 'generic',
               },
             },
           ],

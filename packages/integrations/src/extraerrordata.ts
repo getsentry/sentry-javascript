@@ -74,28 +74,47 @@ export class ExtraErrorData implements Integration {
   /**
    * Extract extra information from the Error object
    */
-  private _extractErrorData(error: ExtendedError): { [key: string]: unknown } | null {
-    let result = null;
+  private _extractErrorData(error: ExtendedError): Record<string, unknown> | null {
     // We are trying to enhance already existing event, so no harm done if it won't succeed
     try {
-      const nativeKeys = ['name', 'message', 'stack', 'line', 'column', 'fileName', 'lineNumber', 'columnNumber'];
-      const errorKeys = Object.getOwnPropertyNames(error).filter(key => nativeKeys.indexOf(key) === -1);
+      const nativeKeys = [
+        'name',
+        'message',
+        'stack',
+        'line',
+        'column',
+        'fileName',
+        'lineNumber',
+        'columnNumber',
+        'toJSON',
+      ];
 
-      if (errorKeys.length) {
-        const extraErrorInfo: { [key: string]: unknown } = {};
-        for (const key of errorKeys) {
-          let value = error[key];
-          if (isError(value)) {
-            value = (value as Error).toString();
-          }
-          extraErrorInfo[key] = value;
+      const extraErrorInfo: Record<string, unknown> = {};
+
+      // We want only enumerable properties, thus `getOwnPropertyNames` is redundant here, as we filter keys anyway.
+      for (const key of Object.keys(error)) {
+        if (nativeKeys.indexOf(key) !== -1) {
+          continue;
         }
-        result = extraErrorInfo;
+        const value = error[key];
+        extraErrorInfo[key] = isError(value) ? (value as Error).toString() : value;
       }
+
+      // Check if someone attached `toJSON` method to grab even more properties (eg. axios is doing that)
+      if (typeof error.toJSON === 'function') {
+        const serializedError = error.toJSON() as Record<string, unknown>;
+
+        for (const key of Object.keys(serializedError)) {
+          const value = serializedError[key];
+          extraErrorInfo[key] = isError(value) ? (value as Error).toString() : value;
+        }
+      }
+
+      return extraErrorInfo;
     } catch (oO) {
       logger.error('Unable to extract extra data from the Error object:', oO);
     }
 
-    return result;
+    return null;
   }
 }

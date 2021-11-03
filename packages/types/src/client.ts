@@ -5,6 +5,7 @@ import { Options } from './options';
 import { Scope } from './scope';
 import { Session } from './session';
 import { Severity } from './severity';
+import { Transport } from './transport';
 
 /**
  * User-Facing Sentry SDK Client.
@@ -58,6 +59,9 @@ export interface Client<O extends Options = Options> {
 
   /** Returns the current options. */
   getOptions(): O;
+
+  /** Returns clients transport. */
+  getTransport?(): Transport;
 
   /**
    * Flush the event queue and set the client to `enabled = false`. See {@link Client.flush}.

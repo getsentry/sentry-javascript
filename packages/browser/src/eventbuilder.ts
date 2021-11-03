@@ -23,10 +23,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
   const event = eventFromUnknownInput(exception, syntheticException, {
     attachStacktrace: options.attachStacktrace,
   });
-  addExceptionMechanism(event, {
-    handled: true,
-    type: 'generic',
-  });
+  addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
   event.level = Severity.Error;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;

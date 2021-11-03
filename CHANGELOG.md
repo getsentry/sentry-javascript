@@ -4,9 +4,76 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 6.11.1
+## 6.14.0
 
-- fix(nextjs): Differentiate between webpack 4 and 5 in server builds  (#3878)
+- chore(deps): Bump @sentry/webpack-plugin to 1.18.1 (#4063)
+- feat(awslambda): Add requestId filter to aws.cloudwatch.logs URL (#4032)
+- feat(gatsby): Support non-serializable SDK options (#4064)
+- feat(gatsby): Support user integrations as a function (#4050)
+- feat(integrations): Call toJSON of originalException to extract more data (#4038)
+- feat(integrations): Capture console.error as an exception (#4034)
+- feat(nextjs): Add mechanism to error-logger-caught errors (#4061)
+- feat(nextjs): Add mechanism to withSentry-caught errors (#4046)
+- feat(nextjs): Tag backend events when running on vercel (#4091)
+- fix(browser): Send client outcomes through tunnel if configured (#4031)
+- fix(core): Be stricter about mechanism values (#4068)
+- fix(core): Prevent exception recapturing (#4067)
+- fix(nextjs): Always initialize SDK with global hub (#4086)
+- fix(nextjs): Fix types in config code (#4057)
+- fix(nextjs): Remove logic merging include values in withSentryConfig (#4056)
+- fix(node): Check for potentially undefined httpModule (#4037)
+- fix(tracing): Update paths for DB drivers auto-instrumentation (#4083)
+- fix(vue): Move ROOT_SPAN_TIMER into Vue context. (#4081)
+
+Features, fixes, and improvements in this release have been contributed by: @tmilar, @deammer, @freekii. Thank you for your contributions!
+
+## 6.13.3
+
+- feat(nextjs): Add ability for integration tests to use linked `@sentry/xxxx` packages (#4019)
+- feat(nextjs): Support `distDir` Next.js option (#3990)
+- fix(tracing): Call hasTracingEnabled with correct options when invoking startTransaction (#4020)
+- ref(browser): Refactor sending client reports w. fetch fallback (#4008)
+- ref(core): Make getTransport method on client optional (#4013)
+- ref(ember): Update htmlbars dependency (#4026)
+- ref(integrations): Minor simplification of ExtraErrorData code (#4024)
+- ref(react): Rely on error.cause to link ErrorBoundary errors (#4005)
+
+## 6.13.2
+
+- fix(browser): Use getGlobalObject for document check (#3996)
+- misc(all): Disallow direct usage of globals (#3999)
+
+## 6.13.1
+
+- fix(browser): Check for document when sending outcomes (#3993)
+
+## 6.13.0
+
+- feat(browser): Client Report Support (#3955)
+- feat(perf): Add experimental option to improve LCP collection (#3879)
+- fix(browser): Make sure that `document.head` or `document.body` exists for `injectReportDialog` (#3972)
+- fix(browser): Parse frames-only `safari(-web)-extension` stack (#3929)
+- fix(ember): Move `ember-source` to `devDependencies` (#3962)
+- fix(hub): Don't set `lastEventID` for transactions (#3966)
+- fix(nextjs): Include nextjs config's `basePath` on `urlPrefix` (#3922)
+- fix(node): Add protocol detection for get/request calls without explict protocol (#3950)
+- fix(node): Disable `autoSessionTracking` if dsn undefined (#3954)
+- fix(vue): Check for matched route existence before starting transaction (#3973)
+- ref(browser): Migrate unit tests from Chai and Karma to Jest (#3965)
+- ref(nextjs): Exclude cross-platform tracing code from bundles (#3978)
+- ref(tracing): Idle transaction refactoring (#3988)
+
+## 6.12.0
+
+- fix(nextjs): Differentiate between webpack 4 and 5 in server builds (#3878)
+- fix(core): Skip native frames while searching frame URLs. (#3897)
+- fix(vue): Attach props only if VM is available (#3902)
+- feat(tracing): Add pg-native support to Postgres integration. (#3894)
+- ref(ember): Update addon to support Ember 4.0.0 (beta) (#3915)
+- feat(react): Make Profiler _mountSpan attribute protected (#3904)
+- fix(ember): allow ember-beta to fail (#3910)
+- fix(tracing): Prevent metrics erroring module load in web workers (#3941)
+- misc(browser): Log when event is dropped by Dedupe integration (#3943)
 
 ## 6.11.0
 
