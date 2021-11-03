@@ -144,7 +144,7 @@ describe('default protocols', () => {
     const key = 'catcatchers';
     const p = captureBreadcrumb(key);
 
-    let nockProtocol = 'https:';
+    let nockProtocol = 'https';
     // NOTE: Prior to Node 9, `https` used internals of `http` module, so
     // the integration doesn't patch the `https` module. However this then
     // causes issues with nock, because nock will patch the `https` module
@@ -161,7 +161,7 @@ describe('default protocols', () => {
     // because the latest versions of nock no longer support Node v8 and lower,
     // so won't bother dealing with this old Node edge case.
     if (NODE_VERSION.major && NODE_VERSION.major < 9) {
-      nockProtocol = 'http:';
+      nockProtocol = 'http';
     }
     nock(`${nockProtocol}://${key}.ingest.sentry.io`)
       .get('/api/123122332/store/')
@@ -180,13 +180,13 @@ describe('default protocols', () => {
   it('makes https request over http proxy', async () => {
     const key = 'catcatchers';
     const p = captureBreadcrumb(key);
-    let nockProtocol = 'https:';
+    let nockProtocol = 'https';
 
     const proxy = 'http://<PROXY_URL>:3128';
     const agent = new HttpsProxyAgent(proxy);
 
     if (NODE_VERSION.major && NODE_VERSION.major < 9) {
-      nockProtocol = 'http:';
+      nockProtocol = 'http';
     }
 
     nock(`${nockProtocol}://${key}.ingest.sentry.io`)

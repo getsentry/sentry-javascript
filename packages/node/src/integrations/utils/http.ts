@@ -1,7 +1,10 @@
 import { getCurrentHub } from '@sentry/core';
+import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import { URL } from 'url';
+
+const NODE_VERSION = parseSemver(process.versions.node);
 
 /**
  * Checks whether given url points to Sentry server
@@ -151,10 +154,23 @@ export function normalizeRequestArgs(
   if (requestOptions.protocol === undefined) {
     // Worst case we end up populating protocol with undefined, which it already is
     /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
-    requestOptions.protocol =
-      (httpModule?.globalAgent as any)?.protocol ||
-      (requestOptions.agent as any)?.protocol ||
-      (requestOptions._defaultAgent as any)?.protocol;
+
+    // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
+    // Because of that, we cannot rely on `httpModule` to provide us with valid protocol,
+    // as it will always return `http`, even when using `https` module.
+    //
+    // See test/integrations/http.test.ts for more details on Node <=v8 protocol issue.
+    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
+      requestOptions.protocol =
+        (httpModule?.globalAgent as any)?.protocol ||
+        (requestOptions.agent as any)?.protocol ||
+        (requestOptions._defaultAgent as any)?.protocol;
+    } else {
+      requestOptions.protocol =
+        (requestOptions.agent as any)?.protocol ||
+        (requestOptions._defaultAgent as any)?.protocol ||
+        (httpModule?.globalAgent as any)?.protocol;
+    }
     /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
   }
 
