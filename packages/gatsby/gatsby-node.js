@@ -35,8 +35,15 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
     actions.setWebpackConfig({
       plugins: [
         new SentryWebpackPlugin({
+          // Only include files from the build output directory
           include: 'public',
-          ignore: ['app-*', 'polyfill-*', 'framework-*', 'webpack-runtime-*'],
+          // Ignore files that aren't users' source code related
+          ignore: [
+            'app-*', // related to Gatsby itself
+            'polyfill-*', // related to polyfills
+            'framework-*', // related to the frameworks (e.g. React)
+            'webpack-runtime-*', // related to Webpack
+          ],
           // Handle sentry-cli configuration errors when the user has not done it not to break
           // the build.
           errorHandler(err, invokeErr) {
