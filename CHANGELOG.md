@@ -4,6 +4,29 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.14.0
+
+- chore(deps): Bump @sentry/webpack-plugin to 1.18.1 (#4063)
+- feat(awslambda): Add requestId filter to aws.cloudwatch.logs URL (#4032)
+- feat(gatsby): Support non-serializable SDK options (#4064)
+- feat(gatsby): Support user integrations as a function (#4050)
+- feat(integrations): Call toJSON of originalException to extract more data (#4038)
+- feat(integrations): Capture console.error as an exception (#4034)
+- feat(nextjs): Add mechanism to error-logger-caught errors (#4061)
+- feat(nextjs): Add mechanism to withSentry-caught errors (#4046)
+- feat(nextjs): Tag backend events when running on vercel (#4091)
+- fix(browser): Send client outcomes through tunnel if configured (#4031)
+- fix(core): Be stricter about mechanism values (#4068)
+- fix(core): Prevent exception recapturing (#4067)
+- fix(nextjs): Always initialize SDK with global hub (#4086)
+- fix(nextjs): Fix types in config code (#4057)
+- fix(nextjs): Remove logic merging include values in withSentryConfig (#4056)
+- fix(node): Check for potentially undefined httpModule (#4037)
+- fix(tracing): Update paths for DB drivers auto-instrumentation (#4083)
+- fix(vue): Move ROOT_SPAN_TIMER into Vue context. (#4081)
+
+Features, fixes, and improvements in this release have been contributed by: @tmilar, @deammer, @freekii. Thank you for your contributions!
+
 ## 6.13.3
 
 - feat(nextjs): Add ability for integration tests to use linked `@sentry/xxxx` packages (#4019)

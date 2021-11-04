@@ -35,6 +35,7 @@ export class GoogleCloudHttp implements Integration {
    */
   public setupOnce(): void {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const commonModule = require('@google-cloud/common') as typeof common;
       fill(commonModule.Service.prototype, 'request', wrapRequestFunction);
     } catch (e) {

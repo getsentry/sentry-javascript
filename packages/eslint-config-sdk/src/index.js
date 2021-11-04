@@ -141,7 +141,7 @@ module.exports = {
           },
         ],
 
-        // We want to prevent async await usage in our files to prevent uncessary bundle size.
+        // We want to prevent async await usage in our files to prevent uncessary bundle size. Turned off in tests.
         '@sentry-internal/sdk/no-async-await': 'error',
 
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
@@ -151,6 +151,7 @@ module.exports = {
           {
             require: { ClassDeclaration: true, MethodDefinition: true },
             checkConstructors: false,
+            publicOnly: true,
           },
         ],
 
@@ -163,15 +164,18 @@ module.exports = {
       env: {
         jest: true,
       },
-      files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx'],
+      files: ['*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx', 'test/**/*.ts', 'test/**/*.js'],
       rules: {
         'max-lines': 'off',
-
         '@typescript-eslint/explicit-function-return-type': 'off',
         'no-unused-expressions': 'off',
         '@typescript-eslint/no-unused-expressions': 'off',
         '@typescript-eslint/no-unsafe-member-access': 'off',
         '@typescript-eslint/explicit-member-accessibility': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
+        '@typescript-eslint/no-empty-function': 'off',
+        '@sentry-internal/sdk/no-async-await': 'off',
       },
     },
     {
