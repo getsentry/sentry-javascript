@@ -157,6 +157,7 @@ function withErrorBoundary<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
   errorBoundaryOptions: ErrorBoundaryProps,
 ): React.FC<P> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
@@ -165,6 +166,7 @@ function withErrorBoundary<P extends Record<string, any>>(
     </ErrorBoundary>
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   Wrapped.displayName = `errorBoundary(${componentDisplayName})`;
 
   // Copy over static methods from Wrapped component to Profiler HOC

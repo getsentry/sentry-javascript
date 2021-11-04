@@ -148,7 +148,7 @@ function computeRootMatch(pathname: string): Match {
   return { path: '/', url: '/', params: {}, isExact: pathname === '/' };
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
   const componentDisplayName = (Route as any).displayName || (Route as any).name;
 
@@ -170,4 +170,4 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/13dc4235c069e25fe7ee16e11f529d909f9f3ff8/types/react-router/index.d.ts#L154-L164
   return WrappedRoute;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
