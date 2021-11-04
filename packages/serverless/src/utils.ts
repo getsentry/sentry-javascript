@@ -60,8 +60,7 @@ export function proxyFunction<A extends any[], R, F extends (...args: A) => R>(
 
   if (overrides) {
     handler.get = (target, prop) => {
-      // eslint-disable-next-line no-prototype-builtins
-      if (overrides.hasOwnProperty(prop)) {
+      if (Object.prototype.hasOwnProperty.call(overrides, prop)) {
         return overrides[prop as string];
       }
       return (target as Record<PropertyKey, unknown>)[prop as string];

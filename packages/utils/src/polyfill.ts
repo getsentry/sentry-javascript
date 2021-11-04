@@ -17,8 +17,7 @@ function setProtoOf<TTarget extends object, TProto>(obj: TTarget, proto: TProto)
 // eslint-disable-next-line @typescript-eslint/ban-types
 function mixinProperties<TTarget extends object, TProto>(obj: TTarget, proto: TProto): TTarget & TProto {
   for (const prop in proto) {
-    // eslint-disable-next-line no-prototype-builtins
-    if (!obj.hasOwnProperty(prop)) {
+    if (!Object.prototype.hasOwnProperty.call(obj, prop)) {
       // @ts-ignore typescript complains about indexing so we remove
       obj[prop] = proto[prop];
     }
