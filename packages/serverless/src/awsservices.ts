@@ -38,6 +38,7 @@ export class AWSServices implements Integration {
    */
   public setupOnce(): void {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const awsModule = require('aws-sdk/global') as typeof AWS;
       fill(awsModule.Service.prototype, 'makeRequest', wrapMakeRequest);
     } catch (e) {
