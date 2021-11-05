@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.14.1
+
+- feat(gatsby): Support Gatsby v4 (#4120)
+- fix(nextjs): Stop sending transactions for requests that 404 (#4095)
+- fix(nextjs): Prevent infinite recompilation in dev (#4123)
+- fix(node): Prioritize globalAgent while figuring out protocol (#4087)
+
 ## 6.14.0
 
 - chore(deps): Bump @sentry/webpack-plugin to 1.18.1 (#4063)
