@@ -2,6 +2,8 @@ const { get } = require('http');
 const nock = require('nock');
 const { logIf, parseEnvelope } = require('./common');
 
+Error.stackTraceLimit = Infinity;
+
 const getAsync = url => {
   return new Promise((resolve, reject) => {
     get(url, res => {
