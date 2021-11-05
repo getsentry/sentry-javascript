@@ -53,7 +53,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     let traceparentData;
     const reqWithHeaders = req as { headers?: { [key: string]: string } };
     if (reqWithHeaders.headers && isString(reqWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(reqWithHeaders.headers['sentry-trace'] as string);
+      traceparentData = extractTraceparentData(reqWithHeaders.headers['sentry-trace']);
     }
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,
