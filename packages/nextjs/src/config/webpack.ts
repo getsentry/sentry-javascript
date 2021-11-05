@@ -138,8 +138,10 @@ async function addSentryToEntryProperty(
   const filesToInject = [`./${userConfigFile}`];
 
   // Support non-default output directories by making the output path (easy to get here at build-time) available to the
-  // server SDK's default `RewriteFrames` instance (which needs it at runtime).
-  if (buildContext.isServer) {
+  // server SDK's default `RewriteFrames` instance (which needs it at runtime). Doesn't work when using the dev server
+  // because it somehow tricks the file watcher into thinking that compilation itself is a file change, triggering an
+  // infinite recompiling loop. (This should be fine because we don't upload sourcemaps in dev in any case.)
+  if (buildContext.isServer && !buildContext.dev) {
     const rewriteFramesHelper = path.resolve(
       fs.mkdtempSync(path.resolve(os.tmpdir(), 'sentry-')),
       'rewriteFramesHelper.js',
