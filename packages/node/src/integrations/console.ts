@@ -49,6 +49,7 @@ function createConsoleWrapper(level: string): (originalConsoleMethod: () => void
         sentryLevel = Severity.Log;
     }
 
+    /* eslint-disable prefer-rest-params */
     return function(this: typeof console): void {
       if (getCurrentHub().getIntegration(Console)) {
         getCurrentHub().addBreadcrumb(
@@ -66,5 +67,6 @@ function createConsoleWrapper(level: string): (originalConsoleMethod: () => void
 
       originalConsoleMethod.apply(this, arguments);
     };
+    /* eslint-enable prefer-rest-params */
   };
 }

@@ -149,7 +149,7 @@ export class TryCatch implements Integration {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const proto = global[target] && global[target].prototype;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
     if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }

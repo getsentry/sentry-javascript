@@ -279,7 +279,7 @@ export function wrapHandler<TEvent, TResult>(
     let traceparentData;
     const eventWithHeaders = event as { headers?: { [key: string]: string } };
     if (eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace'] as string);
+      traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace']);
     }
     const transaction = startTransaction({
       name: context.functionName,

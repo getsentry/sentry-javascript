@@ -47,6 +47,19 @@ Running tests works the same way as building - running `yarn test` at the projec
 
 Note: you must run `yarn build` before `yarn test` will work.
 
+## Debugging Tests
+
+If you run into trouble writing tests and need to debug one of them, you can do so using VSCode's debugger.
+
+0. If you don't already have it installed, install the Tasks Shell Input extension, which you'll find in the Extensions tab in the sidebar as one of the recommended workspace extensions.
+
+1. Place breakpoints or `debugger` statements in the test or the underlying code wherever you'd like `jest` to pause.
+2. Open the file containing the test in question, and make sure its tab is active (so you can see the file's contents).
+3. Switch to the debugger in the sidebar and choose `Debug unit tests - just open file` from the dropdown.
+4. Click the green "play" button to run the tests in the open file in watch mode.
+
+Pro tip: If any of your breakpoints are in code run by multiple tests, and you run the whole test file, you'll land on those breakpoints over and over again, in the middle of tests you don't care about. To avoid this, replace the test's initial `it` or `test` with `it.only` or `test.only`. That way, when you hit a breakpoint, you'll know you got there are part of the buggy test.
+
 ## Linting
 
 Similar to building and testing, linting can be done in the project root or in individual packages by calling `yarn lint`.

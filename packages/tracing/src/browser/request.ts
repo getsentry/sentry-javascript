@@ -185,7 +185,7 @@ export function fetchCallback(
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
     let headers = options.headers;
     if (isInstanceOf(request, Request)) {
-      headers = (request as Request).headers;
+      headers = request.headers;
     }
     if (headers) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

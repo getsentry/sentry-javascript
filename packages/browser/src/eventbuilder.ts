@@ -65,15 +65,14 @@ export function eventFromUnknownInput(
 ): Event {
   let event: Event;
 
-  if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
+  if (isErrorEvent(exception)) {
     // If it is an ErrorEvent with `error` property, extract it to get actual Error
-    const errorEvent = exception as ErrorEvent;
     // eslint-disable-next-line no-param-reassign
-    exception = errorEvent.error;
-    event = eventFromStacktrace(computeStackTrace(exception as Error));
+    exception = exception.error;
+    event = eventFromStacktrace(computeStackTrace(exception));
     return event;
   }
-  if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
+  if (isDOMError(exception) || isDOMException(exception)) {
     // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
     // then we just extract the name, code, and message, as they don't provide anything else
     // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
@@ -90,9 +89,9 @@ export function eventFromUnknownInput(
 
     return event;
   }
-  if (isError(exception as Error)) {
+  if (isError(exception)) {
     // we have a real Error object, do nothing
-    event = eventFromStacktrace(computeStackTrace(exception as Error));
+    event = eventFromStacktrace(computeStackTrace(exception));
     return event;
   }
   if (isPlainObject(exception) || isEvent(exception)) {
