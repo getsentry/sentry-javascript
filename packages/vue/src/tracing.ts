@@ -48,7 +48,11 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
 }
 
 export const createTracingMixins = (options: TracingOptions): Mixins => {
-  const hooks = new Set((options.hooks || []).concat(DEFAULT_HOOKS));
+  const hooks = (options.hooks || [])
+    .concat(DEFAULT_HOOKS)
+    // Removing potential duplicates
+    .filter((value, index, self) => self.indexOf(value) === index);
+
   const mixins: Mixins = {};
 
   for (const operation of hooks) {
