@@ -3,66 +3,65 @@
   // Hover to view descriptions of existing attributes.
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
-  // TODO: these are all alike save the package, so figure out how to make that variable
+  "inputs": [
+    {
+        "id": "getPackageName",
+        "type": "command",
+        "command": "shellCommand.execute",
+        "args": {
+            "command": "echo '${file}' | sed s/'.*sentry-javascript\\/packages\\/'// | grep --extended-regexp --only-matching --max-count 1 '[^\\/]+' | head -1",
+            "cwd": "${workspaceFolder}" ,
+            // normally `input` commands bring up a selector for the user, but given that there should only be one
+            // choice here, this lets us skip the prompt
+            "useSingleResult": true
+        }
+    }
+  ],
   "configurations": [
-
-    // @sentry/core - run a specific test file in watch mode
-    // must have file in currently active tab when hitting the play button
+    // Run a specific test file in watch mode (must have file in currently active tab when hitting the play button).
+    // NOTE: If you try to run this and VSCode complains that the command `shellCommand.execute` can't be found, go
+    // install the recommended extension Tasks Shell Input.
     {
+      "name": "Debug unit tests - just open file",
       "type": "node",
+      "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
       "request": "launch",
-      "cwd": "${workspaceFolder}/packages/core",
-      "name": "Debug @sentry/core tests - just open file",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
         "--watch",
+        // this makes the output less noisy (and at some point in the past seemed necessary to fix... something)
         "--runInBand",
+        // TODO: when we unify jest config, we may need to change this
         "--config",
-        "${workspaceFolder}/packages/core/package.json",
+        "${workspaceFolder}/packages/${input:getPackageName}/package.json",
+        // coverage messes up the source maps
         "--coverage",
-        "false", // coverage messes up the source maps
-        "${relativeFile}" // remove this to run all package tests
+        "false",
+        // remove this to run all package tests
+        "${relativeFile}"
       ],
-      "disableOptimisticBPs": true,
       "sourceMaps": true,
       "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
-      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
+       // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on
+       // "outputCapture" option here; default is to show console logs), but not both
+      "console": "integratedTerminal",
+      // since we're not using it, don't automatically switch to it
+      "internalConsoleOptions": "neverOpen",
     },
 
-    // @sentry/nextjs - run a specific test file in watch mode
-    // must have file in currently active tab when hitting the play button
-    {
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/packages/nextjs",
-      "name": "Debug @sentry/nextjs tests - just open file",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": [
-        "--watch",
-        "--runInBand",
-        "--config",
-        "${workspaceFolder}/packages/nextjs/package.json",
-        "--coverage",
-        "false", // coverage messes up the source maps
-        "${relativeFile}" // remove this to run all package tests
-      ],
-      "disableOptimisticBPs": true,
-      "sourceMaps": true,
-      "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
-      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
-    },
 
-    // @sentry/nextjs - run a specific integration test file
-    // must have file in currently active tab when hitting the play button
+    // @sentry/nextjs - Run a specific integration test file
+    // Must have file in currently active tab when hitting the play button
     {
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/packages/nextjs",
       "name": "Debug @sentry/nextjs integration tests - just open file",
+      "type": "node",
+      "cwd": "${workspaceFolder}/packages/nextjs",
+      "request": "launch",
       // TODO create a build task
       // "preLaunchTask": "yarn build",
+
+      // this is going straight to `server.js` (rather than running the tests through yarn) in order to be able to skip
+      // having to reinstall dependencies on every new test run
       "program": "${workspaceFolder}/packages/nextjs/test/integration/test/server.js",
       "args": [
         "--debug",
@@ -70,83 +69,10 @@
         "--filter",
         "${fileBasename}"
       ],
-      "disableOptimisticBPs": true,
       "sourceMaps": true,
       "skipFiles": [
         "<node_internals>/**", "**/tslib/**"
       ],
-    },
-
-    // @sentry/node - run a specific test file in watch mode
-    // must have file in currently active tab when hitting the play button
-    {
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/packages/node",
-      "name": "Debug @sentry/node tests - just open file",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": [
-        "--watch",
-        "--runInBand",
-        "--config",
-        "${workspaceFolder}/packages/node/package.json",
-        "--coverage",
-        "false", // coverage messes up the source maps
-        "${relativeFile}" // remove this to run all package tests
-      ],
-      "disableOptimisticBPs": true,
-      "sourceMaps": true,
-      "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
-      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
-    },
-
-    // @sentry/tracing - run a specific test file in watch mode
-    // must have file in currently active tab when hitting the play button
-    {
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/packages/tracing",
-      "name": "Debug @sentry/tracing tests - just open file",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": [
-        "--watch",
-        "--runInBand",
-        "--config",
-        "${workspaceFolder}/packages/tracing/package.json",
-        "--coverage",
-        "false", // coverage messes up the source maps
-        "${relativeFile}" // remove this to run all package tests
-      ],
-      "disableOptimisticBPs": true,
-      "sourceMaps": true,
-      "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
-      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
-    },
-
-    // @sentry/utils - run a specific test file in watch mode
-    // must have file in currently active tab when hitting the play button
-    {
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/packages/utils",
-      "name": "Debug @sentry/utils tests - just open file",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": [
-        "--watch",
-        "--runInBand",
-        "--config",
-        "${workspaceFolder}/packages/utils/package.json",
-        "--coverage",
-        "false", // coverage messes up the source maps
-        "${relativeFile}" // remove this to run all package tests
-      ],
-      "disableOptimisticBPs": true,
-      "sourceMaps": true,
-      "smartStep": true,
-      "console": "integratedTerminal", // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on "outputCapture" option here), but not both
-      "internalConsoleOptions": "neverOpen", // since we're not using it, don't automatically switch to it
     },
   ]
 }

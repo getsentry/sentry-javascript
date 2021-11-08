@@ -37,7 +37,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     super(transactionContext);
 
     if (isInstanceOf(hub, Hub)) {
-      this._hub = hub as Hub;
+      this._hub = hub;
     }
 
     this.name = transactionContext.name || '';

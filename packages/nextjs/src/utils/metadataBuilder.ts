@@ -18,11 +18,13 @@ export class MetadataBuilder {
     this._packageNames = packages;
   }
 
+  /** JSDoc */
   public addSdkMetadata(): void {
     this._options._metadata = this._options._metadata || {};
     this._options._metadata.sdk = this._getSdkInfo();
   }
 
+  /** JSDoc */
   private _getSdkInfo(): SdkInfo {
     return {
       name: SDK_NAME,
@@ -31,6 +33,7 @@ export class MetadataBuilder {
     };
   }
 
+  /** JSDoc */
   private _getPackages(): Package[] {
     return this._packageNames.map((pkgName: string) => {
       return {

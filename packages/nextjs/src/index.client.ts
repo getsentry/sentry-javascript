@@ -30,6 +30,7 @@ export function init(options: NextjsOptions): void {
   });
   configureScope(scope => {
     scope.setTag('runtime', 'browser');
+    scope.addEventProcessor(event => (event.type === 'transaction' && event.transaction === '/404' ? null : event));
   });
 }
 

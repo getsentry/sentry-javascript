@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getCurrentHub, Hub } from '@sentry/browser';
 import { Integration, IntegrationClass, Span, Transaction } from '@sentry/types';
