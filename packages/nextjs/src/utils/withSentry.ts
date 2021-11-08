@@ -150,6 +150,12 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
           captureException(objectifiedErr);
         }
 
+        // Make sure we have a chance to finish the transaction and flush events to Sentry before the handler errors
+        // out. (Apps which are deployed on Vercel run their API routes in lambdas, and those lambdas will shut down the
+        // moment they detect an error, so it's important to get this done before rethrowing the error. Apps not
+        // deployed serverlessly will run into this cleanup function again in `res.end(), but it'll just no-op.)
+        await finishSentryProcessing(res);
+
         // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
         // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
         // the error as already having been captured.)
