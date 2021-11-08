@@ -3,13 +3,15 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { attachErrorHandler } from './errorhandler';
 import { createTracingMixins } from './tracing';
-import { Options, TracingOptions, Vue } from './types';
+import { Operation, Options, TracingOptions, Vue } from './types';
+
+export const DEFAULT_HOOKS: Operation[] = ['activate', 'mount', 'update'];
 
 const DEFAULT_CONFIG: Options = {
   Vue: getGlobalObject<{ Vue: Vue }>().Vue,
   attachProps: true,
   logErrors: false,
-  hooks: ['activate', 'mount', 'update'],
+  hooks: DEFAULT_HOOKS,
   timeout: 2000,
   trackComponents: false,
   _metadata: {
