@@ -47,6 +47,11 @@ export interface WrapperOptions {
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
   timeoutWarningLimit: number;
+  /**
+   * Capture all errors when `Promise.allSettled` is returned by the handler
+   * The {@link wrapHandler} will not fail the lambda even if there are errors
+   * @default false
+   */
   captureAllSettledReasons: boolean;
 }
 
