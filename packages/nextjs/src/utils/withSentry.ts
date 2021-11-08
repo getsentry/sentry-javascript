@@ -157,7 +157,9 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       }
     });
 
-    return await boundHandler();
+    // Since API route handlers are all async, nextjs always awaits the return value (meaning it's fine for us to return
+    // a promise here rather than a real result, and it saves us the overhead of an `await` call.)
+    return boundHandler();
   };
 };
 
