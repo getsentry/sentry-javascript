@@ -150,6 +150,12 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
           captureException(objectifiedErr);
         }
 
+        // Because we're going to finish and send the transaction before passing the error onto nextjs, it won't yet
+        // have had a chance to set the status to 500, so unless we do it ourselves now, we'll incorrectly report that
+        // the transaction was error-free
+        res.statusCode = 500;
+        res.statusMessage = 'Internal Server Error';
+
         // Make sure we have a chance to finish the transaction and flush events to Sentry before the handler errors
         // out. (Apps which are deployed on Vercel run their API routes in lambdas, and those lambdas will shut down the
         // moment they detect an error, so it's important to get this done before rethrowing the error. Apps not
