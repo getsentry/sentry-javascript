@@ -1,11 +1,10 @@
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
 import { getGlobalObject, logger } from '@sentry/utils';
 
+import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
 import { createTracingMixins } from './tracing';
-import { Operation, Options, TracingOptions, Vue } from './types';
-
-export const DEFAULT_HOOKS: Operation[] = ['activate', 'mount', 'update'];
+import { Options, TracingOptions, Vue } from './types';
 
 const DEFAULT_CONFIG: Options = {
   Vue: getGlobalObject<{ Vue: Vue }>().Vue,
