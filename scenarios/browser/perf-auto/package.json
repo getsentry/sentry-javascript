@@ -1,6 +1,9 @@
 {
   "name": "perf-auto",
-  "main": "index.js",
   "private": true,
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "dependencies": {
+    "@sentry/browser": "file:../../../packages/browser",
+    "@sentry/tracing": "file:../../../packages/tracing"
+  }
 }
