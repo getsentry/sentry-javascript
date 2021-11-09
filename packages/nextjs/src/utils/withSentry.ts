@@ -3,12 +3,13 @@ import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import { addExceptionMechanism, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
-import { NextApiHandler, NextApiResponse } from 'next';
+import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
 const { parseRequest } = Handlers;
 
-// purely for clarity
-type WrappedNextApiHandler = NextApiHandler;
+// This is the same as the `NextApiHandler` type, except instead of having a return type of `void | Promise<void>`, it's
+// only `Promise<void>`, because wrapped handlers are always async
+export type WrappedNextApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
 
 export type AugmentedNextApiResponse = NextApiResponse & {
   __sentryTransaction?: Transaction;
