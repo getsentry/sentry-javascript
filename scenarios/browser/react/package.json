@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "dependencies": {
     "react": "17",
-    "react-dom": "17",
-    "@sentry/react": "file:../../../packages/react"
+    "react-dom": "17"
   }
 }

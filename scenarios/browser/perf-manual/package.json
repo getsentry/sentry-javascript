@@ -1,9 +1,5 @@
 {
   "name": "perf-manual",
   "private": true,
-  "version": "0.0.0",
-  "dependencies": {
-    "@sentry/browser": "file:../../../packages/browser",
-    "@sentry/tracing": "file:../../../packages/tracing"
-  }
+  "version": "0.0.0"
 }
