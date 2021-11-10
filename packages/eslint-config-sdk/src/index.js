@@ -191,7 +191,7 @@ module.exports = {
       files: ['*.tsx', '*.jsx', '*.test.tsx', '*.test.jsx'],
       parserOptions: {
         jsx: true,
-      }
+      },
     },
   ],
 
