@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next",
     "build": "next build",
+    "predebug": "source ../integration_test_utils.sh && link_monorepo_packages '../../..' && yarn build",
     "start": "next start"
   },
   "dependencies": {
