@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.14.3
+
+- Revert: ref(utils): Use type predicates in `is` utility functions (#4124)
+
 ## 6.14.2
 
 - feat(awslambda) : Capture errors individually on sqs partial batch failure (#4130)
