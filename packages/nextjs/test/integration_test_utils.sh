@@ -50,3 +50,30 @@ function linkplugin() {
     echo "ERROR: Can't link @sentry/wepack-plugin because $LINKED_PLUGIN_REPO does not exist."
   fi
 }
+
+# This is only really useful for running tests in the debugger, as the normal test runner reinstalls all SDK packages
+# from the local files on each test run
+function link_monorepo_packages() {
+  local repo_packages_dir=$1
+
+  for abs_package_path in ${repo_packages_dir}/*; do
+    local package_name=$(basename $abs_package_path)
+
+    # Skip packages under the `@sentry-internal` namespace (our function is only linking packages in the `@sentry`
+    # namespace, and besides, there's no reason to link such packages, as they're purely SDK dev dependencies).
+    #
+    # (The regex test ( `=~` ) is a sneaky way of testing if `package_name` is any of the three packages listed: if the
+    # string containing all of the packages containes a match to the regex solely consisting of the current package
+    # name, the current package must be in the list.)
+    if [[ "eslint-config-sdk eslint-plugin-sdk typescript" =~ $package_name ]]; then
+      continue
+    fi
+
+    # `-L` tests if the given file is a symbolic link, to see if linking has already been done
+    if [[ ! -L node_modules/@sentry/$package_name ]]; then
+      echo "Linking @sentry/$package_name"
+      link_package $abs_package_path >/dev/null 2>&1
+    fi
+
+  done
+}
