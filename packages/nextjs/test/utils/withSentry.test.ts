@@ -47,13 +47,13 @@ const flushSpy = jest.spyOn(Sentry, 'flush').mockImplementation(async () => {
 describe('withSentry', () => {
   let req: NextApiRequest, res: NextApiResponse;
 
-  const error = new Error('Oh, no! Charlie ate the flip-flops! :-(');
+  const noShoesError = new Error('Oh, no! Charlie ate the flip-flops! :-(');
 
   const origHandlerNoError: NextApiHandler = async (_req, res) => {
     res.send('Good dog, Maisey!');
   };
   const origHandlerWithError: NextApiHandler = async (_req, _res) => {
-    throw error;
+    throw noShoesError;
   };
 
   const wrappedHandlerNoError = withSentry(origHandlerNoError);
@@ -80,10 +80,10 @@ describe('withSentry', () => {
       try {
         await callWrappedHandler(wrappedHandlerWithError, req, res);
       } catch (err) {
-        expect(err).toBe(error);
+        expect(err).toBe(noShoesError);
       }
 
-      expect(captureExceptionSpy).toHaveBeenCalledWith(error);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(noShoesError);
       expect(flushSpy).toHaveBeenCalled();
       expect(loggerSpy).toHaveBeenCalledWith('Done flushing events');
 
