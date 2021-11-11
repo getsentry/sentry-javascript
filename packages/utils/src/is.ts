@@ -9,7 +9,7 @@ import { Primitive } from '@sentry/types';
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isError(wat: any): wat is Error {
+export function isError(wat: any): boolean {
   switch (Object.prototype.toString.call(wat)) {
     case '[object Error]':
       return true;
@@ -29,7 +29,7 @@ export function isError(wat: any): wat is Error {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isErrorEvent(wat: any): wat is ErrorEvent {
+export function isErrorEvent(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object ErrorEvent]';
 }
 
@@ -40,7 +40,7 @@ export function isErrorEvent(wat: any): wat is ErrorEvent {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isDOMError(wat: any): wat is DOMError {
+export function isDOMError(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object DOMError]';
 }
 
@@ -51,18 +51,18 @@ export function isDOMError(wat: any): wat is DOMError {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isDOMException(wat: any): wat is DOMException {
+export function isDOMException(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object DOMException]';
 }
 
 /**
- * Checks whether the given value's type is string
+ * Checks whether given value's type is a string
  * {@link isString}.
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isString(wat: any): wat is string {
+export function isString(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object String]';
 }
 
@@ -84,7 +84,7 @@ export function isPrimitive(wat: any): wat is Primitive {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isPlainObject(wat: any): wat is { [key: string]: unknown } {
+export function isPlainObject(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object Object]';
 }
 
@@ -95,7 +95,7 @@ export function isPlainObject(wat: any): wat is { [key: string]: unknown } {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isEvent(wat: any): wat is Event {
+export function isEvent(wat: any): boolean {
   return typeof Event !== 'undefined' && isInstanceOf(wat, Event);
 }
 
@@ -106,7 +106,7 @@ export function isEvent(wat: any): wat is Event {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isElement(wat: any): wat is Element {
+export function isElement(wat: any): boolean {
   return typeof Element !== 'undefined' && isInstanceOf(wat, Element);
 }
 
@@ -117,7 +117,7 @@ export function isElement(wat: any): wat is Element {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isRegExp(wat: any): wat is RegExp {
+export function isRegExp(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object RegExp]';
 }
 
@@ -140,12 +140,6 @@ export function isThenable(wat: any): boolean {
 export function isSyntheticEvent(wat: any): boolean {
   return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
 }
-
-// Having the two different types is necessary because some types packages type classes as functions (in addition to
-// being objects with a `new` method), and some only type them as `new`-able objects
-type Constructor<T> = (...args: any[]) => T;
-type ClassWithConstructor<T> = { new (...args: any[]): T };
-
 /**
  * Checks whether given value's type is an instance of provided constructor.
  * {@link isInstanceOf}.
@@ -154,7 +148,7 @@ type ClassWithConstructor<T> = { new (...args: any[]): T };
  * @param base A constructor to be used in a check.
  * @returns A boolean representing the result.
  */
-export function isInstanceOf<T>(wat: any, base: Constructor<T> | ClassWithConstructor<T>): wat is T {
+export function isInstanceOf(wat: any, base: any): boolean {
   try {
     return wat instanceof base;
   } catch (_e) {

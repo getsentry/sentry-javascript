@@ -103,7 +103,7 @@ function getWalkSource(
       currentTarget?: unknown;
     }
 
-    const event = (value as unknown) as SimpleEvent;
+    const event = value as SimpleEvent;
 
     const source: {
       [key: string]: any;
@@ -381,8 +381,9 @@ export function extractExceptionKeysForMessage(exception: any, maxLength: number
  * Given any object, return the new object with removed keys that value was `undefined`.
  * Works recursively on objects and arrays.
  */
-export function dropUndefinedKeys<T>(obj: T): T {
-  if (isPlainObject(obj)) {
+export function dropUndefinedKeys<T>(val: T): T {
+  if (isPlainObject(val)) {
+    const obj = val as { [key: string]: any };
     const rv: { [key: string]: any } = {};
     for (const key of Object.keys(obj)) {
       if (typeof obj[key] !== 'undefined') {
@@ -392,11 +393,11 @@ export function dropUndefinedKeys<T>(obj: T): T {
     return rv as T;
   }
 
-  if (Array.isArray(obj)) {
-    return (obj as any[]).map(dropUndefinedKeys) as any;
+  if (Array.isArray(val)) {
+    return (val as any[]).map(dropUndefinedKeys) as any;
   }
 
-  return obj;
+  return val;
 }
 
 /**
