@@ -9,16 +9,26 @@ const FLUSH_DURATION = 200;
 async function sleep(ms: number): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
-
+/**
+ * Helper to prevent tests from ending before `flush()` has finished its work.
+ *
+ * This is necessary because, like its real-life counterpart, our mocked `res.send()` below doesn't await `res.end()
+ * (which becomes async when we wrap it in `withSentry` in order to give `flush()` time to run). In real life, the
+ * request/response cycle is held open as subsequent steps wait for `end()` to emit its `prefinished` event. Here in
+ * tests, without any of that other machinery, we have to hold it open ourselves.
+ *
+ * @param wrappedHandler
+ * @param req
+ * @param res
+ */
 async function callWrappedHandler(wrappedHandler: WrappedNextApiHandler, req: NextApiRequest, res: NextApiResponse) {
   await wrappedHandler(req, res);
 
-  // Within the wrapped handler, we await `flush()` inside `res.end()`, but nothing awaits `res.end()`, because in its
-  // original version, it's sync (unlike the function we wrap around it). The original does actually *act* like an async
-  // function being awaited - subsequent steps in the request/response lifecycle don't happen until it emits a
-  // `prefinished` event (which is why it's safe for us to make the switch). But here in tests, there's nothing past
-  // `res.end()`, so we have to manually wait for it to be done.
+  // we know we need to wait at least this long for `flush()` to finish
   await sleep(FLUSH_DURATION);
+
+  // should be <1 second, just long enough the `flush()` call to return, the original (pre-wrapping) `res.end()` to be
+  // called, and the response to be marked as done
   while (!res.finished) {
     await sleep(100);
   }
