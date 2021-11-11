@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.14.2
+
+- feat(awslambda) : Capture errors individually on sqs partial batch failure (#4130)
+- feat(gatsby): Upload source maps automatically when sentry-cli is configured (#4109)
+- fix(nextjs): Prevent `false API resolved without sending a response` warning (#4139)
+- fix(vue): Merge default and manual hooks while creating mixins. (#4132)
+- ref(utils): Use type predicates in `is` utility functions (#4124)
+
+Features, fixes, and improvements in this release have been contributed by: @J4YF7O. Thank you for your contributions!
+
 ## 6.14.1
 
 - feat(gatsby): Support Gatsby v4 (#4120)
