@@ -14,10 +14,12 @@ const argv = yargs(process.argv.slice(2))
   .option('silent', {
     type: 'boolean',
     description: 'Hide all stdout and console logs except test results',
+    conflicts: ['debug'],
   })
   .option('debug', {
     type: 'boolean',
     description: 'Log intercepted requests and debug messages',
+    conflicts: ['silent'],
   })
   .option('depth', {
     type: 'number',
