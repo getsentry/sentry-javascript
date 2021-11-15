@@ -3,14 +3,17 @@ import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import { addExceptionMechanism, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
-import { NextApiHandler, NextApiResponse } from 'next';
+import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
 const { parseRequest } = Handlers;
 
-// purely for clarity
-type WrappedNextApiHandler = NextApiHandler;
+// This is the same as the `NextApiHandler` type, except instead of having a return type of `void | Promise<void>`, it's
+// only `Promise<void>`, because wrapped handlers are always async
+export type WrappedNextApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
 
-type AugmentedResponse = NextApiResponse & { __sentryTransaction?: Transaction };
+export type AugmentedNextApiResponse = NextApiResponse & {
+  __sentryTransaction?: Transaction;
+};
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler => {
@@ -69,7 +72,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
 
           // save a link to the transaction on the response, so that even if there's an error (landing us outside of
           // the domain), we can still finish it (albeit possibly missing some scope data)
-          (res as AugmentedResponse).__sentryTransaction = transaction;
+          (res as AugmentedNextApiResponse).__sentryTransaction = transaction;
         }
       }
 
@@ -148,6 +151,18 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
           captureException(objectifiedErr);
         }
 
+        // Because we're going to finish and send the transaction before passing the error onto nextjs, it won't yet
+        // have had a chance to set the status to 500, so unless we do it ourselves now, we'll incorrectly report that
+        // the transaction was error-free
+        res.statusCode = 500;
+        res.statusMessage = 'Internal Server Error';
+
+        // Make sure we have a chance to finish the transaction and flush events to Sentry before the handler errors
+        // out. (Apps which are deployed on Vercel run their API routes in lambdas, and those lambdas will shut down the
+        // moment they detect an error, so it's important to get this done before rethrowing the error. Apps not
+        // deployed serverlessly will run into this cleanup function again in `res.end(), but it'll just no-op.)
+        await finishSentryProcessing(res);
+
         // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
         // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
         // the error as already having been captured.)
@@ -155,12 +170,14 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       }
     });
 
-    return await boundHandler();
+    // Since API route handlers are all async, nextjs always awaits the return value (meaning it's fine for us to return
+    // a promise here rather than a real result, and it saves us the overhead of an `await` call.)
+    return boundHandler();
   };
 };
 
-type ResponseEndMethod = AugmentedResponse['end'];
-type WrappedResponseEndMethod = AugmentedResponse['end'];
+type ResponseEndMethod = AugmentedNextApiResponse['end'];
+type WrappedResponseEndMethod = AugmentedNextApiResponse['end'];
 
 /**
  * Wrap `res.end()` so that it closes the transaction and flushes events before letting the request finish.
@@ -173,32 +190,8 @@ type WrappedResponseEndMethod = AugmentedResponse['end'];
  * @returns The wrapped version
  */
 function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
-  return async function newEnd(this: AugmentedResponse, ...args: unknown[]) {
-    const transaction = this.__sentryTransaction;
-
-    if (transaction) {
-      transaction.setHttpStatus(this.statusCode);
-
-      // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
-      // transaction closes, and make sure to wait until that's done before flushing events
-      const transactionFinished: Promise<void> = new Promise(resolve => {
-        setImmediate(() => {
-          transaction.finish();
-          resolve();
-        });
-      });
-      await transactionFinished;
-    }
-
-    // flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
-    // ends
-    try {
-      logger.log('Flushing events...');
-      await flush(2000);
-      logger.log('Done flushing events');
-    } catch (e) {
-      logger.log(`Error while flushing events:\n${e}`);
-    }
+  return async function newEnd(this: AugmentedNextApiResponse, ...args: unknown[]) {
+    await finishSentryProcessing(this);
 
     // If the request didn't error, we will have temporarily marked the response finished to avoid a nextjs warning
     // message. (See long note above.) Now we need to flip `finished` back to `false` so that the real `res.end()`
@@ -207,4 +200,37 @@ function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
 
     return origEnd.call(this, ...args);
   };
+}
+
+/**
+ * Close the open transaction (if any) and flush events to Sentry.
+ *
+ * @param res The outgoing response for this request, on which the transaction is stored
+ */
+async function finishSentryProcessing(res: AugmentedNextApiResponse): Promise<void> {
+  const { __sentryTransaction: transaction } = res;
+
+  if (transaction) {
+    transaction.setHttpStatus(res.statusCode);
+
+    // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
+    // transaction closes, and make sure to wait until that's done before flushing events
+    const transactionFinished: Promise<void> = new Promise(resolve => {
+      setImmediate(() => {
+        transaction.finish();
+        resolve();
+      });
+    });
+    await transactionFinished;
+  }
+
+  // Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
+  // ends. If there was an error, rethrow it so that the normal exception-handling mechanisms can apply.
+  try {
+    logger.log('Flushing events...');
+    await flush(2000);
+    logger.log('Done flushing events');
+  } catch (e) {
+    logger.log(`Error while flushing events:\n${e}`);
+  }
 }
