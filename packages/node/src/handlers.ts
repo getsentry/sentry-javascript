@@ -56,7 +56,7 @@ export function tracingHandler(): (
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
     let traceparentData;
     if (req.headers && isString(req.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(req.headers['sentry-trace']);
+      traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
     }
 
     const transaction = startTransaction(

@@ -227,7 +227,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {
-            traceparentData = extractTraceparentData(req.headers['sentry-trace']);
+            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
             logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
