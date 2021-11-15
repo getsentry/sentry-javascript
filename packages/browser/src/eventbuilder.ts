@@ -7,6 +7,7 @@ import {
   isError,
   isErrorEvent,
   isEvent,
+  isInstanceOf,
   isPlainObject,
   SyncPromise,
 } from '@sentry/utils';
@@ -73,7 +74,10 @@ export function eventFromUnknownInput(
     event = eventFromStacktrace(computeStackTrace(exception as Error));
     return event;
   }
-  if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
+  if (
+    isDOMError(exception as DOMError) ||
+    (isDOMException(exception as DOMException) && !isInstanceOf(exception, Error))
+  ) {
     // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
     // then we just extract the name, code, and message, as they don't provide anything else
     // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
