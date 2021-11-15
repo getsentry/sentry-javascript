@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.15.0
+
+- fix(browser): Capture stacktrace on `DOMExceptions`, if possible (#4160)
+- fix(nextjs): Delay error propagation until `withSentry` is done (#4027)
+
+Work in this release contributed by @nowylie. Thank you for your contribution!
+
 ## 6.14.3
 
 - Revert: ref(utils): Use type predicates in `is` utility functions (#4124)
@@ -16,7 +23,7 @@
 - fix(vue): Merge default and manual hooks while creating mixins. (#4132)
 - ref(utils): Use type predicates in `is` utility functions (#4124)
 
-Features, fixes, and improvements in this release have been contributed by: @J4YF7O. Thank you for your contributions!
+Work in this release contributed by @J4YF7O. Thank you for your contribution!
 
 ## 6.14.1
 
@@ -46,7 +53,7 @@ Features, fixes, and improvements in this release have been contributed by: @J4Y
 - fix(tracing): Update paths for DB drivers auto-instrumentation (#4083)
 - fix(vue): Move ROOT_SPAN_TIMER into Vue context. (#4081)
 
-Features, fixes, and improvements in this release have been contributed by: @tmilar, @deammer, @freekii. Thank you for your contributions!
+Work in this release contributed by @tmilar, @deammer, and @freekii. Thank you for your contributions!
 
 ## 6.13.3
 
@@ -616,7 +623,7 @@ during SDK initialization.
 
 - [react] feat: Expose eventId on ErrorBoundary component (#2704)
 - [node] fix: Extract transaction from nested express paths correctly (#2714)
-- [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
+- [tracing] feat: Pick up sentry-trace in JS `<meta/>` tag (#2703)
 - [tracing] fix: Respect fetch headers (#2712) (#2713)
 - [tracing] fix: Check if performance.getEntries() exists (#2710)
 - [tracing] fix: Add manual Location typing (#2700)
@@ -922,7 +929,7 @@ removed in the future. If you are only using the `Tracing` integration there is 
 
 ## 5.4.2
 
-- [core] fix: Allow Integration<T> constructor to have arguments
+- [core] fix: Allow `Integration<T>` constructor to have arguments
 - [browser] fix: Vue breadcrumb recording missing in payload
 - [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
 - [integrations] fix: Tracing integration fetch headers bug where trace header is not attached if there are no options.
@@ -1031,7 +1038,7 @@ This major bump brings a lot of internal improvements. Also, we extracted some i
 in their own package called `@sentry/integrations`. For a detailed guide how to upgrade from `4.x` to `5.x` refer to our
 [migration guide](https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md).
 
-**Migration from v4**
+### Migration from v4
 
 If you were using the SDKs high level API, the way we describe it in the docs, you should be fine without any code
 changes. This is a **breaking** release since we removed some methods from the public API and removed some classes from
@@ -1113,7 +1120,7 @@ the default export.
 
 ## 5.0.0-beta1
 
-**Migration from v4**
+### Migration from v4
 
 This major bump brings a lot of internal improvements. This is a **breaking** release since we removed some methods from
 the public API and removed some classes from the default export.
@@ -1209,7 +1216,7 @@ the public API and removed some classes from the default export.
 ## 4.5.2
 
 - [utils] fix: Decycling for objects to no produce an endless loop
-- [browser] fix: <unlabeled> event for unhandledRejection
+- [browser] fix: `<unlabeled>` event for unhandledRejection
 - [loader] fix: Handle unhandledRejection the same way as it would be thrown
 
 ## 4.5.1
