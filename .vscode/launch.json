@@ -51,17 +51,17 @@
 
 
     // @sentry/nextjs - Run a specific integration test file
-    // Must have file in currently active tab when hitting the play button
+    // Must have test file in currently active tab when hitting the play button, and must already have run `yarn` in test app directory
     {
       "name": "Debug @sentry/nextjs integration tests - just open file",
       "type": "node",
       "cwd": "${workspaceFolder}/packages/nextjs",
       "request": "launch",
-      // TODO create a build task
-      // "preLaunchTask": "yarn build",
-
-      // this is going straight to `server.js` (rather than running the tests through yarn) in order to be able to skip
-      // having to reinstall dependencies on every new test run
+      // since we're not using the normal test runner, we need to make sure we're using the current version of all local
+      // SDK packages and then manually rebuild the test app
+      "preLaunchTask": "Prepare nextjs integration test app for debugging",
+      // running `server.js` directly (rather than running the tests through yarn) allows us to skip having to reinstall
+      // dependencies on every new test run
       "program": "${workspaceFolder}/packages/nextjs/test/integration/test/server.js",
       "args": [
         "--debug",
@@ -69,10 +69,29 @@
         "--filter",
         "${fileBasename}"
       ],
-      "sourceMaps": true,
+
       "skipFiles": [
-        "<node_internals>/**", "**/tslib/**"
+        "<node_internals>/**",
+        // this prevents us from landing in a neverending cycle of TS async-polyfill functions as we're stepping through
+        // our code
+        "${workspaceFolder}/node_modules/tslib/**/*"
       ],
+      "sourceMaps": true,
+      // this controls which files are sourcemapped
+      "outFiles": [
+        // our SDK code
+        "${workspaceFolder}/**/dist/**/*.js",
+        // the built test app
+        "${workspaceFolder}/packages/nextjs/test/integration/.next/**/*.js",
+        "!**/node_modules/**"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**/dist/**",
+        "${workspaceFolder}/packages/nextjs/test/integration/.next/**",
+        "!**/node_modules/**"
+      ],
+      "internalConsoleOptions": "openOnSessionStart"
+
     },
   ]
 }
