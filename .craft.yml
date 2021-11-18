@@ -2,9 +2,16 @@ minVersion: '0.23.1'
 changelogPolicy: simple
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
-  - name: npm
-  - name: github
-    includeNames: /^sentry-.*$/
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+(\.\d+)*\.zip$/
+    layerName: SentryNodeServerlessSDK
+    compatibleRuntimes:
+      - name: node
+        versions:
+          - nodejs10.x
+          - nodejs12.x
+          - nodejs14.x
+    license: MIT
   - name: gcs
     includeNames: /.*\.js.*$/
     bucket: sentry-js-sdk
@@ -12,6 +19,9 @@ targets:
       - path: /{{version}}/
         metadata:
           cacheControl: 'public, max-age=31536000'
+  - name: github
+    includeNames: /^sentry-.*$/
+  - name: npm
   - name: registry
     sdks:
       'npm:@sentry/browser':
@@ -34,13 +44,3 @@ targets:
         onlyIfPresent: /^sentry-wasm-.*\.tgz$/
       'npm:@sentry/nextjs':
         onlyIfPresent: /^sentry-nextjs-.*\.tgz$/
-  - name: aws-lambda-layer
-    includeNames: /^sentry-node-serverless-\d+(\.\d+)*\.zip$/
-    layerName: SentryNodeServerlessSDK
-    compatibleRuntimes:
-      - name: node
-        versions:
-          - nodejs10.x
-          - nodejs12.x
-          - nodejs14.x
-    license: MIT
