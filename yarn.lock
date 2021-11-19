@@ -3145,6 +3145,15 @@
     "@types/ember__engine" "*"
     "@types/ember__object" "*"
 
+"@types/ember__debug@^3.16.5":
+  version "3.16.5"
+  resolved "https://registry.yarnpkg.com/@types/ember__debug/-/ember__debug-3.16.5.tgz#ce04532c100fdc1c97c9f308d69a88d6e956db97"
+  integrity sha512-Sj0idBMOd33PubBbxtXty+tzyVIAbxK4cf8q0AKZ0z5wOL0wsFOLCvMgRMxSME3DB2uvJd4u9tGr15XFM+Z03A==
+  dependencies:
+    "@types/ember__debug" "*"
+    "@types/ember__engine" "*"
+    "@types/ember__object" "*"
+
 "@types/ember__destroyable@*":
   version "3.22.0"
   resolved "https://registry.yarnpkg.com/@types/ember__destroyable/-/ember__destroyable-3.22.0.tgz#2af2c27f5d8996694c3f0fe906e2536b2e4c5aca"

@@ -49,6 +49,7 @@
     "@sentry-internal/eslint-config-sdk": "6.15.0",
     "@types/ember": "~3.16.5",
     "@types/ember-qunit": "~3.4.9",
+    "@types/ember__debug": "^3.16.5",
     "@types/ember__test-helpers": "~1.7.0",
     "@types/qunit": "~2.9.1",
     "@types/rsvp": "~4.0.3",
