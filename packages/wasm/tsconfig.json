@@ -3,6 +3,5 @@
   "include": ["src/**/*.ts"],
   "compilerOptions": {
     "esModuleInterop": true,
-    "rootDir": ".",
   }
 }
