@@ -5,5 +5,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "types": ["jest"]
+    "esModuleInterop": true,
+    "jsx": "react"
   }
 }
