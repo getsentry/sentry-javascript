@@ -4,5 +4,6 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": "."
+    "experimentalDecorators": true
   }
 }
