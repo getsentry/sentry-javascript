@@ -3,7 +3,7 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node", "jest"]
+    "types": ["jest"]
     "target": "ES2018",
   }
 }

@@ -4,7 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node", "jest"]
+    "types": ["jest"]
     "esModuleInterop": true,
     "jsx": "react"
   }

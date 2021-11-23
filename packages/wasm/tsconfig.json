@@ -5,6 +5,6 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "rootDir": ".",
-    "types": ["node", "jest", "jest-environment-puppeteer"]
+    "types": ["jest", "jest-environment-puppeteer"]
   }
 }

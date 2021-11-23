@@ -4,6 +4,5 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node"]
   }
 }
