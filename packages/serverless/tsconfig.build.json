@@ -4,6 +4,5 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist",
-    "target": "ES2018"
   }
 }

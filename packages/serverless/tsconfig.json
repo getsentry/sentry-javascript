@@ -4,5 +4,6 @@
   "compilerOptions": {
     "rootDir": ".",
     "types": ["node", "jest"]
+    "target": "ES2018",
   }
 }
