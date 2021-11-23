@@ -3,7 +3,6 @@
 
   "compilerOptions": {
     "declarationMap": false,
-    "esModuleInterop": true,
     "baseUrl": ".",
     "outDir": "dist",
     "types": ["node"]

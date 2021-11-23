@@ -6,5 +6,6 @@
     "declarationMap": false,
     "rootDir": ".",
     "types": ["node", "jest"]
+    "esModuleInterop": true,
   }
 }
