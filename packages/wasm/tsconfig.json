@@ -1,9 +1,8 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts"],
   "compilerOptions": {
     "esModuleInterop": true,
     "rootDir": ".",
-    "types": ["jest", "jest-environment-puppeteer"]
   }
 }

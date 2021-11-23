@@ -1,8 +1,7 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["mocha", "chai", "sinon", "jest"]
   }
 }
