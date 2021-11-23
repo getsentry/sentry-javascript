@@ -3,6 +3,6 @@
 
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "esm",
-  },
+    "outDir": "esm"
+  }
 }
