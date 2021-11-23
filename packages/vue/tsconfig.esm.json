@@ -3,6 +3,7 @@
 
   "compilerOptions": {
     "baseUrl": ".",
+    "module": "es6",
     "outDir": "esm"
   }
 }
