@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.build.json",
   "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["dist"],
   "compilerOptions": {
     "esModuleInterop": true,
     "rootDir": ".",

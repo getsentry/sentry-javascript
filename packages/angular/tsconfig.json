@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.build.json",
   "include": ["src/**/*.ts"],
-  "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": "."
     "experimentalDecorators": true
