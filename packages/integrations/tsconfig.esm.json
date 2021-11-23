@@ -1,5 +1,6 @@
 {
-  "extends": "../../tsconfig.esm.json",
+  "extends": "./tsconfig.json",
+
   "compilerOptions": {
     "declarationMap": false,
     "esModuleInterop": true,
@@ -7,5 +8,4 @@
     "outDir": "esm",
     "types": ["node"]
   },
-  "include": ["src/**/*"]
 }
