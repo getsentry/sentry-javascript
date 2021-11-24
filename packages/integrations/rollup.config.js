@@ -22,6 +22,7 @@ const plugins = [
     tsconfigOverride: {
       compilerOptions: {
         declaration: false,
+        declarationMap: false,
         module: 'ES2015',
         paths: {
           '@sentry/utils': ['../utils/src'],
