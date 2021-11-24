@@ -32,12 +32,11 @@ const paths = {
 
 const plugins = [
   typescript({
-    tsconfig: 'tsconfig.build.json',
+    tsconfig: 'tsconfig.esm.json',
     tsconfigOverride: {
       compilerOptions: {
         declaration: false,
         declarationMap: false,
-        module: 'ES2015',
         paths,
       },
     },
