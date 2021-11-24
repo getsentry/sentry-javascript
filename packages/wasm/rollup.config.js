@@ -28,6 +28,7 @@ const plugins = [
           '@sentry/types': ['../types/src'],
           '@sentry/minimal': ['../minimal/src'],
         },
+        baseUrl: '.',
       },
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],

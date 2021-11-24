@@ -38,6 +38,7 @@ const plugins = [
         declaration: false,
         declarationMap: false,
         paths,
+        baseUrl: '.',
       },
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
