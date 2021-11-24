@@ -2,7 +2,6 @@
   "extends": "./tsconfig.json",
 
   "compilerOptions": {
-    "baseUrl": ".",
     "module": "commonjs",
     "outDir": "dist"
   }
