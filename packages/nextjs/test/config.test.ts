@@ -269,7 +269,7 @@ describe('withSentryConfig', () => {
     const userNextConfigCustomDir = {
       ...userNextConfig,
       sentry: { userConfigDir: '/dog_park' },
-    }
+    };
     await materializeFinalWebpackConfig({
       userNextConfig: userNextConfigCustomDir,
       incomingWebpackConfig: clientWebpackConfig,
