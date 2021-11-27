@@ -18,6 +18,7 @@ export type NextConfigObject = {
   // the output directory for the built app (defaults to ".next")
   distDir: string;
   sentry?: {
+    userConfigDir?: string;
     disableServerWebpackPlugin?: boolean;
     disableClientWebpackPlugin?: boolean;
   };

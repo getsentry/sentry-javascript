@@ -35,7 +35,7 @@ const mockExistsSync = (path: fs.PathLike) => {
 
   return realExistsSync(path);
 };
-const exitsSync = jest.spyOn(fs, 'existsSync').mockImplementation(mockExistsSync);
+const existsSync = jest.spyOn(fs, 'existsSync').mockImplementation(mockExistsSync);
 
 // Make it so that all temporary folders, either created directly by tests or by the code they're testing, will go into
 // one spot that we know about, which we can then clean up when we're done
@@ -263,6 +263,19 @@ describe('withSentryConfig', () => {
     materializeFinalNextConfig(userNextConfigFunction);
 
     expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, defaultsObject);
+  });
+
+  it(`respects custom userConfigDir`, async () => {
+    const userNextConfigCustomDir = {
+      ...userNextConfig,
+      sentry: { userConfigDir: '/dog_park' },
+    }
+    await materializeFinalWebpackConfig({
+      userNextConfig: userNextConfigCustomDir,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+    });
+    expect(existsSync).toHaveBeenCalledWith('/dog_park/sentry.client.config.ts');
   });
 });
 
@@ -673,7 +686,7 @@ describe('Sentry webpack plugin config', () => {
     let tempDir: string;
 
     beforeAll(() => {
-      exitsSync.mockImplementation(realExistsSync);
+      existsSync.mockImplementation(realExistsSync);
     });
 
     beforeEach(() => {
@@ -685,7 +698,7 @@ describe('Sentry webpack plugin config', () => {
     });
 
     afterAll(() => {
-      exitsSync.mockImplementation(mockExistsSync);
+      existsSync.mockImplementation(mockExistsSync);
     });
 
     it('successfully finds js files', () => {

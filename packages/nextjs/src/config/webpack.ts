@@ -59,7 +59,7 @@ export function constructWebpackConfigFunction(
     // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
     // be fixed by using `bind`, but this is way simpler.)
     const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
+    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext, userNextConfig);
 
     // In webpack 5, you can get webpack to replace any module you'd like with an empty object, just by setting its
     // `resolve.alias` value to `false`. Not much of our code is neatly separated into "things node needs" and "things
@@ -119,6 +119,7 @@ export function constructWebpackConfigFunction(
 async function addSentryToEntryProperty(
   currentEntryProperty: WebpackEntryProperty,
   buildContext: BuildContext,
+  userNextConfig: Partial<NextConfigObject>,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -129,10 +130,11 @@ async function addSentryToEntryProperty(
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
+  const userConfigDir = userNextConfig.sentry?.userConfigDir || buildContext.dir;
   // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
   const userConfigFile = buildContext.isServer
-    ? getUserConfigFile(buildContext.dir, 'server')
-    : getUserConfigFile(buildContext.dir, 'client');
+    ? getUserConfigFile(userConfigDir, 'server')
+    : getUserConfigFile(userConfigDir, 'client');
 
   // we need to turn the filename into a path so webpack can find it
   const filesToInject = [`./${userConfigFile}`];
