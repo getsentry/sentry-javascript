@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/browser';
-import { SDK_VERSION, BrowserOptions } from '@sentry/browser';
+import { BrowserOptions, buildMetadata } from '@sentry/browser';
 import { macroCondition, isDevelopingApp, getOwnConfig } from '@embroider/macros';
 import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
@@ -7,6 +7,8 @@ import Ember from 'ember';
 import { timestampWithMs } from '@sentry/utils';
 import { GlobalConfig, OwnConfig } from './types';
 import { getGlobalObject } from '@sentry/utils';
+
+const PACKAGE_NAME = 'ember';
 
 function _getSentryInitConfig() {
   const _global = getGlobalObject<GlobalConfig>();
@@ -27,25 +29,14 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
 
   // Merge runtime config into environment config, preferring runtime.
   Object.assign(environmentConfig.sentry, _runtimeConfig || {});
-  const initConfig = Object.assign({}, environmentConfig.sentry);
-
-  initConfig._metadata = initConfig._metadata || {};
-  initConfig._metadata.sdk = {
-    name: 'sentry.javascript.ember',
-    packages: [
-      {
-        name: 'npm:@sentry/ember',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  const options = Object.assign({}, environmentConfig.sentry);
+  buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
 
   // Persist Sentry init options so they are identical when performance initializers call init again.
   const sentryInitConfig = _getSentryInitConfig();
-  Object.assign(sentryInitConfig, initConfig);
+  Object.assign(sentryInitConfig, options);
 
-  Sentry.init(initConfig);
+  Sentry.init(options);
 
   if (macroCondition(isDevelopingApp())) {
     if (environmentConfig.ignoreEmberOnErrorWarning) {
