@@ -18,6 +18,7 @@ export {
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  buildMetadata,
   captureException,
   captureEvent,
   captureMessage,
