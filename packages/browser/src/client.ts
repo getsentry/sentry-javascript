@@ -1,8 +1,9 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, buildMetadata, Scope } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { BrowserBackend, BrowserOptions } from './backend';
+import { PACKAGE_NAME } from './constants';
 import { injectReportDialog, ReportDialogOptions } from './helpers';
 import { Breadcrumbs } from './integrations';
 
@@ -19,17 +20,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserOptions = {}) {
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.browser',
-      packages: [
-        {
-          name: 'npm:@sentry/browser',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
+    buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
 
     super(BrowserBackend, options);
   }
