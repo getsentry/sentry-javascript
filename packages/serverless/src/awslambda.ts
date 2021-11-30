@@ -23,6 +23,7 @@ import { performance } from 'perf_hooks';
 import { types } from 'util';
 
 import { AWSServices } from './awsservices';
+import { PACKAGE_NAME } from './constants';
 import { serverlessEventProcessor } from './utils';
 
 export * from '@sentry/node';
@@ -65,18 +66,7 @@ export function init(options: Sentry.NodeOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
 
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
-    name: 'sentry.javascript.serverless',
-    integrations: ['AWSLambda'],
-    packages: [
-      {
-        name: 'npm:@sentry/serverless',
-        version: Sentry.SDK_VERSION,
-      },
-    ],
-    version: Sentry.SDK_VERSION,
-  };
+  Sentry.buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME], ['AWSLambda']);
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);

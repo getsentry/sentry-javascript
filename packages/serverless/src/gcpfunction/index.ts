@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/node';
 import { Integration } from '@sentry/types';
 
+import { PACKAGE_NAME } from '../constants';
 import { GoogleCloudGrpc } from '../google-cloud-grpc';
 import { GoogleCloudHttp } from '../google-cloud-http';
 import { serverlessEventProcessor } from '../utils';
@@ -23,18 +24,7 @@ export function init(options: Sentry.NodeOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
 
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
-    name: 'sentry.javascript.serverless',
-    integrations: ['GCPFunction'],
-    packages: [
-      {
-        name: 'npm:@sentry/serverless',
-        version: Sentry.SDK_VERSION,
-      },
-    ],
-    version: Sentry.SDK_VERSION,
-  };
+  Sentry.buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME], ['GCPFunction']);
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
