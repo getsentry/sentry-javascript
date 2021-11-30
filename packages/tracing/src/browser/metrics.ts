@@ -3,6 +3,7 @@
 import { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
 
+import { BROWSER_OP, NAVIGATION, PAGELOAD_OP, RESOURCE, SENTRY_TRACING_INIT } from '../constants';
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
@@ -36,7 +37,7 @@ export class MetricsInstrumentation {
   public constructor(_options: MetricsInstrumentationOptions) {
     if (!isNodeEnv() && global?.performance && global?.document) {
       if (global.performance.mark) {
-        global.performance.mark('sentry-tracing-init');
+        global.performance.mark(SENTRY_TRACING_INIT);
       }
 
       this._trackCLS();
@@ -82,12 +83,12 @@ export class MetricsInstrumentation {
         const startTime = msToSec(entry.startTime as number);
         const duration = msToSec(entry.duration as number);
 
-        if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
+        if (transaction.op === NAVIGATION && timeOrigin + startTime < transaction.startTimestamp) {
           return;
         }
 
         switch (entry.entryType) {
-          case 'navigation': {
+          case NAVIGATION: {
             addNavigationSpans(transaction, entry, timeOrigin);
             responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
             requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
@@ -97,7 +98,7 @@ export class MetricsInstrumentation {
           case 'paint':
           case 'measure': {
             const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
-            if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
+            if (tracingInitMarkStartTime === undefined && entry.name === SENTRY_TRACING_INIT) {
               tracingInitMarkStartTime = startTimestamp;
             }
 
@@ -121,7 +122,7 @@ export class MetricsInstrumentation {
 
             break;
           }
-          case 'resource': {
+          case RESOURCE: {
             const resourceName = (entry.name as string).replace(global.location.origin, '');
             const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
             // We remember the entry script end time to calculate the difference to the first init mark
@@ -149,7 +150,7 @@ export class MetricsInstrumentation {
     this._trackNavigator(transaction);
 
     // Measurements are only available for pageload transactions
-    if (transaction.op === 'pageload') {
+    if (transaction.op === PAGELOAD_OP) {
       // normalize applicable web vital values to be relative to transaction.startTimestamp
 
       const timeOrigin = msToSec(browserPerformanceTimeOrigin);
@@ -418,7 +419,7 @@ export function addResourceSpans(
   _startChild(transaction, {
     description: resourceName,
     endTimestamp,
-    op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource',
+    op: entry.initiatorType ? `${RESOURCE}.${entry.initiatorType}` : RESOURCE,
     startTimestamp,
     data,
   });
@@ -443,7 +444,7 @@ function addPerformanceNavigationTiming(props: {
     return;
   }
   _startChild(transaction, {
-    op: 'browser',
+    op: BROWSER_OP,
     description: description ?? event,
     startTimestamp: timeOrigin + msToSec(start),
     endTimestamp: timeOrigin + msToSec(end),
@@ -453,14 +454,14 @@ function addPerformanceNavigationTiming(props: {
 /** Create request and response related spans */
 function addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
   _startChild(transaction, {
-    op: 'browser',
+    op: BROWSER_OP,
     description: 'request',
     startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
   });
 
   _startChild(transaction, {
-    op: 'browser',
+    op: BROWSER_OP,
     description: 'response',
     startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),

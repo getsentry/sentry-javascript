@@ -2,6 +2,7 @@ import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
+import { PAGELOAD_OP } from '../constants';
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
@@ -202,7 +203,7 @@ export class BrowserTracing implements Integration {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
 
-    const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
+    const parentContextFromHeader = context.op === PAGELOAD_OP ? getHeaderContext() : undefined;
 
     const expandedContext = {
       ...context,

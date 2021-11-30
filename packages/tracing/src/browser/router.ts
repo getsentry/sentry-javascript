@@ -1,6 +1,8 @@
 import { Transaction, TransactionContext } from '@sentry/types';
 import { addInstrumentationHandler, getGlobalObject, logger } from '@sentry/utils';
 
+import { NAVIGATION, PAGELOAD_OP } from '../constants';
+
 const global = getGlobalObject<Window>();
 
 /**
@@ -20,7 +22,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
 
   let activeTransaction: T | undefined;
   if (startTransactionOnPageLoad) {
-    activeTransaction = customStartTransaction({ name: global.location.pathname, op: 'pageload' });
+    activeTransaction = customStartTransaction({ name: global.location.pathname, op: PAGELOAD_OP });
   }
 
   if (startTransactionOnLocationChange) {
@@ -47,7 +49,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
             // If there's an open transaction on the scope, we need to finish it before creating an new one.
             activeTransaction.finish();
           }
-          activeTransaction = customStartTransaction({ name: global.location.pathname, op: 'navigation' });
+          activeTransaction = customStartTransaction({ name: global.location.pathname, op: NAVIGATION });
         }
       },
       type: 'history',
