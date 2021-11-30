@@ -1,8 +1,8 @@
-import { configureScope, init as reactInit, Integrations as BrowserIntegrations } from '@sentry/react';
+import { buildMetadata, configureScope, init as reactInit, Integrations as BrowserIntegrations } from '@sentry/react';
 import { defaultRequestInstrumentationOptions, Integrations as TracingIntegrations } from '@sentry/tracing';
 
+import { NEXTJS_PACKAGE_NAME, REACT_PACKAGE_NAME } from './constants';
 import { nextRouterInstrumentation } from './performance/client';
-import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration, UserIntegrations } from './utils/userIntegrations';
 
@@ -14,8 +14,7 @@ export const Integrations = { ...BrowserIntegrations, BrowserTracing };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
-  const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'react']);
-  metadataBuilder.addSdkMetadata();
+  options._metadata = buildMetadata(NEXTJS_PACKAGE_NAME, [NEXTJS_PACKAGE_NAME, REACT_PACKAGE_NAME], options._metadata);
   options.environment = options.environment || process.env.NODE_ENV;
 
   // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set

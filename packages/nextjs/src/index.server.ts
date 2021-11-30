@@ -1,13 +1,13 @@
 import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/hub';
 import { RewriteFrames } from '@sentry/integrations';
-import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { buildMetadata, configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { Event } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
+import { NEXTJS_PACKAGE_NAME, NODE_PACKAGE_NAME } from './constants';
 import { instrumentServer } from './utils/instrumentServer';
-import { MetadataBuilder } from './utils/metadataBuilder';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
 
@@ -33,8 +33,7 @@ export function init(options: NextjsOptions): void {
     return;
   }
 
-  const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
-  metadataBuilder.addSdkMetadata();
+  options._metadata = buildMetadata(NEXTJS_PACKAGE_NAME, [NEXTJS_PACKAGE_NAME, NODE_PACKAGE_NAME], options._metadata);
   options.environment = options.environment || process.env.NODE_ENV;
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
