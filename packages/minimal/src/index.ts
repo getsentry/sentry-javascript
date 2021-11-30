@@ -2,6 +2,7 @@ import { getCurrentHub, Hub, Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   CaptureContext,
+  Client,
   CustomSamplingContext,
   Event,
   Extra,
@@ -188,10 +189,16 @@ export function withScope(callback: (scope: Scope) => void): void {
  * @param method The method to call on the client/client.
  * @param args Arguments to pass to the client/fontend.
  * @hidden
+ * @deprecated Please use {@link _withClient}
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);
+}
+
+/** */
+export function _withClient(callback: (client: Client, scope: Scope | undefined) => void): void {
+  callOnHub<void>('_withClient', callback);
 }
 
 /**

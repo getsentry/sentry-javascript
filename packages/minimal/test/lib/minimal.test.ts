@@ -201,6 +201,7 @@ describe('Minimal', () => {
     const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
     getCurrentHub().withScope(() => {
       getCurrentHub().bindClient(new TestClient({}) as any);
+      // eslint-disable-next-line deprecation/deprecation
       _callOnClient('mySecretPublicMethod', 'test');
       expect(s.mock.calls[0][0]).toBe('test');
       s.mockRestore();
