@@ -2,7 +2,6 @@ import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
 import { Severity } from '@sentry/types';
 
 import {
-  _callOnClient,
   captureEvent,
   captureException,
   captureMessage,
