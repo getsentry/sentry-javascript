@@ -1,9 +1,10 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, buildMetadata, Scope } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { NodeBackend } from './backend';
+import { PACKAGE_NAME } from './constants';
 import { NodeOptions } from './types';
 
 /**
@@ -20,18 +21,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: NodeOptions) {
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.node',
-      packages: [
-        {
-          name: 'npm:@sentry/node',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
-
+    buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
     super(NodeBackend, options);
   }
 
