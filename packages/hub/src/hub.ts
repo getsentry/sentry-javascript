@@ -473,8 +473,7 @@ export class Hub implements HubInterface {
   /**
    * Internal helper function to call a method on the top client if it exists.
    *
-   * @param method The method to call on the client.
-   * @param args Arguments to pass to the client function.
+   * @param callback Callback that gets passed client and scope from stack
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _withClient(callback: (client: Client, scope: Scope | undefined) => void): void {
