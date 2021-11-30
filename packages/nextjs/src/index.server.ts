@@ -33,7 +33,7 @@ export function init(options: NextjsOptions): void {
     return;
   }
 
-  options._metadata = buildMetadata(NEXTJS_PACKAGE_NAME, [NEXTJS_PACKAGE_NAME, NODE_PACKAGE_NAME], options._metadata);
+  buildMetadata(options, NEXTJS_PACKAGE_NAME, [NEXTJS_PACKAGE_NAME, NODE_PACKAGE_NAME]);
   options.environment = options.environment || process.env.NODE_ENV;
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js

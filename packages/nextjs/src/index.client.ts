@@ -14,7 +14,7 @@ export const Integrations = { ...BrowserIntegrations, BrowserTracing };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
-  options._metadata = buildMetadata(NEXTJS_PACKAGE_NAME, [NEXTJS_PACKAGE_NAME, REACT_PACKAGE_NAME], options._metadata);
+  buildMetadata(options, NEXTJS_PACKAGE_NAME, [NEXTJS_PACKAGE_NAME, REACT_PACKAGE_NAME]);
   options.environment = options.environment || process.env.NODE_ENV;
 
   // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set
