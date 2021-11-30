@@ -197,18 +197,6 @@ describe('Minimal', () => {
     expect(getCurrentHub().getClient()).toBe(TestClient.instance);
   });
 
-  test('Calls function on the client', done => {
-    const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
-    getCurrentHub().withScope(() => {
-      getCurrentHub().bindClient(new TestClient({}) as any);
-      // eslint-disable-next-line deprecation/deprecation
-      _callOnClient('mySecretPublicMethod', 'test');
-      expect(s.mock.calls[0][0]).toBe('test');
-      s.mockRestore();
-      done();
-    });
-  });
-
   test('does not throw an error when pushing different clients', () => {
     init({});
     expect(() => {
