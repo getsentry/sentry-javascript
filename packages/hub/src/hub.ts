@@ -475,22 +475,6 @@ export class Hub implements HubInterface {
    *
    * @param method The method to call on the client.
    * @param args Arguments to pass to the client function.
-   * @deprecated
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
-    const { scope, client } = this.getStackTop();
-    if (client && client[method]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      (client as any)[method](...args, scope);
-    }
-  }
-
-  /**
-   * Internal helper function to call a method on the top client if it exists.
-   *
-   * @param method The method to call on the client.
-   * @param args Arguments to pass to the client function.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _withClient(callback: (client: Client, scope: Scope | undefined) => void): void {
