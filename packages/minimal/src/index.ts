@@ -180,7 +180,14 @@ export function withScope(callback: (scope: Scope) => void): void {
   callOnHub<void>('withScope', callback);
 }
 
-/** */
+/**
+ * Executes a callback on the hub that is given a client and scope if they exist. If no client
+ * exists, the callback will not execute.
+ *
+ * @param callback that is called with client and scope.
+ * @hidden
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function _withClient(callback: (client: Client, scope: Scope | undefined) => void): void {
   callOnHub<void>('_withClient', callback);
 }
