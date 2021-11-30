@@ -1,10 +1,12 @@
-import { init as browserInit, SDK_VERSION } from '@sentry/browser';
+import { buildMetadata, init as browserInit } from '@sentry/browser';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
 import { createTracingMixins } from './tracing';
 import { Options, TracingOptions, Vue } from './types';
+
+const PACKAGE_NAME = 'vue';
 
 const DEFAULT_CONFIG: Options = {
   Vue: getGlobalObject<{ Vue: Vue }>().Vue,
@@ -13,18 +15,6 @@ const DEFAULT_CONFIG: Options = {
   hooks: DEFAULT_HOOKS,
   timeout: 2000,
   trackComponents: false,
-  _metadata: {
-    sdk: {
-      name: 'sentry.javascript.vue',
-      packages: [
-        {
-          name: 'npm:@sentry/vue',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    },
-  },
 };
 
 /**
@@ -37,6 +27,8 @@ export function init(
     ...DEFAULT_CONFIG,
     ...config,
   };
+
+  buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
 
   browserInit(options);
 
