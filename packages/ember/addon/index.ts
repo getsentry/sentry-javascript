@@ -30,7 +30,7 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
   // Merge runtime config into environment config, preferring runtime.
   Object.assign(environmentConfig.sentry, _runtimeConfig || {});
   const options = Object.assign({}, environmentConfig.sentry);
-  buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
+  buildMetadata(options, PACKAGE_NAME);
 
   // Persist Sentry init options so they are identical when performance initializers call init again.
   const sentryInitConfig = _getSentryInitConfig();

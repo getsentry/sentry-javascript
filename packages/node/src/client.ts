@@ -21,7 +21,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: NodeOptions) {
-    buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
+    buildMetadata(options, PACKAGE_NAME);
     super(NodeBackend, options);
   }
 

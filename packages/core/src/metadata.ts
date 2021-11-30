@@ -9,9 +9,10 @@ const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
 export function buildMetadata(
   options: Options,
   name: string,
-  packageNames: string[],
+  extraPackageNames: string[] = [],
   integrations?: SdkInfo['integrations'],
 ): void {
+  const packageNames = [name, ...extraPackageNames];
   options._metadata = options._metadata || {};
   options._metadata.sdk =
     options._metadata.sdk ||

@@ -6,6 +6,6 @@ const PACKAGE_NAME = 'angular';
  * Inits the Angular SDK
  */
 export function init(options: BrowserOptions): void {
-  buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
+  buildMetadata(options, PACKAGE_NAME);
   browserInit(options);
 }

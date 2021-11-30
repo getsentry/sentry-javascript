@@ -9,7 +9,7 @@ const PACKAGE_NAME = 'gatsby';
  * Inits the Sentry Gatsby SDK.
  */
 export function init(options: GatsbyOptions): void {
-  buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
+  buildMetadata(options, PACKAGE_NAME);
 
   const integrations = getIntegrationsFromOptions(options);
   reactInit({

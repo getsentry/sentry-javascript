@@ -28,8 +28,7 @@ export function init(
     ...config,
   };
 
-  buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
-
+  buildMetadata(options, PACKAGE_NAME);
   browserInit(options);
 
   if (!options.Vue && !options.app) {

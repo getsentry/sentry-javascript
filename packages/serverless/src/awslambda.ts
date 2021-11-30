@@ -66,7 +66,7 @@ export function init(options: Sentry.NodeOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
 
-  Sentry.buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME], ['AWSLambda']);
+  Sentry.buildMetadata(options, PACKAGE_NAME, [], ['AWSLambda']);
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
