@@ -4,6 +4,9 @@ import * as TracingIntegrations from './integrations';
 
 const Integrations = { ...TracingIntegrations, BrowserTracing };
 
+export { BrowserTracing };
+
+// TODO(v7): Individually export each integration from integrations
 export { Integrations };
 export { Span } from './span';
 export { Transaction } from './transaction';
