@@ -1,19 +1,11 @@
-import { BrowserOptions, init as browserInit, SDK_VERSION } from '@sentry/browser';
+import { BrowserOptions, buildMetadata, init as browserInit } from '@sentry/browser';
+
+const PACKAGE_NAME = 'angular';
 
 /**
  * Inits the Angular SDK
  */
 export function init(options: BrowserOptions): void {
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
-    name: 'sentry.javascript.angular',
-    packages: [
-      {
-        name: 'npm:@sentry/angular',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  buildMetadata(options, PACKAGE_NAME, [PACKAGE_NAME]);
   browserInit(options);
 }
