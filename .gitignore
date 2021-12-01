@@ -11,6 +11,7 @@ coverage/
 scratch/
 *.pyc
 *.tsbuildinfo
+scenarios/*/dist/
 
 # logs
 yarn-error.log
