@@ -20,10 +20,4 @@ describe('index', () => {
     const transaction = hub.startTransaction({ name: 'test', endTimestamp: 123 });
     expect(transaction).toBeDefined();
   });
-
-  it('patches the global hub as a side effect', () => {
-    const hub = getCurrentHub();
-    const transaction = hub.startTransaction({ name: 'test', endTimestamp: 123 });
-    expect(transaction).toBeDefined();
-  });
 });
