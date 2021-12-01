@@ -1,0 +1,11 @@
+{
+  "name": "scenarios-browser",
+  "main": "webpack.js",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "html-webpack-plugin": "^5.5.0",
+    "webpack": "^5.62.1",
+    "webpack-bundle-analyzer": "^4.5.0"
+  }
+}

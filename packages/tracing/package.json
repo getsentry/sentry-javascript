@@ -45,7 +45,7 @@
     "build:dev": "run-s build:es5 build:esm",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:es5:watch build:esm:watch",
+    "build:watch": "run-p build:es5:watch build:esm:watch build:bundle:watch",
     "build:bundle:watch": "rollup --config --watch",
     "build:dev:watch": "run-p build:es5:watch build:esm:watch",
     "build:es5:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
