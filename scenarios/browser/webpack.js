@@ -64,6 +64,6 @@ async function hasCurrentScenario(scenario) {
   return dirents.filter(dir => dir.isDirectory()).find(dir => dir.name === scenario);
 }
 
-const CURRENT_SCENARIO = 'nextjs-client';
+const CURRENT_SCENARIO = 'basic';
 
 init(CURRENT_SCENARIO);
