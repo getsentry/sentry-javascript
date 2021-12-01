@@ -1,10 +1,10 @@
-import { BrowserTracing } from './browser';
 import { addExtensionMethods } from './hubextensions';
-import * as TracingIntegrations from './integrations';
-
-const Integrations = { ...TracingIntegrations, BrowserTracing };
+import * as Integrations from './integrationsbundle';
 
 export { Integrations };
+
+export { BrowserTracing } from './browser';
+
 export { Span } from './span';
 export { Transaction } from './transaction';
 export {
