@@ -51,7 +51,8 @@ export class ContextLines implements Integration {
 
   /** Processes an event and adds context lines */
   public process(event: Event, optLinesOfContext?: number): Event {
-    const contextLines = optLinesOfContext || this._linesOfContext || 7;
+    const contextLines =
+      optLinesOfContext != undefined ? optLinesOfContext : this._linesOfContext != undefined ? this._linesOfContext : 7;
 
     const frames = event.exception?.values?.[0].stacktrace?.frames;
 
