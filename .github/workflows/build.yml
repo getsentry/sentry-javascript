@@ -231,17 +231,9 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Check changed files
-        id: changed-files-specific
-        uses: tj-actions/changed-files@v6.2
-        with:
-          files: .*packages\/ember($|/.*)
-      # Only run ember tests if the files above have changed
       - name: Run Ember tests
-        if: steps.changed-files-specific.outputs.any_changed == 'true' || github.event_name == 'push'
         run: yarn test --scope=@sentry/ember
       - name: Compute test coverage
-        if: steps.changed-files-specific.outputs.any_changed == 'true' || github.event_name == 'push'
         uses: codecov/codecov-action@v1
 
   job_artifacts:
