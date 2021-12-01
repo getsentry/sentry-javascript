@@ -26,9 +26,8 @@
     "prepublishOnly": "ember ts:precompile",
     "postpublish": "ember ts:clean",
     "start": "ember serve",
-    "test": "node ./scripts/run_tests.js",
-    "test:ember": "ember test",
-    "test:ember-compatibility": "ember try:each"
+    "test": "ember try:each",
+    "test:all": "node ./scripts/run-CI-tests.js"
   },
   "dependencies": {
     "@embroider/macros": "~0.47.2",
