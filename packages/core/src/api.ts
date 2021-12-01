@@ -122,13 +122,15 @@ export class API {
           continue;
         }
         if (dialogOptions.user.name) {
-          encodedOptions.push(`name=${encodeURIComponent(dialogOptions.user.name)}`);
+          encodedOptions.push(`name=${encodeURIComponentWrapper(dialogOptions.user.name)}`);
         }
         if (dialogOptions.user.email) {
-          encodedOptions.push(`email=${encodeURIComponent(dialogOptions.user.email)}`);
+          encodedOptions.push(`email=${encodeURIComponentWrapper(dialogOptions.user.email)}`);
         }
       } else {
-        encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
+        encodedOptions.push(
+          `${encodeURIComponentWrapper(key)}=${encodeURIComponentWrapper(dialogOptions[key] as string)}`,
+        );
       }
     }
     if (encodedOptions.length) {
@@ -165,3 +167,13 @@ export class API {
     return urlEncode(auth);
   }
 }
+
+type EncodeURIComponentType = typeof encodeURIComponent;
+
+/**
+ * Wraps encodeURIComponent so that the identifier only needs to be declared once.
+ * This helps save bundle size.
+ */
+const encodeURIComponentWrapper = (
+  component: Parameters<EncodeURIComponentType>[0],
+): ReturnType<EncodeURIComponentType> => encodeURIComponent(component);
