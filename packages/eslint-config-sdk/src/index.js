@@ -186,6 +186,13 @@ module.exports = {
         ecmaVersion: 2018,
       },
     },
+    {
+      // Configuration for jsx and tsx files
+      files: ['*.tsx', '*.jsx', '*.test.tsx', '*.test.jsx'],
+      parserOptions: {
+        jsx: true,
+      },
+    },
   ],
 
   rules: {
