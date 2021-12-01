@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+import * as Sentry from '@sentry/node';
 import {
   captureException,
   captureMessage,
@@ -8,7 +10,6 @@ import {
   startTransaction,
   withScope,
 } from '@sentry/node';
-import * as Sentry from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
@@ -46,6 +47,12 @@ export interface WrapperOptions {
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
   timeoutWarningLimit: number;
+  /**
+   * Capture all errors when `Promise.allSettled` is returned by the handler
+   * The {@link wrapHandler} will not fail the lambda even if there are errors
+   * @default false
+   */
+  captureAllSettledReasons: boolean;
 }
 
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
@@ -87,8 +94,28 @@ function tryRequire<T>(taskRoot: string, subdir: string, mod: string): T {
 }
 
 /** */
+function isPromiseAllSettledResult<T>(result: T[]): boolean {
+  return result.every(
+    v =>
+      Object.prototype.hasOwnProperty.call(v, 'status') &&
+      (Object.prototype.hasOwnProperty.call(v, 'value') || Object.prototype.hasOwnProperty.call(v, 'reason')),
+  );
+}
+
+type PromiseSettledResult<T> = { status: 'rejected' | 'fulfilled'; reason?: T };
+
+/** */
+function getRejectedReasons<T>(results: PromiseSettledResult<T>[]): T[] {
+  return results.reduce((rejected: T[], result) => {
+    if (result.status === 'rejected' && result.reason) rejected.push(result.reason);
+    return rejected;
+  }, []);
+}
+
+/** */
 export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   type HandlerBag = HandlerModule | Handler | null | undefined;
+
   interface HandlerModule {
     [key: string]: HandlerBag;
   }
@@ -197,6 +224,7 @@ export function wrapHandler<TEvent, TResult>(
     callbackWaitsForEmptyEventLoop: false,
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
+    captureAllSettledReasons: false,
     ...wrapOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
@@ -272,6 +300,14 @@ export function wrapHandler<TEvent, TResult>(
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
       rv = await asyncHandler(event, context);
+
+      // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
+      if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
+        const reasons = getRejectedReasons(rv);
+        reasons.forEach(exception => {
+          captureException(exception);
+        });
+      }
     } catch (e) {
       captureException(e);
       if (options.rethrowAfterCapture) {

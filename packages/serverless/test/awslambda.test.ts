@@ -169,6 +169,29 @@ describe('AWSLambda', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setTag).toBeCalledWith('timeout', '1m40s');
     });
+
+    test('captureAllSettledReasons disabled (default)', async () => {
+      const handler = () => Promise.resolve([{ status: 'rejected', reason: new Error() }]);
+      const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      expect(Sentry.captureException).toBeCalledTimes(0);
+    });
+
+    test('captureAllSettledReasons enable', async () => {
+      const error = new Error();
+      const error2 = new Error();
+      const handler = () =>
+        Promise.resolve([
+          { status: 'rejected', reason: error },
+          { status: 'fulfilled', value: undefined },
+          { status: 'rejected', reason: error2 },
+        ]);
+      const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337, captureAllSettledReasons: true });
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+      expect(Sentry.captureException).toHaveBeenNthCalledWith(1, error);
+      expect(Sentry.captureException).toHaveBeenNthCalledWith(2, error2);
+      expect(Sentry.captureException).toBeCalledTimes(2);
+    });
   });
 
   describe('wrapHandler() on sync handler', () => {

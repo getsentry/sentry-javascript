@@ -1,6 +1,7 @@
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
 import { getGlobalObject, logger } from '@sentry/utils';
 
+import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
 import { createTracingMixins } from './tracing';
 import { Options, TracingOptions, Vue } from './types';
@@ -9,7 +10,7 @@ const DEFAULT_CONFIG: Options = {
   Vue: getGlobalObject<{ Vue: Vue }>().Vue,
   attachProps: true,
   logErrors: false,
-  hooks: ['activate', 'mount', 'update'],
+  hooks: DEFAULT_HOOKS,
   timeout: 2000,
   trackComponents: false,
   _metadata: {

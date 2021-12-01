@@ -1,8 +1,9 @@
+import { BaseClient } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, logger, SentryError } from '@sentry/utils';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
 import { NextjsOptions } from '../src/utils/nextjsOptions';
@@ -12,10 +13,12 @@ const { BrowserTracing } = TracingIntegrations;
 const global = getGlobalObject();
 
 const reactInit = jest.spyOn(SentryReact, 'init');
+const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
+const logError = jest.spyOn(logger, 'error');
 
 describe('Client init()', () => {
   afterEach(() => {
-    reactInit.mockClear();
+    jest.clearAllMocks();
     global.__SENTRY__.hub = undefined;
   });
 
@@ -48,6 +51,22 @@ describe('Client init()', () => {
 
     // @ts-ignore need access to protected _tags attribute
     expect(currentScope._tags).toEqual({ runtime: 'browser' });
+  });
+
+  it('adds 404 transaction filter', () => {
+    init({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+    });
+    const hub = getCurrentHub();
+    const sendEvent = jest.spyOn(hub.getClient()!.getTransport!(), 'sendEvent');
+
+    const transaction = hub.startTransaction({ name: '/404' });
+    transaction.finish();
+
+    expect(sendEvent).not.toHaveBeenCalled();
+    expect(captureEvent.mock.results[0].value).toBeUndefined();
+    expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 
   describe('integrations', () => {

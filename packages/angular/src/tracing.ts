@@ -78,6 +78,9 @@ export class TraceService implements OnDestroy {
       }
 
       if (activeTransaction) {
+        if (this._routingSpan) {
+          this._routingSpan.finish();
+        }
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
           op: `angular.routing`,

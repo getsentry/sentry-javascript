@@ -3,6 +3,7 @@ import { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { formatComponentName } from './components';
+import { DEFAULT_HOOKS } from './constants';
 import { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 
 type Mixins = Parameters<Vue['mixin']>[0];
@@ -47,7 +48,10 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
 }
 
 export const createTracingMixins = (options: TracingOptions): Mixins => {
-  const { hooks } = options;
+  const hooks = (options.hooks || [])
+    .concat(DEFAULT_HOOKS)
+    // Removing potential duplicates
+    .filter((value, index, self) => self.indexOf(value) === index);
 
   const mixins: Mixins = {};
 

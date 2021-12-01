@@ -141,7 +141,7 @@ module.exports = {
           },
         ],
 
-        // We want to prevent async await usage in our files to prevent uncessary bundle size.
+        // We want to prevent async await usage in our files to prevent uncessary bundle size. Turned off in tests.
         '@sentry-internal/sdk/no-async-await': 'error',
 
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
@@ -151,6 +151,7 @@ module.exports = {
           {
             require: { ClassDeclaration: true, MethodDefinition: true },
             checkConstructors: false,
+            publicOnly: true,
           },
         ],
 
@@ -173,6 +174,8 @@ module.exports = {
         '@typescript-eslint/explicit-member-accessibility': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
+        '@typescript-eslint/no-empty-function': 'off',
+        '@sentry-internal/sdk/no-async-await': 'off',
       },
     },
     {
@@ -181,6 +184,13 @@ module.exports = {
       parserOptions: {
         sourceType: 'module',
         ecmaVersion: 2018,
+      },
+    },
+    {
+      // Configuration for jsx and tsx files
+      files: ['*.tsx', '*.jsx', '*.test.tsx', '*.test.jsx'],
+      parserOptions: {
+        jsx: true,
       },
     },
   ],

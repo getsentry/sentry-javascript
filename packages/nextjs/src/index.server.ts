@@ -1,6 +1,7 @@
 import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/hub';
 import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { Event } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
@@ -56,6 +57,8 @@ export function init(options: NextjsOptions): void {
     if (process.env.VERCEL) {
       scope.setTag('vercel', true);
     }
+
+    scope.addEventProcessor(filterTransactions);
   });
 
   if (activeDomain) {
@@ -65,6 +68,8 @@ export function init(options: NextjsOptions): void {
     // apply the changes made by `nodeInit` to the domain's hub also
     domainHub.bindClient(globalHub.getClient());
     domainHub.getScope()?.update(globalHub.getScope());
+    // `scope.update()` doesn’t copy over event processors, so we have to add it manually
+    domainHub.getScope()?.addEventProcessor(filterTransactions);
 
     // restore the domain hub as the current one
     domain.active = activeDomain;
@@ -105,6 +110,10 @@ function addServerIntegrations(options: NextjsOptions): void {
       Http: { keyPath: '_tracing', value: true },
     });
   }
+}
+
+function filterTransactions(event: Event): Event | null {
+  return event.type === 'transaction' && event.transaction === '/404' ? null : event;
 }
 
 export { withSentryConfig } from './config';

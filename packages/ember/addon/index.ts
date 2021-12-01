@@ -8,10 +8,6 @@ import { timestampWithMs } from '@sentry/utils';
 import { GlobalConfig, OwnConfig } from './types';
 import { getGlobalObject } from '@sentry/utils';
 
-declare module '@ember/debug' {
-  export function assert(desc: string, test: unknown): void;
-}
-
 function _getSentryInitConfig() {
   const _global = getGlobalObject<GlobalConfig>();
   _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};

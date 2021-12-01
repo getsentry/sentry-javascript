@@ -2,6 +2,8 @@ const { get } = require('http');
 const nock = require('nock');
 const { logIf, parseEnvelope } = require('./common');
 
+Error.stackTraceLimit = Infinity;
+
 const getAsync = url => {
   return new Promise((resolve, reject) => {
     get(url, res => {
@@ -25,7 +27,7 @@ const interceptEventRequest = (expectedEvent, argv, testName = '') => {
   return nock('https://dsn.ingest.sentry.io')
     .post('/api/1337/store/', body => {
       logIf(
-        argv.debug,
+        process.env.LOG_REQUESTS,
         '\nIntercepted Event' + (testName.length ? ` (from test \`${testName}\`)` : ''),
         body,
         argv.depth,
@@ -40,7 +42,7 @@ const interceptSessionRequest = (expectedItem, argv, testName = '') => {
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
       logIf(
-        argv.debug,
+        process.env.LOG_REQUESTS,
         '\nIntercepted Session' + (testName.length ? ` (from test \`${testName}\`)` : ''),
         { envelopeHeader, itemHeader, item },
         argv.depth,
@@ -55,7 +57,7 @@ const interceptTracingRequest = (expectedItem, argv, testName = '') => {
     .post('/api/1337/envelope/', body => {
       const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
       logIf(
-        argv.debug,
+        process.env.LOG_REQUESTS,
         '\nIntercepted Transaction' + (testName.length ? ` (from test \`${testName}\`)` : ''),
         { envelopeHeader, itemHeader, item },
         argv.depth,

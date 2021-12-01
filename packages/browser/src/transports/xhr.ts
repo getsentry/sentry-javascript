@@ -56,7 +56,7 @@ export class XHRTransport extends BaseTransport {
 
             request.open('POST', sentryRequest.url);
             for (const header in this.options.headers) {
-              if (this.options.headers.hasOwnProperty(header)) {
+              if (Object.prototype.hasOwnProperty.call(this.options.headers, header)) {
                 request.setRequestHeader(header, this.options.headers[header]);
               }
             }
