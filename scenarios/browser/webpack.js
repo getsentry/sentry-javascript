@@ -20,7 +20,7 @@ async function runWebpack(scenario) {
 
   webpack(
     {
-      mode: 'development',
+      mode: 'production',
       entry: path.resolve(__dirname, scenario),
       output: {
         filename: 'main.js',
