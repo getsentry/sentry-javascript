@@ -118,7 +118,8 @@ jobs:
         uses: getsentry/size-limit-action@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          skip_step: build
+          main_branch: master
+          skip_step: install
 
   job_lint:
     name: Lint

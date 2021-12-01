@@ -75,6 +75,19 @@ export const defaultIntegrations = [
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
 export function init(options: BrowserOptions = {}): void {
+  console.log('VERY LONG STRING 0 THAT ADDS 0 BUNDLE 0');
+  console.log('VERY LONG STRING 1 THAT ADDS 1 BUNDLE 1');
+  console.log('VERY LONG STRING 2 THAT ADDS 2 BUNDLE 2');
+  console.log('VERY LONG STRING 3 THAT ADDS 3 BUNDLE 3');
+  console.log('VERY LONG STRING 4 THAT ADDS 4 BUNDLE 4');
+  console.log('VERY LONG STRING 5 THAT ADDS 5 BUNDLE 5');
+  console.log('VERY LONG STRING 6 THAT ADDS 6 BUNDLE 6');
+  console.log('VERY LONG STRING 7 THAT ADDS 7 BUNDLE 7');
+  console.log('VERY LONG STRING 8 THAT ADDS 8 BUNDLE 8');
+  console.log('VERY LONG STRING 9 THAT ADDS 9 BUNDLE 9');
+  console.log('VERY LONG STRING 10 THAT ADDS 10 BUNDLE 10');
+  console.log('VERY LONG STRING 11 THAT ADDS 11 BUNDLE 11');
+  console.log('VERY LONG STRING 12 THAT ADDS 12 BUNDLE 12');
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
