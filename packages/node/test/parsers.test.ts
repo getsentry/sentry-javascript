@@ -11,12 +11,12 @@ describe('parsers.ts', () => {
   let spy: jest.SpyInstance;
   let contextLines: ContextLines;
 
-  function addContext(frames: StackFrame[]) {
-    contextLines.process({ exception: { values: [{ stacktrace: { frames } }] } });
+  async function addContext(frames: StackFrame[]): Promise<void> {
+    await contextLines.addToEvent({ exception: { values: [{ stacktrace: { frames } }] } });
   }
 
   beforeEach(() => {
-    spy = jest.spyOn(fs, 'readFileSync');
+    spy = jest.spyOn(fs, 'readFile');
     frames = stacktrace.parse(new Error('test'));
     contextLines = new ContextLines();
     resetFileContentCache();
@@ -27,22 +27,22 @@ describe('parsers.ts', () => {
   });
 
   describe('lru file cache', () => {
-    test('parseStack with same file', () => {
+    test('parseStack with same file', async () => {
       expect.assertions(1);
 
       let mockCalls = 0;
       let parsedFrames = Parsers.parseStack(frames);
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
 
       mockCalls = spy.mock.calls.length;
       parsedFrames = Parsers.parseStack(frames);
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
 
       // Calls to readFile shouldn't increase if there isn't a new error
       expect(spy).toHaveBeenCalledTimes(mockCalls);
     });
 
-    test('parseStack with ESM module names', () => {
+    test('parseStack with ESM module names', async () => {
       expect.assertions(1);
 
       const framesWithFilePath: stacktrace.StackFrame[] = [
@@ -57,31 +57,31 @@ describe('parsers.ts', () => {
         },
       ];
       const parsedFrames = Parsers.parseStack(framesWithFilePath);
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('parseStack with adding different file', () => {
+    test('parseStack with adding different file', async () => {
       expect.assertions(2);
       let mockCalls = 0;
       let newErrorCalls = 0;
       let parsedFrames = Parsers.parseStack(frames);
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
 
       mockCalls = spy.mock.calls.length;
       parsedFrames = Parsers.parseStack(stacktrace.parse(getError()));
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
 
       newErrorCalls = spy.mock.calls.length;
       expect(newErrorCalls).toBeGreaterThan(mockCalls);
 
       parsedFrames = Parsers.parseStack(stacktrace.parse(getError()));
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
 
       expect(spy).toHaveBeenCalledTimes(newErrorCalls);
     });
 
-    test('parseStack with duplicate files', () => {
+    test('parseStack with duplicate files', async () => {
       expect.assertions(1);
       const framesWithDuplicateFiles: stacktrace.StackFrame[] = [
         {
@@ -114,16 +114,16 @@ describe('parsers.ts', () => {
       ];
 
       const parsedFrames = Parsers.parseStack(framesWithDuplicateFiles);
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('parseStack with no context', () => {
+    test('parseStack with no context', async () => {
       contextLines = new ContextLines({ frameContextLines: 0 });
 
       expect.assertions(1);
       const parsedFrames = Parsers.parseStack(frames);
-      addContext(parsedFrames);
+      await addContext(parsedFrames);
       expect(spy).toHaveBeenCalledTimes(0);
     });
   });

@@ -176,9 +176,9 @@ describe('SentryNode', () => {
             expect(event.exception).not.toBeUndefined();
             expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
-            expect(Array.isArray(event.exception!.values![0].stacktrace!.frames![2].pre_context)).toBe(true);
-            expect(Array.isArray(event.exception!.values![0].stacktrace!.frames![2].post_context)).toBe(true);
+            expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
             expect(event.exception!.values![0].type).toBe('Error');
             expect(event.exception!.values![0].value).toBe('test');
             expect(event.exception!.values![0].stacktrace).toBeTruthy();

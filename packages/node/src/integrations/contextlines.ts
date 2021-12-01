@@ -1,12 +1,18 @@
-import { getCurrentHub } from '@sentry/core';
 import { Event, EventProcessor, Integration } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
-import { NodeClient } from '../client';
-
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
+
+function readTextFileAsync(path: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    readFile(path, 'utf8', (err, data) => {
+      if (err) reject(err);
+      else resolve(data);
+    });
+  });
+}
 
 /**
  * Resets the file cache. Exists for testing purposes.
@@ -16,9 +22,9 @@ export function resetFileContentCache(): void {
   FILE_CONTENT_CACHE.clear();
 }
 
-type ContextLinesOptions = {
+interface ContextLinesOptions {
   frameContextLines?: number;
-};
+}
 
 /** Add node modules / packages to the event */
 export class ContextLines implements Integration {
@@ -32,27 +38,18 @@ export class ContextLines implements Integration {
    */
   public name: string = ContextLines.id;
 
-  private _linesOfContext?: number;
-
-  public constructor(options: ContextLinesOptions = {}) {
-    this._linesOfContext = options.frameContextLines;
-  }
+  public constructor(private readonly _options: ContextLinesOptions = {}) {}
 
   /**
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    const optLinesOfContext = getCurrentHub()
-      .getClient<NodeClient>()
-      ?.getOptions()?.frameContextLines;
-
-    addGlobalEventProcessor(event => this.process(event, optLinesOfContext));
+    addGlobalEventProcessor(event => this.addToEvent(event));
   }
 
   /** Processes an event and adds context lines */
-  public process(event: Event, optLinesOfContext?: number): Event {
-    const contextLines =
-      optLinesOfContext != undefined ? optLinesOfContext : this._linesOfContext != undefined ? this._linesOfContext : 7;
+  public async addToEvent(event: Event): Promise<Event> {
+    const contextLines = this._options.frameContextLines != undefined ? this._options.frameContextLines : 7;
 
     const frames = event.exception?.values?.[0].stacktrace?.frames;
 
@@ -65,7 +62,7 @@ export class ContextLines implements Integration {
         }
       }
 
-      const sourceFiles = readSourceFiles(filenames);
+      const sourceFiles = await readSourceFiles(filenames);
 
       for (const frame of frames) {
         if (frame.filename && sourceFiles[frame.filename]) {
@@ -91,7 +88,7 @@ export class ContextLines implements Integration {
  *
  * @param filenames Array of filepaths to read content from.
  */
-function readSourceFiles(filenames: string[]): Record<string, string | null> {
+async function readSourceFiles(filenames: string[]): Promise<Record<string, string | null>> {
   // we're relying on filenames being de-duped already
   if (!filenames.length) {
     return {};
@@ -113,11 +110,11 @@ function readSourceFiles(filenames: string[]): Record<string, string | null> {
       continue;
     }
 
-    let content: string | null;
+    let content: string | null = null;
     try {
-      content = readFileSync(filename, 'utf8');
-    } catch (_e) {
-      content = null;
+      content = await readTextFileAsync(filename);
+    } catch (_) {
+      //
     }
 
     FILE_CONTENT_CACHE.set(filename, content);
