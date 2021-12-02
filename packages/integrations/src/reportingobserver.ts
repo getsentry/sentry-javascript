@@ -11,7 +11,7 @@ interface Report {
 }
 
 /** JSDoc */
-enum ReportTypes {
+const enum ReportTypes {
   /** JSDoc */
   Crash = 'crash',
   /** JSDoc */

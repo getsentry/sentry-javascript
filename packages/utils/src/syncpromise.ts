@@ -5,7 +5,7 @@
 import { isThenable } from './is';
 
 /** SyncPromise internal states */
-enum States {
+const enum States {
   /** Pending */
   PENDING = 'PENDING',
   /** Resolved / OK */
