@@ -86,5 +86,10 @@
         "diagnostics": false
       }
     }
-  }
+  },
+  "sideEffects": [
+    "./dist/index.server.js",
+    "./esm/index.server.js",
+    "./src/index.server.ts"
+  ]
 }
