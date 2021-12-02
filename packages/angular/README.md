@@ -222,7 +222,7 @@ const boostrapSpan =
   activeTransaction &&
   activeTransaction.startChild({
     description: 'platform-browser-dynamic',
-    op: 'angular.bootstrap',
+    op: 'ui.angular.bootstrap',
   });
 
 platformBrowserDynamic()
