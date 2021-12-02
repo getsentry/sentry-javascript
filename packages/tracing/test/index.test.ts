@@ -3,6 +3,12 @@ import { getCurrentHub } from '@sentry/hub';
 import { BrowserTracing, Integrations } from '../src';
 
 describe('index', () => {
+  it('patches the global hub to add an implementation for `Hub.startTransaction` as a side effect', () => {
+    const hub = getCurrentHub();
+    const transaction = hub.startTransaction({ name: 'test', endTimestamp: 123 });
+    expect(transaction).toBeDefined();
+  });
+
   describe('Integrations', () => {
     it('is exported correctly', () => {
       Object.keys(Integrations).forEach(key => {
@@ -13,11 +19,5 @@ describe('index', () => {
     it('contains BrowserTracing', () => {
       expect(Integrations.BrowserTracing).toEqual(BrowserTracing);
     });
-  });
-
-  it('patches the global hub as a side effect', () => {
-    const hub = getCurrentHub();
-    const transaction = hub.startTransaction({ name: 'test', endTimestamp: 123 });
-    expect(transaction).toBeDefined();
   });
 });
