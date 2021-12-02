@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- ref(hub): Remove `_invokeClient` (#4195)
+- **breaking** feat(minimal): Remove `_callOnClient` (#4195)
+
+`_callOnClient` was a hidden API that was not meant for public use. If this breaks your set up, please write a GitHub issue describing your usage of `_callOnClient` and we can re-evaluate accordingly.
+
 ## 6.15.0
 
 - fix(browser): Capture stacktrace on `DOMExceptions`, if possible (#4160)
