@@ -1,12 +1,19 @@
 const path = require("path");
 
+const playwright = require("playwright");
+process.env.CHROME_BIN = playwright.chromium.executablePath();
+process.env.FIREFOX_BIN = playwright.firefox.executablePath();
+process.env.WEBKIT_HEADLESS_BIN = playwright.webkit.executablePath();
+
 const browserstackUsername = process.env.BROWSERSTACK_USERNAME;
 const browserstackAccessKey = process.env.BROWSERSTACK_ACCESS_KEY;
 const isLocalRun =
   browserstackUsername === undefined || browserstackAccessKey === undefined;
 
 const customLaunchers = isLocalRun ? {} : require("./browsers.js");
-const browsers = isLocalRun ? ["ChromeHeadless"] : Object.keys(customLaunchers);
+const browsers = isLocalRun
+  ? [process.env.KARMA_BROWSER || "ChromeHeadless"]
+  : Object.keys(customLaunchers);
 
 // NOTE: It "should" work as a global `build` config option, but it doesn't, so setting it up
 // for each browser here, so that we have a nice distinction of when the tests were run exactly.
@@ -28,6 +35,8 @@ const reporters = ["mocha"];
 
 if (isLocalRun) {
   plugins.push("karma-chrome-launcher");
+  plugins.push("karma-firefox-launcher");
+  plugins.push("karma-webkit-launcher");
 } else {
   plugins.push("karma-browserstack-launcher");
   reporters.push("BrowserStack");

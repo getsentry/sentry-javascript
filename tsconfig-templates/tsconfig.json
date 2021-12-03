@@ -1,9 +1,9 @@
 {
   "extends": "../../tsconfig.json",
+
   "include": ["src/**/*"],
+
   "compilerOptions": {
-    "baseUrl": ".",
-    "outDir": "dist",
-    "target": "ES2018"
+    // package-specific options
   }
 }

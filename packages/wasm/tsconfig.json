@@ -1,11 +1,10 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["dist"],
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
   "compilerOptions": {
+    // package-specific options
     "esModuleInterop": true,
-    "declarationMap": false,
-    "rootDir": ".",
-    "types": ["node", "jest", "jest-environment-puppeteer"]
   }
 }

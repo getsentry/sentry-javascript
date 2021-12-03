@@ -1,9 +1,11 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "test/**/*.ts", "test/integration.test.tsx", "src/**/*.tsx", "test/**/*.tsx"],
-  "exclude": ["dist"],
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
   "compilerOptions": {
-    "rootDir": ".",
-    "types": ["node", "jest"]
+    // package-specific options
+    "esModuleInterop": true,
+    "jsx": "react"
   }
 }
