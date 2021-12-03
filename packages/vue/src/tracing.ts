@@ -6,6 +6,8 @@ import { formatComponentName } from './components';
 import { DEFAULT_HOOKS } from './constants';
 import { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 
+const VUE_OP = 'ui.vue';
+
 type Mixins = Parameters<Vue['mixin']>[0];
 
 interface VueSentry extends ViewModel {
@@ -75,7 +77,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               this.$_sentryRootSpan ||
               activeTransaction.startChild({
                 description: 'Application Render',
-                op: 'vue',
+                op: VUE_OP,
               });
           }
         }
@@ -105,7 +107,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
           if (activeTransaction) {
             this.$_sentrySpans[operation] = activeTransaction.startChild({
               description: `Vue <${name}>`,
-              op: operation,
+              op: `${VUE_OP}.${operation}`,
             });
           }
         }
