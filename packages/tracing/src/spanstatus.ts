@@ -46,7 +46,7 @@ export namespace SpanStatus {
    * @returns The span status or {@link SpanStatus.UnknownError}.
    */
   export function fromHttpCode(httpStatus: number): SpanStatus {
-    if (httpStatus < 400) {
+    if (httpStatus < 400 && httpStatus >= 100) {
       return SpanStatus.Ok;
     }
 

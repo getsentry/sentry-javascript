@@ -6,6 +6,7 @@ import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } fr
 import { Observable, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
+import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
 import { runOutsideAngular } from './zone';
 
 let instrumentationInitialized: boolean;
@@ -83,7 +84,7 @@ export class TraceService implements OnDestroy {
         }
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
-          op: `angular.routing`,
+          op: ANGULAR_ROUTING_OP,
           tags: {
             'routing.instrumentation': '@sentry/angular',
             url: strippedUrl,
@@ -146,7 +147,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
     if (activeTransaction) {
       this._tracingSpan = activeTransaction.startChild({
         description: `<${this.componentName}>`,
-        op: `angular.initialize`,
+        op: ANGULAR_INIT_OP,
       });
     }
   }
@@ -187,7 +188,7 @@ export function TraceClassDecorator(): ClassDecorator {
       if (activeTransaction) {
         tracingSpan = activeTransaction.startChild({
           description: `<${target.name}>`,
-          op: `angular.initialize`,
+          op: ANGULAR_INIT_OP,
         });
       }
       if (originalOnInit) {
@@ -224,7 +225,7 @@ export function TraceMethodDecorator(): MethodDecorator {
         activeTransaction.startChild({
           description: `<${target.constructor.name}>`,
           endTimestamp: now,
-          op: `angular.${String(propertyKey)}`,
+          op: `${ANGULAR_OP}.${String(propertyKey)}`,
           startTimestamp: now,
         });
       }

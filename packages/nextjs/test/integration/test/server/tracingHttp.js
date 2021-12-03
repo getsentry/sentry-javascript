@@ -25,7 +25,7 @@ module.exports = async ({ url: urlBase, argv }) => {
       spans: [
         {
           description: 'GET http://example.com/',
-          op: 'request',
+          op: 'http.client',
           status: 'ok',
           tags: { 'http.status_code': '200' },
         },
