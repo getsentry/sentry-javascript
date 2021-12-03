@@ -52,7 +52,7 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spans[1].description).toEqual('GET http://dogs.are.great/');
-    expect(spans[1].op).toEqual('request');
+    expect(spans[1].op).toEqual('http.client');
   });
 
   it("doesn't create a span for outgoing sentry requests", () => {

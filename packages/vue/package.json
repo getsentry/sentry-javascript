@@ -88,7 +88,5 @@
       }
     }
   },
-  "sideEffects": [
-    "./src/index.ts"
-  ]
+  "sideEffects": false
 }
