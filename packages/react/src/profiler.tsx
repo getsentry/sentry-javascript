@@ -6,6 +6,8 @@ import { timestampWithMs } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
+import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
+
 export const UNKNOWN_COMPONENT = 'unknown';
 
 const TRACING_GETTER = ({
@@ -36,7 +38,7 @@ function pushActivity(name: string, op: string): number | null {
 
   return (globalTracingIntegration as any).constructor.pushActivity(name, {
     description: `<${name}>`,
-    op: `react.${op}`,
+    op,
   });
 }
 
@@ -115,13 +117,13 @@ class Profiler extends React.Component<ProfilerProps> {
     // eslint-disable-next-line deprecation/deprecation
     if (getTracingIntegration()) {
       // eslint-disable-next-line deprecation/deprecation
-      this._mountActivity = pushActivity(name, 'mount');
+      this._mountActivity = pushActivity(name, REACT_MOUNT_OP);
     } else {
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
         this._mountSpan = activeTransaction.startChild({
           description: `<${name}>`,
-          op: 'react.mount',
+          op: REACT_MOUNT_OP,
         });
       }
     }
@@ -158,7 +160,7 @@ class Profiler extends React.Component<ProfilerProps> {
           },
           description: `<${this.props.name}>`,
           endTimestamp: now,
-          op: `react.update`,
+          op: REACT_UPDATE_OP,
           startTimestamp: now,
         });
       }
@@ -176,7 +178,7 @@ class Profiler extends React.Component<ProfilerProps> {
       this._mountSpan.startChild({
         description: `<${name}>`,
         endTimestamp: timestampWithMs(),
-        op: `react.render`,
+        op: REACT_RENDER_OP,
         startTimestamp: this._mountSpan.endTimestamp,
       });
     }
@@ -240,7 +242,7 @@ function useProfiler(
     if (activeTransaction) {
       return activeTransaction.startChild({
         description: `<${name}>`,
-        op: 'react.mount',
+        op: REACT_MOUNT_OP,
       });
     }
 
@@ -257,7 +259,7 @@ function useProfiler(
         mountSpan.startChild({
           description: `<${name}>`,
           endTimestamp: timestampWithMs(),
-          op: `react.render`,
+          op: REACT_RENDER_OP,
           startTimestamp: mountSpan.endTimestamp,
         });
       }
