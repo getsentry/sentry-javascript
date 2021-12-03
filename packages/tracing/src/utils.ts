@@ -19,10 +19,7 @@ export function hasTracingEnabled(
     .getClient()
     ?.getOptions(),
 ): boolean {
-  if (!options) {
-    return false;
-  }
-  return 'tracesSampleRate' in options || 'tracesSampler' in options;
+  return !!options && ('tracesSampleRate' in options || 'tracesSampler' in options);
 }
 
 /**
