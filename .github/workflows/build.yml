@@ -268,15 +268,12 @@ jobs:
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
-  job_browserstack_test:
-    name: BrowserStack
+  job_browser_integration_tests:
+    name: Browser Integration Tests
     needs: job_build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     continue-on-error: true
-    # TODO: Fix BrowserStack tests
-    # if: startsWith(github.ref, 'refs/heads/release/')
-    if: false
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -293,11 +290,7 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run integration tests
-        env:
-          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
           cd packages/browser
-          yarn test:integration:checkbrowsers
           yarn test:integration
           yarn test:package

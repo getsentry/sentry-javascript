@@ -111,7 +111,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         if (transaction) {
           const span = transaction.startChild({
             description: fn.name,
-            op: `middleware.${method}`,
+            op: `express.middleware.${method}`,
           });
           res.once('finish', () => {
             span.finish();
@@ -130,7 +130,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const transaction = res.__sentry_transaction;
         const span = transaction?.startChild({
           description: fn.name,
-          op: `middleware.${method}`,
+          op: `express.middleware.${method}`,
         });
         fn.call(this, req, res, function(this: NodeJS.Global, ...args: unknown[]): void {
           span?.finish();
@@ -149,7 +149,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const transaction = res.__sentry_transaction;
         const span = transaction?.startChild({
           description: fn.name,
-          op: `middleware.${method}`,
+          op: `express.middleware.${method}`,
         });
         fn.call(this, err, req, res, function(this: NodeJS.Global, ...args: unknown[]): void {
           span?.finish();
