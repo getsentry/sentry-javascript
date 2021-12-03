@@ -19,6 +19,8 @@ const BROWSER_TRACING_GETTER = ({
   id: 'BrowserTracing',
 } as any) as IntegrationClass<Integration>;
 
+const VUE_OP = 'ui.vue';
+
 /** Global Vue object limited to the methods/attributes we require */
 interface VueInstance {
   config: {
@@ -268,7 +270,7 @@ export class Vue implements Integration {
             if (transaction) {
               this._rootSpan = transaction.startChild({
                 description: 'Application Render',
-                op: 'vue',
+                op: VUE_OP,
               });
             }
             // Use functionality from @sentry/tracing
@@ -277,7 +279,7 @@ export class Vue implements Integration {
             if (activeTransaction) {
               this._rootSpan = activeTransaction.startChild({
                 description: 'Application Render',
-                op: 'vue',
+                op: VUE_OP,
               });
             }
           }
@@ -309,7 +311,7 @@ export class Vue implements Integration {
           if (this._rootSpan) {
             spans[operation] = this._rootSpan.startChild({
               description: `Vue <${name}>`,
-              op: operation,
+              op: `${VUE_OP}.${operation}`,
             });
           }
         });
