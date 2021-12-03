@@ -18,11 +18,11 @@ const terserInstance = terser({
 
 const plugins = [
   typescript({
-    tsconfig: 'tsconfig.build.json',
+    tsconfig: 'tsconfig.esm.json',
     tsconfigOverride: {
       compilerOptions: {
         declaration: false,
-        module: 'ES2015',
+        declarationMap: false,
         paths: {
           '@sentry/utils': ['../utils/src'],
           '@sentry/core': ['../core/src'],
@@ -30,6 +30,7 @@ const plugins = [
           '@sentry/types': ['../types/src'],
           '@sentry/minimal': ['../minimal/src'],
         },
+        baseUrl: '.',
       },
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],

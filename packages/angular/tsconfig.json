@@ -1,8 +1,10 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts"],
-  "exclude": ["dist"],
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
   "compilerOptions": {
-    "rootDir": "."
+    // package-specific options
+    "experimentalDecorators": true
   }
 }
