@@ -36,7 +36,6 @@
   "devDependencies": {
     "@sentry/types": "6.15.0",
     "@testing-library/react": "^10.4.9",
-    "jest": "^24.7.1",
     "react": "^17.0.0",
     "typescript": "3.7.5"
   },

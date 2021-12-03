@@ -26,7 +26,6 @@
     "@types/puppeteer": "^5.4.0",
     "cross-env": "^7.0.3",
     "express": "^4.17.1",
-    "jest": "^24.7.1",
     "jest-puppeteer": "^4.4.0",
     "npm-run-all": "^4.1.2",
     "puppeteer": "^5.5.0",
