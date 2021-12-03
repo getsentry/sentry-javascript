@@ -6,7 +6,7 @@ import { timestampWithMs } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
-import { REACT_MOUNT_OP, REACT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
+import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -38,7 +38,7 @@ function pushActivity(name: string, op: string): number | null {
 
   return (globalTracingIntegration as any).constructor.pushActivity(name, {
     description: `<${name}>`,
-    op: `${REACT_OP}.${op}`,
+    op,
   });
 }
 
@@ -117,7 +117,7 @@ class Profiler extends React.Component<ProfilerProps> {
     // eslint-disable-next-line deprecation/deprecation
     if (getTracingIntegration()) {
       // eslint-disable-next-line deprecation/deprecation
-      this._mountActivity = pushActivity(name, 'mount');
+      this._mountActivity = pushActivity(name, REACT_MOUNT_OP);
     } else {
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
