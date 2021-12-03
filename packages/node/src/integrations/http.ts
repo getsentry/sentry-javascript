@@ -114,7 +114,7 @@ function _createWrappedRequestMethodFactory(
         if (parentSpan) {
           span = parentSpan.startChild({
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,
-            op: 'http',
+            op: 'http.client',
           });
 
           const sentryTraceHeader = span.toTraceparent();
