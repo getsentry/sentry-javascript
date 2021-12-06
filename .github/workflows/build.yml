@@ -269,8 +269,8 @@ jobs:
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
-  job_e2e_browser_test:
-    name: E2E Test Browser SDK
+  job_browser_playwright_test:
+    name: Browser Playwright Tests
     needs: job_build
     runs-on: ubuntu-latest
     steps:
@@ -290,7 +290,7 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run E2E tests
+      - name: Run Playwright tests
         run: |
           cd packages/integration-tests
           yarn test
