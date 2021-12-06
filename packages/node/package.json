@@ -35,7 +35,6 @@
     "express": "^4.17.1",
     "jest": "^24.7.1",
     "nock": "^13.0.5",
-    "rimraf": "^2.6.3",
     "typescript": "3.7.5"
   },
   "scripts": {

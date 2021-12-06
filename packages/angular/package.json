@@ -31,8 +31,6 @@
     "@angular/common": "^10.0.3",
     "@angular/core": "^10.0.3",
     "@angular/router": "^10.0.3",
-    "npm-run-all": "^4.1.2",
-    "rimraf": "^2.6.3",
     "typescript": "3.7.5"
   },
   "scripts": {

@@ -50,7 +50,6 @@
     "react-router-5": "npm:react-router@5.0.0",
     "react-test-renderer": "^16.13.1",
     "redux": "^4.0.5",
-    "rimraf": "^2.6.3",
     "typescript": "3.7.5"
   },
   "scripts": {
