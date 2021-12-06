@@ -36,8 +36,7 @@
   "devDependencies": {
     "@sentry/types": "6.16.1",
     "@testing-library/react": "^10.4.9",
-    "react": "^17.0.0",
-    "typescript": "3.7.5"
+    "react": "^17.0.0"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm",

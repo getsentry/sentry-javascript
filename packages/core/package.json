@@ -22,9 +22,7 @@
     "@sentry/utils": "6.16.1",
     "tslib": "^1.9.3"
   },
-  "devDependencies": {
-    "typescript": "3.7.5"
-  },
+  "devDependencies": {},
   "scripts": {
     "build": "run-p build:cjs build:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json",

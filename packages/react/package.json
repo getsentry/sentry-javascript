@@ -47,8 +47,7 @@
     "react-router-4": "npm:react-router@4.1.0",
     "react-router-5": "npm:react-router@5.0.0",
     "react-test-renderer": "^16.13.1",
-    "redux": "^4.0.5",
-    "typescript": "3.7.5"
+    "redux": "^4.0.5"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm",
