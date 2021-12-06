@@ -23,7 +23,6 @@
   },
   "devDependencies": {
     "mocha": "^6.2.0",
-    "prettier": "1.19.0",
     "typescript": "3.7.5"
   },
   "scripts": {

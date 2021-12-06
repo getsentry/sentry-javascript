@@ -24,9 +24,6 @@
   "devDependencies": {
     "chai": "^4.1.2",
     "jest": "^24.7.1",
-    "npm-run-all": "^4.1.2",
-    "prettier": "1.19.0",
-    "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.3",
