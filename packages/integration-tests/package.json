@@ -10,9 +10,12 @@
   "scripts": {
     "clean": "rimraf -g suites/**/dist",
     "install-browsers": "playwright install --with-deps",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
     "test": "playwright test ./suites",
-    "posttest": "clean"
+    "posttest": "yarn clean"
   },
   "dependencies": {
     "@playwright/test": "^1.17.0",
@@ -20,17 +23,18 @@
     "babel-loader": "^8.2.2",
     "handlebars-loader": "^1.7.1",
     "html-webpack-plugin": "^5.5.0",
+    "playwright": "^1.17.1",
     "ts-loader": "^9.2.6",
     "typescript": "^4.5.2",
     "webpack": "^5.52.0"
   },
   "resolutions": {
-    "@sentry/core": "file:../core",
-    "@sentry/hub": "file:../hub",
-    "@sentry/integrations": "file:../integrations",
-    "@sentry/minimal": "file:../minimal",
-    "@sentry/tracing": "file:../tracing",
-    "@sentry/types": "file:../types",
-    "@sentry/utils": "file:../utils"
+    "@sentry/core": "file:./packages/core",
+    "@sentry/hub": "file:./packages/hub",
+    "@sentry/integrations": "file:./packages/integrations",
+    "@sentry/minimal": "file:./packages/minimal",
+    "@sentry/tracing": "file:./packages/tracing",
+    "@sentry/types": "file:./packages/types",
+    "@sentry/utils": "file:./packages/utils"
   }
 }
