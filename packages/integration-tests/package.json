@@ -8,11 +8,11 @@
   },
   "private": true,
   "scripts": {
+    "clean": "rimraf -g suites/**/dist",
     "install-browsers": "playwright install --with-deps",
-    "pretest": "yarn install",
-    "test:ci": "yarn pretest && playwright test ./suites --browser='all' --reporter='line'",
+    "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
     "test": "playwright test ./suites",
-    "posttest": "rimraf -g suites/**/dist"
+    "posttest": "clean"
   },
   "dependencies": {
     "@playwright/test": "^1.17.0",
