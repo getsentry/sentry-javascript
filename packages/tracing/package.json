@@ -26,7 +26,6 @@
     "@sentry/browser": "6.15.0",
     "@types/express": "^4.17.1",
     "@types/jsdom": "^16.2.3",
-    "jest": "^24.7.1",
     "jsdom": "^16.2.2",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",

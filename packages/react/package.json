@@ -41,7 +41,6 @@
     "eslint-plugin-react-hooks": "^4.0.8",
     "history-4": "npm:history@4.6.0",
     "history-5": "npm:history@4.9.0",
-    "jest": "^24.7.1",
     "jsdom": "^16.2.2",
     "react": "^17.0.0",
     "react-dom": "^17.0.0",

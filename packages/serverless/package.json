@@ -35,7 +35,6 @@
     "aws-sdk": "^2.765.0",
     "find-up": "^5.0.0",
     "google-gax": "^2.9.0",
-    "jest": "^24.7.1",
     "nock": "^13.0.4",
     "npm-packlist": "^2.1.4",
     "read-pkg": "^5.2.0",
