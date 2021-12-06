@@ -234,5 +234,10 @@ module.exports = {
 
     // Make sure for in loops check for properties
     'guard-for-in': 'error',
+
+    // Make sure that we are returning in the callbacks passed into `.map`,
+    // `.filter` and `.reduce`. If we are not, we should be using
+    // `.forEach()` or an explicit for loop.
+    'array-callback-return': ['error', { allowImplicit: true }],
   },
 };
