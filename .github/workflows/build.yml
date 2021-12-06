@@ -292,8 +292,8 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run E2E tests
         run: |
-          cd packages/browser
-          yarn test:e2e:ci
+          cd packages/integration-tests
+          yarn test
 
   job_browser_integration_tests:
     name: Browser Integration Tests (${{ matrix.browser }})

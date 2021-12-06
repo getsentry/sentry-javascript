@@ -1,9 +1,10 @@
 import { test as base } from '@playwright/test';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+
 import { generatePage } from './generatePage';
 
-const getAsset = function(assetDir: string, asset: string) {
+const getAsset = function(assetDir: string, asset: string): string {
   if (fs.existsSync(`${assetDir}/${asset}`)) {
     return `${assetDir}/${asset}`;
   } else {
@@ -21,6 +22,7 @@ export type TestFixtures = {
 };
 
 const sentryTest = base.extend<TestFixtures>({
+  // eslint-disable-next-line no-empty-pattern
   getLocalTestPath: ({}, use, testInfo) => {
     return use(async ({ testDir }) => {
       const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;

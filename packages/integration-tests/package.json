@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@playwright/test": "^1.17.0",
-    "@sentry/browser": "file:../..",
+    "@sentry/browser": "file:../browser",
     "babel-loader": "^8.2.2",
     "handlebars-loader": "^1.7.1",
     "html-webpack-plugin": "^5.5.0",
@@ -25,12 +25,12 @@
     "webpack": "^5.52.0"
   },
   "resolutions": {
-    "@sentry/core": "file:../../../core",
-    "@sentry/hub": "file:../../../hub",
-    "@sentry/integrations": "file:../../../integrations",
-    "@sentry/minimal": "file:../../../minimal",
-    "@sentry/tracing": "file:../../../tracing",
-    "@sentry/types": "file:../../../types",
-    "@sentry/utils": "file:../../../utils"
+    "@sentry/core": "file:../core",
+    "@sentry/hub": "file:../hub",
+    "@sentry/integrations": "file:../integrations",
+    "@sentry/minimal": "file:../minimal",
+    "@sentry/tracing": "file:../tracing",
+    "@sentry/types": "file:../types",
+    "@sentry/utils": "file:../utils"
   }
 }

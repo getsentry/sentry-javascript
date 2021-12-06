@@ -471,7 +471,7 @@
     stack-utils "^2.0.3"
     yazl "^2.5.1"
 
-"@sentry/browser@file:../..":
+"@sentry/browser@file:../browser":
   version "6.15.0"
   dependencies:
     "@sentry/core" "6.15.0"
@@ -479,7 +479,7 @@
     "@sentry/utils" "6.15.0"
     tslib "^1.9.3"
 
-"@sentry/core@6.15.0", "@sentry/core@file:../../../core":
+"@sentry/core@6.15.0", "@sentry/core@file:../core":
   version "6.15.0"
   dependencies:
     "@sentry/hub" "6.15.0"
@@ -488,14 +488,14 @@
     "@sentry/utils" "6.15.0"
     tslib "^1.9.3"
 
-"@sentry/hub@6.15.0", "@sentry/hub@file:../../../hub":
+"@sentry/hub@6.15.0", "@sentry/hub@file:../hub":
   version "6.15.0"
   dependencies:
     "@sentry/types" "6.15.0"
     "@sentry/utils" "6.15.0"
     tslib "^1.9.3"
 
-"@sentry/integrations@file:../../../integrations":
+"@sentry/integrations@file:../integrations":
   version "6.15.0"
   dependencies:
     "@sentry/types" "6.15.0"
@@ -503,14 +503,14 @@
     localforage "^1.8.1"
     tslib "^1.9.3"
 
-"@sentry/minimal@6.15.0", "@sentry/minimal@file:../../../minimal":
+"@sentry/minimal@6.15.0", "@sentry/minimal@file:../minimal":
   version "6.15.0"
   dependencies:
     "@sentry/hub" "6.15.0"
     "@sentry/types" "6.15.0"
     tslib "^1.9.3"
 
-"@sentry/tracing@file:../../../tracing":
+"@sentry/tracing@file:../tracing":
   version "6.15.0"
   dependencies:
     "@sentry/hub" "6.15.0"
@@ -519,10 +519,10 @@
     "@sentry/utils" "6.15.0"
     tslib "^1.9.3"
 
-"@sentry/types@6.15.0", "@sentry/types@file:../../../types":
+"@sentry/types@6.15.0", "@sentry/types@file:../types":
   version "6.15.0"
 
-"@sentry/utils@6.15.0", "@sentry/utils@file:../../../utils":
+"@sentry/utils@6.15.0", "@sentry/utils@file:../utils":
   version "6.15.0"
   dependencies:
     "@sentry/types" "6.15.0"

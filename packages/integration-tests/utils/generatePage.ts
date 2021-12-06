@@ -4,7 +4,12 @@ import webpack from 'webpack';
 
 import webpackConfig from '../webpack.config';
 
-export async function generatePage(initialization: string, subject: string, template: string, outPath: string) {
+export async function generatePage(
+  initialization: string,
+  subject: string,
+  template: string,
+  outPath: string,
+): Promise<void> {
   const localPath = `${outPath}/dist`;
   const initializationPath = `${initialization}`;
   const subjectPath = `${subject}`;
