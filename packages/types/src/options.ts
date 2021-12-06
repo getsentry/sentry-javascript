@@ -167,7 +167,7 @@ export interface Options {
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
    */
-  tracesSampler?(samplingContext: SamplingContext): number | boolean;
+  tracesSampler?: (samplingContext: SamplingContext) => number | boolean;
 
   /**
    * A callback invoked during event submission, allowing to optionally modify
@@ -181,7 +181,7 @@ export interface Options {
    * @param hint May contain additional information about the original exception.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?(event: Event, hint?: EventHint): PromiseLike<Event | null> | Event | null;
+  beforeSend?: (event: Event, hint?: EventHint) => PromiseLike<Event | null> | Event | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify
@@ -194,5 +194,5 @@ export interface Options {
    * @param breadcrumb The breadcrumb as created by the SDK.
    * @returns The breadcrumb that will be added | null.
    */
-  beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
+  beforeBreadcrumb?: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => Breadcrumb | null;
 }
