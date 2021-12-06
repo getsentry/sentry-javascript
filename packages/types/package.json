@@ -16,7 +16,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "prettier": "1.19.0",
     "typescript": "3.7.5"
   },
   "scripts": {
