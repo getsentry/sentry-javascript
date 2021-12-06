@@ -1,9 +1,10 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "test/**/*.ts", "src/**/*.tsx", "test/**/*.tsx"],
-  "exclude": ["dist"],
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
   "compilerOptions": {
-    "rootDir": ".",
-    "types": ["jest"]
+    // package-specific options
+    "esModuleInterop": true,
   }
 }

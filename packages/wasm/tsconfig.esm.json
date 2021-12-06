@@ -1,9 +1,8 @@
 {
-  "extends": "../../tsconfig.esm.json",
+  "extends": "./tsconfig.json",
+
   "compilerOptions": {
-    "declarationMap": false,
-    "baseUrl": ".",
+    "module": "es6",
     "outDir": "esm"
-  },
-  "include": ["src/**/*"]
+  }
 }

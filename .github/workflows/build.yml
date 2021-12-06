@@ -10,6 +10,7 @@ env:
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/**/node_modules
+    ~/.cache/ms-playwright/
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
@@ -269,11 +270,17 @@ jobs:
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   job_browser_integration_tests:
-    name: Browser Integration Tests
+    name: Browser Integration Tests (${{ matrix.browser }})
     needs: job_build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     continue-on-error: true
+    strategy:
+      matrix:
+        browser:
+          - ChromeHeadless
+          - FirefoxHeadless
+          - WebkitHeadless
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -290,7 +297,35 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run integration tests
+        env:
+          KARMA_BROWSER: ${{ matrix.browser }}
         run: |
           cd packages/browser
+          [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
           yarn test:integration
+
+  job_browser_build_tests:
+    name: Browser Build Tests
+    needs: job_build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run build tests
+        run: |
+          cd packages/browser
           yarn test:package

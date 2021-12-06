@@ -1,8 +1,10 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
   "compilerOptions": {
-    "rootDir": ".",
-    "types": ["node", "jest"]
+    // package-specific options
+    "target": "ES2018",
   }
 }

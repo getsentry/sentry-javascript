@@ -18,7 +18,7 @@
     "ban-ts-ignore": false,
     "increment-decrement": false,
     "promise-function-async": false,
-    "ban-types": [true, ["async", "Use Promises instead, it add a lot to bundle size."]],
+    "ban-types": [true, ["async", "Use Promises instead, as async/await adds a lot to bundle size."]],
     // These are too strict in tslint:all
     "comment-format": [true, "check-space"],
     "completed-docs": [
@@ -77,7 +77,8 @@
     "variable-name": [true, "check-format", "allow-leading-underscore", "ban-keywords"],
     "naming-convention": [
       true,
-      // this config will apply to properties AND methods, if you only need it for properties, use "property" instead of "member"
+      // This config will apply to properties AND methods. If you only need it for properties, use "property" instead of
+      // "member".
       { "type": "member", "modifiers": "protected", "leadingUnderscore": "require" },
       { "type": "member", "modifiers": "private", "leadingUnderscore": "require" }
     ],
