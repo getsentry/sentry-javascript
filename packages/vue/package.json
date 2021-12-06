@@ -30,7 +30,6 @@
   "devDependencies": {
     "jest": "^24.7.1",
     "jsdom": "^16.2.2",
-    "prettier": "1.19.0",
     "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",

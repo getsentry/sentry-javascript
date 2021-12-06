@@ -22,7 +22,6 @@
   },
   "devDependencies": {
     "jest": "^24.7.1",
-    "prettier": "1.19.0",
     "rimraf": "^2.6.3",
     "typescript": "3.7.5"
   },
