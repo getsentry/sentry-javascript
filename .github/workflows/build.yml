@@ -293,6 +293,7 @@ jobs:
       - name: Run Playwright tests
         run: |
           cd packages/integration-tests
+          yarn run install-browsers
           yarn test
 
   job_browser_integration_tests:
