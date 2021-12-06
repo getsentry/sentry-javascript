@@ -30,8 +30,7 @@
   "devDependencies": {
     "@sentry/types": "6.15.0",
     "@types/webpack": "^4.41.31",
-    "next": "10.1.3",
-    "rimraf": "3.0.2"
+    "next": "10.1.3"
   },
   "peerDependencies": {
     "next": "^10.0.8 || ^11.0",

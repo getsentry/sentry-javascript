@@ -30,7 +30,6 @@
     "jest-puppeteer": "^4.4.0",
     "npm-run-all": "^4.1.2",
     "puppeteer": "^5.5.0",
-    "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.3",

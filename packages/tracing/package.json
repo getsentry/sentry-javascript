@@ -28,7 +28,6 @@
     "@types/jsdom": "^16.2.3",
     "jest": "^24.7.1",
     "jsdom": "^16.2.2",
-    "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-license": "^0.8.1",

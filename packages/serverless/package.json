@@ -39,7 +39,6 @@
     "nock": "^13.0.4",
     "npm-packlist": "^2.1.4",
     "read-pkg": "^5.2.0",
-    "rimraf": "^2.6.3",
     "typescript": "3.7.5"
   },
   "scripts": {
