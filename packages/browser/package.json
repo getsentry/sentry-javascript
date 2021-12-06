@@ -42,7 +42,6 @@
     "karma-typescript-es6-transform": "^4.0.0",
     "karma-webkit-launcher": "^1.0.2",
     "node-fetch": "^2.6.0",
-    "npm-run-all": "^4.1.2",
     "playwright": "^1.17.1",
     "prettier": "1.19.0",
     "rimraf": "^2.6.3",
