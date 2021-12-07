@@ -116,6 +116,7 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v3
+        if: github.ref != 'refs/release/**'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
