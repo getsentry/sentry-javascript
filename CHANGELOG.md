@@ -4,6 +4,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.16.0
+
+- feat(angular): Add Angular 13 to peer dep (#4183)
+- fix(angular): Finish routing span before starting another one (#4191)
+- fix(angular): Use ui category for span operations (#4222)
+- feat(ember): Use @types/ember__debug (#4173)
+- fix(ember): Use ui category for span operations (#4221)
+- feat(eslint-config): Enable array-callback-return rule (#4229)
+- ref(eslint-config): Update spaced-comment rule (#4235)
+- fix(integrations): Use ui category for vue span operations (#4219)
+- fix(nextjs): Add sideEffects flag to NextJS SDK (#4216)
+- fix(node): Make http integration spans have http span operation (#4224)
+- fix(react): Mark react package as having no side effects (#4213)
+- fix(react): Use ui category for operations (#4218)
+- fix(tracing): Add express category to express middleware spans (#4223)
+- fix(tracing): Treat HTTP status code below 100 as UnknownError (#4131)
+- fix(types): Make Options type method params contravariant (#4234)
+- fix(vue): Mark Vue as having no side effects. (#4217)
+- fix(vue): Use ui category for span operations (#4220)
+
+Work in this release contributed by @jherdman and @travigd. Thank you for your contribution!
+
 ## 6.15.0
 
 - fix(browser): Capture stacktrace on `DOMExceptions`, if possible (#4160)
