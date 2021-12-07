@@ -4,6 +4,7 @@ import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@
 import { Event } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
+import * as fs from 'fs';
 import * as path from 'path';
 
 import { instrumentServer } from './utils/instrumentServer';
@@ -22,6 +23,10 @@ const domain = domainModule as typeof domainModule & { active: (domainModule.Dom
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
+  console.log('LS-ing');
+  console.log(process.cwd());
+  console.log(fs.readdirSync(process.cwd()));
+
   if (options.debug) {
     logger.enable();
   }
@@ -59,6 +64,10 @@ export function init(options: NextjsOptions): void {
     }
 
     scope.addEventProcessor(filterTransactions);
+    // scope.addEventProcessor(event => {
+    //   debugger;
+    //   return event;
+    // });
   });
 
   if (activeDomain) {
