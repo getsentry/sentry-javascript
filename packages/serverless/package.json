@@ -30,7 +30,6 @@
     "@google-cloud/common": "^3.4.1",
     "@google-cloud/functions-framework": "^1.7.1",
     "@google-cloud/pubsub": "^2.5.0",
-    "@sentry-internal/eslint-config-sdk": "6.16.0",
     "@types/node": "^14.6.4",
     "aws-sdk": "^2.765.0",
     "find-up": "^5.0.0",
