@@ -11,7 +11,7 @@ import {
   getHeaderContext,
   getMetaContent,
 } from '../../src/browser/browsertracing';
-import { DEFAULT_METRICS_INSTR_OPTIONS, MetricsInstrumentation } from '../../src/browser/metrics';
+import { MetricsInstrumentation } from '../../src/browser/metrics';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
@@ -246,6 +246,8 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
         expect(mockFinish).toHaveBeenCalledTimes(1);
+
+        expect(transaction.tags).toEqual({ idleTimeout: undefined });
       });
 
       it('can be a custom value', () => {
@@ -260,6 +262,8 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(2000);
         expect(mockFinish).toHaveBeenCalledTimes(1);
+
+        expect(transaction.tags).toEqual({ idleTimeout: 2000 });
       });
     });
 
@@ -507,7 +511,7 @@ describe('BrowserTracing', () => {
       createBrowserTracing(true, {});
 
       expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(DEFAULT_METRICS_INSTR_OPTIONS);
+      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(undefined);
     });
 
     it('creates metrics instrumentation with custom options', () => {
@@ -518,9 +522,7 @@ describe('BrowserTracing', () => {
       });
 
       expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith({
-        _reportAllChanges: true,
-      });
+      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(true);
     });
   });
 });
