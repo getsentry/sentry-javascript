@@ -7,7 +7,7 @@ import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { SpanStatus } from '../spanstatus';
 import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { DEFAULT_METRICS_INSTR_OPTIONS, MetricsInstrumentation, MetricsInstrumentationOptions } from './metrics';
+import { MetricsInstrumentation } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -67,7 +67,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * Default: undefined
    */
-  _metricOptions?: Partial<MetricsInstrumentationOptions>;
+  _metricOptions?: Partial<{ _reportAllChanges: boolean }>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -129,18 +129,19 @@ export class BrowserTracing implements Integration {
 
   private readonly _emitOptionsWarning: boolean = false;
 
+  /** Store configured idle timeout so that it can be added as a tag to transactions */
+  private _configuredIdleTimeout: BrowserTracingOptions['idleTimeout'] | undefined = undefined;
+
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     let tracingOrigins = defaultRequestInstrumentationOptions.tracingOrigins;
     // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
-    if (
-      _options &&
-      _options.tracingOrigins &&
-      Array.isArray(_options.tracingOrigins) &&
-      _options.tracingOrigins.length !== 0
-    ) {
-      tracingOrigins = _options.tracingOrigins;
-    } else {
-      this._emitOptionsWarning = true;
+    if (_options) {
+      this._configuredIdleTimeout = _options.idleTimeout;
+      if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins) && _options.tracingOrigins.length !== 0) {
+        tracingOrigins = _options.tracingOrigins;
+      } else {
+        this._emitOptionsWarning = true;
+      }
     }
 
     this.options = {
@@ -149,7 +150,8 @@ export class BrowserTracing implements Integration {
       tracingOrigins,
     };
 
-    this._metrics = new MetricsInstrumentation({ ...DEFAULT_METRICS_INSTR_OPTIONS, ...this.options._metricOptions });
+    const { _metricOptions } = this.options;
+    this._metrics = new MetricsInstrumentation(_metricOptions && _metricOptions._reportAllChanges);
   }
 
   /**
@@ -235,6 +237,8 @@ export class BrowserTracing implements Integration {
       this._metrics.addPerformanceEntries(transaction);
       adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);
     });
+
+    idleTransaction.setTag('idleTimeout', this._configuredIdleTimeout);
 
     return idleTransaction as Transaction;
   }

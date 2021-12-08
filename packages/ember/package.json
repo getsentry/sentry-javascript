@@ -45,7 +45,6 @@
     "@embroider/test-setup": "~0.47.2",
     "@glimmer/component": "~1.0.0",
     "@glimmer/tracking": "~1.0.0",
-    "@sentry-internal/eslint-config-sdk": "6.16.0",
     "@types/ember": "~3.16.5",
     "@types/ember-qunit": "~3.4.9",
     "@types/ember__debug": "^3.16.5",

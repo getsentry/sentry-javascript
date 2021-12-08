@@ -27,7 +27,6 @@
     "react": "15.x || 16.x || 17.x"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.16.0",
     "@testing-library/react": "^11.2.6",
     "@testing-library/react-hooks": "^5.1.1",
     "@types/history-4": "npm:@types/history@4.7.8",
