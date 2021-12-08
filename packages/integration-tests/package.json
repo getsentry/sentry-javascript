@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "engines": {
-    "node": ">=14"
+    "node": ">=10"
   },
   "private": true,
   "scripts": {
@@ -14,8 +14,8 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
-    "test": "playwright test ./suites",
-    "posttest": "yarn clean"
+    "pretest": "yarn clean",
+    "test": "playwright test ./suites"
   },
   "dependencies": {
     "@playwright/test": "^1.17.0",
