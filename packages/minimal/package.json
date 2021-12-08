@@ -1,6 +1,6 @@
 {
   "name": "@sentry/minimal",
-  "version": "6.15.0",
+  "version": "6.16.0",
   "description": "Sentry minimal library that can be used in other packages",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal",
@@ -16,15 +16,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "6.15.0",
-    "@sentry/types": "6.15.0",
+    "@sentry/hub": "6.16.0",
+    "@sentry/types": "6.16.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "jest": "^24.7.1",
-    "npm-run-all": "^4.1.2",
-    "prettier": "1.19.0",
-    "rimraf": "^2.6.3",
     "typescript": "3.7.5"
   },
   "scripts": {

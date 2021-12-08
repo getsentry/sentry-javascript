@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "6.15.0",
+  "version": "6.16.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -16,19 +16,18 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "6.15.0",
-    "@sentry/types": "6.15.0",
-    "@sentry/utils": "6.15.0",
+    "@sentry/core": "6.16.0",
+    "@sentry/types": "6.16.0",
+    "@sentry/utils": "6.16.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "6.15.0",
+    "@sentry-internal/eslint-config-sdk": "6.16.0",
     "@types/eslint": "^7.2.0",
     "@types/md5": "2.1.33",
     "btoa": "^1.2.1",
     "chai": "^4.1.2",
     "chokidar": "^3.0.2",
-    "jest": "^24.7.1",
     "jsdom": "^15.0.0",
     "karma": "^4.1.0",
     "karma-chai": "^0.1.0",
@@ -42,10 +41,7 @@
     "karma-typescript-es6-transform": "^4.0.0",
     "karma-webkit-launcher": "^1.0.2",
     "node-fetch": "^2.6.0",
-    "npm-run-all": "^4.1.2",
     "playwright": "^1.17.1",
-    "prettier": "1.19.0",
-    "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-license": "^0.8.1",
