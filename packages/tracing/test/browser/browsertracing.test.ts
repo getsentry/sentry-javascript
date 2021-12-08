@@ -247,7 +247,7 @@ describe('BrowserTracing', () => {
         jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
         expect(mockFinish).toHaveBeenCalledTimes(1);
 
-        expect(transaction.tags).toEqual({ idleTimeout: undefined });
+        expect(transaction.tags).toEqual({ finishReason: 'idleTimeout', idleTimeout: undefined });
       });
 
       it('can be a custom value', () => {
@@ -263,7 +263,7 @@ describe('BrowserTracing', () => {
         jest.advanceTimersByTime(2000);
         expect(mockFinish).toHaveBeenCalledTimes(1);
 
-        expect(transaction.tags).toEqual({ idleTimeout: 2000 });
+        expect(transaction.tags).toEqual({ finishReason: 'idleTimeout', idleTimeout: 2000 });
       });
     });
 
