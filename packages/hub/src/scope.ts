@@ -76,6 +76,12 @@ export class Scope implements ScopeInterface {
   protected _requestSession?: RequestSession;
 
   /**
+   * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
+   * sent to Sentry
+   */
+  protected _processingMetadata?: { [key: string]: any } = {};
+
+  /**
    * Inherit values from the parent scope.
    * @param scope to clone.
    */
