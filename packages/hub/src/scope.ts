@@ -447,6 +447,8 @@ export class Scope implements ScopeInterface {
     event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
     event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
+    event.processingMetadata = this._processingMetadata;
+
     return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }
 
