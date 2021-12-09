@@ -129,6 +129,12 @@ describe('Scope', () => {
       expect((scope as any)._span).toEqual(undefined);
     });
 
+    test('setProcessingMetadata', () => {
+      const scope = new Scope();
+      scope.setProcessingMetadata({ dogs: 'are great!' });
+      expect((scope as any)._processingMetadata.dogs).toEqual('are great!');
+    });
+
     test('chaining', () => {
       const scope = new Scope();
       scope.setLevel('critical').setUser({ id: '1' });
@@ -189,7 +195,8 @@ describe('Scope', () => {
 
   describe('applyToEvent', () => {
     test('basic usage', () => {
-      expect.assertions(8);
+      expect.assertions(9);
+
       const scope = new Scope();
       scope.setExtra('a', 2);
       scope.setTag('a', 'b');
@@ -199,6 +206,8 @@ describe('Scope', () => {
       scope.setTransactionName('/abc');
       scope.addBreadcrumb({ message: 'test' });
       scope.setContext('os', { id: '1' });
+      scope.setProcessingMetadata({ dogs: 'are great!' });
+
       const event: Event = {};
       return scope.applyToEvent(event).then(processedEvent => {
         expect(processedEvent!.extra).toEqual({ a: 2 });
@@ -209,6 +218,7 @@ describe('Scope', () => {
         expect(processedEvent!.transaction).toEqual('/abc');
         expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
         expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
+        expect(processedEvent!.processingMetadata).toEqual({ dogs: 'are great!' });
       });
     });
 
