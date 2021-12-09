@@ -162,6 +162,15 @@ describe('eventToSentryRequest', () => {
       }),
     );
   });
+
+  it('removes processing metadata before serializing event', () => {
+    event.processingMetadata = { dogs: 'are great!' };
+
+    const result = eventToSentryRequest(event, api);
+    const envelope = parseEnvelopeRequest(result);
+
+    expect(envelope.event.processingMetadata).toBeUndefined();
+  });
 });
 
 describe('sessionToSentryRequest', () => {
