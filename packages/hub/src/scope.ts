@@ -451,6 +451,15 @@ export class Scope implements ScopeInterface {
   }
 
   /**
+   * Add data which will be accessible during event processing but won't get sent to Sentry
+   */
+  public setProcessingMetadata(newData: { [key: string]: any }): this {
+    this._processingMetadata = { ...this._processingMetadata, ...newData };
+
+    return this;
+  }
+
+  /**
    * This will be called after {@link applyToEvent} is finished.
    */
   protected _notifyEventProcessors(
