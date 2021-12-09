@@ -1,4 +1,4 @@
-import { DebugMeta, Event, SentryRequest } from '@sentry/types';
+import { Event, SentryRequest } from '@sentry/types';
 
 import { initAPIDetails } from '../../src/api';
 import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
@@ -40,11 +40,12 @@ describe('eventToSentryRequest', () => {
       transaction: '/dogs/are/great/',
       type: 'transaction',
       user: { id: '1121', username: 'CharlieDog', ip_address: '11.21.20.12' },
+      sdkProcessingMetadata: {},
     };
   });
 
   it('adds transaction sampling information to item header', () => {
-    event.debug_meta = { transactionSampling: { method: 'client_rate', rate: 0.1121 } };
+    event.sdkProcessingMetadata = { transactionSampling: { method: 'client_rate', rate: 0.1121 } };
 
     const result = eventToSentryRequest(event, api);
     const envelope = parseEnvelopeRequest(result);
@@ -54,30 +55,6 @@ describe('eventToSentryRequest', () => {
         sample_rates: [{ id: 'client_rate', rate: 0.1121 }],
       }),
     );
-  });
-
-  it('removes transaction sampling information (and only that) from debug_meta', () => {
-    event.debug_meta = {
-      transactionSampling: { method: 'client_sampler', rate: 0.1121 },
-      dog: 'Charlie',
-    } as DebugMeta;
-
-    const result = eventToSentryRequest(event, api);
-    const envelope = parseEnvelopeRequest(result);
-
-    expect('transactionSampling' in envelope.event.debug_meta).toBe(false);
-    expect('dog' in envelope.event.debug_meta).toBe(true);
-  });
-
-  it('removes debug_meta entirely if it ends up empty', () => {
-    event.debug_meta = {
-      transactionSampling: { method: 'client_rate', rate: 0.1121 },
-    } as DebugMeta;
-
-    const result = eventToSentryRequest(event, api);
-    const envelope = parseEnvelopeRequest(result);
-
-    expect('debug_meta' in envelope.event).toBe(false);
   });
 
   it('adds sdk info to envelope header', () => {
