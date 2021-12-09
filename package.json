@@ -43,6 +43,7 @@
     "packages/tracing",
     "packages/types",
     "packages/typescript",
+    "packages/test-server",
     "packages/utils",
     "packages/vue",
     "packages/wasm"
