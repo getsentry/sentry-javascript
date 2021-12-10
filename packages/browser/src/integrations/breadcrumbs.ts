@@ -16,6 +16,9 @@ const HISTORY = 'history';
 const DOM = 'dom';
 const XHR = 'xhr';
 
+type AddBreadcrumb = Hub['addBreadcrumb'];
+type AddBreadcrumbParams = Parameters<AddBreadcrumb>;
+
 /** JSDoc */
 interface BreadcrumbsOptions {
   console: boolean;
@@ -71,9 +74,17 @@ export class Breadcrumbs implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     const hub = getCurrentHub();
 
+    // Alias the addBreadcrumb function to save on bundle size
+    function addBreadcrumb(
+      breadcrumb: AddBreadcrumbParams[0],
+      breadcrumbHint: AddBreadcrumbParams[1],
+    ): ReturnType<AddBreadcrumb> {
+      hub.addBreadcrumb(breadcrumb, breadcrumbHint);
+    }
+
     addGlobalEventProcessor(event => {
       if (this._options.sentry) {
-        hub.addBreadcrumb(
+        addBreadcrumb(
           {
             category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
             event_id: event.event_id,
@@ -89,19 +100,19 @@ export class Breadcrumbs implements Integration {
     });
 
     if (this._options.console) {
-      _addConsoleBreadcrumbs(hub);
+      _addConsoleBreadcrumbs(addBreadcrumb);
     }
     if (this._options.dom) {
-      _addDomBreadcrumbs(hub, this._options.dom);
+      _addDomBreadcrumbs(addBreadcrumb, this._options.dom);
     }
     if (this._options.xhr) {
-      _addXhrBreadcrumbs(hub);
+      _addXhrBreadcrumbs(addBreadcrumb);
     }
     if (this._options.fetch) {
-      _addFetchBreadcrumbs(hub);
+      _addFetchBreadcrumbs(addBreadcrumb);
     }
     if (this._options.history) {
-      _addHistoryBreadcrumbs(hub);
+      _addHistoryBreadcrumbs(addBreadcrumb);
     }
   }
 }
@@ -109,7 +120,7 @@ export class Breadcrumbs implements Integration {
 /**
  * Creates breadcrumbs from console API calls
  */
-function _addConsoleBreadcrumbs(hub: Hub): void {
+function _addConsoleBreadcrumbs(addBreadcrumb: AddBreadcrumb): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     const breadcrumb = {
@@ -132,7 +143,7 @@ function _addConsoleBreadcrumbs(hub: Hub): void {
       }
     }
 
-    hub.addBreadcrumb(breadcrumb, {
+    addBreadcrumb(breadcrumb, {
       input: handlerData.args,
       level: handlerData.level,
     });
@@ -142,10 +153,10 @@ function _addConsoleBreadcrumbs(hub: Hub): void {
 /**
  * Creates breadcrumbs from DOM API calls
  */
-function _addDomBreadcrumbs(hub: Hub, dom: BreadcrumbsOptions['dom']): void {
+function _addDomBreadcrumbs(addBreadcrumb: AddBreadcrumb, dom: BreadcrumbsOptions['dom']): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
-    let target;
+    const { event, name, global } = handlerData;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
 
     if (typeof keyAttrs === 'string') {
@@ -153,36 +164,35 @@ function _addDomBreadcrumbs(hub: Hub, dom: BreadcrumbsOptions['dom']): void {
     }
 
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
+    let target;
     try {
-      target = handlerData.event.target
-        ? htmlTreeAsString(handlerData.event.target as Node, keyAttrs)
-        : htmlTreeAsString((handlerData.event as unknown) as Node, keyAttrs);
+      target = event.target
+        ? htmlTreeAsString(event.target as Node, keyAttrs)
+        : htmlTreeAsString((event as unknown) as Node, keyAttrs);
     } catch (e) {
       target = '<unknown>';
     }
 
-    if (target.length === 0) {
-      return;
+    if (target) {
+      addBreadcrumb(
+        {
+          category: `ui.${name}`,
+          message: target,
+        },
+        {
+          event,
+          name,
+          global,
+        },
+      );
     }
-
-    hub.addBreadcrumb(
-      {
-        category: `ui.${handlerData.name}`,
-        message: target,
-      },
-      {
-        event: handlerData.event,
-        name: handlerData.name,
-        global: handlerData.global,
-      },
-    );
   }, DOM);
 }
 
 /**
  * Creates breadcrumbs from XHR API calls
  */
-function _addXhrBreadcrumbs(hub: Hub): void {
+function _addXhrBreadcrumbs(addBreadcrumb: AddBreadcrumb): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     if (handlerData.endTimestamp) {
@@ -193,7 +203,7 @@ function _addXhrBreadcrumbs(hub: Hub): void {
 
       const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
 
-      hub.addBreadcrumb(
+      addBreadcrumb(
         {
           category: XHR,
           data: {
@@ -215,7 +225,7 @@ function _addXhrBreadcrumbs(hub: Hub): void {
 /**
  * Creates breadcrumbs from fetch API calls
  */
-function _addFetchBreadcrumbs(hub: Hub): void {
+function _addFetchBreadcrumbs(addBreadcrumb: AddBreadcrumb): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     // We only capture complete fetch requests
@@ -239,11 +249,11 @@ function _addFetchBreadcrumbs(hub: Hub): void {
 
     if (handlerData.error) {
       breadcrumbHint.data = handlerData.error;
-      hub.addBreadcrumb(breadcrumb, breadcrumbHint);
+      addBreadcrumb(breadcrumb, breadcrumbHint);
     } else {
       breadcrumb.data.status_code = handlerData.response.status;
       breadcrumbHint.response = handlerData.response;
-      hub.addBreadcrumb(breadcrumb, breadcrumbHint);
+      addBreadcrumb(breadcrumb, breadcrumbHint);
     }
   }, FETCH);
 }
@@ -251,7 +261,7 @@ function _addFetchBreadcrumbs(hub: Hub): void {
 /**
  * Creates breadcrumbs from history API calls
  */
-function _addHistoryBreadcrumbs(hub: Hub): void {
+function _addHistoryBreadcrumbs(addBreadcrumb: AddBreadcrumb): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     let { from, to } = handlerData;
@@ -274,7 +284,7 @@ function _addHistoryBreadcrumbs(hub: Hub): void {
       from = parsedFrom.relative;
     }
 
-    hub.addBreadcrumb({
+    addBreadcrumb({
       category: 'navigation',
       data: {
         from,
