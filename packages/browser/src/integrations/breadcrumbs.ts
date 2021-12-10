@@ -197,27 +197,25 @@ function _addXhrBreadcrumbs(addBreadcrumb: AddBreadcrumb): void {
   addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     if (handlerData.endTimestamp) {
       // We only capture complete, non-sentry requests
-      if (handlerData.xhr.__sentry_own_request__) {
-        return;
-      }
+      if (!handlerData.xhr.__sentry_own_request__) {
+        const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
 
-      const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
-
-      addBreadcrumb(
-        {
-          category: XHR,
-          data: {
-            method,
-            url,
-            status_code,
+        addBreadcrumb(
+          {
+            category: XHR,
+            data: {
+              method,
+              url,
+              status_code,
+            },
+            type: 'http',
           },
-          type: 'http',
-        },
-        {
-          xhr: handlerData.xhr,
-          input: body,
-        },
-      );
+          {
+            xhr: handlerData.xhr,
+            input: body,
+          },
+        );
+      }
     }
   }, XHR);
 }
