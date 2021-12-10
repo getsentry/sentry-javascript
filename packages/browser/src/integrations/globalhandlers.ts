@@ -61,121 +61,111 @@ export class GlobalHandlers implements Integration {
     const client = hub.getClient();
     const attachStacktrace = client && client.getOptions().attachStacktrace;
 
-    if (this._options.onerror) {
+    if (this._options.onerror && !this._onErrorHandlerInstalled) {
       globalHandlerLog('onerror');
-      this._installGlobalOnErrorHandler(hub, attachStacktrace);
+      _installGlobalOnErrorHandler(hub, attachStacktrace);
+      this._onErrorHandlerInstalled = true;
     }
 
-    if (this._options.onunhandledrejection) {
+    if (this._options.onunhandledrejection && !this._onUnhandledRejectionHandlerInstalled) {
       globalHandlerLog('onunhandledrejection');
-      this._installGlobalOnUnhandledRejectionHandler(hub, attachStacktrace);
+      _installGlobalOnUnhandledRejectionHandler(hub, attachStacktrace);
+      this._onUnhandledRejectionHandlerInstalled = true;
     }
   }
+}
 
-  /** JSDoc */
-  private _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
-    if (this._onErrorHandlerInstalled) {
-      return;
-    }
+/** JSDoc */
+function _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
+  addInstrumentationHandler({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
+      const error = data.error;
+      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
-    addInstrumentationHandler({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
-        const error = data.error;
-        const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
-
-        if (shouldIgnoreOnError() || isFailedOwnDelivery) {
-          return;
-        }
-
-        const event =
-          error === undefined && isString(data.msg)
-            ? _eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
-            : _enhanceEventWithInitialFrame(
-                eventFromUnknownInput(error || data.msg, undefined, {
-                  attachStacktrace,
-                  rejection: false,
-                }),
-                data.url,
-                data.line,
-                data.column,
-              );
-
-        addExceptionMechanism(event, {
-          handled: false,
-          type: 'onerror',
-        });
-
-        hub.captureEvent(event, {
-          originalException: error,
-        });
-      },
-      type: 'error',
-    });
-
-    this._onErrorHandlerInstalled = true;
-  }
-
-  /** JSDoc */
-  private _installGlobalOnUnhandledRejectionHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
-    if (this._onUnhandledRejectionHandlerInstalled) {
-      return;
-    }
-
-    addInstrumentationHandler({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      callback: (e: any) => {
-        let error = e;
-
-        // dig the object of the rejection out of known event types
-        try {
-          // PromiseRejectionEvents store the object of the rejection under 'reason'
-          // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
-          if ('reason' in e) {
-            error = e.reason;
-          }
-          // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
-          // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
-          // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
-          // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
-          // https://github.com/getsentry/sentry-javascript/issues/2380
-          else if ('detail' in e && 'reason' in e.detail) {
-            error = e.detail.reason;
-          }
-        } catch (_oO) {
-          // no-empty
-        }
-
-        const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
-        if (shouldIgnoreOnError() || isFailedOwnDelivery) {
-          return true;
-        }
-
-        const event = isPrimitive(error)
-          ? _eventFromRejectionWithPrimitive(error)
-          : eventFromUnknownInput(error, undefined, {
-              attachStacktrace,
-              rejection: true,
-            });
-
-        event.level = Severity.Error;
-
-        addExceptionMechanism(event, {
-          handled: false,
-          type: 'onunhandledrejection',
-        });
-
-        hub.captureEvent(event, {
-          originalException: error,
-        });
-
+      if (shouldIgnoreOnError() || isFailedOwnDelivery) {
         return;
-      },
-      type: 'unhandledrejection',
-    });
+      }
 
-    this._onUnhandledRejectionHandlerInstalled = true;
-  }
+      const event =
+        error === undefined && isString(data.msg)
+          ? _eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
+          : _enhanceEventWithInitialFrame(
+              eventFromUnknownInput(error || data.msg, undefined, {
+                attachStacktrace,
+                rejection: false,
+              }),
+              data.url,
+              data.line,
+              data.column,
+            );
+
+      addExceptionMechanism(event, {
+        handled: false,
+        type: 'onerror',
+      });
+
+      hub.captureEvent(event, {
+        originalException: error,
+      });
+    },
+    type: 'error',
+  });
+}
+
+/** JSDoc */
+function _installGlobalOnUnhandledRejectionHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
+  addInstrumentationHandler({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callback: (e: any) => {
+      let error = e;
+
+      // dig the object of the rejection out of known event types
+      try {
+        // PromiseRejectionEvents store the object of the rejection under 'reason'
+        // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
+        if ('reason' in e) {
+          error = e.reason;
+        }
+        // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
+        // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
+        // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
+        // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
+        // https://github.com/getsentry/sentry-javascript/issues/2380
+        else if ('detail' in e && 'reason' in e.detail) {
+          error = e.detail.reason;
+        }
+      } catch (_oO) {
+        // no-empty
+      }
+
+      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
+      if (shouldIgnoreOnError() || isFailedOwnDelivery) {
+        return true;
+      }
+
+      const event = isPrimitive(error)
+        ? _eventFromRejectionWithPrimitive(error)
+        : eventFromUnknownInput(error, undefined, {
+            attachStacktrace,
+            rejection: true,
+          });
+
+      event.level = Severity.Error;
+
+      addExceptionMechanism(event, {
+        handled: false,
+        type: 'onunhandledrejection',
+      });
+
+      hub.captureEvent(event, {
+        originalException: error,
+      });
+
+      return;
+    },
+    type: 'unhandledrejection',
+  });
 }
 
 /**
