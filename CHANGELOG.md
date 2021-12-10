@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 6.17.0
+## 6.16.1
 
 - feat(nextjs): Support Next.js v12 (#4093)
 - fix(nextjs): Disable server instrumentation on Vercel (#4255)
