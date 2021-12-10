@@ -57,6 +57,7 @@ To filter tests by their title:
 `yarn test -g "XMLHttpRequest without any handlers set"`
 
 You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for other CLI options.
+
 ### Troubleshooting
 
 Apart from [Playwright-specific issues](https://playwright.dev/docs/troubleshooting), below are common issues that might occur while writing tests for Sentry Browser SDK.
