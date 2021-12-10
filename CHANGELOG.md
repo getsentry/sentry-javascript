@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.0
+
+- feat(nextjs): Support Next.js v12 (#4093)
+- fix(nextjs): Disable server instrumentation on Vercel (#4255)
+- chore(nextjs): Add `incremental` option to nextjs integration test tsconfig (#4248)
+- feat(tracing): Add metadata around idleTimeout (#4251)
+- build: Remove @sentry-internal/eslint-config-sdk from package.json (#4241)
+
+Work in this release contributed by @KATT. Thank you for your contribution!
+
 ## 6.16.0
 
 - feat(angular): Add Angular 13 to peer dep (#4183)
