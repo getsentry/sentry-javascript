@@ -129,8 +129,8 @@ function filterTransactions(event: Event): Event | null {
 export { withSentryConfig } from './config';
 export { withSentry } from './utils/withSentry';
 
-// Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-vercel
-// deployments, because the current method of doing the wrapping a) crashes next 12 apps deployed to vercel doesn't and
+// Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
+// deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
 // b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
 // phase.)
 if (!isVercel && !isBuild) {
