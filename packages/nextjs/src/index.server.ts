@@ -134,8 +134,19 @@ export { withSentry } from './utils/withSentry';
 // b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
 // phase.)
 if (!isVercel && !isBuild) {
-  // we have to dynamically require the file because even importing from it causes next 12 to crash on vercel
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { instrumentServer } = require('./utils/instrumentServer.js');
-  instrumentServer();
+  // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
+  // In environments where the JS file doesn't exist, such as testing, import the TS file.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { instrumentServer } = require('./utils/instrumentServer.js');
+    instrumentServer();
+  } catch {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { instrumentServer } = require('./utils/instrumentServer.ts');
+      instrumentServer();
+    } catch {
+      // Server not instrumented. Not adding logs to avoid noise.
+    }
+  }
 }
