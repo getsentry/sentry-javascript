@@ -15,9 +15,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
-    "typescript": "3.7.5"
-  },
+  "devDependencies": {},
   "scripts": {
     "build": "run-p build:cjs build:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json",

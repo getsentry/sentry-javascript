@@ -36,8 +36,7 @@
     "google-gax": "^2.9.0",
     "nock": "^13.0.4",
     "npm-packlist": "^2.1.4",
-    "read-pkg": "^5.2.0",
-    "typescript": "3.7.5"
+    "read-pkg": "^5.2.0"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm && yarn build:awslambda-layer",

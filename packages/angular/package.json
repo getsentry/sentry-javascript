@@ -30,8 +30,7 @@
   "devDependencies": {
     "@angular/common": "^10.0.3",
     "@angular/core": "^10.0.3",
-    "@angular/router": "^10.0.3",
-    "typescript": "3.7.5"
+    "@angular/router": "^10.0.3"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm",
