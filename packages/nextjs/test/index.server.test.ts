@@ -24,6 +24,7 @@ describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
     global.__SENTRY__.hub = undefined;
+    delete process.env.VERCEL;
   });
 
   it('inits the Node SDK', () => {
