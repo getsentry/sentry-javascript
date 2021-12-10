@@ -1,7 +1,6 @@
 import { Package } from '@sentry/types';
 import { existsSync, mkdirSync, promises } from 'fs';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-// import { isNotJunk } from 'junk';
 import path from 'path';
 import webpack from 'webpack';
 
