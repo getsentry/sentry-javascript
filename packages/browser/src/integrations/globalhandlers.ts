@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { getCurrentHub } from '@sentry/core';
-import { Event, Integration, Primitive, Severity } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, Primitive, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -52,22 +51,29 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     Error.stackTraceLimit = 50;
 
+    const hub = getCurrentHub();
+    if (!hub.getIntegration(GlobalHandlers)) {
+      return;
+    }
+    const client = hub.getClient();
+    const attachStacktrace = client && client.getOptions().attachStacktrace;
+
     if (this._options.onerror) {
-      logger.log('Global Handler attached: onerror');
-      this._installGlobalOnErrorHandler();
+      globalHandlerLog('onerror');
+      this._installGlobalOnErrorHandler(hub, attachStacktrace);
     }
 
     if (this._options.onunhandledrejection) {
-      logger.log('Global Handler attached: onunhandledrejection');
-      this._installGlobalOnUnhandledRejectionHandler();
+      globalHandlerLog('onunhandledrejection');
+      this._installGlobalOnUnhandledRejectionHandler(hub, attachStacktrace);
     }
   }
 
   /** JSDoc */
-  private _installGlobalOnErrorHandler(): void {
+  private _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
     if (this._onErrorHandlerInstalled) {
       return;
     }
@@ -76,21 +82,18 @@ export class GlobalHandlers implements Integration {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
         const error = data.error;
-        const currentHub = getCurrentHub();
-        const hasIntegration = currentHub.getIntegration(GlobalHandlers);
         const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
-        if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+        if (shouldIgnoreOnError() || isFailedOwnDelivery) {
           return;
         }
 
-        const client = currentHub.getClient();
         const event =
           error === undefined && isString(data.msg)
-            ? this._eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
-            : this._enhanceEventWithInitialFrame(
+            ? _eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
+            : _enhanceEventWithInitialFrame(
                 eventFromUnknownInput(error || data.msg, undefined, {
-                  attachStacktrace: client && client.getOptions().attachStacktrace,
+                  attachStacktrace,
                   rejection: false,
                 }),
                 data.url,
@@ -103,7 +106,7 @@ export class GlobalHandlers implements Integration {
           type: 'onerror',
         });
 
-        currentHub.captureEvent(event, {
+        hub.captureEvent(event, {
           originalException: error,
         });
       },
@@ -114,7 +117,7 @@ export class GlobalHandlers implements Integration {
   }
 
   /** JSDoc */
-  private _installGlobalOnUnhandledRejectionHandler(): void {
+  private _installGlobalOnUnhandledRejectionHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
     if (this._onUnhandledRejectionHandlerInstalled) {
       return;
     }
@@ -143,19 +146,15 @@ export class GlobalHandlers implements Integration {
           // no-empty
         }
 
-        const currentHub = getCurrentHub();
-        const hasIntegration = currentHub.getIntegration(GlobalHandlers);
         const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
-
-        if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+        if (shouldIgnoreOnError() || isFailedOwnDelivery) {
           return true;
         }
 
-        const client = currentHub.getClient();
         const event = isPrimitive(error)
-          ? this._eventFromRejectionWithPrimitive(error)
+          ? _eventFromRejectionWithPrimitive(error)
           : eventFromUnknownInput(error, undefined, {
-              attachStacktrace: client && client.getOptions().attachStacktrace,
+              attachStacktrace,
               rejection: true,
             });
 
@@ -166,7 +165,7 @@ export class GlobalHandlers implements Integration {
           type: 'onunhandledrejection',
         });
 
-        currentHub.captureEvent(event, {
+        hub.captureEvent(event, {
           originalException: error,
         });
 
@@ -177,81 +176,85 @@ export class GlobalHandlers implements Integration {
 
     this._onUnhandledRejectionHandlerInstalled = true;
   }
+}
 
-  /**
-   * This function creates a stack from an old, error-less onerror handler.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any): Event {
-    const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
+/**
+ * Create an event from a promise rejection where the `reason` is a primitive.
+ *
+ * @param reason: The `reason` property of the promise rejection
+ * @returns An Event object with an appropriate `exception` value
+ */
+function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
+  return {
+    exception: {
+      values: [
+        {
+          type: 'UnhandledRejection',
+          // String() is needed because the Primitive type includes symbols (which can't be automatically stringified)
+          value: `Non-Error promise rejection captured with value: ${String(reason)}`,
+        },
+      ],
+    },
+  };
+}
 
-    // If 'message' is ErrorEvent, get real message from inside
-    let message = isErrorEvent(msg) ? msg.message : msg;
-    let name;
+/**
+ * This function creates a stack from an old, error-less onerror handler.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any): Event {
+  const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
 
-    const groups = message.match(ERROR_TYPES_RE);
-    if (groups) {
-      name = groups[1];
-      message = groups[2];
-    }
+  // If 'message' is ErrorEvent, get real message from inside
+  let message = isErrorEvent(msg) ? msg.message : msg;
+  let name;
 
-    const event = {
-      exception: {
-        values: [
-          {
-            type: name || 'Error',
-            value: message,
-          },
-        ],
-      },
-    };
-
-    return this._enhanceEventWithInitialFrame(event, url, line, column);
+  const groups = message.match(ERROR_TYPES_RE);
+  if (groups) {
+    name = groups[1];
+    message = groups[2];
   }
 
-  /**
-   * Create an event from a promise rejection where the `reason` is a primitive.
-   *
-   * @param reason: The `reason` property of the promise rejection
-   * @returns An Event object with an appropriate `exception` value
-   */
-  private _eventFromRejectionWithPrimitive(reason: Primitive): Event {
-    return {
-      exception: {
-        values: [
-          {
-            type: 'UnhandledRejection',
-            // String() is needed because the Primitive type includes symbols (which can't be automatically stringified)
-            value: `Non-Error promise rejection captured with value: ${String(reason)}`,
-          },
-        ],
-      },
-    };
+  const event = {
+    exception: {
+      values: [
+        {
+          type: name || 'Error',
+          value: message,
+        },
+      ],
+    },
+  };
+
+  return _enhanceEventWithInitialFrame(event, url, line, column);
+}
+
+/** JSDoc */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
+  event.exception = event.exception || {};
+  event.exception.values = event.exception.values || [];
+  event.exception.values[0] = event.exception.values[0] || {};
+  event.exception.values[0].stacktrace = event.exception.values[0].stacktrace || {};
+  event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames || [];
+
+  const colno = isNaN(parseInt(column, 10)) ? undefined : column;
+  const lineno = isNaN(parseInt(line, 10)) ? undefined : line;
+  const filename = isString(url) && url.length > 0 ? url : getLocationHref();
+
+  if (event.exception.values[0].stacktrace.frames.length === 0) {
+    event.exception.values[0].stacktrace.frames.push({
+      colno,
+      filename,
+      function: '?',
+      in_app: true,
+      lineno,
+    });
   }
 
-  /** JSDoc */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
-    event.exception = event.exception || {};
-    event.exception.values = event.exception.values || [];
-    event.exception.values[0] = event.exception.values[0] || {};
-    event.exception.values[0].stacktrace = event.exception.values[0].stacktrace || {};
-    event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames || [];
+  return event;
+}
 
-    const colno = isNaN(parseInt(column, 10)) ? undefined : column;
-    const lineno = isNaN(parseInt(line, 10)) ? undefined : line;
-    const filename = isString(url) && url.length > 0 ? url : getLocationHref();
-
-    if (event.exception.values[0].stacktrace.frames.length === 0) {
-      event.exception.values[0].stacktrace.frames.push({
-        colno,
-        filename,
-        function: '?',
-        in_app: true,
-        lineno,
-      });
-    }
-
-    return event;
-  }
+function globalHandlerLog(type: string): void {
+  logger.log(`Global Handler attached: ${type}`);
 }
