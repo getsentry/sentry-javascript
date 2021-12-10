@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/core';
-import { Event, Integration, Severity } from '@sentry/types';
+import { BreadcrumbHint, EventProcessor, Hub, Integration, Severity } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -10,6 +9,12 @@ import {
   parseUrl,
   safeJoin,
 } from '@sentry/utils';
+
+const CONSOLE = 'console';
+const FETCH = 'fetch';
+const HISTORY = 'history';
+const DOM = 'dom';
+const XHR = 'xhr';
 
 /** JSDoc */
 interface BreadcrumbsOptions {
@@ -21,9 +26,10 @@ interface BreadcrumbsOptions {
   xhr: boolean;
 }
 
+const global = getGlobalObject<Window>();
+
 /**
  * Default Breadcrumbs instrumentations
- * TODO: Deprecated - with v6, this will be renamed to `Instrument`
  */
 export class Breadcrumbs implements Integration {
   /**
@@ -55,26 +61,6 @@ export class Breadcrumbs implements Integration {
   }
 
   /**
-   * Create a breadcrumb of `sentry` from the events themselves
-   */
-  public addSentryBreadcrumb(event: Event): void {
-    if (!this._options.sentry) {
-      return;
-    }
-    getCurrentHub().addBreadcrumb(
-      {
-        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
-        event_id: event.event_id,
-        level: event.level,
-        message: getEventDescription(event),
-      },
-      {
-        event,
-      },
-    );
-  }
-
-  /**
    * Instrument browser built-ins w/ breadcrumb capturing
    *  - Console API
    *  - DOM API (click/typing)
@@ -82,59 +68,55 @@ export class Breadcrumbs implements Integration {
    *  - Fetch API
    *  - History API
    */
-  public setupOnce(): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    const hub = getCurrentHub();
+
+    addGlobalEventProcessor(event => {
+      if (this._options.sentry) {
+        hub.addBreadcrumb(
+          {
+            category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+            event_id: event.event_id,
+            level: event.level,
+            message: getEventDescription(event),
+          },
+          {
+            event,
+          },
+        );
+      }
+      return event;
+    });
+
     if (this._options.console) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._consoleBreadcrumb(...args);
-        },
-        type: 'console',
-      });
+      _addConsoleBreadcrumbs(hub);
     }
     if (this._options.dom) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._domBreadcrumb(...args);
-        },
-        type: 'dom',
-      });
+      _addDomBreadcrumbs(hub, this._options.dom);
     }
     if (this._options.xhr) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._xhrBreadcrumb(...args);
-        },
-        type: 'xhr',
-      });
+      _addXhrBreadcrumbs(hub);
     }
     if (this._options.fetch) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._fetchBreadcrumb(...args);
-        },
-        type: 'fetch',
-      });
+      _addFetchBreadcrumbs(hub);
     }
     if (this._options.history) {
-      addInstrumentationHandler({
-        callback: (...args) => {
-          this._historyBreadcrumb(...args);
-        },
-        type: 'history',
-      });
+      _addHistoryBreadcrumbs(hub);
     }
   }
+}
 
-  /**
-   * Creates breadcrumbs from console API calls
-   */
+/**
+ * Creates breadcrumbs from console API calls
+ */
+function _addConsoleBreadcrumbs(hub: Hub): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
+  addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     const breadcrumb = {
-      category: 'console',
+      category: CONSOLE,
       data: {
         arguments: handlerData.args,
-        logger: 'console',
+        logger: CONSOLE,
       },
       level: Severity.fromString(handlerData.level),
       message: safeJoin(handlerData.args, ' '),
@@ -150,19 +132,21 @@ export class Breadcrumbs implements Integration {
       }
     }
 
-    getCurrentHub().addBreadcrumb(breadcrumb, {
+    hub.addBreadcrumb(breadcrumb, {
       input: handlerData.args,
       level: handlerData.level,
     });
-  }
+  }, CONSOLE);
+}
 
-  /**
-   * Creates breadcrumbs from DOM API calls
-   */
+/**
+ * Creates breadcrumbs from DOM API calls
+ */
+function _addDomBreadcrumbs(hub: Hub, dom: BreadcrumbsOptions['dom']): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _domBreadcrumb(handlerData: { [key: string]: any }): void {
+  addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     let target;
-    let keyAttrs = typeof this._options.dom === 'object' ? this._options.dom.serializeAttribute : undefined;
+    let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
 
     if (typeof keyAttrs === 'string') {
       keyAttrs = [keyAttrs];
@@ -181,7 +165,7 @@ export class Breadcrumbs implements Integration {
       return;
     }
 
-    getCurrentHub().addBreadcrumb(
+    hub.addBreadcrumb(
       {
         category: `ui.${handlerData.name}`,
         message: target,
@@ -192,13 +176,15 @@ export class Breadcrumbs implements Integration {
         global: handlerData.global,
       },
     );
-  }
+  }, DOM);
+}
 
-  /**
-   * Creates breadcrumbs from XHR API calls
-   */
+/**
+ * Creates breadcrumbs from XHR API calls
+ */
+function _addXhrBreadcrumbs(hub: Hub): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _xhrBreadcrumb(handlerData: { [key: string]: any }): void {
+  addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     if (handlerData.endTimestamp) {
       // We only capture complete, non-sentry requests
       if (handlerData.xhr.__sentry_own_request__) {
@@ -207,9 +193,9 @@ export class Breadcrumbs implements Integration {
 
       const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
 
-      getCurrentHub().addBreadcrumb(
+      hub.addBreadcrumb(
         {
-          category: 'xhr',
+          category: XHR,
           data: {
             method,
             url,
@@ -222,65 +208,53 @@ export class Breadcrumbs implements Integration {
           input: body,
         },
       );
-
-      return;
     }
-  }
+  }, XHR);
+}
 
-  /**
-   * Creates breadcrumbs from fetch API calls
-   */
+/**
+ * Creates breadcrumbs from fetch API calls
+ */
+function _addFetchBreadcrumbs(hub: Hub): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
+  addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
     // We only capture complete fetch requests
-    if (!handlerData.endTimestamp) {
+    // We will not create breadcrumbs for fetch requests that contain `sentry_key` (internal sentry requests)
+    if (
+      !handlerData.endTimestamp ||
+      (handlerData.fetchData.url.match(/sentry_key/) && handlerData.fetchData.method === 'POST')
+    ) {
       return;
     }
 
-    if (handlerData.fetchData.url.match(/sentry_key/) && handlerData.fetchData.method === 'POST') {
-      // We will not create breadcrumbs for fetch requests that contain `sentry_key` (internal sentry requests)
-      return;
-    }
+    const breadcrumb = {
+      category: FETCH,
+      data: handlerData.fetchData,
+      level: Severity.Error,
+      type: 'http',
+    };
+    const breadcrumbHint = {
+      input: handlerData.args,
+    } as BreadcrumbHint;
 
     if (handlerData.error) {
-      getCurrentHub().addBreadcrumb(
-        {
-          category: 'fetch',
-          data: handlerData.fetchData,
-          level: Severity.Error,
-          type: 'http',
-        },
-        {
-          data: handlerData.error,
-          input: handlerData.args,
-        },
-      );
+      breadcrumbHint.data = handlerData.error;
+      hub.addBreadcrumb(breadcrumb, breadcrumbHint);
     } else {
-      getCurrentHub().addBreadcrumb(
-        {
-          category: 'fetch',
-          data: {
-            ...handlerData.fetchData,
-            status_code: handlerData.response.status,
-          },
-          type: 'http',
-        },
-        {
-          input: handlerData.args,
-          response: handlerData.response,
-        },
-      );
+      breadcrumb.data.status_code = handlerData.response.status;
+      breadcrumbHint.response = handlerData.response;
+      hub.addBreadcrumb(breadcrumb, breadcrumbHint);
     }
-  }
+  }, FETCH);
+}
 
-  /**
-   * Creates breadcrumbs from history API calls
-   */
+/**
+ * Creates breadcrumbs from history API calls
+ */
+function _addHistoryBreadcrumbs(hub: Hub): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _historyBreadcrumb(handlerData: { [key: string]: any }): void {
-    const global = getGlobalObject<Window>();
-    let from = handlerData.from;
-    let to = handlerData.to;
+  addInstrumentationHandler((handlerData: { [key: string]: any }): void => {
+    let { from, to } = handlerData;
     const parsedLoc = parseUrl(global.location.href);
     let parsedFrom = parseUrl(from);
     const parsedTo = parseUrl(to);
@@ -292,19 +266,20 @@ export class Breadcrumbs implements Integration {
 
     // Use only the path component of the URL if the URL matches the current
     // document (almost all the time when using pushState)
-    if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host) {
+    const parsedLocProtocol = parsedLoc.protocol;
+    if (parsedLocProtocol === parsedTo.protocol && parsedLoc.host === parsedTo.host) {
       to = parsedTo.relative;
     }
-    if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host) {
+    if (parsedLocProtocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host) {
       from = parsedFrom.relative;
     }
 
-    getCurrentHub().addBreadcrumb({
+    hub.addBreadcrumb({
       category: 'navigation',
       data: {
         from,
         to,
       },
     });
-  }
+  }, HISTORY);
 }

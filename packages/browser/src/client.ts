@@ -4,7 +4,6 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { BrowserBackend, BrowserOptions } from './backend';
 import { injectReportDialog, ReportDialogOptions } from './helpers';
-import { Breadcrumbs } from './integrations';
 
 /**
  * The Sentry Browser SDK Client.
@@ -69,10 +68,6 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    * @inheritDoc
    */
   protected _sendEvent(event: Event): void {
-    const integration = this.getIntegration(Breadcrumbs);
-    if (integration) {
-      integration.addSentryBreadcrumb(event);
-    }
     super._sendEvent(event);
   }
 }

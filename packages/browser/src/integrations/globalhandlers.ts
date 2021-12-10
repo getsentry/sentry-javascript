@@ -72,9 +72,9 @@ export class GlobalHandlers implements Integration {
       return;
     }
 
-    addInstrumentationHandler({
+    addInstrumentationHandler(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
+      (data: { msg: any; url: any; line: any; column: any; error: any }) => {
         const error = data.error;
         const currentHub = getCurrentHub();
         const hasIntegration = currentHub.getIntegration(GlobalHandlers);
@@ -107,8 +107,8 @@ export class GlobalHandlers implements Integration {
           originalException: error,
         });
       },
-      type: 'error',
-    });
+      'error',
+    );
 
     this._onErrorHandlerInstalled = true;
   }
@@ -119,9 +119,9 @@ export class GlobalHandlers implements Integration {
       return;
     }
 
-    addInstrumentationHandler({
+    addInstrumentationHandler(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      callback: (e: any) => {
+      (e: any) => {
         let error = e;
 
         // dig the object of the rejection out of known event types
@@ -172,8 +172,8 @@ export class GlobalHandlers implements Integration {
 
         return;
       },
-      type: 'unhandledrejection',
-    });
+      'unhandledrejection',
+    );
 
     this._onUnhandledRejectionHandlerInstalled = true;
   }
@@ -183,7 +183,8 @@ export class GlobalHandlers implements Integration {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any): Event {
-    const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
+    const ERROR_TYPES_RE =
+      /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
 
     // If 'message' is ErrorEvent, get real message from inside
     let message = isErrorEvent(msg) ? msg.message : msg;

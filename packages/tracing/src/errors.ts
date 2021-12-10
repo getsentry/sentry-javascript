@@ -7,14 +7,8 @@ import { getActiveTransaction } from './utils';
  * Configures global error listeners
  */
 export function registerErrorInstrumentation(): void {
-  addInstrumentationHandler({
-    callback: errorCallback,
-    type: 'error',
-  });
-  addInstrumentationHandler({
-    callback: errorCallback,
-    type: 'unhandledrejection',
-  });
+  addInstrumentationHandler(errorCallback, 'error');
+  addInstrumentationHandler(errorCallback, 'unhandledrejection');
 }
 
 /**
