@@ -2,6 +2,7 @@ import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 
+import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants';
 import { Span, SpanRecorder } from './span';
 import { SpanStatus } from './spanstatus';
 import { Transaction } from './transaction';
@@ -223,6 +224,7 @@ export class IdleTransaction extends Transaction {
 
       setTimeout(() => {
         if (!this._finished) {
+          this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[1]);
           this.finish(end);
         }
       }, timeout);
@@ -252,7 +254,7 @@ export class IdleTransaction extends Transaction {
     if (this._heartbeatCounter >= 3) {
       logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
       this.setStatus(SpanStatus.DeadlineExceeded);
-      this.setTag('heartbeat', 'failed');
+      this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[0]);
       this.finish();
     } else {
       this._pingHeartbeat();
