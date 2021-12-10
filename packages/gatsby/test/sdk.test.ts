@@ -18,14 +18,10 @@ describe('Initialize React SDK', () => {
     const sdkMetadata = calledWith._metadata.sdk;
     expect(sdkMetadata.name).toStrictEqual('sentry.javascript.gatsby');
     expect(sdkMetadata.version).toBe(SDK_VERSION);
-    expect(sdkMetadata.packages).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "name": "npm:@sentry/gatsby",
-          "version": "6.13.3",
-        },
-      ]
-    `);
+    expect(sdkMetadata.packages).toHaveLength(1); // Only Gatsby SDK
+    expect(sdkMetadata.packages[0].name).toStrictEqual('npm:@sentry/gatsby');
+    // Explicit tests on the version fail when making new releases
+    expect(sdkMetadata.packages[0].version).toBeDefined();
   });
 
   describe('Environment', () => {

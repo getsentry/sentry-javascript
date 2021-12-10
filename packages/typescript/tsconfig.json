@@ -4,33 +4,33 @@
     "declaration": true,
     "declarationMap": true,
     "downlevelIteration": true,
-    "inlineSources": true,
     "importHelpers": true,
+    "inlineSources": true,
     "lib": ["es6", "dom"],
-    "module": "commonjs",
+    // "module": "commonjs", // implied by "target" : "es5"
     "moduleResolution": "node",
     "noEmitHelpers": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
-    "noImplicitUseStrict": true,
     "noImplicitThis": true,
+    "noImplicitUseStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "pretty": true,
-    "sourceMap": true,
-    "strict": true,
-    "target": "es5",
-    "strictBindCallApply": false,
     "plugins": [
       {
         "name": "typescript-tslint-plugin",
+        "configFile": "./tslint.json",
         "alwaysShowRuleFailuresAsWarnings": false,
         "ignoreDefinitionFiles": true,
-        "configFile": "./tslint.json",
-        "suppressWhileTypeErrorsPresent": false,
-        "mockTypeScriptVersion": false
+        "mockTypeScriptVersion": false,
+        "suppressWhileTypeErrorsPresent": false
       }
-    ]
+    ],
+    "pretty": true,
+    "sourceMap": true,
+    "strict": true,
+    "strictBindCallApply": false,
+    "target": "es5"
   }
 }

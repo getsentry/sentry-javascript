@@ -18,6 +18,12 @@ module.exports = [
     limit: '100 KB',
   },
   {
+    name: '@sentry/nextjs Client - Webpack',
+    path: 'packages/nextjs/esm/index.client.js',
+    import: '{ init }',
+    limit: '100 KB',
+  },
+  {
     name: '@sentry/browser + @sentry/tracing - CDN Bundle (gzipped)',
     path: 'packages/tracing/build/bundle.tracing.min.js',
     gzip: true,

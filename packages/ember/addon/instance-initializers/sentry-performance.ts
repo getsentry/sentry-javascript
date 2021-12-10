@@ -109,7 +109,7 @@ export function _instrumentEmberRouter(
       },
     });
     transitionSpan = activeTransaction.startChild({
-      op: 'ember.transition',
+      op: 'ui.ember.transition',
       description: `route:${fromRoute} -> route:${toRoute}`,
     });
   });
@@ -173,7 +173,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
             if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
               activeTransaction
                 ?.startChild({
-                  op: `ember.runloop.${queue}`,
+                  op: `ui.ember.runloop.${queue}`,
                   startTimestamp: currentQueueStart,
                   endTimestamp: now,
                 })
@@ -273,7 +273,7 @@ function _instrumentComponents(config: EmberSentryConfig) {
       },
 
       after(_name: string, _timestamp: number, payload: any, _beganIndex: number) {
-        processComponentRenderAfter(payload, beforeEntries, 'ember.component.render', minComponentDuration);
+        processComponentRenderAfter(payload, beforeEntries, 'ui.ember.component.render', minComponentDuration);
       },
     });
     if (enableComponentDefinitions) {
@@ -283,7 +283,7 @@ function _instrumentComponents(config: EmberSentryConfig) {
         },
 
         after(_name: string, _timestamp: number, payload: any, _beganIndex: number) {
-          processComponentRenderAfter(payload, beforeComponentDefinitionEntries, 'ember.component.definition', 0);
+          processComponentRenderAfter(payload, beforeComponentDefinitionEntries, 'ui.ember.component.definition', 0);
         },
       });
     }
@@ -331,7 +331,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
 
   const transaction = getActiveTransaction();
   const span = transaction?.startChild({
-    op: 'ember.initial-load',
+    op: 'ui.ember.init',
     startTimestamp,
   });
   span?.finish(endTimestamp);

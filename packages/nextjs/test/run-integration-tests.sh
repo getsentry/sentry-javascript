@@ -14,7 +14,7 @@ function cleanup {
   # Delete yarn's cached versions of sentry packages added during this test run, since every test run installs multiple
   # copies of each package. Without this, the cache can balloon in size quickly if integration tests are being run
   # multiple times in a row.
-  find $(yarn cache dir) -iname "npm-@sentry*" -newermt "$START_TIME" -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+  find "$(yarn cache dir)" -iname "npm-@sentry*" -newermt "$START_TIME" -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
 
   echo "[nextjs] Test run complete"
 }
@@ -30,7 +30,7 @@ echo "Running integration tests on Node $NODE_VERSION"
 # make a backup of our config file so we can restore it when we're done
 mv next.config.js next.config.js.bak
 
-for NEXTJS_VERSION in 10 11; do
+for NEXTJS_VERSION in 10 11 12; do
 
   # Next 10 requires at least Node v10
   if [ "$NODE_MAJOR" -lt "10" ]; then
@@ -62,7 +62,13 @@ for NEXTJS_VERSION in 10 11; do
   linkcli && linkplugin
   mv -f package.json.bak package.json 2>/dev/null || true
 
-  for RUN_WEBPACK_5 in false true; do
+  SHOULD_RUN_WEBPACK_5=(true)
+  # Only run Webpack 4 tests for Next 10 and Next 11
+  if [ "$NEXTJS_VERSION" -eq "10" ] || [ "$NEXTJS_VERSION" -eq "11" ]; then
+    SHOULD_RUN_WEBPACK_5+=(false)
+  fi
+
+  for RUN_WEBPACK_5 in ${SHOULD_RUN_WEBPACK_5[*]}; do
     [ "$RUN_WEBPACK_5" == true ] &&
       WEBPACK_VERSION=5 ||
       WEBPACK_VERSION=4
@@ -75,7 +81,7 @@ for NEXTJS_VERSION in 10 11; do
     fi
 
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
-    yarn build | grep "Using webpack"
+    yarn build
 
     # if the user hasn't passed any args, use the default one, which restricts each test to only outputting success and
     # failure messages

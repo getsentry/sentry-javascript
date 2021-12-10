@@ -90,6 +90,14 @@ describe('Span', () => {
       expect(span.isSuccess()).toBe(true);
       span.setStatus(SpanStatus.PermissionDenied);
       expect(span.isSuccess()).toBe(false);
+      span.setHttpStatus(0);
+      expect(span.isSuccess()).toBe(false);
+      span.setHttpStatus(-1);
+      expect(span.isSuccess()).toBe(false);
+      span.setHttpStatus(99);
+      expect(span.isSuccess()).toBe(false);
+      span.setHttpStatus(100);
+      expect(span.isSuccess()).toBe(true);
     });
   });
 

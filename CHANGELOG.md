@@ -4,6 +4,79 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.16.0
+
+- feat(angular): Add Angular 13 to peer dep (#4183)
+- fix(angular): Finish routing span before starting another one (#4191)
+- fix(angular): Use ui category for span operations (#4222)
+- feat(ember): Use @types/ember__debug (#4173)
+- fix(ember): Use ui category for span operations (#4221)
+- feat(eslint-config): Enable array-callback-return rule (#4229)
+- ref(eslint-config): Update spaced-comment rule (#4235)
+- fix(integrations): Use ui category for vue span operations (#4219)
+- fix(nextjs): Add sideEffects flag to NextJS SDK (#4216)
+- fix(node): Make http integration spans have http span operation (#4224)
+- fix(react): Mark react package as having no side effects (#4213)
+- fix(react): Use ui category for operations (#4218)
+- fix(tracing): Add express category to express middleware spans (#4223)
+- fix(tracing): Treat HTTP status code below 100 as UnknownError (#4131)
+- fix(types): Make Options type method params contravariant (#4234)
+- fix(vue): Mark Vue as having no side effects. (#4217)
+- fix(vue): Use ui category for span operations (#4220)
+
+Work in this release contributed by @jherdman and @travigd. Thank you for your contribution!
+
+## 6.15.0
+
+- fix(browser): Capture stacktrace on `DOMExceptions`, if possible (#4160)
+- fix(nextjs): Delay error propagation until `withSentry` is done (#4027)
+
+Work in this release contributed by @nowylie. Thank you for your contribution!
+
+## 6.14.3
+
+- Revert: ref(utils): Use type predicates in `is` utility functions (#4124)
+
+## 6.14.2
+
+- feat(awslambda) : Capture errors individually on sqs partial batch failure (#4130)
+- feat(gatsby): Upload source maps automatically when sentry-cli is configured (#4109)
+- fix(nextjs): Prevent `false API resolved without sending a response` warning (#4139)
+- fix(vue): Merge default and manual hooks while creating mixins. (#4132)
+- ref(utils): Use type predicates in `is` utility functions (#4124)
+
+Work in this release contributed by @J4YF7O. Thank you for your contribution!
+
+## 6.14.1
+
+- feat(gatsby): Support Gatsby v4 (#4120)
+- fix(nextjs): Stop sending transactions for requests that 404 (#4095)
+- fix(nextjs): Prevent infinite recompilation in dev (#4123)
+- fix(node): Prioritize globalAgent while figuring out protocol (#4087)
+
+## 6.14.0
+
+- chore(deps): Bump @sentry/webpack-plugin to 1.18.1 (#4063)
+- feat(awslambda): Add requestId filter to aws.cloudwatch.logs URL (#4032)
+- feat(gatsby): Support non-serializable SDK options (#4064)
+- feat(gatsby): Support user integrations as a function (#4050)
+- feat(integrations): Call toJSON of originalException to extract more data (#4038)
+- feat(integrations): Capture console.error as an exception (#4034)
+- feat(nextjs): Add mechanism to error-logger-caught errors (#4061)
+- feat(nextjs): Add mechanism to withSentry-caught errors (#4046)
+- feat(nextjs): Tag backend events when running on vercel (#4091)
+- fix(browser): Send client outcomes through tunnel if configured (#4031)
+- fix(core): Be stricter about mechanism values (#4068)
+- fix(core): Prevent exception recapturing (#4067)
+- fix(nextjs): Always initialize SDK with global hub (#4086)
+- fix(nextjs): Fix types in config code (#4057)
+- fix(nextjs): Remove logic merging include values in withSentryConfig (#4056)
+- fix(node): Check for potentially undefined httpModule (#4037)
+- fix(tracing): Update paths for DB drivers auto-instrumentation (#4083)
+- fix(vue): Move ROOT_SPAN_TIMER into Vue context. (#4081)
+
+Work in this release contributed by @tmilar, @deammer, and @freekii. Thank you for your contributions!
+
 ## 6.13.3
 
 - feat(nextjs): Add ability for integration tests to use linked `@sentry/xxxx` packages (#4019)
@@ -572,7 +645,7 @@ during SDK initialization.
 
 - [react] feat: Expose eventId on ErrorBoundary component (#2704)
 - [node] fix: Extract transaction from nested express paths correctly (#2714)
-- [tracing] feat: Pick up sentry-trace in JS <meta/> tag (#2703)
+- [tracing] feat: Pick up sentry-trace in JS `<meta/>` tag (#2703)
 - [tracing] fix: Respect fetch headers (#2712) (#2713)
 - [tracing] fix: Check if performance.getEntries() exists (#2710)
 - [tracing] fix: Add manual Location typing (#2700)
@@ -878,7 +951,7 @@ removed in the future. If you are only using the `Tracing` integration there is 
 
 ## 5.4.2
 
-- [core] fix: Allow Integration<T> constructor to have arguments
+- [core] fix: Allow `Integration<T>` constructor to have arguments
 - [browser] fix: Vue breadcrumb recording missing in payload
 - [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
 - [integrations] fix: Tracing integration fetch headers bug where trace header is not attached if there are no options.
@@ -987,7 +1060,7 @@ This major bump brings a lot of internal improvements. Also, we extracted some i
 in their own package called `@sentry/integrations`. For a detailed guide how to upgrade from `4.x` to `5.x` refer to our
 [migration guide](https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md).
 
-**Migration from v4**
+### Migration from v4
 
 If you were using the SDKs high level API, the way we describe it in the docs, you should be fine without any code
 changes. This is a **breaking** release since we removed some methods from the public API and removed some classes from
@@ -1069,7 +1142,7 @@ the default export.
 
 ## 5.0.0-beta1
 
-**Migration from v4**
+### Migration from v4
 
 This major bump brings a lot of internal improvements. This is a **breaking** release since we removed some methods from
 the public API and removed some classes from the default export.
@@ -1165,7 +1238,7 @@ the public API and removed some classes from the default export.
 ## 4.5.2
 
 - [utils] fix: Decycling for objects to no produce an endless loop
-- [browser] fix: <unlabeled> event for unhandledRejection
+- [browser] fix: `<unlabeled>` event for unhandledRejection
 - [loader] fix: Handle unhandledRejection the same way as it would be thrown
 
 ## 4.5.1

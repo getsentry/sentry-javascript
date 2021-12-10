@@ -48,6 +48,7 @@ export class GoogleCloudGrpc implements Integration {
    */
   public setupOnce(): void {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const gaxModule = require('google-gax');
       fill(
         gaxModule.GrpcClient.prototype, // eslint-disable-line @typescript-eslint/no-unsafe-member-access

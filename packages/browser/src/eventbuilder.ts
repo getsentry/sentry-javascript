@@ -73,17 +73,25 @@ export function eventFromUnknownInput(
     event = eventFromStacktrace(computeStackTrace(exception as Error));
     return event;
   }
-  if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
-    // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
-    // then we just extract the name, code, and message, as they don't provide anything else
-    // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
-    // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
-    const domException = exception as DOMException;
-    const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
-    const message = domException.message ? `${name}: ${domException.message}` : name;
 
-    event = eventFromString(message, syntheticException, options);
-    addExceptionTypeValue(event, message);
+  // If it is a `DOMError` (which is a legacy API, but still supported in some browsers) then we just extract the name
+  // and message, as it doesn't provide anything else. According to the spec, all `DOMExceptions` should also be
+  // `Error`s, but that's not the case in IE11, so in that case we treat it the same as we do a `DOMError`.
+  //
+  // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
+  // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
+  // https://webidl.spec.whatwg.org/#es-DOMException-specialness
+  if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
+    const domException = exception as DOMException;
+
+    if ('stack' in (exception as Error)) {
+      event = eventFromStacktrace(computeStackTrace(exception as Error));
+    } else {
+      const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
+      const message = domException.message ? `${name}: ${domException.message}` : name;
+      event = eventFromString(message, syntheticException, options);
+      addExceptionTypeValue(event, message);
+    }
     if ('code' in domException) {
       event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` };
     }

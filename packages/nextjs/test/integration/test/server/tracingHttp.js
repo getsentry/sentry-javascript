@@ -8,6 +8,7 @@ const { getAsync, interceptTracingRequest } = require('../utils/server');
 module.exports = async ({ url: urlBase, argv }) => {
   const url = `${urlBase}/api/http`;
 
+  // this intercepts the outgoing request made by the route handler (which it makes in order to test span creation)
   nock('http://example.com')
     .get('/')
     .reply(200, 'ok');
@@ -24,7 +25,7 @@ module.exports = async ({ url: urlBase, argv }) => {
       spans: [
         {
           description: 'GET http://example.com/',
-          op: 'request',
+          op: 'http.client',
           status: 'ok',
           tags: { 'http.status_code': '200' },
         },

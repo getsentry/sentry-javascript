@@ -1,10 +1,8 @@
 {
-  "extends": "../../tsconfig.esm.json",
+  "extends": "./tsconfig.json",
+
   "compilerOptions": {
-    "esModuleInterop": true,
-    "baseUrl": ".",
-    "outDir": "esm",
-    "jsx": "react"
-  },
-  "include": ["src/**/*"]
+    "module": "es6",
+    "outDir": "esm"
+  }
 }

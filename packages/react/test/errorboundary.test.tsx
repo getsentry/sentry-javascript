@@ -1,5 +1,4 @@
 import { Scope } from '@sentry/browser';
-import { Event, Severity } from '@sentry/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
