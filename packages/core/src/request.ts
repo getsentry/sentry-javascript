@@ -6,12 +6,12 @@ import { API } from './api';
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
  **/
-function enhanceEventWithSdkInfo(event: Event, { name, version, integrations = [], packages = [] }: SdkInfo): Event {
+function enhanceEventWithSdkInfo(event: Event, sdkInfo: SdkInfo): Event {
   event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || name;
-  event.sdk.version = event.sdk.version || version;
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...integrations];
-  event.sdk.packages = [...(event.sdk.packages || []), ...packages];
+  event.sdk.name = event.sdk.name || sdkInfo.name;
+  event.sdk.version = event.sdk.version || sdkInfo.version;
+  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
+  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
   return event;
 }
 
@@ -26,7 +26,7 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
   });
 
   return {
-    body: `${JSON.stringify(envelopeHeaders)}\n${itemHeaders}\n${JSON.stringify(session)}`,
+    body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(session)}`,
     type,
     url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
   };
