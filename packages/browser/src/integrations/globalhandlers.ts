@@ -55,9 +55,6 @@ export class GlobalHandlers implements Integration {
     Error.stackTraceLimit = 50;
 
     const hub = getCurrentHub();
-    if (!hub.getIntegration(GlobalHandlers)) {
-      return;
-    }
     const client = hub.getClient();
     const attachStacktrace = client && client.getOptions().attachStacktrace;
 
@@ -80,6 +77,9 @@ function _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | unde
   addInstrumentationHandler({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
+      if (!hub.getIntegration(GlobalHandlers)) {
+        return;
+      }
       const error = data.error;
       const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
@@ -111,6 +111,9 @@ function _installGlobalOnUnhandledRejectionHandler(hub: Hub, attachStacktrace: b
   addInstrumentationHandler({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (e: any) => {
+      if (!hub.getIntegration(GlobalHandlers)) {
+        return;
+      }
       let error = e;
 
       // dig the object of the rejection out of known event types
