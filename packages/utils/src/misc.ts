@@ -40,9 +40,11 @@ export function uuid4(): string {
       return v;
     };
 
-    return (
-      pad(arr[0]) + pad(arr[1]) + pad(arr[2]) + pad(arr[3]) + pad(arr[4]) + pad(arr[5]) + pad(arr[6]) + pad(arr[7])
-    );
+    let uuid = '';
+    for (let x = 0; x < 8; x++) {
+      uuid += pad(arr[x]);
+    }
+    return uuid;
   }
   // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
   return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -98,13 +100,14 @@ export function getEventDescription(event: Event): string {
   if (event.message) {
     return event.message;
   }
-  if (event.exception && event.exception.values && event.exception.values[0]) {
-    const exception = event.exception.values[0];
+  const exception = event.exception;
+  if (exception && exception.values && exception.values[0]) {
+    const { type, value } = exception.values[0];
 
-    if (exception.type && exception.value) {
-      return `${exception.type}: ${exception.value}`;
+    if (type && value) {
+      return `${type}: ${value}`;
     }
-    return exception.type || exception.value || event.event_id || '<unknown>';
+    return type || value || event.event_id || '<unknown>';
   }
   return event.event_id || '<unknown>';
 }
@@ -117,11 +120,16 @@ export function getEventDescription(event: Event): string {
  * @hidden
  */
 export function addExceptionTypeValue(event: Event, value?: string, type?: string): void {
-  event.exception = event.exception || {};
-  event.exception.values = event.exception.values || [];
-  event.exception.values[0] = event.exception.values[0] || {};
-  event.exception.values[0].value = event.exception.values[0].value || value || '';
-  event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
+  // event.exception
+  const exception = (event.exception = event.exception || {});
+  // event.exception.values
+  const exceptionValues = (exception.values = exception.values || []);
+  // event.exception.values[0]
+  const exceptionValue0 = (exceptionValues[0] = exceptionValues[0] || {});
+  // event.exception.values[0].value
+  exceptionValue0.value = exceptionValue0.value || value || '';
+  // event.exception.values[0].type
+  exceptionValue0.type = exceptionValue0.type || type || 'Error';
 }
 
 /**
@@ -137,12 +145,11 @@ export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mecha
   }
   const exceptionValue0 = event.exception.values[0];
 
-  const defaultMechanism = { type: 'generic', handled: true };
   const currentMechanism = exceptionValue0.mechanism;
-  exceptionValue0.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
+  exceptionValue0.mechanism = { ...{ type: 'generic', handled: true }, ...currentMechanism, ...newMechanism };
 
   if (newMechanism && 'data' in newMechanism) {
-    const mergedData = { ...currentMechanism?.data, ...newMechanism.data };
+    const mergedData = { ...(currentMechanism && currentMechanism.data), ...newMechanism.data };
     exceptionValue0.mechanism.data = mergedData;
   }
 }
@@ -238,6 +245,8 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
   return urlPath.split(/[\?#]/, 1)[0];
 }
 
+const sentryCaptured = '__sentry_captured__';
+
 /**
  * Checks whether or not we've already captured the given exception (note: not an identical exception - the very object
  * in question), and marks it captured if not.
@@ -261,14 +270,14 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
  */
 export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if ((exception as any)?.__sentry_captured__) {
+  if (exception && (exception as any)[sentryCaptured]) {
     return true;
   }
 
   try {
     // set it this way rather than by assignment so that it's not ennumerable and therefore isn't recorded by the
     // `ExtraErrorData` integration
-    Object.defineProperty(exception, '__sentry_captured__', {
+    Object.defineProperty(exception, sentryCaptured, {
       value: true,
     });
   } catch (err) {
