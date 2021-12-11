@@ -2,6 +2,9 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
 import { Primitive } from '@sentry/types';
+
+const toString: typeof Object.prototype.toString = Object.prototype.toString.bind(Object);
+
 /**
  * Checks whether given value's type is one of a few Error or Error-like
  * {@link isError}.
@@ -10,11 +13,9 @@ import { Primitive } from '@sentry/types';
  * @returns A boolean representing the result.
  */
 export function isError(wat: any): boolean {
-  switch (Object.prototype.toString.call(wat)) {
+  switch (toString.call(wat)) {
     case '[object Error]':
-      return true;
     case '[object Exception]':
-      return true;
     case '[object DOMException]':
       return true;
     default:
@@ -30,7 +31,7 @@ export function isError(wat: any): boolean {
  * @returns A boolean representing the result.
  */
 export function isErrorEvent(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object ErrorEvent]';
+  return toString.call(wat) === '[object ErrorEvent]';
 }
 
 /**
@@ -41,7 +42,7 @@ export function isErrorEvent(wat: any): boolean {
  * @returns A boolean representing the result.
  */
 export function isDOMError(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object DOMError]';
+  return toString.call(wat) === '[object DOMError]';
 }
 
 /**
@@ -52,7 +53,7 @@ export function isDOMError(wat: any): boolean {
  * @returns A boolean representing the result.
  */
 export function isDOMException(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object DOMException]';
+  return toString.call(wat) === '[object DOMException]';
 }
 
 /**
@@ -63,7 +64,7 @@ export function isDOMException(wat: any): boolean {
  * @returns A boolean representing the result.
  */
 export function isString(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object String]';
+  return toString.call(wat) === '[object String]';
 }
 
 /**
@@ -85,7 +86,7 @@ export function isPrimitive(wat: any): wat is Primitive {
  * @returns A boolean representing the result.
  */
 export function isPlainObject(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object Object]';
+  return toString.call(wat) === '[object Object]';
 }
 
 /**
@@ -118,7 +119,7 @@ export function isElement(wat: any): boolean {
  * @returns A boolean representing the result.
  */
 export function isRegExp(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object RegExp]';
+  return toString.call(wat) === '[object RegExp]';
 }
 
 /**
