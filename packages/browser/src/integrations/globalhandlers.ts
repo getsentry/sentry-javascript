@@ -185,7 +185,7 @@ function _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any)
 
   // If 'message' is ErrorEvent, get real message from inside
   let message = isErrorEvent(msg) ? msg.message : msg;
-  let name;
+  let name = 'Error';
 
   const groups = message.match(ERROR_TYPES_RE);
   if (groups) {
@@ -197,7 +197,7 @@ function _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any)
     exception: {
       values: [
         {
-          type: name || 'Error',
+          type: name,
           value: message,
         },
       ],
@@ -210,18 +210,24 @@ function _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any)
 /** JSDoc */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
-  event.exception = event.exception || {};
-  event.exception.values = event.exception.values || [];
-  event.exception.values[0] = event.exception.values[0] || {};
-  event.exception.values[0].stacktrace = event.exception.values[0].stacktrace || {};
-  event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames || [];
+  // event.exception
+  const e = (event.exception = event.exception || {});
+  // event.exception.values
+  const ev = (e.values = e.values || []);
+  // event.exception.values[0]
+  const ev0 = (ev[0] = ev[0] || {});
+  // event.exception.values[0].stacktrace
+  const ev0s = (ev0.stacktrace = ev0.stacktrace || {});
+  // event.exception.values[0].stacktrace.frames
+  const ev0sf = (ev0s.frames = ev0s.frames || []);
 
   const colno = isNaN(parseInt(column, 10)) ? undefined : column;
   const lineno = isNaN(parseInt(line, 10)) ? undefined : line;
   const filename = isString(url) && url.length > 0 ? url : getLocationHref();
 
-  if (event.exception.values[0].stacktrace.frames.length === 0) {
-    event.exception.values[0].stacktrace.frames.push({
+  // event.exception.values[0].stacktrace.frames
+  if (ev0sf.length === 0) {
+    ev0sf.push({
       colno,
       filename,
       function: '?',
