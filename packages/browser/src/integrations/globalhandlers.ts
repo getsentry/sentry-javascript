@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Event, EventProcessor, Hub, Integration, Primitive, Severity, EventHint } from '@sentry/types';
+import { Event, EventHint, EventProcessor, Hub, Integration, Primitive, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -61,13 +61,13 @@ export class GlobalHandlers implements Integration {
     const client = hub.getClient();
     const attachStacktrace = client && client.getOptions().attachStacktrace;
 
-    if (this._options.onerror && !this._onErrorHandlerInstalled) {
+    if (this._options.onerror || !this._onErrorHandlerInstalled) {
       globalHandlerLog('onerror');
       _installGlobalOnErrorHandler(hub, attachStacktrace);
       this._onErrorHandlerInstalled = true;
     }
 
-    if (this._options.onunhandledrejection && !this._onUnhandledRejectionHandlerInstalled) {
+    if (this._options.onunhandledrejection || !this._onUnhandledRejectionHandlerInstalled) {
       globalHandlerLog('onunhandledrejection');
       _installGlobalOnUnhandledRejectionHandler(hub, attachStacktrace);
       this._onUnhandledRejectionHandlerInstalled = true;
