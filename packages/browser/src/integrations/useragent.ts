@@ -30,19 +30,20 @@ export class UserAgent implements Integration {
         const req = event.request;
         const headers = req && req.headers ? { ...req.headers } : {};
 
-        const { userAgent } = navigator;
+        const { userAgent } = navigator || {};
         if (userAgent) {
           headers['User-Agent'] = userAgent;
         }
 
-        const { referrer } = document;
+        const { referrer } = document || {};
         if (referrer) {
           headers.Referer = referrer;
         }
 
         const request = { headers } as Record<string, unknown>;
 
-        const url = (req && req.url) || location.href;
+        const { href } = location || {};
+        const url = (req && req.url) || href;
         if (url) {
           request.url = url;
         }
