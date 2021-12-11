@@ -27,7 +27,7 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   // event.sdk.version
   s.version = s.version || version;
   // event.sdk.integrations
-  s.integrations = [...(s || []), ...integrations];
+  s.integrations = [...(s.integrations || []), ...integrations];
   // event.sdk.packages
   s.packages = [...(s.packages || []), ...packages];
   return event;
