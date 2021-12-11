@@ -19,11 +19,17 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
     return event;
   }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name;
-  event.sdk.version = event.sdk.version || sdkInfo.version;
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
+  const { name, version, integrations = [], packages = [] } = sdkInfo;
+  // event.sdk
+  const s = (event.sdk = event.sdk || {});
+  // event.sdk.name
+  s.name = s.name || name;
+  // event.sdk.version
+  s.version = s.version || version;
+  // event.sdk.integrations
+  s.integrations = [...(s || []), ...integrations];
+  // event.sdk.packages
+  s.packages = [...(s.packages || []), ...packages];
   return event;
 }
 
