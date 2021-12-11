@@ -6,9 +6,9 @@ import { useState } from 'react';
 import {
   ErrorBoundary,
   ErrorBoundaryProps,
+  isAtLeastReact17,
   UNKNOWN_COMPONENT,
   withErrorBoundary,
-  isAtLeastReact17,
 } from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
