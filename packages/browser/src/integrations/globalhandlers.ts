@@ -80,7 +80,7 @@ function _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | unde
       if (!hub.getIntegration(GlobalHandlers)) {
         return;
       }
-      const error = data.error;
+      const { msg, url, line, column, error } = data;
       const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
       if (shouldIgnoreOnError() || isFailedOwnDelivery) {
@@ -88,16 +88,16 @@ function _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | unde
       }
 
       const event =
-        error === undefined && isString(data.msg)
-          ? _eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
+        error === undefined && isString(msg)
+          ? _eventFromIncompleteOnError(msg, url, line, column)
           : _enhanceEventWithInitialFrame(
-              eventFromUnknownInput(error || data.msg, undefined, {
+              eventFromUnknownInput(error || msg, undefined, {
                 attachStacktrace,
                 rejection: false,
               }),
-              data.url,
-              data.line,
-              data.column,
+              url,
+              line,
+              column,
             );
 
       addMechanismAndCapture(hub, error, event, 'onerror');
