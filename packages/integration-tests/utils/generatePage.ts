@@ -21,7 +21,7 @@ async function generateSentryAlias(): Promise<Record<string, string>> {
     await Promise.all(
       dirents.map(async d => {
         const packageJSON: Package = JSON.parse(
-          await promises.readFile(path.resolve(PACKAGE_PATH, d, 'package.json'), { encoding: 'utf-8' }),
+          (await promises.readFile(path.resolve(PACKAGE_PATH, d, 'package.json'), { encoding: 'utf-8' })).toString(),
         );
         return [packageJSON['name'], path.resolve(PACKAGE_PATH, d)];
       }),
@@ -30,15 +30,12 @@ async function generateSentryAlias(): Promise<Record<string, string>> {
 }
 
 export async function generatePage(
-  initialization: string,
-  subject: string,
-  template: string,
+  initializationPath: string,
+  subjectPath: string,
+  templatePath: string,
   outPath: string,
 ): Promise<void> {
   const localPath = `${outPath}/dist`;
-  const initializationPath = `${initialization}`;
-  const subjectPath = `${subject}`;
-  const templatePath = `${template}`;
   const bundlePath = `${localPath}/index.html`;
 
   const alias = await generateSentryAlias();

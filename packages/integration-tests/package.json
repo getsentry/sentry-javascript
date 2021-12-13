@@ -1,5 +1,5 @@
 {
-  "name": "sentry-browser-integration-tests",
+  "name": "browser-integration-tests",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@playwright/test": "^1.17.0",
-    "@sentry/browser": "file:../browser",
     "babel-loader": "^8.2.2",
     "handlebars-loader": "^1.7.1",
     "html-webpack-plugin": "^5.5.0",

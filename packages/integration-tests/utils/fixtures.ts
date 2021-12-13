@@ -5,11 +5,12 @@ import path from 'path';
 import { generatePage } from './generatePage';
 
 const getAsset = (assetDir: string, asset: string): string => {
-  const path = `${assetDir}/${asset}`;
-  if (fs.existsSync(path)) {
-    return path;
+  const assetPath = `${assetDir}/${asset}`;
+
+  if (fs.existsSync(assetPath)) {
+    return assetPath;
   }
-  
+
   return `${path.dirname(assetDir)}/${asset}`;
 };
 
