@@ -15,7 +15,7 @@ export function buildMetadata(options: Options, names: string[]): void {
     ({
       name: 'sentry.javascript.nextjs',
       packages: names.map(name => ({
-        name: `${PACKAGE_NAME_PREFIX}/${name}`,
+        name: `${PACKAGE_NAME_PREFIX}${name}`,
         version: SDK_VERSION,
       })),
       version: SDK_VERSION,
