@@ -12,6 +12,13 @@ module.exports = [
     limit: '100 KB',
   },
   {
+    name: '@sentry/browser - Webpack - gzip = false',
+    path: 'packages/browser/esm/index.js',
+    import: '{ init }',
+    gzip: false,
+    limit: '100 KB',
+  },
+  {
     name: '@sentry/react - Webpack',
     path: 'packages/react/esm/index.js',
     import: '{ init }',

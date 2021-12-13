@@ -75,8 +75,7 @@
     "eslint-plugin-ember": "~8.6.0",
     "eslint-plugin-node": "^11.1.0",
     "loader.js": "~4.7.0",
-    "qunit-dom": "~1.2.0",
-    "typescript": "3.7.5"
+    "qunit-dom": "~1.2.0"
   },
   "engines": {
     "node": "10.* || >= 12"
