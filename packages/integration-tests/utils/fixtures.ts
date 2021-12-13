@@ -4,12 +4,13 @@ import path from 'path';
 
 import { generatePage } from './generatePage';
 
-const getAsset = function(assetDir: string, asset: string): string {
-  if (fs.existsSync(`${assetDir}/${asset}`)) {
-    return `${assetDir}/${asset}`;
-  } else {
-    return `${path.dirname(assetDir)}/${asset}`;
+const getAsset = (assetDir: string, asset: string): string => {
+  const path = `${assetDir}/${asset}`;
+  if (fs.existsSync(path)) {
+    return path;
   }
+  
+  return `${path.dirname(assetDir)}/${asset}`;
 };
 
 export type TestOptions = {
