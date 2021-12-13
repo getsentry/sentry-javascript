@@ -1,9 +1,12 @@
 import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
-import { logger, parseSemver } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
-const reactVersion = parseSemver(React.version);
+export function isAtLeastReact17(version: string): boolean {
+  const major = version.match(/^([^.]+)/);
+  return major !== null && parseInt(major[0]) >= 17;
+}
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -71,7 +74,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       // If on React version >= 17, create stack trace from componentStack param and links
       // to to the original error using `error.cause` otherwise relies on error param for stacktrace.
       // Linking errors requires the `LinkedErrors` integration be enabled.
-      if (reactVersion.major && reactVersion.major >= 17) {
+      if (isAtLeastReact17(React.version)) {
         const errorBoundaryError = new Error(error.message);
         errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
         errorBoundaryError.stack = componentStack;
