@@ -4,6 +4,7 @@ import { Event, EventHint, Hub, Integration, Primitive, Severity } from '@sentry
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
+  checkOrSetAlreadyCaught,
   getLocationHref,
   isErrorEvent,
   isPrimitive,
@@ -12,7 +13,6 @@ import {
 } from '@sentry/utils';
 
 import { eventFromUnknownInput } from '../eventbuilder';
-import { shouldIgnoreOnError } from '../helpers';
 
 type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
 
@@ -82,7 +82,7 @@ function _installGlobalOnErrorHandler(): void {
         return;
       }
       const { msg, url, line, column, error } = data;
-      if (shouldIgnoreOnError() || (error && error.__sentry_own_request__)) {
+      if (checkOrSetAlreadyCaught(error) || (error && error.__sentry_own_request__)) {
         return;
       }
 
@@ -135,7 +135,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
         // no-empty
       }
 
-      if (shouldIgnoreOnError() || (error && error.__sentry_own_request__)) {
+      if (checkOrSetAlreadyCaught(error) || (error && error.__sentry_own_request__)) {
         return true;
       }
 

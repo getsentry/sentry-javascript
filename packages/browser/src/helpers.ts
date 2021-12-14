@@ -1,27 +1,8 @@
 import { captureException, getReportDialogEndpoint, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger, objectify } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
-let ignoreOnError: number = 0;
-
-/**
- * @hidden
- */
-export function shouldIgnoreOnError(): boolean {
-  return ignoreOnError > 0;
-}
-
-/**
- * @hidden
- */
-export function ignoreNextOnError(): void {
-  // onerror should trigger before setTimeout
-  ignoreOnError += 1;
-  setTimeout(() => {
-    ignoreOnError -= 1;
-  });
-}
 
 /**
  * Instruments the given function and sends an event to Sentry every time the
@@ -86,8 +67,8 @@ export function wrap(
       //       means the sentry.javascript SDK caught an error invoking your application code. This
       //       is expected behavior and NOT indicative of a bug with sentry.javascript.
       return fn.apply(this, wrappedArguments);
-    } catch (ex) {
-      ignoreNextOnError();
+    } catch (e) {
+      const ex = objectify(e);
 
       withScope((scope: Scope) => {
         scope.addEventProcessor((event: SentryEvent) => {
