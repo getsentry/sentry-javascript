@@ -1,5 +1,5 @@
 import { BaseBackend, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Mechanism, Severity, Transport, TransportOptions } from '@sentry/types';
+import { Event, EventHint, Mechanism, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -73,7 +73,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: SeverityLevel = 'info', hint?: EventHint): PromiseLike<Event> {
     const event: Event = {
       event_id: hint && hint.event_id,
       level,
