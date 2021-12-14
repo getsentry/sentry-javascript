@@ -12,15 +12,6 @@ const config = function(userConfig: Record<string, unknown>): Configuration {
           loader: 'babel-loader',
         },
         {
-          test: /\.ts$/,
-          exclude: /node_modules/,
-          loader: 'ts-loader',
-          options: {
-            // This has a big impact on test build speed.
-            transpileOnly: true,
-          },
-        },
-        {
           test: /\.hbs$/,
           exclude: /node_modules/,
           loader: 'handlebars-loader',
