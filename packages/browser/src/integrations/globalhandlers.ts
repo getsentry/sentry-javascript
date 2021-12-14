@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Event, EventHint, EventProcessor, Hub, Integration, Primitive, Severity } from '@sentry/types';
+import { getCurrentHub } from '@sentry/core';
+import { Event, EventHint, Hub, Integration, Primitive, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -17,8 +18,6 @@ type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
 
 /** JSDoc */
 type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, boolean>;
-
-type InstallFunc = (hub: Hub, attachStacktrace: boolean | undefined) => void;
 
 /** Global handlers */
 export class GlobalHandlers implements Integration {
@@ -39,7 +38,7 @@ export class GlobalHandlers implements Integration {
    * Stores references functions to installing handlers. Will set to undefined
    * after they have been run so that they are not used twice.
    */
-  private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, InstallFunc | undefined> = {
+  private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, (() => void) | undefined> = {
     onerror: _installGlobalOnErrorHandler,
     onunhandledrejection: _installGlobalOnUnhandledRejectionHandler,
   };
@@ -55,12 +54,8 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     Error.stackTraceLimit = 50;
-
-    const hub = getCurrentHub();
-    const client = hub.getClient();
-    const attachStacktrace = client && client.getOptions().attachStacktrace;
     const options = this._options;
 
     // We can disable guard-for-in as we construct the options object above + do checks against
@@ -70,7 +65,7 @@ export class GlobalHandlers implements Integration {
       const installFunc = this._installFunc[key as GlobalHandlersIntegrationsOptionKeys];
       if (installFunc && options[key as GlobalHandlersIntegrationsOptionKeys]) {
         globalHandlerLog(key);
-        installFunc(hub, attachStacktrace);
+        installFunc();
         this._installFunc[key as GlobalHandlersIntegrationsOptionKeys] = undefined;
       }
     }
@@ -78,10 +73,11 @@ export class GlobalHandlers implements Integration {
 }
 
 /** JSDoc */
-function _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
+function _installGlobalOnErrorHandler(): void {
   addInstrumentationHandler({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
+      const [hub, attachStacktrace] = getHubAndAttachStacktrace();
       if (!hub.getIntegration(GlobalHandlers)) {
         return;
       }
@@ -110,10 +106,11 @@ function _installGlobalOnErrorHandler(hub: Hub, attachStacktrace: boolean | unde
 }
 
 /** JSDoc */
-function _installGlobalOnUnhandledRejectionHandler(hub: Hub, attachStacktrace: boolean | undefined): void {
+function _installGlobalOnUnhandledRejectionHandler(): void {
   addInstrumentationHandler({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (e: any) => {
+      const [hub, attachStacktrace] = getHubAndAttachStacktrace();
       if (!hub.getIntegration(GlobalHandlers)) {
         return;
       }
@@ -253,4 +250,11 @@ function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'],
   hub.captureEvent(event, {
     originalException: error,
   });
+}
+
+function getHubAndAttachStacktrace(): [Hub, boolean | undefined] {
+  const hub = getCurrentHub();
+  const client = hub.getClient();
+  const attachStacktrace = client && client.getOptions().attachStacktrace;
+  return [hub, attachStacktrace];
 }
