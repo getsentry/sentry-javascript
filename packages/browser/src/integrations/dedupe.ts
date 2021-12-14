@@ -1,5 +1,7 @@
-import { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
+import { Event, Exception, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { addGlobalEventProcessor } from '@sentry/hub';
+import { getHubAndIntegration } from '@sentry/integrations';
 
 /** Deduplication filter */
 export class Dedupe implements Integration {
@@ -21,21 +23,21 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     addGlobalEventProcessor((currentEvent: Event) => {
-      const self = getCurrentHub().getIntegration(Dedupe);
-      if (self) {
+      const [hub, integration] = getHubAndIntegration(Dedupe);
+      if (hub && integration) {
         // Juuust in case something goes wrong
         try {
-          if (self._shouldDropEvent(currentEvent, self._previousEvent)) {
+          if (integration._shouldDropEvent(currentEvent, integration._previousEvent)) {
             logger.warn(`Event dropped due to being a duplicate of previously captured event.`);
             return null;
           }
         } catch (_oO) {
-          return (self._previousEvent = currentEvent);
+          return (integration._previousEvent = currentEvent);
         }
 
-        return (self._previousEvent = currentEvent);
+        return (integration._previousEvent = currentEvent);
       }
       return currentEvent;
     });

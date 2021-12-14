@@ -10,3 +10,6 @@ export { RewriteFrames } from './rewriteframes';
 export { SessionTiming } from './sessiontiming';
 export { Transaction } from './transaction';
 export { Vue } from './vue';
+
+// utility for a common case
+export { getHubAndIntegration } from './utils';

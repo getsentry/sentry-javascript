@@ -1,5 +1,6 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { Hub, Integration } from '@sentry/types';
 import { getGlobalObject, isInstanceOf, logger } from '@sentry/utils';
+import { getHubAndIntegration } from '@sentry/integrations';
 
 /** JSDoc */
 export class Ember implements Integration {
@@ -31,7 +32,7 @@ export class Ember implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     if (!this._Ember) {
       logger.error('EmberIntegration is missing an Ember instance');
       return;
@@ -41,8 +42,9 @@ export class Ember implements Integration {
     const oldOnError = this._Ember.onerror;
 
     this._Ember.onerror = (error: Error): void => {
-      if (getCurrentHub().getIntegration(Ember)) {
-        getCurrentHub().captureException(error, { originalException: error });
+      const [hub, integration] = getHubAndIntegration(Ember);
+      if (hub && integration) {
+        hub.captureException(error, { originalException: error });
       }
 
       if (typeof oldOnError === 'function') {
@@ -54,14 +56,15 @@ export class Ember implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._Ember.RSVP.on('error', (reason: unknown): void => {
-      if (getCurrentHub().getIntegration(Ember)) {
-        getCurrentHub().withScope(scope => {
+      const [hub, integration] = getHubAndIntegration(Ember);
+      if (hub && integration) {
+        hub.withScope(scope => {
           if (isInstanceOf(reason, Error)) {
             scope.setExtra('context', 'Unhandled Promise error detected');
-            getCurrentHub().captureException(reason, { originalException: reason as Error });
+            hub.captureException(reason, { originalException: reason as Error });
           } else {
             scope.setExtra('reason', reason);
-            getCurrentHub().captureMessage('Unhandled Promise error detected');
+            hub.captureMessage('Unhandled Promise error detected');
           }
         });
       }

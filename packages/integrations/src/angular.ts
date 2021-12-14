@@ -1,5 +1,6 @@
-import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
+import { getHubAndIntegration } from '@sentry/integrations';
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 const angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
@@ -38,11 +39,6 @@ export class Angular implements Integration {
   private readonly _module: any;
 
   /**
-   * Returns current hub.
-   */
-  private _getCurrentHub?: () => Hub;
-
-  /**
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,12 +60,10 @@ export class Angular implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     if (!this._module) {
       return;
     }
-
-    this._getCurrentHub = getCurrentHub;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     this._module.config([
@@ -88,9 +82,9 @@ export class Angular implements Integration {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _$exceptionHandlerDecorator($delegate: any): any {
     return (exception: Error, cause?: string): void => {
-      const hub = this._getCurrentHub && this._getCurrentHub();
+      const [hub, integration] = getHubAndIntegration(Angular);
 
-      if (hub && hub.getIntegration(Angular)) {
+      if (hub && integration) {
         hub.withScope(scope => {
           if (cause) {
             scope.setExtra('cause', cause);

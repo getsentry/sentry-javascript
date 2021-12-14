@@ -1,6 +1,6 @@
-import { getCurrentHub } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils';
+import { getHubAndIntegration } from '@sentry/integrations';
 import * as util from 'util';
 
 /** Console module integration */
@@ -51,8 +51,9 @@ function createConsoleWrapper(level: string): (originalConsoleMethod: () => void
 
     /* eslint-disable prefer-rest-params */
     return function(this: typeof console): void {
-      if (getCurrentHub().getIntegration(Console)) {
-        getCurrentHub().addBreadcrumb(
+      const [hub, integration] = getHubAndIntegration(Console);
+      if (hub && integration) {
+        hub.addBreadcrumb(
           {
             category: 'console',
             level: sentryLevel,

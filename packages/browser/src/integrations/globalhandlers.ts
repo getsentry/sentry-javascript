@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { getCurrentHub } from '@sentry/core';
 import { Event, Integration, Primitive, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -13,6 +12,7 @@ import {
 
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
+import { getHubAndIntegration } from '@sentry/integrations';
 
 /** JSDoc */
 interface GlobalHandlersIntegrations {
@@ -76,11 +76,10 @@ export class GlobalHandlers implements Integration {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
         const error = data.error;
-        const currentHub = getCurrentHub();
-        const hasIntegration = currentHub.getIntegration(GlobalHandlers);
+        const [currentHub, integration] = getHubAndIntegration(GlobalHandlers);
         const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
-        if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+        if (!currentHub || !integration || shouldIgnoreOnError() || isFailedOwnDelivery) {
           return;
         }
 
@@ -143,11 +142,10 @@ export class GlobalHandlers implements Integration {
           // no-empty
         }
 
-        const currentHub = getCurrentHub();
-        const hasIntegration = currentHub.getIntegration(GlobalHandlers);
+        const [currentHub, integration] = getHubAndIntegration(GlobalHandlers);
         const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
-        if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+        if (!currentHub || !integration || shouldIgnoreOnError() || isFailedOwnDelivery) {
           return true;
         }
 

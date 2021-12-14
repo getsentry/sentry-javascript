@@ -1,5 +1,6 @@
-import { EventProcessor, Hub, Integration, Severity } from '@sentry/types';
+import { Integration, Severity } from '@sentry/types';
 import { fill, getGlobalObject, safeJoin } from '@sentry/utils';
+import { getHubAndIntegration } from './utils';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 
@@ -32,7 +33,7 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     if (!('console' in global)) {
       return;
     }
@@ -44,9 +45,9 @@ export class CaptureConsole implements Integration {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]): void => {
-        const hub = getCurrentHub();
+        const [hub, integration] = getHubAndIntegration(CaptureConsole);
 
-        if (hub.getIntegration(CaptureConsole)) {
+        if (hub && integration) {
           hub.withScope(scope => {
             scope.setLevel(Severity.fromString(level));
             scope.setExtra('arguments', args);
