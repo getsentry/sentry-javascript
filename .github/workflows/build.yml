@@ -295,7 +295,7 @@ jobs:
       - name: Run Playwright tests
         run: |
           cd packages/integration-tests
-          yarn test
+          yarn test:ci
 
   job_browser_integration_tests:
     name: Browser Integration Tests (${{ matrix.browser }})
