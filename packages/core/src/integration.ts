@@ -10,7 +10,6 @@ export type IntegrationIndex = {
 } & { initialized?: boolean };
 
 /**
- * This is a quadratic filter, but it's not a problem since we only usually have a small number of integrations.
  * @private
  */
 function filterDuplicates(integrations: Integration[]): Integration[] {
