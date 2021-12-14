@@ -144,7 +144,7 @@ export function getReportDialogEndpoint(
   const dsn = new Dsn(dsnLike);
   const endpoint = `${getBaseApiEndpoint(dsn)}embed/error-page/`;
 
-  const encodedOptions = [`dsn=${dsn.toString()}`];
+  let encodedOptions = `dsn=${dsn.toString()}`;
   for (const key in dialogOptions) {
     if (key === 'dsn') {
       continue;
@@ -155,15 +155,15 @@ export function getReportDialogEndpoint(
         continue;
       }
       if (dialogOptions.user.name) {
-        encodedOptions.push(`name=${encodeURIComponent(dialogOptions.user.name)}`);
+        encodedOptions += `&name=${encodeURIComponent(dialogOptions.user.name)}`;
       }
       if (dialogOptions.user.email) {
-        encodedOptions.push(`email=${encodeURIComponent(dialogOptions.user.email)}`);
+        encodedOptions += `&email=${encodeURIComponent(dialogOptions.user.email)}`;
       }
     } else {
-      encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
+      encodedOptions += `&${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`;
     }
   }
 
-  return encodedOptions.length ? `${endpoint}?${encodedOptions.join('&')}` : endpoint;
+  return `${endpoint}?${encodedOptions}`;
 }
