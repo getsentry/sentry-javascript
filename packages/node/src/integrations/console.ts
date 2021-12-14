@@ -1,6 +1,6 @@
+import { getHubAndIntegration } from '@sentry/hub';
 import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils';
-import { getHubAndIntegration } from '@sentry/hub';
 import * as util from 'util';
 
 /** Console module integration */

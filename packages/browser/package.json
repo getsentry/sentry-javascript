@@ -18,6 +18,7 @@
   "dependencies": {
     "@sentry/core": "6.16.1",
     "@sentry/types": "6.16.1",
+    "@sentry/hub": "6.16.1",
     "@sentry/utils": "6.16.1",
     "tslib": "^1.9.3"
   },

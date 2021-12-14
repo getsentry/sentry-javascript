@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { getHubAndIntegration } from '@sentry/hub';
 import { Event, Integration, Primitive, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -12,7 +13,6 @@ import {
 
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
-import { getHubAndIntegration } from '@sentry/hub';
 
 /** JSDoc */
 interface GlobalHandlersIntegrations {

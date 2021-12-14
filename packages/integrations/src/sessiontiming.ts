@@ -1,4 +1,4 @@
-import { addGlobalEventProcessor,getHubAndIntegration } from '@sentry/hub';
+import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 import { Event, Integration } from '@sentry/types';
 
 /** This function adds duration since Sentry was initialized till the time event was sent */
