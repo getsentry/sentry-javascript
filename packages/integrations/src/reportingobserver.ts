@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
+import { getHubAndIntegration } from '@sentry/hub';
 
 /** JSDoc */
 interface Report {
@@ -64,11 +65,6 @@ export class ReportingObserver implements Integration {
   public readonly name: string = ReportingObserver.id;
 
   /**
-   * Returns current hub.
-   */
-  private _getCurrentHub?: () => Hub;
-
-  /**
    * @inheritDoc
    */
   public constructor(
@@ -82,12 +78,10 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     if (!supportsReportingObserver()) {
       return;
     }
-
-    this._getCurrentHub = getCurrentHub;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const observer = new (getGlobalObject<any>().ReportingObserver)(this.handler.bind(this), {
@@ -103,8 +97,8 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public handler(reports: Report[]): void {
-    const hub = this._getCurrentHub && this._getCurrentHub();
-    if (!hub || !hub.getIntegration(ReportingObserver)) {
+    const [hub, integration] = getHubAndIntegration(ReportingObserver);
+    if (!hub || !integration) {
       return;
     }
     for (const report of reports) {

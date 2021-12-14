@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import { getGlobalObject, logger, normalize, uuid4 } from '@sentry/utils';
+import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 import localForage from 'localforage';
 
 type LocalForage = {
@@ -34,11 +35,6 @@ export class Offline implements Integration {
   public global: any;
 
   /**
-   * the current hub instance
-   */
-  public hub?: Hub;
-
-  /**
    * maximum number of events to store while offline
    */
   public maxStoredEvents: number;
@@ -64,9 +60,7 @@ export class Offline implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this.hub = getCurrentHub();
-
+  public setupOnce(): void {
     if ('addEventListener' in this.global) {
       this.global.addEventListener('online', () => {
         void this._sendEvents().catch(() => {
@@ -76,7 +70,8 @@ export class Offline implements Integration {
     }
 
     addGlobalEventProcessor((event: Event) => {
-      if (this.hub && this.hub.getIntegration(Offline)) {
+      const [hub, integration] = getHubAndIntegration(Offline);
+      if (hub && integration) {
         // cache if we are positively offline
         if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
           void this._cacheEvent(event)
@@ -156,8 +151,9 @@ export class Offline implements Integration {
    */
   private async _sendEvents(): Promise<void> {
     return this.offlineEventStore.iterate<Event, void>((event: Event, cacheKey: string, _index: number): void => {
-      if (this.hub) {
-        this.hub.captureEvent(event);
+      const [hub, integration] = getHubAndIntegration(Offline);
+      if (hub && integration) {
+        hub.captureEvent(event);
 
         void this._purgeEvent(cacheKey).catch((_error): void => {
           logger.warn('could not purge event from cache');

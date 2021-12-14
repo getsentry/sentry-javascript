@@ -12,7 +12,7 @@ import {
 
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
-import { getHubAndIntegration } from '@sentry/integrations';
+import { getHubAndIntegration } from '@sentry/hub';
 
 /** JSDoc */
 interface GlobalHandlersIntegrations {

@@ -7,6 +7,7 @@ export {
   getCurrentHub,
   getHubFromCarrier,
   getMainCarrier,
+  getHubAndIntegration,
   Hub,
   makeMain,
   setHubOnCarrier,

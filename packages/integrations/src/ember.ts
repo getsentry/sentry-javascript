@@ -1,6 +1,6 @@
-import { Hub, Integration } from '@sentry/types';
+import { Integration } from '@sentry/types';
 import { getGlobalObject, isInstanceOf, logger } from '@sentry/utils';
-import { getHubAndIntegration } from '@sentry/integrations';
+import { getHubAndIntegration } from '@sentry/hub';
 
 /** JSDoc */
 export class Ember implements Integration {

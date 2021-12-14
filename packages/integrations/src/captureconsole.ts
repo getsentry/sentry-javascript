@@ -1,6 +1,6 @@
 import { Integration, Severity } from '@sentry/types';
 import { fill, getGlobalObject, safeJoin } from '@sentry/utils';
-import { getHubAndIntegration } from './utils';
+import { getHubAndIntegration } from '@sentry/hub';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 

@@ -1,7 +1,6 @@
-import { addGlobalEventProcessor } from '@sentry/hub';
+import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 import { Event, EventHint, Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
-import { getHubAndIntegration } from '@sentry/integrations';
 
 /** JSDoc */
 interface DebugOptions {

@@ -27,6 +27,16 @@ import { Scope } from './scope';
 import { Session } from './session';
 
 /**
+ * Utility to return the hub an integration at once.
+ */
+export function getHubAndIntegration<T extends Integration>(
+  integration: IntegrationClass<T>,
+): [HubInterface | null, T | null] {
+  const hub = getCurrentHub();
+  return hub ? [hub, hub.getIntegration(integration)] : [null, null];
+}
+
+/**
  * API compatibility version of this hub.
  *
  * WARNING: This number should only be increased when the global interface
