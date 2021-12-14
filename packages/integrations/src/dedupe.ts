@@ -1,6 +1,6 @@
+import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 import { Event, Exception, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 
 /** Deduplication filter */
 export class Dedupe implements Integration {

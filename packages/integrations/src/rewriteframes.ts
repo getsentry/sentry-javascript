@@ -1,6 +1,6 @@
+import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 import { Event, Integration, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
-import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 

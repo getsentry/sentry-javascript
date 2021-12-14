@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getHubAndIntegration } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
-import { getHubAndIntegration } from '@sentry/hub';
 
 /** JSDoc */
 interface Report {

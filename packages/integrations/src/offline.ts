@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 import { Event, Integration } from '@sentry/types';
 import { getGlobalObject, logger, normalize, uuid4 } from '@sentry/utils';
-import { addGlobalEventProcessor, getHubAndIntegration } from '@sentry/hub';
 import localForage from 'localforage';
 
 type LocalForage = {
