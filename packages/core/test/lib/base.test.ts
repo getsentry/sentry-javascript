@@ -1,5 +1,5 @@
 import { Hub, Scope, Session } from '@sentry/hub';
-import { Event, Outcome, Severity, Span, Transport } from '@sentry/types';
+import { Event, Outcome, Span, Transport } from '@sentry/types';
 import { logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
@@ -313,7 +313,7 @@ describe('BaseClient', () => {
       scope.setExtra('foo', 'wat');
       client.captureMessage(
         'test message',
-        Severity.Warning,
+        'warning',
         {
           captureContext: {
             extra: {

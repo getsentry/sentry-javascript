@@ -244,7 +244,7 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
       {
         category: 'fetch',
         data: handlerData.fetchData,
-        level: Severity.Error,
+        level: 'error',
         type: 'http',
       },
       {

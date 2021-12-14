@@ -1,5 +1,5 @@
 /** JSDoc
- * @deprecated use string literals - if you require a type, use SeverityLevel instead.
+ * @deprecated Use string literals - if you require type casting, cast to SeverityLevel type
  */
 // eslint-disable-next-line import/export
 export enum Severity {
