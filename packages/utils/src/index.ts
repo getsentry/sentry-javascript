@@ -17,3 +17,4 @@ export * from './string';
 export * from './supports';
 export * from './syncpromise';
 export * from './time';
+export * from './env';
