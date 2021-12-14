@@ -10,6 +10,7 @@ export type IntegrationIndex = {
 } & { initialized?: boolean };
 
 /**
+ * This is a quadratic filter, but it's not a problem since we only usually have a small number of integrations.
  * @private
  */
 function filterDuplicates(integrations: Integration[]): Integration[] {
@@ -26,17 +27,14 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
   const defaultIntegrations = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
   const userIntegrations = options.integrations;
 
-  let integrations: Integration[] = [...filterDuplicates(defaultIntegrations)];
+  let integrations: Integration[] = filterDuplicates(defaultIntegrations);
 
   if (Array.isArray(userIntegrations)) {
     // Filter out integrations that are also included in user options
-    integrations = [
-      ...integrations.filter(integrations =>
-        userIntegrations.every(userIntegration => userIntegration.name !== integrations.name),
-      ),
-      // And filter out duplicated user options integrations
-      ...filterDuplicates(userIntegrations),
-    ];
+    integrations = integrations
+      .filter(integrations => userIntegrations.every(userIntegration => userIntegration.name !== integrations.name))
+      .concat(filterDuplicates(userIntegrations));
+    // And filter out duplicated user options integrations
   } else if (typeof userIntegrations === 'function') {
     integrations = userIntegrations(integrations);
     integrations = Array.isArray(integrations) ? integrations : [integrations];

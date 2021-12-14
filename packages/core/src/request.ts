@@ -19,11 +19,12 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
     return event;
   }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name;
-  event.sdk.version = event.sdk.version || sdkInfo.version;
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
+  const sdk = event.sdk || {};
+  event.sdk = sdk;
+  event.sdk.name = sdk.name || sdkInfo.name;
+  event.sdk.version = sdk.version || sdkInfo.version;
+  event.sdk.integrations = (sdk.integrations || []).concat(sdkInfo.integrations || []);
+  event.sdk.packages = (sdk.packages || []).concat(sdkInfo.packages || []);
   return event;
 }
 
