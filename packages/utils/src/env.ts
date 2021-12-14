@@ -10,7 +10,7 @@
  */
 
 declare const __SENTRY_BROWSER_BUNDLE__: boolean | undefined;
-declare const __SENTRY_NDEBUG__: boolean | undefined;
+declare const __SENTRY_NO_DEBUG__: boolean | undefined;
 
 /**
  * Figures out if we're building with debug functionality.
@@ -18,7 +18,7 @@ declare const __SENTRY_NDEBUG__: boolean | undefined;
  * @returns true if this is a debug build
  */
 export function isDebugBuild(): boolean {
-  return typeof __SENTRY_NDEBUG__ !== 'undefined' && !__SENTRY_BROWSER_BUNDLE__;
+  return typeof __SENTRY_NO_DEBUG__ !== 'undefined' && !__SENTRY_BROWSER_BUNDLE__;
 }
 
 /**
