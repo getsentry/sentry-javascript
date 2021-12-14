@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
-import { isDebugBuild } from '.';
 
+import { isDebugBuild } from '.';
 import { getGlobalObject } from './global';
 import { isInstanceOf, isString } from './is';
 import { logger } from './logger';

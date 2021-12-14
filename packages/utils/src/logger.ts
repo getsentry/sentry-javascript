@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getGlobalObject } from './global';
 import { isDebugBuild } from './env';
+import { getGlobalObject } from './global';
 
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject<Window | NodeJS.Global>();
