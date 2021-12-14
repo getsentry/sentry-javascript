@@ -16,6 +16,7 @@ import {
 import {
   dateTimestampInSeconds,
   getGlobalObject,
+  isDebugBuild,
   logger,
   parseRetryAfterHeader,
   PromiseBuffer,
@@ -94,7 +95,9 @@ export abstract class BaseTransport implements Transport {
     // A correct type for map-based implementation if we want to go that route
     // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
     const key = `${CATEGORY_MAPPING[category]}:${reason}`;
-    logger.log(`Adding outcome: ${key}`);
+    if (isDebugBuild()) {
+      logger.log(`Adding outcome: ${key}`);
+    }
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
 
@@ -111,11 +114,15 @@ export abstract class BaseTransport implements Transport {
 
     // Nothing to send
     if (!Object.keys(outcomes).length) {
-      logger.log('No outcomes to flush');
+      if (isDebugBuild()) {
+        logger.log('No outcomes to flush');
+      }
       return;
     }
 
-    logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+    if (isDebugBuild()) {
+      logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+    }
 
     const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
     // Envelope header is required to be at least an empty object
@@ -166,7 +173,9 @@ export abstract class BaseTransport implements Transport {
      */
     const limited = this._handleRateLimit(headers);
     if (limited)
-      logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
+      if (isDebugBuild()) {
+        logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
+      }
 
     if (status === Status.Success) {
       resolve({ status });

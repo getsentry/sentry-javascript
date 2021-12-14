@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { addInstrumentationHandler, getGlobalObject, logger, SyncPromise } from '@sentry/utils';
+import { addInstrumentationHandler, getGlobalObject, isDebugBuild, logger, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
@@ -161,7 +161,9 @@ export function flush(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  logger.warn('Cannot flush events. No client defined.');
+  if (isDebugBuild()) {
+    logger.warn('Cannot flush events. No client defined.');
+  }
   return SyncPromise.resolve(false);
 }
 
@@ -178,7 +180,9 @@ export function close(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  logger.warn('Cannot flush events and disable SDK. No client defined.');
+  if (isDebugBuild()) {
+    logger.warn('Cannot flush events and disable SDK. No client defined.');
+  }
   return SyncPromise.resolve(false);
 }
 
@@ -202,7 +206,9 @@ function startSessionTracking(): void {
   const document = window.document;
 
   if (typeof document === 'undefined') {
-    logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
+    if (isDebugBuild()) {
+      logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
+    }
     return;
   }
 

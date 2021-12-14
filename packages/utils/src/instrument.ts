@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
+import { isDebugBuild } from '.';
 
 import { getGlobalObject } from './global';
 import { isInstanceOf, isString } from './is';
@@ -73,7 +74,9 @@ function instrument(type: InstrumentHandlerType): void {
       instrumentUnhandledRejection();
       break;
     default:
-      logger.warn('unknown instrumentation type:', type);
+      if (isDebugBuild()) {
+        logger.warn('unknown instrumentation type:', type);
+      }
   }
 }
 

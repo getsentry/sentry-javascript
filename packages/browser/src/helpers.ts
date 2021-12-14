@@ -1,6 +1,6 @@
 import { captureException, getReportDialogEndpoint, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
@@ -199,12 +199,16 @@ export function injectReportDialog(options: ReportDialogOptions = {}): void {
   }
 
   if (!options.eventId) {
-    logger.error(`Missing eventId option in showReportDialog call`);
+    if (isDebugBuild()) {
+      logger.error(`Missing eventId option in showReportDialog call`);
+    }
     return;
   }
 
   if (!options.dsn) {
-    logger.error(`Missing dsn option in showReportDialog call`);
+    if (isDebugBuild()) {
+      logger.error(`Missing dsn option in showReportDialog call`);
+    }
     return;
   }
 

@@ -16,6 +16,7 @@ import {
   checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
   Dsn,
+  isDebugBuild,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -106,7 +107,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
-      logger.log(ALREADY_SEEN_ERROR);
+      if (isDebugBuild()) {
+        logger.log(ALREADY_SEEN_ERROR);
+      }
       return;
     }
 
@@ -151,7 +154,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-      logger.log(ALREADY_SEEN_ERROR);
+      if (isDebugBuild()) {
+        logger.log(ALREADY_SEEN_ERROR);
+      }
       return;
     }
 
@@ -171,12 +176,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureSession(session: Session): void {
     if (!this._isEnabled()) {
-      logger.warn('SDK not enabled, will not capture session.');
+      if (isDebugBuild()) {
+        logger.warn('SDK not enabled, will not capture session.');
+      }
       return;
     }
 
     if (!(typeof session.release === 'string')) {
-      logger.warn('Discarded session because of missing or non-string release');
+      if (isDebugBuild()) {
+        logger.warn('Discarded session because of missing or non-string release');
+      }
     } else {
       this._sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
@@ -242,7 +251,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     try {
       return (this._integrations[integration.id] as T) || null;
     } catch (_oO) {
-      logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      if (isDebugBuild()) {
+        logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      }
       return null;
     }
   }

@@ -5,7 +5,7 @@ import {
   SessionFlusherLike,
   Transport,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, isDebugBuild, logger } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';
 
@@ -35,11 +35,15 @@ export class SessionFlusher implements SessionFlusherLike {
   /** Sends session aggregates to Transport */
   public sendSessionAggregates(sessionAggregates: SessionAggregates): void {
     if (!this._transport.sendSession) {
-      logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      if (isDebugBuild()) {
+        logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      }
       return;
     }
     void this._transport.sendSession(sessionAggregates).then(null, reason => {
-      logger.error(`Error while sending session: ${reason}`);
+      if (isDebugBuild()) {
+        logger.error(`Error while sending session: ${reason}`);
+      }
     });
   }
 
