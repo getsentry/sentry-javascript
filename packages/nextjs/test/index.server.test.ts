@@ -37,7 +37,16 @@ describe('Server init()', () => {
           sdk: {
             name: 'sentry.javascript.nextjs',
             version: expect.any(String),
-            packages: expect.any(Array),
+            packages: [
+              {
+                name: 'npm:@sentry/nextjs',
+                version: expect.any(String),
+              },
+              {
+                name: 'npm:@sentry/node',
+                version: expect.any(String),
+              },
+            ],
           },
         },
         autoSessionTracking: false,

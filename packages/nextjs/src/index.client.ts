@@ -2,7 +2,7 @@ import { configureScope, init as reactInit, Integrations as BrowserIntegrations 
 import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
 
 import { nextRouterInstrumentation } from './performance/client';
-import { MetadataBuilder } from './utils/metadataBuilder';
+import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration, UserIntegrations } from './utils/userIntegrations';
 
@@ -13,8 +13,7 @@ export const Integrations = { ...BrowserIntegrations, BrowserTracing };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
-  const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'react']);
-  metadataBuilder.addSdkMetadata();
+  buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
 
   // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set
