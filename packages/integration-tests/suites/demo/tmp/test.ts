@@ -8,5 +8,5 @@ sentryTest('should fail', async ({ getLocalTestPath, page }) => {
 
   const eventData = await getSentryRequest(page, url);
 
-  expect(eventData.message).toBe('2');
+  expect(eventData.message).toBe('1');
 });
