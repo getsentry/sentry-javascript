@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { Dsn } from '@sentry/utils';
 
 import { API, getReportDialogEndpoint, getRequestHeaders } from '../../src/api';
