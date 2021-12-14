@@ -5,6 +5,7 @@ import { getEventDescription, isMatchingPattern, logger } from '@sentry/utils';
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
+const DROP_REASON_PREFIX = 'Event dropped due to being';
 
 /** JSDoc */
 interface InboundFiltersOptions {
@@ -64,18 +65,16 @@ export class InboundFilters implements Integration {
   /** JSDoc */
   private _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
     if (this._isSentryError(event, options)) {
-      logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
+      logger.warn(`${DROP_REASON_PREFIX} internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
       return true;
     }
     if (this._isIgnoredError(event, options)) {
-      logger.warn(
-        `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
-      );
+      logger.warn(`${DROP_REASON_PREFIX} matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`);
       return true;
     }
     if (this._isDeniedUrl(event, options)) {
       logger.warn(
-        `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
+        `${DROP_REASON_PREFIX} matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
           event,
         )}.\nUrl: ${this._getEventFilterUrl(event)}`,
       );
@@ -99,14 +98,8 @@ export class InboundFilters implements Integration {
     }
 
     try {
-      return (
-        (event &&
-          event.exception &&
-          event.exception.values &&
-          event.exception.values[0] &&
-          event.exception.values[0].type === 'SentryError') ||
-        false
-      );
+      // @ts-ignore-next-line we are already in a try/catch, so no need to be safe
+      return event.exception.values[0].type === 'SentryError';
     } catch (_oO) {
       return false;
     }
