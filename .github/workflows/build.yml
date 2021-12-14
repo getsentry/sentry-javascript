@@ -293,13 +293,8 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run Playwright tests
-        env:
-          # Install browsers inside node_modules to cache
-          # https://playwright.dev/docs/ci#caching-browsers
-          PLAYWRIGHT_BROWSERS_PATH: 0
         run: |
           cd packages/integration-tests
-          yarn run install-browsers
           yarn test
 
   job_browser_integration_tests:
