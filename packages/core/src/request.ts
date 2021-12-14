@@ -44,7 +44,7 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
   return {
     body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(session)}`,
     type,
-    url: getEnvelopeEndpointWithUrlEncodedAuth(api.dsn),
+    url: getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel),
   };
 }
 
@@ -65,7 +65,9 @@ export function eventToSentryRequest(event: Event, api: APIDetails): SentryReque
   const req: SentryRequest = {
     body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, api.metadata.sdk) : event),
     type: eventType,
-    url: useEnvelope ? getEnvelopeEndpointWithUrlEncodedAuth(api.dsn) : getStoreEndpointWithUrlEncodedAuth(api.dsn),
+    url: useEnvelope
+      ? getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel)
+      : getStoreEndpointWithUrlEncodedAuth(api.dsn),
   };
 
   // https://develop.sentry.dev/sdk/envelopes/
