@@ -18,8 +18,9 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   API,
   APIDetails,
-  getStoreEndpointWithUrlEncodedAuth,
   getEnvelopeEndpointWithUrlEncodedAuth,
+  getStoreEndpointWithUrlEncodedAuth,
+  getRequestHeaders,
   initAPIDetails,
   getReportDialogEndpoint,
 } from './api';

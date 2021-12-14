@@ -156,7 +156,7 @@ export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: Dsn, tunnel?: string)
  * Returns an object that can be used in request headers.
  * This is needed for node and the old /store endpoint in sentry
  */
-function getRequestHeaders(dsn: Dsn, clientName: string, clientVersion: string): { [key: string]: string } {
+export function getRequestHeaders(dsn: Dsn, clientName: string, clientVersion: string): { [key: string]: string } {
   // CHANGE THIS to use metadata but keep clientName and clientVersion compatible
   const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
   header.push(`sentry_client=${clientName}/${clientVersion}`);

@@ -1,4 +1,9 @@
-import { API } from '@sentry/core';
+import {
+  APIDetails,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getStoreEndpointWithUrlEncodedAuth,
+  initAPIDetails,
+} from '@sentry/core';
 import {
   Event,
   Outcome,
@@ -38,7 +43,7 @@ export abstract class BaseTransport implements Transport {
   public url: string;
 
   /** Helper to get Sentry API endpoints. */
-  protected readonly _api: API;
+  protected readonly _api: APIDetails;
 
   /** A simple buffer holding all requests. */
   protected readonly _buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer(30);
@@ -49,9 +54,9 @@ export abstract class BaseTransport implements Transport {
   protected _outcomes: { [key: string]: number } = {};
 
   public constructor(public options: TransportOptions) {
-    this._api = new API(options.dsn, options._metadata, options.tunnel);
+    this._api = initAPIDetails(options.dsn, options._metadata, options.tunnel);
     // eslint-disable-next-line deprecation/deprecation
-    this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
+    this.url = getStoreEndpointWithUrlEncodedAuth(this._api.dsn);
 
     if (this.options.sendClientReports && global.document) {
       global.document.addEventListener('visibilitychange', () => {
@@ -112,9 +117,9 @@ export abstract class BaseTransport implements Transport {
 
     logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
 
-    const url = this._api.getEnvelopeEndpointWithUrlEncodedAuth();
+    const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn);
     // Envelope header is required to be at least an empty object
-    const envelopeHeader = JSON.stringify({ ...(this.options.tunnel && { dsn: this._api.getDsn().toString() }) });
+    const envelopeHeader = JSON.stringify({ ...(this.options.tunnel && { dsn: this._api.dsn.toString() }) });
     const itemHeaders = JSON.stringify({
       type: 'client_report',
     });
