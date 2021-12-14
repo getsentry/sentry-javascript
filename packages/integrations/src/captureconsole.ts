@@ -37,6 +37,9 @@ export class CaptureConsole implements Integration {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawConsole: { [key: string]: any } = {};
+
     this._levels.forEach((level: string) => {
       if (!(level in global.console)) {
         return;
@@ -70,11 +73,16 @@ export class CaptureConsole implements Integration {
           });
         }
 
+        rawConsole[level] = originalConsoleLevel;
+
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
           Function.prototype.apply.call(originalConsoleLevel, global.console, args);
         }
       });
     });
+
+    // @ts-ignore we're stashing away the raw console here for later.
+    global.console.__rawConsole = rawConsole;
   }
 }

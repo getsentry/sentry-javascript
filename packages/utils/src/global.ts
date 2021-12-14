@@ -11,6 +11,7 @@ import { isNodeEnv } from './node';
 
 /** Internal */
 interface SentryGlobal {
+  console: Console;
   Sentry?: {
     Integrations?: Integration[];
   };

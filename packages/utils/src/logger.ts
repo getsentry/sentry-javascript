@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { WrappedFunction } from '@sentry/types';
-
 import { getGlobalObject } from './global';
 
 // TODO: Implement different loggers for different environments
@@ -8,11 +6,6 @@ const global = getGlobalObject<Window | NodeJS.Global>();
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
-
-/** JSDoc */
-interface ExtensibleConsole extends Console {
-  [key: string]: any;
-}
 
 /**
  * Temporarily unwrap `console.log` and friends in order to perform the given callback using the original methods.
@@ -22,90 +15,65 @@ interface ExtensibleConsole extends Console {
  * @returns The results of the callback
  */
 export function consoleSandbox(callback: () => any): any {
-  const global = getGlobalObject<Window>();
-  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
+  let result;
+  const originalConsole = global.console;
+  if (originalConsole) {
+    result = callback();
+  } else {
+    // @ts-ignore this is placed here by captureconsole.ts
+    const rawConsole = global.console.__rawConsole as Console;
 
-  if (!('console' in global)) {
-    return callback();
-  }
+    // @ts-ignore meh
+    global.console = rawConsole;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const originalConsole = (global as any).console as ExtensibleConsole;
-  const wrappedLevels: { [key: string]: any } = {};
-
-  // Restore all wrapped console methods
-  levels.forEach(level => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
-      wrappedLevels[level] = originalConsole[level] as WrappedFunction;
-      originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
+    try {
+      result = callback();
+    } finally {
+      // @ts-ignore meh
+      global.console = originalConsole;
     }
-  });
-
-  // Perform callback manipulations
-  const result = callback();
-
-  // Revert restoration to wrapped state
-  Object.keys(wrappedLevels).forEach(level => {
-    originalConsole[level] = wrappedLevels[level];
-  });
+  }
 
   return result;
 }
 
+function makeLogger(): Logger {
+  let enabled = false;
+  const logger: Logger = {
+    enable: () => {
+      enabled = true;
+    },
+    disable: () => {
+      enabled = false;
+    },
+  } as any;
+
+  ['log', 'warn', 'error'].forEach(name => {
+    // @ts-ignore meh
+    logger[name] = (...args: any[]) => {
+      if (enabled) {
+        consoleSandbox(() => {
+          // @ts-ignore meh
+          global.console[name](`${PREFIX}[${name}]: ${args.join(' ')}`);
+        });
+      }
+    };
+  });
+
+  return logger;
+}
+
 /** JSDoc */
-class Logger {
-  /** JSDoc */
-  private _enabled: boolean;
-
-  /** JSDoc */
-  public constructor() {
-    this._enabled = false;
-  }
-
-  /** JSDoc */
-  public disable(): void {
-    this._enabled = false;
-  }
-
-  /** JSDoc */
-  public enable(): void {
-    this._enabled = true;
-  }
-
-  /** JSDoc */
-  public log(...args: any[]): void {
-    if (!this._enabled) {
-      return;
-    }
-    consoleSandbox(() => {
-      global.console.log(`${PREFIX}[Log]: ${args.join(' ')}`);
-    });
-  }
-
-  /** JSDoc */
-  public warn(...args: any[]): void {
-    if (!this._enabled) {
-      return;
-    }
-    consoleSandbox(() => {
-      global.console.warn(`${PREFIX}[Warn]: ${args.join(' ')}`);
-    });
-  }
-
-  /** JSDoc */
-  public error(...args: any[]): void {
-    if (!this._enabled) {
-      return;
-    }
-    consoleSandbox(() => {
-      global.console.error(`${PREFIX}[Error]: ${args.join(' ')}`);
-    });
-  }
+interface Logger {
+  disable(): void;
+  enable(): void;
+  log(...args: any[]): void;
+  warn(...args: any[]): void;
+  error(...args: any[]): void;
 }
 
 // Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
 global.__SENTRY__ = global.__SENTRY__ || {};
-const logger = (global.__SENTRY__.logger as Logger) || (global.__SENTRY__.logger = new Logger());
+const logger = (global.__SENTRY__.logger as Logger) || (global.__SENTRY__.logger = makeLogger());
 
 export { logger };
