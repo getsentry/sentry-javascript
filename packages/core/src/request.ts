@@ -1,9 +1,9 @@
 import { Event, SdkInfo, SentryRequest, SentryRequestType, Session, SessionAggregates } from '@sentry/types';
 
-import { API } from './api';
+import { APIDetails, getEnvelopeEndpointWithUrlEncodedAuth, getStoreEndpointWithUrlEncodedAuth } from './api';
 
 /** Extract sdk info from from the API metadata */
-function getSdkMetadataForEnvelopeHeader(api: API): SdkInfo | undefined {
+function getSdkMetadataForEnvelopeHeader(api: APIDetails): SdkInfo | undefined {
   if (!api.metadata || !api.metadata.sdk) {
     return;
   }
@@ -28,12 +28,12 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 }
 
 /** Creates a SentryRequest from a Session. */
-export function sessionToSentryRequest(session: Session | SessionAggregates, api: API): SentryRequest {
+export function sessionToSentryRequest(session: Session | SessionAggregates, api: APIDetails): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const envelopeHeaders = JSON.stringify({
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
-    ...(api.forceEnvelope() && { dsn: api.getDsn().toString() }),
+    ...(!!api.tunnel && { dsn: api.dsn.toString() }),
   });
   // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
   const type: SentryRequestType = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
@@ -44,15 +44,15 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
   return {
     body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(session)}`,
     type,
-    url: api.getEnvelopeEndpointWithUrlEncodedAuth(),
+    url: getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel),
   };
 }
 
 /** Creates a SentryRequest from an event. */
-export function eventToSentryRequest(event: Event, api: API): SentryRequest {
+export function eventToSentryRequest(event: Event, api: APIDetails): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
   const eventType = event.type || 'event';
-  const useEnvelope = eventType === 'transaction' || api.forceEnvelope();
+  const useEnvelope = eventType === 'transaction' || !!api.tunnel;
 
   const { transactionSampling, ...metadata } = event.debug_meta || {};
   const { method: samplingMethod, rate: sampleRate } = transactionSampling || {};
@@ -65,7 +65,9 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   const req: SentryRequest = {
     body: JSON.stringify(sdkInfo ? enhanceEventWithSdkInfo(event, api.metadata.sdk) : event),
     type: eventType,
-    url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
+    url: useEnvelope
+      ? getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel)
+      : getStoreEndpointWithUrlEncodedAuth(api.dsn),
   };
 
   // https://develop.sentry.dev/sdk/envelopes/
@@ -79,7 +81,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
       event_id: event.event_id,
       sent_at: new Date().toISOString(),
       ...(sdkInfo && { sdk: sdkInfo }),
-      ...(api.forceEnvelope() && { dsn: api.getDsn().toString() }),
+      ...(!!api.tunnel && { dsn: api.dsn.toString() }),
     });
     const itemHeaders = JSON.stringify({
       type: eventType,
