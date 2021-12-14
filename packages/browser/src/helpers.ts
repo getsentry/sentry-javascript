@@ -1,6 +1,6 @@
 import { captureException, getReportDialogEndpoint, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger, rememberOriginal } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
@@ -45,13 +45,8 @@ export function wrap(
 
   try {
     // We don't wanna wrap it twice
-    if (fn.__sentry__) {
+    if (fn.__sentry_original__) {
       return fn;
-    }
-
-    // If this has already been wrapped in the past, return that wrapped function
-    if (fn.__sentry_wrapped__) {
-      return fn.__sentry_wrapped__;
     }
   } catch (e) {
     // Just accessing custom props in some Selenium environments
@@ -124,8 +119,8 @@ export function wrap(
     }
   } catch (_oO) {} // eslint-disable-line no-empty
 
-  fn.prototype = fn.prototype || {};
-  sentryWrapped.prototype = fn.prototype;
+  const proto = fn.prototype || {};
+  sentryWrapped.prototype = fn.prototype = proto;
 
   Object.defineProperty(fn, '__sentry_wrapped__', {
     enumerable: false,
@@ -134,16 +129,7 @@ export function wrap(
 
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
-  Object.defineProperties(sentryWrapped, {
-    __sentry__: {
-      enumerable: false,
-      value: true,
-    },
-    __sentry_original__: {
-      enumerable: false,
-      value: fn,
-    },
-  });
+  rememberOriginal(sentryWrapped, fn);
 
   // Restore original function name (not all browsers allow that)
   try {
