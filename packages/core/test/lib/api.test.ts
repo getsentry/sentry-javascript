@@ -1,7 +1,6 @@
 import { Dsn } from '@sentry/utils';
 
 import { API, getReportDialogEndpoint } from '../../src/api';
-import { DsnLike } from '@sentry/types';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
