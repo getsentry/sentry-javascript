@@ -18,7 +18,7 @@ declare const __SENTRY_NDEBUG__: boolean | undefined;
  * @returns true if this is a debug build
  */
 export function isDebugBuild(): boolean {
-  return !__SENTRY_NDEBUG__;
+  return typeof __SENTRY_NDEBUG__ !== 'undefined' && !__SENTRY_BROWSER_BUNDLE__;
 }
 
 /**
@@ -27,5 +27,5 @@ export function isDebugBuild(): boolean {
  * @returns true if this is a browser bundle build.
  */
 export function isBrowserBundle(): boolean {
-  return !!__SENTRY_BROWSER_BUNDLE__;
+  return typeof __SENTRY_BROWSER_BUNDLE__ !== 'undefined' && !!__SENTRY_BROWSER_BUNDLE__;
 }
