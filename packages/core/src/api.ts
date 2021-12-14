@@ -4,9 +4,25 @@ import { Dsn, urlEncode } from '@sentry/utils';
 const SENTRY_API_VERSION = '7';
 
 /**
+ * Stores details about a Sentry SDK
+ */
+export interface APIDetails {
+  /** The DSN as passed to Sentry.init() */
+  initDsn: DsnLike;
+  /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
+  metadata: SdkMetadata;
+  /** The internally used Dsn object. */
+  readonly dsn: Dsn;
+  /** The envelope tunnel to use. */
+  readonly tunnel?: string;
+}
+
+/**
  * Helper class to provide urls, headers and metadata that can be used to form
  * different types of requests to Sentry endpoints.
  * Supports both envelopes and regular event requests.
+ *
+ * @deprecated Please use APIDetails
  **/
 export class API {
   /** The DSN as passed to Sentry.init() */
@@ -41,13 +57,12 @@ export class API {
 
   /** Returns the prefix to construct Sentry ingestion API endpoints. */
   public getBaseApiEndpoint(): string {
-    const dsn = this.getDsn();
-    return getBaseApiEndpoint(dsn);
+    return getBaseApiEndpoint(this._dsnObject);
   }
 
   /** Returns the store endpoint URL. */
   public getStoreEndpoint(): string {
-    return this._getIngestEndpoint('store');
+    return getStoreEndpoint(this._dsnObject);
   }
 
   /**
@@ -56,7 +71,7 @@ export class API {
    * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
    */
   public getStoreEndpointWithUrlEncodedAuth(): string {
-    return `${this.getStoreEndpoint()}?${this._encodedAuth()}`;
+    return getStoreEndpointWithUrlEncodedAuth(this._dsnObject);
   }
 
   /**
@@ -65,64 +80,18 @@ export class API {
    * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
    */
   public getEnvelopeEndpointWithUrlEncodedAuth(): string {
-    if (this.forceEnvelope()) {
-      return this._tunnel as string;
-    }
-
-    return `${this._getEnvelopeEndpoint()}?${this._encodedAuth()}`;
+    return getEnvelopeEndpointWithUrlEncodedAuth(this._dsnObject, this._tunnel);
   }
+}
 
-  /** Returns only the path component for the store endpoint. */
-  public getStoreEndpointPath(): string {
-    const dsn = this.getDsn();
-    return `${dsn.path ? `/${dsn.path}` : ''}/api/${dsn.projectId}/store/`;
-  }
-
-  /**
-   * Returns an object that can be used in request headers.
-   * This is needed for node and the old /store endpoint in sentry
-   */
-  public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
-    // CHANGE THIS to use metadata but keep clientName and clientVersion compatible
-    const dsn = this.getDsn();
-    const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
-    header.push(`sentry_client=${clientName}/${clientVersion}`);
-    header.push(`sentry_key=${dsn.publicKey}`);
-    if (dsn.pass) {
-      header.push(`sentry_secret=${dsn.pass}`);
-    }
-    return {
-      'Content-Type': 'application/json',
-      'X-Sentry-Auth': header.join(', '),
-    };
-  }
-
-  /** Returns the envelope endpoint URL. */
-  private _getEnvelopeEndpoint(): string {
-    return this._getIngestEndpoint('envelope');
-  }
-
-  /** Returns the ingest API endpoint for target. */
-  private _getIngestEndpoint(target: 'store' | 'envelope'): string {
-    if (this._tunnel) {
-      return this._tunnel;
-    }
-    const base = this.getBaseApiEndpoint();
-    const dsn = this.getDsn();
-    return `${base}${dsn.projectId}/${target}/`;
-  }
-
-  /** Returns a URL-encoded string with auth config suitable for a query string. */
-  private _encodedAuth(): string {
-    const dsn = this.getDsn();
-    const auth = {
-      // We send only the minimum set of required information. See
-      // https://github.com/getsentry/sentry-javascript/issues/2572.
-      sentry_key: dsn.publicKey,
-      sentry_version: SENTRY_API_VERSION,
-    };
-    return urlEncode(auth);
-  }
+/** Initializes API Details */
+export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: string): APIDetails {
+  return {
+    initDsn: dsn,
+    metadata: metadata || {},
+    dsn: new Dsn(dsn),
+    tunnel,
+  } as APIDetails;
 }
 
 /** Returns the prefix to construct Sentry ingestion API endpoints. */
@@ -130,6 +99,67 @@ function getBaseApiEndpoint(dsn: Dsn): string {
   const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
   const port = dsn.port ? `:${dsn.port}` : '';
   return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
+}
+
+/** Returns the ingest API endpoint for target. */
+function _getIngestEndpoint(dsn: Dsn, target: 'store' | 'envelope'): string {
+  return `${getBaseApiEndpoint(dsn)}${dsn.projectId}/${target}/`;
+}
+
+/** Returns a URL-encoded string with auth config suitable for a query string. */
+function _encodedAuth(dsn: Dsn): string {
+  return urlEncode({
+    // We send only the minimum set of required information. See
+    // https://github.com/getsentry/sentry-javascript/issues/2572.
+    sentry_key: dsn.publicKey,
+    sentry_version: SENTRY_API_VERSION,
+  });
+}
+
+/** Returns the store endpoint URL. */
+function getStoreEndpoint(dsn: Dsn): string {
+  return _getIngestEndpoint(dsn, 'store');
+}
+
+/**
+ * Returns the store endpoint URL with auth in the query string.
+ *
+ * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
+ */
+export function getStoreEndpointWithUrlEncodedAuth(dsn: Dsn): string {
+  return `${getStoreEndpoint(dsn)}?${_encodedAuth(dsn)}`;
+}
+
+/** Returns the envelope endpoint URL. */
+function _getEnvelopeEndpoint(dsn: Dsn): string {
+  return _getIngestEndpoint(dsn, 'envelope');
+}
+
+/**
+ * Returns the envelope endpoint URL with auth in the query string.
+ *
+ * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
+ */
+export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: Dsn, tunnel?: string): string {
+  return tunnel ? tunnel : `${_getEnvelopeEndpoint(dsn)}?${_encodedAuth(dsn)}`;
+}
+
+/**
+ * Returns an object that can be used in request headers.
+ * This is needed for node and the old /store endpoint in sentry
+ */
+export function getRequestHeaders(dsn: Dsn, clientName: string, clientVersion: string): { [key: string]: string } {
+  // CHANGE THIS to use metadata but keep clientName and clientVersion compatible
+  const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
+  header.push(`sentry_client=${clientName}/${clientVersion}`);
+  header.push(`sentry_key=${dsn.publicKey}`);
+  if (dsn.pass) {
+    header.push(`sentry_secret=${dsn.pass}`);
+  }
+  return {
+    'Content-Type': 'application/json',
+    'X-Sentry-Auth': header.join(', '),
+  };
 }
 
 /** Returns the url to the report dialog endpoint. */

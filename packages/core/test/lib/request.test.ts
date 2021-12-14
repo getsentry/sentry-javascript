@@ -1,6 +1,6 @@
 import { DebugMeta, Event, SentryRequest, TransactionSamplingMethod } from '@sentry/types';
 
-import { API } from '../../src/api';
+import { initAPIDetails } from '../../src/api';
 import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
 
 const ingestDsn = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
@@ -8,7 +8,7 @@ const ingestUrl =
   'https://squirrelchasers.ingest.sentry.io/api/12312012/envelope/?sentry_key=dogsarebadatkeepingsecrets&sentry_version=7';
 const tunnel = 'https://hello.com/world';
 
-const api = new API(ingestDsn, {
+const api = initAPIDetails(ingestDsn, {
   sdk: {
     integrations: ['AWSLambda'],
     name: 'sentry.javascript.browser',
@@ -132,15 +132,15 @@ describe('eventToSentryRequest', () => {
   });
 
   it('uses tunnel as the url if it is configured', () => {
-    const tunnelRequest = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
+    const tunnelRequest = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}, tunnel));
     expect(tunnelRequest.url).toEqual(tunnel);
 
-    const defaultRequest = eventToSentryRequest(event, new API(ingestDsn, {}));
+    const defaultRequest = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}));
     expect(defaultRequest.url).toEqual(ingestUrl);
   });
 
   it('adds dsn to envelope header if tunnel is configured', () => {
-    const result = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
+    const result = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.envelopeHeader).toEqual(
@@ -153,7 +153,7 @@ describe('eventToSentryRequest', () => {
   it('adds default "event" item type to item header if tunnel is configured', () => {
     delete event.type;
 
-    const result = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
+    const result = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.itemHeader).toEqual(
@@ -193,15 +193,15 @@ describe('sessionToSentryRequest', () => {
   });
 
   it('uses tunnel as the url if it is configured', () => {
-    const tunnelRequest = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}, tunnel));
+    const tunnelRequest = sessionToSentryRequest({ aggregates: [] }, initAPIDetails(ingestDsn, {}, tunnel));
     expect(tunnelRequest.url).toEqual(tunnel);
 
-    const defaultRequest = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}));
+    const defaultRequest = sessionToSentryRequest({ aggregates: [] }, initAPIDetails(ingestDsn, {}));
     expect(defaultRequest.url).toEqual(ingestUrl);
   });
 
   it('adds dsn to envelope header if tunnel is configured', () => {
-    const result = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}, tunnel));
+    const result = sessionToSentryRequest({ aggregates: [] }, initAPIDetails(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.envelopeHeader).toEqual(

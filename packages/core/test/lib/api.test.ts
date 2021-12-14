@@ -1,6 +1,7 @@
+/* eslint-disable deprecation/deprecation */
 import { Dsn } from '@sentry/utils';
 
-import { API, getReportDialogEndpoint } from '../../src/api';
+import { API, getReportDialogEndpoint, getRequestHeaders } from '../../src/api';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
@@ -24,12 +25,12 @@ describe('API', () => {
   });
 
   test('getRequestHeaders', () => {
-    expect(new API(dsnPublic).getRequestHeaders('a', '1.0')).toMatchObject({
+    expect(getRequestHeaders(new Dsn(dsnPublic), 'a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(/^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc$/),
     });
 
-    expect(new API(legacyDsn).getRequestHeaders('a', '1.0')).toMatchObject({
+    expect(getRequestHeaders(new Dsn(legacyDsn), 'a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(
         /^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc, sentry_secret=123$/,
