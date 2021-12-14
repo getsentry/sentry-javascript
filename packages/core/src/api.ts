@@ -134,17 +134,17 @@ function getBaseApiEndpoint(dsn: Dsn): string {
 
 /** Returns the url to the report dialog endpoint. */
 export function getReportDialogEndpoint(
-  dsn: Dsn,
+  dsnLike: DsnLike,
   dialogOptions: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     user?: { name?: string; email?: string };
   },
 ): string {
+  const dsn = new Dsn(dsnLike);
   const endpoint = `${getBaseApiEndpoint(dsn)}embed/error-page/`;
 
-  const encodedOptions = [];
-  encodedOptions.push(`dsn=${dsn.toString()}`);
+  const encodedOptions = [`dsn=${dsn.toString()}`];
   for (const key in dialogOptions) {
     if (key === 'dsn') {
       continue;
@@ -164,9 +164,6 @@ export function getReportDialogEndpoint(
       encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
     }
   }
-  if (encodedOptions.length) {
-    return `${endpoint}?${encodedOptions.join('&')}`;
-  }
 
-  return endpoint;
+  return encodedOptions.length ? `${endpoint}?${encodedOptions.join('&')}` : endpoint;
 }
