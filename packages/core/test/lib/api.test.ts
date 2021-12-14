@@ -1,6 +1,6 @@
 import { Dsn } from '@sentry/utils';
 
-import { API } from '../../src/api';
+import { API, getReportDialogEndpoint } from '../../src/api';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
@@ -37,44 +37,86 @@ describe('API', () => {
     });
   });
 
-  test('getReportDialogEndpoint', () => {
-    expect(new API(ingestDsn).getReportDialogEndpoint({})).toEqual(
-      'https://xxxx.ingest.sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@xxxx.ingest.sentry.io:1234/subpath/123',
-    );
-
-    expect(new API(dsnPublic).getReportDialogEndpoint({})).toEqual(
-      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123',
-    );
-    expect(
-      new API(dsnPublic).getReportDialogEndpoint({
-        eventId: 'abc',
-        testy: '2',
-      }),
-    ).toEqual(
-      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc&testy=2',
-    );
-
-    expect(
-      new API(dsnPublic).getReportDialogEndpoint({
-        eventId: 'abc',
-        user: {
-          email: 'email',
-          name: 'yo',
+  describe('getReportDialogEndpoint', () => {
+    test.each([
+      [
+        'with Ingest DSN',
+        ingestDsn,
+        {},
+        'https://xxxx.ingest.sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@xxxx.ingest.sentry.io:1234/subpath/123',
+      ],
+      [
+        'with Public DSN',
+        dsnPublic,
+        {},
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123',
+      ],
+      [
+        'with Public DSN and dynamic options',
+        dsnPublic,
+        { eventId: 'abc', testy: '2' },
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc&testy=2',
+      ],
+      [
+        'with Public DSN, dynamic options and user name and email',
+        dsnPublic,
+        {
+          eventId: 'abc',
+          user: {
+            email: 'email',
+            name: 'yo',
+          },
         },
-      }),
-    ).toEqual(
-      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc&name=yo&email=email',
-    );
-
-    expect(
-      new API(dsnPublic).getReportDialogEndpoint({
-        eventId: 'abc',
-        user: undefined,
-      }),
-    ).toEqual(
-      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc',
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc&name=yo&email=email',
+      ],
+      [
+        'with Public DSN and user name',
+        dsnPublic,
+        {
+          user: {
+            name: 'yo',
+          },
+        },
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&name=yo',
+      ],
+      [
+        'with Public DSN and user email',
+        dsnPublic,
+        {
+          user: {
+            email: 'email',
+          },
+        },
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&email=email',
+      ],
+      [
+        'with Public DSN, dynamic options and undefined user',
+        dsnPublic,
+        {
+          eventId: 'abc',
+          user: undefined,
+        },
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc',
+      ],
+      [
+        'with Public DSN and undefined user',
+        dsnPublic,
+        { user: undefined },
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123',
+      ],
+    ])(
+      '%s',
+      (
+        _: string,
+        dsn: Parameters<typeof getReportDialogEndpoint>[0],
+        options: Parameters<typeof getReportDialogEndpoint>[1],
+        output: ReturnType<typeof getReportDialogEndpoint>,
+      ) => {
+        expect(getReportDialogEndpoint(dsn, options)).toBe(output);
+      },
     );
   });
+
   test('getDsn', () => {
     expect(new API(dsnPublic).getDsn()).toEqual(new Dsn(dsnPublic));
   });
