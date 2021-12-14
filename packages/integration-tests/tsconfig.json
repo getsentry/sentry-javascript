@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "compilerOptions": {
+    "lib": ["dom", "es2019"],
+    "moduleResolution": "node",
+    "noEmit": true,
+    "strict": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}
