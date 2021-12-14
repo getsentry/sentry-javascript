@@ -4,9 +4,25 @@ import { Dsn, urlEncode } from '@sentry/utils';
 const SENTRY_API_VERSION = '7';
 
 /**
+ * Stores details about a Sentry SDK
+ */
+export interface APIDetails {
+  /** The DSN as passed to Sentry.init() */
+  initDsn: DsnLike;
+  /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
+  metadata: SdkMetadata;
+  /** The internally used Dsn object. */
+  readonly dsn: Dsn;
+  /** The envelope tunnel to use. */
+  readonly tunnel?: string;
+}
+
+/**
  * Helper class to provide urls, headers and metadata that can be used to form
  * different types of requests to Sentry endpoints.
  * Supports both envelopes and regular event requests.
+ *
+ * @deprecated Please use the function component
  **/
 export class API {
   /** The DSN as passed to Sentry.init() */
@@ -42,9 +58,7 @@ export class API {
   /** Returns the prefix to construct Sentry ingestion API endpoints. */
   public getBaseApiEndpoint(): string {
     const dsn = this.getDsn();
-    const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
-    const port = dsn.port ? `:${dsn.port}` : '';
-    return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
+    return getBaseApiEndpoint(dsn);
   }
 
   /** Returns the store endpoint URL. */
@@ -99,45 +113,6 @@ export class API {
     };
   }
 
-  /** Returns the url to the report dialog endpoint. */
-  public getReportDialogEndpoint(
-    dialogOptions: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [key: string]: any;
-      user?: { name?: string; email?: string };
-    } = {},
-  ): string {
-    const dsn = this.getDsn();
-    const endpoint = `${this.getBaseApiEndpoint()}embed/error-page/`;
-
-    const encodedOptions = [];
-    encodedOptions.push(`dsn=${dsn.toString()}`);
-    for (const key in dialogOptions) {
-      if (key === 'dsn') {
-        continue;
-      }
-
-      if (key === 'user') {
-        if (!dialogOptions.user) {
-          continue;
-        }
-        if (dialogOptions.user.name) {
-          encodedOptions.push(`name=${encodeURIComponent(dialogOptions.user.name)}`);
-        }
-        if (dialogOptions.user.email) {
-          encodedOptions.push(`email=${encodeURIComponent(dialogOptions.user.email)}`);
-        }
-      } else {
-        encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
-      }
-    }
-    if (encodedOptions.length) {
-      return `${endpoint}?${encodedOptions.join('&')}`;
-    }
-
-    return endpoint;
-  }
-
   /** Returns the envelope endpoint URL. */
   private _getEnvelopeEndpoint(): string {
     return this._getIngestEndpoint('envelope');
@@ -164,4 +139,60 @@ export class API {
     };
     return urlEncode(auth);
   }
+}
+
+/** Initializes API Details */
+export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: string): APIDetails {
+  return {
+    initDsn: dsn,
+    metadata: metadata || {},
+    dsn: new Dsn(dsn),
+    tunnel,
+  } as APIDetails;
+}
+
+/** Returns the prefix to construct Sentry ingestion API endpoints. */
+function getBaseApiEndpoint(dsn: Dsn): string {
+  const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
+  const port = dsn.port ? `:${dsn.port}` : '';
+  return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
+}
+
+/** Returns the url to the report dialog endpoint. */
+export function getReportDialogEndpoint(
+  dsn: Dsn,
+  dialogOptions: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+    user?: { name?: string; email?: string };
+  },
+): string {
+  const endpoint = `${getBaseApiEndpoint(dsn)}embed/error-page/`;
+
+  const encodedOptions = [];
+  encodedOptions.push(`dsn=${dsn.toString()}`);
+  for (const key in dialogOptions) {
+    if (key === 'dsn') {
+      continue;
+    }
+
+    if (key === 'user') {
+      if (!dialogOptions.user) {
+        continue;
+      }
+      if (dialogOptions.user.name) {
+        encodedOptions.push(`name=${encodeURIComponent(dialogOptions.user.name)}`);
+      }
+      if (dialogOptions.user.email) {
+        encodedOptions.push(`email=${encodeURIComponent(dialogOptions.user.email)}`);
+      }
+    } else {
+      encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
+    }
+  }
+  if (encodedOptions.length) {
+    return `${endpoint}?${encodedOptions.join('&')}`;
+  }
+
+  return endpoint;
 }

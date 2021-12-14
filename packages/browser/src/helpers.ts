@@ -1,6 +1,6 @@
-import { API, captureException, withScope } from '@sentry/core';
+import { captureException, getReportDialogEndpoint, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, Dsn, getGlobalObject, logger } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
@@ -210,7 +210,7 @@ export function injectReportDialog(options: ReportDialogOptions = {}): void {
 
   const script = global.document.createElement('script');
   script.async = true;
-  script.src = new API(options.dsn).getReportDialogEndpoint(options);
+  script.src = getReportDialogEndpoint(new Dsn(options.dsn), options);
 
   if (options.onLoad) {
     // eslint-disable-next-line @typescript-eslint/unbound-method
