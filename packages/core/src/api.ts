@@ -42,9 +42,7 @@ export class API {
   /** Returns the prefix to construct Sentry ingestion API endpoints. */
   public getBaseApiEndpoint(): string {
     const dsn = this.getDsn();
-    const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
-    const port = dsn.port ? `:${dsn.port}` : '';
-    return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
+    return getBaseApiEndpoint(dsn);
   }
 
   /** Returns the store endpoint URL. */
@@ -99,45 +97,6 @@ export class API {
     };
   }
 
-  /** Returns the url to the report dialog endpoint. */
-  public getReportDialogEndpoint(
-    dialogOptions: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [key: string]: any;
-      user?: { name?: string; email?: string };
-    } = {},
-  ): string {
-    const dsn = this.getDsn();
-    const endpoint = `${this.getBaseApiEndpoint()}embed/error-page/`;
-
-    const encodedOptions = [];
-    encodedOptions.push(`dsn=${dsn.toString()}`);
-    for (const key in dialogOptions) {
-      if (key === 'dsn') {
-        continue;
-      }
-
-      if (key === 'user') {
-        if (!dialogOptions.user) {
-          continue;
-        }
-        if (dialogOptions.user.name) {
-          encodedOptions.push(`name=${encodeURIComponent(dialogOptions.user.name)}`);
-        }
-        if (dialogOptions.user.email) {
-          encodedOptions.push(`email=${encodeURIComponent(dialogOptions.user.email)}`);
-        }
-      } else {
-        encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
-      }
-    }
-    if (encodedOptions.length) {
-      return `${endpoint}?${encodedOptions.join('&')}`;
-    }
-
-    return endpoint;
-  }
-
   /** Returns the envelope endpoint URL. */
   private _getEnvelopeEndpoint(): string {
     return this._getIngestEndpoint('envelope');
@@ -164,4 +123,47 @@ export class API {
     };
     return urlEncode(auth);
   }
+}
+
+/** Returns the prefix to construct Sentry ingestion API endpoints. */
+function getBaseApiEndpoint(dsn: Dsn): string {
+  const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
+  const port = dsn.port ? `:${dsn.port}` : '';
+  return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
+}
+
+/** Returns the url to the report dialog endpoint. */
+export function getReportDialogEndpoint(
+  dsnLike: DsnLike,
+  dialogOptions: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+    user?: { name?: string; email?: string };
+  },
+): string {
+  const dsn = new Dsn(dsnLike);
+  const endpoint = `${getBaseApiEndpoint(dsn)}embed/error-page/`;
+
+  let encodedOptions = `dsn=${dsn.toString()}`;
+  for (const key in dialogOptions) {
+    if (key === 'dsn') {
+      continue;
+    }
+
+    if (key === 'user') {
+      if (!dialogOptions.user) {
+        continue;
+      }
+      if (dialogOptions.user.name) {
+        encodedOptions += `&name=${encodeURIComponent(dialogOptions.user.name)}`;
+      }
+      if (dialogOptions.user.email) {
+        encodedOptions += `&email=${encodeURIComponent(dialogOptions.user.email)}`;
+      }
+    } else {
+      encodedOptions += `&${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`;
+    }
+  }
+
+  return `${endpoint}?${encodedOptions}`;
 }
