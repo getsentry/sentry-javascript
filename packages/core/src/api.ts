@@ -4,25 +4,9 @@ import { Dsn, urlEncode } from '@sentry/utils';
 const SENTRY_API_VERSION = '7';
 
 /**
- * Stores details about a Sentry SDK
- */
-export interface APIDetails {
-  /** The DSN as passed to Sentry.init() */
-  initDsn: DsnLike;
-  /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
-  metadata: SdkMetadata;
-  /** The internally used Dsn object. */
-  readonly dsn: Dsn;
-  /** The envelope tunnel to use. */
-  readonly tunnel?: string;
-}
-
-/**
  * Helper class to provide urls, headers and metadata that can be used to form
  * different types of requests to Sentry endpoints.
  * Supports both envelopes and regular event requests.
- *
- * @deprecated Please use the function component
  **/
 export class API {
   /** The DSN as passed to Sentry.init() */
@@ -139,16 +123,6 @@ export class API {
     };
     return urlEncode(auth);
   }
-}
-
-/** Initializes API Details */
-export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: string): APIDetails {
-  return {
-    initDsn: dsn,
-    metadata: metadata || {},
-    dsn: new Dsn(dsn),
-    tunnel,
-  } as APIDetails;
 }
 
 /** Returns the prefix to construct Sentry ingestion API endpoints. */
