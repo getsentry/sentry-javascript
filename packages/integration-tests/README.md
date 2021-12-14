@@ -31,8 +31,6 @@ suites/
 
 `utils/helpers.ts` contains helpers that could be used in assertions (`test.ts`). These helpers define a convenient and reliable API to interact with Playwright's native API. It's highly recommended to define all common patterns of Playwright usage in helpers.
 
-`utils/browserHelpers.ts` contains helpers that are used in browser subjects (`subject.ts`). They are convenient to reduce duplication on injected code into browser environment.
-
 ### Fixtures
 
 [Fixtures](https://playwright.dev/docs/api/class-fixtures) allows us to define the globals and test-specific information in assertion groups (`test.ts` files). In it's current state, `fixtures.ts` contains an extension over the pure version of `test()` function of Playwright. All the tests should import `sentryTest` function from `utils/fixtures.ts` instead of `@playwright/test` to be able to access the extra fixtures.
@@ -71,5 +69,4 @@ Apart from [Playwright-specific issues](https://playwright.dev/docs/troubleshoot
   - If both default `template.hbs` and `init.js` are defined for the test group.
   - If a `subject.js` is defined for the test case.
   - If either of `init.js` or `subject.js` contain non-browser code.
-  - If `utils/browserHelpers.ts` contain non-browser code.
   - If the webpack configuration is valid.
