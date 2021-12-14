@@ -83,6 +83,6 @@ export class CaptureConsole implements Integration {
     });
 
     // @ts-ignore we're stashing away the raw console here for later.
-    global.console.__rawConsole = rawConsole;
+    global.console.__orig = rawConsole;
   }
 }

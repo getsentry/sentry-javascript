@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getGlobalObject } from './global';
+import { isDebugBuild } from './env';
 
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject<Window | NodeJS.Global>();
@@ -21,7 +22,7 @@ export function consoleSandbox(callback: () => any): any {
     result = callback();
   } else {
     // @ts-ignore this is placed here by captureconsole.ts
-    const rawConsole = global.console.__rawConsole as Console;
+    const rawConsole = global.console.__orig as Console;
 
     // @ts-ignore meh
     global.console = rawConsole;
@@ -41,24 +42,34 @@ function makeLogger(): Logger {
   let enabled = false;
   const logger: Logger = {
     enable: () => {
-      enabled = true;
+      enabled = !isDebugBuild();
     },
     disable: () => {
       enabled = false;
     },
   } as any;
 
-  ['log', 'warn', 'error'].forEach(name => {
-    // @ts-ignore meh
-    logger[name] = (...args: any[]) => {
-      if (enabled) {
-        consoleSandbox(() => {
-          // @ts-ignore meh
-          global.console[name](`${PREFIX}[${name}]: ${args.join(' ')}`);
-        });
-      }
-    };
-  });
+  const methods = ['log', 'warn', 'error'];
+
+  if (isDebugBuild()) {
+    methods.forEach(name => {
+      // @ts-ignore meh
+      logger[name] = (...args: any[]) => {
+        if (enabled) {
+          consoleSandbox(() => {
+            // @ts-ignore meh
+            global.console[name](`${PREFIX}[${name}]:`, ...args);
+          });
+        }
+      };
+    });
+  } else {
+    methods.forEach(name => {
+      // @ts-ignore meh
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      logger[name] = function() {};
+    });
+  }
 
   return logger;
 }
@@ -73,7 +84,7 @@ interface Logger {
 }
 
 // Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
-global.__SENTRY__ = global.__SENTRY__ || {};
-const logger = (global.__SENTRY__.logger as Logger) || (global.__SENTRY__.logger = makeLogger());
+const sentry = (global.__SENTRY__ = global.__SENTRY__ || {});
+const logger = (sentry.logger as Logger) || (sentry.logger = makeLogger());
 
 export { logger };
