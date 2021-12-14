@@ -14,7 +14,15 @@ export {
   withScope,
 } from '@sentry/minimal';
 export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMain, Scope } from '@sentry/hub';
-export { API, getReportDialogEndpoint } from './api';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  API,
+  APIDetails,
+  getStoreEndpointWithUrlEncodedAuth,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  initAPIDetails,
+  getReportDialogEndpoint,
+} from './api';
 export { BaseClient } from './baseclient';
 export { BackendClass, BaseBackend } from './basebackend';
 export { eventToSentryRequest, sessionToSentryRequest } from './request';
