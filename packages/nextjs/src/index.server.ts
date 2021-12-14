@@ -6,7 +6,7 @@ import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
-import { MetadataBuilder } from './utils/metadataBuilder';
+import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
 
@@ -43,8 +43,7 @@ export function init(options: NextjsOptions): void {
     return;
   }
 
-  const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
-  metadataBuilder.addSdkMetadata();
+  buildMetadata(options, ['nextjs', 'node']);
   options.environment = options.environment || process.env.NODE_ENV;
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
