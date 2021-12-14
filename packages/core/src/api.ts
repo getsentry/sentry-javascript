@@ -102,22 +102,18 @@ function getBaseApiEndpoint(dsn: Dsn): string {
 }
 
 /** Returns the ingest API endpoint for target. */
-function _getIngestEndpoint(dsn: Dsn, target: 'store' | 'envelope', tunnel?: string): string {
-  if (tunnel) {
-    return tunnel;
-  }
+function _getIngestEndpoint(dsn: Dsn, target: 'store' | 'envelope'): string {
   return `${getBaseApiEndpoint(dsn)}${dsn.projectId}/${target}/`;
 }
 
 /** Returns a URL-encoded string with auth config suitable for a query string. */
 function _encodedAuth(dsn: Dsn): string {
-  const auth = {
+  return urlEncode({
     // We send only the minimum set of required information. See
     // https://github.com/getsentry/sentry-javascript/issues/2572.
     sentry_key: dsn.publicKey,
     sentry_version: SENTRY_API_VERSION,
-  };
-  return urlEncode(auth);
+  });
 }
 
 /** Returns the store endpoint URL. */
@@ -135,8 +131,8 @@ export function getStoreEndpointWithUrlEncodedAuth(dsn: Dsn): string {
 }
 
 /** Returns the envelope endpoint URL. */
-function _getEnvelopeEndpoint(dsn: Dsn, tunnel?: string): string {
-  return _getIngestEndpoint(dsn, 'envelope', tunnel);
+function _getEnvelopeEndpoint(dsn: Dsn): string {
+  return _getIngestEndpoint(dsn, 'envelope');
 }
 
 /**
@@ -145,11 +141,7 @@ function _getEnvelopeEndpoint(dsn: Dsn, tunnel?: string): string {
  * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
  */
 export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: Dsn, tunnel?: string): string {
-  if (tunnel) {
-    return tunnel;
-  }
-
-  return `${_getEnvelopeEndpoint(dsn, tunnel)}?${_encodedAuth(dsn)}`;
+  return tunnel ? tunnel : `${_getEnvelopeEndpoint(dsn)}?${_encodedAuth(dsn)}`;
 }
 
 /**
