@@ -2,6 +2,10 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
 import { Primitive } from '@sentry/types';
+
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const objectToString = Object.prototype.toString;
+
 /**
  * Checks whether given value's type is one of a few Error or Error-like
  * {@link isError}.
@@ -10,16 +14,18 @@ import { Primitive } from '@sentry/types';
  * @returns A boolean representing the result.
  */
 export function isError(wat: unknown): boolean {
-  switch (Object.prototype.toString.call(wat)) {
+  switch (objectToString.call(wat)) {
     case '[object Error]':
-      return true;
     case '[object Exception]':
-      return true;
     case '[object DOMException]':
       return true;
     default:
       return isInstanceOf(wat, Error);
   }
+}
+
+function isBuiltin(wat: unknown, ty: string): boolean {
+  return objectToString.call(wat) === `[object ${ty}]`;
 }
 
 /**
@@ -30,7 +36,7 @@ export function isError(wat: unknown): boolean {
  * @returns A boolean representing the result.
  */
 export function isErrorEvent(wat: unknown): boolean {
-  return Object.prototype.toString.call(wat) === '[object ErrorEvent]';
+  return isBuiltin(wat, 'ErrorEvent');
 }
 
 /**
@@ -41,7 +47,7 @@ export function isErrorEvent(wat: unknown): boolean {
  * @returns A boolean representing the result.
  */
 export function isDOMError(wat: unknown): boolean {
-  return Object.prototype.toString.call(wat) === '[object DOMError]';
+  return isBuiltin(wat, 'DOMError');
 }
 
 /**
@@ -52,7 +58,7 @@ export function isDOMError(wat: unknown): boolean {
  * @returns A boolean representing the result.
  */
 export function isDOMException(wat: unknown): boolean {
-  return Object.prototype.toString.call(wat) === '[object DOMException]';
+  return isBuiltin(wat, 'DOMException');
 }
 
 /**
@@ -63,7 +69,7 @@ export function isDOMException(wat: unknown): boolean {
  * @returns A boolean representing the result.
  */
 export function isString(wat: unknown): boolean {
-  return Object.prototype.toString.call(wat) === '[object String]';
+  return isBuiltin(wat, 'String');
 }
 
 /**
@@ -85,7 +91,7 @@ export function isPrimitive(wat: unknown): wat is Primitive {
  * @returns A boolean representing the result.
  */
 export function isPlainObject(wat: unknown): wat is Record<string, unknown> {
-  return Object.prototype.toString.call(wat) === '[object Object]';
+  return isBuiltin(wat, 'Object');
 }
 
 /**
@@ -118,7 +124,7 @@ export function isElement(wat: unknown): wat is Element {
  * @returns A boolean representing the result.
  */
 export function isRegExp(wat: unknown): wat is RegExp {
-  return Object.prototype.toString.call(wat) === '[object RegExp]';
+  return isBuiltin(wat, 'RegExp');
 }
 
 /**
