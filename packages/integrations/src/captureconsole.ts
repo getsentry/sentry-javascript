@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration, Severity } from '@sentry/types';
-import { fill, getGlobalObject, safeJoin, bypassConsoleInstrumentation } from '@sentry/utils';
+import { bypassConsoleInstrumentation, fill, getGlobalObject, safeJoin } from '@sentry/utils';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 
