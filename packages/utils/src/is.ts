@@ -2,6 +2,10 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
 import { Primitive } from '@sentry/types';
+
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const objectToString = Object.prototype.toString;
+
 /**
  * Checks whether given value's type is one of a few Error or Error-like
  * {@link isError}.
@@ -9,17 +13,19 @@ import { Primitive } from '@sentry/types';
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isError(wat: any): boolean {
-  switch (Object.prototype.toString.call(wat)) {
+export function isError(wat: unknown): boolean {
+  switch (objectToString.call(wat)) {
     case '[object Error]':
-      return true;
     case '[object Exception]':
-      return true;
     case '[object DOMException]':
       return true;
     default:
       return isInstanceOf(wat, Error);
   }
+}
+
+function isBuiltin(wat: unknown, ty: string): boolean {
+  return objectToString.call(wat) === `[object ${ty}]`;
 }
 
 /**
@@ -29,8 +35,8 @@ export function isError(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isErrorEvent(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object ErrorEvent]';
+export function isErrorEvent(wat: unknown): boolean {
+  return isBuiltin(wat, 'ErrorEvent');
 }
 
 /**
@@ -40,8 +46,8 @@ export function isErrorEvent(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isDOMError(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object DOMError]';
+export function isDOMError(wat: unknown): boolean {
+  return isBuiltin(wat, 'DOMError');
 }
 
 /**
@@ -51,8 +57,8 @@ export function isDOMError(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isDOMException(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object DOMException]';
+export function isDOMException(wat: unknown): boolean {
+  return isBuiltin(wat, 'DOMException');
 }
 
 /**
@@ -62,8 +68,8 @@ export function isDOMException(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isString(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object String]';
+export function isString(wat: unknown): boolean {
+  return isBuiltin(wat, 'String');
 }
 
 /**
@@ -73,7 +79,7 @@ export function isString(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isPrimitive(wat: any): wat is Primitive {
+export function isPrimitive(wat: unknown): wat is Primitive {
   return wat === null || (typeof wat !== 'object' && typeof wat !== 'function');
 }
 
@@ -84,8 +90,8 @@ export function isPrimitive(wat: any): wat is Primitive {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isPlainObject(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object Object]';
+export function isPlainObject(wat: unknown): wat is Record<string, unknown> {
+  return isBuiltin(wat, 'Object');
 }
 
 /**
@@ -95,7 +101,7 @@ export function isPlainObject(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isEvent(wat: any): boolean {
+export function isEvent(wat: unknown): wat is Event {
   return typeof Event !== 'undefined' && isInstanceOf(wat, Event);
 }
 
@@ -106,7 +112,7 @@ export function isEvent(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isElement(wat: any): boolean {
+export function isElement(wat: unknown): wat is Element {
   return typeof Element !== 'undefined' && isInstanceOf(wat, Element);
 }
 
@@ -117,15 +123,15 @@ export function isElement(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isRegExp(wat: any): boolean {
-  return Object.prototype.toString.call(wat) === '[object RegExp]';
+export function isRegExp(wat: unknown): wat is RegExp {
+  return isBuiltin(wat, 'RegExp');
 }
 
 /**
  * Checks whether given value has a then function.
  * @param wat A value to be checked.
  */
-export function isThenable(wat: any): boolean {
+export function isThenable(wat: any): wat is PromiseLike<any> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return Boolean(wat && wat.then && typeof wat.then === 'function');
 }
@@ -137,7 +143,7 @@ export function isThenable(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isSyntheticEvent(wat: any): boolean {
+export function isSyntheticEvent(wat: unknown): boolean {
   return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
 }
 /**

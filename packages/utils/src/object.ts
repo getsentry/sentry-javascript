@@ -103,7 +103,7 @@ function getWalkSource(
       currentTarget?: unknown;
     }
 
-    const event = value as SimpleEvent;
+    const event = (value as unknown) as SimpleEvent;
 
     const source: {
       [key: string]: any;
@@ -186,12 +186,12 @@ export function normalizeToSize<T>(
  *  unchanged.
  */
 function serializeValue(value: any): any {
-  const type = Object.prototype.toString.call(value);
-
   // Node.js REPL notation
   if (typeof value === 'string') {
     return value;
   }
+
+  const type = Object.prototype.toString.call(value);
   if (type === '[object Object]') {
     return '[Object]';
   }
