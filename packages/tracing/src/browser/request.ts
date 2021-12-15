@@ -148,8 +148,9 @@ export function fetchCallback(
     return;
   }
 
-  if (handlerData.endTimestamp && handlerData.fetchData.__span) {
-    const span = spans[handlerData.fetchData.__span];
+  const fetchData = handlerData.fetchData;
+  if (handlerData.endTimestamp && fetchData.__span) {
+    const span = spans[fetchData.__span];
     if (span) {
       if (handlerData.response) {
         // TODO (kmclb) remove this once types PR goes through
@@ -161,7 +162,7 @@ export function fetchCallback(
       span.finish();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete spans[handlerData.fetchData.__span];
+      delete spans[fetchData.__span];
     }
     return;
   }
@@ -170,38 +171,39 @@ export function fetchCallback(
   if (activeTransaction) {
     const span = activeTransaction.startChild({
       data: {
-        ...handlerData.fetchData,
+        ...fetchData,
         type: 'fetch',
       },
-      description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
+      description: `${fetchData.method} ${fetchData.url}`,
       op: 'http.client',
     });
 
-    handlerData.fetchData.__span = span.spanId;
+    fetchData.__span = span.spanId;
     spans[span.spanId] = span;
 
-    const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
+    const args = handlerData.args;
+    const request = args[0] as string | Request;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
-    let headers = options.headers;
-    if (isInstanceOf(request, Request)) {
-      headers = (request as Request).headers;
-    }
-    if (headers) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (typeof headers.append === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        headers.append('sentry-trace', span.toTraceparent());
-      } else if (Array.isArray(headers)) {
-        headers = [...headers, ['sentry-trace', span.toTraceparent()]];
-      } else {
-        headers = { ...headers, 'sentry-trace': span.toTraceparent() };
-      }
-    } else {
-      headers = { 'sentry-trace': span.toTraceparent() };
-    }
-    options.headers = headers;
+    const options = (args[1] as { [key: string]: any }) || {};
+    const traceparent = span.toTraceparent();
+    options.headers = getFetchHeaders(options.headers, request, traceparent);
   }
+}
+
+// eslint-disable-next-line no-inner-declarations
+function getFetchHeaders(optionHeaders: any, request: string | Request, traceparent: string): any {
+  const headers = isInstanceOf(request, Request) ? (request as Request).headers : optionHeaders;
+  if (headers) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (typeof headers.append === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      headers.append('sentry-trace', traceparent);
+    } else if (Array.isArray(headers)) {
+      return [...headers, ['sentry-trace', traceparent]];
+    }
+    return { ...headers, 'sentry-trace': traceparent };
+  }
+  return { 'sentry-trace': traceparent };
 }
 
 /**
