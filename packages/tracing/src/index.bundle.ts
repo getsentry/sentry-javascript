@@ -5,7 +5,7 @@ export {
   Event,
   Exception,
   Response,
-  Severity,
+  SeverityLevel,
   StackFrame,
   Stacktrace,
   Status,

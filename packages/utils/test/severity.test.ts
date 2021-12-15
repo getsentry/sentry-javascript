@@ -1,5 +1,6 @@
 import { SeverityLevels } from '@sentry/types';
-import { severityFromString } from './../src/severity';
+
+import { severityFromString } from '../src/severity';
 
 describe('severityFromString()', () => {
   describe('normalize warn and warning', () => {

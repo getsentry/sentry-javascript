@@ -14,7 +14,7 @@ import {
   Primitive,
   SessionContext,
   SessionStatus,
-  Severity,
+  SeverityLevel,
   Span,
   SpanContext,
   Transaction,
@@ -216,7 +216,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
 

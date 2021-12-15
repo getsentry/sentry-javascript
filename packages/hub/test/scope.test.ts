@@ -1,4 +1,4 @@
-import { Event, EventHint, RequestSessionStatus, Severity } from '@sentry/types';
+import { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';
@@ -85,8 +85,8 @@ describe('Scope', () => {
 
     test('setLevel', () => {
       const scope = new Scope();
-      scope.setLevel(Severity.Critical);
-      expect((scope as any)._level).toEqual(Severity.Critical);
+      scope.setLevel('critical');
+      expect((scope as any)._level).toEqual('critical');
     });
 
     test('setTransactionName', () => {
@@ -131,8 +131,8 @@ describe('Scope', () => {
 
     test('chaining', () => {
       const scope = new Scope();
-      scope.setLevel(Severity.Critical).setUser({ id: '1' });
-      expect((scope as any)._level).toEqual(Severity.Critical);
+      scope.setLevel('critical').setUser({ id: '1' });
+      expect((scope as any)._level).toEqual('critical');
       expect((scope as any)._user).toEqual({ id: '1' });
     });
   });
@@ -195,7 +195,7 @@ describe('Scope', () => {
       scope.setTag('a', 'b');
       scope.setUser({ id: '1' });
       scope.setFingerprint(['abcd']);
-      scope.setLevel(Severity.Warning);
+      scope.setLevel('warning');
       scope.setTransactionName('/abc');
       scope.addBreadcrumb({ message: 'test' });
       scope.setContext('os', { id: '1' });
@@ -284,9 +284,9 @@ describe('Scope', () => {
     test('scope level should have priority over event level', () => {
       expect.assertions(1);
       const scope = new Scope();
-      scope.setLevel(Severity.Warning);
+      scope.setLevel('warning');
       const event: Event = {};
-      event.level = Severity.Critical;
+      event.level = 'critical';
       return scope.applyToEvent(event).then(processedEvent => {
         expect(processedEvent!.level).toEqual('warning');
       });
@@ -400,7 +400,7 @@ describe('Scope', () => {
       scope.setContext('foo', { id: '1' });
       scope.setContext('bar', { id: '2' });
       scope.setUser({ id: '1337' });
-      scope.setLevel(Severity.Info);
+      scope.setLevel('info');
       scope.setFingerprint(['foo']);
       scope.setRequestSession({ status: RequestSessionStatus.Ok });
     });
@@ -448,7 +448,7 @@ describe('Scope', () => {
       localScope.setContext('bar', { id: '3' });
       localScope.setContext('baz', { id: '4' });
       localScope.setUser({ id: '42' });
-      localScope.setLevel(Severity.Warning);
+      localScope.setLevel('warning');
       localScope.setFingerprint(['bar']);
       (localScope as any)._requestSession = { status: RequestSessionStatus.Ok };
 
@@ -470,7 +470,7 @@ describe('Scope', () => {
         foo: { id: '1' },
       });
       expect(updatedScope._user).toEqual({ id: '42' });
-      expect(updatedScope._level).toEqual(Severity.Warning);
+      expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
       expect(updatedScope._requestSession.status).toEqual(RequestSessionStatus.Ok);
     });
@@ -491,7 +491,7 @@ describe('Scope', () => {
         foo: { id: '1' },
       });
       expect(updatedScope._user).toEqual({ id: '1337' });
-      expect(updatedScope._level).toEqual(Severity.Info);
+      expect(updatedScope._level).toEqual('info');
       expect(updatedScope._fingerprint).toEqual(['foo']);
       expect(updatedScope._requestSession.status).toEqual(RequestSessionStatus.Ok);
     });
@@ -501,7 +501,7 @@ describe('Scope', () => {
         contexts: { bar: { id: '3' }, baz: { id: '4' } },
         extra: { bar: '3', baz: '4' },
         fingerprint: ['bar'],
-        level: Severity.Warning,
+        level: 'warning',
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
         requestSession: { status: RequestSessionStatus.Errored },
@@ -524,7 +524,7 @@ describe('Scope', () => {
         foo: { id: '1' },
       });
       expect(updatedScope._user).toEqual({ id: '42' });
-      expect(updatedScope._level).toEqual(Severity.Warning);
+      expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
       expect(updatedScope._requestSession).toEqual({ status: RequestSessionStatus.Errored });
     });
