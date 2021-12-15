@@ -3,6 +3,7 @@ import { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
 import { snipLine } from './string';
+import { addNonEnumerableProperty } from './object';
 
 /**
  * Extended Window interface that allows for Crypto API usage in IE browsers
@@ -268,9 +269,7 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   try {
     // set it this way rather than by assignment so that it's not ennumerable and therefore isn't recorded by the
     // `ExtraErrorData` integration
-    Object.defineProperty(exception, '__sentry_captured__', {
-      value: true,
-    });
+    addNonEnumerableProperty(exception, '__sentry_captured__', true);
   } catch (err) {
     // `exception` is a primitive, so we can't mark it seen
   }

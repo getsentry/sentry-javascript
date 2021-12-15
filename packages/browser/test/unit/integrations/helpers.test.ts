@@ -31,20 +31,10 @@ describe('internal wrap()', () => {
 
   it('bail out with the original if accessing custom props go bad', () => {
     const fn = (() => 1337) as WrappedFunction;
-    fn.__sentry__ = false;
     Object.defineProperty(fn, '__sentry_wrapped__', {
       get(): void {
         throw new Error('boom');
       },
-    });
-
-    expect(wrap(fn)).toBe(fn);
-
-    Object.defineProperty(fn, '__sentry__', {
-      get(): void {
-        throw new Error('boom');
-      },
-      configurable: true,
     });
 
     expect(wrap(fn)).toBe(fn);

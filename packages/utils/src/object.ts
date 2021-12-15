@@ -43,18 +43,27 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
 }
 
 /**
+ * Defines a non enumerable property.  This creates a non enumerable property on an object.
+ *
+ * @param func The function to set a property to
+ * @param name the name of the special sentry property
+ * @param value the property to define
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function addNonEnumerableProperty(func: any, name: string, value: any): void {
+  Object.defineProperty(func, name, {
+    value: value,
+  });
+}
+
+/**
  * Remembers the original function on the wrapped function.
  *
  * @param wrapped the wrapper function
  * @param original the original function that gets wrapped
  */
 export function rememberOriginalFunction(wrapped: WrappedFunction, original: WrappedFunction): void {
-  Object.defineProperties(wrapped, {
-    __sentry_original__: {
-      enumerable: false,
-      value: original,
-    },
-  });
+  addNonEnumerableProperty(wrapped, '__sentry_original__', original);
 }
 
 /**
