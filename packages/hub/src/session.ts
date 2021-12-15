@@ -125,12 +125,12 @@ export class Session implements SessionInterface {
       errors: this.errors,
       did: typeof this.did === 'number' || typeof this.did === 'string' ? `${this.did}` : undefined,
       duration: this.duration,
-      attrs: dropUndefinedKeys({
+      attrs: {
         release: this.release,
         environment: this.environment,
         ip_address: this.ipAddress,
         user_agent: this.userAgent,
-      }),
+      },
     });
   }
 }
