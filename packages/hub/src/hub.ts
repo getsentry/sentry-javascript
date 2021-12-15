@@ -415,13 +415,18 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public endSession(): void {
-    this.getStackTop()
-      ?.scope?.getSession()
-      ?.close();
+    const layer = this.getStackTop();
+    const scope = layer && layer.scope;
+    const session = scope && scope.getSession();
+    if (session) {
+      session.close();
+    }
     this._sendSessionUpdate();
 
     // the session is over; take it off of the scope
-    this.getStackTop()?.scope?.setSession();
+    if (scope) {
+      scope.setSession();
+    }
   }
 
   /**
@@ -575,7 +580,8 @@ export function getActiveDomain(): DomainAsCarrier | undefined {
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    const activeDomain = getMainCarrier().__SENTRY__?.extensions?.domain?.active;
+    const sentry = getMainCarrier().__SENTRY__;
+    const activeDomain = sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
 
     // If there's no active domain, just return global hub
     if (!activeDomain) {

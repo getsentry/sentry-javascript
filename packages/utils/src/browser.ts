@@ -77,11 +77,12 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   out.push(elem.tagName.toLowerCase());
 
   // Pairs of attribute keys defined in `serializeAttribute` and their values on element.
-  const keyAttrPairs = keyAttrs?.length
-    ? keyAttrs.filter(keyAttr => elem.getAttribute(keyAttr)).map(keyAttr => [keyAttr, elem.getAttribute(keyAttr)])
-    : null;
+  const keyAttrPairs =
+    keyAttrs && keyAttrs.length
+      ? keyAttrs.filter(keyAttr => elem.getAttribute(keyAttr)).map(keyAttr => [keyAttr, elem.getAttribute(keyAttr)])
+      : null;
 
-  if (keyAttrPairs?.length) {
+  if (keyAttrPairs && keyAttrPairs.length) {
     keyAttrPairs.forEach(keyAttrPair => {
       out.push(`[${keyAttrPair[0]}="${keyAttrPair[1]}"]`);
     });

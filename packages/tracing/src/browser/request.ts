@@ -214,8 +214,8 @@ export function xhrCallback(
 ): void {
   if (
     !hasTracingEnabled() ||
-    handlerData.xhr?.__sentry_own_request__ ||
-    !(handlerData.xhr?.__sentry_xhr__ && shouldCreateSpan(handlerData.xhr.__sentry_xhr__.url))
+    (handlerData.xhr && handlerData.xhr.__sentry_own_request__) ||
+    !(handlerData.xhr && handlerData.xhr.__sentry_xhr__ && shouldCreateSpan(handlerData.xhr.__sentry_xhr__.url))
   ) {
     return;
   }
