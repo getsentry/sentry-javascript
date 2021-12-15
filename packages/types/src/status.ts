@@ -1,5 +1,6 @@
-/** The status of an event. */
-// eslint-disable-next-line import/export
+/** JSDoc
+ * @deprecated Use string literals - if you require type casting, cast to StatusType type
+ */
 export enum Status {
   /** The status could not be determined. */
   Unknown = 'unknown',
@@ -15,31 +16,4 @@ export enum Status {
   Failed = 'failed',
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace, import/export
-export namespace Status {
-  /**
-   * Converts a HTTP status code into a {@link Status}.
-   *
-   * @param code The HTTP response status code.
-   * @returns The send status or {@link Status.Unknown}.
-   */
-  export function fromHttpCode(code: number): Status {
-    if (code >= 200 && code < 300) {
-      return Status.Success;
-    }
-
-    if (code === 429) {
-      return Status.RateLimit;
-    }
-
-    if (code >= 400 && code < 500) {
-      return Status.Invalid;
-    }
-
-    if (code >= 500) {
-      return Status.Failed;
-    }
-
-    return Status.Unknown;
-  }
-}
+export type StatusType = 'unknown' | 'skipped' | 'rate_limit' | 'invalid' | 'failed' | 'success';

@@ -1,7 +1,6 @@
 /** JSDoc
  * @deprecated Use string literals - if you require type casting, cast to SeverityLevel type
  */
-// eslint-disable-next-line import/export
 export enum Severity {
   /** JSDoc */
   Fatal = 'fatal',
