@@ -99,8 +99,14 @@ export class InboundFilters implements Integration {
     }
 
     try {
-      // @ts-ignore-next-line we are already in a try/catch, so no need to be safe
-      return event.exception.values[0].type === 'SentryError';
+      return (
+        (event &&
+          event.exception &&
+          event.exception.values &&
+          event.exception.values[0] &&
+          event.exception.values[0].type === 'SentryError') ||
+        false
+      );
     } catch (_oO) {
       return false;
     }

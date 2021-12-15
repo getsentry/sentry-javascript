@@ -26,14 +26,17 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
   const defaultIntegrations = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
   const userIntegrations = options.integrations;
 
-  let integrations: Integration[] = filterDuplicates(defaultIntegrations);
+  let integrations: Integration[] = [...filterDuplicates(defaultIntegrations)];
 
   if (Array.isArray(userIntegrations)) {
     // Filter out integrations that are also included in user options
-    integrations = integrations
-      .filter(integrations => userIntegrations.every(userIntegration => userIntegration.name !== integrations.name))
-      .concat(filterDuplicates(userIntegrations));
-    // And filter out duplicated user options integrations
+    integrations = [
+      ...integrations.filter(integrations =>
+        userIntegrations.every(userIntegration => userIntegration.name !== integrations.name),
+      ),
+      // And filter out duplicated user options integrations
+      ...filterDuplicates(userIntegrations),
+    ];
   } else if (typeof userIntegrations === 'function') {
     integrations = userIntegrations(integrations);
     integrations = Array.isArray(integrations) ? integrations : [integrations];
