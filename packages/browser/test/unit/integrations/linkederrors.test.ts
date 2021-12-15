@@ -5,18 +5,15 @@ import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
 
 describe('LinkedErrors', () => {
   describe('handler', () => {
-    it('should bail out if event doesnt contain exception', () => {
-      const spy = jest.spyOn(LinkedErrorsModule, '_walkErrorTree');
+    it('should bail out if event does not contain exception', () => {
       const event = {
         message: 'foo',
       };
       const result = LinkedErrorsModule._handler('cause', 5, event);
-      expect(spy).toHaveBeenCalledTimes(0);
       expect(result).toEqual(event);
     });
 
     it('should bail out if event contains exception, but no hint', () => {
-      const spy = jest.spyOn(LinkedErrorsModule, '_walkErrorTree');
       const event = {
         exception: {
           values: [],
@@ -24,23 +21,7 @@ describe('LinkedErrors', () => {
         message: 'foo',
       };
       const result = LinkedErrorsModule._handler('cause', 5, event);
-      expect(spy).toHaveBeenCalledTimes(0);
       expect(result).toEqual(event);
-    });
-
-    it('should call walkErrorTree if event contains exception and hint with originalException', () => {
-      const spy = jest.spyOn(LinkedErrorsModule, '_walkErrorTree').mockImplementation(() => []);
-      const event = {
-        exception: {
-          values: [],
-        },
-        message: 'foo',
-      };
-      const hint = {
-        originalException: new Error('originalException'),
-      };
-      LinkedErrorsModule._handler('cause', 5, event, hint);
-      expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it('should recursively walk error to find linked exceptions and assign them to the event', async () => {
