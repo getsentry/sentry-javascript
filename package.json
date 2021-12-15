@@ -19,7 +19,7 @@
     "pack:changed": "lerna run pack --since",
     "prepublishOnly": "lerna run --stream --concurrency 1 prepublishOnly",
     "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish",
-    "test": "lerna run --stream --concurrency 1 --sort test"
+    "test": "lerna run --ignore @sentry-internal/browser-integration-tests --stream --concurrency 1 --sort test"
   },
   "volta": {
     "node": "14.17.0",
@@ -34,6 +34,7 @@
     "packages/eslint-plugin-sdk",
     "packages/gatsby",
     "packages/hub",
+    "packages/integration-tests",
     "packages/integrations",
     "packages/minimal",
     "packages/nextjs",

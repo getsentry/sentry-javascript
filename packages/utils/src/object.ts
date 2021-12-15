@@ -4,7 +4,7 @@ import { ExtendedError, WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive, isSyntheticEvent } from './is';
-import { Memo } from './memo';
+import { memoBuilder, MemoFunc } from './memo';
 import { getFunctionName } from './stacktrace';
 import { truncate } from './string';
 
@@ -277,7 +277,7 @@ function normalizeValue<T>(value: T, key?: any): T | string {
  * @param memo Optional Memo class handling decycling
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function walk(key: string, value: any, depth: number = +Infinity, memo: Memo = new Memo()): any {
+export function walk(key: string, value: any, depth: number = +Infinity, memo: MemoFunc = memoBuilder()): any {
   // If we reach the maximum depth, serialize whatever has left
   if (depth === 0) {
     return serializeValue(value);
@@ -303,7 +303,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   const acc = Array.isArray(value) ? [] : {};
 
   // If we already walked that branch, bail out, as it's circular reference
-  if (memo.memoize(value)) {
+  if (memo[0](value)) {
     return '[Circular ~]';
   }
 
@@ -318,7 +318,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   }
 
   // Once walked through all the branches, remove the parent from memo storage
-  memo.unmemoize(value);
+  memo[1](value);
 
   // Return accumulated values
   return acc;
