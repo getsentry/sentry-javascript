@@ -202,21 +202,17 @@ export class InboundFilters implements Integration {
   /** JSDoc */
   private _getEventFilterUrl(event: Event): string | null {
     try {
-      let frames;
       if (event.stacktrace) {
-        frames = event.stacktrace.frames;
-        return this._getLastValidUrl(frames);
+        return this._getLastValidUrl(event.stacktrace.frames);
       }
+      let frames;
       try {
         // @ts-ignore we only care about frames if the whole thing here is defined
-        frames = event.exception.values[0].stacktrace.values;
+        frames = event.exception.values[0].stacktrace.frames;
       } catch (e) {
         // ignore
       }
-      if (frames) {
-        return this._getLastValidUrl(frames);
-      }
-      return null;
+      return frames ? this._getLastValidUrl(frames) : null;
     } catch (oO) {
       logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
       return null;
