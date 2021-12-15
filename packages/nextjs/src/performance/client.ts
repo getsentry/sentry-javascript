@@ -8,9 +8,9 @@ const global = getGlobalObject<Window>();
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 
-const DEFAULT_TAGS = Object.freeze({
+const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-router',
-});
+} as const;
 
 let activeTransaction: Transaction | undefined = undefined;
 let prevTransactionName: string | undefined = undefined;

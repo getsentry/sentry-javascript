@@ -58,13 +58,14 @@ export function getNativeFetchImplementation(): FetchImpl {
   const document = global.document;
   let fetchImpl = global.fetch;
   // eslint-disable-next-line deprecation/deprecation
-  if (typeof document?.createElement === `function`) {
+  if (document && typeof document.createElement === `function`) {
     try {
       const sandbox = document.createElement('iframe');
       sandbox.hidden = true;
       document.head.appendChild(sandbox);
-      if (sandbox.contentWindow?.fetch) {
-        fetchImpl = sandbox.contentWindow.fetch;
+      const contentWindow = sandbox.contentWindow;
+      if (contentWindow && contentWindow.fetch) {
+        fetchImpl = contentWindow.fetch;
       }
       document.head.removeChild(sandbox);
     } catch (e) {

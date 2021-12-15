@@ -104,11 +104,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
       // At this point if `sampled !== true` we want to discard the transaction.
       logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
-      this._hub
-        .getClient()
-        ?.getTransport?.()
-        .recordLostEvent?.(Outcome.SampleRate, 'transaction');
-
+      const client = this._hub.getClient();
+      const transport = client && client.getTransport && client.getTransport();
+      if (transport && transport.recordLostEvent) {
+        transport.recordLostEvent(Outcome.SampleRate, 'transaction');
+      }
       return undefined;
     }
 

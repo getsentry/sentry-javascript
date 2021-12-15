@@ -153,7 +153,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
-    if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
+    if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       if (isDebugBuild()) {
         logger.log(ALREADY_SEEN_ERROR);
       }
@@ -534,6 +534,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const { beforeSend, sampleRate } = this.getOptions();
     const transport = this.getTransport();
 
+    type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
+    type RecordLostEventParams = Parameters<RecordLostEvent>;
+
+    function recordLostEvent(outcome: RecordLostEventParams[0], category: RecordLostEventParams[1]): void {
+      if (transport.recordLostEvent) {
+        transport.recordLostEvent(outcome, category);
+      }
+    }
+
     if (!this._isEnabled()) {
       return SyncPromise.reject(new SentryError('SDK not enabled, will not capture event.'));
     }
@@ -543,7 +552,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      transport.recordLostEvent?.(Outcome.SampleRate, 'event');
+      recordLostEvent(Outcome.SampleRate, 'event');
       return SyncPromise.reject(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -554,7 +563,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     return this._prepareEvent(event, scope, hint)
       .then(prepared => {
         if (prepared === null) {
-          transport.recordLostEvent?.(Outcome.EventProcessor, event.type || 'event');
+          recordLostEvent(Outcome.EventProcessor, event.type || 'event');
           throw new SentryError('An event processor returned null, will not send event.');
         }
 
@@ -568,7 +577,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          transport.recordLostEvent?.(Outcome.BeforeSend, event.type || 'event');
+          recordLostEvent(Outcome.BeforeSend, event.type || 'event');
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
