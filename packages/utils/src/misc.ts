@@ -2,8 +2,8 @@
 import { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
-import { snipLine } from './string';
 import { addNonEnumerableProperty } from './object';
+import { snipLine } from './string';
 
 /**
  * Extended Window interface that allows for Crypto API usage in IE browsers

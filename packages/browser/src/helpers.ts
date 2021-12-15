@@ -3,11 +3,11 @@ import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
+  addNonEnumerableProperty,
   getGlobalObject,
   getOriginalFunction,
   logger,
   rememberOriginalFunction,
-  addNonEnumerableProperty,
 } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();

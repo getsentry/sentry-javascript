@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
-import { logger, addNonEnumerableProperty } from '@sentry/utils';
+import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
 export const installedIntegrations: string[] = [];
 
