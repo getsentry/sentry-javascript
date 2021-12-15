@@ -1,5 +1,5 @@
 import { Event, EventHint, Options, Session, Severity, Transport } from '@sentry/types';
-import { logger, SentryError } from '@sentry/utils';
+import { createSentryError, logger } from '@sentry/utils';
 
 import { NoopTransport } from './transports/noop';
 
@@ -77,14 +77,14 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event> {
-    throw new SentryError('Backend has to implement `eventFromException` method');
+    throw createSentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
   public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event> {
-    throw new SentryError('Backend has to implement `eventFromMessage` method');
+    throw createSentryError('Backend has to implement `eventFromMessage` method');
   }
 
   /**

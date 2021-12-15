@@ -1,14 +1,21 @@
-import { setPrototypeOf } from './polyfill';
+export const SENTRY_ERROR_NAME = 'SentryError';
 
-/** An error emitted by Sentry SDKs and related utilities. */
-export class SentryError extends Error {
-  /** Display name of this error instance. */
-  public name: string;
+type SentryError = Error & { name: typeof SENTRY_ERROR_NAME };
 
-  public constructor(public message: string) {
-    super(message);
+/**
+ * Generates an SentryError that will be filtered during event
+ * processing.
+ */
+export function createSentryError(message: string): SentryError {
+  const error = new Error(message);
+  error.name = SENTRY_ERROR_NAME;
+  return error as SentryError;
+}
 
-    this.name = new.target.prototype.constructor.name;
-    setPrototypeOf(this, new.target.prototype);
-  }
+/**
+ * Validates if a variable is a SentryError
+ * @param wat variable to check if it is a SentryError
+ */
+export function isSentryError(wat: unknown): wat is SentryError {
+  return wat instanceof Error && wat.name === SENTRY_ERROR_NAME;
 }

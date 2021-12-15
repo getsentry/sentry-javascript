@@ -1,6 +1,6 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
 import { Event, Outcome, Response, SentryRequest, Session, TransportOptions } from '@sentry/types';
-import { SentryError, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
+import { isSentryError, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 import { FetchImpl, getNativeFetchImplementation } from './utils';
@@ -88,7 +88,7 @@ export class FetchTransport extends BaseTransport {
       )
       .then(undefined, reason => {
         // It's either buffer rejection or any other xhr/fetch error, which are treated as NetworkError.
-        if (reason instanceof SentryError) {
+        if (isSentryError(reason)) {
           this.recordLostEvent(Outcome.QueueOverflow, sentryRequest.type);
         } else {
           this.recordLostEvent(Outcome.NetworkError, sentryRequest.type);

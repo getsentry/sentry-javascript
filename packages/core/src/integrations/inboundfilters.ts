@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Event, Integration, StackFrame } from '@sentry/types';
-import { getEventDescription, isMatchingPattern, logger } from '@sentry/utils';
+import { getEventDescription, isMatchingPattern, logger, SENTRY_ERROR_NAME } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -104,7 +104,7 @@ export class InboundFilters implements Integration {
           event.exception &&
           event.exception.values &&
           event.exception.values[0] &&
-          event.exception.values[0].type === 'SentryError') ||
+          event.exception.values[0].type === SENTRY_ERROR_NAME) ||
         false
       );
     } catch (_oO) {

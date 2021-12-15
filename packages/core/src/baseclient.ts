@@ -14,14 +14,15 @@ import {
 } from '@sentry/types';
 import {
   checkOrSetAlreadyCaught,
+  createSentryError,
   dateTimestampInSeconds,
   Dsn,
   isPlainObject,
   isPrimitive,
+  isSentryError,
   isThenable,
   logger,
   normalize,
-  SentryError,
   SyncPromise,
   truncate,
   uuid4,
@@ -524,7 +525,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const transport = this.getTransport();
 
     if (!this._isEnabled()) {
-      return SyncPromise.reject(new SentryError('SDK not enabled, will not capture event.'));
+      return SyncPromise.reject(createSentryError('SDK not enabled, will not capture event.'));
     }
 
     const isTransaction = event.type === 'transaction';
@@ -534,7 +535,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
       transport.recordLostEvent?.(Outcome.SampleRate, 'event');
       return SyncPromise.reject(
-        new SentryError(
+        createSentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
         ),
       );
@@ -544,7 +545,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       .then(prepared => {
         if (prepared === null) {
           transport.recordLostEvent?.(Outcome.EventProcessor, event.type || 'event');
-          throw new SentryError('An event processor returned null, will not send event.');
+          throw createSentryError('An event processor returned null, will not send event.');
         }
 
         const isInternalException = hint && hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
@@ -558,7 +559,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       .then(processedEvent => {
         if (processedEvent === null) {
           transport.recordLostEvent?.(Outcome.BeforeSend, event.type || 'event');
-          throw new SentryError('`beforeSend` returned `null`, will not send event.');
+          throw createSentryError('`beforeSend` returned `null`, will not send event.');
         }
 
         const session = scope && scope.getSession && scope.getSession();
@@ -570,7 +571,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         return processedEvent;
       })
       .then(null, reason => {
-        if (reason instanceof SentryError) {
+        if (isSentryError(reason)) {
           throw reason;
         }
 
@@ -578,9 +579,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           data: {
             __sentry__: true,
           },
-          originalException: reason as Error,
+          originalException: reason,
         });
-        throw new SentryError(
+        throw createSentryError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
         );
       });
@@ -614,16 +615,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return (rv as PromiseLike<Event | null>).then(
         event => {
           if (!(isPlainObject(event) || event === null)) {
-            throw new SentryError(nullErr);
+            throw createSentryError(nullErr);
           }
           return event;
         },
         e => {
-          throw new SentryError(`beforeSend rejected with ${e}`);
+          throw createSentryError(`beforeSend rejected with ${e}`);
         },
       );
     } else if (!(isPlainObject(rv) || rv === null)) {
-      throw new SentryError(nullErr);
+      throw createSentryError(nullErr);
     }
     return rv;
   }

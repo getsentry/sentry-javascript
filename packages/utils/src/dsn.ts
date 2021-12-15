@@ -1,6 +1,6 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
-import { SentryError } from './error';
+import { createSentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w.-]+)(?::(\d+))?\/(.+)/;
@@ -60,7 +60,7 @@ export class Dsn implements DsnComponents {
     const match = DSN_REGEX.exec(str);
 
     if (!match) {
-      throw new SentryError(ERROR_MESSAGE);
+      throw createSentryError(ERROR_MESSAGE);
     }
 
     const [protocol, publicKey, pass = '', host, port = '', lastPath] = match.slice(1);
@@ -104,20 +104,20 @@ export class Dsn implements DsnComponents {
   private _validate(): void {
     ['protocol', 'publicKey', 'host', 'projectId'].forEach(component => {
       if (!this[component as keyof DsnComponents]) {
-        throw new SentryError(`${ERROR_MESSAGE}: ${component} missing`);
+        throw createSentryError(`${ERROR_MESSAGE}: ${component} missing`);
       }
     });
 
     if (!this.projectId.match(/^\d+$/)) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid projectId ${this.projectId}`);
+      throw createSentryError(`${ERROR_MESSAGE}: Invalid projectId ${this.projectId}`);
     }
 
     if (this.protocol !== 'http' && this.protocol !== 'https') {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid protocol ${this.protocol}`);
+      throw createSentryError(`${ERROR_MESSAGE}: Invalid protocol ${this.protocol}`);
     }
 
     if (this.port && isNaN(parseInt(this.port, 10))) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid port ${this.port}`);
+      throw createSentryError(`${ERROR_MESSAGE}: Invalid port ${this.port}`);
     }
   }
 }

@@ -14,12 +14,12 @@ import {
   TransportOptions,
 } from '@sentry/types';
 import {
+  createSentryError,
   dateTimestampInSeconds,
   getGlobalObject,
   logger,
   parseRetryAfterHeader,
   PromiseBuffer,
-  SentryError,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
@@ -71,7 +71,7 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public sendEvent(_: Event): PromiseLike<SentryResponse> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method');
+    throw createSentryError('Transport Class has to implement `sendEvent` method');
   }
 
   /**

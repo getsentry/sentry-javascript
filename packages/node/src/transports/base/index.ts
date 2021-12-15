@@ -11,7 +11,7 @@ import {
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import { createSentryError, logger, parseRetryAfterHeader, PromiseBuffer } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -62,7 +62,7 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public sendEvent(_: Event): PromiseLike<Response> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method.');
+    throw createSentryError('Transport Class has to implement `sendEvent` method.');
   }
 
   /**
@@ -187,7 +187,7 @@ export abstract class BaseTransport implements Transport {
     originalPayload?: Event | Session | SessionAggregates,
   ): Promise<Response> {
     if (!this.module) {
-      throw new SentryError('No module available');
+      throw createSentryError('No module available');
     }
     if (originalPayload && this._isRateLimited(sentryRequest.type)) {
       return Promise.reject({
@@ -204,7 +204,7 @@ export abstract class BaseTransport implements Transport {
       () =>
         new Promise<Response>((resolve, reject) => {
           if (!this.module) {
-            throw new SentryError('No module available');
+            throw createSentryError('No module available');
           }
           const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
           const req = this.module.request(options, res => {
@@ -243,7 +243,7 @@ export abstract class BaseTransport implements Transport {
               if (res.headers && res.headers['x-sentry-error']) {
                 rejectionMessage += `: ${res.headers['x-sentry-error']}`;
               }
-              reject(new SentryError(rejectionMessage));
+              reject(createSentryError(rejectionMessage));
             }
 
             // Force the socket to drain

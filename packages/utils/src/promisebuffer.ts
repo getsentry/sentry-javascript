@@ -1,4 +1,4 @@
-import { SentryError } from './error';
+import { createSentryError } from './error';
 import { SyncPromise } from './syncpromise';
 
 /** A simple queue that holds promises. */
@@ -27,7 +27,7 @@ export class PromiseBuffer<T> {
    */
   public add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
     if (!this.isReady()) {
-      return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+      return SyncPromise.reject(createSentryError('Not adding Promise due to buffer limit reached.'));
     }
 
     // start the task and add its promise to the queue
