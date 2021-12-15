@@ -1,6 +1,13 @@
 import { captureException, getReportDialogEndpoint, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger, rememberOriginal } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  addExceptionTypeValue,
+  getGlobalObject,
+  logger,
+  rememberOriginalFunction,
+  getOriginalFunction,
+} from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
@@ -45,7 +52,7 @@ export function wrap(
 
   try {
     // We don't wanna wrap it twice
-    if (fn.__sentry_original__) {
+    if (getOriginalFunction(fn)) {
       return fn;
     }
   } catch (e) {
@@ -129,7 +136,7 @@ export function wrap(
 
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
-  rememberOriginal(sentryWrapped, fn);
+  rememberOriginalFunction(sentryWrapped, fn);
 
   // Restore original function name (not all browsers allow that)
   try {

@@ -32,7 +32,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
   if (typeof wrapped === 'function') {
     try {
       wrapped.prototype = wrapped.prototype || {};
-      rememberOriginal(wrapped, original);
+      rememberOriginalFunction(wrapped, original);
     } catch (_Oo) {
       // This can throw if multiple fill happens on a global object like XMLHttpRequest
       // Fixes https://github.com/getsentry/sentry-javascript/issues/2043
@@ -48,13 +48,24 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
  * @param wrapped the wrapper function
  * @param original the original function that gets wrapped
  */
-export function rememberOriginal(wrapped: any, original: any): void {
+export function rememberOriginalFunction(wrapped: WrappedFunction, original: WrappedFunction): void {
   Object.defineProperties(wrapped, {
     __sentry_original__: {
       enumerable: false,
       value: original,
     },
   });
+}
+
+/**
+ * This extracts the original function if available.  This is the inverse
+ * of `rememberOriginalFunction`.
+ *
+ * @param func the function to unwrap
+ * @returns the unwrapped version of the function if available.
+ */
+export function getOriginalFunction(func: WrappedFunction): WrappedFunction | undefined {
+  return func.__sentry_original__;
 }
 
 /**
