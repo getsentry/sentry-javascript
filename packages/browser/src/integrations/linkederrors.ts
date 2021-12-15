@@ -48,10 +48,7 @@ export class LinkedErrors implements Integration {
    */
   public setupOnce(): void {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
-      if (getCurrentHub().getIntegration(LinkedErrors)) {
-        return typeof handler === 'function' ? handler(this._key, this._limit, event, hint) : event;
-      }
-      return event;
+      return getCurrentHub().getIntegration(LinkedErrors) ? _handler(this._key, this._limit, event, hint) : event;
     });
   }
 }
@@ -59,7 +56,7 @@ export class LinkedErrors implements Integration {
 /**
  * @inheritDoc
  */
-function handler(key: string, limit: number, event: Event, hint?: EventHint): Event | null {
+export function _handler(key: string, limit: number, event: Event, hint?: EventHint): Event | null {
   if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
     return event;
   }
@@ -71,7 +68,7 @@ function handler(key: string, limit: number, event: Event, hint?: EventHint): Ev
 /**
  * JSDOC
  */
-function _walkErrorTree(limit: number, error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
+export function _walkErrorTree(limit: number, error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
   if (!isInstanceOf(error[key], Error) || stack.length + 1 >= limit) {
     return stack;
   }
