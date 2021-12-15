@@ -4,9 +4,9 @@ import {
   addExceptionMechanism,
   addExceptionTypeValue,
   getGlobalObject,
+  getOriginalFunction,
   logger,
   rememberOriginalFunction,
-  getOriginalFunction,
 } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
