@@ -103,7 +103,7 @@ function getWalkSource(
       currentTarget?: unknown;
     }
 
-    const event = value as SimpleEvent;
+    const event = (value as unknown) as SimpleEvent;
 
     const source: {
       [key: string]: any;
