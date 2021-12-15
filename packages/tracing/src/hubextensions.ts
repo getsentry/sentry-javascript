@@ -166,7 +166,8 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const options = this.getClient()?.getOptions() || {};
+  const client = this.getClient();
+  const options = (client && client.getOptions()) || {};
 
   let transaction = new Transaction(transactionContext, this);
   transaction = sample(transaction, options, {
@@ -175,7 +176,7 @@ function _startTransaction(
     ...customSamplingContext,
   });
   if (transaction.sampled) {
-    transaction.initSpanRecorder(options._experiments?.maxSpans as number);
+    transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
   }
   return transaction;
 }
@@ -190,7 +191,8 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
-  const options = hub.getClient()?.getOptions() || {};
+  const client = hub.getClient();
+  const options = (client && client.getOptions()) || {};
 
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
   transaction = sample(transaction, options, {
@@ -199,7 +201,7 @@ export function startIdleTransaction(
     ...customSamplingContext,
   });
   if (transaction.sampled) {
-    transaction.initSpanRecorder(options._experiments?.maxSpans as number);
+    transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
   }
   return transaction;
 }

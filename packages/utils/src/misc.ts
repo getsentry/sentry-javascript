@@ -142,7 +142,7 @@ export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mecha
   exceptionValue0.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
 
   if (newMechanism && 'data' in newMechanism) {
-    const mergedData = { ...currentMechanism?.data, ...newMechanism.data };
+    const mergedData = { ...(currentMechanism && currentMechanism.data), ...newMechanism.data };
     exceptionValue0.mechanism.data = mergedData;
   }
 }
@@ -261,7 +261,7 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
  */
 export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if ((exception as any)?.__sentry_captured__) {
+  if (exception && (exception as any).__sentry_captured__) {
     return true;
   }
 

@@ -232,7 +232,7 @@ export class TryCatch implements Integration {
          */
         const wrappedEventHandler = (fn as unknown) as WrappedFunction;
         try {
-          const originalEventHandler = wrappedEventHandler?.__sentry_wrapped__;
+          const originalEventHandler = wrappedEventHandler && wrappedEventHandler.__sentry_wrapped__;
           if (originalEventHandler) {
             originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
           }
