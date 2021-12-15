@@ -2,7 +2,7 @@ import { isDebugBuild } from '../src';
 import { Dsn } from '../src/dsn';
 import { SentryError } from '../src/error';
 
-function testIf(condition) {
+function testIf(condition: boolean): jest.It {
   return condition ? test : test.skip;
 }
 
