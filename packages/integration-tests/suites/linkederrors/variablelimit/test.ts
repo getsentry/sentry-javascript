@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { getSentryRequest } from '../../../utils/helpers';
 
-sentryTest('should allow to change walk key', async ({ getLocalTestPath, page }) => {
+sentryTest('should allow to change stack size limit', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getSentryRequest(page, url);
