@@ -172,7 +172,7 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
       arguments: handlerData.args,
       logger: 'console',
     },
-    level: Severity.fromString(handlerData.level),
+    level: severityFromString(handlerData.level),
     message: safeJoin(handlerData.args, ' '),
   };
 
