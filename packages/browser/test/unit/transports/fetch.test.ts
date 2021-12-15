@@ -1,5 +1,5 @@
 import { Outcome } from '@sentry/types';
-import { SentryError } from '@sentry/utils';
+import { createSentryError } from '@sentry/utils';
 
 import { Event, Response, Status, Transports } from '../../../src';
 
@@ -123,7 +123,7 @@ describe('FetchTransport', () => {
 
     it('should record dropped event when queue buffer overflows', async () => {
       // @ts-ignore private method
-      jest.spyOn(transport._buffer, 'add').mockRejectedValue(new SentryError('Buffer Full'));
+      jest.spyOn(transport._buffer, 'add').mockRejectedValue(createSentryError('Buffer Full'));
       const spy = jest.spyOn(transport, 'recordLostEvent');
 
       try {

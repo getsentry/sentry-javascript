@@ -1,6 +1,6 @@
 import { Session } from '@sentry/hub';
 import { SessionAggregates, TransportOptions } from '@sentry/types';
-import { SentryError } from '@sentry/utils';
+import { createSentryError } from '@sentry/utils';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 
@@ -79,7 +79,7 @@ describe('HTTPSTransport', () => {
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+      expect(e).toEqual(createSentryError(`HTTP Error (${mockReturnCode})`));
     }
   });
 
@@ -101,7 +101,7 @@ describe('HTTPSTransport', () => {
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions, true);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+      expect(e).toEqual(createSentryError(`HTTP Error (${mockReturnCode})`));
     }
   });
 
@@ -123,7 +123,7 @@ describe('HTTPSTransport', () => {
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions, true);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+      expect(e).toEqual(createSentryError(`HTTP Error (${mockReturnCode})`));
     }
   });
 
@@ -141,7 +141,7 @@ describe('HTTPSTransport', () => {
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode}): test-failed`));
+      expect(e).toEqual(createSentryError(`HTTP Error (${mockReturnCode}): test-failed`));
     }
   });
 
@@ -181,7 +181,7 @@ describe('HTTPSTransport', () => {
     try {
       await transport.sendEvent({ message: 'test' });
     } catch (e) {
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+      expect(e).toEqual(createSentryError(`HTTP Error (${mockReturnCode})`));
     }
 
     try {
@@ -200,7 +200,7 @@ describe('HTTPSTransport', () => {
     try {
       await transport.sendEvent({ message: 'test' });
     } catch (e) {
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+      expect(e).toEqual(createSentryError(`HTTP Error (${mockReturnCode})`));
     }
 
     mock.mockRestore();

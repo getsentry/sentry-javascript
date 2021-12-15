@@ -3,7 +3,7 @@ import { RewriteFrames } from '@sentry/integrations';
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
 import { Integration } from '@sentry/types';
-import { getGlobalObject, logger, SentryError } from '@sentry/utils';
+import { getGlobalObject, logger, createSentryError } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { init } from '../src/index.server';
@@ -104,7 +104,7 @@ describe('Server init()', () => {
 
     expect(sendEvent).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();
-    expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    expect(logError).toHaveBeenCalledWith(createSentryError('An event processor returned null, will not send event.'));
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {

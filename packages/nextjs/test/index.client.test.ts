@@ -3,7 +3,7 @@ import { getCurrentHub } from '@sentry/hub';
 import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { getGlobalObject, logger, SentryError } from '@sentry/utils';
+import { getGlobalObject, logger, createSentryError } from '@sentry/utils';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
 import { NextjsOptions } from '../src/utils/nextjsOptions';
@@ -75,7 +75,7 @@ describe('Client init()', () => {
 
     expect(sendEvent).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();
-    expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    expect(logError).toHaveBeenCalledWith(createSentryError('An event processor returned null, will not send event.'));
   });
 
   describe('integrations', () => {

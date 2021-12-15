@@ -1,16 +1,7 @@
+import { createSentryError } from '../src/error';
 import { isDOMError, isDOMException, isError, isErrorEvent, isInstanceOf, isPrimitive, isThenable } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
 import { SyncPromise } from '../src/syncpromise';
-
-class SentryError extends Error {
-  public name: string;
-
-  public constructor(public message: string) {
-    super(message);
-    this.name = new.target.prototype.constructor.name;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
 
 if (supportsDOMError()) {
   describe('isDOMError()', () => {
@@ -35,7 +26,7 @@ describe('isError()', () => {
   test('should work as advertised', () => {
     expect(isError(new Error())).toEqual(true);
     expect(isError(new ReferenceError())).toEqual(true);
-    expect(isError(new SentryError('message'))).toEqual(true);
+    expect(isError(createSentryError('message'))).toEqual(true);
     expect(isError({})).toEqual(false);
     expect(
       isError({

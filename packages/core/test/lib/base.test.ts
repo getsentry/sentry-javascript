@@ -1,6 +1,6 @@
 import { Hub, Scope, Session } from '@sentry/hub';
 import { Event, Outcome, Severity, Span, Transport } from '@sentry/types';
-import { logger, SentryError, SyncPromise } from '@sentry/utils';
+import { createSentryError, logger, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
 import { TestBackend } from '../mocks/backend';
@@ -78,7 +78,7 @@ describe('BaseClient', () => {
 
     test('throws with invalid Dsn', () => {
       expect.assertions(1);
-      expect(() => new TestClient({ dsn: 'abc' })).toThrow(SentryError);
+      expect(() => new TestClient({ dsn: 'abc' })).toThrow(Error);
     });
   });
 
@@ -770,7 +770,7 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' });
       expect(TestBackend.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerErrorSpy).toBeCalledWith(new SentryError('`beforeSend` returned `null`, will not send event.'));
+      expect(loggerErrorSpy).toBeCalledWith(createSentryError('`beforeSend` returned `null`, will not send event.'));
     });
 
     test('calls beforeSend and log info about invalid return value', () => {
@@ -785,7 +785,7 @@ describe('BaseClient', () => {
         client.captureEvent({ message: 'hello' });
         expect(TestBackend.instance!.event).toBeUndefined();
         expect(loggerErrorSpy).toBeCalledWith(
-          new SentryError('`beforeSend` method has to return `null` or a valid event.'),
+          createSentryError('`beforeSend` method has to return `null` or a valid event.'),
         );
       }
     });
@@ -895,7 +895,9 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' }, {}, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerErrorSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
+      expect(loggerErrorSpy).toBeCalledWith(
+        createSentryError('An event processor returned null, will not send event.'),
+      );
     });
 
     test('eventProcessor records dropped events', () => {
@@ -936,7 +938,7 @@ describe('BaseClient', () => {
         originalException: exception,
       });
       expect(loggerErrorSpy).toBeCalledWith(
-        new SentryError(
+        createSentryError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
         ),
       );
