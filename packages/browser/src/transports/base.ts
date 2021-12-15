@@ -20,6 +20,7 @@ import {
   parseRetryAfterHeader,
   PromiseBuffer,
   SentryError,
+  statusFromHttpCode,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
@@ -155,7 +156,7 @@ export abstract class BaseTransport implements Transport {
     resolve: (value?: SentryResponse | PromiseLike<SentryResponse> | null | undefined) => void;
     reject: (reason?: unknown) => void;
   }): void {
-    const status = Status.fromHttpCode(response.status);
+    const status = statusFromHttpCode(response.status);
     /**
      * "The name is case-insensitive."
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get

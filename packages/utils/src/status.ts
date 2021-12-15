@@ -5,7 +5,7 @@ import { StatusType } from '@sentry/types';
  * @param code number HTTP status code
  * @returns StatusType
  */
-export function fromHttpCode(code: number): StatusType {
+export function statusFromHttpCode(code: number): StatusType {
   if (code >= 200 && code < 300) {
     return 'success';
   }
