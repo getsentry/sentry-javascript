@@ -2,7 +2,7 @@
 import { Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
-import { SpanStatus } from './spanstatus';
+import { spanStatusfromHttpCode, SpanStatusType } from './spanstatus';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -56,7 +56,7 @@ export class Span implements SpanInterface {
   /**
    * Internal keeper of the status
    */
-  public status?: SpanStatus | string;
+  public status?: SpanStatusType;
 
   /**
    * @inheritDoc
@@ -204,7 +204,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public setStatus(value: SpanStatus): this {
+  public setStatus(value: SpanStatusType): this {
     this.status = value;
     return this;
   }
@@ -214,8 +214,8 @@ export class Span implements SpanInterface {
    */
   public setHttpStatus(httpStatus: number): this {
     this.setTag('http.status_code', String(httpStatus));
-    const spanStatus = SpanStatus.fromHttpCode(httpStatus);
-    if (spanStatus !== SpanStatus.UnknownError) {
+    const spanStatus = spanStatusfromHttpCode(httpStatus);
+    if (spanStatus !== 'unknown_error') {
       this.setStatus(spanStatus);
     }
     return this;
@@ -225,7 +225,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public isSuccess(): boolean {
-    return this.status === SpanStatus.Ok;
+    return this.status === 'ok';
   }
 
   /**

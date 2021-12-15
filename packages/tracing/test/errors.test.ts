@@ -1,7 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
-import { SpanStatus } from '../src';
 import { registerErrorInstrumentation } from '../src/errors';
 import { _addTracingExtensions } from '../src/hubextensions';
 
@@ -71,7 +70,7 @@ describe('registerErrorHandlers()', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
 
     mockErrorCallback();
-    expect(transaction.status).toBe(SpanStatus.InternalError);
+    expect(transaction.status).toBe('internal_error');
 
     transaction.finish();
   });
@@ -82,7 +81,7 @@ describe('registerErrorHandlers()', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
 
     mockUnhandledRejectionCallback();
-    expect(transaction.status).toBe(SpanStatus.InternalError);
+    expect(transaction.status).toBe('internal_error');
     transaction.finish();
   });
 });

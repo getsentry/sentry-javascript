@@ -1,7 +1,6 @@
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-import { SpanStatus } from '../spanstatus';
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
@@ -156,7 +155,7 @@ export function fetchCallback(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(handlerData.response.status);
       } else if (handlerData.error) {
-        span.setStatus(SpanStatus.InternalError);
+        span.setStatus('internal_error');
       }
       span.finish();
 

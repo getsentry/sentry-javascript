@@ -29,7 +29,7 @@ export {
   RequestInstrumentationOptions,
   defaultRequestInstrumentationOptions,
 } from './browser';
-export { SpanStatus } from './spanstatus';
+export { SpanStatus, spanStatusfromHttpCode } from './spanstatus';
 export { IdleTransaction } from './idletransaction';
 export { startIdleTransaction } from './hubextensions';
 

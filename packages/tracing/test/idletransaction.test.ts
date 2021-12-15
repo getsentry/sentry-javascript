@@ -9,7 +9,6 @@ import {
   IdleTransactionSpanRecorder,
 } from '../src/idletransaction';
 import { Span } from '../src/span';
-import { SpanStatus } from '../src/spanstatus';
 
 export class SimpleTransport extends Transports.BaseTransport {}
 
@@ -160,7 +159,7 @@ describe('IdleTransaction', () => {
 
       // Cancelled Span - has endtimestamp of transaction
       expect(spans[2].spanId).toBe(cancelledSpan.spanId);
-      expect(spans[2].status).toBe(SpanStatus.Cancelled);
+      expect(spans[2].status).toBe('cancelled');
       expect(spans[2].endTimestamp).toBe(transaction.endTimestamp);
     }
   });
@@ -203,22 +202,22 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
       const mockFinish = jest.spyOn(transaction, 'finish');
 
-      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
+      expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 1
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
-      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
+      expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
-      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
+      expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
-      expect(transaction.status).not.toEqual(SpanStatus.DeadlineExceeded);
+      expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
     });
 

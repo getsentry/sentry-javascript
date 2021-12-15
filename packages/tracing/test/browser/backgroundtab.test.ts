@@ -2,7 +2,6 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 import { JSDOM } from 'jsdom';
 
-import { SpanStatus } from '../../src';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
 
 describe('registerBackgroundTabDetection', () => {
@@ -49,7 +48,7 @@ describe('registerBackgroundTabDetection', () => {
     global.document.hidden = true;
     events.visibilitychange();
 
-    expect(transaction.status).toBe(SpanStatus.Cancelled);
+    expect(transaction.status).toBe('cancelled');
     expect(transaction.tags.visibilitychange).toBe('document.hidden');
     expect(transaction.endTimestamp).toBeDefined();
   });

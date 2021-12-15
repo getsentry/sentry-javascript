@@ -1,7 +1,7 @@
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
-import { SpanStatus, Transaction } from '@sentry/tracing';
+import { Transaction } from '@sentry/tracing';
 import { RequestSessionStatus, Runtime } from '@sentry/types';
 import * as http from 'http';
 import * as net from 'net';
@@ -403,7 +403,7 @@ describe('tracingHandler', () => {
 
     setImmediate(() => {
       expect(finishTransaction).toHaveBeenCalled();
-      expect(transaction.status).toBe(SpanStatus.Ok);
+      expect(transaction.status).toBe('ok');
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
       done();
     });

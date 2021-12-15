@@ -2,7 +2,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
-import { Span, SpanStatus, Transaction } from '../../src';
+import { Span, Transaction, spanStatusfromHttpCode } from '../../src';
 import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
@@ -176,7 +176,7 @@ describe('callbacks', () => {
       // triggered by response coming back
       fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.status).toBe(SpanStatus.fromHttpCode(404));
+      expect(newSpan!.status).toBe(spanStatusfromHttpCode(404));
     });
 
     it('adds sentry-trace header to fetch requests', () => {
@@ -267,7 +267,7 @@ describe('callbacks', () => {
       // triggered by response coming back
       xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.status).toBe(SpanStatus.fromHttpCode(404));
+      expect(newSpan!.status).toBe(spanStatusfromHttpCode(404));
     });
   });
 });
