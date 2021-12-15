@@ -7,7 +7,7 @@ import {
   getGlobalObject,
   getOriginalFunction,
   logger,
-  rememberOriginalFunction,
+  markFunctionWrapped,
 } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
@@ -100,19 +100,17 @@ export function wrap(
 
       withScope((scope: Scope) => {
         scope.addEventProcessor((event: SentryEvent) => {
-          const processedEvent = { ...event };
-
           if (options.mechanism) {
-            addExceptionTypeValue(processedEvent, undefined, undefined);
-            addExceptionMechanism(processedEvent, options.mechanism);
+            addExceptionTypeValue(event, undefined, undefined);
+            addExceptionMechanism(event, options.mechanism);
           }
 
-          processedEvent.extra = {
-            ...processedEvent.extra,
+          event.extra = {
+            ...event.extra,
             arguments: args,
           };
 
-          return processedEvent;
+          return event;
         });
 
         captureException(ex);
@@ -133,14 +131,11 @@ export function wrap(
     }
   } catch (_oO) {} // eslint-disable-line no-empty
 
-  const proto = fn.prototype || {};
-  sentryWrapped.prototype = fn.prototype = proto;
-
-  addNonEnumerableProperty(fn, '__sentry_wrapped__', sentryWrapped);
-
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
-  rememberOriginalFunction(sentryWrapped, fn);
+  markFunctionWrapped(sentryWrapped, fn);
+
+  addNonEnumerableProperty(fn, '__sentry_wrapped__', sentryWrapped);
 
   // Restore original function name (not all browsers allow that)
   try {

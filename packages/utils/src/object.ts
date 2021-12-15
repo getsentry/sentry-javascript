@@ -31,8 +31,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
   if (typeof wrapped === 'function') {
     try {
-      wrapped.prototype = wrapped.prototype || {};
-      rememberOriginalFunction(wrapped, original);
+      markFunctionWrapped(wrapped, original);
     } catch (_Oo) {
       // This can throw if multiple fill happens on a global object like XMLHttpRequest
       // Fixes https://github.com/getsentry/sentry-javascript/issues/2043
@@ -57,18 +56,21 @@ export function addNonEnumerableProperty(func: any, name: string, value: any): v
 }
 
 /**
- * Remembers the original function on the wrapped function.
+ * Remembers the original function on the wrapped function and
+ * patches up the prototype.
  *
  * @param wrapped the wrapper function
  * @param original the original function that gets wrapped
  */
-export function rememberOriginalFunction(wrapped: WrappedFunction, original: WrappedFunction): void {
+export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedFunction): void {
+  const proto = original.prototype || {};
+  wrapped.prototype = original.prototype = proto;
   addNonEnumerableProperty(wrapped, '__sentry_original__', original);
 }
 
 /**
- * This extracts the original function if available.  This is the inverse
- * of `rememberOriginalFunction`.
+ * This extracts the original function if available.  See
+ * `markFunctionWrapped` for more information.
  *
  * @param func the function to unwrap
  * @returns the unwrapped version of the function if available.
