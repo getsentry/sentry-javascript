@@ -37,8 +37,7 @@ export class CaptureConsole implements Integration {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawConsole: { [key: string]: any } = {};
+    const rawConsole: { [key: string]: () => any } = {};
 
     this._levels.forEach((level: string) => {
       if (!(level in global.console)) {

@@ -16,26 +16,21 @@ const PREFIX = 'Sentry Logger ';
  * @returns The results of the callback
  */
 export function consoleSandbox(callback: () => any): any {
-  let result;
-  const originalConsole = global.console;
-  if (originalConsole) {
-    result = callback();
+  const currentConsole = global.console;
+  // @ts-ignore this is placed here by captureconsole.ts
+  const rawConsole = currentConsole.__orig as Console;
+  if (!rawConsole) {
+    return callback();
   } else {
-    // @ts-ignore this is placed here by captureconsole.ts
-    const rawConsole = global.console.__orig as Console;
-
-    // @ts-ignore meh
+    // @ts-ignore this is in fact writable
     global.console = rawConsole;
-
     try {
-      result = callback();
+      return callback();
     } finally {
-      // @ts-ignore meh
-      global.console = originalConsole;
+      // @ts-ignore this is in fact writable
+      global.console = currentConsole;
     }
   }
-
-  return result;
 }
 
 function makeLogger(): Logger {
