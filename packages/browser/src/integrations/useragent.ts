@@ -28,12 +28,12 @@ export class UserAgent implements Integration {
         }
 
         // grab as much info as exists and add it to the event
-        const url = event.request?.url || global.location?.href;
+        const url = (event.request && event.request.url) || (global.location && global.location.href);
         const { referrer } = global.document || {};
         const { userAgent } = global.navigator || {};
 
         const headers = {
-          ...event.request?.headers,
+          ...(event.request && event.request.headers),
           ...(referrer && { Referer: referrer }),
           ...(userAgent && { 'User-Agent': userAgent }),
         };

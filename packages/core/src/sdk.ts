@@ -17,7 +17,10 @@ export function initAndBind<F extends Client, O extends Options>(clientClass: Cl
     logger.enable();
   }
   const hub = getCurrentHub();
-  hub.getScope()?.update(options.initialScope);
+  const scope = hub.getScope();
+  if (scope) {
+    scope.update(options.initialScope);
+  }
   const client = new clientClass(options);
   hub.bindClient(client);
 }
