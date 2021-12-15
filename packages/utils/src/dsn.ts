@@ -1,6 +1,6 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
-import { isDebugBuild } from '.';
+import { isDebugBuild } from './env';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
