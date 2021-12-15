@@ -56,7 +56,7 @@ export class Span implements SpanInterface {
   /**
    * Internal keeper of the status
    */
-  public status?: SpanStatusType;
+  public status?: SpanStatusType | string;
 
   /**
    * @inheritDoc
