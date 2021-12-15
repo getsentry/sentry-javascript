@@ -99,17 +99,14 @@ export class InboundFilters implements Integration {
     }
 
     try {
-      return (
-        (event &&
-          event.exception &&
-          event.exception.values &&
-          event.exception.values[0] &&
-          event.exception.values[0].type === 'SentryError') ||
-        false
-      );
-    } catch (_oO) {
-      return false;
+      // @ts-ignore can't be a sentry error if undefined
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      return event.exception.values[0].type === 'SentryError';
+    } catch (e) {
+      // ignore
     }
+
+    return false;
   }
 
   /** JSDoc */
@@ -206,15 +203,16 @@ export class InboundFilters implements Integration {
   private _getEventFilterUrl(event: Event): string | null {
     try {
       if (event.stacktrace) {
-        const frames = event.stacktrace.frames;
-        return this._getLastValidUrl(frames);
+        return this._getLastValidUrl(event.stacktrace.frames);
       }
-      if (event.exception) {
-        const frames =
-          event.exception.values && event.exception.values[0].stacktrace && event.exception.values[0].stacktrace.frames;
-        return this._getLastValidUrl(frames);
+      let frames;
+      try {
+        // @ts-ignore we only care about frames if the whole thing here is defined
+        frames = event.exception.values[0].stacktrace.frames;
+      } catch (e) {
+        // ignore
       }
-      return null;
+      return frames ? this._getLastValidUrl(frames) : null;
     } catch (oO) {
       logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
       return null;
