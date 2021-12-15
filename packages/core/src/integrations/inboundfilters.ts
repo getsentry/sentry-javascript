@@ -99,17 +99,14 @@ export class InboundFilters implements Integration {
     }
 
     try {
-      return (
-        (event &&
-          event.exception &&
-          event.exception.values &&
-          event.exception.values[0] &&
-          event.exception.values[0].type === 'SentryError') ||
-        false
-      );
-    } catch (_oO) {
-      return false;
+      // @ts-ignore can't be a sentry error if undefined
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      return event.exceptions.values[0].type === 'SentryError';
+    } catch (e) {
+      // ignore
     }
+
+    return false;
   }
 
   /** JSDoc */
@@ -205,13 +202,18 @@ export class InboundFilters implements Integration {
   /** JSDoc */
   private _getEventFilterUrl(event: Event): string | null {
     try {
+      let frames;
       if (event.stacktrace) {
-        const frames = event.stacktrace.frames;
+        frames = event.stacktrace.frames;
         return this._getLastValidUrl(frames);
       }
-      if (event.exception) {
-        const frames =
-          event.exception.values && event.exception.values[0].stacktrace && event.exception.values[0].stacktrace.frames;
+      try {
+        // @ts-ignore we only care about frames if the whole thing here is defined
+        frames = event.exception.values[0].stacktrace.values;
+      } catch (e) {
+        // ignore
+      }
+      if (frames) {
         return this._getLastValidUrl(frames);
       }
       return null;

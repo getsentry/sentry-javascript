@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, Mechanism, StackFrame } from '@sentry/types';
+import { Event, Exception, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
 import { snipLine } from './string';
@@ -90,23 +90,28 @@ export function parseUrl(
   };
 }
 
+function getFirstException(event: Event): Exception | undefined {
+  return event.exception && event.exception.values ? event.exception.values[0] : undefined;
+}
+
 /**
  * Extracts either message or type+value from an event that can be used for user-facing logs
  * @returns event's description
  */
 export function getEventDescription(event: Event): string {
-  if (event.message) {
-    return event.message;
+  const { message, event_id: eventId } = event;
+  if (message) {
+    return message;
   }
-  if (event.exception && event.exception.values && event.exception.values[0]) {
-    const exception = event.exception.values[0];
 
-    if (exception.type && exception.value) {
-      return `${exception.type}: ${exception.value}`;
+  const firstException = getFirstException(event);
+  if (firstException) {
+    if (firstException.type && firstException.value) {
+      return `${firstException.type}: ${firstException.value}`;
     }
-    return exception.type || exception.value || event.event_id || '<unknown>';
+    return firstException.type || firstException.value || eventId || '<unknown>';
   }
-  return event.event_id || '<unknown>';
+  return eventId || '<unknown>';
 }
 
 /**
@@ -117,11 +122,15 @@ export function getEventDescription(event: Event): string {
  * @hidden
  */
 export function addExceptionTypeValue(event: Event, value?: string, type?: string): void {
-  event.exception = event.exception || {};
-  event.exception.values = event.exception.values || [];
-  event.exception.values[0] = event.exception.values[0] || {};
-  event.exception.values[0].value = event.exception.values[0].value || value || '';
-  event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
+  const exception = (event.exception = event.exception || {});
+  const values = (exception.values = exception.values || []);
+  const firstException = (values[0] = values[0] || {});
+  if (!firstException.value) {
+    firstException.value = value || '';
+  }
+  if (!firstException.type) {
+    firstException.type = type || 'Error';
+  }
 }
 
 /**
@@ -132,18 +141,18 @@ export function addExceptionTypeValue(event: Event, value?: string, type?: strin
  * @hidden
  */
 export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mechanism>): void {
-  if (!event.exception || !event.exception.values) {
+  const firstException = getFirstException(event);
+  if (!firstException) {
     return;
   }
-  const exceptionValue0 = event.exception.values[0];
 
   const defaultMechanism = { type: 'generic', handled: true };
-  const currentMechanism = exceptionValue0.mechanism;
-  exceptionValue0.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
+  const currentMechanism = firstException.mechanism;
+  firstException.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
 
   if (newMechanism && 'data' in newMechanism) {
     const mergedData = { ...(currentMechanism && currentMechanism.data), ...newMechanism.data };
-    exceptionValue0.mechanism.data = mergedData;
+    firstException.mechanism.data = mergedData;
   }
 }
 
