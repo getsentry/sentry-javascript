@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration, Severity } from '@sentry/types';
-import { fill, getGlobalObject, safeJoin } from '@sentry/utils';
+import { fill, getGlobalObject, safeJoin, bypassConsoleInstrumentation } from '@sentry/utils';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 
@@ -37,8 +37,6 @@ export class CaptureConsole implements Integration {
       return;
     }
 
-    const rawConsole: { [key: string]: unknown } = { ...console };
-
     this._levels.forEach((level: string) => {
       if (!(level in global.console)) {
         return;
@@ -48,7 +46,7 @@ export class CaptureConsole implements Integration {
       fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]): void => {
         const hub = getCurrentHub();
 
-        if (hub.getIntegration(CaptureConsole)) {
+        if (hub.getIntegration(CaptureConsole) && !bypassConsoleInstrumentation()) {
           hub.withScope(scope => {
             scope.setLevel(Severity.fromString(level));
             scope.setExtra('arguments', args);
@@ -72,16 +70,11 @@ export class CaptureConsole implements Integration {
           });
         }
 
-        rawConsole[level] = originalConsoleLevel;
-
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
           Function.prototype.apply.call(originalConsoleLevel, global.console, args);
         }
       });
     });
-
-    // @ts-ignore we're stashing away the raw console here for later.
-    global.console.__orig = rawConsole;
   }
 }

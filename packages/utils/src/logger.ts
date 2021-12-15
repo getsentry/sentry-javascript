@@ -8,28 +8,31 @@ const global = getGlobalObject<Window | NodeJS.Global>();
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
 
+let _bypassConsoleInstrumentation = false;
+
 /**
- * Temporarily unwrap `console.log` and friends in order to perform the given callback using the original methods.
- * Restores wrapping after the callback completes.
+ * Returns true if the console should be bypassed.  This is used by the
+ * captureconsole integration to disable itself.
+ *
+ * @returns true if the console instrumentation is bypassed.
+ */
+export function bypassConsoleInstrumentation(): boolean {
+  return _bypassConsoleInstrumentation;
+}
+
+/**
+ * Temporarily disable sentry console instrumentations.
  *
  * @param callback The function to run against the original `console` messages
  * @returns The results of the callback
  */
 export function consoleSandbox(callback: () => any): any {
-  const currentConsole = global.console;
-  // @ts-ignore this is placed here by captureconsole.ts
-  const rawConsole = currentConsole.__orig as Console;
-  if (!rawConsole) {
+  const old = _bypassConsoleInstrumentation;
+  _bypassConsoleInstrumentation = true;
+  try {
     return callback();
-  } else {
-    // @ts-ignore this is in fact writable
-    global.console = rawConsole;
-    try {
-      return callback();
-    } finally {
-      // @ts-ignore this is in fact writable
-      global.console = currentConsole;
-    }
+  } finally {
+    _bypassConsoleInstrumentation = old;
   }
 }
 
