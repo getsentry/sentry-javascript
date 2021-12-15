@@ -1,4 +1,4 @@
-import { RequestSessionStatus, Status } from '@sentry/types';
+import { RequestSessionStatus } from '@sentry/types';
 
 import { SessionFlusher } from '../src/sessionflusher';
 
@@ -12,7 +12,7 @@ describe('Session Flusher', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    sendSession = jest.fn(() => Promise.resolve({ status: Status.Success }));
+    sendSession = jest.fn(() => Promise.resolve({ status: 'success' }));
     transport = {
       sendEvent: jest.fn(),
       sendSession,

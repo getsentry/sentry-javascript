@@ -9,7 +9,6 @@ import {
   Outcome,
   Response as SentryResponse,
   SentryRequestType,
-  Status,
   Transport,
   TransportOptions,
 } from '@sentry/types';
@@ -165,7 +164,7 @@ export abstract class BaseTransport implements Transport {
     if (limited)
       logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
 
-    if (status === Status.Success) {
+    if (status === 'success') {
       resolve({ status });
       return;
     }

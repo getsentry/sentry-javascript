@@ -2,7 +2,7 @@ import { Outcome } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import { fakeServer, SinonFakeServer } from 'sinon';
 
-import { Event, Response, Status, Transports } from '../../../src';
+import { Event, Response, Transports } from '../../../src';
 
 const testDsn = 'https://123@sentry.io/42';
 const storeUrl = 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7';
@@ -41,7 +41,7 @@ describe('XHRTransport', () => {
 
       const res = await transport.sendEvent(eventPayload);
 
-      expect((res as Response).status).toBe(Status.Success);
+      expect((res as Response).status).toBe('success');
       const request = server.requests[0];
       expect(server.requests.length).toBe(1);
       expect(request.method).toBe('POST');
@@ -107,7 +107,7 @@ describe('XHRTransport', () => {
       const res = await transport.sendEvent(eventPayload);
       const request = server.requests[0];
 
-      expect((res as Response).status).toBe(Status.Success);
+      expect((res as Response).status).toBe('success');
       const requestHeaders: { [key: string]: string } = request.requestHeaders as { [key: string]: string };
       expect(requestHeaders['Accept']).toBe('application/json');
     });
@@ -157,7 +157,7 @@ describe('XHRTransport', () => {
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(server.requests.length).toBe(2);
       });
 
@@ -197,7 +197,7 @@ describe('XHRTransport', () => {
         }
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).toBe(Status.Success);
+        expect(transactionRes.status).toBe('success');
         expect(server.requests.length).toBe(2);
 
         try {
@@ -214,7 +214,7 @@ describe('XHRTransport', () => {
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(server.requests.length).toBe(3);
       });
 
@@ -285,11 +285,11 @@ describe('XHRTransport', () => {
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(server.requests.length).toBe(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).toBe(Status.Success);
+        expect(transactionRes.status).toBe('success');
         expect(server.requests.length).toBe(3);
       });
 
@@ -356,11 +356,11 @@ describe('XHRTransport', () => {
         server.respondWith('POST', envelopeUrl, [200, {}, '']);
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(server.requests.length).toBe(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).toBe(Status.Success);
+        expect(transactionRes.status).toBe('success');
         expect(server.requests.length).toBe(3);
       });
 
@@ -386,7 +386,7 @@ describe('XHRTransport', () => {
           .mockImplementationOnce(() => afterLimit);
 
         let eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(server.requests.length).toBe(1);
 
         try {
@@ -403,7 +403,7 @@ describe('XHRTransport', () => {
         server.respondWith('POST', storeUrl, [200, {}, '']);
 
         eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(server.requests.length).toBe(2);
       });
 

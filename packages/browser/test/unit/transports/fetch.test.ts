@@ -1,7 +1,7 @@
 import { Outcome } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
-import { Event, Response, Status, Transports } from '../../../src';
+import { Event, Response, Transports } from '../../../src';
 
 const testDsn = 'https://123@sentry.io/42';
 const storeUrl = 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7';
@@ -61,7 +61,7 @@ describe('FetchTransport', () => {
 
       const res = await transport.sendEvent(eventPayload);
 
-      expect((res as Response).status).toBe(Status.Success);
+      expect((res as Response).status).toBe('success');
       expect(fetch).toHaveBeenCalledWith(storeUrl, {
         body: JSON.stringify(eventPayload),
         method: 'POST',
@@ -149,7 +149,7 @@ describe('FetchTransport', () => {
 
       const res = await transport.sendEvent(eventPayload);
 
-      expect((res as Response).status).toBe(Status.Success);
+      expect((res as Response).status).toBe('success');
       expect(fetch).toHaveBeenCalledWith(storeUrl, {
         body: JSON.stringify(eventPayload),
         headers: {
@@ -176,7 +176,7 @@ describe('FetchTransport', () => {
 
       const res = await transport.sendEvent(eventPayload);
 
-      expect((res as Response).status).toBe(Status.Success);
+      expect((res as Response).status).toBe('success');
       expect(fetch).toHaveBeenCalledWith(storeUrl, {
         body: JSON.stringify(eventPayload),
         credentials: 'include',
@@ -232,7 +232,7 @@ describe('FetchTransport', () => {
         window.fetch.mockImplementation(() => Promise.resolve({ status: 200, headers: new Headers() }));
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(2);
       });
 
@@ -275,7 +275,7 @@ describe('FetchTransport', () => {
         window.fetch.mockImplementation(() => Promise.resolve({ status: 200, headers: new Headers() }));
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).toBe(Status.Success);
+        expect(transactionRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(2);
 
         try {
@@ -290,7 +290,7 @@ describe('FetchTransport', () => {
         }
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(3);
       });
 
@@ -357,11 +357,11 @@ describe('FetchTransport', () => {
         window.fetch.mockImplementation(() => Promise.resolve({ status: 200, headers: new Headers() }));
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).toBe(Status.Success);
+        expect(transactionRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(3);
       });
 
@@ -428,11 +428,11 @@ describe('FetchTransport', () => {
         window.fetch.mockImplementation(() => Promise.resolve({ status: 200, headers: new Headers() }));
 
         const eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(2);
 
         const transactionRes = await transport.sendEvent(transactionPayload);
-        expect(transactionRes.status).toBe(Status.Success);
+        expect(transactionRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(3);
       });
 
@@ -460,7 +460,7 @@ describe('FetchTransport', () => {
         window.fetch.mockImplementation(() => Promise.resolve({ status: 200, headers }));
 
         let eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(fetch).toHaveBeenCalled();
 
         try {
@@ -477,7 +477,7 @@ describe('FetchTransport', () => {
         window.fetch.mockImplementation(() => Promise.resolve({ status: 200, headers: new Headers() }));
 
         eventRes = await transport.sendEvent(eventPayload);
-        expect(eventRes.status).toBe(Status.Success);
+        expect(eventRes.status).toBe('success');
         expect(fetch).toHaveBeenCalledTimes(2);
       });
 

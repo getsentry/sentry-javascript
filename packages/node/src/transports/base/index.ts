@@ -7,7 +7,6 @@ import {
   SentryRequestType,
   Session,
   SessionAggregates,
-  Status,
   Transport,
   TransportOptions,
 } from '@sentry/types';
@@ -236,7 +235,7 @@ export abstract class BaseTransport implements Transport {
                 )}`,
               );
 
-            if (status === Status.Success) {
+            if (status === 'success') {
               resolve({ status });
             } else {
               let rejectionMessage = `HTTP Error (${statusCode})`;
