@@ -1,4 +1,5 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+import { isDebugBuild } from '.';
 
 import { SentryError } from './error';
 
@@ -102,22 +103,25 @@ export class Dsn implements DsnComponents {
 
   /** Validates this Dsn and throws on error. */
   private _validate(): void {
-    ['protocol', 'publicKey', 'host', 'projectId'].forEach(component => {
-      if (!this[component as keyof DsnComponents]) {
-        throw new SentryError(`${ERROR_MESSAGE}: ${component} missing`);
+    // we only validate in debug mode.  This will fail later anyways.
+    if (isDebugBuild()) {
+      ['protocol', 'publicKey', 'host', 'projectId'].forEach(component => {
+        if (!this[component as keyof DsnComponents]) {
+          throw new SentryError(`${ERROR_MESSAGE}: ${component} missing`);
+        }
+      });
+
+      if (!this.projectId.match(/^\d+$/)) {
+        throw new SentryError(`${ERROR_MESSAGE}: Invalid projectId ${this.projectId}`);
       }
-    });
 
-    if (!this.projectId.match(/^\d+$/)) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid projectId ${this.projectId}`);
-    }
+      if (this.protocol !== 'http' && this.protocol !== 'https') {
+        throw new SentryError(`${ERROR_MESSAGE}: Invalid protocol ${this.protocol}`);
+      }
 
-    if (this.protocol !== 'http' && this.protocol !== 'https') {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid protocol ${this.protocol}`);
-    }
-
-    if (this.port && isNaN(parseInt(this.port, 10))) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid port ${this.port}`);
+      if (this.port && isNaN(parseInt(this.port, 10))) {
+        throw new SentryError(`${ERROR_MESSAGE}: Invalid port ${this.port}`);
+      }
     }
   }
 }
