@@ -619,7 +619,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 function _ensureBeforeSendRv(rv: PromiseLike<Event | null> | Event | null): PromiseLike<Event | null> | Event | null {
   const nullErr = '`beforeSend` method has to return `null` or a valid event.';
   if (isThenable(rv)) {
-    return (rv as PromiseLike<Event | null>).then(
+    return rv.then(
       event => {
         if (!(isPlainObject(event) || event === null)) {
           throw new SentryError(nullErr);
