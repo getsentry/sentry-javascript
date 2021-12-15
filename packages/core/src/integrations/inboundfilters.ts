@@ -101,7 +101,7 @@ export class InboundFilters implements Integration {
     try {
       // @ts-ignore can't be a sentry error if undefined
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return event.exceptions.values[0].type === 'SentryError';
+      return event.exception.values[0].type === 'SentryError';
     } catch (e) {
       // ignore
     }
