@@ -37,7 +37,7 @@ export class CaptureConsole implements Integration {
       return;
     }
 
-    const rawConsole: { [key: string]: () => any } = {};
+    const rawConsole: { [key: string]: unknown } = { ...console };
 
     this._levels.forEach((level: string) => {
       if (!(level in global.console)) {
