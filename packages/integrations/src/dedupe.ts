@@ -43,7 +43,7 @@ export class Dedupe implements Integration {
 }
 
 /** JSDoc */
-function _shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {
+export function _shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {
   if (!previousEvent) {
     return false;
   }
