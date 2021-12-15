@@ -1,4 +1,4 @@
-import { SyncPromise, statusFromHttpCode } from '@sentry/utils';
+import { statusFromHttpCode,SyncPromise } from '@sentry/utils';
 
 import { Event, Response } from '../../../src';
 import { BaseTransport } from '../../../src/transports';
