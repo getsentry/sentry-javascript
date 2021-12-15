@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration, Severity } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -9,6 +9,7 @@ import {
   htmlTreeAsString,
   parseUrl,
   safeJoin,
+  severityFromString,
 } from '@sentry/utils';
 
 /** JSDoc */

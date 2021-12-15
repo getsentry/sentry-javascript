@@ -32,9 +32,9 @@ export {
   SessionFlusherLike,
 } from './session';
 
-// eslint-disable-next-line deprecation/deprecation
+/* eslint-disable deprecation/deprecation */
 export { Severity } from './severity';
-export { SeverityLevel } from './severity';
+export { SeverityLevel, SeverityLevels } from './severity';
 export { Span, SpanContext } from './span';
 export { StackFrame } from './stackframe';
 export { Stacktrace } from './stacktrace';
