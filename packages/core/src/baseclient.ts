@@ -21,6 +21,7 @@ import {
   normalize,
   SentryError,
   SyncPromise,
+  syncPromiseResolve,
   truncate,
   uuid4,
 } from '@sentry/utils';
@@ -356,7 +357,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     // We prepare the result here with a resolved Event.
-    let result = SyncPromise.resolve<Event | null>(prepared);
+    let result = syncPromiseResolve<Event | null>(prepared);
 
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
