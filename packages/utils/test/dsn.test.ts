@@ -1,4 +1,5 @@
 import { isDebugBuild } from '@sentry/utils';
+
 import { Dsn } from '../src/dsn';
 import { SentryError } from '../src/error';
 
