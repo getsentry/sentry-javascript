@@ -1,7 +1,6 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
-import { LogLevel } from './loglevel';
 import { CaptureContext } from './scope';
 import { SdkMetadata } from './sdkmetadata';
 import { SamplingContext } from './transaction';
@@ -81,9 +80,6 @@ export interface Options {
    * Values over 100 will be ignored and 100 used instead.
    */
   maxBreadcrumbs?: number;
-
-  /** Console logging verbosity for the SDK Client. */
-  logLevel?: LogLevel;
 
   /** A global sample rate to apply to all events (0 - 1). */
   sampleRate?: number;
