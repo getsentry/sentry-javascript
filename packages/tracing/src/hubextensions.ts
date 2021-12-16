@@ -6,7 +6,6 @@ import {
   Options,
   SamplingContext,
   TransactionContext,
-  TransactionSamplingMethod,
 } from '@sentry/types';
 import { dynamicRequire, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
@@ -51,7 +50,7 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   if (transaction.sampled !== undefined) {
     transaction.setMetadata({
-      transactionSampling: { method: TransactionSamplingMethod.Explicit },
+      transactionSampling: { method: 'explicitly_set' },
     });
     return transaction;
   }
@@ -63,7 +62,7 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
     sampleRate = options.tracesSampler(samplingContext);
     transaction.setMetadata({
       transactionSampling: {
-        method: TransactionSamplingMethod.Sampler,
+        method: 'client_sampler',
         // cast to number in case it's a boolean
         rate: Number(sampleRate),
       },
@@ -71,13 +70,13 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
     transaction.setMetadata({
-      transactionSampling: { method: TransactionSamplingMethod.Inheritance },
+      transactionSampling: { method: 'inheritance' },
     });
   } else {
     sampleRate = options.tracesSampleRate;
     transaction.setMetadata({
       transactionSampling: {
-        method: TransactionSamplingMethod.Rate,
+        method: 'client_rate',
         // cast to number in case it's a boolean
         rate: Number(sampleRate),
       },
