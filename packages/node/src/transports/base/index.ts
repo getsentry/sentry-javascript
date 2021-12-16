@@ -13,9 +13,9 @@ import {
 import {
   eventStatusFromHttpCode,
   logger,
+  makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
-  makePromiseBuffer,
   SentryError,
 } from '@sentry/utils';
 import * as fs from 'fs';

@@ -23,7 +23,6 @@ function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): Promis
 }
 
 export interface PromiseBuffer<T> {
-  _buffer: Array<PromiseLike<T>>;
   add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
   remove(task: PromiseLike<T>): PromiseLike<T>;
   drain(timeout?: number): PromiseLike<boolean>;
@@ -110,7 +109,6 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
   }
 
   const promiseBuffer: PromiseBuffer<T> = {
-    _buffer: buffer,
     add,
     remove,
     drain,
