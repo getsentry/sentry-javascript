@@ -117,20 +117,14 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    addInstrumentationHandler({
-      callback: (handlerData: FetchData) => {
-        fetchCallback(handlerData, shouldCreateSpan, spans);
-      },
-      type: 'fetch',
+    addInstrumentationHandler('fetch', (handlerData: FetchData) => {
+      fetchCallback(handlerData, shouldCreateSpan, spans);
     });
   }
 
   if (traceXHR) {
-    addInstrumentationHandler({
-      callback: (handlerData: XHRData) => {
-        xhrCallback(handlerData, shouldCreateSpan, spans);
-      },
-      type: 'xhr',
+    addInstrumentationHandler('xhr', (handlerData: XHRData) => {
+      xhrCallback(handlerData, shouldCreateSpan, spans);
     });
   }
 }

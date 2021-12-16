@@ -85,34 +85,19 @@ export class Breadcrumbs implements Integration {
    */
   public setupOnce(): void {
     if (this._options.console) {
-      addInstrumentationHandler({
-        callback: _consoleBreadcrumb,
-        type: 'console',
-      });
+      addInstrumentationHandler('console', _consoleBreadcrumb);
     }
     if (this._options.dom) {
-      addInstrumentationHandler({
-        callback: _domBreadcrumb(this._options.dom),
-        type: 'dom',
-      });
+      addInstrumentationHandler('dom', _domBreadcrumb(this._options.dom));
     }
     if (this._options.xhr) {
-      addInstrumentationHandler({
-        callback: _xhrBreadcrumb,
-        type: 'xhr',
-      });
+      addInstrumentationHandler('xhr', _xhrBreadcrumb);
     }
     if (this._options.fetch) {
-      addInstrumentationHandler({
-        callback: _fetchBreadcrumb,
-        type: 'fetch',
-      });
+      addInstrumentationHandler('fetch', _fetchBreadcrumb);
     }
     if (this._options.history) {
-      addInstrumentationHandler({
-        callback: _historyBreadcrumb,
-        type: 'history',
-      });
+      addInstrumentationHandler('history', _historyBreadcrumb);
     }
   }
 }

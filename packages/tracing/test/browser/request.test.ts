@@ -26,26 +26,20 @@ describe('instrumentOutgoingRequests', () => {
   it('instruments fetch and xhr requests', () => {
     instrumentOutgoingRequests();
 
-    expect(addInstrumentationHandler).toHaveBeenCalledWith({
-      callback: expect.any(Function),
-      type: 'fetch',
-    });
-    expect(addInstrumentationHandler).toHaveBeenCalledWith({
-      callback: expect.any(Function),
-      type: 'xhr',
-    });
+    expect(addInstrumentationHandler).toHaveBeenCalledWith('fetch', expect.any(Function));
+    expect(addInstrumentationHandler).toHaveBeenCalledWith('xhr', expect.any(Function));
   });
 
   it('does not instrument fetch requests if traceFetch is false', () => {
     instrumentOutgoingRequests({ traceFetch: false });
 
-    expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'fetch' });
+    expect(addInstrumentationHandler).not.toHaveBeenCalledWith('fetch', expect.any(Function));
   });
 
   it('does not instrument xhr requests if traceXHR is false', () => {
     instrumentOutgoingRequests({ traceXHR: false });
 
-    expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'xhr' });
+    expect(addInstrumentationHandler).not.toHaveBeenCalledWith('xhr', expect.any(Function));
   });
 });
 
