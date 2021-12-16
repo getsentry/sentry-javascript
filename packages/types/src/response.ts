@@ -1,10 +1,10 @@
 import { Event, EventType } from './event';
+import { EventStatus } from './eventstatus';
 import { Session } from './session';
-import { StatusType } from './status';
 
 /** JSDoc */
 export interface Response {
-  status: StatusType;
+  status: EventStatus;
   event?: Event | Session;
   type?: EventType;
   reason?: string;

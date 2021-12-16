@@ -5,6 +5,7 @@ export { Dsn, DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
 export { ExtendedError } from './error';
 export { Event, EventHint } from './event';
+export { EventStatus } from './eventstatus';
 export { EventProcessor } from './eventprocessor';
 export { Exception } from './exception';
 export { Extra, Extras } from './extra';
@@ -38,9 +39,6 @@ export { SeverityLevel, SeverityLevels } from './severity';
 export { Span, SpanContext } from './span';
 export { StackFrame } from './stackframe';
 export { Stacktrace } from './stacktrace';
-/* eslint-disable-next-line deprecation/deprecation */
-export { Status } from './status';
-export { StatusType } from './status';
 export {
   CustomSamplingContext,
   Measurements,

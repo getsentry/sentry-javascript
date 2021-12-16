@@ -1,17 +1,13 @@
-/** JSDoc
- * @deprecated Use string literals - if you require type casting, cast to EventStatus type
- */
-export enum Status {
+export type EventStatus =
   /** The status could not be determined. */
-  Unknown = 'unknown',
+  | 'unknown'
   /** The event was skipped due to configuration or callbacks. */
-  Skipped = 'skipped',
+  | 'skipped'
   /** The event was sent to Sentry successfully. */
-  Success = 'success',
+  | 'rate_limit'
   /** The client is currently rate limited and will try again later. */
-  RateLimit = 'rate_limit',
+  | 'invalid'
   /** The event could not be processed. */
-  Invalid = 'invalid',
+  | 'failed'
   /** A server-side error occurred during submission. */
-  Failed = 'failed',
-}
+  | 'success';

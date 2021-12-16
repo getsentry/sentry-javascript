@@ -1,11 +1,11 @@
-import { StatusType } from '@sentry/types';
+import { EventStatus } from '@sentry/types';
 /**
- * Converts an HTTP status code to sentry status {@link StatusType}.
+ * Converts an HTTP status code to sentry status {@link EventStatus}.
  *
  * @param code number HTTP status code
- * @returns StatusType
+ * @returns EventStatus
  */
-export function statusFromHttpCode(code: number): StatusType {
+export function statusFromHttpCode(code: number): EventStatus {
   if (code >= 200 && code < 300) {
     return 'success';
   }
