@@ -5,12 +5,12 @@ export {
   SdkInfo,
   Event,
   EventHint,
+  EventStatus,
   Exception,
   Response,
   SeverityLevel,
   StackFrame,
   Stacktrace,
-  Status,
   Thread,
   User,
 } from '@sentry/types';

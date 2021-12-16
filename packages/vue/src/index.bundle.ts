@@ -3,12 +3,12 @@ export {
   Request,
   SdkInfo,
   Event,
+  EventStatus,
   Exception,
   Response,
   SeverityLevel,
   StackFrame,
   Stacktrace,
-  Status,
   Thread,
   User,
 } from '@sentry/types';
