@@ -1,4 +1,4 @@
-import { SyncPromise } from '../src/syncpromise';
+import { SyncPromise, syncPromiseResolve, syncPromiseReject } from '../src/syncpromise';
 
 describe('SyncPromise', () => {
   test('simple', () => {
@@ -17,9 +17,9 @@ describe('SyncPromise', () => {
     return new SyncPromise<number>(resolve => {
       resolve(42);
     })
-      .then(_ => SyncPromise.resolve('a'))
-      .then(_ => SyncPromise.resolve(0.1))
-      .then(_ => SyncPromise.resolve(false))
+      .then(_ => syncPromiseResolve('a'))
+      .then(_ => syncPromiseResolve(0.1))
+      .then(_ => syncPromiseResolve(false))
       .then(val => {
         expect(val).toBe(false);
       });
@@ -84,7 +84,7 @@ describe('SyncPromise', () => {
     return (
       c
         // @ts-ignore Argument of type 'PromiseLike<string>' is not assignable to parameter of type 'SyncPromise<string>'
-        .then(val => f(SyncPromise.resolve('x'), val))
+        .then(val => f(syncPromiseResolve('x'), val))
         .then(val => f(b, val))
         // @ts-ignore Argument of type 'SyncPromise<string>' is not assignable to parameter of type 'string'
         .then(val => f(a, val))
@@ -97,7 +97,7 @@ describe('SyncPromise', () => {
   test('simple static', () => {
     expect.assertions(1);
 
-    const p = SyncPromise.resolve(10);
+    const p = syncPromiseResolve(10);
     return p.then(val => {
       expect(val).toBe(10);
     });
@@ -260,7 +260,7 @@ describe('SyncPromise', () => {
     })
       .then(value => {
         expect(value).toEqual(2);
-        return SyncPromise.reject('wat');
+        return syncPromiseReject('wat');
       })
       .then(null, reason => {
         expect(reason).toBe('wat');
