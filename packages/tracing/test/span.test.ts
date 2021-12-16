@@ -17,7 +17,6 @@ describe('Span', () => {
     test('simple', () => {
       const span = new Span({ sampled: true });
       const span2 = span.startChild();
-
       expect((span2 as any).parentSpanId).toBe((span as any).spanId);
       expect((span2 as any).traceId).toBe((span as any).traceId);
       expect((span2 as any).sampled).toBe((span as any).sampled);
