@@ -187,35 +187,3 @@ export function syncPromiseReject<T = never>(reason?: any): PromiseLike<T> {
     reject(reason);
   });
 }
-
-/** JSDoc */
-export function syncPromiseAll<U = any>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
-  return new SyncPromise<U[]>((resolve, reject) => {
-    if (!Array.isArray(collection)) {
-      reject(new TypeError(`Promise.all requires an array as input.`));
-      return;
-    }
-
-    if (collection.length === 0) {
-      resolve([]);
-      return;
-    }
-
-    let counter = collection.length;
-    const resolvedCollection: U[] = [];
-
-    collection.forEach((item, index) => {
-      void syncPromiseResolve(item)
-        .then(value => {
-          resolvedCollection[index] = value;
-          counter -= 1;
-
-          if (counter !== 0) {
-            return;
-          }
-          resolve(resolvedCollection);
-        })
-        .then(null, reject);
-    });
-  });
-}
