@@ -1,53 +1,27 @@
 import { ExtendedError } from '@sentry/types';
-import { stub } from 'sinon';
 
 import { BrowserBackend } from '../../../src/backend';
-import { LinkedErrors } from '../../../src/integrations/linkederrors';
-
-let linkedErrors: any;
+import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
 
 describe('LinkedErrors', () => {
-  beforeEach(() => {
-    linkedErrors = new LinkedErrors();
-  });
-
   describe('handler', () => {
-    it('should bail out if event doesnt contain exception', () => {
-      const spy = stub(linkedErrors, '_walkErrorTree');
+    it('should bail out if event does not contain exception', () => {
       const event = {
         message: 'foo',
       };
-      const result = linkedErrors._handler(event);
-      expect(spy.called).toBe(false);
+      const result = LinkedErrorsModule._handler('cause', 5, event);
       expect(result).toEqual(event);
     });
 
     it('should bail out if event contains exception, but no hint', () => {
-      const spy = stub(linkedErrors, '_walkErrorTree');
       const event = {
         exception: {
           values: [],
         },
         message: 'foo',
       };
-      const result = linkedErrors._handler(event);
-      expect(spy.called).toBe(false);
+      const result = LinkedErrorsModule._handler('cause', 5, event);
       expect(result).toEqual(event);
-    });
-
-    it('should call walkErrorTree if event contains exception and hint with originalException', () => {
-      const spy = stub(linkedErrors, '_walkErrorTree').callsFake(() => []);
-      const event = {
-        exception: {
-          values: [],
-        },
-        message: 'foo',
-      };
-      const hint = {
-        originalException: new Error('originalException'),
-      };
-      linkedErrors._handler(event, hint);
-      expect(spy.calledOnce).toBe(true);
     });
 
     it('should recursively walk error to find linked exceptions and assign them to the event', async () => {
@@ -62,7 +36,7 @@ describe('LinkedErrors', () => {
       const originalException = one;
       const backend = new BrowserBackend({});
       return backend.eventFromException(originalException).then(event => {
-        const result = linkedErrors._handler(event, {
+        const result = LinkedErrorsModule._handler('cause', 5, event, {
           originalException,
         });
 
@@ -81,10 +55,6 @@ describe('LinkedErrors', () => {
     });
 
     it('should allow to change walk key', async () => {
-      linkedErrors = new LinkedErrors({
-        key: 'reason',
-      });
-
       const three: ExtendedError = new SyntaxError('three');
 
       const two: ExtendedError = new TypeError('two');
@@ -96,7 +66,7 @@ describe('LinkedErrors', () => {
       const originalException = one;
       const backend = new BrowserBackend({});
       return backend.eventFromException(originalException).then(event => {
-        const result = linkedErrors._handler(event, {
+        const result = LinkedErrorsModule._handler('reason', 5, event, {
           originalException,
         });
 
@@ -114,10 +84,6 @@ describe('LinkedErrors', () => {
     });
 
     it('should allow to change stack size limit', async () => {
-      linkedErrors = new LinkedErrors({
-        limit: 2,
-      });
-
       const one: ExtendedError = new Error('one');
       const two: ExtendedError = new TypeError('two');
       const three: ExtendedError = new SyntaxError('three');
@@ -125,9 +91,10 @@ describe('LinkedErrors', () => {
       two.cause = three;
 
       const backend = new BrowserBackend({});
-      return backend.eventFromException(one).then(event => {
-        const result = linkedErrors._handler(event, {
-          originalException: one,
+      const originalException = one;
+      return backend.eventFromException(originalException).then(event => {
+        const result = LinkedErrorsModule._handler('cause', 2, event, {
+          originalException,
         });
 
         expect(result.exception.values.length).toBe(2);
