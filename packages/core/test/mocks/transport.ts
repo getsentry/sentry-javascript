@@ -1,5 +1,5 @@
 import { Event, Response, Transport } from '@sentry/types';
-import { PromiseBuffer, makePromiseBuffer, SyncPromise } from '@sentry/utils';
+import { makePromiseBuffer, PromiseBuffer, SyncPromise } from '@sentry/utils';
 
 async function sleep(delay: number): Promise<void> {
   return new SyncPromise(resolve => setTimeout(resolve, delay));
