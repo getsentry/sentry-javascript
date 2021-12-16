@@ -24,10 +24,8 @@ function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): Promis
 
 export interface PromiseBuffer<T> {
   _buffer: Array<PromiseLike<T>>;
-  isReady(): boolean;
   add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
   remove(task: PromiseLike<T>): PromiseLike<T>;
-  length(): number;
   drain(timeout?: number): PromiseLike<boolean>;
 }
 
@@ -38,15 +36,8 @@ export interface PromiseBuffer<T> {
 export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
   const buffer: Array<PromiseLike<T>> = [];
 
-  /**
-   * This function returns the number of unresolved promises in the queue.
-   */
-  function length(): number {
-    return buffer.length;
-  }
-
   function isReady(): boolean {
-    return limit === undefined || length() < limit;
+    return limit === undefined || buffer.length < limit;
   }
 
   /**
@@ -120,8 +111,6 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
 
   const promiseBuffer: PromiseBuffer<T> = {
     _buffer: buffer,
-    length,
-    isReady,
     add,
     remove,
     drain,
