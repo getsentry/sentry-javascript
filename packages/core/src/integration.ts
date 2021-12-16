@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
-import { isDebugBuild, logger } from '@sentry/utils';
+import { addNonEnumerableProperty, isDebugBuild, logger } from '@sentry/utils';
 
 export const installedIntegrations: string[] = [];
 
@@ -79,6 +79,6 @@ export function setupIntegrations<O extends Options>(options: O): IntegrationInd
   // set the `initialized` flag so we don't run through the process again unecessarily; use `Object.defineProperty`
   // because by default it creates a property which is nonenumerable, which we want since `initialized` shouldn't be
   // considered a member of the index the way the actual integrations are
-  Object.defineProperty(integrations, 'initialized', { value: true });
+  addNonEnumerableProperty(integrations, 'initialized', true);
   return integrations;
 }

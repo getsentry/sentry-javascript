@@ -1,5 +1,5 @@
 import { Integration, WrappedFunction } from '@sentry/types';
-import { fill, getFunctionName, getGlobalObject } from '@sentry/utils';
+import { fill, getFunctionName, getGlobalObject, getOriginalFunction } from '@sentry/utils';
 
 import { wrap } from '../helpers';
 
@@ -168,8 +168,9 @@ function _wrapXHR(originalSend: () => void): () => void {
           };
 
           // If Instrument integration has been called before TryCatch, get the name of original function
-          if (original.__sentry_original__) {
-            wrapOptions.mechanism.data.handler = getFunctionName(original.__sentry_original__);
+          const originalFunction = getOriginalFunction(original);
+          if (originalFunction) {
+            wrapOptions.mechanism.data.handler = getFunctionName(originalFunction);
           }
 
           // Otherwise wrap directly

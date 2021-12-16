@@ -2,6 +2,7 @@
 import { Event, Exception, Mechanism, StackFrame } from '@sentry/types';
 
 import { getGlobalObject } from './global';
+import { addNonEnumerableProperty } from './object';
 import { snipLine } from './string';
 
 /**
@@ -277,9 +278,7 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   try {
     // set it this way rather than by assignment so that it's not ennumerable and therefore isn't recorded by the
     // `ExtraErrorData` integration
-    Object.defineProperty(exception, '__sentry_captured__', {
-      value: true,
-    });
+    addNonEnumerableProperty(exception, '__sentry_captured__', true);
   } catch (err) {
     // `exception` is a primitive, so we can't mark it seen
   }
