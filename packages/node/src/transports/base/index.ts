@@ -10,7 +10,14 @@ import {
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { eventStatusFromHttpCode, logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import {
+  eventStatusFromHttpCode,
+  logger,
+  makePromiseBuffer,
+  parseRetryAfterHeader,
+  PromiseBuffer,
+  SentryError,
+} from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -43,7 +50,7 @@ export abstract class BaseTransport implements Transport {
   protected _api: APIDetails;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<Response> = makePromiseBuffer(30);
 
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};

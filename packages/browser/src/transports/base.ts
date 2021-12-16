@@ -17,6 +17,7 @@ import {
   eventStatusFromHttpCode,
   getGlobalObject,
   logger,
+  makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
   SentryError,
@@ -42,7 +43,7 @@ export abstract class BaseTransport implements Transport {
   protected readonly _api: APIDetails;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<SentryResponse> = makePromiseBuffer(30);
 
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
