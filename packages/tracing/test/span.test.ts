@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain, Scope } from '@sentry/hub';
 
-import { Span, SpanStatus, Transaction } from '../src';
+import { Span, Transaction } from '../src';
 import { TRACEPARENT_REGEXP } from '../src/utils';
 
 describe('Span', () => {
@@ -72,7 +72,7 @@ describe('Span', () => {
   describe('status', () => {
     test('setStatus', () => {
       const span = new Span({});
-      span.setStatus(SpanStatus.PermissionDenied);
+      span.setStatus('permission_denied');
       expect((span.getTraceContext() as any).status).toBe('permission_denied');
     });
 
@@ -88,7 +88,7 @@ describe('Span', () => {
       expect(span.isSuccess()).toBe(false);
       span.setHttpStatus(200);
       expect(span.isSuccess()).toBe(true);
-      span.setStatus(SpanStatus.PermissionDenied);
+      span.setStatus('permission_denied');
       expect(span.isSuccess()).toBe(false);
       span.setHttpStatus(0);
       expect(span.isSuccess()).toBe(false);
@@ -287,14 +287,14 @@ describe('Span', () => {
 
     test('should have success status extracted from tags', () => {
       const span = new Span({});
-      span.setStatus(SpanStatus.Ok);
+      span.setStatus('ok');
       const context = span.getTraceContext();
       expect((context as any).status).toBe('ok');
     });
 
     test('should have failure status extracted from tags', () => {
       const span = new Span({});
-      span.setStatus(SpanStatus.ResourceExhausted);
+      span.setStatus('resource_exhausted');
       const context = span.getTraceContext();
       expect((context as any).status).toBe('resource_exhausted');
     });

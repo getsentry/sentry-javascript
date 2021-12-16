@@ -4,7 +4,6 @@ import { logger, timestampWithMs } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants';
 import { Span, SpanRecorder } from './span';
-import { SpanStatus } from './spanstatus';
 import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
@@ -125,7 +124,7 @@ export class IdleTransaction extends Transaction {
         // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
         if (!span.endTimestamp) {
           span.endTimestamp = endTimestamp;
-          span.setStatus(SpanStatus.Cancelled);
+          span.setStatus('cancelled');
           logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
         }
 
@@ -253,7 +252,7 @@ export class IdleTransaction extends Transaction {
 
     if (this._heartbeatCounter >= 3) {
       logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
-      this.setStatus(SpanStatus.DeadlineExceeded);
+      this.setStatus('deadline_exceeded');
       this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[0]);
       this.finish();
     } else {

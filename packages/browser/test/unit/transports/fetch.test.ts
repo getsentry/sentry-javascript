@@ -1,4 +1,3 @@
-import { Outcome } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
 import { Event, Response, Transports } from '../../../src';
@@ -117,7 +116,7 @@ describe('FetchTransport', () => {
       try {
         await transport.sendEvent(eventPayload);
       } catch (_) {
-        expect(spy).toHaveBeenCalledWith(Outcome.NetworkError, 'event');
+        expect(spy).toHaveBeenCalledWith('network_error', 'event');
       }
     });
 
@@ -129,7 +128,7 @@ describe('FetchTransport', () => {
       try {
         await transport.sendEvent(transactionPayload);
       } catch (_) {
-        expect(spy).toHaveBeenCalledWith(Outcome.QueueOverflow, 'transaction');
+        expect(spy).toHaveBeenCalledWith('queue_overflow', 'transaction');
       }
     });
 
@@ -490,13 +489,13 @@ describe('FetchTransport', () => {
         try {
           await transport.sendEvent(eventPayload);
         } catch (_) {
-          expect(spy).toHaveBeenCalledWith(Outcome.RateLimitBackoff, 'event');
+          expect(spy).toHaveBeenCalledWith('ratelimit_backoff', 'event');
         }
 
         try {
           await transport.sendEvent(transactionPayload);
         } catch (_) {
-          expect(spy).toHaveBeenCalledWith(Outcome.RateLimitBackoff, 'transaction');
+          expect(spy).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
         }
       });
     });

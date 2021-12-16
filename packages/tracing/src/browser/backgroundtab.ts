@@ -2,7 +2,7 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from '../constants';
 import { IdleTransaction } from '../idletransaction';
-import { SpanStatus } from '../spanstatus';
+import { SpanStatusType } from '../span';
 import { getActiveTransaction } from '../utils';
 
 const global = getGlobalObject<Window>();
@@ -16,13 +16,15 @@ export function registerBackgroundTabDetection(): void {
     global.document.addEventListener('visibilitychange', () => {
       const activeTransaction = getActiveTransaction() as IdleTransaction;
       if (global.document.hidden && activeTransaction) {
+        const statusType: SpanStatusType = 'cancelled';
+
         logger.log(
-          `[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background, op: ${activeTransaction.op}`,
+          `[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${activeTransaction.op}`,
         );
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
         if (!activeTransaction.status) {
-          activeTransaction.setStatus(SpanStatus.Cancelled);
+          activeTransaction.setStatus(statusType);
         }
         activeTransaction.setTag('visibilitychange', 'document.hidden');
         activeTransaction.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[2]);

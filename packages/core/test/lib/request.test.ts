@@ -1,4 +1,4 @@
-import { DebugMeta, Event, SentryRequest, TransactionSamplingMethod } from '@sentry/types';
+import { DebugMeta, Event, SentryRequest } from '@sentry/types';
 
 import { initAPIDetails } from '../../src/api';
 import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
@@ -44,21 +44,21 @@ describe('eventToSentryRequest', () => {
   });
 
   it('adds transaction sampling information to item header', () => {
-    event.debug_meta = { transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 } };
+    event.debug_meta = { transactionSampling: { method: 'client_rate', rate: 0.1121 } };
 
     const result = eventToSentryRequest(event, api);
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.itemHeader).toEqual(
       expect.objectContaining({
-        sample_rates: [{ id: TransactionSamplingMethod.Rate, rate: 0.1121 }],
+        sample_rates: [{ id: 'client_rate', rate: 0.1121 }],
       }),
     );
   });
 
   it('removes transaction sampling information (and only that) from debug_meta', () => {
     event.debug_meta = {
-      transactionSampling: { method: TransactionSamplingMethod.Sampler, rate: 0.1121 },
+      transactionSampling: { method: 'client_sampler', rate: 0.1121 },
       dog: 'Charlie',
     } as DebugMeta;
 
@@ -71,7 +71,7 @@ describe('eventToSentryRequest', () => {
 
   it('removes debug_meta entirely if it ends up empty', () => {
     event.debug_meta = {
-      transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 },
+      transactionSampling: { method: 'client_rate', rate: 0.1121 },
     } as DebugMeta;
 
     const result = eventToSentryRequest(event, api);
