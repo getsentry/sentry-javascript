@@ -18,7 +18,7 @@ const enum States {
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
  */
-class SyncPromise<T> implements PromiseLike<T> {
+export class SyncPromise<T> implements PromiseLike<T> {
   private _state: States = States.PENDING;
   private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]> = [];
   private _value: any;
@@ -35,16 +35,12 @@ class SyncPromise<T> implements PromiseLike<T> {
 
   /** JSDoc */
   public static resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
-    return new SyncPromise(resolve => {
-      resolve(value);
-    });
+    return syncPromiseResolve(value);
   }
 
   /** JSDoc */
   public static reject<T = never>(reason?: any): PromiseLike<T> {
-    return new SyncPromise((_, reject) => {
-      reject(reason);
-    });
+    return syncPromiseReject(reason);
   }
 
   /** JSDoc */
@@ -178,4 +174,48 @@ class SyncPromise<T> implements PromiseLike<T> {
   };
 }
 
-export { SyncPromise };
+/** JSDoc */
+export function syncPromiseResolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
+  return new SyncPromise(resolve => {
+    resolve(value);
+  });
+}
+
+/** JSDoc */
+export function syncPromiseReject<T = never>(reason?: any): PromiseLike<T> {
+  return new SyncPromise((_, reject) => {
+    reject(reason);
+  });
+}
+
+/** JSDoc */
+export function syncPromiseAll<U = any>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
+  return new SyncPromise<U[]>((resolve, reject) => {
+    if (!Array.isArray(collection)) {
+      reject(new TypeError(`Promise.all requires an array as input.`));
+      return;
+    }
+
+    if (collection.length === 0) {
+      resolve([]);
+      return;
+    }
+
+    let counter = collection.length;
+    const resolvedCollection: U[] = [];
+
+    collection.forEach((item, index) => {
+      void syncPromiseResolve(item)
+        .then(value => {
+          resolvedCollection[index] = value;
+          counter -= 1;
+
+          if (counter !== 0) {
+            return;
+          }
+          resolve(resolvedCollection);
+        })
+        .then(null, reject);
+    });
+  });
+}
