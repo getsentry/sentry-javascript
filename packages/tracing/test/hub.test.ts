@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
-import { TransactionSamplingMethod } from '@sentry/types';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
 
@@ -221,7 +220,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark', sampled: true });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: TransactionSamplingMethod.Explicit },
+          transactionSampling: { method: 'explicitly_set' },
         });
       });
 
@@ -232,7 +231,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark' });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: TransactionSamplingMethod.Sampler, rate: 0.1121 },
+          transactionSampling: { method: 'client_sampler', rate: 0.1121 },
         });
       });
 
@@ -242,7 +241,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: TransactionSamplingMethod.Inheritance },
+          transactionSampling: { method: 'inheritance' },
         });
       });
 
@@ -252,7 +251,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark' });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 },
+          transactionSampling: { method: 'client_rate', rate: 0.1121 },
         });
       });
     });

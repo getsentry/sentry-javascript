@@ -21,7 +21,7 @@ export { Integrations };
 // For an example of of the new usage of BrowserTracing, see @sentry/nextjs index.client.ts
 export { BrowserTracing } from './browser';
 
-export { Span } from './span';
+export { Span, SpanStatusType, spanStatusfromHttpCode } from './span';
 export { Transaction } from './transaction';
 export {
   // TODO deprecate old name in v7
@@ -29,7 +29,6 @@ export {
   RequestInstrumentationOptions,
   defaultRequestInstrumentationOptions,
 } from './browser';
-export { SpanStatus } from './spanstatus';
 export { IdleTransaction } from './idletransaction';
 export { startIdleTransaction } from './hubextensions';
 

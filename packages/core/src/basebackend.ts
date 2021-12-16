@@ -1,4 +1,4 @@
-import { Event, EventHint, Options, Session, Severity, Transport } from '@sentry/types';
+import { Event, EventHint, Options, Session, SeverityLevel, Transport } from '@sentry/types';
 import { logger, SentryError } from '@sentry/utils';
 
 import { NoopTransport } from './transports/noop';
@@ -29,7 +29,7 @@ export interface Backend {
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates a {@link Event} from a plain message. */
-  eventFromMessage(message: string, level?: Severity, hint?: EventHint): PromiseLike<Event>;
+  eventFromMessage(message: string, level?: SeverityLevel, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event): void;
@@ -83,7 +83,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(_message: string, _level?: SeverityLevel, _hint?: EventHint): PromiseLike<Event> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 

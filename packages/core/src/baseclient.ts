@@ -7,9 +7,7 @@ import {
   Integration,
   IntegrationClass,
   Options,
-  Outcome,
-  SessionStatus,
-  Severity,
+  SeverityLevel,
   Transport,
 } from '@sentry/types';
 import {
@@ -127,7 +125,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
@@ -268,12 +266,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // A session is updated and that session update is sent in only one of the two following scenarios:
     // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
     // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
-    const sessionNonTerminal = session.status === SessionStatus.Ok;
+    const sessionNonTerminal = session.status === 'ok';
     const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
 
     if (shouldUpdateAndSend) {
       session.update({
-        ...(crashed && { status: SessionStatus.Crashed }),
+        ...(crashed && { status: 'crashed' }),
         errors: session.errors || Number(errored || crashed),
       });
       this.captureSession(session);
@@ -541,7 +539,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      recordLostEvent(Outcome.SampleRate, 'event');
+      recordLostEvent('sample_rate', 'event');
       return SyncPromise.reject(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -552,7 +550,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     return this._prepareEvent(event, scope, hint)
       .then(prepared => {
         if (prepared === null) {
-          recordLostEvent(Outcome.EventProcessor, event.type || 'event');
+          recordLostEvent('event_processor', event.type || 'event');
           throw new SentryError('An event processor returned null, will not send event.');
         }
 
@@ -566,7 +564,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          recordLostEvent(Outcome.BeforeSend, event.type || 'event');
+          recordLostEvent('before_send', event.type || 'event');
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 

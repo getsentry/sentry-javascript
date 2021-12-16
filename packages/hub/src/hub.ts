@@ -13,8 +13,7 @@ import {
   IntegrationClass,
   Primitive,
   SessionContext,
-  SessionStatus,
-  Severity,
+  SeverityLevel,
   Span,
   SpanContext,
   Transaction,
@@ -216,7 +215,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
     let finalHint = hint;
 
@@ -451,8 +450,8 @@ export class Hub implements HubInterface {
     if (scope) {
       // End existing session if there's one
       const currentSession = scope.getSession && scope.getSession();
-      if (currentSession && currentSession.status === SessionStatus.Ok) {
-        currentSession.update({ status: SessionStatus.Exited });
+      if (currentSession && currentSession.status === 'ok') {
+        currentSession.update({ status: 'exited' });
       }
       this.endSession();
 

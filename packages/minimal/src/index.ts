@@ -7,7 +7,7 @@ import {
   Extra,
   Extras,
   Primitive,
-  Severity,
+  SeverityLevel,
   Transaction,
   TransactionContext,
   User,
@@ -53,10 +53,10 @@ export function captureException(exception: any, captureContext?: CaptureContext
  * Captures a message event and sends it to Sentry.
  *
  * @param message The message to send to Sentry.
- * @param level Define the level of the message.
+ * @param SeverityLevel Define the level of the message.
  * @returns The generated eventId.
  */
-export function captureMessage(message: string, captureContext?: CaptureContext | Severity): string {
+export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
   let syntheticException: Error;
   try {
     throw new Error(message);

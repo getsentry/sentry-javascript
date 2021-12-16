@@ -1,4 +1,4 @@
-import { Event, Response, Status, Transport } from '@sentry/types';
+import { Event, Response, Transport } from '@sentry/types';
 import { PromiseBuffer, SyncPromise } from '@sentry/utils';
 
 async function sleep(delay: number): Promise<void> {
@@ -20,7 +20,7 @@ export class FakeTransport implements Transport {
         new SyncPromise(async res => {
           await sleep(this.delay);
           this.sentCount += 1;
-          res({ status: Status.Success });
+          res({ status: 'success' });
         }),
     );
   }

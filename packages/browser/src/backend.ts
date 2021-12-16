@@ -1,5 +1,5 @@
 import { BaseBackend } from '@sentry/core';
-import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
+import { Event, EventHint, Options, SeverityLevel, Transport } from '@sentry/types';
 import { supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -45,7 +45,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: SeverityLevel = 'info', hint?: EventHint): PromiseLike<Event> {
     return eventFromMessage(this._options, message, level, hint);
   }
 

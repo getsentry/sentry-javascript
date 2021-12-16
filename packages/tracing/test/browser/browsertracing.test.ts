@@ -3,7 +3,6 @@ import { Hub, makeMain } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { SpanStatus } from '../../src';
 import {
   BrowserTracing,
   BrowserTracingOptions,
@@ -273,7 +272,7 @@ describe('BrowserTracing', () => {
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS) + 1);
 
-        expect(transaction.status).toBe(SpanStatus.DeadlineExceeded);
+        expect(transaction.status).toBe('deadline_exceeded');
         expect(transaction.tags.maxTransactionDurationExceeded).toBeDefined();
       });
 

@@ -117,15 +117,10 @@ export interface SamplingContext extends CustomSamplingContext {
 
 export type Measurements = Record<string, { value: number }>;
 
-export enum TransactionSamplingMethod {
-  Explicit = 'explicitly_set',
-  Sampler = 'client_sampler',
-  Rate = 'client_rate',
-  Inheritance = 'inheritance',
-}
+export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'client_rate' | 'inheritance';
 
 export interface TransactionMetadata {
-  transactionSampling?: { rate?: number; method?: string };
+  transactionSampling?: { rate?: number; method?: TransactionSamplingMethod };
 
   /** The two halves (sentry and third-party) of a transaction's tracestate header, used for dynamic sampling */
   tracestate?: {

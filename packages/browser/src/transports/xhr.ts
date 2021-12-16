@@ -1,5 +1,5 @@
 import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
-import { Event, Outcome, Response, SentryRequest, Session } from '@sentry/types';
+import { Event, Response, SentryRequest, Session } from '@sentry/types';
 import { SentryError, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
@@ -26,7 +26,7 @@ export class XHRTransport extends BaseTransport {
    */
   private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
     if (this._isRateLimited(sentryRequest.type)) {
-      this.recordLostEvent(Outcome.RateLimitBackoff, sentryRequest.type);
+      this.recordLostEvent('ratelimit_backoff', sentryRequest.type);
 
       return Promise.reject({
         event: originalPayload,
@@ -66,9 +66,9 @@ export class XHRTransport extends BaseTransport {
       .then(undefined, reason => {
         // It's either buffer rejection or any other xhr/fetch error, which are treated as NetworkError.
         if (reason instanceof SentryError) {
-          this.recordLostEvent(Outcome.QueueOverflow, sentryRequest.type);
+          this.recordLostEvent('queue_overflow', sentryRequest.type);
         } else {
-          this.recordLostEvent(Outcome.NetworkError, sentryRequest.type);
+          this.recordLostEvent('network_error', sentryRequest.type);
         }
         throw reason;
       });
