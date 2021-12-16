@@ -1,6 +1,5 @@
 import { BrowserClient, Transports } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
-import { Outcome } from '@sentry/types';
 
 import {
   DEFAULT_IDLE_TIMEOUT,
@@ -174,7 +173,7 @@ describe('IdleTransaction', () => {
     transaction.initSpanRecorder(10);
     transaction.finish(transaction.startTimestamp + 10);
 
-    expect(spy).toHaveBeenCalledWith(Outcome.SampleRate, 'transaction');
+    expect(spy).toHaveBeenCalledWith('sample_rate', 'transaction');
   });
 
   describe('_initTimeout', () => {
