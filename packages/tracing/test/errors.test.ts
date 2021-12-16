@@ -12,7 +12,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: ({ callback, type }: any) => {
+    addInstrumentationHandler: (type, callback) => {
       if (type === 'error') {
         mockErrorCallback = callback;
       }
