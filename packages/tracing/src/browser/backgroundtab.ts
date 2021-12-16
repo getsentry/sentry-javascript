@@ -2,7 +2,7 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from '../constants';
 import { IdleTransaction } from '../idletransaction';
-import { SpanStatusType } from '../spanstatus';
+import { SpanStatusType } from '../span';
 import { getActiveTransaction } from '../utils';
 
 const global = getGlobalObject<Window>();
