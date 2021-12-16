@@ -24,12 +24,12 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
     return event;
   }
-  const sdk = event.sdk || {};
-  event.sdk = sdk;
-  event.sdk.name = sdk.name || sdkInfo.name;
-  event.sdk.version = sdk.version || sdkInfo.version;
-  event.sdk.integrations = [...(sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(sdk.packages || []), ...(sdkInfo.packages || [])];
+  event.sdk = event.sdk || {};
+  const sdk = event.sdk;
+  sdk.name = sdk.name || sdkInfo.name;
+  sdk.version = sdk.version || sdkInfo.version;
+  sdk.integrations = [...(sdk.integrations || []), ...(sdkInfo.integrations || [])];
+  sdk.packages = [...(sdk.packages || []), ...(sdkInfo.packages || [])];
   return event;
 }
 
