@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- ref(types): drop unused logLevel (#4317)
+- ref(types): deprecate request status enum (#4316)
+- ref(types): deprecate outcome enum (#4315)
+- ref(types): deprecate transactionmethod enum (#4314)
+- ref(types): deprecate span status enum (#4299)
+- ref(types): deprecate status enum (#4298)
+- ref(types): deprecate severity enum (#4280)
+
 ## 6.16.1
 
 - feat(nextjs): Support Next.js v12 (#4093)
