@@ -8,6 +8,7 @@ import { getActiveTransaction } from '..';
 import { browserPerformanceTimeOrigin, getGlobalObject, timestampWithMs } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
+import { msToSec } from '../../../utils/src/time';
 
 function getSentryConfig() {
   const _global = getGlobalObject<GlobalConfig>();
@@ -29,10 +30,7 @@ export function initialize(appInstance: ApplicationInstance): void {
 }
 
 function getBackburner() {
-  if (run.backburner) {
-    return run.backburner;
-  }
-  return _backburner;
+  return run.backburner || _backburner;
 }
 
 function getTransitionInformation(transition: any, router: any) {
@@ -326,8 +324,8 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   const measures = performance.getEntriesByName(measureName);
   const measure = measures[0];
 
-  const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin!) / 1000;
-  const endTimestamp = startTimestamp + measure.duration / 1000;
+  const startTimestamp = msToSec(measure.startTime + browserPerformanceTimeOrigin!);
+  const endTimestamp = startTimestamp + msToSec(measure.duration);
 
   const transaction = getActiveTransaction();
   const span = transaction?.startChild({

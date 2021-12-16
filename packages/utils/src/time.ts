@@ -16,7 +16,7 @@ interface TimestampSource {
  * is more obvious to explain "why does my span have negative duration" than "why my spans have zero duration".
  */
 const dateTimestampSource: TimestampSource = {
-  nowSeconds: () => Date.now() / 1000,
+  nowSeconds: () => msToSec(Date.now()),
 };
 
 /**
@@ -97,7 +97,7 @@ const timestampSource: TimestampSource =
   platformPerformance === undefined
     ? dateTimestampSource
     : {
-        nowSeconds: () => (platformPerformance.timeOrigin + platformPerformance.now()) / 1000,
+        nowSeconds: () => msToSec(platformPerformance.timeOrigin + platformPerformance.now()),
       };
 
 /**
@@ -183,3 +183,19 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   _browserPerformanceTimeOriginMode = 'dateNow';
   return dateNow;
 })();
+
+/**
+ * Converts from milliseconds to seconds
+ * @param time time in ms
+ */
+export function msToSec(time: number): number {
+  return time / 1000;
+}
+
+/**
+ * Converts from seconds to milliseconds
+ * @param time time in seconds
+ */
+export function secToMs(time: number): number {
+  return time * 1000;
+}
