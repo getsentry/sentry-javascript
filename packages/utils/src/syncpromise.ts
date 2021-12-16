@@ -20,7 +20,7 @@ const enum States {
  */
 class SyncPromise<T> implements PromiseLike<T> {
   private _state: States = States.PENDING;
-  private _handlers: Array<[boolean, (value: T) => T | PromiseLike<T>, (reason: any) => any]> = [];
+  private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]> = [];
   private _value: any;
 
   public constructor(
@@ -53,7 +53,8 @@ class SyncPromise<T> implements PromiseLike<T> {
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
   ): PromiseLike<TResult1 | TResult2> {
     return new SyncPromise((resolve, reject) => {
-      this._attachHandler(
+      this._handlers.push([
+        false,
         result => {
           if (!onfulfilled) {
             // TODO: ¯\_(ツ)_/¯
@@ -78,7 +79,8 @@ class SyncPromise<T> implements PromiseLike<T> {
             }
           }
         },
-      );
+      ]);
+      this._executeHandlers();
     });
   }
 
@@ -122,11 +124,6 @@ class SyncPromise<T> implements PromiseLike<T> {
   }
 
   /** JSDoc */
-  public toString(): string {
-    return '[object SyncPromise]';
-  }
-
-  /** JSDoc */
   private readonly _resolve = (value?: T | PromiseLike<T> | null) => {
     this._setResult(States.RESOLVED, value);
   };
@@ -150,13 +147,6 @@ class SyncPromise<T> implements PromiseLike<T> {
     this._state = state;
     this._value = value;
 
-    this._executeHandlers();
-  };
-
-  // TODO: FIXME
-  /** JSDoc */
-  private readonly _attachHandler = (onfulfilled: (value: T) => any, onrejected: (reason: any) => any) => {
-    this._handlers.push([false, onfulfilled, onrejected]);
     this._executeHandlers();
   };
 
