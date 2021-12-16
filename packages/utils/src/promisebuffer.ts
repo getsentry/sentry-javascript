@@ -22,18 +22,41 @@ function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): Promis
   });
 }
 
-/** A simple queue that holds promises. */
-export class PromiseBuffer<T> {
-  /** Internal set of queued Promises */
-  private readonly _buffer: Array<PromiseLike<T>> = [];
+export interface PromiseBuffer<T> {
+  _buffer: Array<PromiseLike<T>>;
+  isReady(): boolean;
+  add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
+  remove(task: PromiseLike<T>): PromiseLike<T>;
+  length(): number;
+  drain(timeout?: number): PromiseLike<boolean>;
+}
 
-  public constructor(protected _limit?: number) {}
+/**
+ * Creates an new PromiseBuffer object with the specified limit
+ * @param limit max number of promises that can be stored in the buffer
+ */
+export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
+  const buffer: Array<PromiseLike<T>> = [];
 
   /**
-   * Says if the buffer is ready to take more requests
+   * This function returns the number of unresolved promises in the queue.
    */
-  public isReady(): boolean {
-    return this._limit === undefined || this.length() < this._limit;
+  function length(): number {
+    return buffer.length;
+  }
+
+  function isReady(): boolean {
+    return limit === undefined || length() < limit;
+  }
+
+  /**
+   * Remove a promise from the queue.
+   *
+   * @param task Can be any PromiseLike<T>
+   * @returns Removed promise.
+   */
+  function remove(task: PromiseLike<T>): PromiseLike<T> {
+    return buffer.splice(buffer.indexOf(task), 1)[0];
   }
 
   /**
@@ -46,45 +69,27 @@ export class PromiseBuffer<T> {
    *        limit check.
    * @returns The original promise.
    */
-  public add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
-    if (!this.isReady()) {
+  function add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
+    if (!isReady()) {
       return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
 
     // start the task and add its promise to the queue
     const task = taskProducer();
-    if (this._buffer.indexOf(task) === -1) {
-      this._buffer.push(task);
+    if (buffer.indexOf(task) === -1) {
+      buffer.push(task);
     }
     void task
-      .then(() => this.remove(task))
+      .then(() => remove(task))
       // Use `then(null, rejectionHandler)` rather than `catch(rejectionHandler)` so that we can use `PromiseLike`
       // rather than `Promise`. `PromiseLike` doesn't have a `.catch` method, making its polyfill smaller. (ES5 didn't
       // have promises, so TS has to polyfill when down-compiling.)
       .then(null, () =>
-        this.remove(task).then(null, () => {
-          // We have to add another catch here because `this.remove()` starts a new promise chain.
+        remove(task).then(null, () => {
+          // We have to add another catch here because `remove()` starts a new promise chain.
         }),
       );
     return task;
-  }
-
-  /**
-   * Remove a promise from the queue.
-   *
-   * @param task Can be any PromiseLike<T>
-   * @returns Removed promise.
-   */
-  public remove(task: PromiseLike<T>): PromiseLike<T> {
-    const removedTask = this._buffer.splice(this._buffer.indexOf(task), 1)[0];
-    return removedTask;
-  }
-
-  /**
-   * This function returns the number of unresolved promises in the queue.
-   */
-  public length(): number {
-    return this._buffer.length;
   }
 
   /**
@@ -96,7 +101,7 @@ export class PromiseBuffer<T> {
    * @returns A promise which will resolve to `true` if the queue is already empty or drains before the timeout, and
    * `false` otherwise
    */
-  public drain(timeout?: number): PromiseLike<boolean> {
+  function drain(timeout?: number): PromiseLike<boolean> {
     return new SyncPromise<boolean>(resolve => {
       // wait for `timeout` ms and then resolve to `false` (if not cancelled first)
       const capturedSetTimeout = setTimeout(() => {
@@ -106,10 +111,21 @@ export class PromiseBuffer<T> {
       }, timeout);
 
       // if all promises resolve in time, cancel the timer and resolve to `true`
-      void allPromises(this._buffer).then(() => {
+      void allPromises(buffer).then(() => {
         clearTimeout(capturedSetTimeout);
         resolve(true);
       });
     });
   }
+
+  const promiseBuffer: PromiseBuffer<T> = {
+    _buffer: buffer,
+    length,
+    isReady,
+    add,
+    remove,
+    drain,
+  };
+
+  return promiseBuffer;
 }
