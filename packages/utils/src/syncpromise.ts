@@ -34,16 +34,6 @@ export class SyncPromise<T> implements PromiseLike<T> {
   }
 
   /** JSDoc */
-  public static resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
-    return syncPromiseResolve(value);
-  }
-
-  /** JSDoc */
-  public static reject<T = never>(reason?: any): PromiseLike<T> {
-    return syncPromiseReject(reason);
-  }
-
-  /** JSDoc */
   public then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
