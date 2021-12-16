@@ -24,7 +24,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: ({ callback, type }: any): void => {
+    addInstrumentationHandler: (type, callback): void => {
       if (type === 'history') {
         // rather than actually add the navigation-change handler, grab a reference to it, so we can trigger it manually
         mockChangeHistory = callback;

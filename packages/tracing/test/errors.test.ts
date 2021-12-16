@@ -20,7 +20,7 @@ jest.mock('@sentry/utils', () => {
         mockUnhandledRejectionCallback = callback;
       }
       if (typeof mockAddInstrumentationHandler === 'function') {
-        return mockAddInstrumentationHandler({ callback, type });
+        return mockAddInstrumentationHandler(type, callback);
       }
     },
   };
@@ -45,11 +45,8 @@ describe('registerErrorHandlers()', () => {
   it('registers error instrumentation', () => {
     registerErrorInstrumentation();
     expect(mockAddInstrumentationHandler).toHaveBeenCalledTimes(2);
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(1, { callback: expect.any(Function), type: 'error' });
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(2, {
-      callback: expect.any(Function),
-      type: 'unhandledrejection',
-    });
+    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(1, 'error', expect.any(Function));
+    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(2, 'unhandledrejection', expect.any(Function));
   });
 
   it('does not set status if transaction is not on scope', () => {
