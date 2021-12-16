@@ -13,7 +13,6 @@ import {
   IntegrationClass,
   Primitive,
   SessionContext,
-  SessionStatus,
   SeverityLevel,
   Span,
   SpanContext,
@@ -451,8 +450,8 @@ export class Hub implements HubInterface {
     if (scope) {
       // End existing session if there's one
       const currentSession = scope.getSession && scope.getSession();
-      if (currentSession && currentSession.status === SessionStatus.Ok) {
-        currentSession.update({ status: SessionStatus.Exited });
+      if (currentSession && currentSession.status === 'ok') {
+        currentSession.update({ status: 'exited' });
       }
       this.endSession();
 

@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { Event, SessionAggregates, SessionStatus, Status, TransportOptions } from '@sentry/types';
+import { Event, SessionAggregates, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -27,7 +27,7 @@ const sessionPayload: Session = {
   timestamp: Date.now(),
   init: true,
   duration: 0,
-  status: SessionStatus.Exited,
+  status: 'exited',
   update: jest.fn(),
   close: jest.fn(),
   toJSON: jest.fn(),
@@ -284,10 +284,10 @@ describe('HTTPTransport', () => {
     mockReturnCode = 200;
 
     const eventRes = await transport.sendEvent(eventPayload);
-    expect(eventRes.status).toEqual(Status.Success);
+    expect(eventRes.status).toEqual('success');
 
     const transactionRes = await transport.sendEvent(transactionPayload);
-    expect(transactionRes.status).toEqual(Status.Success);
+    expect(transactionRes.status).toEqual('success');
 
     mock.mockRestore();
   });
@@ -331,10 +331,10 @@ describe('HTTPTransport', () => {
     mockReturnCode = 200;
 
     const transactionRes = await transport.sendEvent(transactionPayload);
-    expect(transactionRes.status).toEqual(Status.Success);
+    expect(transactionRes.status).toEqual('success');
 
     const sessionsRes = await transport.sendSession(sessionPayload);
-    expect(sessionsRes.status).toEqual(Status.Success);
+    expect(sessionsRes.status).toEqual('success');
 
     try {
       await transport.sendEvent(eventPayload);
@@ -350,7 +350,7 @@ describe('HTTPTransport', () => {
     }
 
     const eventRes = await transport.sendEvent(eventPayload);
-    expect(eventRes.status).toEqual(Status.Success);
+    expect(eventRes.status).toEqual('success');
 
     mock.mockRestore();
   });
@@ -439,13 +439,13 @@ describe('HTTPTransport', () => {
     mockReturnCode = 200;
 
     const eventRes = await transport.sendEvent(eventPayload);
-    expect(eventRes.status).toEqual(Status.Success);
+    expect(eventRes.status).toEqual('success');
 
     const sessionsRes = await transport.sendSession(sessionPayload);
-    expect(sessionsRes.status).toEqual(Status.Success);
+    expect(sessionsRes.status).toEqual('success');
 
     const transactionRes = await transport.sendEvent(transactionPayload);
-    expect(transactionRes.status).toEqual(Status.Success);
+    expect(transactionRes.status).toEqual('success');
 
     mock.mockRestore();
   });
@@ -513,10 +513,10 @@ describe('HTTPTransport', () => {
     mockReturnCode = 200;
 
     const eventRes = await transport.sendEvent(eventPayload);
-    expect(eventRes.status).toEqual(Status.Success);
+    expect(eventRes.status).toEqual('success');
 
     const transactionRes = await transport.sendEvent(transactionPayload);
-    expect(transactionRes.status).toEqual(Status.Success);
+    expect(transactionRes.status).toEqual('success');
 
     mock.mockRestore();
   });
@@ -569,10 +569,10 @@ describe('HTTPTransport', () => {
     mockReturnCode = 200;
 
     const transactionRes = await transport.sendEvent(transactionPayload);
-    expect(transactionRes.status).toEqual(Status.Success);
+    expect(transactionRes.status).toEqual('success');
 
     const eventRes = await transport.sendEvent(eventPayload);
-    expect(eventRes.status).toEqual(Status.Success);
+    expect(eventRes.status).toEqual('success');
 
     mock.mockRestore();
   });
@@ -599,7 +599,7 @@ describe('HTTPTransport', () => {
       .mockReturnValueOnce(now + retryAfterSeconds * 1000);
 
     let eventRes = await transport.sendEvent(eventPayload);
-    expect(eventRes.status).toEqual(Status.Success);
+    expect(eventRes.status).toEqual('success');
 
     try {
       await transport.sendEvent(eventPayload);
@@ -618,7 +618,7 @@ describe('HTTPTransport', () => {
     mockHeaders = {};
 
     eventRes = await transport.sendEvent(eventPayload);
-    expect(eventRes.status).toEqual(Status.Success);
+    expect(eventRes.status).toEqual('success');
 
     mock.mockRestore();
   });

@@ -9,12 +9,12 @@ import {
   Outcome,
   Response as SentryResponse,
   SentryRequestType,
-  Status,
   Transport,
   TransportOptions,
 } from '@sentry/types';
 import {
   dateTimestampInSeconds,
+  eventStatusFromHttpCode,
   getGlobalObject,
   logger,
   parseRetryAfterHeader,
@@ -155,7 +155,7 @@ export abstract class BaseTransport implements Transport {
     resolve: (value?: SentryResponse | PromiseLike<SentryResponse> | null | undefined) => void;
     reject: (reason?: unknown) => void;
   }): void {
-    const status = Status.fromHttpCode(response.status);
+    const status = eventStatusFromHttpCode(response.status);
     /**
      * "The name is case-insensitive."
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
@@ -164,7 +164,7 @@ export abstract class BaseTransport implements Transport {
     if (limited)
       logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
 
-    if (status === Status.Success) {
+    if (status === 'success') {
       resolve({ status });
       return;
     }
