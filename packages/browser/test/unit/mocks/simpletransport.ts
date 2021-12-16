@@ -1,4 +1,4 @@
-import { statusFromHttpCode, SyncPromise } from '@sentry/utils';
+import { eventStatusFromHttpCode, SyncPromise } from '@sentry/utils';
 
 import { Event, Response } from '../../../src';
 import { BaseTransport } from '../../../src/transports';
@@ -7,7 +7,7 @@ export class SimpleTransport extends BaseTransport {
   public sendEvent(_: Event): PromiseLike<Response> {
     return this._buffer.add(() =>
       SyncPromise.resolve({
-        status: statusFromHttpCode(200),
+        status: eventStatusFromHttpCode(200),
       }),
     );
   }

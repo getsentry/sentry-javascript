@@ -10,7 +10,7 @@ import {
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError, statusFromHttpCode } from '@sentry/utils';
+import { eventStatusFromHttpCode, logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -208,7 +208,7 @@ export abstract class BaseTransport implements Transport {
           const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
           const req = this.module.request(options, res => {
             const statusCode = res.statusCode || 500;
-            const status = statusFromHttpCode(statusCode);
+            const status = eventStatusFromHttpCode(statusCode);
 
             res.setEncoding('utf8');
 
