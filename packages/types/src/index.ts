@@ -11,7 +11,6 @@ export { Exception } from './exception';
 export { Extra, Extras } from './extra';
 export { Hub } from './hub';
 export { Integration, IntegrationClass } from './integration';
-export { LogLevel } from './loglevel';
 export { Mechanism } from './mechanism';
 export { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 export { Options } from './options';
