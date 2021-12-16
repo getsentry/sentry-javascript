@@ -1,11 +1,17 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Measurements, SpanContext } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
+import {
+  browserPerformanceTimeOrigin,
+  getGlobalObject,
+  htmlTreeAsString,
+  isNodeEnv,
+  logger,
+  msToSec,
+} from '@sentry/utils';
 
 import { Span } from '../span';
 import { Transaction } from '../transaction';
-import { msToSec } from '../utils';
 import { getCLS, LayoutShift } from './web-vitals/getCLS';
 import { getFID } from './web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';

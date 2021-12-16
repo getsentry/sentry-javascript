@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
-import { logger, timestampWithMs, msToSec } from '@sentry/utils';
+import { logger, msToSec, timestampWithMs } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants';
 import { Span, SpanRecorder } from './span';
@@ -219,7 +219,7 @@ export class IdleTransaction extends Transaction {
       const timeout = this._idleTimeout;
       // We need to add the timeout here to have the real endtimestamp of the transaction
       // Remember timestampWithMs is in seconds, timeout is in ms
-      const end = timestampWithMs() + msToSec(timeout;
+      const end = timestampWithMs() + msToSec(timeout);
 
       setTimeout(() => {
         if (!this._finished) {

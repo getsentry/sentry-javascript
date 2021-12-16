@@ -19,6 +19,7 @@ import {
   logger,
   parseRetryAfterHeader,
   PromiseBuffer,
+  secToMs,
   SentryError,
 } from '@sentry/utils';
 
@@ -209,7 +210,7 @@ export abstract class BaseTransport implements Transport {
       for (const limit of rlHeader.trim().split(',')) {
         const parameters = limit.split(':', 2);
         const headerDelay = parseInt(parameters[0], 10);
-        const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
+        const delay = secToMs(!isNaN(headerDelay) ? headerDelay : 60); // 60sec default
         for (const category of parameters[1].split(';')) {
           this._rateLimits[category || 'all'] = new Date(now + delay);
         }

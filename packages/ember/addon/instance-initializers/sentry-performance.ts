@@ -5,10 +5,9 @@ import * as Sentry from '@sentry/browser';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
-import { browserPerformanceTimeOrigin, getGlobalObject, timestampWithMs } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getGlobalObject, timestampWithMs, secToMs, msToSec } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
-import { msToSec } from '../../../utils/src/time';
 
 function getSentryConfig() {
   const _global = getGlobalObject<GlobalConfig>();
@@ -168,7 +167,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
             const now = timestampWithMs();
             const minQueueDuration = minimumRunloopQueueDuration ?? 5;
 
-            if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
+            if (secToMs(now - currentQueueStart) >= minQueueDuration) {
               activeTransaction
                 ?.startChild({
                   op: `ui.ember.runloop.${queue}`,

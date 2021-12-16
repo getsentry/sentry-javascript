@@ -10,7 +10,14 @@ import {
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { eventStatusFromHttpCode, logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import {
+  eventStatusFromHttpCode,
+  logger,
+  parseRetryAfterHeader,
+  PromiseBuffer,
+  secToMs,
+  SentryError,
+} from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -161,7 +168,7 @@ export abstract class BaseTransport implements Transport {
       for (const limit of rlHeader.trim().split(',')) {
         const parameters = limit.split(':', 2);
         const headerDelay = parseInt(parameters[0], 10);
-        const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
+        const delay = secToMs(!isNaN(headerDelay) ? headerDelay : 60); // 60sec default
         for (const category of (parameters[1] && parameters[1].split(';')) || ['all']) {
           // categoriesAllowed is added here to ensure we are only storing rate limits for categories we support in this
           // sdk and any categories that are not supported will not be added redundantly to the rateLimits object

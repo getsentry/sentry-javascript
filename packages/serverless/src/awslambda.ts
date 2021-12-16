@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isString, msToSec, logger } from '@sentry/utils';
+import { isString, logger, msToSec } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -257,7 +257,7 @@ export function wrapHandler<TEvent, TResult>(
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
     // In seconds. You cannot go any more granular than this in AWS Lambda.
-    const configuredTimeout = msToSec(Math.ceil(tryGetRemainingTimeInMillis(context));
+    const configuredTimeout = msToSec(Math.ceil(tryGetRemainingTimeInMillis(context)));
     const configuredTimeoutMinutes = Math.floor(configuredTimeout / 60);
     const configuredTimeoutSeconds = configuredTimeout % 60;
 

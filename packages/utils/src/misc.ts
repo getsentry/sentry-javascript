@@ -4,6 +4,7 @@ import { Event, Exception, Mechanism, StackFrame } from '@sentry/types';
 import { getGlobalObject } from './global';
 import { addNonEnumerableProperty } from './object';
 import { snipLine } from './string';
+import { secToMs } from './time';
 
 /**
  * Extended Window interface that allows for Crypto API usage in IE browsers
@@ -50,7 +51,7 @@ export function uuid4(): string {
     return str;
   }
   // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
-  return '${xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
+  return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
     // eslint-disable-next-line no-bitwise
     const r = (Math.random() * 16) | 0;
     // eslint-disable-next-line no-bitwise
@@ -193,7 +194,7 @@ export function parseSemver(input: string): SemVer {
   };
 }
 
-const defaultRetryAfter = 60 * 1000; // 60 seconds
+const defaultRetryAfter = secToMs(60); // 60 seconds
 
 /**
  * Extracts Retry-After value from the request header or returns default value
@@ -207,7 +208,7 @@ export function parseRetryAfterHeader(now: number, header?: string | number | nu
 
   const headerDelay = parseInt(`${header}`, 10);
   if (!isNaN(headerDelay)) {
-    return headerDelay * 1000;
+    return secToMs(headerDelay);
   }
 
   const headerDate = Date.parse(`${header}`);
