@@ -24,14 +24,10 @@ import {
 
 import { sendReport } from './utils';
 
-const CATEGORY_MAPPING: {
-  [key in SentryRequestType]: string;
-} = {
-  event: 'error',
-  transaction: 'transaction',
-  session: 'session',
-  attachment: 'attachment',
-};
+function requestTypeToCategory(ty: SentryRequestType): string {
+  const tyStr = ty as string;
+  return tyStr === 'event' ? 'error' : tyStr;
+}
 
 const global = getGlobalObject<Window>();
 
@@ -93,7 +89,7 @@ export abstract class BaseTransport implements Transport {
     // We could use nested maps, but it's much easier to read and type this way.
     // A correct type for map-based implementation if we want to go that route
     // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
-    const key = `${CATEGORY_MAPPING[category]}:${reason}`;
+    const key = `${requestTypeToCategory(category)}:${reason}`;
     logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
@@ -180,7 +176,7 @@ export abstract class BaseTransport implements Transport {
    * Gets the time that given category is disabled until for rate limiting
    */
   protected _disabledUntil(requestType: SentryRequestType): Date {
-    const category = CATEGORY_MAPPING[requestType];
+    const category = requestTypeToCategory(requestType);
     return this._rateLimits[category] || this._rateLimits.all;
   }
 

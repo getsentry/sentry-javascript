@@ -1,5 +1,11 @@
+import { isDebugBuild } from '@sentry/utils';
+
 import { Dsn } from '../src/dsn';
 import { SentryError } from '../src/error';
+
+function testIf(condition: boolean): jest.It {
+  return condition ? test : test.skip;
+}
 
 describe('Dsn', () => {
   describe('fromComponents', () => {
@@ -37,7 +43,7 @@ describe('Dsn', () => {
       expect(dsn.projectId).toBe('123');
     });
 
-    test('throws for missing components', () => {
+    testIf(isDebugBuild())('throws for missing components', () => {
       expect(
         () =>
           new Dsn({
@@ -76,7 +82,7 @@ describe('Dsn', () => {
       ).toThrow(SentryError);
     });
 
-    test('throws for invalid components', () => {
+    testIf(isDebugBuild())('throws for invalid components', () => {
       expect(
         () =>
           new Dsn({
@@ -144,18 +150,18 @@ describe('Dsn', () => {
       expect(dsn.projectId).toBe('321');
     });
 
-    test('throws when provided invalid Dsn', () => {
+    testIf(isDebugBuild())('throws when provided invalid Dsn', () => {
       expect(() => new Dsn('some@random.dsn')).toThrow(SentryError);
     });
 
-    test('throws without mandatory fields', () => {
+    testIf(isDebugBuild())('throws without mandatory fields', () => {
       expect(() => new Dsn('://abc@sentry.io/123')).toThrow(SentryError);
       expect(() => new Dsn('https://@sentry.io/123')).toThrow(SentryError);
       expect(() => new Dsn('https://abc@123')).toThrow(SentryError);
       expect(() => new Dsn('https://abc@sentry.io/')).toThrow(SentryError);
     });
 
-    test('throws for invalid fields', () => {
+    testIf(isDebugBuild())('throws for invalid fields', () => {
       expect(() => new Dsn('httpx://abc@sentry.io/123')).toThrow(SentryError);
       expect(() => new Dsn('httpx://abc@sentry.io:xxx/123')).toThrow(SentryError);
       expect(() => new Dsn('http://abc@sentry.io/abc')).toThrow(SentryError);
