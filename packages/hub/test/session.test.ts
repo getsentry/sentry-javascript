@@ -1,4 +1,4 @@
-import { SessionContext, SessionStatus } from '@sentry/types';
+import { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 
 import { Session } from '../src/session';
@@ -16,7 +16,7 @@ describe('Session', () => {
       init: true,
       sid: expect.any(String),
       started: expect.stringMatching(currentYear),
-      status: SessionStatus.Ok,
+      status: 'ok',
       timestamp: expect.stringMatching(currentYear),
     });
 
@@ -74,7 +74,7 @@ describe('Session', () => {
       ],
       ['sets an userAgent', { userAgent: 'Mozilla/5.0' }, { attrs: { user_agent: 'Mozilla/5.0' } }],
       ['sets errors', { errors: 3 }, { errors: 3 }],
-      ['sets status', { status: SessionStatus.Crashed }, { status: SessionStatus.Crashed }],
+      ['sets status', { status: 'crashed' }, { status: 'crashed' }],
     ];
 
     test.each(table)('%s', (...test) => {
@@ -93,26 +93,26 @@ describe('Session', () => {
   describe('close', () => {
     it('exits a normal session', () => {
       const session = new Session();
-      expect(session.status).toEqual(SessionStatus.Ok);
+      expect(session.status).toEqual('ok');
       session.close();
-      expect(session.status).toEqual(SessionStatus.Exited);
+      expect(session.status).toEqual('exited');
     });
 
     it('updates session status when give status', () => {
       const session = new Session();
-      expect(session.status).toEqual(SessionStatus.Ok);
+      expect(session.status).toEqual('ok');
 
-      session.close(SessionStatus.Abnormal);
-      expect(session.status).toEqual(SessionStatus.Abnormal);
+      session.close('abnormal');
+      expect(session.status).toEqual('abnormal');
     });
 
     it('only changes status ok to exited', () => {
       const session = new Session();
-      session.update({ status: SessionStatus.Crashed });
-      expect(session.status).toEqual(SessionStatus.Crashed);
+      session.update({ status: 'crashed' });
+      expect(session.status).toEqual('crashed');
 
       session.close();
-      expect(session.status).toEqual(SessionStatus.Crashed);
+      expect(session.status).toEqual('crashed');
     });
   });
 });

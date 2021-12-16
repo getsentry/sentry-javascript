@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { Event, SessionAggregates, SessionStatus, TransportOptions } from '@sentry/types';
+import { Event, SessionAggregates, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -27,7 +27,7 @@ const sessionPayload: Session = {
   timestamp: Date.now(),
   init: true,
   duration: 0,
-  status: SessionStatus.Exited,
+  status: 'exited',
   update: jest.fn(),
   close: jest.fn(),
   toJSON: jest.fn(),
