@@ -3,6 +3,7 @@ import { Hub, makeMain } from '@sentry/hub';
 import { JSDOM } from 'jsdom';
 
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
+import { addExtensionMethods } from '../../src/hubextensions';
 
 describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
@@ -14,6 +15,9 @@ describe('registerBackgroundTabDetection', () => {
 
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
     makeMain(hub);
+
+    // If we do not add extension methods, invoking hub.startTransaction returns undefined
+    addExtensionMethods();
 
     // @ts-ignore need to override global document
     global.document.addEventListener = jest.fn((event, callback) => {
