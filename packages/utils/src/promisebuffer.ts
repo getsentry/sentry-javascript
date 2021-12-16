@@ -1,6 +1,27 @@
 import { SentryError } from './error';
 import { SyncPromise } from './syncpromise';
 
+function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
+  return new SyncPromise<U[]>((resolve, reject) => {
+    if (collection.length === 0) {
+      resolve(null);
+      return;
+    }
+
+    let counter = collection.length;
+    collection.forEach(item => {
+      void SyncPromise.resolve(item)
+        .then(() => {
+          // eslint-disable-next-line no-plusplus
+          if (--counter === 0) {
+            resolve(null);
+          }
+        })
+        .then(null, reject);
+    });
+  });
+}
+
 /** A simple queue that holds promises. */
 export class PromiseBuffer<T> {
   /** Internal set of queued Promises */
@@ -85,14 +106,10 @@ export class PromiseBuffer<T> {
       }, timeout);
 
       // if all promises resolve in time, cancel the timer and resolve to `true`
-      void SyncPromise.all(this._buffer)
-        .then(() => {
-          clearTimeout(capturedSetTimeout);
-          resolve(true);
-        })
-        .then(null, () => {
-          resolve(true);
-        });
+      void allPromises(this._buffer).then(() => {
+        clearTimeout(capturedSetTimeout);
+        resolve(true);
+      });
     });
   }
 }
