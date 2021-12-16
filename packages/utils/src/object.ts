@@ -31,13 +31,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
   if (typeof wrapped === 'function') {
     try {
-      wrapped.prototype = wrapped.prototype || {};
-      Object.defineProperties(wrapped, {
-        __sentry_original__: {
-          enumerable: false,
-          value: original,
-        },
-      });
+      markFunctionWrapped(wrapped, original);
     } catch (_Oo) {
       // This can throw if multiple fill happens on a global object like XMLHttpRequest
       // Fixes https://github.com/getsentry/sentry-javascript/issues/2043
@@ -45,6 +39,44 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
   }
 
   source[name] = wrapped;
+}
+
+/**
+ * Defines a non enumerable property.  This creates a non enumerable property on an object.
+ *
+ * @param func The function to set a property to
+ * @param name the name of the special sentry property
+ * @param value the property to define
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function addNonEnumerableProperty(func: any, name: string, value: any): void {
+  Object.defineProperty(func, name, {
+    value: value,
+  });
+}
+
+/**
+ * Remembers the original function on the wrapped function and
+ * patches up the prototype.
+ *
+ * @param wrapped the wrapper function
+ * @param original the original function that gets wrapped
+ */
+export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedFunction): void {
+  const proto = original.prototype || {};
+  wrapped.prototype = original.prototype = proto;
+  addNonEnumerableProperty(wrapped, '__sentry_original__', original);
+}
+
+/**
+ * This extracts the original function if available.  See
+ * `markFunctionWrapped` for more information.
+ *
+ * @param func the function to unwrap
+ * @returns the unwrapped version of the function if available.
+ */
+export function getOriginalFunction(func: WrappedFunction): WrappedFunction | undefined {
+  return func.__sentry_original__;
 }
 
 /**

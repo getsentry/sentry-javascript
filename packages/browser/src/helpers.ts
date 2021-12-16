@@ -1,6 +1,14 @@
 import { captureException, getReportDialogEndpoint, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, getGlobalObject, logger } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  addExceptionTypeValue,
+  addNonEnumerableProperty,
+  getGlobalObject,
+  getOriginalFunction,
+  logger,
+  markFunctionWrapped,
+} from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
@@ -39,19 +47,28 @@ export function wrap(
   before?: WrappedFunction,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
+  // for future readers what this does is wrap a function and then create
+  // a bi-directional wrapping between them.
+  //
+  // example: wrapped = wrap(original);
+  //  original.__sentry_wrapped__ -> wrapped
+  //  wrapped.__sentry_original__ -> original
+
   if (typeof fn !== 'function') {
     return fn;
   }
 
   try {
-    // We don't wanna wrap it twice
-    if (fn.__sentry__) {
-      return fn;
+    // if we're dealing with a function that was previously wrapped, return
+    // the original wrapper.
+    const wrapper = fn.__sentry_wrapped__;
+    if (wrapper) {
+      return wrapper;
     }
 
-    // If this has already been wrapped in the past, return that wrapped function
-    if (fn.__sentry_wrapped__) {
-      return fn.__sentry_wrapped__;
+    // We don't wanna wrap it twice
+    if (getOriginalFunction(fn)) {
+      return fn;
     }
   } catch (e) {
     // Just accessing custom props in some Selenium environments
@@ -73,14 +90,6 @@ export function wrap(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
-      if (fn.handleEvent) {
-        // Attempt to invoke user-land function
-        // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
-        //       means the sentry.javascript SDK caught an error invoking your application code. This
-        //       is expected behavior and NOT indicative of a bug with sentry.javascript.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        return fn.handleEvent.apply(this, wrappedArguments);
-      }
       // Attempt to invoke user-land function
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
       //       means the sentry.javascript SDK caught an error invoking your application code. This
@@ -91,19 +100,17 @@ export function wrap(
 
       withScope((scope: Scope) => {
         scope.addEventProcessor((event: SentryEvent) => {
-          const processedEvent = { ...event };
-
           if (options.mechanism) {
-            addExceptionTypeValue(processedEvent, undefined, undefined);
-            addExceptionMechanism(processedEvent, options.mechanism);
+            addExceptionTypeValue(event, undefined, undefined);
+            addExceptionMechanism(event, options.mechanism);
           }
 
-          processedEvent.extra = {
-            ...processedEvent.extra,
+          event.extra = {
+            ...event.extra,
             arguments: args,
           };
 
-          return processedEvent;
+          return event;
         });
 
         captureException(ex);
@@ -124,26 +131,11 @@ export function wrap(
     }
   } catch (_oO) {} // eslint-disable-line no-empty
 
-  fn.prototype = fn.prototype || {};
-  sentryWrapped.prototype = fn.prototype;
-
-  Object.defineProperty(fn, '__sentry_wrapped__', {
-    enumerable: false,
-    value: sentryWrapped,
-  });
-
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
-  Object.defineProperties(sentryWrapped, {
-    __sentry__: {
-      enumerable: false,
-      value: true,
-    },
-    __sentry_original__: {
-      enumerable: false,
-      value: fn,
-    },
-  });
+  markFunctionWrapped(sentryWrapped, fn);
+
+  addNonEnumerableProperty(fn, '__sentry_wrapped__', sentryWrapped);
 
   // Restore original function name (not all browsers allow that)
   try {
