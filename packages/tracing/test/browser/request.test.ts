@@ -2,7 +2,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
-import { Span, Transaction, spanStatusfromHttpCode } from '../../src';
+import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
 import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
