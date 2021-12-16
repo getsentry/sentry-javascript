@@ -1,5 +1,5 @@
 import { SentryError } from './error';
-import { SyncPromise } from './syncpromise';
+import { SyncPromise, syncPromiseReject } from './syncpromise';
 
 function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
   return new SyncPromise<U[]>((resolve, reject) => {
@@ -48,7 +48,7 @@ export class PromiseBuffer<T> {
    */
   public add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
     if (!this.isReady()) {
-      return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+      return syncPromiseReject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
 
     // start the task and add its promise to the queue

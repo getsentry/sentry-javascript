@@ -21,6 +21,7 @@ import {
   normalize,
   SentryError,
   SyncPromise,
+  syncPromiseReject,
   syncPromiseResolve,
   truncate,
   uuid4,
@@ -532,7 +533,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     if (!this._isEnabled()) {
-      return SyncPromise.reject(new SentryError('SDK not enabled, will not capture event.'));
+      return syncPromiseReject(new SentryError('SDK not enabled, will not capture event.'));
     }
 
     const isTransaction = event.type === 'transaction';
@@ -541,7 +542,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
       recordLostEvent('sample_rate', 'event');
-      return SyncPromise.reject(
+      return syncPromiseReject(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
         ),
