@@ -69,14 +69,7 @@ export enum SessionStatus {
   Abnormal = 'abnormal',
 }
 
-export enum RequestSessionStatus {
-  /** JSDoc */
-  Ok = 'ok',
-  /** JSDoc */
-  Errored = 'errored',
-  /** JSDoc */
-  Crashed = 'crashed',
-}
+export type RequestSessionStatus = 'ok' | 'errored' | 'crashed';
 
 /** JSDoc */
 export interface SessionAggregates {
