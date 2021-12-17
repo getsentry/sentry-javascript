@@ -12,7 +12,7 @@ export interface DsnComponents {
   /** Private authorization key (deprecated, optional). */
   pass?: string;
   /** Hostname of the Sentry instance. */
-  host: string;
+  hostname: string;
   /** Port of the Sentry instance. */
   port?: string;
   /** Sub path/ */

@@ -2,6 +2,7 @@ import { Dsn, DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
 import { isDebugBuild } from './env';
 import { SentryError } from './error';
+import { getGlobalObject } from './global';
 
 function isValidProtocol(protocol?: string): protocol is DsnProtocol {
   return protocol === 'http' || protocol === 'https';
@@ -21,21 +22,22 @@ function normalizeProtocol(input: string): string {
  * @param withPassword When set to true, the password will be included.
  */
 function dsntoString(dsn: Dsn, withPassword: boolean = false): string {
-  const { host, port, path, pass, projectId, protocol, publicKey } = dsn;
+  const { hostname, port, path, pass, projectId, protocol, publicKey } = dsn;
   return (
     `${protocol}://${publicKey}${withPassword && pass ? `:${pass}` : ''}` +
-    `@${host}${port ? `:${port}` : ''}${path}/${projectId}`
+    `@${hostname}${port ? `:${port}` : ''}${path}/${projectId}`
   );
 }
 
 function dsnFromString(str: string): Dsn {
-  const url = new URL(str);
+  const global = getGlobalObject<{ URL: typeof URL }>();
+  const url = new global.URL(str);
 
   const pathComponents = url.pathname.split('/');
   const projectId = pathComponents.pop();
 
   return dsnFromComponents({
-    host: url.hostname,
+    hostname: url.hostname,
     pass: url.password,
     path: pathComponents.join('/'),
     projectId: projectId || '',
@@ -56,7 +58,7 @@ function dsnFromComponents(components: DsnComponents): Dsn {
     protocol: components.protocol,
     publicKey: components.publicKey || '',
     pass: components.pass || '',
-    host: components.host,
+    hostname: components.hostname,
     port: components.port || '',
     path: components.path || '',
     projectId: components.projectId,
@@ -67,7 +69,7 @@ function validateDsn(dsn: Dsn): boolean {
   if (isDebugBuild()) {
     const { port, projectId, protocol } = dsn;
 
-    const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
+    const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'hostname', 'projectId'];
     requiredComponents.forEach(component => {
       if (!dsn[component]) {
         throw new SentryError(`Invalid Dsn: ${component} missing`);
