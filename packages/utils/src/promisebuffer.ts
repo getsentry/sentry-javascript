@@ -98,7 +98,7 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
             // eslint-disable-next-line no-plusplus
             if (!--counter) {
               clearTimeout(capturedSetTimeout);
-              resolve(null);
+              resolve(true);
             }
           })
           .then(null, reject);
