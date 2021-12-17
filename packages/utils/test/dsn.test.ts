@@ -48,7 +48,7 @@ describe('Dsn', () => {
         makeDsn({
           host: '',
           projectId: '123',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: 'abc',
         }),
       ).toThrow(SentryError);
@@ -56,7 +56,7 @@ describe('Dsn', () => {
         makeDsn({
           host: 'sentry.io',
           projectId: '',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: 'abc',
         }),
       ).toThrow(SentryError);
@@ -72,7 +72,7 @@ describe('Dsn', () => {
         makeDsn({
           host: 'sentry.io',
           projectId: '123',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: '',
         }),
       ).toThrow(SentryError);
@@ -92,7 +92,7 @@ describe('Dsn', () => {
           host: 'sentry.io',
           port: 'xxx',
           projectId: '123',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: 'abc',
         }),
       ).toThrow(SentryError);
@@ -118,7 +118,7 @@ describe('Dsn', () => {
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
-      expect(dsn.path).toBe('123');
+      expect(dsn.path).toBe('/123');
       expect(dsn.projectId).toBe('321');
     });
 
@@ -129,7 +129,7 @@ describe('Dsn', () => {
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
-      expect(dsn.path).toBe('sentry/custom/installation');
+      expect(dsn.path).toBe('/sentry/custom/installation');
       expect(dsn.projectId).toBe('321');
     });
 
