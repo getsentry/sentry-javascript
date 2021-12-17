@@ -119,6 +119,12 @@ describe('API', () => {
   });
 
   test('getDsn', () => {
-    expect(new API(dsnPublic).getDsn()).toEqual(makeDsn(dsnPublic));
+    expect(new API(dsnPublic).getDsn().host).toEqual(makeDsn(dsnPublic).host);
+    expect(new API(dsnPublic).getDsn().path).toEqual(makeDsn(dsnPublic).path);
+    expect(new API(dsnPublic).getDsn().pass).toEqual(makeDsn(dsnPublic).pass);
+    expect(new API(dsnPublic).getDsn().port).toEqual(makeDsn(dsnPublic).port);
+    expect(new API(dsnPublic).getDsn().protocol).toEqual(makeDsn(dsnPublic).protocol);
+    expect(new API(dsnPublic).getDsn().projectId).toEqual(makeDsn(dsnPublic).projectId);
+    expect(new API(dsnPublic).getDsn().publicKey).toEqual(makeDsn(dsnPublic).publicKey);
   });
 });

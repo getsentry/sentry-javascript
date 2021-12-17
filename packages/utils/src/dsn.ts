@@ -107,7 +107,7 @@ export function makeDsn(from: DsnLike): Dsn {
 
   const dsn: Dsn = {
     ...components,
-    toString: (withPassword: boolean) => dsntoString(dsn, withPassword),
+    toString: (withPassword?: boolean) => dsntoString(dsn, withPassword),
   };
 
   return dsn;
