@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { Dsn } from '@sentry/utils';
+import { makeDsn } from '@sentry/utils';
 
 import { API, getReportDialogEndpoint, getRequestHeaders } from '../../src/api';
 
@@ -25,12 +25,12 @@ describe('API', () => {
   });
 
   test('getRequestHeaders', () => {
-    expect(getRequestHeaders(new Dsn(dsnPublic), 'a', '1.0')).toMatchObject({
+    expect(getRequestHeaders(makeDsn(dsnPublic), 'a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(/^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc$/),
     });
 
-    expect(getRequestHeaders(new Dsn(legacyDsn), 'a', '1.0')).toMatchObject({
+    expect(getRequestHeaders(makeDsn(legacyDsn), 'a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(
         /^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc, sentry_secret=123$/,
@@ -119,6 +119,6 @@ describe('API', () => {
   });
 
   test('getDsn', () => {
-    expect(new API(dsnPublic).getDsn()).toEqual(new Dsn(dsnPublic));
+    expect(new API(dsnPublic).getDsn()).toEqual(makeDsn(dsnPublic));
   });
 });

@@ -1,5 +1,5 @@
 import { DsnLike, SdkMetadata } from '@sentry/types';
-import { Dsn, urlEncode } from '@sentry/utils';
+import { Dsn, makeDsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
 
@@ -40,7 +40,7 @@ export class API {
   /** Create a new instance of API */
   public constructor(dsn: DsnLike, metadata: SdkMetadata = {}, tunnel?: string) {
     this.dsn = dsn;
-    this._dsnObject = new Dsn(dsn);
+    this._dsnObject = makeDsn(dsn);
     this.metadata = metadata;
     this._tunnel = tunnel;
   }
@@ -89,7 +89,7 @@ export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: st
   return {
     initDsn: dsn,
     metadata: metadata || {},
-    dsn: new Dsn(dsn),
+    dsn: makeDsn(dsn),
     tunnel,
   } as APIDetails;
 }
@@ -171,7 +171,7 @@ export function getReportDialogEndpoint(
     user?: { name?: string; email?: string };
   },
 ): string {
-  const dsn = new Dsn(dsnLike);
+  const dsn = makeDsn(dsnLike);
   const endpoint = `${getBaseApiEndpoint(dsn)}embed/error-page/`;
 
   let encodedOptions = `dsn=${dsn.toString()}`;

@@ -3,11 +3,13 @@ import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 import { isDebugBuild } from './env';
 import { SentryError } from './error';
 
+export interface Dsn extends DsnComponents {
+  /** Protocol used to connect to Sentry. */
+  toString(withPassword: boolean): string;
+}
+
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w.-]+)(?::(\d+))?\/(.+)/;
-
-/** Error message */
-const ERROR_MESSAGE = 'Invalid Dsn';
 
 function isValidProtocol(protocol?: string): protocol is DsnProtocol {
   return protocol === 'http' || protocol === 'https';
@@ -34,7 +36,7 @@ function dsnFromString(str: string): Dsn {
   const match = DSN_REGEX.exec(str);
 
   if (!match) {
-    throw new SentryError(ERROR_MESSAGE);
+    throw new SentryError('Invalid Dsn');
   }
 
   const [protocol, publicKey, pass = '', host, port = '', lastPath] = match.slice(1);
@@ -54,11 +56,7 @@ function dsnFromString(str: string): Dsn {
     }
   }
 
-  if (isValidProtocol(protocol)) {
-    return dsnFromComponents({ host, pass, path, projectId, port, protocol: protocol, publicKey });
-  }
-
-  throw new SentryError(ERROR_MESSAGE);
+  return dsnFromComponents({ host, pass, path, projectId, port, protocol: protocol as DsnProtocol, publicKey });
 }
 
 function dsnFromComponents(components: DsnComponents): Dsn {
@@ -83,55 +81,39 @@ function validateDsn(dsn: Dsn): boolean {
   if (isDebugBuild()) {
     const { port, projectId, protocol } = dsn;
 
-    ['protocol', 'publicKey', 'host', 'projectId'].forEach(component => {
+    const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
+    requiredComponents.forEach(component => {
       if (!dsn[component]) {
-        throw new SentryError(`${ERROR_MESSAGE}: ${component} missing`);
+        throw new SentryError(`Invalid Dsn: ${component} missing`);
       }
     });
 
     if (!projectId.match(/^\d+$/)) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid projectId ${projectId}`);
+      throw new SentryError(`Invalid Dsn: Invalid projectId ${projectId}`);
     }
 
     if (isValidProtocol(protocol)) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid protocol ${protocol}`);
+      throw new SentryError(`Invalid Dsn: Invalid protocol ${protocol}`);
     }
 
     if (port && isNaN(parseInt(port, 10))) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid port ${port}`);
+      throw new SentryError(`Invalid Dsn: Invalid port ${port}`);
     }
   }
 
   return true;
 }
 
-function makeDsn(from: DsnLike): Dsn {
-  let dsn = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
-
-  return {
-    ...dsn,
-    toString: () => dsntoString(dsn),
-  };
-}
 /** The Sentry Dsn, identifying a Sentry instance and project. */
-export class Dsn implements DsnComponents {
-  /** Protocol used to connect to Sentry. */
-  public protocol!: DsnProtocol;
-  /** Public authorization key (deprecated, renamed to publicKey). */
-  public user!: string;
-  /** Public authorization key. */
-  public publicKey!: string;
-  /** Private authorization key (deprecated, optional). */
-  public pass!: string;
-  /** Hostname of the Sentry instance. */
-  public host!: string;
-  /** Port of the Sentry instance. */
-  public port!: string;
-  /** Path */
-  public path!: string;
-  /** Project ID */
-  public projectId!: string;
+export function makeDsn(from: DsnLike): Dsn {
+  const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
 
-  /** Creates a new Dsn component */
-  public constructor(from: DsnLike) {}
+  validateDsn(components);
+
+  const dsn: Dsn = {
+    ...components,
+    toString: (withPassword: boolean) => dsntoString(dsn),
+  };
+
+  return dsn;
 }

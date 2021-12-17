@@ -18,6 +18,7 @@ import {
   isPrimitive,
   isThenable,
   logger,
+  makeDsn,
   normalize,
   rejectedSyncPromise,
   resolvedSyncPromise,
@@ -95,7 +96,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     this._options = options;
 
     if (options.dsn) {
-      this._dsn = new Dsn(options.dsn);
+      this._dsn = makeDsn(options.dsn);
     }
   }
 
