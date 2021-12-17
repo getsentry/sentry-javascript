@@ -9,15 +9,16 @@ import {
   Outcome,
   Response as SentryResponse,
   SentryRequestType,
-  Status,
   Transport,
   TransportOptions,
 } from '@sentry/types';
 import {
   dateTimestampInSeconds,
+  eventStatusFromHttpCode,
   getGlobalObject,
   isDebugBuild,
   logger,
+  makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
   SentryError,
@@ -43,7 +44,7 @@ export abstract class BaseTransport implements Transport {
   protected readonly _api: APIDetails;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<SentryResponse> = makePromiseBuffer(30);
 
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
@@ -162,7 +163,7 @@ export abstract class BaseTransport implements Transport {
     resolve: (value?: SentryResponse | PromiseLike<SentryResponse> | null | undefined) => void;
     reject: (reason?: unknown) => void;
   }): void {
-    const status = Status.fromHttpCode(response.status);
+    const status = eventStatusFromHttpCode(response.status);
     /**
      * "The name is case-insensitive."
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
@@ -173,7 +174,7 @@ export abstract class BaseTransport implements Transport {
         logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
       }
 
-    if (status === Status.Success) {
+    if (status === 'success') {
       resolve({ status });
       return;
     }

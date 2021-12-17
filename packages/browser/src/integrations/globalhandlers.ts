@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Hub, Integration, Primitive, Severity } from '@sentry/types';
+import { Event, EventHint, Hub, Integration, Primitive } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -74,9 +74,10 @@ export class GlobalHandlers implements Integration {
 
 /** JSDoc */
 function _installGlobalOnErrorHandler(): void {
-  addInstrumentationHandler({
+  addInstrumentationHandler(
+    'error',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
+    (data: { msg: any; url: any; line: any; column: any; error: any }) => {
       const [hub, attachStacktrace] = getHubAndAttachStacktrace();
       if (!hub.getIntegration(GlobalHandlers)) {
         return;
@@ -101,15 +102,15 @@ function _installGlobalOnErrorHandler(): void {
 
       addMechanismAndCapture(hub, error, event, 'onerror');
     },
-    type: 'error',
-  });
+  );
 }
 
 /** JSDoc */
 function _installGlobalOnUnhandledRejectionHandler(): void {
-  addInstrumentationHandler({
+  addInstrumentationHandler(
+    'unhandledrejection',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    callback: (e: any) => {
+    (e: any) => {
       const [hub, attachStacktrace] = getHubAndAttachStacktrace();
       if (!hub.getIntegration(GlobalHandlers)) {
         return;
@@ -146,13 +147,12 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
             rejection: true,
           });
 
-      event.level = Severity.Error;
+      event.level = 'error';
 
       addMechanismAndCapture(hub, error, event, 'onunhandledrejection');
       return;
     },
-    type: 'unhandledrejection',
-  });
+  );
 }
 
 /**

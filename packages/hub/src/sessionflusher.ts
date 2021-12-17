@@ -117,13 +117,13 @@ export class SessionFlusher implements SessionFlusherLike {
     }
 
     switch (status) {
-      case RequestSessionStatus.Errored:
+      case 'errored':
         aggregationCounts.errored = (aggregationCounts.errored || 0) + 1;
         return aggregationCounts.errored;
-      case RequestSessionStatus.Ok:
+      case 'ok':
         aggregationCounts.exited = (aggregationCounts.exited || 0) + 1;
         return aggregationCounts.exited;
-      case RequestSessionStatus.Crashed:
+      default:
         aggregationCounts.crashed = (aggregationCounts.crashed || 0) + 1;
         return aggregationCounts.crashed;
     }

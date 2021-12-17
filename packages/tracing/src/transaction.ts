@@ -2,7 +2,6 @@ import { getCurrentHub, Hub } from '@sentry/hub';
 import {
   Event,
   Measurements,
-  Outcome,
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionMetadata,
@@ -107,7 +106,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       const client = this._hub.getClient();
       const transport = client && client.getTransport && client.getTransport();
       if (transport && transport.recordLostEvent) {
-        transport.recordLostEvent(Outcome.SampleRate, 'transaction');
+        transport.recordLostEvent('sample_rate', 'transaction');
       }
       return undefined;
     }

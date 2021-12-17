@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { Event, Options, Severity, Transport } from '@sentry/types';
+import { Event, Options, SeverityLevel, Transport } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
 
 import { BaseBackend } from '../../src/basebackend';
@@ -38,7 +38,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
     });
   }
 
-  public eventFromMessage(message: string, level: Severity = Severity.Info): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: SeverityLevel = 'info'): PromiseLike<Event> {
     return SyncPromise.resolve({ message, level });
   }
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration, Severity } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -9,6 +9,7 @@ import {
   htmlTreeAsString,
   parseUrl,
   safeJoin,
+  severityFromString,
 } from '@sentry/utils';
 
 /** JSDoc */
@@ -84,34 +85,19 @@ export class Breadcrumbs implements Integration {
    */
   public setupOnce(): void {
     if (this._options.console) {
-      addInstrumentationHandler({
-        callback: _consoleBreadcrumb,
-        type: 'console',
-      });
+      addInstrumentationHandler('console', _consoleBreadcrumb);
     }
     if (this._options.dom) {
-      addInstrumentationHandler({
-        callback: _domBreadcrumb(this._options.dom),
-        type: 'dom',
-      });
+      addInstrumentationHandler('dom', _domBreadcrumb(this._options.dom));
     }
     if (this._options.xhr) {
-      addInstrumentationHandler({
-        callback: _xhrBreadcrumb,
-        type: 'xhr',
-      });
+      addInstrumentationHandler('xhr', _xhrBreadcrumb);
     }
     if (this._options.fetch) {
-      addInstrumentationHandler({
-        callback: _fetchBreadcrumb,
-        type: 'fetch',
-      });
+      addInstrumentationHandler('fetch', _fetchBreadcrumb);
     }
     if (this._options.history) {
-      addInstrumentationHandler({
-        callback: _historyBreadcrumb,
-        type: 'history',
-      });
+      addInstrumentationHandler('history', _historyBreadcrumb);
     }
   }
 }
@@ -171,7 +157,7 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
       arguments: handlerData.args,
       logger: 'console',
     },
-    level: Severity.fromString(handlerData.level),
+    level: severityFromString(handlerData.level),
     message: safeJoin(handlerData.args, ' '),
   };
 
@@ -244,7 +230,7 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
       {
         category: 'fetch',
         data: handlerData.fetchData,
-        level: Severity.Error,
+        level: 'error',
         type: 'http',
       },
       {

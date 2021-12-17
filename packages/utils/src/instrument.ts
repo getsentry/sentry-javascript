@@ -13,11 +13,6 @@ import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();
 
-/** Object describing handler that will be triggered for a given `type` of instrumentation */
-interface InstrumentHandler {
-  type: InstrumentHandlerType;
-  callback: InstrumentHandlerCallback;
-}
 type InstrumentHandlerType =
   | 'console'
   | 'dom'
@@ -85,13 +80,10 @@ function instrument(type: InstrumentHandlerType): void {
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addInstrumentationHandler(handler: InstrumentHandler): void {
-  if (!handler || typeof handler.type !== 'string' || typeof handler.callback !== 'function') {
-    return;
-  }
-  handlers[handler.type] = handlers[handler.type] || [];
-  (handlers[handler.type] as InstrumentHandlerCallback[]).push(handler.callback);
-  instrument(handler.type);
+export function addInstrumentationHandler(type: InstrumentHandlerType, callback: InstrumentHandlerCallback): void {
+  handlers[type] = handlers[type] || [];
+  (handlers[type] as InstrumentHandlerCallback[]).push(callback);
+  instrument(type);
 }
 
 /** JSDoc */

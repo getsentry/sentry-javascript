@@ -1,7 +1,6 @@
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-import { SpanStatus } from '../spanstatus';
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
@@ -118,20 +117,14 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    addInstrumentationHandler({
-      callback: (handlerData: FetchData) => {
-        fetchCallback(handlerData, shouldCreateSpan, spans);
-      },
-      type: 'fetch',
+    addInstrumentationHandler('fetch', (handlerData: FetchData) => {
+      fetchCallback(handlerData, shouldCreateSpan, spans);
     });
   }
 
   if (traceXHR) {
-    addInstrumentationHandler({
-      callback: (handlerData: XHRData) => {
-        xhrCallback(handlerData, shouldCreateSpan, spans);
-      },
-      type: 'xhr',
+    addInstrumentationHandler('xhr', (handlerData: XHRData) => {
+      xhrCallback(handlerData, shouldCreateSpan, spans);
     });
   }
 }
@@ -156,7 +149,7 @@ export function fetchCallback(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(handlerData.response.status);
       } else if (handlerData.error) {
-        span.setStatus(SpanStatus.InternalError);
+        span.setStatus('internal_error');
       }
       span.finish();
 

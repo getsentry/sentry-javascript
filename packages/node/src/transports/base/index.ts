@@ -7,11 +7,17 @@ import {
   SentryRequestType,
   Session,
   SessionAggregates,
-  Status,
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import {
+  eventStatusFromHttpCode,
+  logger,
+  makePromiseBuffer,
+  parseRetryAfterHeader,
+  PromiseBuffer,
+  SentryError,
+} from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -44,7 +50,7 @@ export abstract class BaseTransport implements Transport {
   protected _api: APIDetails;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<Response> = makePromiseBuffer(30);
 
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
@@ -209,7 +215,7 @@ export abstract class BaseTransport implements Transport {
           const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
           const req = this.module.request(options, res => {
             const statusCode = res.statusCode || 500;
-            const status = Status.fromHttpCode(statusCode);
+            const status = eventStatusFromHttpCode(statusCode);
 
             res.setEncoding('utf8');
 
@@ -236,7 +242,7 @@ export abstract class BaseTransport implements Transport {
                 )}`,
               );
 
-            if (status === Status.Success) {
+            if (status === 'success') {
               resolve({ status });
             } else {
               let rejectionMessage = `HTTP Error (${statusCode})`;
