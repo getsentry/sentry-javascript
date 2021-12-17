@@ -1,6 +1,5 @@
-import { rejectedSyncPromise, resolvedSyncPromise } from '.';
 import { SentryError } from './error';
-import { SyncPromise } from './syncpromise';
+import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 
 export interface PromiseBuffer<T> {
   length(): number;
@@ -93,15 +92,13 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
 
       // if all promises resolve in time, cancel the timer and resolve to `true`
       buffer.forEach(item => {
-        void resolvedSyncPromise(item)
-          .then(() => {
-            // eslint-disable-next-line no-plusplus
-            if (!--counter) {
-              clearTimeout(capturedSetTimeout);
-              resolve(true);
-            }
-          })
-          .then(null, reject);
+        void resolvedSyncPromise(item).then(() => {
+          // eslint-disable-next-line no-plusplus
+          if (!--counter) {
+            clearTimeout(capturedSetTimeout);
+            resolve(true);
+          }
+        }, reject);
       });
     });
   }
