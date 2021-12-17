@@ -24,6 +24,7 @@ interface SentryGlobal {
     globalEventProcessors: any;
     hub: any;
     logger: any;
+    patchedIntegrations?: Array<string>;
   };
 }
 

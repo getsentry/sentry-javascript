@@ -1,8 +1,12 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
-import { addNonEnumerableProperty, isDebugBuild, logger } from '@sentry/utils';
+import { addNonEnumerableProperty, isDebugBuild, logger, getGlobalObject } from '@sentry/utils';
 
-export const installedIntegrations: string[] = [];
+// we have to remember integrations globally on the __SENTRY__ object in case
+// sentry is bundled twice.  In that case integrations would patch over themselves.
+const global = getGlobalObject<Window | NodeJS.Global>();
+const sentry = (global.__SENTRY__ = global.__SENTRY__ || {});
+const installedIntegrations = sentry.patchedIntegrations || (sentry.patchedIntegrations = []);
 
 /** Map of integrations assigned to a client */
 export type IntegrationIndex = {
@@ -54,7 +58,7 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
 
 /** Setup given integration */
 export function setupIntegration(integration: Integration): void {
-  if (installedIntegrations.indexOf(integration.name) !== -1) {
+  if (installedIntegrations.indexOf(integration.name) >= 0) {
     return;
   }
   integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
