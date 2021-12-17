@@ -23,9 +23,10 @@ function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): Promis
 }
 
 export interface PromiseBuffer<T> {
-  length(): number;
+  // exposes the internal array so tests can assert on the state of it.
+  // XXX: this really should not be public api.
+  $: Array<PromiseLike<T>>;
   add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
-  remove(task: PromiseLike<T>): PromiseLike<T>;
   drain(timeout?: number): PromiseLike<boolean>;
 }
 
@@ -35,10 +36,6 @@ export interface PromiseBuffer<T> {
  */
 export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
   const buffer: Array<PromiseLike<T>> = [];
-
-  function length(): number {
-    return buffer.length;
-  }
 
   function isReady(): boolean {
     return limit === undefined || buffer.length < limit;
@@ -113,12 +110,9 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
     });
   }
 
-  const promiseBuffer: PromiseBuffer<T> = {
-    length,
+  return {
+    $: buffer,
     add,
-    remove,
     drain,
   };
-
-  return promiseBuffer;
 }
