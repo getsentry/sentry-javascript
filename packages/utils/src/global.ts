@@ -7,7 +7,7 @@
 
 import { Integration } from '@sentry/types';
 
-import { isNodeEnv } from './node';
+import { isBrowserBundle } from './env';
 
 /** Internal */
 interface SentryGlobal {
@@ -28,17 +28,17 @@ interface SentryGlobal {
 
 const fallbackGlobalObject = {};
 
+// eslint-disable-next-line no-restricted-globals
+const getBrowserEnv = <T>(): T & SentryGlobal => (window || self || fallbackGlobalObject) as T & SentryGlobal;
+// eslint-disable-next-line no-restricted-globals
+const getNodeEnv = <T>(): T & SentryGlobal => (global || fallbackGlobalObject) as T & SentryGlobal;
+
 /**
  * Safely get global scope object
  *
  * @returns Global scope object
  */
 export function getGlobalObject<T>(): T & SentryGlobal {
-  return (isNodeEnv()
-    ? global
-    : typeof window !== 'undefined' // eslint-disable-line no-restricted-globals
-    ? window // eslint-disable-line no-restricted-globals
-    : typeof self !== 'undefined'
-    ? self
-    : fallbackGlobalObject) as T & SentryGlobal;
+  if (isBrowserBundle()) return getBrowserEnv();
+  return getNodeEnv();
 }
