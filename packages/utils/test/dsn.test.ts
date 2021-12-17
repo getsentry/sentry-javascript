@@ -11,7 +11,7 @@ describe('Dsn', () => {
   describe('fromComponents', () => {
     test('applies all components', () => {
       const dsn = makeDsn({
-        hostname: 'sentry.io',
+        host: 'sentry.io',
         pass: 'xyz',
         port: '1234',
         projectId: '123',
@@ -21,7 +21,7 @@ describe('Dsn', () => {
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('xyz');
-      expect(dsn.hostname).toBe('sentry.io');
+      expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
       expect(dsn.path).toBe('');
       expect(dsn.projectId).toBe('123');
@@ -29,7 +29,7 @@ describe('Dsn', () => {
 
     test('applies partial components', () => {
       const dsn = makeDsn({
-        hostname: 'sentry.io',
+        host: 'sentry.io',
         projectId: '123',
         protocol: 'https',
         publicKey: 'abc',
@@ -37,7 +37,7 @@ describe('Dsn', () => {
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
-      expect(dsn.hostname).toBe('sentry.io');
+      expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
       expect(dsn.path).toBe('');
       expect(dsn.projectId).toBe('123');
@@ -46,23 +46,23 @@ describe('Dsn', () => {
     testIf(isDebugBuild())('throws for missing components', () => {
       expect(() =>
         makeDsn({
-          hostname: '',
+          host: '',
           projectId: '123',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: 'abc',
         }),
       ).toThrow(SentryError);
       expect(() =>
         makeDsn({
-          hostname: 'sentry.io',
+          host: 'sentry.io',
           projectId: '',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: 'abc',
         }),
       ).toThrow(SentryError);
       expect(() =>
         makeDsn({
-          hostname: 'sentry.io',
+          host: 'sentry.io',
           projectId: '123',
           protocol: '' as 'http', // Trick the type checker here
           publicKey: 'abc',
@@ -70,9 +70,9 @@ describe('Dsn', () => {
       ).toThrow(SentryError);
       expect(() =>
         makeDsn({
-          hostname: 'sentry.io',
+          host: 'sentry.io',
           projectId: '123',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: '',
         }),
       ).toThrow(SentryError);
@@ -81,7 +81,7 @@ describe('Dsn', () => {
     testIf(isDebugBuild())('throws for invalid components', () => {
       expect(() =>
         makeDsn({
-          hostname: 'sentry.io',
+          host: 'sentry.io',
           projectId: '123',
           protocol: 'httpx' as 'http', // Trick the type checker here
           publicKey: 'abc',
@@ -89,10 +89,10 @@ describe('Dsn', () => {
       ).toThrow(SentryError);
       expect(() =>
         makeDsn({
-          hostname: 'sentry.io',
+          host: 'sentry.io',
           port: 'xxx',
           projectId: '123',
-          protocol: 'https',
+          protocol: 'https:',
           publicKey: 'abc',
         }),
       ).toThrow(SentryError);
@@ -105,7 +105,7 @@ describe('Dsn', () => {
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('xyz');
-      expect(dsn.hostname).toBe('sentry.io');
+      expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
       expect(dsn.path).toBe('');
       expect(dsn.projectId).toBe('123');
@@ -116,7 +116,7 @@ describe('Dsn', () => {
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
-      expect(dsn.hostname).toBe('sentry.io');
+      expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
       expect(dsn.path).toBe('/123');
       expect(dsn.projectId).toBe('321');
@@ -127,7 +127,7 @@ describe('Dsn', () => {
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
-      expect(dsn.hostname).toBe('sentry.io');
+      expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
       expect(dsn.path).toBe('/sentry/custom/installation');
       expect(dsn.projectId).toBe('321');
@@ -138,7 +138,7 @@ describe('Dsn', () => {
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
-      expect(dsn.hostname).toBe('sentry.io');
+      expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
       expect(dsn.path).toBe('');
       expect(dsn.projectId).toBe('321');

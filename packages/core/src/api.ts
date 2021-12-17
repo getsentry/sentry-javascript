@@ -98,7 +98,7 @@ export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: st
 function getBaseApiEndpoint(dsn: Dsn): string {
   const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
   const port = dsn.port ? `:${dsn.port}` : '';
-  return `${protocol}//${dsn.hostname}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
+  return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
 }
 
 /** Returns the ingest API endpoint for target. */
