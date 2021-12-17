@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
-import { addNonEnumerableProperty, isDebugBuild, logger, getGlobalSingleton } from '@sentry/utils';
+import { addNonEnumerableProperty, getGlobalSingleton, isDebugBuild, logger } from '@sentry/utils';
 
 // we have to remember integrations globally on the __SENTRY__ object in case
 // sentry is bundled twice.  In that case integrations would patch over themselves.

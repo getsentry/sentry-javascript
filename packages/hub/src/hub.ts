@@ -20,8 +20,15 @@ import {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { getGlobalSingleton } from '@sentry/utils';
-import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
+import {
+  consoleSandbox,
+  dateTimestampInSeconds,
+  getGlobalObject,
+  getGlobalSingleton,
+  isNodeEnv,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { Scope } from './scope';
 import { Session } from './session';

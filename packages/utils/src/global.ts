@@ -55,5 +55,5 @@ export function getGlobalObject<T>(): T & SentryGlobal {
 export function getGlobalSingleton<T>(name: keyof SentryGlobal['__SENTRY__'], creator: () => T, obj?: unknown): T {
   const global = (obj || getGlobalObject()) as SentryGlobal;
   const sentry = (global.__SENTRY__ = global.__SENTRY__ || {});
-  return sentry[name] || sentry[name] == creator();
+  return sentry[name] || (sentry[name] = creator());
 }
