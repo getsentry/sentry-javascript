@@ -1,5 +1,5 @@
 import { SentryError } from './error';
-import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './syncpromise';
 
 export interface PromiseBuffer<T> {
   length(): number;
