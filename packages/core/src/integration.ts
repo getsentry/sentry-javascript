@@ -6,7 +6,7 @@ import { addNonEnumerableProperty, getGlobalSingleton, isDebugBuild, logger } fr
 // sentry is bundled twice.  In that case integrations would patch over themselves.
 // this is problematic because it's unclear if sentry versions will agree on this
 // behavior.  There are likely to be better ways to accomplish this.
-const onceInitializedIntegrations: Array<string> = getGlobalSingleton('_integrations', () => []);
+export const onceInitializedIntegrations: Array<string> = getGlobalSingleton('_integrations', () => []);
 
 /** Map of integrations assigned to a client */
 export type IntegrationIndex = {
