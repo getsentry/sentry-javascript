@@ -1,26 +1,6 @@
+import { rejectedSyncPromise, resolvedSyncPromise } from '.';
 import { SentryError } from './error';
 import { SyncPromise } from './syncpromise';
-
-function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
-  return new SyncPromise<U[]>((resolve, reject) => {
-    if (collection.length === 0) {
-      resolve(null);
-      return;
-    }
-
-    let counter = collection.length;
-    collection.forEach(item => {
-      void SyncPromise.resolve(item)
-        .then(() => {
-          // eslint-disable-next-line no-plusplus
-          if (--counter === 0) {
-            resolve(null);
-          }
-        })
-        .then(null, reject);
-    });
-  });
-}
 
 export interface PromiseBuffer<T> {
   length(): number;
@@ -66,7 +46,7 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    */
   function add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
     if (!isReady()) {
-      return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+      return rejectedSyncPromise(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
 
     // start the task and add its promise to the queue
@@ -97,7 +77,13 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    * `false` otherwise
    */
   function drain(timeout?: number): PromiseLike<boolean> {
-    return new SyncPromise<boolean>(resolve => {
+    return new SyncPromise<boolean>((resolve, reject) => {
+      let counter = buffer.length;
+
+      if (!counter) {
+        return resolve(true);
+      }
+
       // wait for `timeout` ms and then resolve to `false` (if not cancelled first)
       const capturedSetTimeout = setTimeout(() => {
         if (timeout && timeout > 0) {
@@ -106,9 +92,16 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
       }, timeout);
 
       // if all promises resolve in time, cancel the timer and resolve to `true`
-      void allPromises(buffer).then(() => {
-        clearTimeout(capturedSetTimeout);
-        resolve(true);
+      buffer.forEach(item => {
+        void resolvedSyncPromise(item)
+          .then(() => {
+            // eslint-disable-next-line no-plusplus
+            if (!--counter) {
+              clearTimeout(capturedSetTimeout);
+              resolve(null);
+            }
+          })
+          .then(null, reject);
       });
     });
   }

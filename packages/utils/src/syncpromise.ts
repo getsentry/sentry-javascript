@@ -15,6 +15,30 @@ const enum States {
 }
 
 /**
+ * Creates a resolved sync promise.
+ *
+ * @param value the value to resolve the promise with
+ * @returns the resolved sync promise
+ */
+export function resolvedSyncPromise<T>(value: T | PromiseLike<T>): PromiseLike<T> {
+  return new SyncPromise(resolve => {
+    resolve(value);
+  });
+}
+
+/**
+ * Creates a rejected sync promise.
+ *
+ * @param value the value to reject the promise with
+ * @returns the rejected sync promise
+ */
+export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
+  return new SyncPromise((_, reject) => {
+    reject(reason);
+  });
+}
+
+/**
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
  */
@@ -31,20 +55,6 @@ class SyncPromise<T> implements PromiseLike<T> {
     } catch (e) {
       this._reject(e);
     }
-  }
-
-  /** JSDoc */
-  public static resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
-    return new SyncPromise(resolve => {
-      resolve(value);
-    });
-  }
-
-  /** JSDoc */
-  public static reject<T = never>(reason?: any): PromiseLike<T> {
-    return new SyncPromise((_, reject) => {
-      reject(reason);
-    });
   }
 
   /** JSDoc */
