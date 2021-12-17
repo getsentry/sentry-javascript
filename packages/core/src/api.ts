@@ -1,5 +1,5 @@
-import { DsnLike, SdkMetadata } from '@sentry/types';
-import { Dsn, makeDsn, urlEncode } from '@sentry/utils';
+import { Dsn, DsnLike, SdkMetadata } from '@sentry/types';
+import { makeDsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
 

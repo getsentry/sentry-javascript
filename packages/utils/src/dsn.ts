@@ -1,12 +1,7 @@
-import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+import { Dsn, DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
 import { isDebugBuild } from './env';
 import { SentryError } from './error';
-
-export interface Dsn extends DsnComponents {
-  /** Protocol used to connect to Sentry. */
-  toString(withPassword: boolean): string;
-}
 
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w.-]+)(?::(\d+))?\/(.+)/;
@@ -92,7 +87,7 @@ function validateDsn(dsn: Dsn): boolean {
       throw new SentryError(`Invalid Dsn: Invalid projectId ${projectId}`);
     }
 
-    if (isValidProtocol(protocol)) {
+    if (!isValidProtocol(protocol)) {
       throw new SentryError(`Invalid Dsn: Invalid protocol ${protocol}`);
     }
 
@@ -112,7 +107,7 @@ export function makeDsn(from: DsnLike): Dsn {
 
   const dsn: Dsn = {
     ...components,
-    toString: (withPassword: boolean) => dsntoString(dsn),
+    toString: (withPassword: boolean) => dsntoString(dsn, withPassword),
   };
 
   return dsn;

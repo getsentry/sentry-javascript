@@ -2,6 +2,7 @@
 import { Scope, Session } from '@sentry/hub';
 import {
   Client,
+  Dsn,
   Event,
   EventHint,
   Integration,
@@ -13,7 +14,6 @@ import {
 import {
   checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
-  Dsn,
   isPlainObject,
   isPrimitive,
   isThenable,

@@ -35,5 +35,5 @@ export interface Dsn extends DsnComponents {
    *
    * @param withPassword When set to true, the password will be included.
    */
-  toString(withPassword: boolean): string;
+  toString(withPassword?: boolean): string;
 }
