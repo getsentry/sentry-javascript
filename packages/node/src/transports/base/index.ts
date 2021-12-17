@@ -96,9 +96,9 @@ export abstract class BaseTransport implements Transport {
       return proxy;
     }
 
-    const { hostname, port } = this._api.dsn;
+    const { host, port } = this._api.dsn;
     for (const np of no_proxy.split(',')) {
-      if (hostname.endsWith(np) || `${hostname}:${port}`.endsWith(np)) {
+      if (host.endsWith(np) || `${host}:${port}`.endsWith(np)) {
         return;
       }
     }
