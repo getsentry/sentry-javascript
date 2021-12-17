@@ -28,10 +28,16 @@ interface SentryGlobal {
 
 const fallbackGlobalObject = {};
 
-// eslint-disable-next-line no-restricted-globals
-const getBrowserEnv = <T>(): T & SentryGlobal => (window || self || fallbackGlobalObject) as T & SentryGlobal;
-// eslint-disable-next-line no-restricted-globals
-const getNodeEnv = <T>(): T & SentryGlobal => (global || fallbackGlobalObject) as T & SentryGlobal;
+function getBrowserEnv<T>(): T & SentryGlobal {
+  // @ts-ignore no type overlap
+  // eslint-disable-next-line no-restricted-globals
+  return (window || self || fallbackGlobalObject) as T & SentryGlobal;
+}
+function getNodeEnv<T>(): T & SentryGlobal {
+  // @ts-ignore no type overlap
+  // eslint-disable-next-line no-restricted-globals
+  return (global || fallbackGlobalObject) as T & SentryGlobal;
+}
 
 /**
  * Safely get global scope object
@@ -39,6 +45,8 @@ const getNodeEnv = <T>(): T & SentryGlobal => (global || fallbackGlobalObject) a
  * @returns Global scope object
  */
 export function getGlobalObject<T>(): T & SentryGlobal {
-  if (isBrowserBundle()) return getBrowserEnv();
+  if (isBrowserBundle()) {
+    return getBrowserEnv();
+  }
   return getNodeEnv();
 }
