@@ -20,6 +20,7 @@ import {
   TransactionContext,
   User,
 } from '@sentry/types';
+import { getGlobalSingleton } from '@sentry/utils';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
 import { Scope } from './scope';
@@ -515,7 +516,10 @@ export class Hub implements HubInterface {
  * at the call-site. We always access the carrier through this function, so we can guarantee that `__SENTRY__` is there.
  **/
 export function getMainCarrier(): Carrier {
-  const carrier = getGlobalObject();
+  // FIXME: this makes no sense. getGlobalObject return value's __SENTRY__
+  // type does not match up with the carrier's __SENTRY__ type.  This all
+  // needs cleaning up.
+  const carrier = getGlobalObject() as Carrier;
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
     extensions: {},
     hub: undefined,
@@ -616,10 +620,7 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) return carrier.__SENTRY__.hub;
-  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-  carrier.__SENTRY__.hub = new Hub();
-  return carrier.__SENTRY__.hub;
+  return getGlobalSingleton('hub', () => new Hub(), carrier);
 }
 
 /**
@@ -630,7 +631,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
-  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-  carrier.__SENTRY__.hub = hub;
+  const sentry = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
+  sentry.hub = hub;
   return true;
 }

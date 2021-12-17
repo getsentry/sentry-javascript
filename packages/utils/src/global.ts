@@ -23,8 +23,8 @@ interface SentryGlobal {
   __SENTRY__: {
     globalEventProcessors: any;
     hub: any;
-    logger: any;
-    patchedIntegrations?: Array<string>;
+    logger?: any;
+    _integrations?: Array<string>;
   };
 }
 
@@ -43,4 +43,17 @@ export function getGlobalObject<T>(): T & SentryGlobal {
     : typeof self !== 'undefined'
     ? self
     : fallbackGlobalObject) as T & SentryGlobal;
+}
+
+/**
+ * Retains a global singleton.
+ *
+ * @param name name of the global singleton on __SENTRY__
+ * @param creator creation function
+ * @returns the singleton
+ */
+export function getGlobalSingleton<T>(name: keyof SentryGlobal['__SENTRY__'], creator: () => T, obj?: unknown): T {
+  const global = (obj || getGlobalObject()) as SentryGlobal;
+  const sentry = (global.__SENTRY__ = global.__SENTRY__ || {});
+  return sentry[name] || sentry[name] == creator();
 }

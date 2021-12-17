@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { isDebugBuild } from './env';
-import { getGlobalObject } from './global';
+import { getGlobalObject, getGlobalSingleton } from './global';
 
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject<Window | NodeJS.Global>();
@@ -82,7 +82,6 @@ interface Logger {
 }
 
 // Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
-const sentry = (global.__SENTRY__ = global.__SENTRY__ || {});
-const logger = (sentry.logger as Logger) || (sentry.logger = makeLogger());
+const logger = getGlobalSingleton('logger', makeLogger);
 
 export { logger };
