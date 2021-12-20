@@ -153,34 +153,15 @@ describe('SyncPromise', () => {
   });
 
   test('calling the callback not immediatly', () => {
-    jest.useFakeTimers();
-    expect.assertions(4);
+    jest.useRealTimers();
 
-    const qp = makeSyncPromise<number>(resolve =>
+    return makeSyncPromise<number>(resolve =>
       setTimeout(() => {
         resolve(2);
-      }),
-    );
-
-    void qp
-      .then(value => {
-        expect(value).toEqual(2);
-      })
-      .then(null, () => {
-        // no-empty
-      });
-
-    expect(qp.getValue()).toBe(undefined);
-
-    void qp
-      .then(value => {
-        expect(value).toEqual(2);
-      })
-      .then(null, () => {
-        // no-empty
-      });
-    jest.runAllTimers();
-    expect(qp.getValue()).toBe(2);
+      }, 10),
+    ).then(v => {
+      expect(v).toEqual(2);
+    });
   });
 
   test('multiple then returning undefined', () => {

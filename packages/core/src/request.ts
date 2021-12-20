@@ -36,8 +36,7 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!api.tunnel && { dsn: dsnToString(api.dsn) }),
   });
-  // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
-  const type: SentryRequestType = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
+  const type: SentryRequestType = 'session';
   const itemHeaders = JSON.stringify({
     type,
   });

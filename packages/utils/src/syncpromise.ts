@@ -22,7 +22,6 @@ type PromiseExecutor<T> = (
 type Handler<T> = [boolean, (value: T) => void, (reason: any) => any];
 
 export interface SyncPromise<T> extends PromiseLike<T> {
-  getValue: () => T | undefined;
   finally: (onfinally?: (() => void) | null) => PromiseLike<T>;
   catch: <TResult = never>(
     onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
@@ -74,10 +73,6 @@ export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T
   let _handlers: Array<Handler<T>> = [];
   let _state: States = States.PENDING;
   let _value: T | undefined = undefined;
-
-  function getValue(): T | undefined {
-    return _value;
-  }
 
   function maybeExecuteHandlers() {
     if (_state === States.PENDING) {
@@ -220,7 +215,6 @@ export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T
   }
 
   const promise: SyncPromise<T> = {
-    getValue,
     then,
     finally: _finally,
     catch: _catch,
