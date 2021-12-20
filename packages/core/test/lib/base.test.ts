@@ -1,6 +1,6 @@
 import { Hub, Scope, Session } from '@sentry/hub';
 import { Event, Span, Transport } from '@sentry/types';
-import { logger, SentryError, SyncPromise } from '@sentry/utils';
+import { logger, SentryError, SyncPromise, dsnToString } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
 import { TestBackend } from '../mocks/backend';
@@ -67,7 +67,7 @@ describe('BaseClient', () => {
     test('returns the Dsn', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      expect(client.getDsn()!.toString()).toBe(PUBLIC_DSN);
+      expect(dsnToString(client.getDsn())).toBe(PUBLIC_DSN);
     });
 
     test('allows missing Dsn', () => {
