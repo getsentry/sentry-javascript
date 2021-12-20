@@ -35,17 +35,15 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
 /**
  * Base implementation for all JavaScript SDK clients.
  *
- * Call the constructor with the corresponding backend constructor and options
- * specific to the client subclass. To access these options later, use
- * {@link Client.getOptions}. Also, the Backend instance is available via
- * {@link Client.getBackend}.
+ * Call the constructor with the options specific to the client subclass.
+ * To access these options later, use {@link Client.getOptions}.
  *
  * If a Dsn is specified in the options, it will be parsed and stored. Use
  * {@link Client.getDsn} to retrieve the Dsn at any moment. In case the Dsn is
  * invalid, the constructor will throw a {@link SentryException}. Note that
  * without a valid Dsn, the SDK will not send any events to Sentry.
  *
- * Before sending an event via the backend, it is passed through
+ * Before sending an event via the transport, it is passed through
  * {@link BaseClient._prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
@@ -83,7 +81,6 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * Initializes this client instance.
    *
-   * @param backendClass A constructor function to create the backend.
    * @param options Options for the client.
    */
   protected constructor(options: O) {
