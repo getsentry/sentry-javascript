@@ -121,7 +121,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  protected _setupTransport(): Transport {
+  protected _setupTransport(): Transport | undefined {
     if (!this._options.dsn) {
       // We return the noop transport here in case there is no Dsn.
       return undefined;

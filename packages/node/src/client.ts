@@ -154,7 +154,7 @@ export class NodeClient extends BaseClient<NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected _setupTransport(): Transport {
+  protected _setupTransport(): Transport | undefined {
     if (!this._options.dsn) {
       // We return the noop transport here in case there is no Dsn.
       return super._setupTransport();
