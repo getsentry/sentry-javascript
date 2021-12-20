@@ -10,7 +10,6 @@ import { Session } from '@sentry/hub';
 import {
   Event,
   Outcome,
-  Response,
   Response as SentryResponse,
   SentryRequest,
   SentryRequestType,
@@ -71,14 +70,14 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event): PromiseLike<Response> {
+  public sendEvent(event: Event): PromiseLike<SentryResponse> {
     return this._sendRequest(eventToSentryRequest(event, this._api), event);
   }
 
   /**
    * @inheritDoc
    */
-  public sendSession(session: Session): PromiseLike<Response> {
+  public sendSession(session: Session): PromiseLike<SentryResponse> {
     return this._sendRequest(sessionToSentryRequest(session, this._api), session);
   }
 
@@ -237,5 +236,5 @@ export abstract class BaseTransport implements Transport {
   protected abstract _sendRequest(
     sentryRequest: SentryRequest,
     originalPayload: Event | Session,
-  ): PromiseLike<Response>;
+  ): PromiseLike<SentryResponse>;
 }
