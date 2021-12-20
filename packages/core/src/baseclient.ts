@@ -27,8 +27,8 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { Backend, BackendClass } from './basebackend';
 import { IntegrationIndex, setupIntegrations } from './integration';
+import { NoopTransport } from './transports/noop';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -64,14 +64,7 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  *   // ...
  * }
  */
-export abstract class BaseClient<B extends Backend, O extends Options> implements Client<O> {
-  /**
-   * The backend used to physically interact in the environment. Usually, this
-   * will correspond to the client. When composing SDKs, however, the Backend
-   * from the root SDK will be used.
-   */
-  protected readonly _backend: B;
-
+export abstract class BaseClient<O extends Options> implements Client<O> {
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -84,19 +77,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Number of calls being processed */
   protected _numProcessing: number = 0;
 
+  /** Cached transport used internally. */
+  protected _transport: Transport;
+
   /**
    * Initializes this client instance.
    *
    * @param backendClass A constructor function to create the backend.
    * @param options Options for the client.
    */
-  protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    this._backend = new backendClass(options);
+  protected constructor(options: O) {
     this._options = options;
 
     if (options.dsn) {
       this._dsn = new Dsn(options.dsn);
     }
+
+    this._transport = this._setupTransport();
   }
 
   /**
@@ -113,8 +110,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
-      this._getBackend()
-        .eventFromException(exception, hint)
+      this._eventFromException(exception, hint)
         .then(event => this._captureEvent(event, hint, scope))
         .then(result => {
           eventId = result;
@@ -131,8 +127,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
-      ? this._getBackend().eventFromMessage(String(message), level, hint)
-      : this._getBackend().eventFromException(message, hint);
+      ? this._eventFromMessage(String(message), level, hint)
+      : this._eventFromException(message, hint);
 
     this._process(
       promisedEvent
@@ -178,7 +174,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     if (!(typeof session.release === 'string')) {
       logger.warn('Discarded session because of missing or non-string release');
     } else {
-      this._sendSession(session);
+      this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
       session.update({ init: false });
     }
@@ -202,7 +198,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public getTransport(): Transport {
-    return this._getBackend().getTransport();
+    return this._transport;
   }
 
   /**
@@ -247,6 +243,29 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
   }
 
+  /**
+   * @inheritDoc
+   */
+  public sendEvent(event: Event): void {
+    void this._transport.sendEvent(event).then(null, reason => {
+      logger.error(`Error while sending event: ${reason}`);
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): void {
+    if (!this._transport.sendSession) {
+      logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      return;
+    }
+
+    void this._transport.sendSession(session).then(null, reason => {
+      logger.error(`Error while sending session: ${reason}`);
+    });
+  }
+
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
@@ -280,11 +299,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
   }
 
-  /** Deliver captured session to Sentry */
-  protected _sendSession(session: Session): void {
-    this._getBackend().sendSession(session);
-  }
-
   /**
    * Determine if the client is finished processing. Returns a promise because it will wait `timeout` ms before saying
    * "no" (resolving to `false`) in order to give the client a chance to potentially finish first.
@@ -313,11 +327,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
       }, tick);
     });
-  }
-
-  /** Returns the current backend. */
-  protected _getBackend(): B {
-    return this._backend;
   }
 
   /** Determines whether this SDK is enabled and a valid Dsn is present. */
@@ -480,14 +489,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
-   * Tells the backend to send this event
-   * @param event The Sentry event to send
-   */
-  protected _sendEvent(event: Event): void {
-    this._getBackend().sendEvent(event);
-  }
-
-  /**
    * Processes the event and logs an error in case of rejection
    * @param event
    * @param hint
@@ -575,7 +576,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        this._sendEvent(processedEvent);
+        this.sendEvent(processedEvent);
         return processedEvent;
       })
       .then(null, reason => {
@@ -611,6 +612,24 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       },
     );
   }
+
+  /**
+   * Sets up the transport so it can be used later to send requests.
+   */
+  protected _setupTransport(): Transport {
+    return new NoopTransport();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  protected abstract _eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+
+  /**
+   * @inheritDoc
+   */
+  protected abstract _eventFromMessage(_message: string, _level?: SeverityLevel, _hint?: EventHint): PromiseLike<Event>;
 }
 
 /**

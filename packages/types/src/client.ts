@@ -88,4 +88,10 @@ export interface Client<O extends Options = Options> {
 
   /** This is an internal function to setup all integrations that should run on the client */
   setupIntegrations(): void;
+
+  /** Submits the event to Sentry */
+  sendEvent(event: Event): void;
+
+  /** Submits the session to Sentry */
+  sendSession(session: Session): void;
 }
