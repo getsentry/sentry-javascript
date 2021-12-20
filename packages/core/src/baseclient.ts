@@ -621,9 +621,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * Sets up the transport so it can be used later to send requests.
    */
-  protected _setupTransport(): Transport | undefined {
-    return undefined;
-  }
+  protected abstract _setupTransport(): Transport | undefined;
 
   /**
    * @inheritDoc
