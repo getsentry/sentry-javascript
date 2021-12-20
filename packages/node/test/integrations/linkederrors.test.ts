@@ -1,8 +1,8 @@
 import { ExtendedError } from '@sentry/types';
 
 import { Event } from '../../src';
-import { NodeBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
+import { eventFromException } from '../../../browser/src';
 
 let linkedErrors: any;
 
@@ -28,10 +28,8 @@ describe('LinkedErrors', () => {
       expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const one = new Error('originalException');
-      const backend = new NodeBackend({});
       let event: Event | undefined;
-      return backend
-        .eventFromException(one)
+      return eventFromException({}, one)
         .then(eventFromException => {
           event = eventFromException;
           return linkedErrors._handler(eventFromException);
@@ -51,8 +49,7 @@ describe('LinkedErrors', () => {
           }),
       );
       const one = new Error('originalException');
-      const backend = new NodeBackend({});
-      return backend.eventFromException(one).then(event =>
+      return eventFromException({}, one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
@@ -71,8 +68,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const backend = new NodeBackend({});
-      return backend.eventFromException(one).then(event =>
+      return eventFromException({}, one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
@@ -104,8 +100,7 @@ describe('LinkedErrors', () => {
       one.reason = two;
       two.reason = three;
 
-      const backend = new NodeBackend({});
-      return backend.eventFromException(one).then(event =>
+      return eventFromException({}, one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
@@ -137,8 +132,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const backend = new NodeBackend({});
-      return backend.eventFromException(one).then(event =>
+      return eventFromException({}, one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
