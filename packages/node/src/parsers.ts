@@ -1,5 +1,5 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
-import { addContextToFrame, basename, dirname, SyncPromise } from '@sentry/utils';
+import { addContextToFrame, basename, dirname, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
@@ -71,7 +71,7 @@ function getModule(filename: string, base?: string): string {
 function readSourceFiles(filenames: string[]): PromiseLike<{ [key: string]: string | null }> {
   // we're relying on filenames being de-duped already
   if (filenames.length === 0) {
-    return SyncPromise.resolve({});
+    return resolvedSyncPromise({});
   }
 
   return new SyncPromise<{
@@ -176,7 +176,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
 
   // We do an early return if we do not want to fetch context liens
   if (linesOfContext <= 0) {
-    return SyncPromise.resolve(frames);
+    return resolvedSyncPromise(frames);
   }
 
   try {
@@ -184,7 +184,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
   } catch (_) {
     // This happens in electron for example where we are not able to read files from asar.
     // So it's fine, we recover be just returning all frames without pre/post context.
-    return SyncPromise.resolve(frames);
+    return resolvedSyncPromise(frames);
   }
 }
 
