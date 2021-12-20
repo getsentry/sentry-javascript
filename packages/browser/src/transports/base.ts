@@ -1,21 +1,21 @@
 import {
   APIDetails,
+  eventToSentryRequest,
   getEnvelopeEndpointWithUrlEncodedAuth,
   getStoreEndpointWithUrlEncodedAuth,
   initAPIDetails,
-  eventToSentryRequest,
   sessionToSentryRequest,
 } from '@sentry/core';
 import { Session } from '@sentry/hub';
 import {
   Event,
   Outcome,
+  Response,
   Response as SentryResponse,
   SentryRequest,
   SentryRequestType,
   Transport,
   TransportOptions,
-  Response,
 } from '@sentry/types';
 import {
   dateTimestampInSeconds,
@@ -25,7 +25,6 @@ import {
   makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
-  SentryError,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
