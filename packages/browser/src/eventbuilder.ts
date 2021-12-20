@@ -8,7 +8,7 @@ import {
   isErrorEvent,
   isEvent,
   isPlainObject,
-  resolvedSyncPromise,
+  makeSyncPromise,
 } from '@sentry/utils';
 
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
@@ -28,7 +28,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
-  return resolvedSyncPromise(event);
+  return makeSyncPromise().resolve(event);
 }
 
 /**
@@ -49,7 +49,7 @@ export function eventFromMessage(
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
-  return resolvedSyncPromise(event);
+  return makeSyncPromise().resolve(event);
 }
 
 /**

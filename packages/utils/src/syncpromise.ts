@@ -27,7 +27,7 @@ export interface SyncPromise<T> extends PromiseLike<T> {
   catch: <TResult = never>(
     onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
   ) => PromiseLike<T | TResult>;
-  resolve: (value: T | PromiseLike<T>) => PromiseLike<T>;
+  resolve: <T>(value: T | PromiseLike<T>) => PromiseLike<T>;
   reject: <T = never>(reason?: any) => PromiseLike<T>;
 }
 /**
