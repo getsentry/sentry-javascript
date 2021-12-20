@@ -20,7 +20,6 @@ import {
   makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
-  SentryError,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
@@ -62,13 +61,6 @@ export abstract class BaseTransport implements Transport {
         }
       });
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public sendEvent(_: Event): PromiseLike<SentryResponse> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method');
   }
 
   /**
@@ -222,4 +214,9 @@ export abstract class BaseTransport implements Transport {
     }
     return false;
   }
+
+  /**
+   * @inheritDoc
+   */
+  public abstract sendEvent(_: Event): PromiseLike<SentryResponse>;
 }
