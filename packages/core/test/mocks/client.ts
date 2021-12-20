@@ -4,7 +4,7 @@ import { resolvedSyncPromise } from '@sentry/utils';
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 
-export class NoopTransport implements Transport {
+class NoopTransport implements Transport {
   /**
    * @inheritDoc
    */

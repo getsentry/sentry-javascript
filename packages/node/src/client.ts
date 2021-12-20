@@ -1,7 +1,7 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
-import { Dsn, logger } from '@sentry/utils';
+import { Event, EventHint, Response, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
+import { Dsn, logger, resolvedSyncPromise } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { HTTPSTransport, HTTPTransport } from './transports';
@@ -102,6 +102,7 @@ export class NodeClient extends BaseClient<NodeOptions> {
       logger.warn('Cannot initialise an instance of SessionFlusher if no transport is initialized!');
       return;
     }
+
     if (!release) {
       logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
       return;
@@ -154,9 +155,9 @@ export class NodeClient extends BaseClient<NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected _setupTransport(): Transport | undefined {
+  protected _setupTransport(): Transport {
     if (!this._options.dsn) {
-      return undefined;
+      return new NoopTransport();
     }
 
     const dsn = new Dsn(this._options.dsn);
@@ -178,5 +179,24 @@ export class NodeClient extends BaseClient<NodeOptions> {
       return new HTTPTransport(transportOptions);
     }
     return new HTTPSTransport(transportOptions);
+  }
+}
+
+class NoopTransport implements Transport {
+  /**
+   * @inheritDoc
+   */
+  public sendEvent(_: Event): PromiseLike<Response> {
+    return resolvedSyncPromise({
+      reason: `NoopTransport: Event has been skipped because no Dsn is configured.`,
+      status: 'skipped',
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public close(_?: number): PromiseLike<boolean> {
+    return resolvedSyncPromise(true);
   }
 }
