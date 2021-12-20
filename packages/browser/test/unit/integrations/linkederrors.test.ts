@@ -1,7 +1,7 @@
 import { ExtendedError } from '@sentry/types';
 
+import { eventFromException } from '../../../src';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
-import { BrowserClient, eventFromException } from '../../../src';
 
 describe('LinkedErrors', () => {
   describe('handler', () => {

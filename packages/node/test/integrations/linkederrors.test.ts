@@ -1,8 +1,8 @@
 import { ExtendedError } from '@sentry/types';
 
+import { eventFromException } from '../../../browser/src';
 import { Event } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
-import { eventFromException } from '../../../browser/src';
 
 let linkedErrors: any;
 

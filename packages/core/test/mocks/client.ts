@@ -1,8 +1,8 @@
-import { Options, EventHint, Event, Session, SeverityLevel, Transport, Response } from '@sentry/types';
+import { Event, EventHint, Options, Response, Session, SeverityLevel, Transport } from '@sentry/types';
+import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 export class NoopTransport implements Transport {
   /**
