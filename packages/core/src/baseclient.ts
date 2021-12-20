@@ -53,9 +53,9 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * {@link Client.addBreadcrumb}.
  *
  * @example
- * class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
+ * class NodeClient extends BaseClient<NodeOptions> {
  *   public constructor(options: NodeOptions) {
- *     super(NodeBackend, options);
+ *     super(options);
  *   }
  *
  *   // ...
