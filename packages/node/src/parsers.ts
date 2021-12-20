@@ -1,5 +1,5 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
-import { addContextToFrame, basename, dirname, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
+import { addContextToFrame, basename, dirname, makeSyncPromise } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
@@ -71,10 +71,10 @@ function getModule(filename: string, base?: string): string {
 function readSourceFiles(filenames: string[]): PromiseLike<{ [key: string]: string | null }> {
   // we're relying on filenames being de-duped already
   if (filenames.length === 0) {
-    return resolvedSyncPromise({});
+    return makeSyncPromise().resolve({});
   }
 
-  return new SyncPromise<{
+  return makeSyncPromise<{
     [key: string]: string | null;
   }>(resolve => {
     const sourceFiles: {
@@ -176,7 +176,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
 
   // We do an early return if we do not want to fetch context liens
   if (linesOfContext <= 0) {
-    return resolvedSyncPromise(frames);
+    return makeSyncPromise().resolve(frames);
   }
 
   try {
@@ -184,7 +184,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
   } catch (_) {
     // This happens in electron for example where we are not able to read files from asar.
     // So it's fine, we recover be just returning all frames without pre/post context.
-    return resolvedSyncPromise(frames);
+    return makeSyncPromise().resolve(frames);
   }
 }
 
@@ -199,7 +199,7 @@ function addPrePostContext(
   frames: StackFrame[],
   linesOfContext: number,
 ): PromiseLike<StackFrame[]> {
-  return new SyncPromise<StackFrame[]>(resolve =>
+  return makeSyncPromise<StackFrame[]>(resolve =>
     readSourceFiles(filesToRead).then(sourceFiles => {
       const result = frames.map(frame => {
         if (frame.filename && sourceFiles[frame.filename]) {
@@ -226,7 +226,7 @@ function addPrePostContext(
 export function getExceptionFromError(error: Error, options?: NodeOptions): PromiseLike<Exception> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
-  return new SyncPromise<Exception>(resolve =>
+  return makeSyncPromise<Exception>(resolve =>
     parseStack(stack, options).then(frames => {
       const result = {
         stacktrace: {
@@ -244,7 +244,7 @@ export function getExceptionFromError(error: Error, options?: NodeOptions): Prom
  * @hidden
  */
 export function parseError(error: ExtendedError, options?: NodeOptions): PromiseLike<Event> {
-  return new SyncPromise<Event>(resolve =>
+  return makeSyncPromise<Event>(resolve =>
     getExceptionFromError(error, options).then((exception: Exception) => {
       resolve({
         exception: {

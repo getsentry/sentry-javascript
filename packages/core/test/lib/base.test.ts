@@ -1,6 +1,6 @@
 import { Hub, Scope, Session } from '@sentry/hub';
 import { Event, Span, Transport } from '@sentry/types';
-import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
+import { logger, SentryError, makeSyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
 import { TestBackend } from '../mocks/backend';
@@ -1229,11 +1229,10 @@ describe('BaseClient', () => {
 
       const delay = 300;
       const spy = jest.spyOn(TestBackend.instance!, 'eventFromMessage');
-      spy.mockImplementationOnce(
-        (message, level) =>
-          new SyncPromise(resolve => {
-            setTimeout(() => resolve({ message, level }), 150);
-          }),
+      spy.mockImplementationOnce((message, level) =>
+        makeSyncPromise(resolve => {
+          setTimeout(() => resolve({ message, level }), 150);
+        }),
       );
       const transportInstance = client.getTransport() as FakeTransport;
       transportInstance.delay = delay;

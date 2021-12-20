@@ -1,5 +1,5 @@
 import { Event, Response, SentryRequest, Session, TransportOptions } from '@sentry/types';
-import { SentryError, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
+import { makeSyncPromise, SentryError, supportsReferrerPolicy } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 import { FetchImpl, getNativeFetchImplementation } from './utils';
@@ -51,25 +51,24 @@ export class FetchTransport extends BaseTransport {
     }
 
     return this._buffer
-      .add(
-        () =>
-          new SyncPromise<Response>((resolve, reject) => {
-            void this._fetch(sentryRequest.url, options)
-              .then(response => {
-                const headers = {
-                  'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-                  'retry-after': response.headers.get('Retry-After'),
-                };
-                this._handleResponse({
-                  requestType: sentryRequest.type,
-                  response,
-                  headers,
-                  resolve,
-                  reject,
-                });
-              })
-              .catch(reject);
-          }),
+      .add(() =>
+        makeSyncPromise<Response>((resolve, reject) => {
+          void this._fetch(sentryRequest.url, options)
+            .then(response => {
+              const headers = {
+                'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+                'retry-after': response.headers.get('Retry-After'),
+              };
+              this._handleResponse({
+                requestType: sentryRequest.type,
+                response,
+                headers,
+                resolve,
+                reject,
+              });
+            })
+            .catch(reject);
+        }),
       )
       .then(undefined, reason => {
         // It's either buffer rejection or any other xhr/fetch error, which are treated as NetworkError.

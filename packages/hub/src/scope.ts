@@ -18,7 +18,7 @@ import {
   Transaction,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, getGlobalObject, isPlainObject, isThenable, SyncPromise } from '@sentry/utils';
+import { dateTimestampInSeconds, getGlobalObject, isPlainObject, isThenable, makeSyncPromise } from '@sentry/utils';
 
 import { Session } from './session';
 
@@ -459,7 +459,7 @@ export class Scope implements ScopeInterface {
     hint?: EventHint,
     index: number = 0,
   ): PromiseLike<Event | null> {
-    return new SyncPromise<Event | null>((resolve, reject) => {
+    return makeSyncPromise<Event | null>((resolve, reject) => {
       const processor = processors[index];
       if (event === null || typeof processor !== 'function') {
         resolve(event);

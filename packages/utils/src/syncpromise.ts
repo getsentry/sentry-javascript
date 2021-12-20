@@ -14,56 +14,105 @@ const enum States {
   REJECTED = 2,
 }
 
-/**
- * Creates a resolved sync promise.
- *
- * @param value the value to resolve the promise with
- * @returns the resolved sync promise
- */
-export function resolvedSyncPromise<T>(value: T | PromiseLike<T>): PromiseLike<T> {
-  return new SyncPromise(resolve => {
-    resolve(value);
-  });
+type PromiseExecutor<T> = (
+  resolve: (value?: T | PromiseLike<T> | null) => void,
+  reject: (reason?: any) => void,
+) => void;
+
+type Handler<T> = [boolean, (value: T) => void, (reason: any) => any];
+
+export interface SyncPromise<T> extends PromiseLike<T> {
+  getValue: () => T | undefined;
+  finally: (onfinally?: (() => void) | null) => PromiseLike<T>;
+  catch: <TResult = never>(
+    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+  ) => PromiseLike<T | TResult>;
+  resolve: (value: T | PromiseLike<T>) => PromiseLike<T>;
+  reject: <T = never>(reason?: any) => PromiseLike<T>;
 }
-
 /**
- * Creates a rejected sync promise.
  *
- * @param value the value to reject the promise with
- * @returns the rejected sync promise
+ * @param executor
  */
-export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
-  return new SyncPromise((_, reject) => {
-    reject(reason);
-  });
-}
+export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T> {
+  let _handlers: Array<Handler<T>> = [];
+  let _state: States = States.PENDING;
+  let _value: T | undefined = undefined;
 
-/**
- * Thenable class that behaves like a Promise and follows it's interface
- * but is not async internally
- */
-class SyncPromise<T> implements PromiseLike<T> {
-  private _state: States = States.PENDING;
-  private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]> = [];
-  private _value: any;
-
-  public constructor(
-    executor: (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void,
-  ) {
-    try {
-      executor(this._resolve, this._reject);
-    } catch (e) {
-      this._reject(e);
-    }
+  function getValue(): T | undefined {
+    return _value;
   }
 
-  /** JSDoc */
-  public then<TResult1 = T, TResult2 = never>(
+  function maybeExecuteHandlers() {
+    if (_state === States.PENDING) {
+      return;
+    }
+
+    const cachedHandlers = _handlers.slice();
+    _handlers = [];
+
+    cachedHandlers.forEach(handler => {
+      if (handler[0]) {
+        return;
+      }
+
+      if (_state === States.RESOLVED) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        handler[1]((_value as unknown) as any);
+      }
+
+      if (_state === States.REJECTED) {
+        handler[2](_value);
+      }
+
+      handler[0] = true;
+    });
+  }
+
+  function _catch<TResult = never>(
+    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+  ): PromiseLike<T | TResult> {
+    return then(val => val, onrejected);
+  }
+
+  function resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
+    return makeSyncPromise(resolve => resolve(value));
+  }
+
+  function reject<T = never>(reason?: any): PromiseLike<T> {
+    return makeSyncPromise((_, reject) => reject(reason));
+  }
+
+  function _resolve(value?: T | PromiseLike<T> | null): void {
+    setResult(States.RESOLVED, value);
+  }
+
+  function _reject(reason?: any) {
+    setResult(States.REJECTED, reason);
+  }
+
+  function setResult(state: States, value?: T | PromiseLike<T> | any) {
+    if (_state !== States.PENDING) {
+      return;
+    }
+
+    if (isThenable(value)) {
+      void (value as PromiseLike<T>).then(_resolve, _reject);
+      return;
+    }
+
+    _state = state;
+    _value = value;
+
+    maybeExecuteHandlers();
+  }
+
+  function then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
   ): PromiseLike<TResult1 | TResult2> {
-    return new SyncPromise((resolve, reject) => {
-      this._handlers.push([
+    return makeSyncPromise((resolve, reject) => {
+      _handlers.push([
         false,
         result => {
           if (!onfulfilled) {
@@ -90,24 +139,17 @@ class SyncPromise<T> implements PromiseLike<T> {
           }
         },
       ]);
-      this._executeHandlers();
+
+      maybeExecuteHandlers();
     });
   }
 
-  /** JSDoc */
-  public catch<TResult = never>(
-    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
-  ): PromiseLike<T | TResult> {
-    return this.then(val => val, onrejected);
-  }
-
-  /** JSDoc */
-  public finally<TResult>(onfinally?: (() => void) | null): PromiseLike<TResult> {
-    return new SyncPromise<TResult>((resolve, reject) => {
-      let val: TResult | any;
+  function _finally<T>(onfinally?: (() => void) | null): PromiseLike<T> {
+    return makeSyncPromise<T>((resolve, reject) => {
+      let val: T | any;
       let isRejected: boolean;
 
-      return this.then(
+      return then(
         value => {
           isRejected = false;
           val = value;
@@ -133,59 +175,22 @@ class SyncPromise<T> implements PromiseLike<T> {
     });
   }
 
-  /** JSDoc */
-  private readonly _resolve = (value?: T | PromiseLike<T> | null) => {
-    this._setResult(States.RESOLVED, value);
-  };
-
-  /** JSDoc */
-  private readonly _reject = (reason?: any) => {
-    this._setResult(States.REJECTED, reason);
-  };
-
-  /** JSDoc */
-  private readonly _setResult = (state: States, value?: T | PromiseLike<T> | any) => {
-    if (this._state !== States.PENDING) {
-      return;
+  if (executor) {
+    try {
+      executor(_resolve, _reject);
+    } catch (e) {
+      _reject(e);
     }
+  }
 
-    if (isThenable(value)) {
-      void (value as PromiseLike<T>).then(this._resolve, this._reject);
-      return;
-    }
-
-    this._state = state;
-    this._value = value;
-
-    this._executeHandlers();
+  const promise: SyncPromise<T> = {
+    getValue,
+    then,
+    finally: _finally,
+    catch: _catch,
+    resolve,
+    reject,
   };
 
-  /** JSDoc */
-  private readonly _executeHandlers = () => {
-    if (this._state === States.PENDING) {
-      return;
-    }
-
-    const cachedHandlers = this._handlers.slice();
-    this._handlers = [];
-
-    cachedHandlers.forEach(handler => {
-      if (handler[0]) {
-        return;
-      }
-
-      if (this._state === States.RESOLVED) {
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        handler[1]((this._value as unknown) as any);
-      }
-
-      if (this._state === States.REJECTED) {
-        handler[2](this._value);
-      }
-
-      handler[0] = true;
-    });
-  };
+  return promise;
 }
-
-export { SyncPromise };
