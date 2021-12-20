@@ -3,14 +3,19 @@ import {
   getEnvelopeEndpointWithUrlEncodedAuth,
   getStoreEndpointWithUrlEncodedAuth,
   initAPIDetails,
+  eventToSentryRequest,
+  sessionToSentryRequest,
 } from '@sentry/core';
+import { Session } from '@sentry/hub';
 import {
   Event,
   Outcome,
   Response as SentryResponse,
+  SentryRequest,
   SentryRequestType,
   Transport,
   TransportOptions,
+  Response,
 } from '@sentry/types';
 import {
   dateTimestampInSeconds,
@@ -67,8 +72,15 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public sendEvent(_: Event): PromiseLike<SentryResponse> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method');
+  public sendEvent(event: Event): PromiseLike<Response> {
+    return this._sendRequest(eventToSentryRequest(event, this._api), event);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): PromiseLike<Response> {
+    return this._sendRequest(sessionToSentryRequest(session, this._api), session);
   }
 
   /**
@@ -222,4 +234,9 @@ export abstract class BaseTransport implements Transport {
     }
     return false;
   }
+
+  protected abstract _sendRequest(
+    sentryRequest: SentryRequest,
+    originalPayload: Event | Session,
+  ): PromiseLike<Response>;
 }
