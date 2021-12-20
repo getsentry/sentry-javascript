@@ -1,6 +1,6 @@
 import { isDebugBuild } from '@sentry/utils';
 
-import { makeDsn, dsnToString } from '../src/dsn';
+import { dsnToString, makeDsn } from '../src/dsn';
 import { SentryError } from '../src/error';
 
 function testIf(condition: boolean): jest.It {
