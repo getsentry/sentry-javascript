@@ -1,9 +1,10 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { Event, EventHint, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
+import { Dsn, logger } from '@sentry/utils';
 
-import { NodeBackend } from './backend';
+import { eventFromException, eventFromMessage } from './eventbuilder';
+import { HTTPSTransport, HTTPTransport } from './transports';
 import { NodeOptions } from './types';
 
 /**
@@ -12,7 +13,7 @@ import { NodeOptions } from './types';
  * @see NodeOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
+export class NodeClient extends BaseClient<NodeOptions> {
   protected _sessionFlusher: SessionFlusher | undefined;
 
   /**
@@ -32,7 +33,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
       version: SDK_VERSION,
     };
 
-    super(NodeBackend, options);
+    super(options);
   }
 
   /**
@@ -126,5 +127,50 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  protected _eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
+    return eventFromException(this._options, exception, hint);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _eventFromMessage(message: string, level: SeverityLevel = 'info', hint?: EventHint): PromiseLike<Event> {
+    return eventFromMessage(this._options, message, level, hint);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _setupTransport(): Transport {
+    if (!this._options.dsn) {
+      // We return the noop transport here in case there is no Dsn.
+      return super._setupTransport();
+    }
+
+    const dsn = new Dsn(this._options.dsn);
+
+    const transportOptions: TransportOptions = {
+      ...this._options.transportOptions,
+      ...(this._options.httpProxy && { httpProxy: this._options.httpProxy }),
+      ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
+      ...(this._options.caCerts && { caCerts: this._options.caCerts }),
+      dsn: this._options.dsn,
+      tunnel: this._options.tunnel,
+      _metadata: this._options._metadata,
+    };
+
+    if (this._options.transport) {
+      return new this._options.transport(transportOptions);
+    }
+    if (dsn.protocol === 'http') {
+      return new HTTPTransport(transportOptions);
+    }
+    return new HTTPSTransport(transportOptions);
   }
 }
