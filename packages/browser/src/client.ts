@@ -100,7 +100,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
     if (integration) {
       integration.addSentryBreadcrumb(event);
     }
-    super.sendEvent(event);
+    super._sendEvent(event);
   }
 
   /**

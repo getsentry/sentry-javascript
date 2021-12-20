@@ -170,7 +170,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
     if (!(typeof session.release === 'string')) {
       logger.warn('Discarded session because of missing or non-string release');
     } else {
-      this.sendSession(session);
+      this._sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
       session.update({ init: false });
     }
@@ -244,7 +244,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event): void {
+  protected _sendEvent(event: Event): void {
     const transport = this.getTransport();
     if (transport) {
       void transport.sendEvent(event).then(null, reason => {
@@ -256,7 +256,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendSession(session: Session): void {
+  protected _sendSession(session: Session): void {
     const transport = this.getTransport();
     if (!transport) {
       return;
@@ -581,7 +581,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        this.sendEvent(processedEvent);
+        this._sendEvent(processedEvent);
         return processedEvent;
       })
       .then(null, reason => {
