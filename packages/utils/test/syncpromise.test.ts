@@ -1,4 +1,9 @@
-import { makeSyncPromise, SyncPromise } from '../src/syncpromise';
+import {
+  makePlatformRejectedPromise,
+  makePlatformResolvedPromise,
+  makeSyncPromise,
+  SyncPromise,
+} from '../src/syncpromise';
 
 describe('SyncPromise', () => {
   test('simple', () => {

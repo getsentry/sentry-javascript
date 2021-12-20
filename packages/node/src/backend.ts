@@ -7,7 +7,7 @@ import {
   extractExceptionKeysForMessage,
   isError,
   isPlainObject,
-  makeSyncPromise,
+  makePlatformPromise,
   normalizeToSize,
 } from '@sentry/utils';
 
@@ -55,7 +55,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       mechanism.synthetic = true;
     }
 
-    return makeSyncPromise<Event>((resolve, reject) =>
+    return makePlatformPromise<Event>((resolve, reject) =>
       parseError(ex as Error, this._options)
         .then(event => {
           addExceptionTypeValue(event, undefined, undefined);
@@ -80,7 +80,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       message,
     };
 
-    return makeSyncPromise<Event>(resolve => {
+    return makePlatformPromise<Event>(resolve => {
       if (this._options.attachStacktrace && hint && hint.syntheticException) {
         const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
         void parseStack(stack, this._options)

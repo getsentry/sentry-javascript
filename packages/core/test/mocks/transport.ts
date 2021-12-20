@@ -1,8 +1,8 @@
 import { Event, Response, Transport } from '@sentry/types';
-import { makePromiseBuffer, PromiseBuffer, makeSyncPromise } from '@sentry/utils';
+import { makePlatformPromise,makePromiseBuffer, PromiseBuffer } from '@sentry/utils';
 
 async function sleep(delay: number): Promise<void> {
-  return makeSyncPromise(resolve => setTimeout(resolve, delay));
+  return makePlatformPromise(resolve => setTimeout(resolve, delay));
 }
 
 export class FakeTransport implements Transport {
@@ -16,7 +16,7 @@ export class FakeTransport implements Transport {
   public sendEvent(_event: Event): PromiseLike<Response> {
     this.sendCalled += 1;
     return this._buffer.add(() =>
-      makeSyncPromise(async res => {
+      makePlatformPromise(async res => {
         await sleep(this.delay);
         this.sentCount += 1;
         res({ status: 'success' });
