@@ -2,7 +2,7 @@
 import { Scope, Session } from '@sentry/hub';
 import {
   Client,
-  Dsn,
+  DsnComponents,
   Event,
   EventHint,
   Integration,
@@ -77,7 +77,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected readonly _options: O;
 
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
-  protected readonly _dsn?: Dsn;
+  protected readonly _dsn?: DsnComponents;
 
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
@@ -188,7 +188,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public getDsn(): Dsn | undefined {
+  public getDsn(): DsnComponents | undefined {
     return this._dsn;
   }
 
