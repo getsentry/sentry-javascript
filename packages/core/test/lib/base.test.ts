@@ -1,6 +1,6 @@
 import { Hub, Scope, Session } from '@sentry/hub';
 import { Event, Span, Transport } from '@sentry/types';
-import { logger, makePlatformPromise,SentryError } from '@sentry/utils';
+import { logger, makePlatformPromise, SentryError } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
 import { TestBackend } from '../mocks/backend';

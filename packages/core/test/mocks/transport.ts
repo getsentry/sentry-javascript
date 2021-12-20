@@ -1,5 +1,5 @@
 import { Event, Response, Transport } from '@sentry/types';
-import { makePlatformPromise,makePromiseBuffer, PromiseBuffer } from '@sentry/utils';
+import { makePlatformPromise, makePromiseBuffer, PromiseBuffer } from '@sentry/utils';
 
 async function sleep(delay: number): Promise<void> {
   return makePlatformPromise(resolve => setTimeout(resolve, delay));

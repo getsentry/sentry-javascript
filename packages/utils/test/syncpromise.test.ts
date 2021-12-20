@@ -162,19 +162,23 @@ describe('SyncPromise', () => {
       }),
     );
 
-    qp.then(value => {
-      expect(value).toEqual(2);
-    }).then(null, () => {
-      // no-empty
-    });
+    void qp
+      .then(value => {
+        expect(value).toEqual(2);
+      })
+      .then(null, () => {
+        // no-empty
+      });
 
     expect(qp.getValue()).toBe(undefined);
 
-    qp.then(value => {
-      expect(value).toEqual(2);
-    }).then(null, () => {
-      // no-empty
-    });
+    void qp
+      .then(value => {
+        expect(value).toEqual(2);
+      })
+      .then(null, () => {
+        // no-empty
+      });
     jest.runAllTimers();
     expect(qp.getValue()).toBe(2);
   });
