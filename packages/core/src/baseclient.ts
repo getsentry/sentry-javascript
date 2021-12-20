@@ -28,7 +28,6 @@ import {
 } from '@sentry/utils';
 
 import { IntegrationIndex, setupIntegrations } from './integration';
-import { NoopTransport } from './transports/noop';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -76,7 +75,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   protected _numProcessing: number = 0;
 
   /** Cached transport used internally. */
-  protected _transport: Transport;
+  protected _transport: Transport | undefined;
 
   /**
    * Initializes this client instance.
@@ -194,7 +193,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public getTransport(): Transport {
+  public getTransport(): Transport | undefined {
     return this._transport;
   }
 
@@ -203,9 +202,11 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    */
   public flush(timeout?: number): PromiseLike<boolean> {
     return this._isClientDoneProcessing(timeout).then(clientFinished => {
-      return this.getTransport()
-        .close(timeout)
-        .then(transportFlushed => clientFinished && transportFlushed);
+      const transport = this.getTransport();
+      if (transport) {
+        return transport.close(timeout).then(transportFlushed => clientFinished && transportFlushed);
+      }
+      return false;
     });
   }
 
@@ -244,21 +245,28 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    * @inheritDoc
    */
   public sendEvent(event: Event): void {
-    void this._transport.sendEvent(event).then(null, reason => {
-      logger.error(`Error while sending event: ${reason}`);
-    });
+    const transport = this.getTransport();
+    if (transport) {
+      void transport.sendEvent(event).then(null, reason => {
+        logger.error(`Error while sending event: ${reason}`);
+      });
+    }
   }
 
   /**
    * @inheritDoc
    */
   public sendSession(session: Session): void {
-    if (!this._transport.sendSession) {
+    const transport = this.getTransport();
+    if (!transport) {
+      return;
+    }
+    if (!transport.sendSession) {
       logger.warn("Dropping session because custom transport doesn't implement sendSession");
       return;
     }
 
-    void this._transport.sendSession(session).then(null, reason => {
+    void transport.sendSession(session).then(null, reason => {
       logger.error(`Error while sending session: ${reason}`);
     });
   }
@@ -525,7 +533,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
     type RecordLostEventParams = Parameters<RecordLostEvent>;
 
     function recordLostEvent(outcome: RecordLostEventParams[0], category: RecordLostEventParams[1]): void {
-      if (transport.recordLostEvent) {
+      if (transport && transport.recordLostEvent) {
         transport.recordLostEvent(outcome, category);
       }
     }
@@ -613,8 +621,8 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * Sets up the transport so it can be used later to send requests.
    */
-  protected _setupTransport(): Transport {
-    return new NoopTransport();
+  protected _setupTransport(): Transport | undefined {
+    return undefined;
   }
 
   /**

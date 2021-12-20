@@ -96,14 +96,21 @@ export class NodeClient extends BaseClient<NodeOptions> {
   /** Method that initialises an instance of SessionFlusher on Client */
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
+    const transport = this.getTransport();
+
+    if (!transport) {
+      logger.warn('Cannot initialise an instance of SessionFlusher if no transport is initialized!');
+      return;
+    }
     if (!release) {
       logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
-    } else {
-      this._sessionFlusher = new SessionFlusher(this.getTransport(), {
-        release,
-        environment,
-      });
+      return;
     }
+
+    this._sessionFlusher = new SessionFlusher(transport, {
+      release,
+      environment,
+    });
   }
 
   /**

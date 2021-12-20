@@ -1,8 +1,27 @@
-import { Options, EventHint, Event, Session, SeverityLevel, Transport } from '@sentry/types';
+import { Options, EventHint, Event, Session, SeverityLevel, Transport, Response } from '@sentry/types';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { resolvedSyncPromise } from '@sentry/utils';
+
+export class NoopTransport implements Transport {
+  /**
+   * @inheritDoc
+   */
+  public sendEvent(_: Event): PromiseLike<Response> {
+    return resolvedSyncPromise({
+      reason: `NoopTransport: Event has been skipped because no Dsn is configured.`,
+      status: 'skipped',
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public close(_?: number): PromiseLike<boolean> {
+    return resolvedSyncPromise(true);
+  }
+}
 
 interface TestOptions extends Options {
   test?: boolean;
@@ -39,7 +58,7 @@ export class TestClient extends BaseClient<TestOptions> {
   protected _setupTransport(): Transport {
     if (!this._options.dsn) {
       // We return the noop transport here in case there is no Dsn.
-      return super._setupTransport();
+      return new NoopTransport();
     }
 
     const transportOptions = this._options.transportOptions
@@ -50,7 +69,7 @@ export class TestClient extends BaseClient<TestOptions> {
       return new this._options.transport(transportOptions);
     }
 
-    return super._setupTransport();
+    return new NoopTransport();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types

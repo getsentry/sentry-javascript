@@ -61,7 +61,7 @@ export interface Client<O extends Options = Options> {
   getOptions(): O;
 
   /** Returns clients transport. */
-  getTransport?(): Transport;
+  getTransport?(): Transport | undefined;
 
   /**
    * Flush the event queue and set the client to `enabled = false`. See {@link Client.flush}.
