@@ -624,12 +624,12 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  protected abstract _eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+  protected abstract _eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /**
    * @inheritDoc
    */
-  protected abstract _eventFromMessage(_message: string, _level?: SeverityLevel, _hint?: EventHint): PromiseLike<Event>;
+  protected abstract _eventFromMessage(message: string, level?: SeverityLevel, hint?: EventHint): PromiseLike<Event>;
 }
 
 /**

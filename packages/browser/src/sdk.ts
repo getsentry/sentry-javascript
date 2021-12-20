@@ -1,8 +1,7 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { addInstrumentationHandler, getGlobalObject, logger, resolvedSyncPromise } from '@sentry/utils';
 
-import { BrowserOptions } from './backend';
-import { BrowserClient } from './client';
+import { BrowserClient, BrowserOptions } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
