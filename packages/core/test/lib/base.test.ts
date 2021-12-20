@@ -12,7 +12,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 declare var global: any;
 
 // @ts-ignore inspecting protected method
-const backendEventFromException = jest.spyOn(TestClient.prototype, '_eventFromException');
+const clientEventFromException = jest.spyOn(TestClient.prototype, '_eventFromException');
 const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
 
 jest.mock('@sentry/utils', () => {
@@ -92,7 +92,7 @@ describe('BaseClient', () => {
   });
 
   describe('getTransport()', () => {
-    test('returns the transport from backend', () => {
+    test('returns the transport from client', () => {
       expect.assertions(2);
       const options = { dsn: PUBLIC_DSN, transport: FakeTransport };
       const client = new TestClient(options);
@@ -269,12 +269,12 @@ describe('BaseClient', () => {
       client.captureException(thrown);
 
       expect(thrown.__sentry_captured__).toBe(true);
-      expect(backendEventFromException).toHaveBeenCalledTimes(1);
+      expect(clientEventFromException).toHaveBeenCalledTimes(1);
 
       client.captureException(thrown);
 
       // `captureException` should bail right away this second time around and not get as far as calling this again
-      expect(backendEventFromException).toHaveBeenCalledTimes(1);
+      expect(clientEventFromException).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1117,7 +1117,7 @@ describe('BaseClient', () => {
   });
 
   describe('captureSession()', () => {
-    test('sends sessions to the backend', () => {
+    test('sends sessions to the client', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const session = new Session({ release: 'test' });
