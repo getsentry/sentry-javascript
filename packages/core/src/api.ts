@@ -174,7 +174,7 @@ export function getReportDialogEndpoint(
   const dsn = makeDsn(dsnLike);
   const endpoint = `${getBaseApiEndpoint(dsn)}embed/error-page/`;
 
-  let encodedOptions = `dsn=${dsn.toString()}`;
+  let encodedOptions = `dsn=${dsnToString(dsn)}`;
   for (const key in dialogOptions) {
     if (key === 'dsn') {
       continue;

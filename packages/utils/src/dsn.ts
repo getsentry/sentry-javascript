@@ -19,7 +19,7 @@ function isValidProtocol(protocol?: string): protocol is DsnProtocol {
  *
  * @param withPassword When set to true, the password will be included.
  */
-function dsntoString(dsn: Dsn, withPassword: boolean = false): string {
+export function dsnToString(dsn: Dsn, withPassword: boolean = false): string {
   const { host, path, pass, port, projectId, protocol, publicKey } = dsn;
   return (
     `${protocol}://${publicKey}${withPassword && pass ? `:${pass}` : ''}` +
@@ -72,28 +72,30 @@ function dsnFromComponents(components: DsnComponents): Dsn {
   };
 }
 
-function validateDsn(dsn: Dsn): boolean {
-  if (isDebugBuild()) {
-    const { port, projectId, protocol } = dsn;
+function validateDsn(dsn: Dsn): boolean | void {
+  if (!isDebugBuild()) {
+    return;
+  }
 
-    const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
-    requiredComponents.forEach(component => {
-      if (!dsn[component]) {
-        throw new SentryError(`Invalid Dsn: ${component} missing`);
-      }
-    });
+  const { port, projectId, protocol } = dsn;
 
-    if (!projectId.match(/^\d+$/)) {
-      throw new SentryError(`Invalid Dsn: Invalid projectId ${projectId}`);
+  const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
+  requiredComponents.forEach(component => {
+    if (!dsn[component]) {
+      throw new SentryError(`Invalid Dsn: ${component} missing`);
     }
+  });
 
-    if (!isValidProtocol(protocol)) {
-      throw new SentryError(`Invalid Dsn: Invalid protocol ${protocol}`);
-    }
+  if (!projectId.match(/^\d+$/)) {
+    throw new SentryError(`Invalid Dsn: Invalid projectId ${projectId}`);
+  }
 
-    if (port && isNaN(parseInt(port, 10))) {
-      throw new SentryError(`Invalid Dsn: Invalid port ${port}`);
-    }
+  if (!isValidProtocol(protocol)) {
+    throw new SentryError(`Invalid Dsn: Invalid protocol ${protocol}`);
+  }
+
+  if (port && isNaN(parseInt(port, 10))) {
+    throw new SentryError(`Invalid Dsn: Invalid port ${port}`);
   }
 
   return true;
@@ -105,10 +107,5 @@ export function makeDsn(from: DsnLike): Dsn {
 
   validateDsn(components);
 
-  const dsn: Dsn = {
-    ...components,
-    toString: (withPassword?: boolean) => dsntoString(dsn, withPassword),
-  };
-
-  return dsn;
+  return components;
 }

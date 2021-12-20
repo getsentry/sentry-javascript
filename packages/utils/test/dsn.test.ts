@@ -1,6 +1,6 @@
 import { isDebugBuild } from '@sentry/utils';
 
-import { makeDsn } from '../src/dsn';
+import { makeDsn, dsnToString } from '../src/dsn';
 import { SentryError } from '../src/error';
 
 function testIf(condition: boolean): jest.It {
@@ -165,27 +165,27 @@ describe('Dsn', () => {
   describe('toString', () => {
     test('excludes the password by default', () => {
       const dsn = makeDsn('https://abc:xyz@sentry.io:1234/123');
-      expect(dsn.toString()).toBe('https://abc@sentry.io:1234/123');
+      expect(dsnToString(dsn)).toBe('https://abc@sentry.io:1234/123');
     });
 
     test('optionally includes the password', () => {
       const dsn = makeDsn('https://abc:xyz@sentry.io:1234/123');
-      expect(dsn.toString(true)).toBe('https://abc:xyz@sentry.io:1234/123');
+      expect(dsnToString(dsn, true)).toBe('https://abc:xyz@sentry.io:1234/123');
     });
 
     test('renders no password if missing', () => {
       const dsn = makeDsn('https://abc@sentry.io:1234/123');
-      expect(dsn.toString(true)).toBe('https://abc@sentry.io:1234/123');
+      expect(dsnToString(dsn, true)).toBe('https://abc@sentry.io:1234/123');
     });
 
     test('renders no port if missing', () => {
       const dsn = makeDsn('https://abc@sentry.io/123');
-      expect(dsn.toString()).toBe('https://abc@sentry.io/123');
+      expect(dsnToString(dsn)).toBe('https://abc@sentry.io/123');
     });
 
     test('renders the full path correctly', () => {
       const dsn = makeDsn('https://abc@sentry.io/sentry/custom/installation/321');
-      expect(dsn.toString()).toBe('https://abc@sentry.io/sentry/custom/installation/321');
+      expect(dsnToString(dsn)).toBe('https://abc@sentry.io/sentry/custom/installation/321');
     });
   });
 });
