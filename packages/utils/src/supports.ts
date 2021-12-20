@@ -1,5 +1,6 @@
 import { getGlobalObject } from './global';
 import { logger } from './logger';
+import { isDebugBuild } from './env';
 
 /**
  * Tells whether current environment supports ErrorEvent objects
@@ -112,7 +113,9 @@ export function supportsNativeFetch(): boolean {
       }
       doc.head.removeChild(sandbox);
     } catch (err) {
-      logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
+      if (isDebugBuild()) {
+        logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
+      }
     }
   }
 
