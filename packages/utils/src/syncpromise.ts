@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/typedef */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { isBrowserBundle } from './env';
 import { isThenable } from './is';
 
 /** SyncPromise internal states */
@@ -33,35 +32,38 @@ export interface SyncPromise<T> extends PromiseLike<T> {
 }
 
 /**
- *
+ * Create a resolved promise
  * @param value
  */
 export function makePlatformResolvedPromise<T>(value: T): PromiseLike<T> {
-  if (isBrowserBundle()) {
-    return Promise.resolve(value);
-  }
+  // Flip this when dropping support for IE11
+  // if (isBrowserBundle()) {
+  //   return Promise.resolve(value);
+  // }
   return makeSyncPromise().resolve(value);
 }
 
 /**
- *
+ * Create a rejected promise
  * @param reason
  */
 export function makePlatformRejectedPromise<T>(reason: T): PromiseLike<T> {
-  if (isBrowserBundle()) {
-    return Promise.reject(reason);
-  }
+  // Flip this when dropping support for IE11
+  // if (isBrowserBundle()) {
+  //   return Promise.reject(reason);
+  // }
   return makeSyncPromise().reject(reason);
 }
 
-const noopExecutor = (_reject: any, _resolve: any) => void 0;
 /**
- *
+ * Create a platform agnostic promise
+ * @param executor promise executor fn
  */
 export function makePlatformPromise<T>(executor?: PromiseExecutor<T>): Promise<T> | SyncPromise<T> {
-  if (isBrowserBundle()) {
-    return new Promise(executor || noopExecutor) as Promise<T>;
-  }
+  // Flip this when dropping support for IE11
+  // if (isBrowserBundle()) {
+  //   return new Promise(executor || noopExecutor) as Promise<T>;
+  // }
   return makeSyncPromise(executor);
 }
 /**
