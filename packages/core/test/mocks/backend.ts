@@ -1,6 +1,6 @@
 import { Session } from '@sentry/hub';
 import { Event, Options, SeverityLevel, Transport } from '@sentry/types';
-import { makeSyncPromise } from '@sentry/utils';
+import { makePlatformResolvedPromise } from '@sentry/utils';
 
 import { BaseBackend } from '../../src/basebackend';
 
@@ -24,7 +24,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any): PromiseLike<Event> {
-    return makeSyncPromise().resolve({
+    return makePlatformResolvedPromise({
       exception: {
         values: [
           {
@@ -39,7 +39,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
   }
 
   public eventFromMessage(message: string, level: SeverityLevel = 'info'): PromiseLike<Event> {
-    return makeSyncPromise().resolve({ message, level });
+    return makePlatformResolvedPromise({ message, level });
   }
 
   public sendEvent(event: Event): void {

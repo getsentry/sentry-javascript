@@ -1,8 +1,8 @@
 import { SentryError } from './error';
-import { makeSyncPromise } from './syncpromise';
+import { makePlatformPromise, makePlatformRejectedPromise, makePlatformResolvedPromise } from './syncpromise';
 
-function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
-  return makeSyncPromise<U[]>((resolve, reject) => {
+function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[] | null> {
+  return makePlatformPromise<U[] | null>((resolve, reject) => {
     if (collection.length === 0) {
       resolve(null);
       return;
@@ -10,8 +10,7 @@ function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): Promis
 
     let counter = collection.length;
     collection.forEach(item => {
-      void makeSyncPromise()
-        .resolve(item)
+      void makePlatformResolvedPromise(item)
         .then(() => {
           // eslint-disable-next-line no-plusplus
           if (--counter === 0) {
@@ -24,10 +23,9 @@ function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): Promis
 }
 
 export interface PromiseBuffer<T> {
-  // exposes the internal array so tests can assert on the state of it.
-  // XXX: this really should not be public api.
-  $: Array<PromiseLike<T>>;
-  add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
+  length(): number;
+  add(taskProducer: () => PromiseLike<T | SentryError>): PromiseLike<T | SentryError>;
+  remove(task: PromiseLike<T>): PromiseLike<T>;
   drain(timeout?: number): PromiseLike<boolean>;
 }
 
@@ -62,9 +60,9 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    *        limit check.
    * @returns The original promise.
    */
-  function add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
+  function add(taskProducer: () => PromiseLike<T>): PromiseLike<T | SentryError> {
     if (!isReady()) {
-      return makeSyncPromise().reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+      return makePlatformRejectedPromise(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
 
     // start the task and add its promise to the queue
@@ -95,7 +93,7 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    * `false` otherwise
    */
   function drain(timeout?: number): PromiseLike<boolean> {
-    return makeSyncPromise<boolean>(resolve => {
+    return makePlatformPromise<boolean>(resolve => {
       // wait for `timeout` ms and then resolve to `false` (if not cancelled first)
       const capturedSetTimeout = setTimeout(() => {
         if (timeout && timeout > 0) {

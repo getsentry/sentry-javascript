@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/typedef */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { isBrowserBundle } from './env';
 import { isThenable } from './is';
 
 /** SyncPromise internal states */
@@ -14,24 +15,52 @@ const enum States {
   REJECTED = 2,
 }
 
-type PromiseExecutor<T> = (
-  resolve: (value?: T | PromiseLike<T> | null) => void,
-  reject: (reason?: any) => void,
-) => void;
+type PromiseExecutor<T> = (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void;
 
 type Handler<T> = [boolean, (value: T) => void, (reason: any) => any];
 
 export interface SyncPromise<T> extends PromiseLike<T> {
   getValue: () => T | undefined;
-  finally: (onfinally?: (() => void) | null) => PromiseLike<T>;
-  catch: <TResult = never>(
-    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
-  ) => PromiseLike<T | TResult>;
+  finally: (onfinally?: () => void) => PromiseLike<T>;
+  catch: <TResult = never>(onrejected?: (reason: any) => TResult | PromiseLike<TResult>) => PromiseLike<T | TResult>;
   resolve: <T>(value: T | PromiseLike<T>) => PromiseLike<T>;
   reject: <T = never>(reason?: any) => PromiseLike<T>;
 }
+
 /**
  *
+ * @param value
+ */
+export function makePlatformResolvedPromise<T>(value: T): PromiseLike<T> {
+  if (isBrowserBundle()) {
+    return Promise.resolve(value);
+  }
+  return makeSyncPromise().resolve(value);
+}
+
+/**
+ *
+ * @param reason
+ */
+export function makePlatformRejectedPromise<T>(reason: T): PromiseLike<T> {
+  if (isBrowserBundle()) {
+    return Promise.reject(reason);
+  }
+  return makeSyncPromise().reject(reason);
+}
+
+const noopExecutor = (_reject: any, _resolve: any) => void 0;
+/**
+ *
+ */
+export function makePlatformPromise<T>(executor?: PromiseExecutor<T>): PromiseLike<T> {
+  if (isBrowserBundle()) {
+    return new Promise(executor || noopExecutor) as Promise<T>;
+  }
+  return makeSyncPromise(executor);
+}
+/**
+ *  Creates a promise-like interface whos internals are not async
  * @param executor
  */
 export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T> {
@@ -70,7 +99,7 @@ export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T
   }
 
   function _catch<TResult = never>(
-    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+    onrejected?: (reason: any) => TResult | PromiseLike<TResult>,
   ): PromiseLike<T | TResult> {
     return then(val => val, onrejected);
   }
@@ -83,7 +112,7 @@ export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T
     return makeSyncPromise((_, reject) => reject(reason));
   }
 
-  function _resolve(value?: T | PromiseLike<T> | null): void {
+  function _resolve(value?: T | PromiseLike<T>): void {
     setResult(States.RESOLVED, value);
   }
 
@@ -108,8 +137,8 @@ export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T
   }
 
   function then<TResult1 = T, TResult2 = never>(
-    onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+    onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>,
+    onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>,
   ): PromiseLike<TResult1 | TResult2> {
     return makeSyncPromise((resolve, reject) => {
       _handlers.push([
@@ -144,7 +173,7 @@ export function makeSyncPromise<T>(executor?: PromiseExecutor<T>): SyncPromise<T
     });
   }
 
-  function _finally<T>(onfinally?: (() => void) | null): PromiseLike<T> {
+  function _finally<T>(onfinally?: () => void): PromiseLike<T> {
     return makeSyncPromise<T>((resolve, reject) => {
       let val: T | any;
       let isRejected: boolean;
