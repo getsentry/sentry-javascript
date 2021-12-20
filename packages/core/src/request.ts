@@ -36,7 +36,7 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!api.tunnel && { dsn: dsnToString(api.dsn) }),
   });
-  const type: SentryRequestType = 'session';
+  const type: SentryRequestType = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
   const itemHeaders = JSON.stringify({
     type,
   });
