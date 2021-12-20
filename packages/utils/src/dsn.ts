@@ -1,4 +1,4 @@
-import { Dsn, DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
 import { isDebugBuild } from './env';
 import { SentryError } from './error';
@@ -19,7 +19,7 @@ function isValidProtocol(protocol?: string): protocol is DsnProtocol {
  *
  * @param withPassword When set to true, the password will be included.
  */
-export function dsnToString(dsn: Dsn, withPassword: boolean = false): string {
+export function dsnToString(dsn: DsnComponents, withPassword: boolean = false): string {
   const { host, path, pass, port, projectId, protocol, publicKey } = dsn;
   return (
     `${protocol}://${publicKey}${withPassword && pass ? `:${pass}` : ''}` +
@@ -27,7 +27,7 @@ export function dsnToString(dsn: Dsn, withPassword: boolean = false): string {
   );
 }
 
-function dsnFromString(str: string): Dsn {
+function dsnFromString(str: string): DsnComponents {
   const match = DSN_REGEX.exec(str);
 
   if (!match) {
@@ -54,7 +54,7 @@ function dsnFromString(str: string): Dsn {
   return dsnFromComponents({ host, pass, path, projectId, port, protocol: protocol as DsnProtocol, publicKey });
 }
 
-function dsnFromComponents(components: DsnComponents): Dsn {
+function dsnFromComponents(components: DsnComponents): DsnComponents {
   // TODO this is for backwards compatibility, and can be removed in a future version
   if ('user' in components && !('publicKey' in components)) {
     components.publicKey = components.user;
@@ -72,7 +72,7 @@ function dsnFromComponents(components: DsnComponents): Dsn {
   };
 }
 
-function validateDsn(dsn: Dsn): boolean | void {
+function validateDsn(dsn: DsnComponents): boolean | void {
   if (!isDebugBuild()) {
     return;
   }
@@ -102,7 +102,7 @@ function validateDsn(dsn: Dsn): boolean | void {
 }
 
 /** The Sentry Dsn, identifying a Sentry instance and project. */
-export function makeDsn(from: DsnLike): Dsn {
+export function makeDsn(from: DsnLike): DsnComponents {
   const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
 
   validateDsn(components);

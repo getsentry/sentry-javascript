@@ -1,5 +1,5 @@
-import { Dsn, DsnLike, SdkMetadata } from '@sentry/types';
-import { makeDsn, urlEncode } from '@sentry/utils';
+import { DsnComponents, DsnLike, SdkMetadata } from '@sentry/types';
+import { dsnToString, makeDsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
 
@@ -12,7 +12,7 @@ export interface APIDetails {
   /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
   metadata: SdkMetadata;
   /** The internally used Dsn object. */
-  readonly dsn: Dsn;
+  readonly dsn: DsnComponents;
   /** The envelope tunnel to use. */
   readonly tunnel?: string;
 }
@@ -32,7 +32,7 @@ export class API {
   public metadata: SdkMetadata;
 
   /** The internally used Dsn object. */
-  private readonly _dsnObject: Dsn;
+  private readonly _dsnObject: DsnComponents;
 
   /** The envelope tunnel to use. */
   private readonly _tunnel?: string;
@@ -46,7 +46,7 @@ export class API {
   }
 
   /** Returns the Dsn object. */
-  public getDsn(): Dsn {
+  public getDsn(): DsnComponents {
     return this._dsnObject;
   }
 
@@ -95,19 +95,19 @@ export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: st
 }
 
 /** Returns the prefix to construct Sentry ingestion API endpoints. */
-function getBaseApiEndpoint(dsn: Dsn): string {
+function getBaseApiEndpoint(dsn: DsnComponents): string {
   const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
   const port = dsn.port ? `:${dsn.port}` : '';
   return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ''}/api/`;
 }
 
 /** Returns the ingest API endpoint for target. */
-function _getIngestEndpoint(dsn: Dsn, target: 'store' | 'envelope'): string {
+function _getIngestEndpoint(dsn: DsnComponents, target: 'store' | 'envelope'): string {
   return `${getBaseApiEndpoint(dsn)}${dsn.projectId}/${target}/`;
 }
 
 /** Returns a URL-encoded string with auth config suitable for a query string. */
-function _encodedAuth(dsn: Dsn): string {
+function _encodedAuth(dsn: DsnComponents): string {
   return urlEncode({
     // We send only the minimum set of required information. See
     // https://github.com/getsentry/sentry-javascript/issues/2572.
@@ -117,7 +117,7 @@ function _encodedAuth(dsn: Dsn): string {
 }
 
 /** Returns the store endpoint URL. */
-function getStoreEndpoint(dsn: Dsn): string {
+function getStoreEndpoint(dsn: DsnComponents): string {
   return _getIngestEndpoint(dsn, 'store');
 }
 
@@ -126,12 +126,12 @@ function getStoreEndpoint(dsn: Dsn): string {
  *
  * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
  */
-export function getStoreEndpointWithUrlEncodedAuth(dsn: Dsn): string {
+export function getStoreEndpointWithUrlEncodedAuth(dsn: DsnComponents): string {
   return `${getStoreEndpoint(dsn)}?${_encodedAuth(dsn)}`;
 }
 
 /** Returns the envelope endpoint URL. */
-function _getEnvelopeEndpoint(dsn: Dsn): string {
+function _getEnvelopeEndpoint(dsn: DsnComponents): string {
   return _getIngestEndpoint(dsn, 'envelope');
 }
 
@@ -140,7 +140,7 @@ function _getEnvelopeEndpoint(dsn: Dsn): string {
  *
  * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
  */
-export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: Dsn, tunnel?: string): string {
+export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel?: string): string {
   return tunnel ? tunnel : `${_getEnvelopeEndpoint(dsn)}?${_encodedAuth(dsn)}`;
 }
 
@@ -148,7 +148,11 @@ export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: Dsn, tunnel?: string)
  * Returns an object that can be used in request headers.
  * This is needed for node and the old /store endpoint in sentry
  */
-export function getRequestHeaders(dsn: Dsn, clientName: string, clientVersion: string): { [key: string]: string } {
+export function getRequestHeaders(
+  dsn: DsnComponents,
+  clientName: string,
+  clientVersion: string,
+): { [key: string]: string } {
   // CHANGE THIS to use metadata but keep clientName and clientVersion compatible
   const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
   header.push(`sentry_client=${clientName}/${clientVersion}`);
