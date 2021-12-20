@@ -66,7 +66,7 @@
     "ember-qunit": "~4.6.0",
     "ember-resolver": "~8.0.0",
     "ember-sinon-qunit": "~5.0.0",
-    "ember-source": "~3.20.0",
+    "ember-source": "https://s3.amazonaws.com/builds.emberjs.com/release/shas/cf1f34e2c5d94ea0797e8f27b472372a07443b95.tgz",
     "ember-source-channel-url": "~2.0.1",
     "ember-template-lint": "~2.9.1",
     "ember-test-selectors": "~5.5.0",

@@ -1,8 +1,8 @@
 import { SentryError } from './error';
 import { makePlatformPromise, makePlatformRejectedPromise, makePlatformResolvedPromise } from './syncpromise';
 
-function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[] | null> {
-  return makePlatformPromise<U[] | null>((resolve, reject) => {
+function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
+  return makePlatformPromise<U[]>((resolve, reject) => {
     if (collection.length === 0) {
       resolve(null);
       return;
@@ -24,7 +24,7 @@ function allPromises<U = unknown>(collection: Array<U | PromiseLike<U>>): Promis
 
 export interface PromiseBuffer<T> {
   length(): number;
-  add(taskProducer: () => PromiseLike<T | SentryError>): PromiseLike<T | SentryError>;
+  add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
   remove(task: PromiseLike<T>): PromiseLike<T>;
   drain(timeout?: number): PromiseLike<boolean>;
 }
@@ -60,8 +60,9 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    *        limit check.
    * @returns The original promise.
    */
-  function add(taskProducer: () => PromiseLike<T>): PromiseLike<T | SentryError> {
+  function add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
     if (!isReady()) {
+      // @ts-ignore this needs to be handled
       return makePlatformRejectedPromise(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
 

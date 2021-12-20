@@ -165,7 +165,7 @@ export abstract class BaseTransport implements Transport {
     requestType: SentryRequestType;
     response: Response | XMLHttpRequest;
     headers: Record<string, string | null>;
-    resolve: (value?: SentryResponse | PromiseLike<SentryResponse> | null | undefined) => void;
+    resolve: (value?: SentryResponse | PromiseLike<SentryResponse> | undefined) => void;
     reject: (reason?: unknown) => void;
   }): void {
     const status = eventStatusFromHttpCode(response.status);

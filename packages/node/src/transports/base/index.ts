@@ -212,6 +212,7 @@ export abstract class BaseTransport implements Transport {
           if (!this.module) {
             throw new SentryError('No module available');
           }
+
           const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
           const req = this.module.request(options, res => {
             const statusCode = res.statusCode || 500;
