@@ -1,6 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { Hub } from '@sentry/types';
-import { addInstrumentationHandler, getGlobalObject, isDebugBuild, logger, resolvedSyncPromise } from '@sentry/utils';
+import { addInstrumentationHandler, getGlobalObject, logger, makeSyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
