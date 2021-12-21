@@ -10,6 +10,10 @@ sentryTest('should inject dialog script into <head> with correct attributes', as
   await page.goto(url);
   const dialogScript = await page.waitForSelector(dialogScriptSelector, { state: 'attached' });
   const dialogScriptSrc = await dialogScript.getAttribute('src');
+
+  expect(dialogScriptSrc?.startsWith('https://dsn.ingest.sentry.io/api/embed/error-page/?')).toBe(true);
+  // After `?` is searchParams.
+
   const searchParams = new URLSearchParams(new URL(dialogScriptSrc || '').searchParams);
 
   expect(searchParams.get('dsn')).toBe('https://public@dsn.ingest.sentry.io/1337');
