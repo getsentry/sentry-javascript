@@ -112,12 +112,13 @@ describe('BaseTransport', () => {
   });
 
   it('doesnt provide sendEvent() implementation', () => {
+    expect.assertions(1);
     const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
       void transport.sendEvent({});
     } catch (e) {
-      expect(e.message).toBe('Transport Class has to implement `sendEvent` method');
+      expect(e).toBeDefined();
     }
   });
 
