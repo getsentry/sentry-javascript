@@ -6,13 +6,13 @@ import {
   initAPIDetails,
   sessionToSentryRequest,
 } from '@sentry/core';
-import { Session } from '@sentry/hub';
 import {
   Event,
   Outcome,
   Response as SentryResponse,
   SentryRequest,
   SentryRequestType,
+  Session,
   Transport,
   TransportOptions,
 } from '@sentry/types';
