@@ -1,6 +1,6 @@
+import { isDebugBuild } from './env';
 import { getGlobalObject } from './global';
 import { logger } from './logger';
-import { isDebugBuild } from './env';
 
 /**
  * Tells whether current environment supports ErrorEvent objects
