@@ -4,11 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.0-beta1
+
+This beta releases contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class. We also deprecated our typescript enums and our internal `API` class. We've detailed how to update your sdk usage if you are using the `Dsn` class or any of the deprecated methods in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0).
+
+- feat(core): Deprecate API class (#4281)
+- feat(dsn): Remove Dsn class (#4325)
+- feat(ember): Update ember dependencies (#4253)
+- ref(tracing): deprecate span status enum (#4299)
 - ref(types): drop unused logLevel (#4317)
 - ref(types): deprecate request status enum (#4316)
 - ref(types): deprecate outcome enum (#4315)
 - ref(types): deprecate transactionmethod enum (#4314)
-- ref(types): deprecate span status enum (#4299)
 - ref(types): deprecate status enum (#4298)
 - ref(types): deprecate severity enum (#4280)
 
