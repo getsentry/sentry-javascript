@@ -21,6 +21,7 @@ import {
   dsnToString,
   eventStatusFromHttpCode,
   getGlobalObject,
+  isDebugBuild,
   logger,
   makePromiseBuffer,
   parseRetryAfterHeader,
@@ -173,8 +174,9 @@ export abstract class BaseTransport implements Transport {
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
      */
     const limited = this._handleRateLimit(headers);
-    if (limited)
+    if (limited && isDebugBuild()) {
       logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
+    }
 
     if (status === 'success') {
       resolve({ status });

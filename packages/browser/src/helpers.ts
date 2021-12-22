@@ -6,6 +6,7 @@ import {
   addNonEnumerableProperty,
   getGlobalObject,
   getOriginalFunction,
+  isDebugBuild,
   logger,
   markFunctionWrapped,
 } from '@sentry/utils';
@@ -191,12 +192,16 @@ export function injectReportDialog(options: ReportDialogOptions = {}): void {
   }
 
   if (!options.eventId) {
-    logger.error(`Missing eventId option in showReportDialog call`);
+    if (isDebugBuild()) {
+      logger.error(`Missing eventId option in showReportDialog call`);
+    }
     return;
   }
 
   if (!options.dsn) {
-    logger.error(`Missing dsn option in showReportDialog call`);
+    if (isDebugBuild()) {
+      logger.error(`Missing dsn option in showReportDialog call`);
+    }
     return;
   }
 
