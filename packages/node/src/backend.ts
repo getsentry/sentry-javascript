@@ -1,6 +1,6 @@
 import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
-import { Dsn } from '@sentry/utils';
+import { makeDsn } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { HTTPSTransport, HTTPTransport } from './transports';
@@ -35,7 +35,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       return super._setupTransport();
     }
 
-    const dsn = new Dsn(this._options.dsn);
+    const dsn = makeDsn(this._options.dsn);
 
     const transportOptions: TransportOptions = {
       ...this._options.transportOptions,
