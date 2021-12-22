@@ -53,16 +53,16 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
  */
 async function getMultipleSentryRequests(page: Page, count: number, url?: string): Promise<Event[]> {
   const requests: Promise<Event[]> = new Promise((resolve, reject) => {
-    let reqCount = 0;
+    let reqCount = count;
     const requestData: Event[] = [];
 
     page.on('request', request => {
       if (storeUrlRegex.test(request.url())) {
-        reqCount += 1;
         try {
+          reqCount -= 1;
           requestData.push(JSON.parse((request && request.postData()) || ''));
 
-          if (reqCount >= count - 1) {
+          if (reqCount === 0) {
             resolve(requestData);
           }
         } catch (err) {
