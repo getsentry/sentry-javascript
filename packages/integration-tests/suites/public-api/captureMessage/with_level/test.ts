@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryEvents } from '../../../../utils/helpers';
+import { getMultipleSentryRequests } from '../../../../utils/helpers';
 
-sentryTest('should capture with different severity levels', async ({ getLocalTestPath, page }) => {
+sentryTest.only('should capture with different severity levels', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const events = await getSentryEvents(page, url);
+  const events = await getMultipleSentryRequests(page, 7, url);
 
   expect(events[0].message).toBe('debug_message');
   expect(events[0].level).toBe('debug');
