@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryEvents } from '../../../../utils/helpers';
+import { getMultipleSentryRequests } from '../../../../utils/helpers';
 
 sentryTest('should unset user', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getSentryEvents(page, url);
+  const eventData = await getMultipleSentryRequests(page, 3, url);
 
   expect(eventData[0].message).toBe('no_user');
   expect(eventData[0].user).toBeUndefined();
