@@ -43,11 +43,15 @@ async function getSentryRequest(page: Page, url?: string): Promise<Event> {
 async function getSentryTransactionRequest(page: Page, url?: string): Promise<Event> {
   const request = (await Promise.all([page.goto(url || '#'), waitForSentryRequest(page, 'transaction')]))[1];
 
-  // https://develop.sentry.dev/sdk/envelopes/
-  const envelope = (request?.postData() as string) || '';
+  try {
+    // https://develop.sentry.dev/sdk/envelopes/
+    const envelope = request?.postData() || '';
 
-  // Third row of the envelop is the event payload.
-  return envelope.split('\n').map(line => JSON.parse(line))[2];
+    // Third row of the envelop is the event payload.
+    return envelope.split('\n').map(line => JSON.parse(line))[2];
+  } catch (err) {
+    return Promise.reject(err);
+  }
 }
 /**
  * Get Sentry events at the given URL, or the current page.
