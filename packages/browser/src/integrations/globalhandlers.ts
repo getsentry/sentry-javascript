@@ -5,6 +5,7 @@ import {
   addExceptionMechanism,
   addInstrumentationHandler,
   getLocationHref,
+  isDebugBuild,
   isErrorEvent,
   isPrimitive,
   isString,
@@ -239,7 +240,9 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
 }
 
 function globalHandlerLog(type: string): void {
-  logger.log(`Global Handler attached: ${type}`);
+  if (isDebugBuild()) {
+    logger.log(`Global Handler attached: ${type}`);
+  }
 }
 
 function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'], event: Event, type: string): void {
