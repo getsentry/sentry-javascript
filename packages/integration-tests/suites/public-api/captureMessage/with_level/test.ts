@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryRequests } from '../../../../utils/helpers';
 
-sentryTest.only('should capture with different severity levels', async ({ getLocalTestPath, page }) => {
+sentryTest('should capture with different severity levels', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const events = await getMultipleSentryRequests(page, 7, url);
