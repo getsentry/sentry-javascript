@@ -1,13 +1,11 @@
 import { expect } from '@playwright/test';
-import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getSentryTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest('should report a transaction in an envelope', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, url);
-  const transaction = eventData[2] as Event;
+  const transaction = await getSentryTransactionRequest(page, url);
 
   expect(transaction.transaction).toBe('test_transaction_1');
   expect(transaction.spans).toBeDefined();
@@ -15,8 +13,7 @@ sentryTest('should report a transaction in an envelope', async ({ getLocalTestPa
 
 sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, url);
-  const transaction = eventData[2] as Event;
+  const transaction = await getSentryTransactionRequest(page, url);
 
   const rootSpanId = transaction?.contexts?.trace.spanId;
 
