@@ -1,7 +1,10 @@
-import { Page } from '@playwright/test';
+import { Page, Request } from '@playwright/test';
 import { Event } from '@sentry/types';
 
 const storeUrlRegex = /\.sentry\.io\/api\/\d+\/store\//;
+const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
+
+type SentryRequestType = 'event' | 'transaction';
 
 /**
  * Run script at the given path inside the test environment.
@@ -15,18 +18,41 @@ async function runScriptInSandbox(page: Page, path: string): Promise<void> {
 }
 
 /**
- * Wait and get Sentry's request sending the event at the given URL
+ * Wait and get Sentry's request sending the event.
+ *
+ * @param {Page} page
+ * @returns {*} {Promise<Request>}
+ */
+async function waitForSentryRequest(page: Page, requestType: SentryRequestType = 'event'): Promise<Request> {
+  return page.waitForRequest(requestType === 'event' ? storeUrlRegex : envelopeUrlRegex);
+}
+
+/**
+ * Wait and get Sentry's request sending the event at the given URL, or the current page
  *
  * @param {Page} page
  * @param {string} url
  * @return {*}  {Promise<Event>}
  */
-async function getSentryRequest(page: Page, url: string): Promise<Event> {
-  const request = (await Promise.all([page.goto(url), page.waitForRequest(storeUrlRegex)]))[1];
+async function getSentryRequest(page: Page, url?: string): Promise<Event> {
+  const request = (await Promise.all([page.goto(url || '#'), waitForSentryRequest(page)]))[1];
 
   return JSON.parse((request && request.postData()) || '');
 }
 
+async function getSentryTransactionRequest(page: Page, url?: string): Promise<Event> {
+  const request = (await Promise.all([page.goto(url || '#'), waitForSentryRequest(page, 'transaction')]))[1];
+
+  try {
+    // https://develop.sentry.dev/sdk/envelopes/
+    const envelope = request?.postData() || '';
+
+    // Third row of the envelop is the event payload.
+    return envelope.split('\n').map(line => JSON.parse(line))[2];
+  } catch (err) {
+    return Promise.reject(err);
+  }
+}
 /**
  * Get Sentry events at the given URL, or the current page.
  *
@@ -96,4 +122,12 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
   return await getSentryEvents(page);
 }
 
-export { runScriptInSandbox, getMultipleSentryRequests, getSentryRequest, getSentryEvents, injectScriptAndGetEvents };
+export {
+  runScriptInSandbox,
+  waitForSentryRequest,
+  getMultipleSentryRequests,
+  getSentryRequest,
+  getSentryTransactionRequest,
+  getSentryEvents,
+  injectScriptAndGetEvents,
+};
