@@ -1,19 +1,24 @@
 import {
   APIDetails,
+  eventToSentryRequest,
   getEnvelopeEndpointWithUrlEncodedAuth,
   getStoreEndpointWithUrlEncodedAuth,
   initAPIDetails,
+  sessionToSentryRequest,
 } from '@sentry/core';
 import {
   Event,
   Outcome,
   Response as SentryResponse,
+  SentryRequest,
   SentryRequestType,
+  Session,
   Transport,
   TransportOptions,
 } from '@sentry/types';
 import {
   dateTimestampInSeconds,
+  dsnToString,
   eventStatusFromHttpCode,
   getGlobalObject,
   isDebugBuild,
@@ -21,7 +26,6 @@ import {
   makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
-  SentryError,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
@@ -68,8 +72,15 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public sendEvent(_: Event): PromiseLike<SentryResponse> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method');
+  public sendEvent(event: Event): PromiseLike<SentryResponse> {
+    return this._sendRequest(eventToSentryRequest(event, this._api), event);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): PromiseLike<SentryResponse> {
+    return this._sendRequest(sessionToSentryRequest(session, this._api), session);
   }
 
   /**
@@ -117,7 +128,7 @@ export abstract class BaseTransport implements Transport {
 
     const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
     // Envelope header is required to be at least an empty object
-    const envelopeHeader = JSON.stringify({ ...(this._api.tunnel && { dsn: this._api.dsn.toString() }) });
+    const envelopeHeader = JSON.stringify({ ...(this._api.tunnel && { dsn: dsnToString(this._api.dsn) }) });
     const itemHeaders = JSON.stringify({
       type: 'client_report',
     });
@@ -224,4 +235,9 @@ export abstract class BaseTransport implements Transport {
     }
     return false;
   }
+
+  protected abstract _sendRequest(
+    sentryRequest: SentryRequest,
+    originalPayload: Event | Session,
+  ): PromiseLike<SentryResponse>;
 }

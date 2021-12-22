@@ -1,4 +1,4 @@
-import { Dsn } from './dsn';
+import { DsnComponents } from './dsn';
 import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { Options } from './options';
@@ -55,7 +55,7 @@ export interface Client<O extends Options = Options> {
   captureSession?(session: Session): void;
 
   /** Returns the current Dsn. */
-  getDsn(): Dsn | undefined;
+  getDsn(): DsnComponents | undefined;
 
   /** Returns the current options. */
   getOptions(): O;

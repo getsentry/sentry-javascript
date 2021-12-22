@@ -1,6 +1,6 @@
 import { isDebugBuild } from '@sentry/utils';
 
-import { Dsn } from '../src/dsn';
+import { dsnToString, makeDsn } from '../src/dsn';
 import { SentryError } from '../src/error';
 
 function testIf(condition: boolean): jest.It {
@@ -10,7 +10,7 @@ function testIf(condition: boolean): jest.It {
 describe('Dsn', () => {
   describe('fromComponents', () => {
     test('applies all components', () => {
-      const dsn = new Dsn({
+      const dsn = makeDsn({
         host: 'sentry.io',
         pass: 'xyz',
         port: '1234',
@@ -28,7 +28,7 @@ describe('Dsn', () => {
     });
 
     test('applies partial components', () => {
-      const dsn = new Dsn({
+      const dsn = makeDsn({
         host: 'sentry.io',
         projectId: '123',
         protocol: 'https',
@@ -44,70 +44,64 @@ describe('Dsn', () => {
     });
 
     testIf(isDebugBuild())('throws for missing components', () => {
-      expect(
-        () =>
-          new Dsn({
-            host: '',
-            projectId: '123',
-            protocol: 'https',
-            publicKey: 'abc',
-          }),
+      expect(() =>
+        makeDsn({
+          host: '',
+          projectId: '123',
+          protocol: 'https',
+          publicKey: 'abc',
+        }),
       ).toThrow(SentryError);
-      expect(
-        () =>
-          new Dsn({
-            host: 'sentry.io',
-            projectId: '',
-            protocol: 'https',
-            publicKey: 'abc',
-          }),
+      expect(() =>
+        makeDsn({
+          host: 'sentry.io',
+          projectId: '',
+          protocol: 'https',
+          publicKey: 'abc',
+        }),
       ).toThrow(SentryError);
-      expect(
-        () =>
-          new Dsn({
-            host: 'sentry.io',
-            projectId: '123',
-            protocol: '' as 'http', // Trick the type checker here
-            publicKey: 'abc',
-          }),
+      expect(() =>
+        makeDsn({
+          host: 'sentry.io',
+          projectId: '123',
+          protocol: '' as 'http', // Trick the type checker here
+          publicKey: 'abc',
+        }),
       ).toThrow(SentryError);
-      expect(
-        () =>
-          new Dsn({
-            host: 'sentry.io',
-            projectId: '123',
-            protocol: 'https',
-            publicKey: '',
-          }),
+      expect(() =>
+        makeDsn({
+          host: 'sentry.io',
+          projectId: '123',
+          protocol: 'https',
+          publicKey: '',
+        }),
       ).toThrow(SentryError);
     });
 
     testIf(isDebugBuild())('throws for invalid components', () => {
-      expect(
-        () =>
-          new Dsn({
-            host: 'sentry.io',
-            projectId: '123',
-            protocol: 'httpx' as 'http', // Trick the type checker here
-            publicKey: 'abc',
-          }),
+      expect(() =>
+        makeDsn({
+          host: 'sentry.io',
+          projectId: '123',
+          protocol: 'httpx' as 'http', // Trick the type checker here
+          publicKey: 'abc',
+        }),
       ).toThrow(SentryError);
-      expect(
-        () =>
-          new Dsn({
-            host: 'sentry.io',
-            port: 'xxx',
-            projectId: '123',
-            protocol: 'https',
-            publicKey: 'abc',
-          }),
+      expect(() =>
+        makeDsn({
+          host: 'sentry.io',
+          port: 'xxx',
+          projectId: '123',
+          protocol: 'https',
+          publicKey: 'abc',
+        }),
       ).toThrow(SentryError);
     });
   });
 
   describe('fromString', () => {
     test('parses a valid full Dsn', () => {
-      const dsn = new Dsn('https://abc:xyz@sentry.io:1234/123');
+      const dsn = makeDsn('https://abc:xyz@sentry.io:1234/123');
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('xyz');
@@ -118,7 +112,7 @@ describe('Dsn', () => {
     });
 
     test('parses a valid partial Dsn', () => {
-      const dsn = new Dsn('https://abc@sentry.io/123/321');
+      const dsn = makeDsn('https://abc@sentry.io/123/321');
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
@@ -129,7 +123,7 @@ describe('Dsn', () => {
     });
 
     test('with a long path', () => {
-      const dsn = new Dsn('https://abc@sentry.io/sentry/custom/installation/321');
+      const dsn = makeDsn('https://abc@sentry.io/sentry/custom/installation/321');
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
@@ -140,7 +134,7 @@ describe('Dsn', () => {
     });
 
     test('with a query string', () => {
-      const dsn = new Dsn('https://abc@sentry.io/321?sample.rate=0.1&other=value');
+      const dsn = makeDsn('https://abc@sentry.io/321?sample.rate=0.1&other=value');
       expect(dsn.protocol).toBe('https');
       expect(dsn.publicKey).toBe('abc');
       expect(dsn.pass).toBe('');
@@ -151,47 +145,47 @@ describe('Dsn', () => {
     });
 
     testIf(isDebugBuild())('throws when provided invalid Dsn', () => {
-      expect(() => new Dsn('some@random.dsn')).toThrow(SentryError);
+      expect(() => makeDsn('some@random.dsn')).toThrow(SentryError);
     });
 
     testIf(isDebugBuild())('throws without mandatory fields', () => {
-      expect(() => new Dsn('://abc@sentry.io/123')).toThrow(SentryError);
-      expect(() => new Dsn('https://@sentry.io/123')).toThrow(SentryError);
-      expect(() => new Dsn('https://abc@123')).toThrow(SentryError);
-      expect(() => new Dsn('https://abc@sentry.io/')).toThrow(SentryError);
+      expect(() => makeDsn('://abc@sentry.io/123')).toThrow(SentryError);
+      expect(() => makeDsn('https://@sentry.io/123')).toThrow(SentryError);
+      expect(() => makeDsn('https://abc@123')).toThrow(SentryError);
+      expect(() => makeDsn('https://abc@sentry.io/')).toThrow(SentryError);
     });
 
     testIf(isDebugBuild())('throws for invalid fields', () => {
-      expect(() => new Dsn('httpx://abc@sentry.io/123')).toThrow(SentryError);
-      expect(() => new Dsn('httpx://abc@sentry.io:xxx/123')).toThrow(SentryError);
-      expect(() => new Dsn('http://abc@sentry.io/abc')).toThrow(SentryError);
+      expect(() => makeDsn('httpx://abc@sentry.io/123')).toThrow(SentryError);
+      expect(() => makeDsn('httpx://abc@sentry.io:xxx/123')).toThrow(SentryError);
+      expect(() => makeDsn('http://abc@sentry.io/abc')).toThrow(SentryError);
     });
   });
 
   describe('toString', () => {
     test('excludes the password by default', () => {
-      const dsn = new Dsn('https://abc:xyz@sentry.io:1234/123');
-      expect(dsn.toString()).toBe('https://abc@sentry.io:1234/123');
+      const dsn = makeDsn('https://abc:xyz@sentry.io:1234/123');
+      expect(dsnToString(dsn)).toBe('https://abc@sentry.io:1234/123');
     });
 
     test('optionally includes the password', () => {
-      const dsn = new Dsn('https://abc:xyz@sentry.io:1234/123');
-      expect(dsn.toString(true)).toBe('https://abc:xyz@sentry.io:1234/123');
+      const dsn = makeDsn('https://abc:xyz@sentry.io:1234/123');
+      expect(dsnToString(dsn, true)).toBe('https://abc:xyz@sentry.io:1234/123');
     });
 
     test('renders no password if missing', () => {
-      const dsn = new Dsn('https://abc@sentry.io:1234/123');
-      expect(dsn.toString(true)).toBe('https://abc@sentry.io:1234/123');
+      const dsn = makeDsn('https://abc@sentry.io:1234/123');
+      expect(dsnToString(dsn, true)).toBe('https://abc@sentry.io:1234/123');
     });
 
     test('renders no port if missing', () => {
-      const dsn = new Dsn('https://abc@sentry.io/123');
-      expect(dsn.toString()).toBe('https://abc@sentry.io/123');
+      const dsn = makeDsn('https://abc@sentry.io/123');
+      expect(dsnToString(dsn)).toBe('https://abc@sentry.io/123');
     });
 
     test('renders the full path correctly', () => {
-      const dsn = new Dsn('https://abc@sentry.io/sentry/custom/installation/321');
-      expect(dsn.toString()).toBe('https://abc@sentry.io/sentry/custom/installation/321');
+      const dsn = makeDsn('https://abc@sentry.io/sentry/custom/installation/321');
+      expect(dsnToString(dsn)).toBe('https://abc@sentry.io/sentry/custom/installation/321');
     });
   });
 });

@@ -2,6 +2,7 @@
 import { Scope, Session } from '@sentry/hub';
 import {
   Client,
+  DsnComponents,
   Event,
   EventHint,
   Integration,
@@ -13,12 +14,12 @@ import {
 import {
   checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
-  Dsn,
   isDebugBuild,
   isPlainObject,
   isPrimitive,
   isThenable,
   logger,
+  makeDsn,
   normalize,
   rejectedSyncPromise,
   resolvedSyncPromise,
@@ -77,7 +78,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected readonly _options: O;
 
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
-  protected readonly _dsn?: Dsn;
+  protected readonly _dsn?: DsnComponents;
 
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
@@ -96,7 +97,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     this._options = options;
 
     if (options.dsn) {
-      this._dsn = new Dsn(options.dsn);
+      this._dsn = makeDsn(options.dsn);
     }
   }
 
@@ -192,7 +193,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public getDsn(): Dsn | undefined {
+  public getDsn(): DsnComponents | undefined {
     return this._dsn;
   }
 
