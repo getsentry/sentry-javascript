@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
 
+import { isDebugBuild } from '.';
 import { getGlobalObject } from './global';
 import { isInstanceOf, isString } from './is';
 import { logger } from './logger';
@@ -93,11 +94,13 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
     try {
       handler(data);
     } catch (e) {
-      logger.error(
-        `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(
-          handler,
-        )}\nError: ${e}`,
-      );
+      if (isDebugBuild()) {
+        logger.error(
+          `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(
+            handler,
+          )}\nError: ${e}`,
+        );
+      }
     }
   }
 }
