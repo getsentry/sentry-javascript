@@ -23,17 +23,3 @@ export interface DsnComponents {
 
 /** Anything that can be parsed into a Dsn. */
 export type DsnLike = string | DsnComponents;
-
-/** The Sentry Dsn, identifying a Sentry instance and project. */
-export interface Dsn extends DsnComponents {
-  /**
-   * Renders the string representation of this Dsn.
-   *
-   * By default, this will render the public representation without the password
-   * component. To get the deprecated private representation, set `withPassword`
-   * to true.
-   *
-   * @param withPassword When set to true, the password will be included.
-   */
-  toString(withPassword: boolean): string;
-}

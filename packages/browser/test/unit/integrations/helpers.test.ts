@@ -1,5 +1,5 @@
 import { WrappedFunction } from '@sentry/types';
-import { SinonSpy, spy } from 'sinon';
+import { spy } from 'sinon';
 
 import { wrap } from '../../../src/helpers';
 
