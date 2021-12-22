@@ -1,6 +1,8 @@
 import { Page } from '@playwright/test';
 import { Event } from '@sentry/types';
 
+const storeUrlRegex = /\.sentry\.io\/api\/\d+\/store\//;
+
 /**
  * Run script at the given path inside the test environment.
  *
@@ -20,7 +22,7 @@ async function runScriptInSandbox(page: Page, path: string): Promise<void> {
  * @return {*}  {Promise<Event>}
  */
 async function getSentryRequest(page: Page, url: string): Promise<Event> {
-  const request = (await Promise.all([page.goto(url), page.waitForRequest(/\.sentry\.io\/api\//)]))[1];
+  const request = (await Promise.all([page.goto(url), page.waitForRequest(storeUrlRegex)]))[1];
 
   return JSON.parse((request && request.postData()) || '');
 }
@@ -42,6 +44,42 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
 }
 
 /**
+ * Wait and get multiple event requests at the given URL, or the current page
+ *
+ * @param {Page} page
+ * @param {number} count
+ * @param {string} url
+ * @return {*}  {Promise<Event>}
+ */
+async function getMultipleSentryRequests(page: Page, count: number, url?: string): Promise<Event[]> {
+  const requests: Promise<Event[]> = new Promise((resolve, reject) => {
+    let reqCount = 0;
+    const requestData: Event[] = [];
+
+    page.on('request', request => {
+      if (storeUrlRegex.test(request.url())) {
+        reqCount += 1;
+        try {
+          requestData.push(JSON.parse((request && request.postData()) || ''));
+
+          if (reqCount >= count - 1) {
+            resolve(requestData);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      }
+    });
+  });
+
+  if (url) {
+    await page.goto(url);
+  }
+
+  return requests;
+}
+
+/**
  * Manually inject a script into the page of given URL.
  * This function is useful to create more complex test subjects that can't be achieved by pre-built pages.
  * The given script should be vanilla browser JavaScript
@@ -58,4 +96,4 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
   return await getSentryEvents(page);
 }
 
-export { runScriptInSandbox, getSentryRequest, getSentryEvents, injectScriptAndGetEvents };
+export { runScriptInSandbox, getMultipleSentryRequests, getSentryRequest, getSentryEvents, injectScriptAndGetEvents };
