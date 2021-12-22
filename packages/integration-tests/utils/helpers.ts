@@ -65,6 +65,42 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
 }
 
 /**
+ * Wait and get multiple event requests at the given URL, or the current page
+ *
+ * @param {Page} page
+ * @param {number} count
+ * @param {string} url
+ * @return {*}  {Promise<Event>}
+ */
+async function getMultipleSentryRequests(page: Page, count: number, url?: string): Promise<Event[]> {
+  const requests: Promise<Event[]> = new Promise((resolve, reject) => {
+    let reqCount = 0;
+    const requestData: Event[] = [];
+
+    page.on('request', request => {
+      if (storeUrlRegex.test(request.url())) {
+        reqCount += 1;
+        try {
+          requestData.push(JSON.parse((request && request.postData()) || ''));
+
+          if (reqCount >= count - 1) {
+            resolve(requestData);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      }
+    });
+  });
+
+  if (url) {
+    await page.goto(url);
+  }
+
+  return requests;
+}
+
+/**
  * Manually inject a script into the page of given URL.
  * This function is useful to create more complex test subjects that can't be achieved by pre-built pages.
  * The given script should be vanilla browser JavaScript
@@ -84,6 +120,7 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
 export {
   runScriptInSandbox,
   waitForSentryRequest,
+  getMultipleSentryRequests,
   getSentryRequest,
   getSentryTransactionRequest,
   getSentryEvents,

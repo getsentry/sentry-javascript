@@ -1,5 +1,5 @@
 import { Event, EventHint, Options, Session, SeverityLevel, Transport } from '@sentry/types';
-import { logger, SentryError } from '@sentry/utils';
+import { isDebugBuild, logger, SentryError } from '@sentry/utils';
 
 import { NoopTransport } from './transports/noop';
 
@@ -92,7 +92,9 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendEvent(event: Event): void {
     void this._transport.sendEvent(event).then(null, reason => {
-      logger.error(`Error while sending event: ${reason}`);
+      if (isDebugBuild()) {
+        logger.error(`Error while sending event: ${reason}`);
+      }
     });
   }
 
@@ -101,12 +103,16 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendSession(session: Session): void {
     if (!this._transport.sendSession) {
-      logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      if (isDebugBuild()) {
+        logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      }
       return;
     }
 
     void this._transport.sendSession(session).then(null, reason => {
-      logger.error(`Error while sending session: ${reason}`);
+      if (isDebugBuild()) {
+        logger.error(`Error while sending session: ${reason}`);
+      }
     });
   }
 
