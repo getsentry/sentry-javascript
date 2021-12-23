@@ -255,8 +255,8 @@ function instrumentXHR(): void {
             const requestPos = requestKeys.indexOf(xhr);
             if (requestPos !== -1) {
               // Make sure to pop both key and value to keep it in sync.
-              requestKeys.splice(requestPos);
-              const args = requestValues.splice(requestPos)[0];
+              requestKeys.splice(requestPos, 1);
+              const args = requestValues.splice(requestPos, 1)[0];
               if (args[0] !== undefined) {
                 xhrInfo.body = args[0] as XHRSendInput;
               }
