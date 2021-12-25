@@ -209,13 +209,13 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
  * Wraps a lambda handler adding it error capture and tracing capabilities.
  *
  * @param handler Handler
- * @param options Options
+ * @param wrapOptions Options
  * @returns Handler
  */
 export function wrapHandler<TEvent, TResult>(
   handler: Handler<TEvent, TResult>,
   wrapOptions: Partial<WrapperOptions> = {},
-): Handler<TEvent, TResult | undefined> {
+): Handler<TEvent, TResult> {
   const START_TIME = performance.now();
   const options: WrapperOptions = {
     flushTimeout: 2000,
@@ -293,12 +293,12 @@ export function wrapHandler<TEvent, TResult>(
 
     const hub = getCurrentHub();
     const scope = hub.pushScope();
-    let rv: TResult | undefined;
+
     try {
       enhanceScopeWithEnvironmentData(scope, context, START_TIME);
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
-      rv = await asyncHandler(event, context);
+      const rv: TResult = await asyncHandler(event, context);
 
       // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
       if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
@@ -307,6 +307,8 @@ export function wrapHandler<TEvent, TResult>(
           captureException(exception);
         });
       }
+
+      return rv;
     } catch (e) {
       captureException(e);
       if (options.rethrowAfterCapture) {
@@ -318,6 +320,6 @@ export function wrapHandler<TEvent, TResult>(
       hub.popScope();
       await flush(options.flushTimeout);
     }
-    return rv;
+    return Promise.resolve(undefined!);
   };
 }
