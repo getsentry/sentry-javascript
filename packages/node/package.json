@@ -1,6 +1,6 @@
 {
   "name": "@unwebio/sentry-node",
-  "version": "6.16.1",
+  "version": "6.17.0-0",
   "description": "Official Sentry SDK for Node.js",
   "repository": "git://github.com/unwebio/sentry-javascript.git",
   "homepage": "https://github.com/unwebio/sentry-javascript/tree/master/packages/node",

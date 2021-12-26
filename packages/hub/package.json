@@ -1,6 +1,6 @@
 {
   "name": "@unwebio/sentry-hub",
-  "version": "6.16.1",
+  "version": "6.17.0-0",
   "description": "Sentry hub which handles global state managment.",
   "repository": "git://github.com/unwebio/sentry-javascript.git",
   "homepage": "https://github.com/unwebio/sentry-javascript/tree/master/packages/hub",
