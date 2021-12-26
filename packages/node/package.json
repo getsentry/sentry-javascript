@@ -13,7 +13,7 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "dependencies": {
     "@sentry/core": "6.16.1",

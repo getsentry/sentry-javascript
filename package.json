@@ -29,7 +29,6 @@
     "packages/angular",
     "packages/browser",
     "packages/core",
-    "packages/ember",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
     "packages/gatsby",
