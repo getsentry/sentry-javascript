@@ -73,7 +73,9 @@ export function cleanSpanDescription(
 }
 
 // the node types are missing a few properties which node's `urlToOptions` function spits out
-export type RequestOptions = http.RequestOptions & { hash?: string; search?: string; pathname?: string; href?: string };
+export type RequestOptions = http.RequestOptions
+  & { hash?: string; search?: string; pathname?: string; href?: string }
+  & { stripTracingHeader?: boolean };
 type RequestCallback = (response: http.IncomingMessage) => void;
 export type RequestMethodArgs =
   | [RequestOptions | string | URL, RequestCallback?]

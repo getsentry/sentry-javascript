@@ -117,11 +117,13 @@ function _createWrappedRequestMethodFactory(
             op: 'http.client',
           });
 
-          const sentryTraceHeader = span.toTraceparent();
-          logger.log(
-            `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
-          );
-          requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
+          if (!requestOptions.stripTracingHeader) {
+            const sentryTraceHeader = span.toTraceparent();
+            logger.log(
+              `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
+            );
+            requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
+          }
         }
       }
 
@@ -139,7 +141,17 @@ function _createWrappedRequestMethodFactory(
               span.setHttpStatus(res.statusCode);
             }
             span.description = cleanSpanDescription(span.description, requestOptions, req);
-            span.finish();
+
+            res.once('end', () => {
+              span?.finish()
+            })
+
+            res.once('error', () => {
+              if (breadcrumbsEnabled) {
+                addRequestBreadcrumb('response_error', requestUrl, req);
+              }
+              span?.finish()
+            })
           }
         })
         .once('error', function(this: http.ClientRequest): void {
