@@ -65,7 +65,9 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
         type Domain = ReturnType<typeof domain.create>
         // @ts-ignore using domain.active
         const activeDomain: Domain = (domain as unknown).active
-        req.promise = activeDomain.bind(req.promise.bind(req))
+        if (activeDomain) {
+          req.promise = activeDomain.bind(req.promise.bind(req))
+        }
         if (callback) {
           req.send(callback);
         }
