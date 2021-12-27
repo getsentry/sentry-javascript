@@ -8,6 +8,7 @@ import {
   Scope,
   Severity,
   startTransaction,
+  trace,
   withScope,
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
@@ -292,33 +293,35 @@ export function wrapHandler<TEvent, TResult>(
       ...traceparentData,
     });
 
-    const hub = getCurrentHub();
-    const scope = hub.pushScope();
-    let rv: TResult | undefined;
-    try {
-      enhanceScopeWithEnvironmentData(scope, context, START_TIME);
-      // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
-      rv = await asyncHandler(event, context);
+    const result = await trace(transaction, async () => {
+      const hub = getCurrentHub();
+      const scope = hub.pushScope();
+      let rv: TResult | undefined;
+      try {
+        enhanceScopeWithEnvironmentData(scope, context, START_TIME);
+        rv = await asyncHandler(event, context);
 
-      // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
-      if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
-        const reasons = getRejectedReasons(rv);
-        reasons.forEach(exception => {
-          captureException(exception);
-        });
+        // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
+        if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
+          const reasons = getRejectedReasons(rv);
+          reasons.forEach(exception => {
+            captureException(exception);
+          });
+        }
+      } catch (e) {
+        captureException(e);
+        if (options.rethrowAfterCapture) {
+          throw e;
+        }
+      } finally {
+        clearTimeout(timeoutWarningTimer);
+        transaction.finish();
+        hub.popScope();
+        await flush(options.flushTimeout);
       }
-    } catch (e) {
-      captureException(e);
-      if (options.rethrowAfterCapture) {
-        throw e;
-      }
-    } finally {
-      clearTimeout(timeoutWarningTimer);
-      transaction.finish();
-      hub.popScope();
-      await flush(options.flushTimeout);
-    }
-    return rv;
+      return rv;
+    });
+
+    return result as TResult | undefined;
   };
 }

@@ -57,6 +57,7 @@ export interface Layer {
  */
 export interface Carrier {
   __SENTRY__?: {
+    enableHubBranching?: boolean;
     hub?: Hub;
     /**
      * Extra Hub properties injected by various SDKs

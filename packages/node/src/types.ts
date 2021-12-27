@@ -5,6 +5,8 @@ import { Options } from '@sentry/types';
  * @see NodeClient for more information.
  */
 export interface NodeOptions extends Options {
+  enableHubBranching?: boolean;
+
   /** Sets an optional server name (device name) */
   serverName?: string;
 

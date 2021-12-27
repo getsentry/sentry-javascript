@@ -1,4 +1,5 @@
-import { getCurrentHub } from '@sentry/core'
+import { getCurrentHub } from '@sentry/core';
+import { getMainCarrier } from '@sentry/hub';
 import { SpanContext } from '@sentry/types';
 import * as domain from 'domain';
 import * as fs from 'fs';
@@ -43,7 +44,7 @@ export function deepReadDirSync(targetDir: string): string[] {
 type Trace<T> = (spanContext: SpanContext, fn: () => T) => Promise<T>
 type DomainExt = ReturnType<typeof domain.create> & { parent?: DomainExt }
 
-export const trace: Trace<unknown> = async (spanContext, fn) => new Promise((resolve, reject) => {
+const branchHubAndTrace: Trace<unknown> = async (spanContext, fn) => new Promise((resolve, reject) => {
   const d = domain.create() as DomainExt
   // @ts-ignore
   d.parent = (domain as unknown).active
@@ -63,3 +64,25 @@ export const trace: Trace<unknown> = async (spanContext, fn) => new Promise((res
     }
   })
 })
+
+const useScopeAndTrace: Trace<unknown> = async (spanContext, fn) => {
+  const span = getCurrentHub().getScope()?.getSpan()?.startChild(spanContext)
+  try {
+    return await fn()
+  } catch(e) {
+    span?.setStatus('unknown_error')
+    throw e
+  } finally {
+    span?.finish()
+  }
+}
+
+export const trace: Trace<unknown> = async (spanContext, fn) => {
+  const carrier = getMainCarrier()
+  const branchStrategy = carrier.__SENTRY__?.enableHubBranching
+  if (branchStrategy) {
+    return branchHubAndTrace(spanContext, fn)
+  } else {
+    return useScopeAndTrace(spanContext, fn)
+  }
+}

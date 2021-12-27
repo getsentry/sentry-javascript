@@ -81,6 +81,10 @@ export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
 
+  if (carrier.__SENTRY__) {
+    carrier.__SENTRY__.enableHubBranching = options.enableHubBranching
+  }
+
   options.defaultIntegrations =
     options.defaultIntegrations === false
       ? []
