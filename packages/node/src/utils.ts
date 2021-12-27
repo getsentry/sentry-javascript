@@ -1,3 +1,6 @@
+import { getCurrentHub } from '@sentry/core'
+import { SpanContext } from '@sentry/types';
+import * as domain from 'domain';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,3 +39,27 @@ export function deepReadDirSync(targetDir: string): string[] {
 
   return deepReadCurrentDir(targetDirAbsPath).map(absPath => path.relative(targetDirAbsPath, absPath));
 }
+
+type Trace<T> = (spanContext: SpanContext, fn: () => T) => Promise<T>
+type DomainExt = ReturnType<typeof domain.create> & { parent?: DomainExt }
+
+export const trace: Trace<unknown> = async (spanContext, fn) => new Promise((resolve, reject) => {
+  const d = domain.create() as DomainExt
+  // @ts-ignore
+  d.parent = (domain as unknown).active
+  d.on('error', reject)
+  d.run(async () => {
+    const parent = getCurrentHub().getScope()
+    const span = parent?.getSpan()?.startChild(spanContext)
+    parent?.setSpan(span)
+    try {
+      resolve(await fn())
+    } catch(e) {
+      span?.setStatus('unknown_error')
+      reject(e)
+    } finally {
+      span?.finish()
+      delete d.parent
+    }
+  })
+})

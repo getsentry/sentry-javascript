@@ -111,19 +111,19 @@ function _createWrappedRequestMethodFactory(
       const scope = getCurrentHub().getScope();
       if (scope && tracingEnabled) {
         parentSpan = scope.getSpan();
-        if (parentSpan) {
+        if (parentSpan && parentSpan.op !== 'aws.request') {
           span = parentSpan.startChild({
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,
             op: 'http.client',
           });
+        }
 
-          if (!requestOptions.stripTracingHeader) {
-            const sentryTraceHeader = span.toTraceparent();
-            logger.log(
-              `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
-            );
-            requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
-          }
+        if (span && !requestOptions.stripTracingHeader) {
+          const sentryTraceHeader = span.toTraceparent();
+          logger.log(
+            `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
+          );
+          requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
         }
       }
 
@@ -140,6 +140,8 @@ function _createWrappedRequestMethodFactory(
             if (res.statusCode) {
               span.setHttpStatus(res.statusCode);
             }
+            // @ts-ignore reusedSocket missing from @types/node
+            span.setTag('http.reused_socket', (req as unknown).reusedSocket)
             span.description = cleanSpanDescription(span.description, requestOptions, req);
 
             res.once('end', () => {

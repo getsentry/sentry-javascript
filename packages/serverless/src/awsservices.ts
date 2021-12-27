@@ -1,9 +1,10 @@
-import { getCurrentHub } from '@sentry/node';
-import { Integration, Span, Transaction } from '@sentry/types';
+import { trace } from '@sentry/node';
+import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils';
 // 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
 // When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
 import * as AWS from 'aws-sdk/global';
+import * as domain from 'domain';
 
 type GenericParams = { [key: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 type MakeRequestCallback<TResult> = (err: AWS.AWSError, data: TResult) => void;
@@ -54,31 +55,27 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
   orig: MakeRequestFunction<GenericParams, TResult>,
 ): MakeRequestFunction<GenericParams, TResult> {
   return function(this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
-    let transaction: Transaction | undefined;
-    let span: Span | undefined;
-    const scope = getCurrentHub().getScope();
-    if (scope) {
-      transaction = scope.getTransaction();
-    }
     const req = orig.call(this, operation, params);
-    req.on('afterBuild', () => {
-      if (transaction) {
-        span = transaction.startChild({
-          description: describe(this, operation, params),
-          op: 'aws.request',
-        });
-      }
-    });
-    req.on('complete', () => {
-      if (span) {
-        span.finish();
-      }
-    });
-
-    if (callback) {
-      req.send(callback);
-    }
-    return req;
+    void trace(
+      {
+        op: 'aws.request',
+        description: describe(this, operation, params),
+      },
+      () => {
+        type Domain = ReturnType<typeof domain.create>
+        // @ts-ignore using domain.active
+        const activeDomain: Domain = (domain as unknown).active
+        req.promise = activeDomain.bind(req.promise.bind(req))
+        if (callback) {
+          req.send(callback);
+        }
+        return new Promise((resolve, reject) => {
+          req.on('complete', resolve);
+          req.on('error', reject);
+        })
+      },
+    );
+    return req
   };
 }
 
@@ -94,6 +91,9 @@ function describe<TService extends AWSService>(service: TService, operation: str
       break;
     case 'lambda':
       ret += describeLambdaOperation(operation, params);
+      break;
+    case 'dynamodb':
+      ret += describeDynamoDBOperation(operation, params);
       break;
   }
   return ret;
@@ -113,6 +113,15 @@ function describeS3Operation(_operation: string, params: GenericParams): string 
   let ret = '';
   if ('Bucket' in params) {
     ret += ` ${params.Bucket}`;
+  }
+  return ret;
+}
+
+/** Describes an operation on DynamoDB service */
+function describeDynamoDBOperation(_operation: string, params: GenericParams): string {
+  let ret = '';
+  if ('TableName' in params) {
+    ret += ` ${params.TableName}`;
   }
   return ret;
 }
