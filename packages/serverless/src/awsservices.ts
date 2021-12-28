@@ -55,7 +55,9 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
   orig: MakeRequestFunction<GenericParams, TResult>,
 ): MakeRequestFunction<GenericParams, TResult> {
   return function(this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
-    const req = orig.call(this, operation, params);
+    // the function needs to return a request immediately
+    //  but the trace callback must wait until the request is complete
+    const req = orig.call(this, operation, params, callback);
     void trace(
       {
         op: 'aws.request',
@@ -68,14 +70,10 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
         if (activeDomain) {
           req.promise = activeDomain.bind(req.promise.bind(req))
         }
-        if (callback) {
-          req.send(callback);
-        }
-        return new Promise((resolve, reject) => {
-          req.on('complete', resolve);
-          req.on('error', reject);
+        return new Promise(resolve => {
+          req.on('complete', resolve)
         })
-      },
+      }
     );
     return req
   };
