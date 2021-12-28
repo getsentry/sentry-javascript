@@ -1,6 +1,6 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint } from '@sentry/types';
+import { Event, EventHint, Scope } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { NodeBackend } from './backend';
