@@ -1,4 +1,4 @@
-import { Scope, SessionFlusher } from '@sentry/hub';
+import { makeScope, SessionFlusher } from '@sentry/hub';
 
 import { NodeClient } from '../src';
 
@@ -15,7 +15,7 @@ describe('NodeClient', () => {
   describe('captureException', () => {
     test('when autoSessionTracking is enabled, and requestHandler is not used -> requestStatus should not be set', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
 
       client.captureException(new Error('test exception'), undefined, scope);
@@ -29,7 +29,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
 
       client.captureException(new Error('test exception'), undefined, scope);
@@ -43,7 +43,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'crashed' });
 
       client.captureException(new Error('test exception'), undefined, scope);
@@ -57,7 +57,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
 
       client.captureException(new Error('test exception'), undefined, scope);
@@ -71,7 +71,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
 
       client.captureException(new Error('test exception'), undefined, scope);
 
@@ -87,7 +87,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
       client.captureEvent(
         { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },
@@ -105,7 +105,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
 
       client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } }, {}, scope);
@@ -120,7 +120,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
 
       client.captureEvent({ message: 'message' }, {}, scope);
@@ -135,7 +135,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
 
       client.captureEvent(
         { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },
@@ -152,7 +152,7 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
       client.captureEvent({ message: 'message', type: 'transaction' }, undefined, scope);
 
@@ -163,7 +163,7 @@ describe('NodeClient', () => {
     test('When captureEvent is called with an exception but requestHandler is not used, then requestSession status should not be set', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' });
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setRequestSession({ status: 'ok' });
       client.captureEvent(
         { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },

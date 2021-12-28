@@ -11,7 +11,7 @@ import {
   Extras,
   Primitive,
   RequestSession,
-  Scope as ScopeInterface,
+  Scope,
   ScopeContext,
   SeverityLevel,
   Span,
@@ -21,6 +21,10 @@ import {
 import { dateTimestampInSeconds, getGlobalObject, isPlainObject, isThenable, SyncPromise } from '@sentry/utils';
 
 import { Session } from './session';
+
+function isScopeInterface(scope: Scope | Partial<ScopeContext>): scope is Scope {
+  return isPlainObject(scope) && 'addEventProcessor' in scope;
+}
 
 /**
  * Absolute maximum number of breadcrumbs added to an event.
@@ -32,12 +36,11 @@ const MAX_BREADCRUMBS = 100;
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
  */
-
-const makeScope = (): ScopeInterface => {
+export function makeScope(): Scope {
   let _notifyingListeners: boolean = false;
 
   /** Callback for client to receive scope changes. */
-  const _scopeListeners: Array<(scope: ScopeInterface) => void> = [];
+  const _scopeListeners: Array<(scope: Scope) => void> = [];
 
   /** Callback list that will be called after {@link applyToEvent}. */
   const _eventProcessors: EventProcessor[] = [];
@@ -75,48 +78,98 @@ const makeScope = (): ScopeInterface => {
   /** Request Mode Session Status */
   let _requestSession: RequestSession | undefined = undefined;
 
+  const scope: Scope = {
+    applyToEvent,
+    addBreadcrumb,
+    addEventProcessor,
+    addScopeListener,
+    clearBreadcrumbs,
+    setUser,
+    getUser,
+    getRequestSession,
+    setRequestSession,
+    setTags,
+    setTag,
+    setExtras,
+    setExtra,
+    setFingerprint,
+    setLevel,
+    setTransactionName,
+    setTransaction,
+    setContext,
+    setContexts,
+    setSpan,
+    setSession,
+    getSpan,
+    getTransaction,
+    getBreadcrumbs,
+    getProcessors,
+    getContext,
+    getContexts,
+    getExtra,
+    getExtras,
+    getTag,
+    getTags,
+    getFingerprint,
+    getLevel,
+    getTransactionName,
+    getSession,
+    clone,
+    clear,
+    update,
+  };
+
   /**
    * @inheritDoc
    */
-  function clearBreadcrumbs(): this {
+  function clearBreadcrumbs(): Scope {
     _breadcrumbs = [];
     _notifyScopeListeners();
-    return this;
+
+    return scope;
   }
 
   /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
    * @hidden
    */
-  function addScopeListener(callback: (scope: ScopeInterface) => void): void {
+  function addScopeListener(callback: (scope: Scope) => void): Scope {
     _scopeListeners.push(callback);
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function addEventProcessor(callback: EventProcessor): this {
+  function addEventProcessor(callback: EventProcessor): Scope {
     _eventProcessors.push(callback);
-    return this;
+    return scope;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  function getProcessors(): EventProcessor[] {
+    return [..._eventProcessors];
   }
 
   /**
    * @inheritDoc
    */
-  function setUser(user: User | null): this {
+  function setUser(user: User | null): Scope {
     _user = user || {};
     if (_session) {
       _session.update({ user });
     }
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
   function getUser(): User | undefined {
-    return _user;
+    return Object.keys(_user).length > 0 ? _user : undefined;
   }
 
   /**
@@ -129,92 +182,157 @@ const makeScope = (): ScopeInterface => {
   /**
    * @inheritDoc
    */
-  function setRequestSession(requestSession?: RequestSession): this {
-    _requestSession = requestSession;
-    return this;
+  function getBreadcrumbs(): Breadcrumb[] {
+    return [..._breadcrumbs];
   }
 
   /**
    * @inheritDoc
    */
-  function setTags(tags: { [key: string]: Primitive }): this {
+  function setRequestSession(requestSession?: RequestSession): Scope {
+    _requestSession = requestSession;
+    return scope;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setTags(tags: { [key: string]: Primitive }): Scope {
     _tags = {
       ..._tags,
       ...tags,
     };
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setTag(key: string, value: Primitive): this {
+  function getTags(): typeof _tags {
+    return { ..._tags };
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setTag(key: string, value: Primitive): Scope {
     _tags = { ..._tags, [key]: value };
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setExtras(extras: Extras): this {
+  function getTag(key: string): Primitive | undefined {
+    return _tags[key];
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setExtras(extras: Extras): Scope {
     _extra = {
       ..._extra,
       ...extras,
     };
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setExtra(key: string, extra: Extra): this {
+  function getExtras(): Extras {
+    return { ..._extra };
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setExtra(key: string, extra: Extra): Scope {
     _extra = { ..._extra, [key]: extra };
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setFingerprint(fingerprint: string[]): this {
+  function getExtra(key: string): Extra | undefined {
+    return _extra[key];
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setFingerprint(fingerprint: string[]): Scope {
     _fingerprint = fingerprint;
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setLevel(level: SeverityLevel): this {
+  function getFingerprint(): string[] | undefined {
+    return _fingerprint ? _fingerprint.slice(0) : undefined;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setLevel(level: SeverityLevel): Scope {
     _level = level;
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setTransactionName(name?: string): this {
+  function getLevel(): SeverityLevel | undefined {
+    return _level;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setTransactionName(name?: string): Scope {
     _transactionName = name;
     _notifyScopeListeners();
-    return this;
+    return scope;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function getTransactionName(): string | undefined {
+    return _transactionName;
   }
 
   /**
    * Can be removed in major version.
    * @deprecated in favor of {@link setTransactionName}
    */
-  function setTransaction(name?: string): this {
-    return setTransactionName(name);
+  function setTransaction(name?: string): Scope {
+    setTransactionName(name);
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setContext(key: string, context: Context | null): this {
+  function setContexts(contexts: Record<string, Context>): Scope {
+    _contexts = contexts;
+    return scope;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setContext(key: string, context: Context | null): Scope {
     if (context === null) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete _contexts[key];
@@ -223,16 +341,30 @@ const makeScope = (): ScopeInterface => {
     }
 
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function setSpan(span?: Span): this {
+  function getContext(key: string): Context | undefined {
+    return _contexts ? _contexts[key] : undefined;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function getContexts(): Contexts {
+    return _contexts;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  function setSpan(span?: Span): Scope {
     _span = span;
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
@@ -266,14 +398,14 @@ const makeScope = (): ScopeInterface => {
   /**
    * @inheritDoc
    */
-  function setSession(session?: Session): this {
+  function setSession(session?: Session): Scope {
     if (!session) {
       _session = undefined;
     } else {
       _session = session;
     }
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
@@ -286,59 +418,60 @@ const makeScope = (): ScopeInterface => {
   /**
    * @inheritDoc
    */
-  function update(captureContext?: CaptureContext): this {
+  function update(captureContext?: CaptureContext): Scope {
     if (!captureContext) {
-      return this;
+      return scope;
     }
 
     if (typeof captureContext === 'function') {
-      const updatedScope = (captureContext as <T>(scope: T) => T)(this);
-      return updatedScope instanceof Scope ? updatedScope : this;
+      const updatedScope = (captureContext as <T>(scope: T) => T)(scope);
+      return isScopeInterface(updatedScope) ? updatedScope : scope;
     }
 
-    if (captureContext instanceof Scope) {
-      _tags = { ..._tags, ...captureContext._tags };
-      _extra = { ..._extra, ...captureContext._extra };
-      _contexts = { ..._contexts, ...captureContext._contexts };
-      if (captureContext._user && Object.keys(captureContext._user).length) {
-        _user = captureContext._user;
+    if (isScopeInterface(captureContext)) {
+      setTags({ ..._tags, ...captureContext.getTags() });
+      setExtras({ ..._extra, ...captureContext.getExtras() });
+      setContexts({ ..._contexts, ...captureContext.getContexts() });
+
+      if (captureContext.getUser()) {
+        setUser(captureContext.getUser()!);
       }
-      if (captureContext._level) {
-        _level = captureContext._level;
+      if (captureContext.getLevel()) {
+        setLevel(captureContext.getLevel()!);
       }
-      if (captureContext._fingerprint) {
-        _fingerprint = captureContext._fingerprint;
+      if (captureContext.getFingerprint()) {
+        setFingerprint(captureContext.getFingerprint()!);
       }
-      if (captureContext._requestSession) {
-        _requestSession = captureContext._requestSession;
+      if (captureContext.getRequestSession()) {
+        setRequestSession(captureContext.getRequestSession());
       }
     } else if (isPlainObject(captureContext)) {
       // eslint-disable-next-line no-param-reassign
-      captureContext = captureContext as ScopeContext;
-      _tags = { ..._tags, ...captureContext.tags };
-      _extra = { ..._extra, ...captureContext.extra };
-      _contexts = { ..._contexts, ...captureContext.contexts };
+      setTags({ ..._tags, ...captureContext.tags });
+      setExtras({ ..._extra, ...captureContext.extra });
+      setContexts({ ..._contexts, ...captureContext.contexts });
+
       if (captureContext.user) {
-        _user = captureContext.user;
+        setUser(captureContext.user);
       }
       if (captureContext.level) {
-        _level = captureContext.level;
+        setLevel(captureContext.level);
       }
       if (captureContext.fingerprint) {
-        _fingerprint = captureContext.fingerprint;
+        setFingerprint(captureContext.fingerprint);
       }
       if (captureContext.requestSession) {
-        _requestSession = captureContext.requestSession;
+        setRequestSession(captureContext.requestSession);
       }
     }
 
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function clear(): this {
+  function clear(): Scope {
     _breadcrumbs = [];
     _tags = {};
     _extra = {};
@@ -351,18 +484,18 @@ const makeScope = (): ScopeInterface => {
     _span = undefined;
     _session = undefined;
     _notifyScopeListeners();
-    return this;
+    return scope;
   }
 
   /**
    * @inheritDoc
    */
-  function addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
+  function addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): Scope {
     const maxCrumbs = typeof maxBreadcrumbs === 'number' ? Math.min(maxBreadcrumbs, MAX_BREADCRUMBS) : MAX_BREADCRUMBS;
 
     // No data has been changed, so don't notify scope listeners
     if (maxCrumbs <= 0) {
-      return this;
+      return scope;
     }
 
     const mergedBreadcrumb = {
@@ -371,30 +504,37 @@ const makeScope = (): ScopeInterface => {
     };
     _breadcrumbs = [..._breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
     _notifyScopeListeners();
-
-    return this;
+    return scope;
   }
 
   /**
    * Inherit values from the parent scope.
    * @param scope to clone.
    */
-  function clone(scope?: ScopeInterface): ScopeInterface {
+  function clone(): Scope {
     const newScope = makeScope();
-    if (scope) {
-      newScope._breadcrumbs = [...scope._breadcrumbs];
-      newScope._tags = { ...scope._tags };
-      newScope._extra = { ...scope._extra };
-      newScope._contexts = { ...scope._contexts };
-      newScope._user = scope._user;
-      newScope._level = scope._level;
-      newScope._span = scope._span;
-      newScope._session = scope._session;
-      newScope._transactionName = scope._transactionName;
-      newScope._fingerprint = scope._fingerprint;
-      newScope._eventProcessors = [...scope._eventProcessors];
-      newScope._requestSession = scope._requestSession;
+
+    newScope.setTags(scope.getTags());
+    newScope.setExtras(scope.getExtras());
+    newScope.setContexts(scope.getContexts());
+    newScope.setUser(scope.getUser() ?? null);
+    if (scope.getLevel()) {
+      newScope.setLevel(scope.getLevel()!);
     }
+    newScope.setSpan(scope.getSpan());
+    newScope.setSession(scope.getSession());
+    newScope.setTransactionName(scope.getTransactionName());
+
+    if (scope.getFingerprint()) {
+      newScope.setFingerprint(scope.getFingerprint()!);
+    }
+
+    for (const processor of scope.getProcessors()) {
+      newScope.addEventProcessor(processor);
+    }
+
+    newScope.setRequestSession(scope.getRequestSession());
+
     return newScope;
   }
 
@@ -477,7 +617,7 @@ const makeScope = (): ScopeInterface => {
     if (!_notifyingListeners) {
       _notifyingListeners = true;
       _scopeListeners.forEach(callback => {
-        callback(this);
+        callback(scope);
       });
       _notifyingListeners = false;
     }
@@ -510,7 +650,9 @@ const makeScope = (): ScopeInterface => {
       }
     });
   }
-};
+
+  return scope;
+}
 
 /**
  * Returns the global event processors.

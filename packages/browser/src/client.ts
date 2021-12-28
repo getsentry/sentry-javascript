@@ -1,5 +1,5 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
-import { Event, EventHint } from '@sentry/types';
+import { BaseClient, SDK_VERSION } from '@sentry/core';
+import { Event, EventHint, Scope } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { BrowserBackend, BrowserOptions } from './backend';

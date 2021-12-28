@@ -1,6 +1,7 @@
-import { Event } from '@sentry/types';
+import { Event, Scope } from '@sentry/types';
 
-import { getCurrentHub, Hub, Scope } from '../src';
+import { getCurrentHub, Hub } from '../src';
+import { makeScope } from '../src/scope';
 
 const clientFn: any = jest.fn();
 
@@ -41,13 +42,13 @@ describe('Hub', () => {
 
   describe('pushScope', () => {
     test('simple', () => {
-      const localScope = new Scope();
+      const localScope = makeScope();
       localScope.setExtra('a', 'b');
       const hub = new Hub(undefined, localScope);
       hub.pushScope();
       expect(hub.getStack()).toHaveLength(2);
       expect(hub.getStack()[1].scope).not.toBe(localScope);
-      expect(((hub.getStack()[1].scope as Scope) as any)._extra).toEqual({ a: 'b' });
+      expect(hub.getStack()[1].scope.getExtras()).toEqual({ a: 'b' });
     });
 
     test('inherit client', () => {
@@ -94,7 +95,7 @@ describe('Hub', () => {
       const event: Event = {
         extra: { b: 3 },
       };
-      const localScope = new Scope();
+      const localScope = makeScope();
       localScope.setExtra('a', 'b');
       const hub = new Hub({ a: 'b' } as any, localScope);
 
@@ -177,7 +178,7 @@ describe('Hub', () => {
 
   describe('configureScope', () => {
     test('should have an access to provide scope', () => {
-      const localScope = new Scope();
+      const localScope = makeScope();
       localScope.setExtra('a', 'b');
       const hub = new Hub({} as any, localScope);
       const cb = jest.fn();
@@ -316,7 +317,7 @@ describe('Hub', () => {
   describe('run', () => {
     test('simple', () => {
       const currentHub = getCurrentHub();
-      const myScope = new Scope();
+      const myScope = makeScope();
       const myClient: any = { a: 'b' };
       myScope.setExtra('a', 'b');
       const myHub = new Hub(myClient, myScope);

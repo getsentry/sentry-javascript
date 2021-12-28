@@ -49,7 +49,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getExtras()).toEqual({
         abc: { def: [1] },
       });
     });

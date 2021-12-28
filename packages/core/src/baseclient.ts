@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Scope, Session } from '@sentry/hub';
+import { Session, makeScope } from '@sentry/hub';
 import {
   Client,
   DsnComponents,
@@ -8,6 +8,7 @@ import {
   Integration,
   IntegrationClass,
   Options,
+  Scope,
   SeverityLevel,
   Transport,
 } from '@sentry/types';
@@ -358,9 +359,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     // If we have scope given to us, use it as the base for further modifications.
     // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
-    let finalScope = scope;
+    let finalScope = scope || makeScope();
     if (hint && hint.captureContext) {
-      finalScope = Scope.clone(finalScope).update(hint.captureContext);
+      finalScope = finalScope.update(hint.captureContext);
     }
 
     // We prepare the result here with a resolved Event.
@@ -578,6 +579,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
         const session = scope && scope.getSession && scope.getSession();
         if (!isTransaction && session) {
+          // @ts-ignore @TODO
           this._updateSessionFromEvent(session, processedEvent);
         }
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, makeScope } from '@sentry/hub';
 
 import { Mongo } from '../../../src/integrations/node/mongo';
 import { Span } from '../../../src/span';
@@ -41,7 +41,7 @@ describe('patchOperation()', () => {
     answer: 42,
   };
   const collection: Collection = new Collection();
-  let scope = new Scope();
+  let scope = makeScope();
   let parentSpan: Span;
   let childSpan: Span;
 
@@ -55,7 +55,7 @@ describe('patchOperation()', () => {
   });
 
   beforeEach(() => {
-    scope = new Scope();
+    scope = makeScope();
     parentSpan = new Span();
     childSpan = parentSpan.startChild();
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);

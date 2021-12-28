@@ -23,7 +23,6 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   Hub,
-  Scope,
   setContext,
   setExtra,
   setExtras,

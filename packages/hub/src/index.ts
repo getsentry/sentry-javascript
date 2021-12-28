@@ -1,4 +1,4 @@
-export { addGlobalEventProcessor, Scope } from './scope';
+export { addGlobalEventProcessor, makeScope } from './scope';
 export { Session } from './session';
 export { SessionFlusher } from './sessionflusher';
 export {

@@ -1,4 +1,5 @@
-import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
+import { getCurrentHub, getHubFromCarrier } from '@sentry/hub';
+import { Scope } from '@sentry/types';
 
 import {
   _callOnClient,
@@ -121,7 +122,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getUser()).toEqual({
         id: '1234',
       });
       getCurrentHub().popScope();
@@ -134,7 +135,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('id', '1234');
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getExtras()).toEqual({
         id: '1234',
       });
       getCurrentHub().popScope();
@@ -145,7 +146,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setTag('id', '1234');
       });
-      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
+      expect(global.__SENTRY__.hub._stack[0].scope.getTags()).toEqual({
         id: '1234',
       });
     });
@@ -157,7 +158,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setFingerprint(['abcd']);
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['abcd']);
+      expect(global.__SENTRY__.hub._stack[1].scope.getFingerPrint()).toEqual(['abcd']);
     });
 
     test('Level', () => {
@@ -165,7 +166,7 @@ describe('Minimal', () => {
       const scope = getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
       scope.setLevel('warning');
-      expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
+      expect(global.__SENTRY__.hub._stack[1].scope.getLevel()).toEqual('warning');
     });
   });
 
@@ -235,7 +236,7 @@ describe('Minimal', () => {
     hub.configureScope((scope: Scope) => {
       scope.setUser({ id: '1234' });
     });
-    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub._stack[1].scope._user).toEqual({
+    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub._stack[1].scope.getUser()).toEqual({
       id: '1234',
     });
     hub.popScope();
@@ -251,11 +252,11 @@ describe('Minimal', () => {
         scope2.setFingerprint(['2']);
         withScope(scope3 => {
           scope3.clear();
-          expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
-          expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['1']);
-          expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual('info');
-          expect(global.__SENTRY__.hub._stack[2].scope._fingerprint).toEqual(['2']);
-          expect(global.__SENTRY__.hub._stack[3].scope._level).toBeUndefined();
+          expect(global.__SENTRY__.hub._stack[1].scope.getLevel()).toEqual('warning');
+          expect(global.__SENTRY__.hub._stack[1].scope.getFingerPrint()).toEqual(['1']);
+          expect(global.__SENTRY__.hub._stack[2].scope.getLevel()).toEqual('info');
+          expect(global.__SENTRY__.hub._stack[2].scope.getFingerPrint()).toEqual(['2']);
+          expect(global.__SENTRY__.hub._stack[3].scope.getLevel()).toBeUndefined();
         });
         expect(global.__SENTRY__.hub._stack).toHaveLength(3);
       });
@@ -267,38 +268,38 @@ describe('Minimal', () => {
   test('setExtras', () => {
     init({});
     setExtras({ a: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getExtras()).toEqual({ a: 'b' });
   });
 
   test('setTags', () => {
     init({});
     setTags({ a: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getTags()).toEqual({ a: 'b' });
   });
 
   test('setExtra', () => {
     init({});
     setExtra('a', 'b');
     // prettier-ignore
-    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ 'a': 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getExtras()).toEqual({ 'a': 'b' });
   });
 
   test('setTag', () => {
     init({});
     setTag('a', 'b');
     // prettier-ignore
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ 'a': 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getTags()).toEqual({ 'a': 'b' });
   });
 
   test('setUser', () => {
     init({});
     setUser({ id: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({ id: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getUser()).toEqual({ id: 'b' });
   });
 
   test('setContext', () => {
     init({});
     setContext('test', { id: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._contexts).toEqual({ test: { id: 'b' } });
+    expect(global.__SENTRY__.hub._stack[0].scope.getContexts()).toEqual({ test: { id: 'b' } });
   });
 });

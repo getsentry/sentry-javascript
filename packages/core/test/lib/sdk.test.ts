@@ -1,5 +1,5 @@
-import { Scope } from '@sentry/hub';
-import { Client, Integration } from '@sentry/types';
+import { makeScope } from '@sentry/hub';
+import { Client, Integration, Scope } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
@@ -24,7 +24,7 @@ jest.mock('@sentry/hub', () => {
           return false;
         },
         getScope(): Scope {
-          return new Scope();
+          return makeScope();
         },
         bindClient(client: Client): boolean {
           client.setupIntegrations();

@@ -1,4 +1,5 @@
 import { SDK_VERSION } from '@sentry/core';
+import { Scope } from '@sentry/types';
 
 import {
   addBreadcrumb,
@@ -12,11 +13,11 @@ import {
   getCurrentHub,
   init,
   Integrations,
-  Scope,
   showReportDialog,
   wrap,
 } from '../../src';
 import { SimpleTransport } from './mocks/simpletransport';
+import { makeScope } from '@sentry/hub';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
@@ -48,7 +49,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getExtras()).toEqual({
         abc: { def: [1] },
       });
     });
@@ -219,7 +220,7 @@ describe('SentryBrowser initialization', () => {
   });
 
   it('should use initialScope Scope', () => {
-    const scope = new Scope();
+    const scope = makeScope();
     scope.setTags({ a: 'b' });
     init({ dsn, initialScope: scope });
     expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });

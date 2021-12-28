@@ -34,7 +34,7 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   Hub,
-  Scope,
+  makeScope,
   setContext,
   setExtra,
   setExtras,

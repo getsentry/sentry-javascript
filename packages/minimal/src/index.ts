@@ -1,4 +1,4 @@
-import { getCurrentHub, Hub, Scope } from '@sentry/hub';
+import { getCurrentHub, Hub } from '@sentry/hub';
 import {
   Breadcrumb,
   CaptureContext,
@@ -7,6 +7,7 @@ import {
   Extra,
   Extras,
   Primitive,
+  Scope,
   SeverityLevel,
   Transaction,
   TransactionContext,

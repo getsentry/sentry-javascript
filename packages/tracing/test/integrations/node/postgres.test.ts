@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, makeScope } from '@sentry/hub';
 
 import { Postgres } from '../../../src/integrations/node/postgres';
 import { Span } from '../../../src/span';
@@ -40,7 +40,7 @@ jest.mock('@sentry/utils', () => {
 describe('setupOnce', () => {
   ['pg', 'pg-native'].forEach(pgApi => {
     const Client: PgClient = new PgClient();
-    let scope = new Scope();
+    let scope = makeScope();
     let parentSpan: Span;
     let childSpan: Span;
 
@@ -52,7 +52,7 @@ describe('setupOnce', () => {
     });
 
     beforeEach(() => {
-      scope = new Scope();
+      scope = makeScope();
       parentSpan = new Span();
       childSpan = parentSpan.startChild();
       jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);

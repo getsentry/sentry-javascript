@@ -1,4 +1,4 @@
-import { Hub, Scope, Session } from '@sentry/hub';
+import { Hub, Session, makeScope } from '@sentry/hub';
 import { Event, Span, Transport } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
@@ -105,7 +105,7 @@ describe('BaseClient', () => {
     test('adds a breadcrumb', () => {
       expect.assertions(1);
       const client = new TestClient({});
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
@@ -115,7 +115,7 @@ describe('BaseClient', () => {
     test('adds a timestamp to new breadcrumbs', () => {
       expect.assertions(1);
       const client = new TestClient({});
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
@@ -125,7 +125,7 @@ describe('BaseClient', () => {
     test('discards breadcrumbs beyond maxBreadcrumbs', () => {
       expect.assertions(2);
       const client = new TestClient({ maxBreadcrumbs: 1 });
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
@@ -136,7 +136,7 @@ describe('BaseClient', () => {
     test('allows concurrent updates', () => {
       expect.assertions(1);
       const client = new TestClient({});
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
       hub.addBreadcrumb({ message: 'world' });
@@ -147,7 +147,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const client = new TestClient({ beforeBreadcrumb });
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
       expect((scope as any)._breadcrumbs[0].message).toBe('hello');
@@ -157,7 +157,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const client = new TestClient({ beforeBreadcrumb });
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
       expect((scope as any)._breadcrumbs[0].message).toBe('changed');
@@ -167,7 +167,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const beforeBreadcrumb = jest.fn(() => null);
       const client = new TestClient({ beforeBreadcrumb });
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
       expect((scope as any)._breadcrumbs.length).toBe(0);
@@ -177,7 +177,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const client = new TestClient({ beforeBreadcrumb });
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
       expect((scope as any)._breadcrumbs[0].message).toBe('hello');
@@ -206,7 +206,7 @@ describe('BaseClient', () => {
 
     test('allows for providing explicit scope', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setExtra('foo', 'wat');
       client.captureException(
         new Error('test exception'),
@@ -231,7 +231,7 @@ describe('BaseClient', () => {
 
     test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setExtra('foo', 'wat');
       client.captureException(
         new Error('test exception'),
@@ -309,7 +309,7 @@ describe('BaseClient', () => {
 
     test('allows for providing explicit scope', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setExtra('foo', 'wat');
       client.captureMessage(
         'test message',
@@ -339,7 +339,7 @@ describe('BaseClient', () => {
     test('skips when disabled', () => {
       expect.assertions(1);
       const client = new TestClient({ enabled: false, dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({}, undefined, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
     });
@@ -347,7 +347,7 @@ describe('BaseClient', () => {
     test('skips without a Dsn', () => {
       expect.assertions(1);
       const client = new TestClient({});
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({}, undefined, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
     });
@@ -384,7 +384,7 @@ describe('BaseClient', () => {
     test('sends an event', () => {
       expect.assertions(2);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
@@ -398,7 +398,7 @@ describe('BaseClient', () => {
     test('does not overwrite existing timestamp', () => {
       expect.assertions(2);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({ message: 'message', timestamp: 1234 }, undefined, scope);
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
@@ -412,7 +412,7 @@ describe('BaseClient', () => {
     test('adds event_id from hint if available', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({ message: 'message' }, { event_id: 'wat' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'production',
@@ -427,7 +427,7 @@ describe('BaseClient', () => {
       const client = new TestClient({
         dsn: PUBLIC_DSN,
       });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'production',
@@ -443,7 +443,7 @@ describe('BaseClient', () => {
         dsn: PUBLIC_DSN,
         environment: 'env',
       });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'env',
@@ -459,7 +459,7 @@ describe('BaseClient', () => {
         dsn: PUBLIC_DSN,
         environment: undefined,
       });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: undefined,
@@ -475,7 +475,7 @@ describe('BaseClient', () => {
         dsn: PUBLIC_DSN,
         release: 'v1.0.0',
       });
-      const scope = new Scope();
+      const scope = makeScope();
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'production',
@@ -489,7 +489,7 @@ describe('BaseClient', () => {
     test('adds breadcrumbs', () => {
       expect.assertions(4);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       scope.addBreadcrumb({ message: 'breadcrumb' }, 100);
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toHaveProperty('event_id', '42');
@@ -501,7 +501,7 @@ describe('BaseClient', () => {
     test('limits previously saved breadcrumbs', () => {
       expect.assertions(2);
       const client = new TestClient({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
-      const scope = new Scope();
+      const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: '1' });
       hub.addBreadcrumb({ message: '2' });
@@ -513,7 +513,7 @@ describe('BaseClient', () => {
     test('adds context data', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setExtra('b', 'b');
       scope.setTag('a', 'a');
       scope.setUser({ id: 'user' });
@@ -532,7 +532,7 @@ describe('BaseClient', () => {
     test('adds fingerprint', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope();
+      const scope = makeScope();
       scope.setFingerprint(['abcd']);
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
@@ -890,7 +890,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
       const loggerErrorSpy = jest.spyOn(logger, 'error');
-      const scope = new Scope();
+      const scope = makeScope();
       scope.addEventProcessor(() => null);
       client.captureEvent({ message: 'hello' }, {}, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
@@ -910,7 +910,7 @@ describe('BaseClient', () => {
           } as any) as Transport),
       );
 
-      const scope = new Scope();
+      const scope = makeScope();
       scope.addEventProcessor(() => null);
       client.captureEvent({ message: 'hello' }, {}, scope);
 
@@ -922,7 +922,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
       const loggerErrorSpy = jest.spyOn(logger, 'error');
-      const scope = new Scope();
+      const scope = makeScope();
       const exception = new Error('sorry');
       scope.addEventProcessor(() => {
         throw exception;

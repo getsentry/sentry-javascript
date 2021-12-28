@@ -13,7 +13,7 @@ export {
   setUser,
   withScope,
 } from '@sentry/minimal';
-export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMain, Scope } from '@sentry/hub';
+export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMain, makeScope } from '@sentry/hub';
 export {
   // eslint-disable-next-line deprecation/deprecation
   API,

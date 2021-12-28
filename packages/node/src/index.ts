@@ -26,6 +26,7 @@ export {
   getCurrentHub,
   Hub,
   makeMain,
+  makeScope,
   Scope,
   startTransaction,
   SDK_VERSION,

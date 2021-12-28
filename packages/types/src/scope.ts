@@ -1,5 +1,6 @@
 import { Breadcrumb } from './breadcrumb';
 import { Context, Contexts } from './context';
+import { Event, EventHint } from './event';
 import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
 import { Primitive } from './misc';
@@ -28,6 +29,9 @@ export interface ScopeContext {
  * called by the client before an event will be sent.
  */
 export interface Scope {
+  /**  */
+  addScopeListener(listener: (scope: Scope) => void): this;
+
   /** Add new event processor that will be called after {@link applyToEvent}. */
   addEventProcessor(callback: EventProcessor): this;
 
@@ -49,6 +53,21 @@ export interface Scope {
    */
   setTags(tags: { [key: string]: Primitive }): this;
 
+  // @TODO
+  applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null>;
+  setTransaction(name?: string): Scope;
+  getTag(key: string): Primitive | undefined;
+  getTags(): { [key: string]: Primitive };
+  getBreadcrumbs(): Breadcrumb[];
+  getExtra(key: string): unknown | undefined;
+  getExtras(): Extras;
+  getContext(key: string): Context | undefined;
+  getContexts(): Contexts;
+  getLevel(): SeverityLevel | undefined;
+  getTransactionName(): string | undefined;
+  getFingerprint(): string[] | undefined;
+  getProcessors(): EventProcessor[];
+  clone(): Scope;
   /**
    * Set key:value that will be sent as tags data with the event.
    *
@@ -95,6 +114,12 @@ export interface Scope {
    * @param context an object containing context data. This data will be normalized. Pass `null` to unset the context.
    */
   setContext(name: string, context: Context | null): this;
+
+  /**
+   * Sets context data
+   * @param context an object containing context data. This data will be normalized. Pass `null` to unset the context.
+   */
+  setContexts(context: Record<string, Context>): this;
 
   /**
    * Sets the Span on the scope.

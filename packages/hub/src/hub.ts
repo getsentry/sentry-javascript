@@ -12,6 +12,7 @@ import {
   Integration,
   IntegrationClass,
   Primitive,
+  Scope,
   SessionContext,
   SeverityLevel,
   Span,
@@ -22,7 +23,7 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
-import { Scope } from './scope';
+import { makeScope } from './scope';
 import { Session } from './session';
 
 /**
@@ -100,7 +101,7 @@ export class Hub implements HubInterface {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
+  public constructor(client?: Client, scope: Scope = makeScope(), private readonly _version: number = API_VERSION) {
     this.getStackTop().scope = scope;
     if (client) {
       this.bindClient(client);
@@ -130,7 +131,7 @@ export class Hub implements HubInterface {
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
-    const scope = Scope.clone(this.getScope());
+    const scope = this.getScope() ? this.getScope()!.clone() : makeScope();
     this.getStack().push({
       client: this.getClient(),
       scope,
@@ -590,7 +591,13 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
     // If there's no hub on current domain, or it's an old API, assign a new one
     if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
       const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
-      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
+      setHubOnCarrier(
+        activeDomain,
+        new Hub(
+          registryHubTopStack.client,
+          registryHubTopStack.scope ? registryHubTopStack.scope.clone() : makeScope(),
+        ),
+      );
     }
 
     // Return hub that lives on a domain
