@@ -32,236 +32,222 @@ const MAX_BREADCRUMBS = 100;
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
  */
-export class Scope implements ScopeInterface {
-  /** Flag if notifying is happening. */
-  protected _notifyingListeners: boolean = false;
+
+const makeScope = (): ScopeInterface => {
+  let _notifyingListeners: boolean = false;
 
   /** Callback for client to receive scope changes. */
-  protected _scopeListeners: Array<(scope: Scope) => void> = [];
+  const _scopeListeners: Array<(scope: ScopeInterface) => void> = [];
 
   /** Callback list that will be called after {@link applyToEvent}. */
-  protected _eventProcessors: EventProcessor[] = [];
+  const _eventProcessors: EventProcessor[] = [];
 
   /** Array of breadcrumbs. */
-  protected _breadcrumbs: Breadcrumb[] = [];
+  let _breadcrumbs: Breadcrumb[] = [];
 
   /** User */
-  protected _user: User = {};
+  let _user: User = {};
 
   /** Tags */
-  protected _tags: { [key: string]: Primitive } = {};
+  let _tags: { [key: string]: Primitive } = {};
 
   /** Extra */
-  protected _extra: Extras = {};
+  let _extra: Extras = {};
 
   /** Contexts */
-  protected _contexts: Contexts = {};
+  let _contexts: Contexts = {};
 
   /** Fingerprint */
-  protected _fingerprint?: string[];
+  let _fingerprint: string[] | undefined = undefined;
 
   /** Severity */
-  protected _level?: SeverityLevel;
+  let _level: SeverityLevel | undefined = undefined;
 
   /** Transaction Name */
-  protected _transactionName?: string;
+  let _transactionName: string | undefined = undefined;
 
   /** Span */
-  protected _span?: Span;
+  let _span: Span | undefined = undefined;
 
   /** Session */
-  protected _session?: Session;
+  let _session: Session | undefined = undefined;
 
   /** Request Mode Session Status */
-  protected _requestSession?: RequestSession;
+  let _requestSession: RequestSession | undefined = undefined;
 
   /**
-   * Inherit values from the parent scope.
-   * @param scope to clone.
+   * @inheritDoc
    */
-  public static clone(scope?: Scope): Scope {
-    const newScope = new Scope();
-    if (scope) {
-      newScope._breadcrumbs = [...scope._breadcrumbs];
-      newScope._tags = { ...scope._tags };
-      newScope._extra = { ...scope._extra };
-      newScope._contexts = { ...scope._contexts };
-      newScope._user = scope._user;
-      newScope._level = scope._level;
-      newScope._span = scope._span;
-      newScope._session = scope._session;
-      newScope._transactionName = scope._transactionName;
-      newScope._fingerprint = scope._fingerprint;
-      newScope._eventProcessors = [...scope._eventProcessors];
-      newScope._requestSession = scope._requestSession;
-    }
-    return newScope;
+  function clearBreadcrumbs(): this {
+    _breadcrumbs = [];
+    _notifyScopeListeners();
+    return this;
   }
 
   /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
    * @hidden
    */
-  public addScopeListener(callback: (scope: Scope) => void): void {
-    this._scopeListeners.push(callback);
+  function addScopeListener(callback: (scope: ScopeInterface) => void): void {
+    _scopeListeners.push(callback);
   }
 
   /**
    * @inheritDoc
    */
-  public addEventProcessor(callback: EventProcessor): this {
-    this._eventProcessors.push(callback);
+  function addEventProcessor(callback: EventProcessor): this {
+    _eventProcessors.push(callback);
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setUser(user: User | null): this {
-    this._user = user || {};
-    if (this._session) {
-      this._session.update({ user });
+  function setUser(user: User | null): this {
+    _user = user || {};
+    if (_session) {
+      _session.update({ user });
     }
-    this._notifyScopeListeners();
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public getUser(): User | undefined {
-    return this._user;
+  function getUser(): User | undefined {
+    return _user;
   }
 
   /**
    * @inheritDoc
    */
-  public getRequestSession(): RequestSession | undefined {
-    return this._requestSession;
+  function getRequestSession(): RequestSession | undefined {
+    return _requestSession;
   }
 
   /**
    * @inheritDoc
    */
-  public setRequestSession(requestSession?: RequestSession): this {
-    this._requestSession = requestSession;
+  function setRequestSession(requestSession?: RequestSession): this {
+    _requestSession = requestSession;
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setTags(tags: { [key: string]: Primitive }): this {
-    this._tags = {
-      ...this._tags,
+  function setTags(tags: { [key: string]: Primitive }): this {
+    _tags = {
+      ..._tags,
       ...tags,
     };
-    this._notifyScopeListeners();
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setTag(key: string, value: Primitive): this {
-    this._tags = { ...this._tags, [key]: value };
-    this._notifyScopeListeners();
+  function setTag(key: string, value: Primitive): this {
+    _tags = { ..._tags, [key]: value };
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setExtras(extras: Extras): this {
-    this._extra = {
-      ...this._extra,
+  function setExtras(extras: Extras): this {
+    _extra = {
+      ..._extra,
       ...extras,
     };
-    this._notifyScopeListeners();
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setExtra(key: string, extra: Extra): this {
-    this._extra = { ...this._extra, [key]: extra };
-    this._notifyScopeListeners();
+  function setExtra(key: string, extra: Extra): this {
+    _extra = { ..._extra, [key]: extra };
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setFingerprint(fingerprint: string[]): this {
-    this._fingerprint = fingerprint;
-    this._notifyScopeListeners();
+  function setFingerprint(fingerprint: string[]): this {
+    _fingerprint = fingerprint;
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setLevel(level: SeverityLevel): this {
-    this._level = level;
-    this._notifyScopeListeners();
+  function setLevel(level: SeverityLevel): this {
+    _level = level;
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setTransactionName(name?: string): this {
-    this._transactionName = name;
-    this._notifyScopeListeners();
+  function setTransactionName(name?: string): this {
+    _transactionName = name;
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * Can be removed in major version.
-   * @deprecated in favor of {@link this.setTransactionName}
+   * @deprecated in favor of {@link setTransactionName}
    */
-  public setTransaction(name?: string): this {
-    return this.setTransactionName(name);
+  function setTransaction(name?: string): this {
+    return setTransactionName(name);
   }
 
   /**
    * @inheritDoc
    */
-  public setContext(key: string, context: Context | null): this {
+  function setContext(key: string, context: Context | null): this {
     if (context === null) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this._contexts[key];
+      delete _contexts[key];
     } else {
-      this._contexts = { ...this._contexts, [key]: context };
+      _contexts = { ..._contexts, [key]: context };
     }
 
-    this._notifyScopeListeners();
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setSpan(span?: Span): this {
-    this._span = span;
-    this._notifyScopeListeners();
+  function setSpan(span?: Span): this {
+    _span = span;
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public getSpan(): Span | undefined {
-    return this._span;
+  function getSpan(): Span | undefined {
+    return _span;
   }
 
   /**
    * @inheritDoc
    */
-  public getTransaction(): Transaction | undefined {
+  function getTransaction(): Transaction | undefined {
     // often, this span will be a transaction, but it's not guaranteed to be
-    const span = this.getSpan() as undefined | (Span & { spanRecorder: { spans: Span[] } });
+    const span = getSpan() as undefined | (Span & { spanRecorder: { spans: Span[] } });
 
     // try it the new way first
     if (span && span.transaction) {
@@ -280,27 +266,27 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setSession(session?: Session): this {
+  function setSession(session?: Session): this {
     if (!session) {
-      delete this._session;
+      _session = undefined;
     } else {
-      this._session = session;
+      _session = session;
     }
-    this._notifyScopeListeners();
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public getSession(): Session | undefined {
-    return this._session;
+  function getSession(): Session | undefined {
+    return _session;
   }
 
   /**
    * @inheritDoc
    */
-  public update(captureContext?: CaptureContext): this {
+  function update(captureContext?: CaptureContext): this {
     if (!captureContext) {
       return this;
     }
@@ -311,38 +297,38 @@ export class Scope implements ScopeInterface {
     }
 
     if (captureContext instanceof Scope) {
-      this._tags = { ...this._tags, ...captureContext._tags };
-      this._extra = { ...this._extra, ...captureContext._extra };
-      this._contexts = { ...this._contexts, ...captureContext._contexts };
+      _tags = { ..._tags, ...captureContext._tags };
+      _extra = { ..._extra, ...captureContext._extra };
+      _contexts = { ..._contexts, ...captureContext._contexts };
       if (captureContext._user && Object.keys(captureContext._user).length) {
-        this._user = captureContext._user;
+        _user = captureContext._user;
       }
       if (captureContext._level) {
-        this._level = captureContext._level;
+        _level = captureContext._level;
       }
       if (captureContext._fingerprint) {
-        this._fingerprint = captureContext._fingerprint;
+        _fingerprint = captureContext._fingerprint;
       }
       if (captureContext._requestSession) {
-        this._requestSession = captureContext._requestSession;
+        _requestSession = captureContext._requestSession;
       }
     } else if (isPlainObject(captureContext)) {
       // eslint-disable-next-line no-param-reassign
       captureContext = captureContext as ScopeContext;
-      this._tags = { ...this._tags, ...captureContext.tags };
-      this._extra = { ...this._extra, ...captureContext.extra };
-      this._contexts = { ...this._contexts, ...captureContext.contexts };
+      _tags = { ..._tags, ...captureContext.tags };
+      _extra = { ..._extra, ...captureContext.extra };
+      _contexts = { ..._contexts, ...captureContext.contexts };
       if (captureContext.user) {
-        this._user = captureContext.user;
+        _user = captureContext.user;
       }
       if (captureContext.level) {
-        this._level = captureContext.level;
+        _level = captureContext.level;
       }
       if (captureContext.fingerprint) {
-        this._fingerprint = captureContext.fingerprint;
+        _fingerprint = captureContext.fingerprint;
       }
       if (captureContext.requestSession) {
-        this._requestSession = captureContext.requestSession;
+        _requestSession = captureContext.requestSession;
       }
     }
 
@@ -352,26 +338,26 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public clear(): this {
-    this._breadcrumbs = [];
-    this._tags = {};
-    this._extra = {};
-    this._user = {};
-    this._contexts = {};
-    this._level = undefined;
-    this._transactionName = undefined;
-    this._fingerprint = undefined;
-    this._requestSession = undefined;
-    this._span = undefined;
-    this._session = undefined;
-    this._notifyScopeListeners();
+  function clear(): this {
+    _breadcrumbs = [];
+    _tags = {};
+    _extra = {};
+    _user = {};
+    _contexts = {};
+    _level = undefined;
+    _transactionName = undefined;
+    _fingerprint = undefined;
+    _requestSession = undefined;
+    _span = undefined;
+    _session = undefined;
+    _notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
+  function addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
     const maxCrumbs = typeof maxBreadcrumbs === 'number' ? Math.min(maxBreadcrumbs, MAX_BREADCRUMBS) : MAX_BREADCRUMBS;
 
     // No data has been changed, so don't notify scope listeners
@@ -383,19 +369,56 @@ export class Scope implements ScopeInterface {
       timestamp: dateTimestampInSeconds(),
       ...breadcrumb,
     };
-    this._breadcrumbs = [...this._breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
-    this._notifyScopeListeners();
+    _breadcrumbs = [..._breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
+    _notifyScopeListeners();
 
     return this;
   }
 
   /**
-   * @inheritDoc
+   * Inherit values from the parent scope.
+   * @param scope to clone.
    */
-  public clearBreadcrumbs(): this {
-    this._breadcrumbs = [];
-    this._notifyScopeListeners();
-    return this;
+  function clone(scope?: ScopeInterface): ScopeInterface {
+    const newScope = makeScope();
+    if (scope) {
+      newScope._breadcrumbs = [...scope._breadcrumbs];
+      newScope._tags = { ...scope._tags };
+      newScope._extra = { ...scope._extra };
+      newScope._contexts = { ...scope._contexts };
+      newScope._user = scope._user;
+      newScope._level = scope._level;
+      newScope._span = scope._span;
+      newScope._session = scope._session;
+      newScope._transactionName = scope._transactionName;
+      newScope._fingerprint = scope._fingerprint;
+      newScope._eventProcessors = [...scope._eventProcessors];
+      newScope._requestSession = scope._requestSession;
+    }
+    return newScope;
+  }
+
+  /**
+   * Applies fingerprint from the scope to the event if there's one,
+   * uses message if there's one instead or get rid of empty fingerprint
+   */
+  function _applyFingerprint(event: Event): void {
+    // Make sure it's an array first and we actually have something in place
+    event.fingerprint = event.fingerprint
+      ? Array.isArray(event.fingerprint)
+        ? event.fingerprint
+        : [event.fingerprint]
+      : [];
+
+    // If we have something on the scope, then merge it with event
+    if (_fingerprint) {
+      event.fingerprint = event.fingerprint.concat(_fingerprint);
+    }
+
+    // If we have no data at all, remove empty array default
+    if (event.fingerprint && !event.fingerprint.length) {
+      delete event.fingerprint;
+    }
   }
 
   /**
@@ -406,48 +429,64 @@ export class Scope implements ScopeInterface {
    * @param hint May contain additional information about the original exception.
    * @hidden
    */
-  public applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null> {
-    if (this._extra && Object.keys(this._extra).length) {
-      event.extra = { ...this._extra, ...event.extra };
+  function applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null> {
+    if (_extra && Object.keys(_extra).length) {
+      event.extra = { ..._extra, ...event.extra };
     }
-    if (this._tags && Object.keys(this._tags).length) {
-      event.tags = { ...this._tags, ...event.tags };
+    if (_tags && Object.keys(_tags).length) {
+      event.tags = { ..._tags, ...event.tags };
     }
-    if (this._user && Object.keys(this._user).length) {
-      event.user = { ...this._user, ...event.user };
+    if (_user && Object.keys(_user).length) {
+      event.user = { ..._user, ...event.user };
     }
-    if (this._contexts && Object.keys(this._contexts).length) {
-      event.contexts = { ...this._contexts, ...event.contexts };
+    if (_contexts && Object.keys(_contexts).length) {
+      event.contexts = { ..._contexts, ...event.contexts };
     }
-    if (this._level) {
-      event.level = this._level;
+    if (_level) {
+      event.level = _level;
     }
-    if (this._transactionName) {
-      event.transaction = this._transactionName;
+    if (_transactionName) {
+      event.transaction = _transactionName;
     }
     // We want to set the trace context for normal events only if there isn't already
     // a trace context on the event. There is a product feature in place where we link
     // errors with transaction and it relies on that.
-    if (this._span) {
-      event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
-      const transactionName = this._span.transaction && this._span.transaction.name;
+    if (_span) {
+      event.contexts = { trace: _span.getTraceContext(), ...event.contexts };
+      const transactionName = _span.transaction && _span.transaction.name;
       if (transactionName) {
         event.tags = { transaction: transactionName, ...event.tags };
       }
     }
 
-    this._applyFingerprint(event);
+    _applyFingerprint(event);
 
-    event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
+    event.breadcrumbs = [...(event.breadcrumbs || []), ..._breadcrumbs];
     event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
-    return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
+    return _notifyEventProcessors([...getGlobalEventProcessors(), ..._eventProcessors], event, hint);
+  }
+
+  /**
+   * This will be called on every set call.
+   */
+  function _notifyScopeListeners(): void {
+    // We need this check for this._notifyingListeners to be able to work on scope during updates
+    // If this check is not here we'll produce endless recursion when something is done with the scope
+    // during the callback.
+    if (!_notifyingListeners) {
+      _notifyingListeners = true;
+      _scopeListeners.forEach(callback => {
+        callback(this);
+      });
+      _notifyingListeners = false;
+    }
   }
 
   /**
    * This will be called after {@link applyToEvent} is finished.
    */
-  protected _notifyEventProcessors(
+  function _notifyEventProcessors(
     processors: EventProcessor[],
     event: Event | null,
     hint?: EventHint,
@@ -461,56 +500,17 @@ export class Scope implements ScopeInterface {
         const result = processor({ ...event }, hint) as Event | null;
         if (isThenable(result)) {
           void (result as PromiseLike<Event | null>)
-            .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
+            .then(final => _notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
             .then(null, reject);
         } else {
-          void this._notifyEventProcessors(processors, result, hint, index + 1)
+          void _notifyEventProcessors(processors, result, hint, index + 1)
             .then(resolve)
             .then(null, reject);
         }
       }
     });
   }
-
-  /**
-   * This will be called on every set call.
-   */
-  protected _notifyScopeListeners(): void {
-    // We need this check for this._notifyingListeners to be able to work on scope during updates
-    // If this check is not here we'll produce endless recursion when something is done with the scope
-    // during the callback.
-    if (!this._notifyingListeners) {
-      this._notifyingListeners = true;
-      this._scopeListeners.forEach(callback => {
-        callback(this);
-      });
-      this._notifyingListeners = false;
-    }
-  }
-
-  /**
-   * Applies fingerprint from the scope to the event if there's one,
-   * uses message if there's one instead or get rid of empty fingerprint
-   */
-  private _applyFingerprint(event: Event): void {
-    // Make sure it's an array first and we actually have something in place
-    event.fingerprint = event.fingerprint
-      ? Array.isArray(event.fingerprint)
-        ? event.fingerprint
-        : [event.fingerprint]
-      : [];
-
-    // If we have something on the scope, then merge it with event
-    if (this._fingerprint) {
-      event.fingerprint = event.fingerprint.concat(this._fingerprint);
-    }
-
-    // If we have no data at all, remove empty array default
-    if (event.fingerprint && !event.fingerprint.length) {
-      delete event.fingerprint;
-    }
-  }
-}
+};
 
 /**
  * Returns the global event processors.
