@@ -3,6 +3,7 @@ import { Integration, Span } from '@sentry/types';
 import { fill, logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
+import * as net from 'net';
 
 import {
   cleanSpanDescription,
@@ -128,47 +129,60 @@ function _createWrappedRequestMethodFactory(
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return originalRequestMethod
-        .apply(httpModule, requestArgs)
-        .once('response', function(this: http.ClientRequest, res: http.IncomingMessage): void {
-          // eslint-disable-next-line @typescript-eslint/no-this-alias
-          const req = this;
-          if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', requestUrl, req, res);
-          }
-          if (tracingEnabled && span) {
-            if (res.statusCode) {
-              span.setHttpStatus(res.statusCode);
-            }
-            // @ts-ignore reusedSocket missing from @types/node
-            span.setTag('http.reused_socket', (req as unknown).reusedSocket)
-            span.description = cleanSpanDescription(span.description, requestOptions, req);
+      const start = Date.now()
+      const req: ReturnType<OriginalRequestMethod> = originalRequestMethod.apply(httpModule, requestArgs)
 
-            res.once('end', () => {
-              span?.finish()
-            })
-
-            res.once('error', () => {
-              if (breadcrumbsEnabled) {
-                addRequestBreadcrumb('response_error', requestUrl, req);
-              }
-              span?.finish()
-            })
-          }
+      req.once('socket', (socket: net.Socket) => {
+        socket.on('lookup', () => {
+          span?.setData('net.time_to_lookup', Date.now() - start)
         })
-        .once('error', function(this: http.ClientRequest): void {
-          // eslint-disable-next-line @typescript-eslint/no-this-alias
-          const req = this;
+        socket.on('connect', () => {
+          span?.setData('net.time_to_connect', Date.now() - start)
+        })
+      })
 
-          if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', requestUrl, req);
+      req.once('response', function(this: http.ClientRequest, res: http.IncomingMessage): void {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const req = this;
+        if (breadcrumbsEnabled) {
+          addRequestBreadcrumb('response', requestUrl, req, res);
+        }
+        if (tracingEnabled && span) {
+          if (res.statusCode) {
+            span.setHttpStatus(res.statusCode);
           }
-          if (tracingEnabled && span) {
-            span.setHttpStatus(500);
-            span.description = cleanSpanDescription(span.description, requestOptions, req);
-            span.finish();
-          }
-        });
+          // @ts-ignore reusedSocket missing from @types/node
+          span.setTag('net.reused_socket', (req as unknown).reusedSocket)
+          span.description = cleanSpanDescription(span.description, requestOptions, req);
+
+          res.once('end', () => {
+            span?.finish()
+          })
+
+          res.once('error', () => {
+            if (breadcrumbsEnabled) {
+              addRequestBreadcrumb('response_error', requestUrl, req);
+            }
+            span?.finish()
+          })
+        }
+      })
+
+      req.once('error', function(this: http.ClientRequest): void {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const req = this;
+
+        if (breadcrumbsEnabled) {
+          addRequestBreadcrumb('error', requestUrl, req);
+        }
+        if (tracingEnabled && span) {
+          span.setHttpStatus(500);
+          span.description = cleanSpanDescription(span.description, requestOptions, req);
+          span.finish();
+        }
+      });
+
+      return req
     };
   };
 }
