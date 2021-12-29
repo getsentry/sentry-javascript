@@ -77,7 +77,7 @@ export class OnUncaughtException implements Integration {
 
         if (hub.getIntegration(OnUncaughtException)) {
           hub.withScope(scope => {
-            scope.setLevel('fatal');
+            scope.setScopeData('level', 'fatal');
             hub.captureException(error, {
               originalException: error,
               data: { mechanism: { handled: false, type: 'onuncaughtexception' } },

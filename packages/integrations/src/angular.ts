@@ -93,7 +93,7 @@ export class Angular implements Integration {
       if (hub && hub.getIntegration(Angular)) {
         hub.withScope(scope => {
           if (cause) {
-            scope.setExtra('cause', cause);
+            scope.addExtra('cause', cause);
           }
 
           scope.addEventProcessor((event: Event) => {

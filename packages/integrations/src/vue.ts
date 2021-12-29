@@ -416,7 +416,7 @@ export class Vue implements Integration {
         // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
         setTimeout(() => {
           getCurrentHub().withScope(scope => {
-            scope.setContext('vue', metadata);
+            scope.addContext('vue', metadata);
             getCurrentHub().captureException(error);
           });
         });

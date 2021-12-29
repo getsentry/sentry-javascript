@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Session, makeScope } from '@sentry/hub';
+import { makeScope, Session } from '@sentry/hub';
 import {
   Client,
   DsnComponents,
@@ -577,7 +577,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
-        const session = scope && scope.getSession && scope.getSession();
+        const session = scope && scope.getScopeData && scope.getScopeData('session');
         if (!isTransaction && session) {
           // @ts-ignore @TODO
           this._updateSessionFromEvent(session, processedEvent);

@@ -48,8 +48,8 @@ export class CaptureConsole implements Integration {
 
         if (hub.getIntegration(CaptureConsole)) {
           hub.withScope(scope => {
-            scope.setLevel(severityFromString(level));
-            scope.setExtra('arguments', args);
+            scope.setScopeData('severity', severityFromString(level));
+            scope.addExtra('arguments', args);
             scope.addEventProcessor(event => {
               event.logger = 'console';
               return event;
@@ -59,7 +59,7 @@ export class CaptureConsole implements Integration {
             if (level === 'assert') {
               if (args[0] === false) {
                 message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-                scope.setExtra('arguments', args.slice(1));
+                scope.addExtra('arguments', args.slice(1));
                 hub.captureMessage(message);
               }
             } else if (level === 'error' && args[0] instanceof Error) {

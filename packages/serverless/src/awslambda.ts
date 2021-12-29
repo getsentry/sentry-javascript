@@ -174,17 +174,17 @@ function tryGetRemainingTimeInMillis(context: Context): number {
  * @param startTime performance.now() when wrapHandler was invoked
  */
 function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTime: number): void {
-  scope.setTransactionName(context.functionName);
+  scope.setScopeData('transactionNam', context.functionName);
 
-  scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
-  scope.setTag('url', `awslambda:///${context.functionName}`);
+  scope.addTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
+  scope.addTag('url', `awslambda:///${context.functionName}`);
 
-  scope.setContext('runtime', {
+  scope.addContext('runtime', {
     name: 'node',
     version: global.process.version,
   });
 
-  scope.setContext('aws.lambda', {
+  scope.addContext('aws.lambda', {
     aws_request_id: context.awsRequestId,
     function_name: context.functionName,
     function_version: context.functionVersion,
@@ -194,7 +194,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
     'sys.argv': process.argv,
   });
 
-  scope.setContext('aws.cloudwatch.logs', {
+  scope.addContext('aws.cloudwatch.logs', {
     log_group: context.logGroupName,
     log_stream: context.logStreamName,
     url: `https://console.aws.amazon.com/cloudwatch/home?region=${
@@ -273,7 +273,7 @@ export function wrapHandler<TEvent, TResult>(
 
       timeoutWarningTimer = setTimeout(() => {
         withScope(scope => {
-          scope.setTag('timeout', humanReadableTimeout);
+          scope.addTag('timeout', humanReadableTimeout);
           captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
         });
       }, timeoutWarningDelay);
@@ -297,7 +297,7 @@ export function wrapHandler<TEvent, TResult>(
     try {
       enhanceScopeWithEnvironmentData(scope, context, START_TIME);
       // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
+      scope.setScopeData('span', transaction);
       rv = await asyncHandler(event, context);
 
       // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises

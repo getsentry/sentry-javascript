@@ -297,7 +297,7 @@ export class Hub implements HubInterface {
    */
   public setUser(user: User | null): void {
     const scope = this.getScope();
-    if (scope) scope.setUser(user);
+    if (scope) scope.setScopeData('user', user || {});
   }
 
   /**
@@ -305,7 +305,7 @@ export class Hub implements HubInterface {
    */
   public setTags(tags: { [key: string]: Primitive }): void {
     const scope = this.getScope();
-    if (scope) scope.setTags(tags);
+    if (scope) scope.setScopeData('tags', tags);
   }
 
   /**
@@ -313,7 +313,7 @@ export class Hub implements HubInterface {
    */
   public setExtras(extras: Extras): void {
     const scope = this.getScope();
-    if (scope) scope.setExtras(extras);
+    if (scope) scope.setScopeData('extras', extras);
   }
 
   /**
@@ -321,7 +321,7 @@ export class Hub implements HubInterface {
    */
   public setTag(key: string, value: Primitive): void {
     const scope = this.getScope();
-    if (scope) scope.setTag(key, value);
+    if (scope) scope.addTag(key, value);
   }
 
   /**
@@ -329,7 +329,7 @@ export class Hub implements HubInterface {
    */
   public setExtra(key: string, extra: Extra): void {
     const scope = this.getScope();
-    if (scope) scope.setExtra(key, extra);
+    if (scope) scope.addExtra(key, extra);
   }
 
   /**
@@ -338,7 +338,7 @@ export class Hub implements HubInterface {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
     const scope = this.getScope();
-    if (scope) scope.setContext(name, context);
+    if (scope) scope.addContext(name, context || {});
   }
 
   /**
@@ -417,7 +417,7 @@ export class Hub implements HubInterface {
   public endSession(): void {
     const layer = this.getStackTop();
     const scope = layer && layer.scope;
-    const session = scope && scope.getSession();
+    const session = scope && scope.getScopeData('session');
     if (session) {
       session.close();
     }
@@ -425,7 +425,7 @@ export class Hub implements HubInterface {
 
     // the session is over; take it off of the scope
     if (scope) {
-      scope.setSession();
+      scope.setScopeData('session', undefined);
     }
   }
 
@@ -443,21 +443,21 @@ export class Hub implements HubInterface {
     const session = new Session({
       release,
       environment,
-      ...(scope && { user: scope.getUser() }),
+      ...(scope && { user: scope.getScopeData('user') }),
       ...(userAgent && { userAgent }),
       ...context,
     });
 
     if (scope) {
       // End existing session if there's one
-      const currentSession = scope.getSession && scope.getSession();
+      const currentSession = scope.getScopeData && scope.getScopeData('session');
       if (currentSession && currentSession.status === 'ok') {
         currentSession.update({ status: 'exited' });
       }
       this.endSession();
 
       // Afterwards we set the new session on the scope
-      scope.setSession(session);
+      scope.setScopeData('session', session);
     }
 
     return session;
@@ -470,7 +470,7 @@ export class Hub implements HubInterface {
     const { scope, client } = this.getStackTop();
     if (!scope) return;
 
-    const session = scope.getSession && scope.getSession();
+    const session = scope.getScopeData && scope.getScopeData('session');
     if (session) {
       if (client && client.captureSession) {
         client.captureSession(session);

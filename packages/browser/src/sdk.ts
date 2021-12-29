@@ -110,7 +110,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   const scope = hub.getScope();
   if (scope) {
     options.user = {
-      ...scope.getUser(),
+      ...scope.getScopeData('user'),
       ...options.user,
     };
   }

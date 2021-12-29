@@ -33,7 +33,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
       const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
       getCurrentHub().configureScope(scope => {
-        scope.setExtra('__serialized__', normalizeToSize(exception as Record<string, unknown>));
+        scope.addExtra('__serialized__', normalizeToSize(exception as Record<string, unknown>));
       });
 
       ex = (hint && hint.syntheticException) || new Error(message);

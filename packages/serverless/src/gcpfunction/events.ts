@@ -41,7 +41,7 @@ function _wrapEventFunction(
     getCurrentHub().configureScope(scope => {
       configureScopeWithContext(scope, context);
       // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
+      scope.setScopeData('span', transaction);
     });
 
     const activeDomain = getActiveDomain()!; // eslint-disable-line @typescript-eslint/no-non-null-assertion

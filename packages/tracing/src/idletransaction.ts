@@ -93,7 +93,7 @@ export class IdleTransaction extends Transaction {
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
       logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
-      _idleHub.configureScope(scope => scope.setSpan(this));
+      _idleHub.configureScope(scope => scope.setScopeData('span', this));
     }
 
     this._initTimeout = setTimeout(() => {
@@ -280,7 +280,7 @@ function clearActiveTransaction(hub?: Hub): void {
     if (scope) {
       const transaction = scope.getTransaction();
       if (transaction) {
-        scope.setSpan(undefined);
+        scope.setScopeData('span', undefined);
       }
     }
   }

@@ -56,17 +56,17 @@ export class OnUnhandledRejection implements Integration {
     const context = (promise.domain && promise.domain.sentryContext) || {};
 
     hub.withScope(scope => {
-      scope.setExtra('unhandledPromiseRejection', true);
+      scope.addExtra('unhandledPromiseRejection', true);
 
       // Preserve backwards compatibility with raven-node for now
       if (context.user) {
-        scope.setUser(context.user);
+        scope.setScopeData('user', context.user);
       }
       if (context.tags) {
-        scope.setTags(context.tags);
+        scope.setScopeData('tags', context.tags);
       }
       if (context.extra) {
-        scope.setExtras(context.extra);
+        scope.setScopeData('extras', context.extra);
       }
 
       hub.captureException(reason, {

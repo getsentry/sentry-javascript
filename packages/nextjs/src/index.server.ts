@@ -62,9 +62,9 @@ export function init(options: NextjsOptions): void {
   nodeInit(options);
 
   configureScope(scope => {
-    scope.setTag('runtime', 'node');
+    scope.addTag('runtime', 'node');
     if (isVercel) {
-      scope.setTag('vercel', true);
+      scope.addTag('vercel', true);
     }
 
     scope.addEventProcessor(filterTransactions);

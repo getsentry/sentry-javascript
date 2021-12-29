@@ -27,7 +27,7 @@ export function init(options: NextjsOptions): void {
     integrations,
   });
   configureScope(scope => {
-    scope.setTag('runtime', 'browser');
+    scope.addTag('runtime', 'browser');
     scope.addEventProcessor(event => (event.type === 'transaction' && event.transaction === '/404' ? null : event));
   });
 }

@@ -109,7 +109,7 @@ export class ReportingObserver implements Integration {
     }
     for (const report of reports) {
       hub.withScope(scope => {
-        scope.setExtra('url', report.url);
+        scope.addExtra('url', report.url);
 
         const label = `ReportingObserver [${report.type}]`;
         let details = 'No details available';
@@ -125,7 +125,7 @@ export class ReportingObserver implements Integration {
             plainBody[prop] = report.body[prop];
           }
 
-          scope.setExtra('body', plainBody);
+          scope.addExtra('body', plainBody);
 
           if (report.type === ReportTypes.Crash) {
             const body = report.body as CrashReportBody;

@@ -108,9 +108,9 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         /* Set latest state to scope */
         const transformedState = options.stateTransformer(newState);
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
-          scope.setContext(STATE_CONTEXT_KEY, transformedState);
+          scope.addContext(STATE_CONTEXT_KEY, transformedState);
         } else {
-          scope.setContext(STATE_CONTEXT_KEY, null);
+          scope.addContext(STATE_CONTEXT_KEY, null);
         }
 
         /* Allow user to configure scope with latest state */

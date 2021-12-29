@@ -18,7 +18,7 @@ import { hasTracingEnabled } from './utils';
 function traceHeaders(this: Hub): { [key: string]: string } {
   const scope = this.getScope();
   if (scope) {
-    const span = scope.getSpan();
+    const span = scope.getScopeData('span');
     if (span) {
       return {
         'sentry-trace': span.toTraceparent(),

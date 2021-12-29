@@ -67,7 +67,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     getCurrentHub().configureScope(scope => {
       scope.addEventProcessor(event => parseRequest(event, req, options.parseRequestOptions));
       // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
+      scope.setScopeData('span', transaction);
     });
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add

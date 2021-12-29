@@ -110,7 +110,7 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
       if (scope && tracingEnabled) {
-        parentSpan = scope.getSpan();
+        parentSpan = scope.getScopeData('span');
         if (parentSpan) {
           span = parentSpan.startChild({
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,

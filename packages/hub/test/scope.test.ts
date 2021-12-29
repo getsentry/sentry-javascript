@@ -13,8 +13,8 @@ describe('Scope', () => {
   describe('attributes modification', () => {
     test('setFingerprint', () => {
       const scope = makeScope();
-      scope.setFingerprint(['abcd']);
-      expect(scope.getFingerprint()).toEqual(['abcd']);
+      scope.setScopeData('fingerprint', ['abcd']);
+      expect(scope.getScopeData('fingerprint')).toEqual(['abcd']);
     });
 
     test('setExtra', () => {
