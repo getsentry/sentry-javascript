@@ -109,7 +109,7 @@ describe('BaseClient', () => {
       const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
-      expect((scope as any)._breadcrumbs[1].message).toBe('world');
+      expect(scope.getScopeData('breadcrumbs')[1].message).toBe('world');
     });
 
     test('adds a timestamp to new breadcrumbs', () => {
@@ -119,7 +119,7 @@ describe('BaseClient', () => {
       const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
-      expect((scope as any)._breadcrumbs[1].timestamp).toBeGreaterThan(1);
+      expect(scope.getScopeData('breadcrumbs')[1].timestamp).toBeGreaterThan(1);
     });
 
     test('discards breadcrumbs beyond maxBreadcrumbs', () => {
@@ -129,8 +129,8 @@ describe('BaseClient', () => {
       const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
-      expect((scope as any)._breadcrumbs.length).toBe(1);
-      expect((scope as any)._breadcrumbs[0].message).toBe('world');
+      expect(scope.getScopeData('breadcrumbs').length).toBe(1);
+      expect(scope.getScopeData('breadcrumbs')[0].message).toBe('world');
     });
 
     test('allows concurrent updates', () => {
@@ -140,7 +140,7 @@ describe('BaseClient', () => {
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
       hub.addBreadcrumb({ message: 'world' });
-      expect((scope as any)._breadcrumbs).toHaveLength(2);
+      expect(scope.getScopeData('breadcrumbs')).toHaveLength(2);
     });
 
     test('calls beforeBreadcrumb and adds the breadcrumb without any changes', () => {
@@ -150,7 +150,7 @@ describe('BaseClient', () => {
       const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
-      expect((scope as any)._breadcrumbs[0].message).toBe('hello');
+      expect(scope.getScopeData('breadcrumbs')[0].message).toBe('hello');
     });
 
     test('calls beforeBreadcrumb and uses the new one', () => {
@@ -160,7 +160,7 @@ describe('BaseClient', () => {
       const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
-      expect((scope as any)._breadcrumbs[0].message).toBe('changed');
+      expect(scope.getScopeData('breadcrumbs')[0].message).toBe('changed');
     });
 
     test('calls beforeBreadcrumb and discards the breadcrumb when returned null', () => {
@@ -170,7 +170,7 @@ describe('BaseClient', () => {
       const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' });
-      expect((scope as any)._breadcrumbs.length).toBe(0);
+      expect(scope.getScopeData('breadcrumbs').length).toBe(0);
     });
 
     test('calls beforeBreadcrumb gets an access to a hint as a second argument', () => {
@@ -180,8 +180,8 @@ describe('BaseClient', () => {
       const scope = makeScope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
-      expect((scope as any)._breadcrumbs[0].message).toBe('hello');
-      expect((scope as any)._breadcrumbs[0].data).toBe('someRandomThing');
+      expect(scope.getScopeData('breadcrumbs')[0].message).toBe('hello');
+      expect(scope.getScopeData('breadcrumbs')[0].data).toBe('someRandomThing');
     });
   });
 
@@ -207,7 +207,7 @@ describe('BaseClient', () => {
     test('allows for providing explicit scope', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const scope = makeScope();
-      scope.setExtra('foo', 'wat');
+      scope.addExtra('foo', 'wat');
       client.captureException(
         new Error('test exception'),
         {
@@ -232,13 +232,13 @@ describe('BaseClient', () => {
     test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const scope = makeScope();
-      scope.setExtra('foo', 'wat');
+      scope.addExtra('foo', 'wat');
       client.captureException(
         new Error('test exception'),
         {
           captureContext: s => {
             s.clear();
-            s.setExtra('bar', 'wat');
+            s.addExtra('bar', 'wat');
             return s;
           },
         },
@@ -310,7 +310,7 @@ describe('BaseClient', () => {
     test('allows for providing explicit scope', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const scope = makeScope();
-      scope.setExtra('foo', 'wat');
+      scope.addExtra('foo', 'wat');
       client.captureMessage(
         'test message',
         'warning',
@@ -514,9 +514,9 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const scope = makeScope();
-      scope.setExtra('b', 'b');
-      scope.setTag('a', 'a');
-      scope.setUser({ id: 'user' });
+      scope.addExtra('b', 'b');
+      scope.addTag('a', 'a');
+      scope.setScopeData('user', { id: 'user' });
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'production',
@@ -533,7 +533,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const scope = makeScope();
-      scope.setFingerprint(['abcd']);
+      scope.setScopeData('fingerprint', ['abcd']);
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'production',

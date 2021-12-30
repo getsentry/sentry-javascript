@@ -68,7 +68,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
             // extra context passed to the `tracesSampler`
             { request: req },
           );
-          currentScope.setSpan(transaction);
+          currentScope.setScopeData('span', transaction);
 
           // save a link to the transaction on the response, so that even if there's an error (landing us outside of
           // the domain), we can still finish it (albeit possibly missing some scope data)

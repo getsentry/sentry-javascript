@@ -16,11 +16,11 @@ describe('NodeClient', () => {
     test('when autoSessionTracking is enabled, and requestHandler is not used -> requestStatus should not be set', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
 
       client.captureException(new Error('test exception'), undefined, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('ok');
     });
     test('when autoSessionTracking is disabled -> requestStatus should not be set', () => {
@@ -30,11 +30,11 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
 
       client.captureException(new Error('test exception'), undefined, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('ok');
     });
     test('when autoSessionTracking is enabled + requestSession status is Crashed -> requestStatus should not be overridden', () => {
@@ -44,11 +44,11 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'crashed' });
+      scope.setScopeData('requestSession', { status: 'crashed' });
 
       client.captureException(new Error('test exception'), undefined, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('crashed');
     });
     test('when autoSessionTracking is enabled + error occurs within request bounds -> requestStatus should be set to Errored', () => {
@@ -58,11 +58,11 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
 
       client.captureException(new Error('test exception'), undefined, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('errored');
     });
     test('when autoSessionTracking is enabled + error occurs outside of request bounds -> requestStatus should not be set to Errored', () => {
@@ -75,7 +75,7 @@ describe('NodeClient', () => {
 
       client.captureException(new Error('test exception'), undefined, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession).toEqual(undefined);
     });
   });
@@ -88,14 +88,14 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
       client.captureEvent(
         { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },
         undefined,
         scope,
       );
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('ok');
     });
 
@@ -106,11 +106,11 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
 
       client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } }, {}, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('errored');
     });
 
@@ -121,11 +121,11 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
 
       client.captureEvent({ message: 'message' }, {}, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('ok');
     });
 
@@ -143,7 +143,7 @@ describe('NodeClient', () => {
         scope,
       );
 
-      expect(scope.getRequestSession()).toEqual(undefined);
+      expect(scope.getScopeData('requestSession')).toEqual(undefined);
     });
 
     test('When captureEvent is called with a transaction, then requestSession status should not be set', () => {
@@ -153,10 +153,10 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
       client.captureEvent({ message: 'message', type: 'transaction' }, undefined, scope);
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('ok');
     });
 
@@ -164,14 +164,14 @@ describe('NodeClient', () => {
       client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' });
 
       const scope = makeScope();
-      scope.setRequestSession({ status: 'ok' });
+      scope.setScopeData('requestSession', { status: 'ok' });
       client.captureEvent(
         { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },
         undefined,
         scope,
       );
 
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
       expect(requestSession!.status).toEqual('ok');
     });
   });

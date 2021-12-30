@@ -55,14 +55,14 @@ describe('setupOnce', () => {
       scope = makeScope();
       parentSpan = new Span();
       childSpan = parentSpan.startChild();
-      jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
+      jest.spyOn(scope, 'getScopeData').mockReturnValueOnce(parentSpan);
       jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
       jest.spyOn(childSpan, 'finish');
     });
 
     it(`should wrap ${pgApi}'s query method accepting callback as the last argument`, done => {
       Client.query('SELECT NOW()', {}, function() {
-        expect(scope.getSpan).toBeCalled();
+        expect(scope.getScopeData).toBeCalledWith('span');
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
           op: 'db',
@@ -74,7 +74,7 @@ describe('setupOnce', () => {
 
     it(`should wrap ${pgApi}'s query method accepting callback as the second argument`, done => {
       Client.query('SELECT NOW()', function() {
-        expect(scope.getSpan).toBeCalled();
+        expect(scope.getScopeData).toBeCalledWith('span');
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
           op: 'db',
@@ -86,7 +86,7 @@ describe('setupOnce', () => {
 
     it(`should wrap ${pgApi}'s query method accepting no callback as the last argument but returning promise`, async () => {
       await Client.query('SELECT NOW()', null);
-      expect(scope.getSpan).toBeCalled();
+      expect(scope.getScopeData).toBeCalledWith('span');
       expect(parentSpan.startChild).toBeCalledWith({
         description: 'SELECT NOW()',
         op: 'db',

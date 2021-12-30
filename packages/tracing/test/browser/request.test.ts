@@ -77,7 +77,7 @@ describe('callbacks', () => {
 
   beforeEach(() => {
     transaction = hub.startTransaction({ name: 'organizations/users/:userid', op: 'pageload' }) as Transaction;
-    hub.configureScope(scope => scope.setSpan(transaction));
+    hub.configureScope(scope => scope.setScopeData('span', transaction));
   });
 
   describe('fetchCallback()', () => {

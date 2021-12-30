@@ -149,7 +149,7 @@ export class Mongo implements Integration {
       return function(this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
         const scope = getCurrentHub().getScope();
-        const parentSpan = scope?.getSpan();
+        const parentSpan = scope?.getScopeData('span');
 
         // Check if the operation was passed a callback. (mapReduce requires a different check, as
         // its (non-callback) arguments can also be functions.)

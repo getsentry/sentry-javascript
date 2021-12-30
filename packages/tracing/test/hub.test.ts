@@ -38,7 +38,7 @@ describe('Hub', () => {
       transaction.sampled = true;
 
       hub.configureScope(scope => {
-        scope.setSpan(transaction);
+        scope.setScopeData('span', transaction);
       });
 
       expect(hub.getScope()?.getTransaction()).toBe(transaction);
@@ -50,7 +50,7 @@ describe('Hub', () => {
       const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
 
       hub.configureScope(scope => {
-        scope.setSpan(transaction);
+        scope.setScopeData('span', transaction);
       });
 
       expect(hub.getScope()?.getTransaction()).toBe(transaction);
@@ -371,7 +371,7 @@ describe('Hub', () => {
 
           const transaction = hub.startTransaction({ name: 'dogpark' });
           hub.configureScope(scope => {
-            scope.setSpan(transaction);
+            scope.setScopeData('span', transaction);
           });
 
           const request = new XMLHttpRequest();
@@ -413,7 +413,7 @@ describe('Hub', () => {
 
           const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
           hub.configureScope(scope => {
-            scope.setSpan(transaction);
+            scope.setScopeData('span', transaction);
           });
 
           const request = new XMLHttpRequest();

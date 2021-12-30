@@ -269,7 +269,7 @@ describe('ErrorBoundary', () => {
       fireEvent.click(btn);
 
       expect(mockBeforeCapture).toHaveBeenCalledTimes(1);
-      expect(mockBeforeCapture).toHaveBeenLastCalledWith(expect.any(Scope), expect.any(Error), expect.any(String));
+      expect(mockBeforeCapture).toHaveBeenLastCalledWith(expect.any(Object), expect.any(Error), expect.any(String));
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
     });
 

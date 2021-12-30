@@ -44,7 +44,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
     // sent to the Server only when the `requestHandler` middleware is used
     if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
-      const requestSession = scope.getRequestSession();
+      const requestSession = scope.getScopeData('requestSession');
 
       // Necessary checks to ensure this is code block is executed only within a request
       // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
@@ -70,7 +70,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
 
       // If the event is of type Exception, then a request session should be captured
       if (isException) {
-        const requestSession = scope.getRequestSession();
+        const requestSession = scope.getScopeData('requestSession');
 
         // Ensure that this is happening within the bounds of a request, and make sure not to override
         // Session Status if Errored / Crashed

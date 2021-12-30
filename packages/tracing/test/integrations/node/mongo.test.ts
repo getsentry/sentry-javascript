@@ -58,14 +58,14 @@ describe('patchOperation()', () => {
     scope = makeScope();
     parentSpan = new Span();
     childSpan = parentSpan.startChild();
-    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
+    jest.spyOn(scope, 'getScopeData').mockReturnValueOnce(parentSpan);
     jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
     jest.spyOn(childSpan, 'finish');
   });
 
   it('should wrap method accepting callback as the last argument', done => {
     collection.insertOne(doc, {}, function() {
-      expect(scope.getSpan).toBeCalled();
+      expect(scope.getScopeData).toBeCalledWith('span');
       expect(parentSpan.startChild).toBeCalledWith({
         data: {
           collectionName: 'mockedCollectionName',
@@ -83,7 +83,7 @@ describe('patchOperation()', () => {
 
   it('should wrap method accepting no callback as the last argument but returning promise', async () => {
     await collection.insertOne(doc, {});
-    expect(scope.getSpan).toBeCalled();
+    expect(scope.getScopeData).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       data: {
         collectionName: 'mockedCollectionName',
@@ -99,7 +99,7 @@ describe('patchOperation()', () => {
 
   it('should wrap method accepting no callback as the last argument and not returning promise', () => {
     collection.initializeOrderedBulkOp();
-    expect(scope.getSpan).toBeCalled();
+    expect(scope.getScopeData).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       data: {
         collectionName: 'mockedCollectionName',

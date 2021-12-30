@@ -47,27 +47,27 @@ describe('SentryNode', () => {
   describe('getContext() / setContext()', () => {
     test('store/load extra', async () => {
       configureScope((scope: Scope) => {
-        scope.setExtra('abc', { def: [1] });
+        scope.addExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope.getExtras()).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getScopeData('extras')).toEqual({
         abc: { def: [1] },
       });
     });
 
     test('store/load tags', async () => {
       configureScope((scope: Scope) => {
-        scope.setTag('abc', 'def');
+        scope.addTag('abc', 'def');
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getScopeData('tags')).toEqual({
         abc: 'def',
       });
     });
 
     test('store/load user', async () => {
       configureScope((scope: Scope) => {
-        scope.setUser({ id: 'def' });
+        scope.setScopeData('user', { id: 'def' });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getScopeData('user')).toEqual({
         id: 'def',
       });
     });
@@ -131,7 +131,7 @@ describe('SentryNode', () => {
         }),
       );
       configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
+        scope.addTag('test', '1');
       });
       try {
         throw new Error('test');
@@ -158,7 +158,7 @@ describe('SentryNode', () => {
         }),
       );
       configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
+        scope.addTag('test', '1');
       });
       try {
         throw 'test string exception';
@@ -190,7 +190,7 @@ describe('SentryNode', () => {
         }),
       );
       configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
+        scope.addTag('test', '1');
       });
       try {
         throw new Error('test');

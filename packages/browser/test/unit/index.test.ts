@@ -47,27 +47,27 @@ describe('SentryBrowser', () => {
   describe('getContext() / setContext()', () => {
     it('should store/load extra', () => {
       configureScope((scope: Scope) => {
-        scope.setExtra('abc', { def: [1] });
+        scope.addExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope.getExtras()).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getScopeData('extras')).toEqual({
         abc: { def: [1] },
       });
     });
 
     it('should store/load tags', () => {
       configureScope((scope: Scope) => {
-        scope.setTag('abc', 'def');
+        scope.addTag('abc', 'def');
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getScopeData('tags')).toEqual({
         abc: 'def',
       });
     });
 
     it('should store/load user', () => {
       configureScope((scope: Scope) => {
-        scope.setUser({ id: 'def' });
+        scope.setScopeData('user', { id: 'def' });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope.getScopeData('user')).toEqual({
         id: 'def',
       });
     });
@@ -85,7 +85,7 @@ describe('SentryBrowser', () => {
 
       it('uses the user on the scope', () => {
         configureScope(scope => {
-          scope.setUser(EX_USER);
+          scope.setScopeData('user', EX_USER);
         });
         getCurrentHub().bindClient(client);
 
@@ -97,7 +97,7 @@ describe('SentryBrowser', () => {
 
       it('prioritizes options user over scope user', () => {
         configureScope(scope => {
-          scope.setUser(EX_USER);
+          scope.setScopeData('user', EX_USER);
         });
         getCurrentHub().bindClient(client);
 
@@ -216,25 +216,25 @@ describe('SentryBrowser initialization', () => {
 
   it('should use initialScope', () => {
     init({ dsn, initialScope: { tags: { a: 'b' } } });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getScopeData('tags')).toEqual({ a: 'b' });
   });
 
   it('should use initialScope Scope', () => {
     const scope = makeScope();
-    scope.setTags({ a: 'b' });
+    scope.setScopeData('tags', { a: 'b' });
     init({ dsn, initialScope: scope });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getScopeData('tags')).toEqual({ a: 'b' });
   });
 
   it('should use initialScope callback', () => {
     init({
       dsn,
       initialScope: scope => {
-        scope.setTags({ a: 'b' });
+        scope.setScopeData('tags', { a: 'b' });
         return scope;
       },
     });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope.getScopeData('tags')).toEqual({ a: 'b' });
   });
 
   it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {

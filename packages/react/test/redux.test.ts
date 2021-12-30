@@ -11,7 +11,7 @@ jest.mock('@sentry/minimal', () => ({
   configureScope: (callback: (scope: any) => Partial<Scope>) =>
     callback({
       addBreadcrumb: mockAddBreadcrumb,
-      setContext: mockSetContext,
+      addContext: mockSetContext,
     }),
 }));
 

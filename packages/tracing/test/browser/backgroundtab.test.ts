@@ -27,7 +27,7 @@ describe('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
-    hub.configureScope(scope => scope.setSpan(undefined));
+    hub.configureScope(scope => scope.setScopeData('span', undefined));
   });
 
   it('does not creates an event listener if global document is undefined', () => {
@@ -45,7 +45,7 @@ describe('registerBackgroundTabDetection', () => {
   it('finishes a transaction on visibility change', () => {
     registerBackgroundTabDetection();
     const transaction = hub.startTransaction({ name: 'test' });
-    hub.configureScope(scope => scope.setSpan(transaction));
+    hub.configureScope(scope => scope.setScopeData('span', transaction));
 
     // Simulate document visibility hidden event
     // @ts-ignore need to override global document

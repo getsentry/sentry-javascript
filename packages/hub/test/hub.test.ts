@@ -43,12 +43,12 @@ describe('Hub', () => {
   describe('pushScope', () => {
     test('simple', () => {
       const localScope = makeScope();
-      localScope.setExtra('a', 'b');
+      localScope.addExtra('a', 'b');
       const hub = new Hub(undefined, localScope);
       hub.pushScope();
       expect(hub.getStack()).toHaveLength(2);
       expect(hub.getStack()[1].scope).not.toBe(localScope);
-      expect(hub.getStack()[1].scope.getExtras()).toEqual({ a: 'b' });
+      expect(hub.getStack()[1].scope.getScopeData('extras')).toEqual({ a: 'b' });
     });
 
     test('inherit client', () => {
@@ -96,7 +96,7 @@ describe('Hub', () => {
         extra: { b: 3 },
       };
       const localScope = makeScope();
-      localScope.setExtra('a', 'b');
+      localScope.addExtra('a', 'b');
       const hub = new Hub({ a: 'b' } as any, localScope);
 
       localScope.addEventProcessor(async (processedEvent: Event) => {
@@ -179,7 +179,7 @@ describe('Hub', () => {
   describe('configureScope', () => {
     test('should have an access to provide scope', () => {
       const localScope = makeScope();
-      localScope.setExtra('a', 'b');
+      localScope.addExtra('a', 'b');
       const hub = new Hub({} as any, localScope);
       const cb = jest.fn();
       hub.configureScope(cb);
@@ -319,7 +319,7 @@ describe('Hub', () => {
       const currentHub = getCurrentHub();
       const myScope = makeScope();
       const myClient: any = { a: 'b' };
-      myScope.setExtra('a', 'b');
+      myScope.addExtra('a', 'b');
       const myHub = new Hub(myClient, myScope);
       myHub.run(hub => {
         expect(hub.getScope()).toBe(myScope);
@@ -344,8 +344,9 @@ describe('Hub', () => {
     test('withScope', () => {
       expect.assertions(6);
       const hub = new Hub(clientFn);
-      hub.addBreadcrumb({ message: 'My Breadcrumb' });
+      hub.addBreadcrumb({ message: 'hub Breadcrumb' });
       hub.withScope(scope => {
+        console.log('Breadcrumbs on scope', scope.getScopeData('breadcrumbs'));
         scope.addBreadcrumb({ message: 'scope breadcrumb' });
         const event: Event = {};
         void scope
@@ -353,7 +354,7 @@ describe('Hub', () => {
           .then((appliedEvent: Event | null) => {
             expect(appliedEvent).toBeTruthy();
             expect(appliedEvent!.breadcrumbs).toHaveLength(2);
-            expect(appliedEvent!.breadcrumbs![0].message).toEqual('My Breadcrumb');
+            expect(appliedEvent!.breadcrumbs![0].message).toEqual('hub Breadcrumb');
             expect(appliedEvent!.breadcrumbs![0]).toHaveProperty('timestamp');
             expect(appliedEvent!.breadcrumbs![1].message).toEqual('scope breadcrumb');
             expect(appliedEvent!.breadcrumbs![1]).toHaveProperty('timestamp');

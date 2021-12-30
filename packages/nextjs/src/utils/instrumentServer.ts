@@ -249,7 +249,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             { request: req },
           );
 
-          currentScope.setSpan(transaction);
+          currentScope.setScopeData('span', transaction);
 
           res.once('finish', () => {
             const transaction = getActiveTransaction();

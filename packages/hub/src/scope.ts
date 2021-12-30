@@ -280,7 +280,9 @@ export function makeScope(): Scope {
       timestamp: dateTimestampInSeconds(),
       ...breadcrumb,
     };
+    console.log('Before', scopeData.breadcrumbs);
     scopeData.breadcrumbs = [...scopeData.breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
+    console.log('Scope breadcrumbs', scopeData.breadcrumbs);
     _notifyScopeListeners();
     return scope;
   }
@@ -310,6 +312,10 @@ export function makeScope(): Scope {
 
     for (const processor of scope.getProcessors()) {
       newScope.addEventProcessor(processor);
+    }
+
+    for (const breadcrumb of scope.getScopeData('breadcrumbs')) {
+      newScope.addBreadcrumb(breadcrumb);
     }
 
     newScope.setScopeData('requestSession', scope.getScopeData('requestSession'));
