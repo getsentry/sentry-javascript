@@ -11,6 +11,7 @@ This beta releases contains several internal refactors that help reduce the bund
 - feat(core): Deprecate API class (#4281)
 - feat(dsn): Remove Dsn class (#4325)
 - feat(ember): Update ember dependencies (#4253)
+- fix(nextjs): Add sentry-cli existence check for enabling webpack plugin #4311
 - ref(tracing): deprecate span status enum (#4299)
 - ref(types): drop unused logLevel (#4317)
 - ref(types): deprecate request status enum (#4316)
