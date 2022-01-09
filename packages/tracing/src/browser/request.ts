@@ -30,6 +30,14 @@ export interface RequestInstrumentationOptions {
   traceXHR: boolean;
 
   /**
+   * Flag to disable send request with `sentry-trace`.
+   *
+   * Default: true
+   *
+   */
+  autoSentryTrace: boolean;
+
+  /**
    * This function will be called before creating a span for a request with the given url.
    * Return false if you don't want a span for the given url.
    *
@@ -79,13 +87,14 @@ export interface XHRData {
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
+  autoSentryTrace: true,
   tracingOrigins: DEFAULT_TRACING_ORIGINS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, autoSentryTrace, tracingOrigins, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentationOptions,
     ..._options,
   };
@@ -118,13 +127,13 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
 
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: FetchData) => {
-      fetchCallback(handlerData, shouldCreateSpan, spans);
+      fetchCallback(handlerData, shouldCreateSpan, spans, autoSentryTrace);
     });
   }
 
   if (traceXHR) {
     addInstrumentationHandler('xhr', (handlerData: XHRData) => {
-      xhrCallback(handlerData, shouldCreateSpan, spans);
+      xhrCallback(handlerData, shouldCreateSpan, spans, autoSentryTrace);
     });
   }
 }
@@ -136,6 +145,7 @@ export function fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
+  autoSentryTrace: boolean
 ): void {
   if (!hasTracingEnabled() || !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))) {
     return;
@@ -180,7 +190,7 @@ export function fetchCallback(
     if (isInstanceOf(request, Request)) {
       headers = (request as Request).headers;
     }
-    if (headers) {
+    if (autoSentryTrace && headers) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (typeof headers.append === 'function') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -204,6 +214,7 @@ export function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
+  autoSentryTrace: boolean
 ): void {
   if (
     !hasTracingEnabled() ||
@@ -245,7 +256,7 @@ export function xhrCallback(
     handlerData.xhr.__sentry_xhr_span_id__ = span.spanId;
     spans[handlerData.xhr.__sentry_xhr_span_id__] = span;
 
-    if (handlerData.xhr.setRequestHeader) {
+    if (autoSentryTrace && handlerData.xhr.setRequestHeader) {
       try {
         handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
       } catch (_) {

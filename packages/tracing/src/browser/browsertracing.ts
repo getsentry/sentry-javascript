@@ -177,6 +177,7 @@ export class BrowserTracing implements Integration {
       traceFetch,
       traceXHR,
       tracingOrigins,
+      autoSentryTrace,
       shouldCreateSpanForRequest,
     } = this.options;
 
@@ -190,7 +191,7 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    instrumentOutgoingRequests({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
+    instrumentOutgoingRequests({ traceFetch, traceXHR, tracingOrigins, autoSentryTrace, shouldCreateSpanForRequest });
   }
 
   /** Create routing idle transaction. */
