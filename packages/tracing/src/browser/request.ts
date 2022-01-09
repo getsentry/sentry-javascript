@@ -145,7 +145,7 @@ export function fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
-  autoSentryTrace: boolean
+  autoSentryTrace: boolean,
 ): void {
   if (!hasTracingEnabled() || !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))) {
     return;
@@ -214,7 +214,7 @@ export function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
   spans: Record<string, Span>,
-  autoSentryTrace: boolean
+  autoSentryTrace: boolean,
 ): void {
   if (
     !hasTracingEnabled() ||
