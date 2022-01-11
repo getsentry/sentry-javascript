@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getMainCarrier, setHubOnCarrier, getSession, getClient } from '@sentry/hub';
+import { getClient, getMainCarrier, getSession, lastEventId as hubLastEventId, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
@@ -136,7 +136,7 @@ export function init(options: NodeOptions = {}): void {
  * @returns The last event id of a captured event.
  */
 export function lastEventId(): string | undefined {
-  return getCurrentHub().lastEventId();
+  return hubLastEventId(getCurrentHub());
 }
 
 /**

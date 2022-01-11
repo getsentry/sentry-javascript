@@ -1,4 +1,4 @@
-import { Hub, withScope } from '@sentry/hub';
+import { captureException, getIntegration, Hub, withScope } from '@sentry/hub';
 import { Event, EventProcessor, Integration } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
@@ -65,7 +65,7 @@ export class Angular implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub | any): void {
     if (!this._module) {
       return;
     }
@@ -91,7 +91,7 @@ export class Angular implements Integration {
     return (exception: Error, cause?: string): void => {
       const hub = this._getCurrentHub && this._getCurrentHub();
 
-      if (hub && hub.getIntegration(Angular)) {
+      if (hub && getIntegration<Angular>(hub, Angular)) {
         withScope(hub, scope => {
           if (cause) {
             scope.setExtra('cause', cause);
@@ -119,7 +119,7 @@ export class Angular implements Integration {
             return event;
           });
 
-          hub.captureException(exception);
+          captureException(hub, exception);
         });
       }
       $delegate(exception, cause);

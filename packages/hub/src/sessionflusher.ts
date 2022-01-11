@@ -7,7 +7,7 @@ import {
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
-import { getCurrentHub } from './hub';
+import { getCurrentHub, getScope } from './hub';
 
 type ReleaseHealthAttributes = {
   environment?: string;
@@ -82,7 +82,7 @@ export class SessionFlusher implements SessionFlusherLike {
     if (!this._isEnabled) {
       return;
     }
-    const scope = getCurrentHub().getScope();
+    const scope = getScope(getCurrentHub());
     const requestSession = scope && scope.getRequestSession();
 
     if (requestSession && requestSession.status) {

@@ -1,4 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getClient, lastEventId as hubLastEventId } from '@sentry/hub';
 import { Hub } from '@sentry/types';
 import { addInstrumentationHandler, getGlobalObject, isDebugBuild, logger, resolvedSyncPromise } from '@sentry/utils';
 
@@ -6,7 +7,6 @@ import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
-import { getClient } from '@sentry/hub';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -117,7 +117,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   }
 
   if (!options.eventId) {
-    options.eventId = hub.lastEventId();
+    options.eventId = hubLastEventId(hub);
   }
   const client = getClient<BrowserClient>(hub);
   if (client) {
@@ -131,7 +131,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
  * @returns The last event id of a captured event.
  */
 export function lastEventId(): string | undefined {
-  return getCurrentHub().lastEventId();
+  return hubLastEventId(getCurrentHub());
 }
 
 /**

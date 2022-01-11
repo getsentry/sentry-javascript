@@ -8,22 +8,12 @@ import { Session, SessionContext } from './session';
 import { SeverityLevel } from './severity';
 import { Span, SpanContext } from './span';
 import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
-import { User } from './user';
 
 /**
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
  */
 export interface Hub {
-  /**
-   * Captures an exception event and sends it to Sentry.
-   *
-   * @param exception An exception-like object.
-   * @param hint May contain additional information about the original exception.
-   * @returns The generated eventId.
-   */
-  captureException(exception: any, hint?: EventHint): string;
-
   /**
    * Captures a message event and sends it to Sentry.
    *
@@ -43,13 +33,6 @@ export interface Hub {
   captureEvent(event: Event, hint?: EventHint): string;
 
   /**
-   * This is the getter for lastEventId.
-   *
-   * @returns The last event id of a captured event.
-   */
-  lastEventId(): string | undefined;
-
-  /**
    * Records a new breadcrumb which will be attached to future events.
    *
    * Breadcrumbs will be added to subsequent events to provide more context on
@@ -59,13 +42,6 @@ export interface Hub {
    * @param hint May contain additional information about the original breadcrumb.
    */
   addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
-
-  /**
-   * Updates user context information for future events.
-   *
-   * @param user User context object to be set in the current context. Pass `null` to unset the user.
-   */
-  setUser(user: User | null): void;
 
   /**
    * Set an object that will be merged sent as tags data with the event.

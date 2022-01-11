@@ -1,4 +1,4 @@
-import { Hub, withScope } from '@sentry/hub';
+import { captureException, captureMessage, getIntegration, Hub, withScope } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, getGlobalObject, safeJoin, severityFromString } from '@sentry/utils';
 
@@ -47,7 +47,7 @@ export class CaptureConsole implements Integration {
       fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]): void => {
         const hub = getCurrentHub();
 
-        if (hub.getIntegration(CaptureConsole)) {
+        if (getIntegration(hub, CaptureConsole)) {
           withScope(hub, scope => {
             scope.setLevel(severityFromString(level));
             scope.setExtra('arguments', args);
@@ -61,12 +61,12 @@ export class CaptureConsole implements Integration {
               if (args[0] === false) {
                 message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
                 scope.setExtra('arguments', args.slice(1));
-                hub.captureMessage(message);
+                captureMessage(hub, message);
               }
             } else if (level === 'error' && args[0] instanceof Error) {
-              hub.captureException(args[0]);
+              captureException(hub, args[0]);
             } else {
-              hub.captureMessage(message);
+              captureMessage(hub, message);
             }
           });
         }

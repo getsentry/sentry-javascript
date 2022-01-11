@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Hub, withScope } from '@sentry/hub';
-import { EventProcessor, Hub as IHub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
+import { captureException, getIntegration, getScope, Hub, withScope } from '@sentry/hub';
+import { EventProcessor, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
 /**
@@ -264,7 +264,7 @@ export class Vue implements Integration {
           // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
           /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           // eslint-disable-next-line deprecation/deprecation
-          const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
+          const tracingIntegration = getIntegration(getCurrentHub(), TRACING_GETTER);
           if (tracingIntegration) {
             this._tracingActivity = (tracingIntegration as any).constructor.pushActivity('Vue Application Render');
             const transaction = (tracingIntegration as any).constructor.getTransaction();
@@ -358,7 +358,7 @@ export class Vue implements Integration {
         // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
         // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
         // eslint-disable-next-line deprecation/deprecation
-        const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
+        const tracingIntegration = getIntegration(getCurrentHub(), TRACING_GETTER);
         if (tracingIntegration) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
@@ -379,7 +379,7 @@ export class Vue implements Integration {
     this._options.Vue.mixin({
       beforeCreate(this: ViewModel): void {
         // eslint-disable-next-line deprecation/deprecation
-        if (getCurrentHub().getIntegration(TRACING_GETTER) || getCurrentHub().getIntegration(BROWSER_TRACING_GETTER)) {
+        if (getIntegration(getCurrentHub(), TRACING_GETTER) || getIntegration(getCurrentHub(), BROWSER_TRACING_GETTER)) {
           // `this` points to currently rendered component
           applyTracingHooks(this, getCurrentHub);
         } else {
@@ -413,12 +413,12 @@ export class Vue implements Integration {
         metadata.lifecycleHook = info;
       }
 
-      if (getCurrentHub().getIntegration(Vue)) {
+      if (getIntegration(getCurrentHub(), Vue)) {
         // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
         setTimeout(() => {
           withScope(getCurrentHub(), scope => {
             scope.setContext('vue', metadata);
-            getCurrentHub().captureException(error);
+            captureException(getCurrentHub(), error);
           });
         });
       }
@@ -438,14 +438,16 @@ export class Vue implements Integration {
   }
 }
 
-interface HubType extends IHub {
-  getScope?(): Scope | undefined;
-}
+// interface HubType extends IHub {
+//   getScope?(): Scope | undefined;
+// }
 
 /** Grabs active transaction off scope */
-export function getActiveTransaction<T extends Transaction>(hub: HubType): T | undefined {
-  if (hub && hub.getScope) {
-    const scope = hub.getScope() as Scope;
+export function getActiveTransaction<T extends Transaction>(hub: Hub): T | undefined {
+  // TODO: I am confused about why the HubType and not IHub is used here.
+  // And why we need to check for `getScope`. So this may be wrong.
+  if (hub) {
+    const scope = getScope(hub) as Scope;
     if (scope) {
       return scope.getTransaction() as T | undefined;
     }

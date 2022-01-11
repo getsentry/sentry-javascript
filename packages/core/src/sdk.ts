@@ -1,4 +1,4 @@
-import { getCurrentHub, bindClient } from '@sentry/hub';
+import { bindClient, getCurrentHub, getScope } from '@sentry/hub';
 import { Client, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -17,7 +17,7 @@ export function initAndBind<F extends Client, O extends Options>(clientClass: Cl
     logger.enable();
   }
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getScope(hub);
   if (scope) {
     scope.update(options.initialScope);
   }

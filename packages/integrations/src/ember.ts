@@ -1,6 +1,6 @@
+import { captureException, captureMessage, getIntegration, Hub, withScope } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { getGlobalObject, isInstanceOf, logger } from '@sentry/utils';
-import { Hub, withScope } from '@sentry/hub';
 
 /** JSDoc */
 export class Ember implements Integration {
@@ -42,8 +42,8 @@ export class Ember implements Integration {
     const oldOnError = this._Ember.onerror;
 
     this._Ember.onerror = (error: Error): void => {
-      if (getCurrentHub().getIntegration(Ember)) {
-        getCurrentHub().captureException(error, { originalException: error });
+      if (getIntegration(getCurrentHub(), Ember)) {
+        captureException(getCurrentHub(), error, { originalException: error });
       }
 
       if (typeof oldOnError === 'function') {
@@ -55,14 +55,14 @@ export class Ember implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._Ember.RSVP.on('error', (reason: unknown): void => {
-      if (getCurrentHub().getIntegration(Ember)) {
+      if (getIntegration(getCurrentHub(), Ember)) {
         withScope(getCurrentHub(), scope => {
           if (isInstanceOf(reason, Error)) {
             scope.setExtra('context', 'Unhandled Promise error detected');
-            getCurrentHub().captureException(reason, { originalException: reason as Error });
+            captureException(getCurrentHub(), reason, { originalException: reason as Error });
           } else {
             scope.setExtra('reason', reason);
-            getCurrentHub().captureMessage('Unhandled Promise error detected');
+            captureMessage(getCurrentHub(), 'Unhandled Promise error detected');
           }
         });
       }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { captureMessage, getIntegration, Hub, withScope } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
-import { withScope, Hub } from '@sentry/hub';
 
 /** JSDoc */
 interface Report {
@@ -105,7 +105,7 @@ export class ReportingObserver implements Integration {
    */
   public handler(reports: Report[]): void {
     const hub = this._getCurrentHub && this._getCurrentHub();
-    if (!hub || !hub.getIntegration(ReportingObserver)) {
+    if (!hub || !getIntegration(hub, ReportingObserver)) {
       return;
     }
     for (const report of reports) {
@@ -138,7 +138,7 @@ export class ReportingObserver implements Integration {
           }
         }
 
-        hub.captureMessage(`${label}: ${details}`);
+        captureMessage(hub, `${label}: ${details}`);
       });
     }
   }

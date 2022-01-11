@@ -7,7 +7,6 @@ import {
   EventHint,
   Extra,
   Extras,
-  Hub as HubInterface,
   Integration,
   IntegrationClass,
   Primitive,
@@ -81,6 +80,32 @@ export interface DomainAsCarrier extends Carrier {
   members: { [key: string]: any }[];
 }
 
+/**
+ * Internal class used to make sure we always have the latest internal functions
+ * working in case we have a version conflict.
+ */
+export class Hub {
+  /** Is a {@link Layer}[] containing the client and scope */
+  public readonly stack: Layer[] = [{}];
+
+  /** Contains the last event id of a captured event.  */
+  public _lastEventId?: string;
+
+  /**
+   * Creates a new instance of the hub, will push one {@link Layer} into the
+   * internal stack on creation.
+   *
+   * @param client bound to the hub.
+   * @param scope bound to the hub.
+   * @param version number, higher number means higher priority.
+   */
+  public constructor(client?: Client, scope: Scope = new Scope(), public readonly _version: number = API_VERSION) {
+    getStackTop(this).scope = scope;
+    if (client) {
+      bindClient(this, client);
+    }
+  }
+}
 
 /**
  * Returns the topmost scope layer in the order domain > local > process.
@@ -88,12 +113,12 @@ export interface DomainAsCarrier extends Carrier {
  * @hidden
  * */
 export function getStackTop(hub: Hub): Layer {
-  return hub._stack[hub._stack.length - 1];
+  return hub.stack[hub.stack.length - 1];
 }
 
 /** Returns the scope stack for domains or the process. */
 export function getStack(hub: Hub): Layer[] {
-  return hub._stack;
+  return hub.stack;
 }
 
 /**
@@ -133,7 +158,7 @@ export function popScope(hub: Hub): boolean {
  */
 export function pushScope(hub: Hub): Scope {
   // We want to clone the content of prev scope
-  const scope = cloneScope(hub.getScope());
+  const scope = cloneScope(getScope(hub));
   getStack(hub).push({
     client: getClient(hub),
     scope,
@@ -183,360 +208,406 @@ export function getClient<C extends Client>(hub: Hub): C | undefined {
 }
 
 /**
- * @inheritDoc
+ * Updates user context information for future events.
+ *
+ * @param hub The Hub instance.
+ * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export class Hub implements HubInterface {
-  /** Is a {@link Layer}[] containing the client and scope */
-  public readonly _stack: Layer[] = [{}];
+export function setUser(hub: Hub, user: User | null): void {
+  const scope = getScope(hub);
+  if (scope) scope.setUser(user);
+}
 
-  /** Contains the last event id of a captured event.  */
-  private _lastEventId?: string;
+/** Returns the scope of the top stack. */
+export function getScope(hub: Hub): Scope | undefined {
+  return getStackTop(hub).scope;
+}
 
-  /**
-   * Creates a new instance of the hub, will push one {@link Layer} into the
-   * internal stack on creation.
-   *
-   * @param client bound to the hub.
-   * @param scope bound to the hub.
-   * @param version number, higher number means higher priority.
-   */
-  public constructor(client?: Client, scope: Scope = new Scope(), public readonly _version: number = API_VERSION) {
-    getStackTop(this).scope = scope;
-    if (client) {
-      bindClient(this, client);
+/**
+ * This is the getter for lastEventId.
+ *
+ * @returns The last event id of a captured event.
+ */
+export function lastEventId(hub: Hub): string | undefined {
+  return hub._lastEventId;
+}
+
+/**
+ * Sends the current session on the scope to Sentry
+ * @param hub The Hub instance
+ * @param shouldEndSession If set the session will be marked as exited and removed from the scope
+ */
+export function captureSession(hub: Hub, shouldEndSession: boolean = false): void {
+  // both send the update and pull the session from the scope
+  if (shouldEndSession) {
+    return endSession(hub);
+  }
+
+  // only send the update
+  _sendSessionUpdate(hub);
+}
+
+/**
+ * Sends the current Session on the scope
+ */
+function _sendSessionUpdate(hub: Hub): void {
+  const { scope, client } = getStackTop(hub);
+  if (!scope) return;
+
+  const session = getSession(scope)
+  if (session) {
+    if (client && client.captureSession) {
+      client.captureSession(session);
     }
   }
+}
 
-  /** Returns the scope of the top stack. */
-  public getScope(): Scope | undefined {
-    return getStackTop(this).scope;
+/**
+ * Ends the session that lives on the current scope and sends it to Sentry
+ */
+function endSession(hub: Hub): void {
+  const layer = getStackTop(hub);
+  const scope = layer && layer.scope;
+  const session = getSession(scope);
+  if (session) {
+    session.close();
   }
 
-  /**
-   * @inheritDoc
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public captureException(exception: any, hint?: EventHint): string {
-    const eventId = (this._lastEventId = uuid4());
-    let finalHint = hint;
+  _sendSessionUpdate(hub);
 
-    // If there's no explicit hint provided, mimic the same thing that would happen
-    // in the minimal itself to create a consistent behavior.
-    // We don't do this in the client, as it's the lowest level API, and doing this,
-    // would prevent user from having full control over direct calls.
-    if (!hint) {
-      let syntheticException: Error;
-      try {
-        throw new Error('Sentry syntheticException');
-      } catch (exception) {
-        syntheticException = exception as Error;
-      }
-      finalHint = {
-        originalException: exception,
-        syntheticException,
-      };
+  // the session is over; take it off of the scope
+  if (scope) {
+    scope.setSession();
+  }
+}
+
+/**
+ * Starts a new `Session`, sets on the current scope and returns it.
+ *
+ * To finish a `session`, it has to be passed directly to `client.captureSession`, which is done automatically
+ * when using `endSession(hub)` for the session currently stored on the scope.
+ *
+ * When there's already an existing session on the scope, it'll be automatically ended.
+ *
+ * @param hub The Hub instance.
+ * @param context Optional properties of the new `Session`.
+ *
+ * @returns The session which was just started
+ */
+export function startSession(hub: Hub, context?: SessionContext): Session {
+  const { scope, client } = getStackTop(hub);
+  const { release, environment } = (client && client.getOptions()) || {};
+
+  // Will fetch userAgent if called from browser sdk
+  const global = getGlobalObject<{ navigator?: { userAgent?: string } }>();
+  const { userAgent } = global.navigator || {};
+
+  const session = new Session({
+    release,
+    environment,
+    ...(scope && { user: scope.getUser() }),
+    ...(userAgent && { userAgent }),
+    ...context,
+  });
+
+  if (scope) {
+    // End existing session if there's one
+    const currentSession = getSession(scope);
+    if (currentSession && currentSession.status === 'ok') {
+      currentSession.update({ status: 'exited' });
     }
+    endSession(hub);
 
-    this._invokeClient('captureException', exception, {
-      ...finalHint,
-      event_id: eventId,
-    });
-    return eventId;
+    // Afterwards we set the new session on the scope
+    scope.setSession(session);
   }
 
-  /**
-   * @inheritDoc
-   */
-  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
-    const eventId = (this._lastEventId = uuid4());
-    let finalHint = hint;
+  return session;
+}
 
-    // If there's no explicit hint provided, mimic the same thing that would happen
-    // in the minimal itself to create a consistent behavior.
-    // We don't do this in the client, as it's the lowest level API, and doing this,
-    // would prevent user from having full control over direct calls.
-    if (!hint) {
-      let syntheticException: Error;
-      try {
-        throw new Error(message);
-      } catch (exception) {
-        syntheticException = exception as Error;
-      }
-      finalHint = {
-        originalException: message,
-        syntheticException,
-      };
-    }
+/**
+ * Captures an exception event and sends it to Sentry.
+ *
+ * @param hub The Hub instance.
+ * @param exception An exception-like object.
+ * @param hint May contain additional information about the original exception.
+ * @returns The generated eventId.
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function captureException(hub: Hub, exception: any, hint?: EventHint): string {
+  const eventId = (hub._lastEventId = uuid4());
+  let finalHint = hint;
 
-    this._invokeClient('captureMessage', message, level, {
-      ...finalHint,
-      event_id: eventId,
-    });
-    return eventId;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = uuid4();
-    if (event.type !== 'transaction') {
-      this._lastEventId = eventId;
-    }
-
-    this._invokeClient('captureEvent', event, {
-      ...hint,
-      event_id: eventId,
-    });
-    return eventId;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public lastEventId(): string | undefined {
-    return this._lastEventId;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
-    const { scope, client } = getStackTop(this);
-
-    if (!scope || !client) return;
-
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
-    (client.getOptions && client.getOptions()) || {};
-
-    if (maxBreadcrumbs <= 0) return;
-
-    const timestamp = dateTimestampInSeconds();
-    const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    const finalBreadcrumb = beforeBreadcrumb
-      ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
-      : mergedBreadcrumb;
-
-    if (finalBreadcrumb === null) return;
-
-    scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setUser(user: User | null): void {
-    const scope = this.getScope();
-    if (scope) scope.setUser(user);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setTags(tags: { [key: string]: Primitive }): void {
-    const scope = this.getScope();
-    if (scope) scope.setTags(tags);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setExtras(extras: Extras): void {
-    const scope = this.getScope();
-    if (scope) scope.setExtras(extras);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setTag(key: string, value: Primitive): void {
-    const scope = this.getScope();
-    if (scope) scope.setTag(key, value);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setExtra(key: string, extra: Extra): void {
-    const scope = this.getScope();
-    if (scope) scope.setExtra(key, extra);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setContext(name: string, context: { [key: string]: any } | null): void {
-    const scope = this.getScope();
-    if (scope) scope.setContext(name, context);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public configureScope(callback: (scope: Scope) => void): void {
-    const { scope, client } = getStackTop(this);
-    if (scope && client) {
-      callback(scope);
-    }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public run(callback: (hub: Hub) => void): void {
-    const oldHub = makeMain(this);
+  // If there's no explicit hint provided, mimic the same thing that would happen
+  // in the minimal itself to create a consistent behavior.
+  // We don't do this in the client, as it's the lowest level API, and doing this,
+  // would prevent user from having full control over direct calls.
+  if (!hint) {
+    let syntheticException: Error;
     try {
-      callback(this);
-    } finally {
-      makeMain(oldHub);
+      throw new Error('Sentry syntheticException');
+    } catch (exception) {
+      syntheticException = exception as Error;
     }
+    finalHint = {
+      originalException: exception,
+      syntheticException,
+    };
   }
 
-  /**
-   * @inheritDoc
-   */
-  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    const client = getClient(this);
-    if (!client) return null;
+  _invokeClient(hub, 'captureException', exception, {
+    ...finalHint,
+    event_id: eventId,
+  });
+  return eventId;
+}
+
+/**
+ * Captures a message event and sends it to Sentry.
+ *
+ * @param hub The Hub instance.
+ * @param message The message to send to Sentry.
+ * @param level Define the level of the message.
+ * @param hint May contain additional information about the original exception.
+ * @returns The generated eventId.
+ */
+export function captureMessage(hub: Hub, message: string, level?: SeverityLevel, hint?: EventHint): string {
+  const eventId = (hub._lastEventId = uuid4());
+  let finalHint = hint;
+
+  // If there's no explicit hint provided, mimic the same thing that would happen
+  // in the minimal itself to create a consistent behavior.
+  // We don't do this in the client, as it's the lowest level API, and doing this,
+  // would prevent user from having full control over direct calls.
+  if (!hint) {
+    let syntheticException: Error;
     try {
-      return client.getIntegration(integration);
-    } catch (_oO) {
-      logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
-      return null;
+      throw new Error(message);
+    } catch (exception) {
+      syntheticException = exception as Error;
     }
+    finalHint = {
+      originalException: message,
+      syntheticException,
+    };
   }
 
-  /**
-   * @inheritDoc
-   */
-  public startSpan(context: SpanContext): Span {
-    return this._callExtensionMethod('startSpan', context);
+  _invokeClient(hub, 'captureMessage', message, level, {
+    ...finalHint,
+    event_id: eventId,
+  });
+  return eventId;
+}
+
+/**
+ * Captures a manually created event and sends it to Sentry.
+ *
+ * @param hub The Hub instance.
+ * @param event The event to send to Sentry.
+ * @param hint May contain additional information about the original exception.
+ */
+export function captureEvent(hub: Hub, event: Event, hint?: EventHint): string {
+  const eventId = uuid4();
+  if (event.type !== 'transaction') {
+    hub._lastEventId = eventId;
   }
 
-  /**
-   * @inheritDoc
-   */
-  public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context, customSamplingContext);
+  _invokeClient(hub, 'captureEvent', event, {
+    ...hint,
+    event_id: eventId,
+  });
+  return eventId;
+}
+
+/**
+ * Records a new breadcrumb which will be attached to future events.
+ *
+ * Breadcrumbs will be added to subsequent events to provide more context on
+ * user's actions prior to an error or crash.
+ *
+ * @param hub The Hub instance.
+ * @param breadcrumb The breadcrumb to record.
+ * @param hint May contain additional information about the original breadcrumb.
+ */
+export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
+  const { scope, client } = getStackTop(hub);
+
+  if (!scope || !client) return;
+
+// eslint-disable-next-line @typescript-eslint/unbound-method
+  const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
+  (client.getOptions && client.getOptions()) || {};
+
+  if (maxBreadcrumbs <= 0) return;
+
+  const timestamp = dateTimestampInSeconds();
+  const mergedBreadcrumb = { timestamp, ...breadcrumb };
+  const finalBreadcrumb = beforeBreadcrumb
+    ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
+    : mergedBreadcrumb;
+
+  if (finalBreadcrumb === null) return;
+
+  scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
+}
+
+/**
+ * Set an object that will be merged sent as tags data with the event.
+ *
+ * @param hub The Hub instance.
+ * @param tags Tags context object to merge into current context.
+ */
+export function setTags(hub: Hub, tags: { [key: string]: Primitive }): void {
+  const scope = getScope(hub);
+  if (scope) scope.setTags(tags);
+}
+
+/**
+ * Set an object that will be merged sent as extra data with the event.
+ * @param hub The Hub instance.
+ * @param extras Extras object to merge into current context.
+ */
+export function setExtras(hub: Hub, extras: Extras): void {
+  const scope = getScope(hub);
+  if (scope) scope.setExtras(extras);
+}
+
+/**
+ * Set key:value that will be sent as tags data with the event.
+ *
+ * Can also be used to unset a tag, by passing `undefined`.
+ *
+ * @param hub The Hub instance.
+ * @param key String key of tag
+ * @param value Value of tag
+ */
+export function setTag(hub: Hub, key: string, value: Primitive): void {
+  const scope = getScope(hub);
+  if (scope) scope.setTag(key, value);
+}
+
+/**
+ * Set key:value that will be sent as extra data with the event.
+ * @param hub The Hub instance.
+ * @param key String of extra
+ * @param extra Any kind of data. This data will be normalized.
+ */
+export function setExtra(hub: Hub, key: string, extra: Extra): void {
+  const scope = getScope(hub);
+  if (scope) scope.setExtra(key, extra);
+}
+
+/**
+ * Sets context data with the given name.
+ * @param hub The Hub instance.
+ * @param name of the context
+ * @param context Any kind of data. This data will be normalized.
+ */
+export function setContext(hub: Hub, name: string, context: { [key: string]: any } | null): void {
+  const scope = getScope(hub);
+  if (scope) scope.setContext(name, context);
+}
+
+/**
+ * Callback to set context information onto the scope.
+ *
+ * @param hub The Hub instance.
+ * @param callback Callback function that receives Scope.
+ */
+export function configureScope(hub: Hub, callback: (scope: Scope) => void): void {
+  const { scope, client } = getStackTop(hub);
+  if (scope && client) {
+    callback(scope);
   }
+}
 
-  /**
-   * @inheritDoc
-   */
-  public traceHeaders(): { [key: string]: string } {
-    return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
+/**
+ * For the duration of the callback, this hub will be set as the global current Hub.
+ * This function is useful if you want to run your own client and hook into an already initialized one
+ * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
+ */
+export function run(hub: Hub, callback: (hub: Hub) => void): void {
+  const oldHub = makeMain(hub);
+  try {
+    callback(hub);
+  } finally {
+    makeMain(oldHub);
   }
+}
 
-  /**
-   * @inheritDoc
-   */
-  public captureSession(endSession: boolean = false): void {
-    // both send the update and pull the session from the scope
-    if (endSession) {
-      return this.endSession();
-    }
-
-    // only send the update
-    this._sendSessionUpdate();
+/** Returns the integration if installed on the current client. */
+export function getIntegration<T extends Integration>(hub: Hub, integration: IntegrationClass<T>): T | null {
+  const client = getClient(hub);
+  if (!client) return null;
+  try {
+    return client.getIntegration(integration);
+  } catch (_oO) {
+    logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
+    return null;
   }
+}
 
-  /**
-   * @inheritDoc
-   */
-  public endSession(): void {
-    const layer = getStackTop(this);
-    const scope = layer && layer.scope;
-    const session = getSession(scope);
-    if (session) {
-      session.close();
-    }
-    this._sendSessionUpdate();
+/**
+ * @deprecated No longer does anything. Use use {@link Transaction.startChild} instead.
+ */
+export function startSpan(hub: Hub, context: SpanContext): Span {
+  return _callExtensionMethod(hub, 'startSpan', context);
+}
 
-    // the session is over; take it off of the scope
-    if (scope) {
-      scope.setSession();
-    }
+/**
+ * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
+ *
+ * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a
+ * new child span within the transaction or any span, call the respective `.startChild()` method.
+ *
+ * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
+ *
+ * The transaction must be finished with a call to its `.finish()` method, at which point the transaction with all its
+ * finished child spans will be sent to Sentry.
+ *
+ * @param hub The Hub i
+ * @param context Properties of the new `Transaction`.
+ * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
+ * default values). See {@link Options.tracesSampler}.
+ *
+ * @returns The transaction which was just started
+ */
+export function startTransaction(hub: Hub, context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
+  return _callExtensionMethod(hub, 'startTransaction', context, customSamplingContext);
+}
+
+/** Returns all trace headers that are currently on the top scope. */
+export function traceHeaders(hub: Hub): { [key: string]: string } {
+  return _callExtensionMethod<{ [key: string]: string }>(hub, 'traceHeaders');
+}
+
+/**
+ * Internal helper function to call a method on the top client if it exists.
+ *
+ * @param method The method to call on the client.
+ * @param args Arguments to pass to the client function.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _invokeClient<M extends keyof Client>(hub: Hub, method: M, ...args: any[]): void {
+  const { scope, client } = getStackTop(hub);
+  if (client && client[method]) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    (client as any)[method](...args, scope);
   }
+}
 
-  /**
-   * @inheritDoc
-   */
-  public startSession(context?: SessionContext): Session {
-    const { scope, client } = getStackTop(this);
-    const { release, environment } = (client && client.getOptions()) || {};
-
-    // Will fetch userAgent if called from browser sdk
-    const global = getGlobalObject<{ navigator?: { userAgent?: string } }>();
-    const { userAgent } = global.navigator || {};
-
-    const session = new Session({
-      release,
-      environment,
-      ...(scope && { user: scope.getUser() }),
-      ...(userAgent && { userAgent }),
-      ...context,
-    });
-
-    if (scope) {
-      // End existing session if there's one
-      const currentSession = getSession(scope);
-      if (currentSession && currentSession.status === 'ok') {
-        currentSession.update({ status: 'exited' });
-      }
-      this.endSession();
-
-      // Afterwards we set the new session on the scope
-      scope.setSession(session);
-    }
-
-    return session;
+/**
+ * Calls global extension method and binding current instance to the function call
+ */
+// @ts-ignore Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _callExtensionMethod<T>(hub: Hub, method: string, ...args: any[]): T {
+  const carrier = getMainCarrier();
+  const sentry = carrier.__SENTRY__;
+  if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
+    return sentry.extensions[method].apply(hub, args);
   }
-
-  /**
-   * Sends the current Session on the scope
-   */
-  private _sendSessionUpdate(): void {
-    const { scope, client } = getStackTop(this);
-    if (!scope) return;
-
-    const session = getSession(scope)
-    if (session) {
-      if (client && client.captureSession) {
-        client.captureSession(session);
-      }
-    }
-  }
-
-  /**
-   * Internal helper function to call a method on the top client if it exists.
-   *
-   * @param method The method to call on the client.
-   * @param args Arguments to pass to the client function.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
-    const { scope, client } = getStackTop(this);
-    if (client && client[method]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      (client as any)[method](...args, scope);
-    }
-  }
-
-  /**
-   * Calls global extension method and binding current instance to the function call
-   */
-  // @ts-ignore Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _callExtensionMethod<T>(method: string, ...args: any[]): T {
-    const carrier = getMainCarrier();
-    const sentry = carrier.__SENTRY__;
-    if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
-      return sentry.extensions[method].apply(this, args);
-    }
-    logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
-  }
+  logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
 }
 
 /**
