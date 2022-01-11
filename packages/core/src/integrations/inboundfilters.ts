@@ -1,4 +1,5 @@
-import { addGlobalEventProcessor, getCurrentHub, getClient } from '@sentry/hub';
+import { addGlobalEventProcessor, getClient,getCurrentHub } from '@sentry/hub';
+import { getIntegration } from '@sentry/hub/src';
 import { Event, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@sentry/utils';
 
@@ -42,7 +43,9 @@ export class InboundFilters implements Integration {
       if (!hub) {
         return event;
       }
-      const self = hub.getIntegration(InboundFilters);
+      // TODO: this is really confusing, why would ask back the integration?
+      // setupOnce() belongs already to `self` (this) so it is confusing to ask for it. No?
+      const self = getIntegration(hub, InboundFilters);
       if (self) {
         const client = getClient(hub);
         const clientOptions = client ? client.getOptions() : {};

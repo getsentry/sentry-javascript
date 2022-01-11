@@ -89,7 +89,7 @@ export class Hub {
   public readonly stack: Layer[] = [{}];
 
   /** Contains the last event id of a captured event.  */
-  public _lastEventId?: string;
+  public lastEventId?: string;
 
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
@@ -229,7 +229,7 @@ export function getScope(hub: Hub): Scope | undefined {
  * @returns The last event id of a captured event.
  */
 export function lastEventId(hub: Hub): string | undefined {
-  return hub._lastEventId;
+  return hub.lastEventId;
 }
 
 /**
@@ -335,7 +335,7 @@ export function startSession(hub: Hub, context?: SessionContext): Session {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function captureException(hub: Hub, exception: any, hint?: EventHint): string {
-  const eventId = (hub._lastEventId = uuid4());
+  const eventId = (hub.lastEventId = uuid4());
   let finalHint = hint;
 
   // If there's no explicit hint provided, mimic the same thing that would happen
@@ -372,7 +372,7 @@ export function captureException(hub: Hub, exception: any, hint?: EventHint): st
  * @returns The generated eventId.
  */
 export function captureMessage(hub: Hub, message: string, level?: SeverityLevel, hint?: EventHint): string {
-  const eventId = (hub._lastEventId = uuid4());
+  const eventId = (hub.lastEventId = uuid4());
   let finalHint = hint;
 
   // If there's no explicit hint provided, mimic the same thing that would happen
@@ -409,7 +409,7 @@ export function captureMessage(hub: Hub, message: string, level?: SeverityLevel,
 export function captureEvent(hub: Hub, event: Event, hint?: EventHint): string {
   const eventId = uuid4();
   if (event.type !== 'transaction') {
-    hub._lastEventId = eventId;
+    hub.lastEventId = eventId;
   }
 
   _invokeClient(hub, 'captureEvent', event, {
