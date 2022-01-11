@@ -131,8 +131,8 @@ describe('Scope', () => {
 
     test('setProcessingMetadata', () => {
       const scope = new Scope();
-      scope.setProcessingMetadata({ dogs: 'are great!' });
-      expect((scope as any)._processingMetadata.dogs).toEqual('are great!');
+      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+      expect((scope as any)._sdkProcessingMetadata.dogs).toEqual('are great!');
     });
 
     test('chaining', () => {
@@ -206,7 +206,7 @@ describe('Scope', () => {
       scope.setTransactionName('/abc');
       scope.addBreadcrumb({ message: 'test' });
       scope.setContext('os', { id: '1' });
-      scope.setProcessingMetadata({ dogs: 'are great!' });
+      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
 
       const event: Event = {};
       return scope.applyToEvent(event).then(processedEvent => {
@@ -218,7 +218,7 @@ describe('Scope', () => {
         expect(processedEvent!.transaction).toEqual('/abc');
         expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
         expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
-        expect(processedEvent!.processingMetadata).toEqual({ dogs: 'are great!' });
+        expect(processedEvent!.sdkProcessingMetadata).toEqual({ dogs: 'are great!' });
       });
     });
 

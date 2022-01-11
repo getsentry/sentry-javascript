@@ -45,7 +45,7 @@ export interface Event {
   measurements?: Measurements;
   debug_meta?: DebugMeta;
   // A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get sent to Sentry
-  processingMetadata?: { [key: string]: any };
+  sdkProcessingMetadata?: { [key: string]: any };
 }
 
 /** JSDoc */

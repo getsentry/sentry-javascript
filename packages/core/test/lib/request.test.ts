@@ -164,7 +164,7 @@ describe('eventToSentryRequest', () => {
   });
 
   it('removes processing metadata before serializing event', () => {
-    event.processingMetadata = { dogs: 'are great!' };
+    event.sdkProcessingMetadata = { dogs: 'are great!' };
 
     const result = eventToSentryRequest(event, api);
     const envelope = parseEnvelopeRequest(result);
