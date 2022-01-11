@@ -13,8 +13,6 @@ const envelopeRequestParser = (request: Request | null): Event => {
   return envelope.split('\n').map(line => JSON.parse(line))[2];
 };
 
-type SentryRequestType = 'event' | 'transaction';
-
 /**
  * Run script at the given path inside the test environment.
  *
@@ -27,16 +25,6 @@ async function runScriptInSandbox(page: Page, path: string): Promise<void> {
 }
 
 /**
- * Wait and get Sentry's request sending the event.
- *
- * @param {Page} page
- * @returns {*} {Promise<Request>}
- */
-async function waitForSentryRequest(page: Page, requestType: SentryRequestType = 'event'): Promise<Request> {
-  return page.waitForRequest(requestType === 'event' ? storeUrlRegex : envelopeUrlRegex);
-}
-
-/**
  * Wait and get Sentry's request sending the event at the given URL, or the current page
  *
  * @param {Page} page
@@ -44,9 +32,7 @@ async function waitForSentryRequest(page: Page, requestType: SentryRequestType =
  * @return {*}  {Promise<Event>}
  */
 async function getSentryRequest(page: Page, url?: string): Promise<Event> {
-  const request = (await Promise.all([url ? page.goto(url) : Promise.resolve(null), waitForSentryRequest(page)]))[1];
-
-  return storeRequestParser(request);
+  return (await getMultipleSentryRequests(page, 1, url))[0];
 }
 
 /**
@@ -57,15 +43,7 @@ async function getSentryRequest(page: Page, url?: string): Promise<Event> {
  * @return {*}  {Promise<Event>}
  */
 async function getSentryTransactionRequest(page: Page, url?: string): Promise<Event> {
-  const request = (
-    await Promise.all([url ? page.goto(url) : Promise.resolve(null), waitForSentryRequest(page, 'transaction')])
-  )[1];
-
-  try {
-    return envelopeRequestParser(request);
-  } catch (err) {
-    return Promise.reject(err);
-  }
+  return (await getMultipleSentryTransactionRequests(page, 1, url))[0];
 }
 
 /**
@@ -170,7 +148,6 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
 
 export {
   runScriptInSandbox,
-  waitForSentryRequest,
   getMultipleSentryRequests,
   getMultipleSentryTransactionRequests,
   getSentryRequest,
