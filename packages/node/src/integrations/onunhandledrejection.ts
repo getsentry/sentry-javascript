@@ -1,5 +1,5 @@
 import { getCurrentHub, Scope } from '@sentry/core';
-import { withScope } from '@sentry/hub';
+import { getIntegration, withScope } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
@@ -48,7 +48,7 @@ export class OnUnhandledRejection implements Integration {
   public sendUnhandledPromise(reason: any, promise: any): void {
     const hub = getCurrentHub();
 
-    if (!hub.getIntegration(OnUnhandledRejection)) {
+    if (!getIntegration(hub, OnUnhandledRejection)) {
       this._handleRejection(reason);
       return;
     }

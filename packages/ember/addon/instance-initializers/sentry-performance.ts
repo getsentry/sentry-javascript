@@ -8,6 +8,7 @@ import { getActiveTransaction } from '..';
 import { browserPerformanceTimeOrigin, getGlobalObject, timestampWithMs } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
+import { getIntegration } from '@sentry/hub';
 
 function getSentryConfig() {
   const _global = getGlobalObject<GlobalConfig>();
@@ -266,6 +267,7 @@ function _instrumentComponents(config: EmberSentryConfig) {
   const beforeComponentDefinitionEntries = {} as RenderEntries;
 
   const subscribe = Ember.subscribe;
+
   function _subscribeToRenderEvents() {
     subscribe('render.component', {
       before(_name: string, _timestamp: number, payload: Payload) {
@@ -288,6 +290,7 @@ function _instrumentComponents(config: EmberSentryConfig) {
       });
     }
   }
+
   _subscribeToRenderEvents();
 }
 
@@ -366,9 +369,12 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     }),
   ];
 
-  if (isTesting() && Sentry.getCurrentHub()?.getIntegration(tracing.Integrations.BrowserTracing)) {
-    // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
-    return;
+  if (isTesting()) {
+    const hub = Sentry.getCurrentHub();
+    if (getIntegration(hub, tracing.Integrations.BrowserTracing)) {
+      // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
+      return;
+    }
   }
 
   Sentry.init(sentryConfig); // Call init again to rebind client with new integration list in addition to the defaults

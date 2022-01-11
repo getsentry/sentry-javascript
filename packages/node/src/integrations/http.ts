@@ -12,6 +12,7 @@ import {
   RequestMethod,
   RequestMethodArgs,
 } from './utils/http';
+import { addBreadcrumb, getIntegration } from '@sentry/hub';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
@@ -163,11 +164,12 @@ function _createWrappedRequestMethodFactory(
  * Captures Breadcrumb based on provided request/response pair
  */
 function addRequestBreadcrumb(event: string, url: string, req: http.ClientRequest, res?: http.IncomingMessage): void {
-  if (!getCurrentHub().getIntegration(Http)) {
+  if (!getIntegration(getCurrentHub(), Http)) {
     return;
   }
 
-  getCurrentHub().addBreadcrumb(
+  addBreadcrumb(
+    getCurrentHub(),
     {
       category: 'http',
       data: {

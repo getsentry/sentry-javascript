@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { getClient, getSession } from '@sentry/hub';
+import { configureScope, getClient, getSession } from '@sentry/hub';
 import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -71,7 +71,7 @@ export function tracingHandler(): (
     );
 
     // We put the transaction on the scope so users can attach children to it
-    getCurrentHub().configureScope(scope => {
+    configureScope(getCurrentHub(), scope => {
       scope.setSpan(transaction);
     });
 
@@ -418,7 +418,7 @@ export function requestHandler(
     local.run(() => {
       const currentHub = getCurrentHub();
 
-      currentHub.configureScope(scope => {
+      configureScope(currentHub, scope => {
         scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
         const client = getClient<NodeClient>(currentHub);
         if (isAutoSessionTrackingEnabled(client)) {

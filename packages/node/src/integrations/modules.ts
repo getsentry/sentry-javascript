@@ -1,6 +1,7 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
+import { getIntegration } from '@sentry/hub';
 
 let moduleCache: { [key: string]: string };
 
@@ -82,7 +83,7 @@ export class Modules implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor(event => {
-      if (!getCurrentHub().getIntegration(Modules)) {
+      if (!getIntegration(getCurrentHub(), Modules)) {
         return event;
       }
       return {

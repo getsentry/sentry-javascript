@@ -1,5 +1,6 @@
-import { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
+import { Event, EventProcessor, Exception, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { Hub, getIntegration } from '@sentry/hub';
 
 /** Deduplication filter */
 export class Dedupe implements Integration {
@@ -23,7 +24,7 @@ export class Dedupe implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((currentEvent: Event) => {
-      const self = getCurrentHub().getIntegration(Dedupe);
+      const self = getIntegration(getCurrentHub(), Dedupe);
       if (self) {
         // Juuust in case something goes wrong
         try {

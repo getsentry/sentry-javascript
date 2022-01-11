@@ -1,5 +1,12 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getClient, getMainCarrier, getSession, lastEventId as hubLastEventId, setHubOnCarrier } from '@sentry/hub';
+import {
+  getClient,
+  getMainCarrier,
+  startSession,
+  getSession,
+  lastEventId as hubLastEventId,
+  setHubOnCarrier,
+} from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
@@ -225,7 +232,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
  */
 function startSessionTracking(): void {
   const hub = getCurrentHub();
-  hub.startSession();
+  startSession(hub);
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
   // The 'beforeExit' event is not emitted for conditions causing explicit termination,
   // such as calling process.exit() or uncaught exceptions.

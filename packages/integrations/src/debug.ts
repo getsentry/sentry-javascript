@@ -1,5 +1,6 @@
 import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
+import { getIntegration } from '@sentry/hub';
 
 /** JSDoc */
 interface DebugOptions {
@@ -38,7 +39,7 @@ export class Debug implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
-      const self = getCurrentHub().getIntegration(Debug);
+      const self = getIntegration(getCurrentHub(), Debug);
       if (self) {
         if (self._options.debugger) {
           // eslint-disable-next-line no-debugger

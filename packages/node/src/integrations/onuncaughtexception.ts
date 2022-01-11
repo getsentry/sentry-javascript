@@ -1,5 +1,5 @@
 import { getCurrentHub, Scope } from '@sentry/core';
-import { getClient, withScope } from '@sentry/hub';
+import { getClient, getIntegration, withScope } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -76,7 +76,7 @@ export class OnUncaughtException implements Integration {
         firstError = error;
         caughtFirstError = true;
 
-        if (hub.getIntegration(OnUncaughtException)) {
+        if (getIntegration(hub, OnUncaughtException)) {
           withScope(hub, (scope: Scope) => {
             scope.setLevel('fatal');
             hub.captureException(error, {
