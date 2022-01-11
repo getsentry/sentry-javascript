@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { getScope, Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -57,7 +57,7 @@ export class Postgres implements Integration {
      */
     fill(Client.prototype, 'query', function(orig: () => void | Promise<unknown>) {
       return function(this: unknown, config: unknown, values: unknown, callback: unknown) {
-        const scope = getCurrentHub().getScope();
+        const scope = getScope(getCurrentHub());
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,

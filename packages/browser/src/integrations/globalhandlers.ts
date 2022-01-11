@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { getClient } from '@sentry/hub';
-import { Event, EventHint, Hub, Integration, Primitive } from '@sentry/types';
+import { captureEvent, getClient, getIntegration, Hub } from '@sentry/hub';
+import { Event, EventHint, Integration, Primitive } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -81,7 +81,7 @@ function _installGlobalOnErrorHandler(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (data: { msg: any; url: any; line: any; column: any; error: any }) => {
       const [hub, attachStacktrace] = getHubAndAttachStacktrace();
-      if (!hub.getIntegration(GlobalHandlers)) {
+      if (!getIntegration(hub, GlobalHandlers)) {
         return;
       }
       const { msg, url, line, column, error } = data;
@@ -114,7 +114,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (e: any) => {
       const [hub, attachStacktrace] = getHubAndAttachStacktrace();
-      if (!hub.getIntegration(GlobalHandlers)) {
+      if (!getIntegration(hub, GlobalHandlers)) {
         return;
       }
       let error = e;
@@ -251,7 +251,7 @@ function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'],
     handled: false,
     type,
   });
-  hub.captureEvent(event, {
+  captureEvent(hub, event, {
     originalException: error,
   });
 }

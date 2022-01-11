@@ -1,4 +1,4 @@
-import { getClient, getCurrentHub, Hub } from '@sentry/hub';
+import { getClient, getCurrentHub, getScope, Hub } from '@sentry/hub';
 import { Options, TraceparentData, Transaction } from '@sentry/types';
 
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -48,7 +48,7 @@ export function extractTraceparentData(traceparent: string): TraceparentData | u
 /** Grabs active transaction off scope, if any */
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
   const hub = maybeHub || getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getScope(hub);
   return scope && (scope.getTransaction() as T | undefined);
 }
 

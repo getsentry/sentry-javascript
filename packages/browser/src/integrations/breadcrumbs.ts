@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
+import { addBreadcrumb } from '@sentry/hub';
 import { Event, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
@@ -62,7 +63,8 @@ export class Breadcrumbs implements Integration {
     if (!this._options.sentry) {
       return;
     }
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
+      getCurrentHub(),
       {
         category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
         event_id: event.event_id,
@@ -130,7 +132,8 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
       return;
     }
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
+      getCurrentHub(),
       {
         category: `ui.${handlerData.name}`,
         message: target,
@@ -171,7 +174,7 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
     }
   }
 
-  getCurrentHub().addBreadcrumb(breadcrumb, {
+  addBreadcrumb(getCurrentHub(), breadcrumb, {
     input: handlerData.args,
     level: handlerData.level,
   });
@@ -190,7 +193,8 @@ function _xhrBreadcrumb(handlerData: { [key: string]: any }): void {
 
     const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
+      getCurrentHub(),
       {
         category: 'xhr',
         data: {
@@ -226,7 +230,8 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
   }
 
   if (handlerData.error) {
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
+      getCurrentHub(),
       {
         category: 'fetch',
         data: handlerData.fetchData,
@@ -239,7 +244,8 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
       },
     );
   } else {
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
+      getCurrentHub(),
       {
         category: 'fetch',
         data: {
@@ -282,7 +288,7 @@ function _historyBreadcrumb(handlerData: { [key: string]: any }): void {
     from = parsedFrom.relative;
   }
 
-  getCurrentHub().addBreadcrumb({
+  addBreadcrumb(getCurrentHub(), {
     category: 'navigation',
     data: {
       from,

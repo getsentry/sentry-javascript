@@ -1,4 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
+import { addBreadcrumb, getIntegration } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { fill, severityFromString } from '@sentry/utils';
 import * as util from 'util';
@@ -34,8 +35,8 @@ function createConsoleWrapper(level: string): (originalConsoleMethod: () => void
 
     /* eslint-disable prefer-rest-params */
     return function(this: typeof console): void {
-      if (getCurrentHub().getIntegration(Console)) {
-        getCurrentHub().addBreadcrumb(
+      if (getIntegration(getCurrentHub(), Console)) {
+        addBreadcrumb(getCurrentHub(),
           {
             category: 'console',
             level: sentryLevel,

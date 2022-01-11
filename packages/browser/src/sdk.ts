@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getClient, getScope, Hub, lastEventId as hubLastEventId } from '@sentry/hub';
+import { startSession, getClient, getScope, Hub, lastEventId as hubLastEventId, captureSession } from '@sentry/hub';
 import { addInstrumentationHandler, getGlobalObject, isDebugBuild, logger, resolvedSyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
@@ -200,8 +200,8 @@ export function wrap(fn: (...args: any) => any): any {
 }
 
 function startSessionOnHub(hub: Hub): void {
-  hub.startSession({ ignoreDuration: true });
-  hub.captureSession();
+  startSession(hub, { ignoreDuration: true });
+  captureSession(hub);
 }
 
 /**

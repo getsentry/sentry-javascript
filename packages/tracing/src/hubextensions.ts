@@ -1,4 +1,4 @@
-import { getClient, getMainCarrier, Hub } from '@sentry/hub';
+import { getClient, getMainCarrier, getScope, Hub } from '@sentry/hub';
 import {
   CustomSamplingContext,
   Integration,
@@ -16,7 +16,7 @@ import { hasTracingEnabled } from './utils';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
-  const scope = this.getScope();
+  const scope = getScope(this);
   if (scope) {
     const span = scope.getSpan();
     if (span) {

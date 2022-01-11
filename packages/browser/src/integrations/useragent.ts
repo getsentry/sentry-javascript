@@ -1,4 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
+import { getIntegration } from '@sentry/hub';
 import { Event, Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
@@ -21,7 +22,7 @@ export class UserAgent implements Integration {
    */
   public setupOnce(): void {
     addGlobalEventProcessor((event: Event) => {
-      if (getCurrentHub().getIntegration(UserAgent)) {
+      if (getIntegration(getCurrentHub(), UserAgent)) {
         // if none of the information we want exists, don't bother
         if (!global.navigator && !global.location && !global.document) {
           return event;

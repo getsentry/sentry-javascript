@@ -1,4 +1,4 @@
-import { getClient, getCurrentHub, Hub } from '@sentry/hub';
+import { captureEvent, getClient, getCurrentHub, Hub } from '@sentry/hub';
 import {
   Event,
   Measurements,
@@ -144,7 +144,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
-    return this._hub.captureEvent(transaction);
+    return captureEvent(this._hub, transaction);
   }
 
   /**

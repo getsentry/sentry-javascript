@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { getScope, Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
@@ -35,7 +35,7 @@ export class Mysql implements Integration {
     //    function (options, values, callback) => void
     fill(pkg, 'createQuery', function(orig: () => void) {
       return function(this: unknown, options: unknown, values: unknown, callback: unknown) {
-        const scope = getCurrentHub().getScope();
+        const scope = getScope(getCurrentHub());
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,

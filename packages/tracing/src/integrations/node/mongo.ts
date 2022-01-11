@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { getScope, Hub } from '@sentry/hub';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -148,7 +148,7 @@ export class Mongo implements Integration {
     fill(collection.prototype, operation, function(orig: () => void | Promise<unknown>) {
       return function(this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
-        const scope = getCurrentHub().getScope();
+        const scope = getScope(getCurrentHub());
         const parentSpan = scope?.getSpan();
 
         // Check if the operation was passed a callback. (mapReduce requires a different check, as
