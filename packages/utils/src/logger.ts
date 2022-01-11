@@ -53,10 +53,6 @@ export function consoleSandbox(callback: () => any): any {
   return result;
 }
 
-function when(predicate: boolean, callback: () => any) {
-  return predicate ? callback() : undefined;
-}
-
 /** JSDoc */
 class Logger {
   /** JSDoc */

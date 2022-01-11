@@ -86,10 +86,9 @@ export function getOriginalFunction(func: WrappedFunction): WrappedFunction | un
  * @returns string Encoded
  */
 export function urlEncode(object: { [key: string]: any }): string {
-  return new URLSearchParams(object).toString();
-  // return Object.keys(object)
-  //   .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
-  //   .join('&');
+  return Object.keys(object)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
+    .join('&');
 }
 
 /**

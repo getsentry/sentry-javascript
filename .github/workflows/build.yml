@@ -1,12 +1,10 @@
 name: 'Build & Test'
-
-on: [push, pull_request]
-#on:
-#  push:
-#    branches:
-#      - master
-#      - release/**
-#  pull_request:
+on:
+  push:
+    branches:
+      - master
+      - release/**
+  pull_request:
 
 env:
   CACHED_DEPENDENCY_PATHS: |
