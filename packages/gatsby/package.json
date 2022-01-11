@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "6.15.0",
+  "version": "6.17.0-beta.0",
   "description": "Official Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -26,31 +26,28 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/react": "6.15.0",
-    "@sentry/tracing": "6.15.0",
+    "@sentry/react": "6.17.0-beta.0",
+    "@sentry/tracing": "6.17.0-beta.0",
     "@sentry/webpack-plugin": "1.18.3"
   },
   "peerDependencies": {
     "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0"
   },
   "devDependencies": {
-    "@sentry/types": "6.15.0",
+    "@sentry/types": "6.17.0-beta.0",
     "@testing-library/react": "^10.4.9",
-    "jest": "^24.7.1",
-    "npm-run-all": "^4.1.2",
-    "prettier": "1.19.0",
-    "react": "^17.0.0",
-    "rimraf": "^2.6.3",
-    "typescript": "3.7.5"
+    "react": "^17.0.0"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm",
+    "build": "run-p build:cjs build:esm",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-s build",
-    "build:es5": "tsc -p tsconfig.build.json",
+    "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:es5:watch build:esm:watch",
+    "build:watch": "run-p build:cjs:watch build:esm:watch",
+    "build:cjs:watch": "tsc -p tsconfig.cjs.json -w --preserveWatchOutput",
     "build:dev:watch": "run-s build:watch",
-    "build:es5:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm build coverage",

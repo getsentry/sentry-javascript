@@ -1,5 +1,3 @@
-import { Outcome } from '@sentry/types';
-
 import { BaseTransport } from '../../../src/transports/base';
 
 const testDsn = 'https://123@sentry.io/42';
@@ -44,12 +42,12 @@ describe('BaseTransport', () => {
     it('sends beacon request when there are outcomes captured and visibility changed to `hidden`', () => {
       const transport = new SimpleTransport({ dsn: testDsn, sendClientReports: true });
 
-      transport.recordLostEvent(Outcome.BeforeSend, 'event');
+      transport.recordLostEvent('before_send', 'event');
 
       visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
 
-      const outcomes = [{ reason: Outcome.BeforeSend, category: 'error', quantity: 1 }];
+      const outcomes = [{ reason: 'before_send', category: 'error', quantity: 1 }];
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
         envelopeEndpoint,
@@ -59,7 +57,7 @@ describe('BaseTransport', () => {
 
     it('doesnt send beacon request when there are outcomes captured, but visibility state did not change to `hidden`', () => {
       const transport = new SimpleTransport({ dsn: testDsn, sendClientReports: true });
-      transport.recordLostEvent(Outcome.BeforeSend, 'event');
+      transport.recordLostEvent('before_send', 'event');
 
       visibilityState = 'visible';
       document.dispatchEvent(new Event('visibilitychange'));
@@ -70,21 +68,21 @@ describe('BaseTransport', () => {
     it('correctly serializes request with different categories/reasons pairs', () => {
       const transport = new SimpleTransport({ dsn: testDsn, sendClientReports: true });
 
-      transport.recordLostEvent(Outcome.BeforeSend, 'event');
-      transport.recordLostEvent(Outcome.BeforeSend, 'event');
-      transport.recordLostEvent(Outcome.SampleRate, 'transaction');
-      transport.recordLostEvent(Outcome.NetworkError, 'session');
-      transport.recordLostEvent(Outcome.NetworkError, 'session');
-      transport.recordLostEvent(Outcome.RateLimitBackoff, 'event');
+      transport.recordLostEvent('before_send', 'event');
+      transport.recordLostEvent('before_send', 'event');
+      transport.recordLostEvent('sample_rate', 'transaction');
+      transport.recordLostEvent('network_error', 'session');
+      transport.recordLostEvent('network_error', 'session');
+      transport.recordLostEvent('ratelimit_backoff', 'event');
 
       visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
 
       const outcomes = [
-        { reason: Outcome.BeforeSend, category: 'error', quantity: 2 },
-        { reason: Outcome.SampleRate, category: 'transaction', quantity: 1 },
-        { reason: Outcome.NetworkError, category: 'session', quantity: 2 },
-        { reason: Outcome.RateLimitBackoff, category: 'error', quantity: 1 },
+        { reason: 'before_send', category: 'error', quantity: 2 },
+        { reason: 'sample_rate', category: 'transaction', quantity: 1 },
+        { reason: 'network_error', category: 'session', quantity: 2 },
+        { reason: 'ratelimit_backoff', category: 'error', quantity: 1 },
       ];
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
@@ -97,12 +95,12 @@ describe('BaseTransport', () => {
       const tunnel = 'https://hello.com/world';
       const transport = new SimpleTransport({ dsn: testDsn, sendClientReports: true, tunnel });
 
-      transport.recordLostEvent(Outcome.BeforeSend, 'event');
+      transport.recordLostEvent('before_send', 'event');
 
       visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
 
-      const outcomes = [{ reason: Outcome.BeforeSend, category: 'error', quantity: 1 }];
+      const outcomes = [{ reason: 'before_send', category: 'error', quantity: 1 }];
 
       expect(sendBeaconSpy).toHaveBeenCalledWith(
         tunnel,
@@ -114,12 +112,13 @@ describe('BaseTransport', () => {
   });
 
   it('doesnt provide sendEvent() implementation', () => {
+    expect.assertions(1);
     const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
       void transport.sendEvent({});
     } catch (e) {
-      expect(e.message).toBe('Transport Class has to implement `sendEvent` method');
+      expect(e).toBeDefined();
     }
   });
 

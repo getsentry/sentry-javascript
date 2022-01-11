@@ -1,5 +1,5 @@
-import { Event, EventHint, Options, Session, Severity, Transport } from '@sentry/types';
-import { logger, SentryError } from '@sentry/utils';
+import { Event, EventHint, Options, Session, SeverityLevel, Transport } from '@sentry/types';
+import { isDebugBuild, logger, SentryError } from '@sentry/utils';
 
 import { NoopTransport } from './transports/noop';
 
@@ -29,7 +29,7 @@ export interface Backend {
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates a {@link Event} from a plain message. */
-  eventFromMessage(message: string, level?: Severity, hint?: EventHint): PromiseLike<Event>;
+  eventFromMessage(message: string, level?: SeverityLevel, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event): void;
@@ -83,7 +83,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(_message: string, _level?: SeverityLevel, _hint?: EventHint): PromiseLike<Event> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 
@@ -92,7 +92,9 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendEvent(event: Event): void {
     void this._transport.sendEvent(event).then(null, reason => {
-      logger.error(`Error while sending event: ${reason}`);
+      if (isDebugBuild()) {
+        logger.error(`Error while sending event: ${reason}`);
+      }
     });
   }
 
@@ -101,12 +103,16 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendSession(session: Session): void {
     if (!this._transport.sendSession) {
-      logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      if (isDebugBuild()) {
+        logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      }
       return;
     }
 
     void this._transport.sendSession(session).then(null, reason => {
-      logger.error(`Error while sending session: ${reason}`);
+      if (isDebugBuild()) {
+        logger.error(`Error while sending session: ${reason}`);
+      }
     });
   }
 

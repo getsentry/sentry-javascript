@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vue",
-  "version": "6.15.0",
+  "version": "6.17.0-beta.0",
   "description": "Official Sentry SDK for Vue.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vue",
@@ -16,11 +16,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "6.15.0",
-    "@sentry/core": "6.15.0",
-    "@sentry/minimal": "6.15.0",
-    "@sentry/types": "6.15.0",
-    "@sentry/utils": "6.15.0",
+    "@sentry/browser": "6.17.0-beta.0",
+    "@sentry/core": "6.17.0-beta.0",
+    "@sentry/minimal": "6.17.0-beta.0",
+    "@sentry/types": "6.17.0-beta.0",
+    "@sentry/utils": "6.17.0-beta.0",
     "tslib": "^1.9.3"
   },
   "peerDependencies": {
@@ -28,29 +28,26 @@
     "vue-router": "3.x || 4.x"
   },
   "devDependencies": {
-    "jest": "^24.7.1",
     "jsdom": "^16.2.2",
-    "npm-run-all": "^4.1.2",
-    "prettier": "1.19.0",
-    "rimraf": "^2.6.3",
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-license": "^0.8.1",
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-terser": "^4.0.4",
-    "rollup-plugin-typescript2": "^0.21.0",
-    "typescript": "3.7.5"
+    "rollup-plugin-typescript2": "^0.21.0"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm build:bundle",
+    "build": "run-p build:cjs build:esm build:bundle",
     "build:bundle": "rollup --config",
-    "build:dev": "run-s build:es5 build:esm",
-    "build:es5": "tsc -p tsconfig.build.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:dev": "run-s build:cjs build:esm",
+    "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:es5:watch build:esm:watch",
+    "build:watch": "run-p build:cjs:watch build:esm:watch",
     "build:bundle:watch": "rollup --config --watch",
-    "build:dev:watch": "run-p build:es5:watch build:esm:watch",
-    "build:es5:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:cjs:watch": "tsc -p tsconfig.cjs.json -w --preserveWatchOutput",
+    "build:dev:watch": "run-s build:watch",
+    "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm build coverage",
@@ -88,7 +85,5 @@
       }
     }
   },
-  "sideEffects": [
-    "./src/index.ts"
-  ]
+  "sideEffects": false
 }

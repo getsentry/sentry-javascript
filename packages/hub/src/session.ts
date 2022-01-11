@@ -13,7 +13,7 @@ export class Session implements SessionInterface {
   public timestamp: number;
   public started: number;
   public duration?: number = 0;
-  public status: SessionStatus = SessionStatus.Ok;
+  public status: SessionStatus = 'ok';
   public environment?: string;
   public ipAddress?: string;
   public init: boolean = true;
@@ -88,11 +88,11 @@ export class Session implements SessionInterface {
   }
 
   /** JSDoc */
-  public close(status?: Exclude<SessionStatus, SessionStatus.Ok>): void {
+  public close(status?: Exclude<SessionStatus, 'ok'>): void {
     if (status) {
       this.update({ status });
-    } else if (this.status === SessionStatus.Ok) {
-      this.update({ status: SessionStatus.Exited });
+    } else if (this.status === 'ok') {
+      this.update({ status: 'exited' });
     } else {
       this.update();
     }
@@ -125,12 +125,12 @@ export class Session implements SessionInterface {
       errors: this.errors,
       did: typeof this.did === 'number' || typeof this.did === 'string' ? `${this.did}` : undefined,
       duration: this.duration,
-      attrs: dropUndefinedKeys({
+      attrs: {
         release: this.release,
         environment: this.environment,
         ip_address: this.ipAddress,
         user_agent: this.userAgent,
-      }),
+      },
     });
   }
 }

@@ -1,7 +1,6 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
-import { LogLevel } from './loglevel';
 import { CaptureContext } from './scope';
 import { SdkMetadata } from './sdkmetadata';
 import { SamplingContext } from './transaction';
@@ -81,9 +80,6 @@ export interface Options {
    * Values over 100 will be ignored and 100 used instead.
    */
   maxBreadcrumbs?: number;
-
-  /** Console logging verbosity for the SDK Client. */
-  logLevel?: LogLevel;
 
   /** A global sample rate to apply to all events (0 - 1). */
   sampleRate?: number;
@@ -167,7 +163,7 @@ export interface Options {
    * @returns A sample rate between 0 and 1 (0 drops the trace, 1 guarantees it will be sent). Returning `true` is
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
    */
-  tracesSampler?(samplingContext: SamplingContext): number | boolean;
+  tracesSampler?: (samplingContext: SamplingContext) => number | boolean;
 
   /**
    * A callback invoked during event submission, allowing to optionally modify
@@ -181,7 +177,7 @@ export interface Options {
    * @param hint May contain additional information about the original exception.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?(event: Event, hint?: EventHint): PromiseLike<Event | null> | Event | null;
+  beforeSend?: (event: Event, hint?: EventHint) => PromiseLike<Event | null> | Event | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify
@@ -194,5 +190,5 @@ export interface Options {
    * @param breadcrumb The breadcrumb as created by the SDK.
    * @returns The breadcrumb that will be added | null.
    */
-  beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
+  beforeBreadcrumb?: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => Breadcrumb | null;
 }

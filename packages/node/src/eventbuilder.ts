@@ -1,5 +1,5 @@
-import { getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Mechanism, Severity } from '@sentry/types';
+import { getCurrentHub } from '@sentry/hub';
+import { Event, EventHint, Mechanism, Options, SeverityLevel } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -10,18 +10,12 @@ import {
 } from '@sentry/utils';
 
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
-import { NodeOptions } from './types';
 
 /**
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromException(
-  _options: NodeOptions,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  exception: any,
-  hint?: EventHint,
-): Event {
+export function eventFromException(exception: unknown, hint?: EventHint): Event {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
   const providedMechanism: Mechanism | undefined =
@@ -47,7 +41,7 @@ export function eventFromException(
       // This handles when someone does: `throw "something awesome";`
       // We use synthesized Error here so we can extract a (rough) stack trace.
       ex = (hint && hint.syntheticException) || new Error(exception as string);
-      (ex as Error).message = exception;
+      (ex as Error).message = exception as string;
     }
     mechanism.synthetic = true;
   }
@@ -67,9 +61,9 @@ export function eventFromException(
  * @hidden
  */
 export function eventFromMessage(
-  options: NodeOptions,
+  options: Options,
   message: string,
-  level: Severity = Severity.Info,
+  level: SeverityLevel = 'info',
   hint?: EventHint,
 ): Event {
   const event: Event = {

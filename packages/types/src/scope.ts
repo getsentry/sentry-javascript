@@ -4,7 +4,7 @@ import { EventProcessor } from './eventprocessor';
 import { Extra, Extras } from './extra';
 import { Primitive } from './misc';
 import { RequestSession, Session } from './session';
-import { Severity } from './severity';
+import { SeverityLevel } from './severity';
 import { Span } from './span';
 import { Transaction } from './transaction';
 import { User } from './user';
@@ -15,7 +15,7 @@ export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => 
 /** JSDocs */
 export interface ScopeContext {
   user: User;
-  level: Severity;
+  level: SeverityLevel;
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
@@ -82,7 +82,7 @@ export interface Scope {
    * Sets the level on the scope for future events.
    * @param level string {@link Severity}
    */
-  setLevel(level: Severity): this;
+  setLevel(level: SeverityLevel): this;
 
   /**
    * Sets the transaction name on the scope for future events.

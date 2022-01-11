@@ -10,6 +10,7 @@ env:
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/**/node_modules
+    ~/.cache/ms-playwright/
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
@@ -115,6 +116,8 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v3
+        # Only run size check on master or pull requests
+        if: github.ref == 'refs/heads/master' || github.event_name == 'pull_request'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
@@ -268,15 +271,45 @@ jobs:
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
-  job_browserstack_test:
-    name: BrowserStack
+  job_browser_playwright_tests:
+    name: Browser Playwright Tests
     needs: job_build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16'
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run Playwright tests
+        run: |
+          cd packages/integration-tests
+          yarn run playwright install-deps webkit
+          yarn test:ci
+
+  job_browser_integration_tests:
+    name: Browser Integration Tests (${{ matrix.browser }})
+    needs: job_build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true
-    # TODO: Fix BrowserStack tests
-    # if: startsWith(github.ref, 'refs/heads/release/')
-    if: false
+    strategy:
+      matrix:
+        browser:
+          - ChromeHeadless
+          - FirefoxHeadless
+          - WebkitHeadless
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -294,10 +327,34 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run integration tests
         env:
-          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          KARMA_BROWSER: ${{ matrix.browser }}
         run: |
           cd packages/browser
-          yarn test:integration:checkbrowsers
+          [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
           yarn test:integration
+
+  job_browser_build_tests:
+    name: Browser Build Tests
+    needs: job_build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run build tests
+        run: |
+          cd packages/browser
           yarn test:package

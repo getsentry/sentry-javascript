@@ -1,4 +1,4 @@
-import { API, SDK_VERSION } from '@sentry/core';
+import { APIDetails, getRequestHeaders, initAPIDetails, SDK_VERSION } from '@sentry/core';
 import {
   DsnProtocol,
   Event,
@@ -7,11 +7,17 @@ import {
   SentryRequestType,
   Session,
   SessionAggregates,
-  Status,
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import {
+  eventStatusFromHttpCode,
+  logger,
+  makePromiseBuffer,
+  parseRetryAfterHeader,
+  PromiseBuffer,
+  SentryError,
+} from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -41,17 +47,18 @@ export abstract class BaseTransport implements Transport {
   public client?: http.Agent | https.Agent;
 
   /** API object */
-  protected _api: API;
+  protected _api: APIDetails;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<Response> = makePromiseBuffer(30);
 
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
-    this._api = new API(options.dsn, options._metadata, options.tunnel);
+    // eslint-disable-next-line deprecation/deprecation
+    this._api = initAPIDetails(options.dsn, options._metadata, options.tunnel);
   }
 
   /** Default function used to parse URLs */
@@ -89,7 +96,7 @@ export abstract class BaseTransport implements Transport {
       return proxy;
     }
 
-    const { host, port } = this._api.getDsn();
+    const { host, port } = this._api.dsn;
     for (const np of no_proxy.split(',')) {
       if (host.endsWith(np) || `${host}:${port}`.endsWith(np)) {
         return;
@@ -102,7 +109,7 @@ export abstract class BaseTransport implements Transport {
   /** Returns a build request option object used by request */
   protected _getRequestOptions(urlParts: URLParts): http.RequestOptions | https.RequestOptions {
     const headers = {
-      ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
+      ...getRequestHeaders(this._api.dsn, SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
     const { hostname, pathname, port, protocol } = urlParts;
@@ -208,7 +215,7 @@ export abstract class BaseTransport implements Transport {
           const options = this._getRequestOptions(this.urlParser(sentryRequest.url));
           const req = this.module.request(options, res => {
             const statusCode = res.statusCode || 500;
-            const status = Status.fromHttpCode(statusCode);
+            const status = eventStatusFromHttpCode(statusCode);
 
             res.setEncoding('utf8');
 
@@ -235,7 +242,7 @@ export abstract class BaseTransport implements Transport {
                 )}`,
               );
 
-            if (status === Status.Success) {
+            if (status === 'success') {
               resolve({ status });
             } else {
               let rejectionMessage = `HTTP Error (${statusCode})`;

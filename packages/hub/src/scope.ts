@@ -13,7 +13,7 @@ import {
   RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
-  Severity,
+  SeverityLevel,
   Span,
   Transaction,
   User,
@@ -61,7 +61,7 @@ export class Scope implements ScopeInterface {
   protected _fingerprint?: string[];
 
   /** Severity */
-  protected _level?: Severity;
+  protected _level?: SeverityLevel;
 
   /** Transaction Name */
   protected _transactionName?: string;
@@ -202,7 +202,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setLevel(level: Severity): this {
+  public setLevel(level: SeverityLevel): this {
     this._level = level;
     this._notifyScopeListeners();
     return this;
@@ -264,12 +264,12 @@ export class Scope implements ScopeInterface {
     const span = this.getSpan() as undefined | (Span & { spanRecorder: { spans: Span[] } });
 
     // try it the new way first
-    if (span?.transaction) {
-      return span?.transaction;
+    if (span && span.transaction) {
+      return span.transaction;
     }
 
     // fallback to the old way (known bug: this only finds transactions with sampled = true)
-    if (span?.spanRecorder?.spans[0]) {
+    if (span && span.spanRecorder && span.spanRecorder.spans[0]) {
       return span.spanRecorder.spans[0] as Transaction;
     }
 
@@ -430,7 +430,7 @@ export class Scope implements ScopeInterface {
     // errors with transaction and it relies on that.
     if (this._span) {
       event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
-      const transactionName = this._span.transaction?.name;
+      const transactionName = this._span.transaction && this._span.transaction.name;
       if (transactionName) {
         event.tags = { transaction: transactionName, ...event.tags };
       }

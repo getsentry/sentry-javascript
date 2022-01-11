@@ -18,6 +18,14 @@ _Bad software is everywhere, and we're tired of it. Sentry is on a mission to he
 This is the next line of Sentry JavaScript SDKs, comprised in the `@sentry/` namespace. It will provide a more
 convenient interface and improved consistency between various JavaScript environments.
 
+---
+
+**Sentry is Hiring!!!**
+
+Would you like to work on Open Source software and help maintain this repository? Apply today https://grnh.se/ca81c1701us.
+
+---
+
 ## Links
 
 - [![TypeDoc](https://img.shields.io/badge/documentation-TypeDoc-green.svg)](http://getsentry.github.io/sentry-javascript/)

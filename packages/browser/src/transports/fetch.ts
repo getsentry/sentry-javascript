@@ -1,5 +1,4 @@
-import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
-import { Event, Outcome, Response, SentryRequest, Session, TransportOptions } from '@sentry/types';
+import { Event, Response, SentryRequest, Session, TransportOptions } from '@sentry/types';
 import { SentryError, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
@@ -18,26 +17,12 @@ export class FetchTransport extends BaseTransport {
   }
 
   /**
-   * @inheritDoc
-   */
-  public sendEvent(event: Event): PromiseLike<Response> {
-    return this._sendRequest(eventToSentryRequest(event, this._api), event);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public sendSession(session: Session): PromiseLike<Response> {
-    return this._sendRequest(sessionToSentryRequest(session, this._api), session);
-  }
-
-  /**
    * @param sentryRequest Prepared SentryRequest to be delivered
    * @param originalPayload Original payload used to create SentryRequest
    */
-  private _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
+  protected _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
     if (this._isRateLimited(sentryRequest.type)) {
-      this.recordLostEvent(Outcome.RateLimitBackoff, sentryRequest.type);
+      this.recordLostEvent('ratelimit_backoff', sentryRequest.type);
 
       return Promise.reject({
         event: originalPayload,
@@ -89,9 +74,9 @@ export class FetchTransport extends BaseTransport {
       .then(undefined, reason => {
         // It's either buffer rejection or any other xhr/fetch error, which are treated as NetworkError.
         if (reason instanceof SentryError) {
-          this.recordLostEvent(Outcome.QueueOverflow, sentryRequest.type);
+          this.recordLostEvent('queue_overflow', sentryRequest.type);
         } else {
-          this.recordLostEvent(Outcome.NetworkError, sentryRequest.type);
+          this.recordLostEvent('network_error', sentryRequest.type);
         }
         throw reason;
       });

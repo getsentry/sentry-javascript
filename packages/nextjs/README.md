@@ -19,7 +19,7 @@
 
 ## Compatibility
 
-Currently, the Sentry Next.js SDK supports Next.js versions `10.0.8` - `11.1.3`. The SDK may work with some projects using Next.js 12, but it is not yet officially supported.
+Currently, the minimum Next.js supported version is `10.0.8`.
 
 ## General
 

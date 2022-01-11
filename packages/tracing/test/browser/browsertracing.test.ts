@@ -3,7 +3,6 @@ import { Hub, makeMain } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { SpanStatus } from '../../src';
 import {
   BrowserTracing,
   BrowserTracingOptions,
@@ -11,7 +10,7 @@ import {
   getHeaderContext,
   getMetaContent,
 } from '../../src/browser/browsertracing';
-import { DEFAULT_METRICS_INSTR_OPTIONS, MetricsInstrumentation } from '../../src/browser/metrics';
+import { MetricsInstrumentation } from '../../src/browser/metrics';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
@@ -24,7 +23,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: ({ callback, type }: any): void => {
+    addInstrumentationHandler: (type, callback): void => {
       if (type === 'history') {
         // rather than actually add the navigation-change handler, grab a reference to it, so we can trigger it manually
         mockChangeHistory = callback;
@@ -246,6 +245,8 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
         expect(mockFinish).toHaveBeenCalledTimes(1);
+
+        expect(transaction.tags).toEqual({ finishReason: 'idleTimeout', idleTimeout: undefined });
       });
 
       it('can be a custom value', () => {
@@ -260,6 +261,8 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(2000);
         expect(mockFinish).toHaveBeenCalledTimes(1);
+
+        expect(transaction.tags).toEqual({ finishReason: 'idleTimeout', idleTimeout: 2000 });
       });
     });
 
@@ -269,7 +272,7 @@ describe('BrowserTracing', () => {
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS) + 1);
 
-        expect(transaction.status).toBe(SpanStatus.DeadlineExceeded);
+        expect(transaction.status).toBe('deadline_exceeded');
         expect(transaction.tags.maxTransactionDurationExceeded).toBeDefined();
       });
 
@@ -507,7 +510,7 @@ describe('BrowserTracing', () => {
       createBrowserTracing(true, {});
 
       expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(DEFAULT_METRICS_INSTR_OPTIONS);
+      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(undefined);
     });
 
     it('creates metrics instrumentation with custom options', () => {
@@ -518,9 +521,7 @@ describe('BrowserTracing', () => {
       });
 
       expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith({
-        _reportAllChanges: true,
-      });
+      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(true);
     });
   });
 });

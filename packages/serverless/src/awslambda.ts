@@ -6,7 +6,6 @@ import {
   flush,
   getCurrentHub,
   Scope,
-  Severity,
   startTransaction,
   withScope,
 } from '@sentry/node';
@@ -275,7 +274,7 @@ export function wrapHandler<TEvent, TResult>(
       timeoutWarningTimer = setTimeout(() => {
         withScope(scope => {
           scope.setTag('timeout', humanReadableTimeout);
-          captureMessage(`Possible function timeout: ${context.functionName}`, Severity.Warning);
+          captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
         });
       }, timeoutWarningDelay);
     }

@@ -1,5 +1,5 @@
-import { Event, Response, Status, Transport } from '@sentry/types';
-import { PromiseBuffer, SyncPromise } from '@sentry/utils';
+import { Event, Response, Transport } from '@sentry/types';
+import { makePromiseBuffer, PromiseBuffer, SyncPromise } from '@sentry/utils';
 
 async function sleep(delay: number): Promise<void> {
   return new SyncPromise(resolve => setTimeout(resolve, delay));
@@ -11,7 +11,7 @@ export class FakeTransport implements Transport {
   public delay: number = 2000;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(9999);
+  protected readonly _buffer: PromiseBuffer<Response> = makePromiseBuffer(9999);
 
   public sendEvent(_event: Event): PromiseLike<Response> {
     this.sendCalled += 1;
@@ -20,7 +20,7 @@ export class FakeTransport implements Transport {
         new SyncPromise(async res => {
           await sleep(this.delay);
           this.sentCount += 1;
-          res({ status: Status.Success });
+          res({ status: 'success' });
         }),
     );
   }

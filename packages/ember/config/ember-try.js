@@ -19,6 +19,7 @@ module.exports = async function() {
           'ember-source': await getChannelURL('release'),
         },
       },
+      allowedToFail: true,
     },
   ];
 

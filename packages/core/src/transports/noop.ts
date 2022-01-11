@@ -1,5 +1,5 @@
-import { Event, Response, Status, Transport } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils';
+import { Event, Response, Transport } from '@sentry/types';
+import { resolvedSyncPromise } from '@sentry/utils';
 
 /** Noop transport */
 export class NoopTransport implements Transport {
@@ -7,9 +7,9 @@ export class NoopTransport implements Transport {
    * @inheritDoc
    */
   public sendEvent(_: Event): PromiseLike<Response> {
-    return SyncPromise.resolve({
+    return resolvedSyncPromise({
       reason: `NoopTransport: Event has been skipped because no Dsn is configured.`,
-      status: Status.Skipped,
+      status: 'skipped',
     });
   }
 
@@ -17,6 +17,6 @@ export class NoopTransport implements Transport {
    * @inheritDoc
    */
   public close(_?: number): PromiseLike<boolean> {
-    return SyncPromise.resolve(true);
+    return resolvedSyncPromise(true);
   }
 }

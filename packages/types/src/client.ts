@@ -1,10 +1,10 @@
-import { Dsn } from './dsn';
+import { DsnComponents } from './dsn';
 import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { Options } from './options';
 import { Scope } from './scope';
 import { Session } from './session';
-import { Severity } from './severity';
+import { SeverityLevel } from './severity';
 import { Transport } from './transport';
 
 /**
@@ -36,7 +36,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string | undefined;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -55,7 +55,7 @@ export interface Client<O extends Options = Options> {
   captureSession?(session: Session): void;
 
   /** Returns the current Dsn. */
-  getDsn(): Dsn | undefined;
+  getDsn(): DsnComponents | undefined;
 
   /** Returns the current options. */
   getOptions(): O;

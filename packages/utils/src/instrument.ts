@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
 
+import { isDebugBuild } from './env';
 import { getGlobalObject } from './global';
 import { isInstanceOf, isString } from './is';
 import { logger } from './logger';
@@ -12,11 +13,6 @@ import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();
 
-/** Object describing handler that will be triggered for a given `type` of instrumentation */
-interface InstrumentHandler {
-  type: InstrumentHandlerType;
-  callback: InstrumentHandlerCallback;
-}
 type InstrumentHandlerType =
   | 'console'
   | 'dom'
@@ -82,13 +78,10 @@ function instrument(type: InstrumentHandlerType): void {
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addInstrumentationHandler(handler: InstrumentHandler): void {
-  if (!handler || typeof handler.type !== 'string' || typeof handler.callback !== 'function') {
-    return;
-  }
-  handlers[handler.type] = handlers[handler.type] || [];
-  (handlers[handler.type] as InstrumentHandlerCallback[]).push(handler.callback);
-  instrument(handler.type);
+export function addInstrumentationHandler(type: InstrumentHandlerType, callback: InstrumentHandlerCallback): void {
+  handlers[type] = handlers[type] || [];
+  (handlers[type] as InstrumentHandlerCallback[]).push(callback);
+  instrument(type);
 }
 
 /** JSDoc */
@@ -101,11 +94,13 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
     try {
       handler(data);
     } catch (e) {
-      logger.error(
-        `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(
-          handler,
-        )}\nError: ${e}`,
-      );
+      if (isDebugBuild()) {
+        logger.error(
+          `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(
+            handler,
+          )}\nError: ${e}`,
+        );
+      }
     }
   }
 }
@@ -234,15 +229,15 @@ function instrumentXHR(): void {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const xhr = this;
       const url = args[1];
-      xhr.__sentry_xhr__ = {
+      const xhrInfo: SentryWrappedXMLHttpRequest['__sentry_xhr__'] = (xhr.__sentry_xhr__ = {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
         url: args[1],
-      };
+      });
 
       // if Sentry key appears in URL, don't capture it as a request
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (isString(url) && xhr.__sentry_xhr__.method === 'POST' && url.match(/sentry_key/)) {
+      if (isString(url) && xhrInfo.method === 'POST' && url.match(/sentry_key/)) {
         xhr.__sentry_own_request__ = true;
       }
 
@@ -251,9 +246,7 @@ function instrumentXHR(): void {
           try {
             // touching statusCode in some platforms throws
             // an exception
-            if (xhr.__sentry_xhr__) {
-              xhr.__sentry_xhr__.status_code = xhr.status;
-            }
+            xhrInfo.status_code = xhr.status;
           } catch (e) {
             /* do nothing */
           }
@@ -264,8 +257,8 @@ function instrumentXHR(): void {
               // Make sure to pop both key and value to keep it in sync.
               requestKeys.splice(requestPos);
               const args = requestValues.splice(requestPos)[0];
-              if (xhr.__sentry_xhr__ && args[0] !== undefined) {
-                xhr.__sentry_xhr__.body = args[0] as XHRSendInput;
+              if (args[0] !== undefined) {
+                xhrInfo.body = args[0] as XHRSendInput;
               }
             }
           } catch (e) {

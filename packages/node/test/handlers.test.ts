@@ -1,8 +1,8 @@
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
-import { SpanStatus, Transaction } from '@sentry/tracing';
-import { RequestSessionStatus, Runtime } from '@sentry/types';
+import { Transaction } from '@sentry/tracing';
+import { Runtime } from '@sentry/types';
 import * as http from 'http';
 import * as net from 'net';
 
@@ -229,7 +229,7 @@ describe('requestHandler', () => {
     sentryRequestMiddleware(req, res, next);
 
     const scope = sentryCore.getCurrentHub().getScope();
-    expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+    expect(scope?.getRequestSession()).toEqual({ status: 'ok' });
   });
 
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
@@ -258,7 +258,7 @@ describe('requestHandler', () => {
     res.emit('finish');
 
     setImmediate(() => {
-      expect(scope?.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+      expect(scope?.getRequestSession()).toEqual({ status: 'ok' });
       expect(captureRequestSession).toHaveBeenCalled();
       done();
     });
@@ -403,7 +403,7 @@ describe('tracingHandler', () => {
 
     setImmediate(() => {
       expect(finishTransaction).toHaveBeenCalled();
-      expect(transaction.status).toBe(SpanStatus.Ok);
+      expect(transaction.status).toBe('ok');
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
       done();
     });
@@ -708,10 +708,10 @@ describe('errorHandler()', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
-    scope?.setRequestSession({ status: RequestSessionStatus.Ok });
+    scope?.setRequestSession({ status: 'ok' });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
     const requestSession = scope?.getRequestSession();
-    expect(requestSession).toEqual({ status: RequestSessionStatus.Ok });
+    expect(requestSession).toEqual({ status: 'ok' });
   });
 
   it('autoSessionTracking is enabled + requestHandler is not used -> does not set requestSession status on Crash', () => {
@@ -724,10 +724,10 @@ describe('errorHandler()', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
-    scope?.setRequestSession({ status: RequestSessionStatus.Ok });
+    scope?.setRequestSession({ status: 'ok' });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
     const requestSession = scope?.getRequestSession();
-    expect(requestSession).toEqual({ status: RequestSessionStatus.Ok });
+    expect(requestSession).toEqual({ status: 'ok' });
   });
 
   it('when autoSessionTracking is enabled, should set requestSession status to Crashed when an unhandled error occurs within the bounds of a request', () => {
@@ -742,10 +742,10 @@ describe('errorHandler()', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
-    scope?.setRequestSession({ status: RequestSessionStatus.Ok });
+    scope?.setRequestSession({ status: 'ok' });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
     const requestSession = scope?.getRequestSession();
-    expect(requestSession).toEqual({ status: RequestSessionStatus.Crashed });
+    expect(requestSession).toEqual({ status: 'crashed' });
   });
 
   it('when autoSessionTracking is enabled, should not set requestSession status on Crash when it occurs outside the bounds of a request', () => {

@@ -1,7 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 
-import { SpanStatus } from '../src';
 import { registerErrorInstrumentation } from '../src/errors';
 import { _addTracingExtensions } from '../src/hubextensions';
 
@@ -12,7 +11,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: ({ callback, type }: any) => {
+    addInstrumentationHandler: (type, callback) => {
       if (type === 'error') {
         mockErrorCallback = callback;
       }
@@ -20,7 +19,7 @@ jest.mock('@sentry/utils', () => {
         mockUnhandledRejectionCallback = callback;
       }
       if (typeof mockAddInstrumentationHandler === 'function') {
-        return mockAddInstrumentationHandler({ callback, type });
+        return mockAddInstrumentationHandler(type, callback);
       }
     },
   };
@@ -45,11 +44,8 @@ describe('registerErrorHandlers()', () => {
   it('registers error instrumentation', () => {
     registerErrorInstrumentation();
     expect(mockAddInstrumentationHandler).toHaveBeenCalledTimes(2);
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(1, { callback: expect.any(Function), type: 'error' });
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(2, {
-      callback: expect.any(Function),
-      type: 'unhandledrejection',
-    });
+    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(1, 'error', expect.any(Function));
+    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(2, 'unhandledrejection', expect.any(Function));
   });
 
   it('does not set status if transaction is not on scope', () => {
@@ -71,7 +67,7 @@ describe('registerErrorHandlers()', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
 
     mockErrorCallback();
-    expect(transaction.status).toBe(SpanStatus.InternalError);
+    expect(transaction.status).toBe('internal_error');
 
     transaction.finish();
   });
@@ -82,7 +78,7 @@ describe('registerErrorHandlers()', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
 
     mockUnhandledRejectionCallback();
-    expect(transaction.status).toBe(SpanStatus.InternalError);
+    expect(transaction.status).toBe('internal_error');
     transaction.finish();
   });
 });

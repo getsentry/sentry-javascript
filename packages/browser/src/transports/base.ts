@@ -1,32 +1,39 @@
-import { API } from '@sentry/core';
+import {
+  APIDetails,
+  eventToSentryRequest,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getStoreEndpointWithUrlEncodedAuth,
+  initAPIDetails,
+  sessionToSentryRequest,
+} from '@sentry/core';
 import {
   Event,
   Outcome,
   Response as SentryResponse,
+  SentryRequest,
   SentryRequestType,
-  Status,
+  Session,
   Transport,
   TransportOptions,
 } from '@sentry/types';
 import {
   dateTimestampInSeconds,
+  dsnToString,
+  eventStatusFromHttpCode,
   getGlobalObject,
+  isDebugBuild,
   logger,
+  makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
-  SentryError,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
 
-const CATEGORY_MAPPING: {
-  [key in SentryRequestType]: string;
-} = {
-  event: 'error',
-  transaction: 'transaction',
-  session: 'session',
-  attachment: 'attachment',
-};
+function requestTypeToCategory(ty: SentryRequestType): string {
+  const tyStr = ty as string;
+  return tyStr === 'event' ? 'error' : tyStr;
+}
 
 const global = getGlobalObject<Window>();
 
@@ -38,10 +45,10 @@ export abstract class BaseTransport implements Transport {
   public url: string;
 
   /** Helper to get Sentry API endpoints. */
-  protected readonly _api: API;
+  protected readonly _api: APIDetails;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<SentryResponse> = makePromiseBuffer(30);
 
   /** Locks transport after receiving rate limits in a response */
   protected readonly _rateLimits: Record<string, Date> = {};
@@ -49,9 +56,9 @@ export abstract class BaseTransport implements Transport {
   protected _outcomes: { [key: string]: number } = {};
 
   public constructor(public options: TransportOptions) {
-    this._api = new API(options.dsn, options._metadata, options.tunnel);
+    this._api = initAPIDetails(options.dsn, options._metadata, options.tunnel);
     // eslint-disable-next-line deprecation/deprecation
-    this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
+    this.url = getStoreEndpointWithUrlEncodedAuth(this._api.dsn);
 
     if (this.options.sendClientReports && global.document) {
       global.document.addEventListener('visibilitychange', () => {
@@ -65,8 +72,15 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public sendEvent(_: Event): PromiseLike<SentryResponse> {
-    throw new SentryError('Transport Class has to implement `sendEvent` method');
+  public sendEvent(event: Event): PromiseLike<SentryResponse> {
+    return this._sendRequest(eventToSentryRequest(event, this._api), event);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): PromiseLike<SentryResponse> {
+    return this._sendRequest(sessionToSentryRequest(session, this._api), session);
   }
 
   /**
@@ -88,7 +102,7 @@ export abstract class BaseTransport implements Transport {
     // We could use nested maps, but it's much easier to read and type this way.
     // A correct type for map-based implementation if we want to go that route
     // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
-    const key = `${CATEGORY_MAPPING[category]}:${reason}`;
+    const key = `${requestTypeToCategory(category)}:${reason}`;
     logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
@@ -112,9 +126,9 @@ export abstract class BaseTransport implements Transport {
 
     logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
 
-    const url = this._api.getEnvelopeEndpointWithUrlEncodedAuth();
+    const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
     // Envelope header is required to be at least an empty object
-    const envelopeHeader = JSON.stringify({ ...(this.options.tunnel && { dsn: this._api.getDsn().toString() }) });
+    const envelopeHeader = JSON.stringify({ ...(this._api.tunnel && { dsn: dsnToString(this._api.dsn) }) });
     const itemHeaders = JSON.stringify({
       type: 'client_report',
     });
@@ -154,16 +168,17 @@ export abstract class BaseTransport implements Transport {
     resolve: (value?: SentryResponse | PromiseLike<SentryResponse> | null | undefined) => void;
     reject: (reason?: unknown) => void;
   }): void {
-    const status = Status.fromHttpCode(response.status);
+    const status = eventStatusFromHttpCode(response.status);
     /**
      * "The name is case-insensitive."
      * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
      */
     const limited = this._handleRateLimit(headers);
-    if (limited)
+    if (limited && isDebugBuild()) {
       logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
+    }
 
-    if (status === Status.Success) {
+    if (status === 'success') {
       resolve({ status });
       return;
     }
@@ -175,7 +190,7 @@ export abstract class BaseTransport implements Transport {
    * Gets the time that given category is disabled until for rate limiting
    */
   protected _disabledUntil(requestType: SentryRequestType): Date {
-    const category = CATEGORY_MAPPING[requestType];
+    const category = requestTypeToCategory(requestType);
     return this._rateLimits[category] || this._rateLimits.all;
   }
 
@@ -220,4 +235,9 @@ export abstract class BaseTransport implements Transport {
     }
     return false;
   }
+
+  protected abstract _sendRequest(
+    sentryRequest: SentryRequest,
+    originalPayload: Event | Session,
+  ): PromiseLike<SentryResponse>;
 }

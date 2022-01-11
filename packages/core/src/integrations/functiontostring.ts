@@ -1,4 +1,5 @@
 import { Integration, WrappedFunction } from '@sentry/types';
+import { getOriginalFunction } from '@sentry/utils';
 
 let originalFunctionToString: () => void;
 
@@ -23,7 +24,7 @@ export class FunctionToString implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Function.prototype.toString = function(this: WrappedFunction, ...args: any[]): string {
-      const context = this.__sentry_original__ || this;
+      const context = getOriginalFunction(this) || this;
       return originalFunctionToString.apply(context, args);
     };
   }

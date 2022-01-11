@@ -61,28 +61,18 @@ export function constructWebpackConfigFunction(
     const origEntryProperty = newConfig.entry;
     newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
 
-    // In webpack 5, you can get webpack to replace any module you'd like with an empty object, just by setting its
-    // `resolve.alias` value to `false`. Not much of our code is neatly separated into "things node needs" and "things
-    // the browser needs," but where it is, we can save ~1.6 kb in eventual bundle size by excluding code we know we
-    // don't need. (Normally this would only matter for the client side, but because vercel turns backend code into
-    // serverless functions, it's worthwhile to do it for both.)
-    if (buildContext.webpack.version.startsWith('5')) {
-      const excludedTracingDir = buildContext.isServer ? 'browser' : 'integrations/node';
-      newConfig.resolve = {
-        ...newConfig.resolve,
-        alias: {
-          ...newConfig.resolve?.alias,
-          [path.resolve(buildContext.dir, `./node_modules/@sentry/tracing/esm/${excludedTracingDir}`)]: false,
-          // TODO It's not clear if it will ever pull from `dist` (in testing it never does), so we may not need this.
-          [path.resolve(buildContext.dir, `./node_modules/@sentry/tracing/dist/${excludedTracingDir}`)]: false,
-        },
-      };
-    }
-
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
-    const enableWebpackPlugin = buildContext.isServer
-      ? !userNextConfig.sentry?.disableServerWebpackPlugin
-      : !userNextConfig.sentry?.disableClientWebpackPlugin;
+    const enableWebpackPlugin =
+      // TODO: this is a hack to fix https://github.com/getsentry/sentry-cli/issues/1085, which is caused by
+      // https://github.com/getsentry/sentry-cli/issues/915. Once the latter is addressed, this existence check can come
+      // out. (The check is necessary because currently, `@sentry/cli` uses a post-install script to download an
+      // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
+      // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
+      // try to build their apps.)
+      ensureCLIBinaryExists() &&
+      (buildContext.isServer
+        ? !userNextConfig.sentry?.disableServerWebpackPlugin
+        : !userNextConfig.sentry?.disableClientWebpackPlugin);
 
     if (enableWebpackPlugin) {
       // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
@@ -313,4 +303,8 @@ export function getWebpackPluginOptions(
   checkWebpackPluginOverrides(defaultPluginOptions, userPluginOptions);
 
   return { ...defaultPluginOptions, ...userPluginOptions };
+}
+
+function ensureCLIBinaryExists(): boolean {
+  return fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'));
 }

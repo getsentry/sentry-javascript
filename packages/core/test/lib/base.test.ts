@@ -1,6 +1,6 @@
 import { Hub, Scope, Session } from '@sentry/hub';
-import { Event, Outcome, Severity, Span, Transport } from '@sentry/types';
-import { logger, SentryError, SyncPromise } from '@sentry/utils';
+import { Event, Span, Transport } from '@sentry/types';
+import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
 import { TestBackend } from '../mocks/backend';
@@ -67,7 +67,7 @@ describe('BaseClient', () => {
     test('returns the Dsn', () => {
       expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      expect(client.getDsn()!.toString()).toBe(PUBLIC_DSN);
+      expect(dsnToString(client.getDsn())).toBe(PUBLIC_DSN);
     });
 
     test('allows missing Dsn', () => {
@@ -313,7 +313,7 @@ describe('BaseClient', () => {
       scope.setExtra('foo', 'wat');
       client.captureMessage(
         'test message',
-        Severity.Warning,
+        'warning',
         {
           captureContext: {
             extra: {
@@ -882,7 +882,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'hello' }, {});
 
-      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.BeforeSend, 'event');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'event');
     });
 
     test('eventProcessor can drop the even when it returns null', () => {
@@ -914,7 +914,7 @@ describe('BaseClient', () => {
       scope.addEventProcessor(() => null);
       client.captureEvent({ message: 'hello' }, {}, scope);
 
-      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.EventProcessor, 'event');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'event');
     });
 
     test('eventProcessor sends an event and logs when it crashes', () => {
@@ -958,7 +958,7 @@ describe('BaseClient', () => {
       );
 
       client.captureEvent({ message: 'hello' }, {});
-      expect(recordLostEventSpy).toHaveBeenCalledWith(Outcome.SampleRate, 'event');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'event');
     });
   });
 

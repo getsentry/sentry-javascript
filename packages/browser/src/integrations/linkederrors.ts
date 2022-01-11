@@ -8,6 +8,11 @@ import { computeStackTrace } from '../tracekit';
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
 
+interface LinkedErrorsOptions {
+  key: string;
+  limit: number;
+}
+
 /** Adds SDK info to an event. */
 export class LinkedErrors implements Integration {
   /**
@@ -23,17 +28,17 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly _key: string;
+  private readonly _key: LinkedErrorsOptions['key'];
 
   /**
    * @inheritDoc
    */
-  private readonly _limit: number;
+  private readonly _limit: LinkedErrorsOptions['limit'];
 
   /**
    * @inheritDoc
    */
-  public constructor(options: { key?: string; limit?: number } = {}) {
+  public constructor(options: Partial<LinkedErrorsOptions> = {}) {
     this._key = options.key || DEFAULT_KEY;
     this._limit = options.limit || DEFAULT_LIMIT;
   }
@@ -44,35 +49,31 @@ export class LinkedErrors implements Integration {
   public setupOnce(): void {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
-      if (self) {
-        const handler = self._handler && self._handler.bind(self);
-        return typeof handler === 'function' ? handler(event, hint) : event;
-      }
-      return event;
+      return self ? _handler(self._key, self._limit, event, hint) : event;
     });
   }
+}
 
-  /**
-   * @inheritDoc
-   */
-  private _handler(event: Event, hint?: EventHint): Event | null {
-    if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
-      return event;
-    }
-    const linkedErrors = this._walkErrorTree(hint.originalException as ExtendedError, this._key);
-    event.exception.values = [...linkedErrors, ...event.exception.values];
+/**
+ * @inheritDoc
+ */
+export function _handler(key: string, limit: number, event: Event, hint?: EventHint): Event | null {
+  if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
     return event;
   }
+  const linkedErrors = _walkErrorTree(limit, hint.originalException as ExtendedError, key);
+  event.exception.values = [...linkedErrors, ...event.exception.values];
+  return event;
+}
 
-  /**
-   * @inheritDoc
-   */
-  private _walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
-    if (!isInstanceOf(error[key], Error) || stack.length + 1 >= this._limit) {
-      return stack;
-    }
-    const stacktrace = computeStackTrace(error[key]);
-    const exception = exceptionFromStacktrace(stacktrace);
-    return this._walkErrorTree(error[key], key, [exception, ...stack]);
+/**
+ * JSDOC
+ */
+export function _walkErrorTree(limit: number, error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
+  if (!isInstanceOf(error[key], Error) || stack.length + 1 >= limit) {
+    return stack;
   }
+  const stacktrace = computeStackTrace(error[key]);
+  const exception = exceptionFromStacktrace(stacktrace);
+  return _walkErrorTree(limit, error[key], key, [exception, ...stack]);
 }

@@ -6,8 +6,7 @@ import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
-import { instrumentServer } from './utils/instrumentServer';
-import { MetadataBuilder } from './utils/metadataBuilder';
+import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
 
@@ -19,6 +18,17 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 
 type GlobalWithDistDir = typeof global & { __rewriteFramesDistDir__: string };
 const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
+
+// During build, the main process is invoked by
+//   `node next build`
+// and child processes are invoked as
+//   `node <path>/node_modules/jest-worker/build/workers/processChild.js`,
+// whereas at runtime the process is invoked as
+//   `node next start`
+// or
+//   `node /var/runtime/index.js`.
+const isBuild = new RegExp('build').test(process.argv.toString());
+const isVercel = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
@@ -33,8 +43,7 @@ export function init(options: NextjsOptions): void {
     return;
   }
 
-  const metadataBuilder = new MetadataBuilder(options, ['nextjs', 'node']);
-  metadataBuilder.addSdkMetadata();
+  buildMetadata(options, ['nextjs', 'node']);
   options.environment = options.environment || process.env.NODE_ENV;
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
@@ -54,7 +63,7 @@ export function init(options: NextjsOptions): void {
 
   configureScope(scope => {
     scope.setTag('runtime', 'node');
-    if (process.env.VERCEL) {
+    if (isVercel) {
       scope.setTag('vercel', true);
     }
 
@@ -119,5 +128,24 @@ function filterTransactions(event: Event): Event | null {
 export { withSentryConfig } from './config';
 export { withSentry } from './utils/withSentry';
 
-// wrap various server methods to enable error monitoring and tracing
-instrumentServer();
+// Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
+// deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
+// b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
+// phase.)
+if (!isVercel && !isBuild) {
+  // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
+  // In environments where the JS file doesn't exist, such as testing, import the TS file.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { instrumentServer } = require('./utils/instrumentServer.js');
+    instrumentServer();
+  } catch {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { instrumentServer } = require('./utils/instrumentServer.ts');
+      instrumentServer();
+    } catch {
+      // Server not instrumented. Not adding logs to avoid noise.
+    }
+  }
+}

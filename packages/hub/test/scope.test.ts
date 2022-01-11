@@ -1,4 +1,4 @@
-import { Event, EventHint, RequestSessionStatus, Severity } from '@sentry/types';
+import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';
@@ -85,8 +85,8 @@ describe('Scope', () => {
 
     test('setLevel', () => {
       const scope = new Scope();
-      scope.setLevel(Severity.Critical);
-      expect((scope as any)._level).toEqual(Severity.Critical);
+      scope.setLevel('critical');
+      expect((scope as any)._level).toEqual('critical');
     });
 
     test('setTransactionName', () => {
@@ -131,8 +131,8 @@ describe('Scope', () => {
 
     test('chaining', () => {
       const scope = new Scope();
-      scope.setLevel(Severity.Critical).setUser({ id: '1' });
-      expect((scope as any)._level).toEqual(Severity.Critical);
+      scope.setLevel('critical').setUser({ id: '1' });
+      expect((scope as any)._level).toEqual('critical');
       expect((scope as any)._user).toEqual({ id: '1' });
     });
   });
@@ -147,7 +147,7 @@ describe('Scope', () => {
 
     test('_requestSession clone', () => {
       const parentScope = new Scope();
-      parentScope.setRequestSession({ status: RequestSessionStatus.Errored });
+      parentScope.setRequestSession({ status: 'errored' });
       const scope = Scope.clone(parentScope);
       expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
     });
@@ -174,16 +174,16 @@ describe('Scope', () => {
       // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
       // that it should also change in parent scope because we are copying the reference to the object
       const parentScope = new Scope();
-      parentScope.setRequestSession({ status: RequestSessionStatus.Errored });
+      parentScope.setRequestSession({ status: 'errored' });
 
       const scope = Scope.clone(parentScope);
       const requestSession = scope.getRequestSession();
       if (requestSession) {
-        requestSession.status = RequestSessionStatus.Ok;
+        requestSession.status = 'ok';
       }
 
-      expect(parentScope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
-      expect(scope.getRequestSession()).toEqual({ status: RequestSessionStatus.Ok });
+      expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
+      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
     });
   });
 
@@ -195,7 +195,7 @@ describe('Scope', () => {
       scope.setTag('a', 'b');
       scope.setUser({ id: '1' });
       scope.setFingerprint(['abcd']);
-      scope.setLevel(Severity.Warning);
+      scope.setLevel('warning');
       scope.setTransactionName('/abc');
       scope.addBreadcrumb({ message: 'test' });
       scope.setContext('os', { id: '1' });
@@ -284,9 +284,9 @@ describe('Scope', () => {
     test('scope level should have priority over event level', () => {
       expect.assertions(1);
       const scope = new Scope();
-      scope.setLevel(Severity.Warning);
+      scope.setLevel('warning');
       const event: Event = {};
-      event.level = Severity.Critical;
+      event.level = 'critical';
       return scope.applyToEvent(event).then(processedEvent => {
         expect(processedEvent!.level).toEqual('warning');
       });
@@ -375,7 +375,7 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
-    scope.setRequestSession({ status: RequestSessionStatus.Ok });
+    scope.setRequestSession({ status: 'ok' });
     expect((scope as any)._extra).toEqual({ a: 2 });
     scope.clear();
     expect((scope as any)._extra).toEqual({});
@@ -400,9 +400,9 @@ describe('Scope', () => {
       scope.setContext('foo', { id: '1' });
       scope.setContext('bar', { id: '2' });
       scope.setUser({ id: '1337' });
-      scope.setLevel(Severity.Info);
+      scope.setLevel('info');
       scope.setFingerprint(['foo']);
-      scope.setRequestSession({ status: RequestSessionStatus.Ok });
+      scope.setRequestSession({ status: 'ok' });
     });
 
     test('given no data, returns the original scope', () => {
@@ -448,9 +448,9 @@ describe('Scope', () => {
       localScope.setContext('bar', { id: '3' });
       localScope.setContext('baz', { id: '4' });
       localScope.setUser({ id: '42' });
-      localScope.setLevel(Severity.Warning);
+      localScope.setLevel('warning');
       localScope.setFingerprint(['bar']);
-      (localScope as any)._requestSession = { status: RequestSessionStatus.Ok };
+      (localScope as any)._requestSession = { status: 'ok' };
 
       const updatedScope = scope.update(localScope) as any;
 
@@ -470,9 +470,9 @@ describe('Scope', () => {
         foo: { id: '1' },
       });
       expect(updatedScope._user).toEqual({ id: '42' });
-      expect(updatedScope._level).toEqual(Severity.Warning);
+      expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession.status).toEqual(RequestSessionStatus.Ok);
+      expect(updatedScope._requestSession.status).toEqual('ok');
     });
 
     test('given an empty instance of Scope, it should preserve all the original scope data', () => {
@@ -491,9 +491,9 @@ describe('Scope', () => {
         foo: { id: '1' },
       });
       expect(updatedScope._user).toEqual({ id: '1337' });
-      expect(updatedScope._level).toEqual(Severity.Info);
+      expect(updatedScope._level).toEqual('info');
       expect(updatedScope._fingerprint).toEqual(['foo']);
-      expect(updatedScope._requestSession.status).toEqual(RequestSessionStatus.Ok);
+      expect(updatedScope._requestSession.status).toEqual('ok');
     });
 
     test('given a plain object, it should merge two together, with the passed object having priority', () => {
@@ -501,10 +501,10 @@ describe('Scope', () => {
         contexts: { bar: { id: '3' }, baz: { id: '4' } },
         extra: { bar: '3', baz: '4' },
         fingerprint: ['bar'],
-        level: Severity.Warning,
+        level: 'warning',
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
-        requestSession: { status: RequestSessionStatus.Errored },
+        requestSession: { status: 'errored' },
       };
       const updatedScope = scope.update(localAttributes) as any;
 
@@ -524,9 +524,9 @@ describe('Scope', () => {
         foo: { id: '1' },
       });
       expect(updatedScope._user).toEqual({ id: '42' });
-      expect(updatedScope._level).toEqual(Severity.Warning);
+      expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession).toEqual({ status: RequestSessionStatus.Errored });
+      expect(updatedScope._requestSession).toEqual({ status: 'errored' });
     });
   });
 

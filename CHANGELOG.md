@@ -4,6 +4,52 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.0-beta.0
+
+This beta releases contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class. We also deprecated our typescript enums and our internal `API` class. We've detailed how to update your sdk usage if you are using the `Dsn` class or any of the deprecated methods in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0).
+
+- feat(core): Deprecate API class (#4281)
+- feat(dsn): Remove Dsn class (#4325)
+- feat(ember): Update ember dependencies (#4253)
+- fix(nextjs): Add sentry-cli existence check for enabling webpack plugin #4311
+- ref(tracing): deprecate span status enum (#4299)
+- ref(types): drop unused logLevel (#4317)
+- ref(types): deprecate request status enum (#4316)
+- ref(types): deprecate outcome enum (#4315)
+- ref(types): deprecate transactionmethod enum (#4314)
+- ref(types): deprecate status enum (#4298)
+- ref(types): deprecate severity enum (#4280)
+
+## 6.16.1
+
+- feat(nextjs): Support Next.js v12 (#4093)
+- fix(nextjs): Disable server instrumentation on Vercel (#4255)
+- feat(tracing): Add metadata around idleTimeout (#4251)
+
+Work in this release contributed by @KATT. Thank you for your contribution!
+
+## 6.16.0
+
+- feat(angular): Add Angular 13 to peer dep (#4183)
+- fix(angular): Finish routing span before starting another one (#4191)
+- fix(angular): Use ui category for span operations (#4222)
+- feat(ember): Use @types/ember__debug (#4173)
+- fix(ember): Use ui category for span operations (#4221)
+- feat(eslint-config): Enable array-callback-return rule (#4229)
+- ref(eslint-config): Update spaced-comment rule (#4235)
+- fix(integrations): Use ui category for vue span operations (#4219)
+- fix(nextjs): Add sideEffects flag to NextJS SDK (#4216)
+- fix(node): Make http integration spans have http span operation (#4224)
+- fix(react): Mark react package as having no side effects (#4213)
+- fix(react): Use ui category for operations (#4218)
+- fix(tracing): Add express category to express middleware spans (#4223)
+- fix(tracing): Treat HTTP status code below 100 as UnknownError (#4131)
+- fix(types): Make Options type method params contravariant (#4234)
+- fix(vue): Mark Vue as having no side effects. (#4217)
+- fix(vue): Use ui category for span operations (#4220)
+
+Work in this release contributed by @jherdman and @travigd. Thank you for your contribution!
+
 ## 6.15.0
 
 - fix(browser): Capture stacktrace on `DOMExceptions`, if possible (#4160)

@@ -3,7 +3,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 
-import { ErrorBoundary, ErrorBoundaryProps, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
+import {
+  ErrorBoundary,
+  ErrorBoundaryProps,
+  isAtLeastReact17,
+  UNKNOWN_COMPONENT,
+  withErrorBoundary,
+} from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
@@ -324,5 +330,19 @@ describe('ErrorBoundary', () => {
       expect(mockOnReset).toHaveBeenCalledTimes(1);
       expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
     });
+  });
+});
+
+describe('isAtLeastReact17', () => {
+  test.each([
+    ['React 15 with no patch', '15.0', false],
+    ['React 15 with no patch and no minor', '15.5', false],
+    ['React 16', '16.0.4', false],
+    ['React 17', '17.0.0', true],
+    ['React 17 with no patch', '17.4', true],
+    ['React 17 with no patch and no minor', '17', true],
+    ['React 18', '18.0.0', true],
+  ])('%s', (_: string, input: string, output: ReturnType<typeof isAtLeastReact17>) => {
+    expect(isAtLeastReact17(input)).toBe(output);
   });
 });

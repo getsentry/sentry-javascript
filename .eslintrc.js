@@ -1,3 +1,6 @@
+// Note: All paths are relative to the directory in which eslint is being run, rather than the directory where this file
+// lives
+
 module.exports = {
   root: true,
   env: {
@@ -7,20 +10,18 @@ module.exports = {
     ecmaVersion: 2018,
   },
   extends: ['@sentry-internal/sdk'],
-  ignorePatterns: [
-    'coverage/**',
-    'build/**',
-    'dist/**',
-    'esm/**',
-    'examples/**',
-    'scripts/**',
-    'test/manual/**',
-  ],
+  ignorePatterns: ['coverage/**', 'build/**', 'dist/**', 'esm/**', 'examples/**', 'scripts/**', 'test/manual/**'],
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
       parserOptions: {
-        project: './tsconfig.json',
+        project: ['tsconfig.json'],
+      },
+    },
+    {
+      files: ['test/**/*.ts', 'test/**/*.tsx'],
+      parserOptions: {
+        project: ['tsconfig.test.json'],
       },
     },
     {

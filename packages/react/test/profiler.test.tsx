@@ -3,6 +3,7 @@ import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import * as React from 'react';
 
+import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from '../src/constants';
 import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 
 const mockStartChild = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs }));
@@ -76,7 +77,7 @@ describe('withProfiler', () => {
       expect(mockStartChild).toHaveBeenCalledTimes(1);
       expect(mockStartChild).toHaveBeenLastCalledWith({
         description: `<${UNKNOWN_COMPONENT}>`,
-        op: 'react.mount',
+        op: REACT_MOUNT_OP,
       });
     });
   });
@@ -93,7 +94,7 @@ describe('withProfiler', () => {
       expect(mockStartChild).toHaveBeenLastCalledWith({
         description: `<${UNKNOWN_COMPONENT}>`,
         endTimestamp: expect.any(Number),
-        op: 'react.render',
+        op: REACT_RENDER_OP,
         startTimestamp: undefined,
       });
     });
@@ -122,7 +123,7 @@ describe('withProfiler', () => {
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
         endTimestamp: expect.any(Number),
-        op: 'react.update',
+        op: REACT_UPDATE_OP,
         startTimestamp: expect.any(Number),
       });
 
@@ -133,7 +134,7 @@ describe('withProfiler', () => {
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
         endTimestamp: expect.any(Number),
-        op: 'react.update',
+        op: REACT_UPDATE_OP,
         startTimestamp: expect.any(Number),
       });
 
@@ -169,7 +170,7 @@ describe('useProfiler()', () => {
       expect(mockStartChild).toHaveBeenCalledTimes(1);
       expect(mockStartChild).toHaveBeenLastCalledWith({
         description: '<Example>',
-        op: 'react.mount',
+        op: REACT_MOUNT_OP,
       });
     });
   });
@@ -191,7 +192,7 @@ describe('useProfiler()', () => {
       expect(mockStartChild).toHaveBeenLastCalledWith(
         expect.objectContaining({
           description: '<Example>',
-          op: 'react.render',
+          op: REACT_RENDER_OP,
         }),
       );
     });
