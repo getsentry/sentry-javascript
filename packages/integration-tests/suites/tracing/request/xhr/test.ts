@@ -26,8 +26,12 @@ sentryTest('should create spans for multiple XHR requests', async ({ getLocalTes
 sentryTest('should attach `sentry-trace` header to multiple XHR requests', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  page.goto(url);
-  const requests = await Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`)));
+  const requests = (
+    await Promise.all([
+      page.goto(url),
+      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+    ])
+  )[1];
 
   expect(requests).toHaveLength(3);
 
