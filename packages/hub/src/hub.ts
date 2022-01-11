@@ -91,6 +91,9 @@ export class Hub {
   /** Contains the last event id of a captured event.  */
   public lastEventId?: string;
 
+  /** Higher number means higher priority.  */
+  public readonly version: number;
+
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
    * internal stack on creation.
@@ -99,7 +102,8 @@ export class Hub {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(client?: Client, scope: Scope = new Scope(), public readonly _version: number = API_VERSION) {
+  public constructor(client?: Client, scope: Scope = new Scope(), version: number = API_VERSION) {
+    this.version = version;
     getStackTop(this).scope = scope;
     if (client) {
       bindClient(this, client);
@@ -176,7 +180,7 @@ export function pushScope(hub: Hub): Scope {
  * @hidden
  */
 export function isOlderThan(hub: Hub, version: number): boolean {
-  return hub._version < version;
+  return hub.version < version;
 }
 
 /**
