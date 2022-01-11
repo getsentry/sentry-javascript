@@ -1,5 +1,5 @@
-import { withScope } from '@sentry/hub';
-import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import { Hub, withScope } from '@sentry/hub';
+import { Event, EventProcessor, Integration } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js

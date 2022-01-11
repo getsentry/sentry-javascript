@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { withScope } from '@sentry/hub';
-import { EventProcessor, Hub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
+import { Hub, withScope } from '@sentry/hub';
+import { EventProcessor, Hub as IHub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
 /**
@@ -438,7 +438,7 @@ export class Vue implements Integration {
   }
 }
 
-interface HubType extends Hub {
+interface HubType extends IHub {
   getScope?(): Scope | undefined;
 }
 

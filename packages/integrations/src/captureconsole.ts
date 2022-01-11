@@ -1,6 +1,6 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { Hub, withScope } from '@sentry/hub';
+import { EventProcessor, Integration } from '@sentry/types';
 import { fill, getGlobalObject, safeJoin, severityFromString } from '@sentry/utils';
-import { withScope } from '@sentry/hub';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 

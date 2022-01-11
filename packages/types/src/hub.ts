@@ -1,5 +1,4 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
-import { Client } from './client';
 import { Event, EventHint } from './event';
 import { Extra, Extras } from './extra';
 import { Integration, IntegrationClass } from './integration';
@@ -16,9 +15,6 @@ import { User } from './user';
  * working in case we have a version conflict.
  */
 export interface Hub {
-  /** Returns the client of the top stack. */
-  getClient(): Client | undefined;
-
   /**
    * Captures an exception event and sends it to Sentry.
    *
