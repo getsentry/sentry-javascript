@@ -79,7 +79,7 @@ export class Scope implements ScopeInterface {
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
    * sent to Sentry
    */
-  protected _sdkProcessingMetadata?: { [key: string]: any } = {};
+  protected _sdkProcessingMetadata?: { [key: string]: unknown } = {};
 
   /**
    * Inherit values from the parent scope.
@@ -455,7 +455,7 @@ export class Scope implements ScopeInterface {
   /**
    * Add data which will be accessible during event processing but won't get sent to Sentry
    */
-  public setSDKProcessingMetadata(newData: { [key: string]: any }): this {
+  public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
     this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
 
     return this;
