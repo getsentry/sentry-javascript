@@ -17,16 +17,6 @@ import { User } from './user';
  */
 export interface Hub {
   /**
-   * Checks if this hub's version is older than the given version.
-   *
-   * @param version A version number to compare to.
-   * @return True if the given version is newer; otherwise false.
-   *
-   * @hidden
-   */
-  isOlderThan(version: number): boolean;
-
-  /**
    * This binds the given client to the current scope.
    * @param client An SDK client (client) instance.
    */

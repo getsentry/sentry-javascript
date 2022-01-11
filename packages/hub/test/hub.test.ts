@@ -1,6 +1,7 @@
 import { Event } from '@sentry/types';
 
 import { getCurrentHub, Hub, Scope } from '../src';
+import { getStackTop, isOlderThan } from '../src/hub';
 
 const clientFn: any = jest.fn();
 
@@ -36,7 +37,7 @@ describe('Hub', () => {
 
   test('isOlderThan', () => {
     const hub = new Hub();
-    expect(hub.isOlderThan(0)).toBeFalsy();
+    expect(isOlderThan(hub, 0)).toBeFalsy();
   });
 
   describe('pushScope', () => {
@@ -104,7 +105,7 @@ describe('Hub', () => {
       });
 
       hub.pushScope();
-      const pushedScope = hub.getStackTop().scope;
+      const pushedScope = getStackTop(hub).scope;
 
       return pushedScope!.applyToEvent(event).then(final => {
         expect(final!.dist).toEqual('1');
@@ -172,7 +173,7 @@ describe('Hub', () => {
     hub.pushScope();
     hub.pushScope();
     hub.bindClient(testClient);
-    expect(hub.getStackTop().client).toEqual({ bla: 'a' });
+    expect(getStackTop(hub).client).toEqual({ bla: 'a' });
   });
 
   describe('configureScope', () => {

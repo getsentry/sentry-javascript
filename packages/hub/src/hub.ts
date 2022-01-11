@@ -82,12 +82,35 @@ export interface DomainAsCarrier extends Carrier {
   members: { [key: string]: any }[];
 }
 
+
+/**
+ * Returns the topmost scope layer in the order domain > local > process.
+ *
+ * @hidden
+ * */
+export function getStackTop(hub: Hub): Layer {
+  return hub._stack[hub._stack.length - 1];
+}
+
+/**
+ * Checks if this hub's version is older than the given version.
+ *
+ * @param hub The hub to check the version on.
+ * @param version A version number to compare to.
+ * @return True if the given version is newer; otherwise false.
+ *
+ * @hidden
+ */
+export function isOlderThan(hub: Hub, version: number): boolean {
+  return hub._version < version;
+}
+
 /**
  * @inheritDoc
  */
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
-  private readonly _stack: Layer[] = [{}];
+  public readonly _stack: Layer[] = [{}];
 
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
@@ -100,8 +123,8 @@ export class Hub implements HubInterface {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
-    this.getStackTop().scope = scope;
+  public constructor(client?: Client, scope: Scope = new Scope(), public readonly _version: number = API_VERSION) {
+    getStackTop(this).scope = scope;
     if (client) {
       this.bindClient(client);
     }
@@ -110,15 +133,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public isOlderThan(version: number): boolean {
-    return this._version < version;
-  }
-
-  /**
-   * @inheritDoc
-   */
   public bindClient(client?: Client): void {
-    const top = this.getStackTop();
+    const top = getStackTop(this);
     top.client = client;
     if (client && client.setupIntegrations) {
       client.setupIntegrations();
@@ -162,12 +178,12 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public getClient<C extends Client>(): C | undefined {
-    return this.getStackTop().client as C;
+    return getStackTop(this).client as C;
   }
 
   /** Returns the scope of the top stack. */
   public getScope(): Scope | undefined {
-    return this.getStackTop().scope;
+    return getStackTop(this).scope;
   }
 
   /** Returns the scope stack for domains or the process. */
@@ -175,10 +191,6 @@ export class Hub implements HubInterface {
     return this._stack;
   }
 
-  /** Returns the topmost scope layer in the order domain > local > process. */
-  public getStackTop(): Layer {
-    return this._stack[this._stack.length - 1];
-  }
 
   /**
    * @inheritDoc
@@ -270,7 +282,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
-    const { scope, client } = this.getStackTop();
+    const { scope, client } = getStackTop(this);
 
     if (!scope || !client) return;
 
@@ -344,7 +356,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public configureScope(callback: (scope: Scope) => void): void {
-    const { scope, client } = this.getStackTop();
+    const { scope, client } = getStackTop(this);
     if (scope && client) {
       callback(scope);
     }
@@ -414,7 +426,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public endSession(): void {
-    const layer = this.getStackTop();
+    const layer = getStackTop(this);
     const scope = layer && layer.scope;
     const session = scope && scope.getSession();
     if (session) {
@@ -432,7 +444,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public startSession(context?: SessionContext): Session {
-    const { scope, client } = this.getStackTop();
+    const { scope, client } = getStackTop(this);
     const { release, environment } = (client && client.getOptions()) || {};
 
     // Will fetch userAgent if called from browser sdk
@@ -466,7 +478,7 @@ export class Hub implements HubInterface {
    * Sends the current Session on the scope
    */
   private _sendSessionUpdate(): void {
-    const { scope, client } = this.getStackTop();
+    const { scope, client } = getStackTop(this);
     if (!scope) return;
 
     const session = scope.getSession && scope.getSession();
@@ -485,7 +497,7 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
-    const { scope, client } = this.getStackTop();
+    const { scope, client } = getStackTop(this);
     if (client && client[method]) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       (client as any)[method](...args, scope);
@@ -547,7 +559,7 @@ export function getCurrentHub(): Hub {
   const registry = getMainCarrier();
 
   // If there's no hub, or its an old API, assign a new one
-  if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
+  if (!hasHubOnCarrier(registry) || isOlderThan(getHubFromCarrier(registry), API_VERSION)) {
     setHubOnCarrier(registry, new Hub());
   }
 
@@ -588,8 +600,8 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
     }
 
     // If there's no hub on current domain, or it's an old API, assign a new one
-    if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
-      const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
+    if (!hasHubOnCarrier(activeDomain) || isOlderThan(getHubFromCarrier(activeDomain), API_VERSION)) {
+      const registryHubTopStack = getStackTop(getHubFromCarrier(registry));
       setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
     }
 
