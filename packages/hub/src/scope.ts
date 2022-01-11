@@ -447,7 +447,7 @@ export class Scope implements ScopeInterface {
   /**
    * This will be called after {@link applyToEvent} is finished.
    */
-  protected _notifyEventProcessors(
+  public _notifyEventProcessors(
     processors: EventProcessor[],
     event: Event | null,
     hint?: EventHint,

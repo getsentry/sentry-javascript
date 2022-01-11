@@ -1,5 +1,4 @@
-import { addGlobalEventProcessor, getClient,getCurrentHub } from '@sentry/hub';
-import { getIntegration } from '@sentry/hub/src';
+import { addGlobalEventProcessor, getClient,getCurrentHub, getIntegration } from '@sentry/hub';
 import { Event, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@sentry/utils';
 
@@ -54,10 +53,13 @@ export class InboundFilters implements Integration {
         // The bug is caused by multiple SDK instances, where one is minified and one is using non-mangled code.
         // Unfortunatelly we cannot fix it reliably (thus reserved property in rollup's terser config),
         // as we cannot force people using multiple instances in their apps to sync SDK versions.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const options = typeof self._mergeOptions === 'function' ? self._mergeOptions(clientOptions) : {};
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (typeof self._shouldDropEvent !== 'function') {
           return event;
         }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return self._shouldDropEvent(event, options) ? null : event;
       }
       return event;

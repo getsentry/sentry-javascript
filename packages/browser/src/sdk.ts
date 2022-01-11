@@ -1,6 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getClient, lastEventId as hubLastEventId } from '@sentry/hub';
-import { Hub } from '@sentry/types';
+import { getClient, getScope, Hub, lastEventId as hubLastEventId } from '@sentry/hub';
 import { addInstrumentationHandler, getGlobalObject, isDebugBuild, logger, resolvedSyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
@@ -108,7 +107,7 @@ export function init(options: BrowserOptions = {}): void {
  */
 export function showReportDialog(options: ReportDialogOptions = {}): void {
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getScope(hub);
   if (scope) {
     options.user = {
       ...scope.getUser(),
@@ -227,9 +226,10 @@ function startSessionTracking(): void {
   // https://github.com/getsentry/sentry-javascript/issues/3207 and
   // https://github.com/getsentry/sentry-javascript/issues/3234 and
   // https://github.com/getsentry/sentry-javascript/issues/3278.
-  if (!hub.captureSession) {
-    return;
-  }
+  // TODO: Follow up on this
+  // if (!hub.captureSession) {
+  //   return;
+  // }
 
   // The session duration for browser sessions does not track a meaningful
   // concept that can be used as a metric.
