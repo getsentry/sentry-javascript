@@ -65,8 +65,8 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
-    if (this._isSentryError(event, options)) {
+  public _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
+    if (isSentryError(event, options)) {
       if (isDebugBuild()) {
         logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
       }
@@ -85,7 +85,7 @@ export class InboundFilters implements Integration {
         logger.warn(
           `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
             event,
-          )}.\nUrl: ${this._getEventFilterUrl(event)}`,
+          )}.\nUrl: ${getEventFilterUrl(event)}`,
         );
       }
       return true;
@@ -95,7 +95,7 @@ export class InboundFilters implements Integration {
         logger.warn(
           `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
             event,
-          )}.\nUrl: ${this._getEventFilterUrl(event)}`,
+          )}.\nUrl: ${getEventFilterUrl(event)}`,
         );
       }
       return true;
@@ -104,56 +104,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private _isSentryError(event: Event, options: Partial<InboundFiltersOptions>): boolean {
-    if (!options.ignoreInternal) {
-      return false;
-    }
-
-    try {
-      // @ts-ignore can't be a sentry error if undefined
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return event.exception.values[0].type === 'SentryError';
-    } catch (e) {
-      // ignore
-    }
-
-    return false;
-  }
-
-  /** JSDoc */
-  private _isIgnoredError(event: Event, options: Partial<InboundFiltersOptions>): boolean {
-    if (!options.ignoreErrors || !options.ignoreErrors.length) {
-      return false;
-    }
-
-    return this._getPossibleEventMessages(event).some(message =>
-      // Not sure why TypeScript complains here...
-      (options.ignoreErrors as Array<RegExp | string>).some(pattern => isMatchingPattern(message, pattern)),
-    );
-  }
-
-  /** JSDoc */
-  private _isDeniedUrl(event: Event, options: Partial<InboundFiltersOptions>): boolean {
-    // TODO: Use Glob instead?
-    if (!options.denyUrls || !options.denyUrls.length) {
-      return false;
-    }
-    const url = this._getEventFilterUrl(event);
-    return !url ? false : options.denyUrls.some(pattern => isMatchingPattern(url, pattern));
-  }
-
-  /** JSDoc */
-  private _isAllowedUrl(event: Event, options: Partial<InboundFiltersOptions>): boolean {
-    // TODO: Use Glob instead?
-    if (!options.allowUrls || !options.allowUrls.length) {
-      return true;
-    }
-    const url = this._getEventFilterUrl(event);
-    return !url ? true : options.allowUrls.some(pattern => isMatchingPattern(url, pattern));
-  }
-
-  /** JSDoc */
-  private _mergeOptions(clientOptions: Partial<InboundFiltersOptions> = {}): Partial<InboundFiltersOptions> {
+  public _mergeOptions(clientOptions: Partial<InboundFiltersOptions> = {}): Partial<InboundFiltersOptions> {
     return {
       allowUrls: [
         // eslint-disable-next-line deprecation/deprecation
@@ -181,56 +132,105 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private _getPossibleEventMessages(event: Event): string[] {
-    if (event.message) {
-      return [event.message];
+  private _isIgnoredError(event: Event, options: Partial<InboundFiltersOptions>): boolean {
+    if (!options.ignoreErrors || !options.ignoreErrors.length) {
+      return false;
     }
-    if (event.exception) {
-      try {
-        const { type = '', value = '' } = (event.exception.values && event.exception.values[0]) || {};
-        return [`${value}`, `${type}: ${value}`];
-      } catch (oO) {
-        if (isDebugBuild()) {
-          logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
-        }
-        return [];
-      }
-    }
-    return [];
+
+    return getPossibleEventMessages(event).some(message =>
+      // Not sure why TypeScript complains here...
+      (options.ignoreErrors as Array<RegExp | string>).some(pattern => isMatchingPattern(message, pattern)),
+    );
   }
 
   /** JSDoc */
-  private _getLastValidUrl(frames: StackFrame[] = []): string | null {
-    for (let i = frames.length - 1; i >= 0; i--) {
-      const frame = frames[i];
-
-      if (frame && frame.filename !== '<anonymous>' && frame.filename !== '[native code]') {
-        return frame.filename || null;
-      }
+  private _isDeniedUrl(event: Event, options: Partial<InboundFiltersOptions>): boolean {
+    // TODO: Use Glob instead?
+    if (!options.denyUrls || !options.denyUrls.length) {
+      return false;
     }
+    const url = getEventFilterUrl(event);
+    return !url ? false : options.denyUrls.some(pattern => isMatchingPattern(url, pattern));
+  }
 
+  /** JSDoc */
+  private _isAllowedUrl(event: Event, options: Partial<InboundFiltersOptions>): boolean {
+    // TODO: Use Glob instead?
+    if (!options.allowUrls || !options.allowUrls.length) {
+      return true;
+    }
+    const url = getEventFilterUrl(event);
+    return !url ? true : options.allowUrls.some(pattern => isMatchingPattern(url, pattern));
+  }
+}
+
+/** JSDoc */
+function getEventFilterUrl(event: Event): string | null {
+  try {
+    if (event.stacktrace) {
+      return getLastValidUrl(event.stacktrace.frames);
+    }
+    let frames;
+    try {
+      // @ts-ignore we only care about frames if the whole thing here is defined
+      frames = event.exception.values[0].stacktrace.frames;
+    } catch (e) {
+      // ignore
+    }
+    return frames ? getLastValidUrl(frames) : null;
+  } catch (oO) {
+    if (isDebugBuild()) {
+      logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+    }
     return null;
   }
+}
 
-  /** JSDoc */
-  private _getEventFilterUrl(event: Event): string | null {
+/** JSDoc */
+function getPossibleEventMessages(event: Event): string[] {
+  if (event.message) {
+    return [event.message];
+  }
+  if (event.exception) {
     try {
-      if (event.stacktrace) {
-        return this._getLastValidUrl(event.stacktrace.frames);
-      }
-      let frames;
-      try {
-        // @ts-ignore we only care about frames if the whole thing here is defined
-        frames = event.exception.values[0].stacktrace.frames;
-      } catch (e) {
-        // ignore
-      }
-      return frames ? this._getLastValidUrl(frames) : null;
+      const { type = '', value = '' } = (event.exception.values && event.exception.values[0]) || {};
+      return [`${value}`, `${type}: ${value}`];
     } catch (oO) {
       if (isDebugBuild()) {
-        logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+        logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
       }
-      return null;
+      return [];
     }
   }
+  return [];
+}
+
+/** JSDoc */
+function getLastValidUrl(frames: StackFrame[] = []): string | null {
+  for (let i = frames.length - 1; i >= 0; i--) {
+    const frame = frames[i];
+
+    if (frame && frame.filename !== '<anonymous>' && frame.filename !== '[native code]') {
+      return frame.filename || null;
+    }
+  }
+
+  return null;
+}
+
+/** JSDoc */
+function isSentryError(event: Event, options: Partial<InboundFiltersOptions>): boolean {
+  if (!options.ignoreInternal) {
+    return false;
+  }
+
+  try {
+    // @ts-ignore can't be a sentry error if undefined
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return event.exception.values[0].type === 'SentryError';
+  } catch (e) {
+    // ignore
+  }
+
+  return false;
 }
