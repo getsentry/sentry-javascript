@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Scope, Session } from '@sentry/hub';
+import { Scope, Session, cloneScope } from '@sentry/hub';
 import {
   Client,
   DsnComponents,
@@ -360,7 +360,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
     let finalScope = scope;
     if (hint && hint.captureContext) {
-      finalScope = Scope.clone(finalScope).update(hint.captureContext);
+      finalScope = cloneScope(finalScope).update(hint.captureContext);
     }
 
     // We prepare the result here with a resolved Event.

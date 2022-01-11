@@ -1,7 +1,7 @@
 import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
-import { addGlobalEventProcessor, Scope } from '../src';
+import { addGlobalEventProcessor, cloneScope, Scope } from '../src';
 
 describe('Scope', () => {
   afterEach(() => {
@@ -141,20 +141,20 @@ describe('Scope', () => {
     test('basic inheritance', () => {
       const parentScope = new Scope();
       parentScope.setExtra('a', 1);
-      const scope = Scope.clone(parentScope);
+      const scope = cloneScope(parentScope);
       expect((parentScope as any)._extra).toEqual((scope as any)._extra);
     });
 
     test('_requestSession clone', () => {
       const parentScope = new Scope();
       parentScope.setRequestSession({ status: 'errored' });
-      const scope = Scope.clone(parentScope);
+      const scope = cloneScope(parentScope);
       expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
     });
 
     test('parent changed inheritance', () => {
       const parentScope = new Scope();
-      const scope = Scope.clone(parentScope);
+      const scope = cloneScope(parentScope);
       parentScope.setExtra('a', 2);
       expect((scope as any)._extra).toEqual({});
       expect((parentScope as any)._extra).toEqual({ a: 2 });
@@ -164,7 +164,7 @@ describe('Scope', () => {
       const parentScope = new Scope();
       parentScope.setExtra('a', 1);
 
-      const scope = Scope.clone(parentScope);
+      const scope = cloneScope(parentScope);
       scope.setExtra('a', 2);
       expect((parentScope as any)._extra).toEqual({ a: 1 });
       expect((scope as any)._extra).toEqual({ a: 2 });
@@ -176,7 +176,7 @@ describe('Scope', () => {
       const parentScope = new Scope();
       parentScope.setRequestSession({ status: 'errored' });
 
-      const scope = Scope.clone(parentScope);
+      const scope = cloneScope(parentScope);
       const requestSession = scope.getRequestSession();
       if (requestSession) {
         requestSession.status = 'ok';

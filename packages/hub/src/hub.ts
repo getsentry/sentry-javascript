@@ -22,7 +22,7 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
-import { Scope } from './scope';
+import { cloneScope, Scope } from './scope';
 import { Session } from './session';
 
 /**
@@ -146,7 +146,7 @@ export class Hub implements HubInterface {
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
-    const scope = Scope.clone(this.getScope());
+    const scope = cloneScope(this.getScope());
     this.getStack().push({
       client: this.getClient(),
       scope,
@@ -602,7 +602,7 @@ function getHubFromActiveDomain(registry: Carrier): Hub {
     // If there's no hub on current domain, or it's an old API, assign a new one
     if (!hasHubOnCarrier(activeDomain) || isOlderThan(getHubFromCarrier(activeDomain), API_VERSION)) {
       const registryHubTopStack = getStackTop(getHubFromCarrier(registry));
-      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
+      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, cloneScope(registryHubTopStack.scope)));
     }
 
     // Return hub that lives on a domain

@@ -29,74 +29,74 @@ import { Session } from './session';
 const MAX_BREADCRUMBS = 100;
 
 /**
+ * Inherit values from the parent scope.
+ * @param scope to clone.
+ */
+export function cloneScope(scope?: Scope): Scope {
+  const newScope = new Scope();
+  if (scope) {
+    newScope._breadcrumbs = [...scope._breadcrumbs];
+    newScope._tags = { ...scope._tags };
+    newScope._extra = { ...scope._extra };
+    newScope._contexts = { ...scope._contexts };
+    newScope._user = scope._user;
+    newScope._level = scope._level;
+    newScope._span = scope._span;
+    newScope._session = scope._session;
+    newScope._transactionName = scope._transactionName;
+    newScope._fingerprint = scope._fingerprint;
+    newScope._eventProcessors = [...scope._eventProcessors];
+    newScope._requestSession = scope._requestSession;
+  }
+  return newScope;
+}
+
+/**
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
  */
 export class Scope implements ScopeInterface {
   /** Flag if notifying is happening. */
-  protected _notifyingListeners: boolean = false;
+  public _notifyingListeners: boolean = false;
 
   /** Callback for client to receive scope changes. */
-  protected _scopeListeners: Array<(scope: Scope) => void> = [];
+  public _scopeListeners: Array<(scope: Scope) => void> = [];
 
   /** Callback list that will be called after {@link applyToEvent}. */
-  protected _eventProcessors: EventProcessor[] = [];
+  public _eventProcessors: EventProcessor[] = [];
 
   /** Array of breadcrumbs. */
-  protected _breadcrumbs: Breadcrumb[] = [];
+  public _breadcrumbs: Breadcrumb[] = [];
 
   /** User */
-  protected _user: User = {};
+  public _user: User = {};
 
   /** Tags */
-  protected _tags: { [key: string]: Primitive } = {};
+  public _tags: { [key: string]: Primitive } = {};
 
   /** Extra */
-  protected _extra: Extras = {};
+  public _extra: Extras = {};
 
   /** Contexts */
-  protected _contexts: Contexts = {};
+  public _contexts: Contexts = {};
 
   /** Fingerprint */
-  protected _fingerprint?: string[];
+  public _fingerprint?: string[];
 
   /** Severity */
-  protected _level?: SeverityLevel;
+  public _level?: SeverityLevel;
 
   /** Transaction Name */
-  protected _transactionName?: string;
+  public _transactionName?: string;
 
   /** Span */
-  protected _span?: Span;
+  public _span?: Span;
 
   /** Session */
-  protected _session?: Session;
+  public _session?: Session;
 
   /** Request Mode Session Status */
-  protected _requestSession?: RequestSession;
-
-  /**
-   * Inherit values from the parent scope.
-   * @param scope to clone.
-   */
-  public static clone(scope?: Scope): Scope {
-    const newScope = new Scope();
-    if (scope) {
-      newScope._breadcrumbs = [...scope._breadcrumbs];
-      newScope._tags = { ...scope._tags };
-      newScope._extra = { ...scope._extra };
-      newScope._contexts = { ...scope._contexts };
-      newScope._user = scope._user;
-      newScope._level = scope._level;
-      newScope._span = scope._span;
-      newScope._session = scope._session;
-      newScope._transactionName = scope._transactionName;
-      newScope._fingerprint = scope._fingerprint;
-      newScope._eventProcessors = [...scope._eventProcessors];
-      newScope._requestSession = scope._requestSession;
-    }
-    return newScope;
-  }
+  public _requestSession?: RequestSession;
 
   /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
