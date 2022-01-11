@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
+import { getSession } from '@sentry/hub';
 import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -387,7 +388,7 @@ export function requestHandler(
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
     const scope = currentHub.getScope();
-    if (scope && scope.getSession()) {
+    if (scope && getSession(scope)) {
       scope.setSession();
     }
   }

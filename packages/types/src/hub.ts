@@ -17,12 +17,6 @@ import { User } from './user';
  */
 export interface Hub {
   /**
-   * This binds the given client to the current scope.
-   * @param client An SDK client (client) instance.
-   */
-  bindClient(client?: Client): void;
-
-  /**
    * Create a new scope to store context information.
    *
    * The scope will be layered on top of the current one. It is isolated, i.e. all

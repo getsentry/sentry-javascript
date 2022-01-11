@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import { getMainCarrier, setHubOnCarrier, getSession } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
@@ -231,7 +231,7 @@ function startSessionTracking(): void {
   // such as calling process.exit() or uncaught exceptions.
   // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
   process.on('beforeExit', () => {
-    const session = hub.getScope()?.getSession();
+    const session = getSession(hub.getScope());
     const terminalStates: SessionStatus[] = ['exited', 'crashed'];
     // Only call endSession, if the Session exists on Scope and SessionStatus is not a
     // Terminal Status i.e. Exited or Crashed because

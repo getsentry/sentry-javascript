@@ -52,6 +52,13 @@ export function cloneScope(scope?: Scope): Scope {
 }
 
 /**
+ * Returns the `Session` if there is one
+ */
+export function getSession(scope?: Scope): Session | undefined {
+  return scope && scope._session;
+}
+
+/**
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
  */
@@ -288,13 +295,6 @@ export class Scope implements ScopeInterface {
     }
     this._notifyScopeListeners();
     return this;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getSession(): Session | undefined {
-    return this._session;
   }
 
   /**

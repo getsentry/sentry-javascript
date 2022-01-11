@@ -22,7 +22,7 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
-import { cloneScope, Scope } from './scope';
+import { cloneScope, getSession, Scope } from './scope';
 import { Session } from './session';
 
 /**
@@ -92,6 +92,24 @@ export function getStackTop(hub: Hub): Layer {
   return hub._stack[hub._stack.length - 1];
 }
 
+/** Returns the scope stack for domains or the process. */
+function getStack(hub: Hub): Layer[] {
+  return hub._stack;
+}
+
+/**
+ * This binds the given client to the current scope.
+ * @param hub The Hub instance.
+ * @param client An SDK client (client) instance.
+ */
+export function bindClient(hub: Hub, client?: Client): void {
+  const top = getStackTop(hub);
+  top.client = client;
+  if (client && client.setupIntegrations) {
+    client.setupIntegrations();
+  }
+}
+
 /**
  * Checks if this hub's version is older than the given version.
  *
@@ -126,18 +144,7 @@ export class Hub implements HubInterface {
   public constructor(client?: Client, scope: Scope = new Scope(), public readonly _version: number = API_VERSION) {
     getStackTop(this).scope = scope;
     if (client) {
-      this.bindClient(client);
-    }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public bindClient(client?: Client): void {
-    const top = getStackTop(this);
-    top.client = client;
-    if (client && client.setupIntegrations) {
-      client.setupIntegrations();
+      bindClient(this, client);
     }
   }
 
@@ -147,7 +154,7 @@ export class Hub implements HubInterface {
   public pushScope(): Scope {
     // We want to clone the content of prev scope
     const scope = cloneScope(this.getScope());
-    this.getStack().push({
+    getStack(this).push({
       client: this.getClient(),
       scope,
     });
@@ -158,8 +165,8 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public popScope(): boolean {
-    if (this.getStack().length <= 1) return false;
-    return !!this.getStack().pop();
+    if (getStack(this).length <= 1) return false;
+    return !!getStack(this).pop();
   }
 
   /**
@@ -185,12 +192,6 @@ export class Hub implements HubInterface {
   public getScope(): Scope | undefined {
     return getStackTop(this).scope;
   }
-
-  /** Returns the scope stack for domains or the process. */
-  public getStack(): Layer[] {
-    return this._stack;
-  }
-
 
   /**
    * @inheritDoc
@@ -288,7 +289,7 @@ export class Hub implements HubInterface {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
-      (client.getOptions && client.getOptions()) || {};
+    (client.getOptions && client.getOptions()) || {};
 
     if (maxBreadcrumbs <= 0) return;
 
@@ -428,7 +429,7 @@ export class Hub implements HubInterface {
   public endSession(): void {
     const layer = getStackTop(this);
     const scope = layer && layer.scope;
-    const session = scope && scope.getSession();
+    const session = getSession(scope);
     if (session) {
       session.close();
     }
@@ -461,7 +462,7 @@ export class Hub implements HubInterface {
 
     if (scope) {
       // End existing session if there's one
-      const currentSession = scope.getSession && scope.getSession();
+      const currentSession = getSession(scope);
       if (currentSession && currentSession.status === 'ok') {
         currentSession.update({ status: 'exited' });
       }
@@ -481,7 +482,7 @@ export class Hub implements HubInterface {
     const { scope, client } = getStackTop(this);
     if (!scope) return;
 
-    const session = scope.getSession && scope.getSession();
+    const session = getSession(scope)
     if (session) {
       if (client && client.captureSession) {
         client.captureSession(session);

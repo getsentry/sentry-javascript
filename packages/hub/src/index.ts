@@ -1,4 +1,4 @@
-export { addGlobalEventProcessor, Scope, cloneScope } from './scope';
+export { addGlobalEventProcessor, cloneScope, getSession, Scope } from './scope';
 export { Session } from './session';
 export { SessionFlusher } from './sessionflusher';
 export {
@@ -7,6 +7,7 @@ export {
   getCurrentHub,
   getHubFromCarrier,
   getMainCarrier,
+  bindClient,
   Hub,
   makeMain,
   setHubOnCarrier,

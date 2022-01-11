@@ -113,11 +113,6 @@ export interface Scope {
   getTransaction(): Transaction | undefined;
 
   /**
-   * Returns the `Session` if there is one
-   */
-  getSession(): Session | undefined;
-
-  /**
    * Sets the `Session` on the scope
    */
   setSession(session?: Session): this;
