@@ -1,4 +1,4 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
+import { addGlobalEventProcessor, getCurrentHub, getClient } from '@sentry/hub';
 import { Event, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@sentry/utils';
 
@@ -44,7 +44,7 @@ export class InboundFilters implements Integration {
       }
       const self = hub.getIntegration(InboundFilters);
       if (self) {
-        const client = hub.getClient();
+        const client = getClient(hub);
         const clientOptions = client ? client.getOptions() : {};
         // This checks prevents most of the occurrences of the bug linked below:
         // https://github.com/getsentry/sentry-javascript/issues/2622

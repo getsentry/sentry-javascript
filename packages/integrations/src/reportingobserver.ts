@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
+import { withScope } from '@sentry/hub';
 
 /** JSDoc */
 interface Report {
@@ -108,7 +109,7 @@ export class ReportingObserver implements Integration {
       return;
     }
     for (const report of reports) {
-      hub.withScope(scope => {
+      withScope(hub, scope => {
         scope.setExtra('url', report.url);
 
         const label = `ReportingObserver [${report.type}]`;

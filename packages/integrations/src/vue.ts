@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { withScope } from '@sentry/hub';
 import { EventProcessor, Hub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
@@ -415,7 +416,7 @@ export class Vue implements Integration {
       if (getCurrentHub().getIntegration(Vue)) {
         // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
         setTimeout(() => {
-          getCurrentHub().withScope(scope => {
+          withScope(getCurrentHub(), scope => {
             scope.setContext('vue', metadata);
             getCurrentHub().captureException(error);
           });

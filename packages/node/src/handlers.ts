@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { getSession } from '@sentry/hub';
+import { getClient, getSession } from '@sentry/hub';
 import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -380,7 +380,7 @@ export function requestHandler(
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   const currentHub = getCurrentHub();
-  const client = currentHub.getClient<NodeClient>();
+  const client = getClient<NodeClient>(currentHub);
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
   // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
   if (client && isAutoSessionTrackingEnabled(client)) {
@@ -420,7 +420,7 @@ export function requestHandler(
 
       currentHub.configureScope(scope => {
         scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
-        const client = currentHub.getClient<NodeClient>();
+        const client = getClient<NodeClient>(currentHub);
         if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
           if (scope) {
@@ -431,7 +431,7 @@ export function requestHandler(
       });
 
       res.once('finish', () => {
-        const client = currentHub.getClient<NodeClient>();
+        const client = getClient<NodeClient>(currentHub);
         if (isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -505,7 +505,7 @@ export function errorHandler(options?: {
           _scope.setSpan(transaction);
         }
 
-        const client = getCurrentHub().getClient<NodeClient>();
+        const client = getClient<NodeClient>(getCurrentHub());
         if (client && isAutoSessionTrackingEnabled(client)) {
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
           // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only

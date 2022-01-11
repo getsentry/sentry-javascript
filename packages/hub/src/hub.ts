@@ -93,7 +93,7 @@ export function getStackTop(hub: Hub): Layer {
 }
 
 /** Returns the scope stack for domains or the process. */
-function getStack(hub: Hub): Layer[] {
+export function getStack(hub: Hub): Layer[] {
   return hub._stack;
 }
 
@@ -136,7 +136,7 @@ export function pushScope(hub: Hub): Scope {
   // We want to clone the content of prev scope
   const scope = cloneScope(hub.getScope());
   getStack(hub).push({
-    client: hub.getClient(),
+    client: getClient(hub),
     scope,
   });
   return scope;
@@ -153,6 +153,34 @@ export function pushScope(hub: Hub): Scope {
  */
 export function isOlderThan(hub: Hub, version: number): boolean {
   return hub._version < version;
+}
+
+/**
+ * Creates a new scope with and executes the given operation within.
+ * The scope is automatically removed once the operation
+ * finishes or throws.
+ *
+ * This is essentially a convenience function for:
+ *
+ *     pushScope();
+ *     callback();
+ *     popScope();
+ *
+ * @param hub The Hub instance.
+ * @param callback that will be enclosed into push/popScope.
+ */
+export function withScope(hub: Hub, callback: (scope: Scope) => void): void {
+  const scope = pushScope(hub);
+  try {
+    callback(scope);
+  } finally {
+    popScope(hub);
+  }
+}
+
+/** Returns the client of the top stack. */
+export function getClient<C extends Client>(hub: Hub): C | undefined {
+  return getStackTop(hub).client as C;
 }
 
 /**
@@ -178,25 +206,6 @@ export class Hub implements HubInterface {
     if (client) {
       bindClient(this, client);
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public withScope(callback: (scope: Scope) => void): void {
-    const scope = pushScope(this);
-    try {
-      callback(scope);
-    } finally {
-      popScope(this);
-    }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getClient<C extends Client>(): C | undefined {
-    return getStackTop(this).client as C;
   }
 
   /** Returns the scope of the top stack. */
@@ -390,7 +399,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    const client = this.getClient();
+    const client = getClient(this);
     if (!client) return null;
     try {
       return client.getIntegration(integration);

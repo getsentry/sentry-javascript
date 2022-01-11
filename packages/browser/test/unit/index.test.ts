@@ -17,6 +17,7 @@ import {
   wrap,
 } from '../../src';
 import { SimpleTransport } from './mocks/simpletransport';
+import { getClient } from '@sentry/hub';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
@@ -285,7 +286,7 @@ describe('SentryBrowser initialization', () => {
         },
       });
 
-      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
+      const sdkData = (getClient(getCurrentHub()) as any)._backend._transport._api.metadata?.sdk;
 
       expect(sdkData.name).toBe('sentry.javascript.angular');
       expect(sdkData.packages[0].name).toBe('npm:@sentry/angular');

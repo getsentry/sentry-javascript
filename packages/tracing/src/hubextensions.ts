@@ -1,4 +1,4 @@
-import { getMainCarrier, Hub } from '@sentry/hub';
+import { getClient, getMainCarrier, Hub } from '@sentry/hub';
 import {
   CustomSamplingContext,
   Integration,
@@ -165,7 +165,7 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const client = this.getClient();
+  const client = getClient(this);
   const options = (client && client.getOptions()) || {};
 
   let transaction = new Transaction(transactionContext, this);
@@ -190,7 +190,7 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
-  const client = hub.getClient();
+  const client = getClient(hub);
   const options = (client && client.getOptions()) || {};
 
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);

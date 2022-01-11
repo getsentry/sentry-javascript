@@ -10,6 +10,8 @@ export {
   bindClient,
   popScope,
   pushScope,
+  withScope,
+  getClient,
   Hub,
   makeMain,
   setHubOnCarrier,

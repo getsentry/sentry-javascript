@@ -16,6 +16,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/hub": "6.17.0-beta.0",
     "@sentry/core": "6.17.0-beta.0",
     "@sentry/types": "6.17.0-beta.0",
     "@sentry/utils": "6.17.0-beta.0",

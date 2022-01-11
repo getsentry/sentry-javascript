@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/hub';
 import { Event, EventHint, Hub, Integration, Primitive } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -257,7 +258,7 @@ function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'],
 
 function getHubAndAttachStacktrace(): [Hub, boolean | undefined] {
   const hub = getCurrentHub();
-  const client = hub.getClient();
+  const client = getClient(hub);
   const attachStacktrace = client && client.getOptions().attachStacktrace;
   return [hub, attachStacktrace];
 }

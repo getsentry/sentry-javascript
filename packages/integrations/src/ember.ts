@@ -1,5 +1,6 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, isInstanceOf, logger } from '@sentry/utils';
+import { withScope } from '@sentry/hub';
 
 /** JSDoc */
 export class Ember implements Integration {
@@ -55,7 +56,7 @@ export class Ember implements Integration {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._Ember.RSVP.on('error', (reason: unknown): void => {
       if (getCurrentHub().getIntegration(Ember)) {
-        getCurrentHub().withScope(scope => {
+        withScope(getCurrentHub(), scope => {
           if (isInstanceOf(reason, Error)) {
             scope.setExtra('context', 'Unhandled Promise error detected');
             getCurrentHub().captureException(reason, { originalException: reason as Error });

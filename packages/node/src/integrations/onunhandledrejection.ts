@@ -1,4 +1,5 @@
 import { getCurrentHub, Scope } from '@sentry/core';
+import { withScope } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
@@ -55,7 +56,7 @@ export class OnUnhandledRejection implements Integration {
     /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const context = (promise.domain && promise.domain.sentryContext) || {};
 
-    hub.withScope((scope: Scope) => {
+    withScope(hub, (scope: Scope) => {
       scope.setExtra('unhandledPromiseRejection', true);
 
       // Preserve backwards compatibility with raven-node for now

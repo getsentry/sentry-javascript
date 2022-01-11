@@ -1,4 +1,4 @@
-import { Carrier, getHubFromCarrier, getMainCarrier, bindClient } from '@sentry/hub';
+import { bindClient, Carrier, getClient,getHubFromCarrier, getMainCarrier } from '@sentry/hub';
 import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { Event } from '@sentry/types';
@@ -75,7 +75,7 @@ export function init(options: NextjsOptions): void {
     const domainHub = getHubFromCarrier(activeDomain);
 
     // apply the changes made by `nodeInit` to the domain's hub also
-    bindClient(domainHub, globalHub.getClient());
+    bindClient(domainHub, getClient(globalHub));
     domainHub.getScope()?.update(globalHub.getScope());
     // `scope.update()` doesn’t copy over event processors, so we have to add it manually
     domainHub.getScope()?.addEventProcessor(filterTransactions);
@@ -89,7 +89,7 @@ export function init(options: NextjsOptions): void {
 
 function sdkAlreadyInitialized(): boolean {
   const hub = getCurrentHub();
-  return !!hub.getClient();
+  return !!getClient(hub);
 }
 
 function addServerIntegrations(options: NextjsOptions): void {

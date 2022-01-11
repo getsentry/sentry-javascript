@@ -1,7 +1,7 @@
 import { Event } from '@sentry/types';
 
-import { getCurrentHub, Hub, Scope } from '../src';
-import { getStackTop, isOlderThan } from '../src/hub';
+import { getCurrentHub, bindClient, pushScope, Hub, Scope } from '../src';
+import { getStackTop, isOlderThan, getStack } from '../src/hub';
 
 const clientFn: any = jest.fn();
 
@@ -20,12 +20,12 @@ describe('Hub', () => {
 
   test('push process into stack', () => {
     const hub = new Hub();
-    expect(hub.getStack()).toHaveLength(1);
+    expect(getStack(hub)).toHaveLength(1);
   });
 
   test('pass in filled layer', () => {
     const hub = new Hub(clientFn);
-    expect(hub.getStack()).toHaveLength(1);
+    expect(getStack(hub)).toHaveLength(1);
   });
 
   test("don't invoke client sync with wrong func", () => {
@@ -45,18 +45,18 @@ describe('Hub', () => {
       const localScope = new Scope();
       localScope.setExtra('a', 'b');
       const hub = new Hub(undefined, localScope);
-      hub.pushScope();
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[1].scope).not.toBe(localScope);
-      expect(((hub.getStack()[1].scope as Scope) as any)._extra).toEqual({ a: 'b' });
+      pushScope(hub);
+      expect(getStack(hub)).toHaveLength(2);
+      expect(getStack(hub)[1].scope).not.toBe(localScope);
+      expect(((getStack(hub)[1].scope as Scope) as any)._extra).toEqual({ a: 'b' });
     });
 
     test('inherit client', () => {
       const testClient: any = { bla: 'a' };
       const hub = new Hub(testClient);
-      hub.pushScope();
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[1].client).toBe(testClient);
+      pushScope(hub);
+      expect(getStack(hub)).toHaveLength(2);
+      expect(getStack(hub)[1].client).toBe(testClient);
     });
 
     describe('bindClient', () => {
@@ -64,27 +64,27 @@ describe('Hub', () => {
         const testClient: any = { setupIntegrations: jest.fn() };
         const nextClient: any = { setupIntegrations: jest.fn() };
         const hub = new Hub(testClient);
-        hub.bindClient(nextClient);
-        expect(hub.getStack()).toHaveLength(1);
-        expect(hub.getStack()[0].client).toBe(nextClient);
+        bindClient(hub, nextClient);
+        expect(getStack(hub)).toHaveLength(1);
+        expect(getStack(hub)[0].client).toBe(nextClient);
       });
 
       test('should bind client to the top-most layer', () => {
         const testClient: any = { bla: 'a' };
         const nextClient: any = { foo: 'bar' };
         const hub = new Hub(testClient);
-        hub.pushScope();
-        hub.bindClient(nextClient);
-        expect(hub.getStack()).toHaveLength(2);
-        expect(hub.getStack()[0].client).toBe(testClient);
-        expect(hub.getStack()[1].client).toBe(nextClient);
+        pushScope(hub);
+        bindClient(hub, nextClient);
+        expect(getStack(hub)).toHaveLength(2);
+        expect(getStack(hub)[0].client).toBe(testClient);
+        expect(getStack(hub)[1].client).toBe(nextClient);
       });
 
       test('should call setupIntegration method of passed client', () => {
         const testClient: any = { setupIntegrations: jest.fn() };
         const nextClient: any = { setupIntegrations: jest.fn() };
         const hub = new Hub(testClient);
-        hub.bindClient(nextClient);
+        bindClient(hub, nextClient);
         expect(testClient.setupIntegrations).toHaveBeenCalled();
         expect(nextClient.setupIntegrations).toHaveBeenCalled();
       });
@@ -104,7 +104,7 @@ describe('Hub', () => {
         return processedEvent;
       });
 
-      hub.pushScope();
+      pushScope(hub);
       const pushedScope = getStackTop(hub).scope;
 
       return pushedScope!.applyToEvent(event).then(final => {
@@ -115,10 +115,10 @@ describe('Hub', () => {
 
   test('popScope', () => {
     const hub = new Hub();
-    hub.pushScope();
-    expect(hub.getStack()).toHaveLength(2);
+    pushScope(hub);
+    expect(getStack(hub)).toHaveLength(2);
     hub.popScope();
-    expect(hub.getStack()).toHaveLength(1);
+    expect(getStack(hub)).toHaveLength(1);
   });
 
   describe('withScope', () => {
@@ -129,20 +129,20 @@ describe('Hub', () => {
     });
 
     test('simple', () => {
-      hub.withScope(() => {
-        expect(hub.getStack()).toHaveLength(2);
+      withScope(hub, () => {
+        expect(getStack(hub)).toHaveLength(2);
       });
-      expect(hub.getStack()).toHaveLength(1);
+      expect(getStack(hub)).toHaveLength(1);
     });
 
     test('bindClient', () => {
       const testClient: any = { bla: 'a' };
-      hub.withScope(() => {
-        hub.bindClient(testClient);
-        expect(hub.getStack()).toHaveLength(2);
-        expect(hub.getStack()[1].client).toBe(testClient);
+      withScope(hub, () => {
+        bindClient(hub, testClient);
+        expect(getStack(hub)).toHaveLength(2);
+        expect(getStack(hub)[1].client).toBe(testClient);
       });
-      expect(hub.getStack()).toHaveLength(1);
+      expect(getStack(hub)).toHaveLength(1);
     });
 
     test('should bubble up exceptions', () => {
@@ -164,15 +164,15 @@ describe('Hub', () => {
   test('getStack', () => {
     const client: any = { a: 'b' };
     const hub = new Hub(client);
-    expect(hub.getStack()[0].client).toBe(client);
+    expect(getStack(hub)[0].client).toBe(client);
   });
 
   test('getStackTop', () => {
     const testClient: any = { bla: 'a' };
     const hub = new Hub();
-    hub.pushScope();
-    hub.pushScope();
-    hub.bindClient(testClient);
+    pushScope(hub);
+    pushScope(hub);
+    bindClient(hub, testClient);
     expect(getStackTop(hub).client).toEqual({ bla: 'a' });
   });
 

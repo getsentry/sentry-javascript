@@ -1,3 +1,4 @@
+import { withScope } from '@sentry/hub';
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
@@ -91,7 +92,7 @@ export class Angular implements Integration {
       const hub = this._getCurrentHub && this._getCurrentHub();
 
       if (hub && hub.getIntegration(Angular)) {
-        hub.withScope(scope => {
+        withScope(hub, scope => {
           if (cause) {
             scope.setExtra('cause', cause);
           }

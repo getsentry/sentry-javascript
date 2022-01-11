@@ -6,6 +6,7 @@ import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { getClient } from '@sentry/hub';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -118,7 +119,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   if (!options.eventId) {
     options.eventId = hub.lastEventId();
   }
-  const client = hub.getClient<BrowserClient>();
+  const client = getClient<BrowserClient>(hub);
   if (client) {
     client.showReportDialog(options);
   }
@@ -158,7 +159,7 @@ export function onLoad(callback: () => void): void {
  * doesn't (or if there's no client defined).
  */
 export function flush(timeout?: number): PromiseLike<boolean> {
-  const client = getCurrentHub().getClient<BrowserClient>();
+  const client = getClient<BrowserClient>(getCurrentHub());
   if (client) {
     return client.flush(timeout);
   }
@@ -177,7 +178,7 @@ export function flush(timeout?: number): PromiseLike<boolean> {
  * doesn't (or if there's no client defined).
  */
 export function close(timeout?: number): PromiseLike<boolean> {
-  const client = getCurrentHub().getClient<BrowserClient>();
+  const client = getClient<BrowserClient>(getCurrentHub());
   if (client) {
     return client.close(timeout);
   }

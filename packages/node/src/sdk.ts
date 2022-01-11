@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getMainCarrier, setHubOnCarrier, getSession } from '@sentry/hub';
+import { getMainCarrier, setHubOnCarrier, getSession, getClient } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
@@ -148,7 +148,7 @@ export function lastEventId(): string | undefined {
  * doesn't (or if there's no client defined).
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient<NodeClient>();
+  const client = getClient<NodeClient>(getCurrentHub());
   if (client) {
     return client.flush(timeout);
   }
@@ -165,7 +165,7 @@ export async function flush(timeout?: number): Promise<boolean> {
  * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient<NodeClient>();
+  const client = getClient<NodeClient>(getCurrentHub());
   if (client) {
     return client.close(timeout);
   }
