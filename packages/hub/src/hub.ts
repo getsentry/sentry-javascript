@@ -111,6 +111,38 @@ export function bindClient(hub: Hub, client?: Client): void {
 }
 
 /**
+ * Removes a previously pushed scope from the stack.
+ *
+ * This restores the state before the scope was pushed. All breadcrumbs and
+ * context information added since the last call to {@link pushScope} are
+ * discarded.
+ */
+export function popScope(hub: Hub): boolean {
+  if (getStack(hub).length <= 1) return false;
+  return !!getStack(hub).pop();
+}
+
+/**
+ * Create a new scope to store context information.
+ *
+ * The scope will be layered on top of the current one. It is isolated, i.e. all
+ * breadcrumbs and context information added to this scope will be removed once
+ * the scope ends. Be sure to always remove this scope with {@link popScope}
+ * when the operation finishes or throws.
+ *
+ * @returns Scope, the new cloned scope
+ */
+export function pushScope(hub: Hub): Scope {
+  // We want to clone the content of prev scope
+  const scope = cloneScope(hub.getScope());
+  getStack(hub).push({
+    client: hub.getClient(),
+    scope,
+  });
+  return scope;
+}
+
+/**
  * Checks if this hub's version is older than the given version.
  *
  * @param hub The hub to check the version on.
@@ -151,33 +183,12 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public pushScope(): Scope {
-    // We want to clone the content of prev scope
-    const scope = cloneScope(this.getScope());
-    getStack(this).push({
-      client: this.getClient(),
-      scope,
-    });
-    return scope;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public popScope(): boolean {
-    if (getStack(this).length <= 1) return false;
-    return !!getStack(this).pop();
-  }
-
-  /**
-   * @inheritDoc
-   */
   public withScope(callback: (scope: Scope) => void): void {
-    const scope = this.pushScope();
+    const scope = pushScope(this);
     try {
       callback(scope);
     } finally {
-      this.popScope();
+      popScope(this);
     }
   }
 

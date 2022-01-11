@@ -9,6 +9,7 @@ import {
   startTransaction,
   withScope,
 } from '@sentry/node';
+import { popScope, pushScope } from '@sentry/hub';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
@@ -292,7 +293,7 @@ export function wrapHandler<TEvent, TResult>(
     });
 
     const hub = getCurrentHub();
-    const scope = hub.pushScope();
+    const scope = pushScope(hub);
     let rv: TResult | undefined;
     try {
       enhanceScopeWithEnvironmentData(scope, context, START_TIME);
@@ -315,7 +316,7 @@ export function wrapHandler<TEvent, TResult>(
     } finally {
       clearTimeout(timeoutWarningTimer);
       transaction.finish();
-      hub.popScope();
+      popScope(hub);
       await flush(options.flushTimeout);
     }
     return rv;

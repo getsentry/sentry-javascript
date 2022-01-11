@@ -8,6 +8,8 @@ export {
   getHubFromCarrier,
   getMainCarrier,
   bindClient,
+  popScope,
+  pushScope,
   Hub,
   makeMain,
   setHubOnCarrier,
