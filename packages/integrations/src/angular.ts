@@ -91,7 +91,7 @@ export class Angular implements Integration {
     return (exception: Error, cause?: string): void => {
       const hub = this._getCurrentHub && this._getCurrentHub();
 
-      if (hub && getIntegration<Angular>(hub, Angular)) {
+      if (hub && getIntegration(hub, Angular)) {
         withScope(hub, scope => {
           if (cause) {
             scope.setExtra('cause', cause);
