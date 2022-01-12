@@ -14,27 +14,29 @@ type ReleaseHealthAttributes = {
  */
 export class SessionFlusher {
   public readonly flushTimeout: number = 60;
-  public _pendingAggregates: Record<number, AggregationCounts> = {};
-  public _sessionAttrs: ReleaseHealthAttributes;
-  public _intervalId: ReturnType<typeof setInterval>;
-  public _isEnabled: boolean = true;
-  public _transport: Transport;
+  public pendingAggregates: Record<number, AggregationCounts> = {};
+  public sessionAttrs: ReleaseHealthAttributes;
+  public intervalId: ReturnType<typeof setInterval>;
+  public isEnabled: boolean = true;
+  public transport: Transport;
 
   public constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
-    this._transport = transport;
+    this.transport = transport;
     // Call to setInterval, so that flush is called every 60 seconds
-    this._intervalId = setInterval(() => flush(this), this.flushTimeout * 1000);
-    this._sessionAttrs = attrs;
+    this.intervalId = setInterval(() => flush(this), this.flushTimeout * 1000);
+    this.sessionAttrs = attrs;
   }
 }
 
 /** Submits the aggregates request mode sessions to Sentry */
-function sendSessionAggregates(sessionflusher: SessionFlusher, sessionAggregates: SessionAggregates): void {
-  if (!sessionflusher._transport.sendSession) {
+function sendSessionAggregates(sessionFlusher: SessionFlusher, sessionAggregates: SessionAggregates): void {
+  // TODO: But why to take a Transport when it may be the case that doesn't implement the callback?
+  // The only point of taking `transport` is to call this one function thou.
+  if (!sessionFlusher.transport.sendSession) {
     logger.warn("Dropping session because custom transport doesn't implement sendSession");
     return;
   }
-  void sessionflusher._transport.sendSession(sessionAggregates).then(null, reason => {
+  void sessionFlusher.transport.sendSession(sessionAggregates).then(null, reason => {
     logger.error(`Error while sending session: ${reason}`);
   });
 }
@@ -48,27 +50,27 @@ function flush(sessionFlusher: SessionFlusher): void {
   if (sessionAggregates.aggregates.length === 0) {
     return;
   }
-  sessionFlusher._pendingAggregates = {};
+  sessionFlusher.pendingAggregates = {};
   sendSessionAggregates(sessionFlusher, sessionAggregates);
 }
 
 /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
-function getSessionAggregates(sessionFlusher: SessionFlusher): SessionAggregates {
-  const aggregates: AggregationCounts[] = Object.keys(sessionFlusher._pendingAggregates).map((key: string) => {
-    return sessionFlusher._pendingAggregates[parseInt(key)];
+export function getSessionAggregates(sessionFlusher: SessionFlusher): SessionAggregates {
+  const aggregates: AggregationCounts[] = Object.keys(sessionFlusher.pendingAggregates).map((key: string) => {
+    return sessionFlusher.pendingAggregates[parseInt(key)];
   });
 
   const sessionAggregates: SessionAggregates = {
-    attrs: sessionFlusher._sessionAttrs,
+    attrs: sessionFlusher.sessionAttrs,
     aggregates,
   };
   return dropUndefinedKeys(sessionAggregates);
 }
 
 /** Clears setInterval and calls flush */
-export function close(sessionFlusher: SessionFlusher): void {
-  clearInterval(sessionFlusher._intervalId);
-  sessionFlusher._isEnabled = false;
+export function closeSessionFlusher(sessionFlusher: SessionFlusher): void {
+  clearInterval(sessionFlusher.intervalId);
+  sessionFlusher.isEnabled = false;
   flush(sessionFlusher);
 }
 
@@ -80,7 +82,7 @@ export function close(sessionFlusher: SessionFlusher): void {
  * `_incrementSessionStatusCount` along with the start date
  */
 export function incrementSessionStatusCount(sessionFlusher: SessionFlusher): void {
-  if (!sessionFlusher._isEnabled) {
+  if (!sessionFlusher.isEnabled) {
     return;
   }
   const scope = getScope(getCurrentHub());
@@ -101,18 +103,18 @@ export function incrementSessionStatusCount(sessionFlusher: SessionFlusher): voi
  * Increments status bucket in pendingAggregates buffer (internal state) corresponding to status of
  * the session received
  */
-function _incrementSessionStatusCount(
+export function _incrementSessionStatusCount(
   sessionFlusher: SessionFlusher,
   status: RequestSessionStatus,
   date: Date,
 ): number {
   // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
   const sessionStartedTrunc = new Date(date).setSeconds(0, 0);
-  sessionFlusher._pendingAggregates[sessionStartedTrunc] = sessionFlusher._pendingAggregates[sessionStartedTrunc] || {};
+  sessionFlusher.pendingAggregates[sessionStartedTrunc] = sessionFlusher.pendingAggregates[sessionStartedTrunc] || {};
 
   // corresponds to aggregated sessions in one specific minute bucket
   // for example, {"started":"2021-03-16T08:00:00.000Z","exited":4, "errored": 1}
-  const aggregationCounts: AggregationCounts = sessionFlusher._pendingAggregates[sessionStartedTrunc];
+  const aggregationCounts: AggregationCounts = sessionFlusher.pendingAggregates[sessionStartedTrunc];
   if (!aggregationCounts.started) {
     aggregationCounts.started = new Date(sessionStartedTrunc).toISOString();
   }

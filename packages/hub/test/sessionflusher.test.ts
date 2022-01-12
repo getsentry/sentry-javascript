@@ -1,4 +1,5 @@
-import { SessionFlusher } from '../src/sessionflusher';
+import { SessionFlusher } from '../src';
+import { _incrementSessionStatusCount, closeSessionFlusher, getSessionAggregates } from '../src/sessionflusher';
 
 describe('Session Flusher', () => {
   let sendSession: jest.Mock;
@@ -26,33 +27,33 @@ describe('Session Flusher', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.0', environment: 'dev' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
-    let count = (flusher as any)._incrementSessionStatusCount('ok', date);
+    let count = _incrementSessionStatusCount(flusher, 'ok', date);
     expect(count).toEqual(1);
-    count = (flusher as any)._incrementSessionStatusCount('ok', date);
+    count = _incrementSessionStatusCount(flusher, 'ok', date);
     expect(count).toEqual(2);
-    count = (flusher as any)._incrementSessionStatusCount('errored', date);
+    count = _incrementSessionStatusCount(flusher, 'errored', date);
     expect(count).toEqual(1);
     date.setMinutes(date.getMinutes() + 1);
-    count = (flusher as any)._incrementSessionStatusCount('ok', date);
+    count = _incrementSessionStatusCount(flusher, 'ok', date);
     expect(count).toEqual(1);
-    count = (flusher as any)._incrementSessionStatusCount('errored', date);
+    count = _incrementSessionStatusCount(flusher, 'errored', date);
     expect(count).toEqual(1);
 
-    expect(flusher.getSessionAggregates().aggregates).toEqual([
+    expect(getSessionAggregates(flusher).aggregates).toEqual([
       { errored: 1, exited: 2, started: '2021-04-08T12:18:00.000Z' },
       { errored: 1, exited: 1, started: '2021-04-08T12:19:00.000Z' },
     ]);
-    expect(flusher.getSessionAggregates().attrs).toEqual({ release: '1.0.0', environment: 'dev' });
+    expect(getSessionAggregates(flusher).attrs).toEqual({ release: '1.0.0', environment: 'dev' });
   });
 
   test('test undefined attributes are excluded, on incrementSessionStatusCount call', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.0' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
-    (flusher as any)._incrementSessionStatusCount('ok', date);
-    (flusher as any)._incrementSessionStatusCount('errored', date);
+    _incrementSessionStatusCount(flusher, 'ok', date);
+    _incrementSessionStatusCount(flusher, 'errored', date);
 
-    expect(flusher.getSessionAggregates()).toEqual({
+    expect(getSessionAggregates(flusher)).toEqual({
       aggregates: [{ errored: 1, exited: 1, started: '2021-04-08T12:18:00.000Z' }],
       attrs: { release: '1.0.0' },
     });
@@ -103,19 +104,26 @@ describe('Session Flusher', () => {
 
   test('calling close on SessionFlusher should disable SessionFlusher', () => {
     const flusher = new SessionFlusher(transport, { release: '1.0.x' });
-    flusher.close();
+    closeSessionFlusher(flusher);
     expect((flusher as any)._isEnabled).toEqual(false);
   });
 
   test('calling close on SessionFlusher will force call flush', () => {
+    // GIVEN
     const flusher = new SessionFlusher(transport, { release: '1.0.x' });
-    const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     const date = new Date('2021-04-08T12:18:23.043Z');
-    (flusher as any)._incrementSessionStatusCount('ok', date);
-    (flusher as any)._incrementSessionStatusCount('ok', date);
-    flusher.close();
 
-    expect(flusherFlushFunc).toHaveBeenCalledTimes(1);
+    // TODO: code-smell using internal function
+    // why can we call the public API instead of the internal one?
+    _incrementSessionStatusCount(flusher, 'ok', date);
+    _incrementSessionStatusCount(flusher, 'ok', date);
+
+    // WHEN
+    closeSessionFlusher(flusher);
+
+    // THEN
+    expect(flusher.isEnabled).toEqual(false);
+    expect(flusher.pendingAggregates).toEqual({});
     expect(sendSession).toHaveBeenCalledWith(
       expect.objectContaining({
         attrs: { release: '1.0.x' },
