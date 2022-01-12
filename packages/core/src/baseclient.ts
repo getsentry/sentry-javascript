@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Scope, Session, cloneScope, getSession } from '@sentry/hub';
+import { Scope, Session, updateSession, cloneScope, getSession } from '@sentry/hub';
 import {
   Client,
   DsnComponents,
@@ -186,7 +186,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     } else {
       this._sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
-      session.update({ init: false });
+      updateSession(session, { init: false });
     }
   }
 
@@ -278,7 +278,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
 
     if (shouldUpdateAndSend) {
-      session.update({
+      updateSession(session, {
         ...(crashed && { status: 'crashed' }),
         errors: session.errors || Number(errored || crashed),
       });

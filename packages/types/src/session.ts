@@ -3,31 +3,7 @@ import { User } from './user';
 /**
  * @inheritdoc
  */
-export interface Session extends SessionContext {
-  /** JSDoc */
-  update(context?: SessionContext): void;
-
-  /** JSDoc */
-  close(status?: SessionStatus): void;
-
-  /** JSDoc */
-  toJSON(): {
-    init: boolean;
-    sid: string;
-    did?: string;
-    timestamp: string;
-    started: string;
-    duration?: number;
-    status: SessionStatus;
-    errors: number;
-    attrs?: {
-      release?: string;
-      environment?: string;
-      user_agent?: string;
-      ip_address?: string;
-    };
-  };
-}
+export interface Session extends SessionContext {}
 
 export interface RequestSession {
   status?: RequestSessionStatus;
