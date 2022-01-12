@@ -1,10 +1,5 @@
 import { User } from './user';
 
-/**
- * @inheritdoc
- */
-export interface Session extends SessionContext {}
-
 export interface RequestSession {
   status?: RequestSessionStatus;
 }
@@ -41,23 +36,6 @@ export interface SessionAggregates {
     release?: string;
   };
   aggregates: Array<AggregationCounts>;
-}
-
-export interface SessionFlusherLike {
-  /**
-   * Increments the Session Status bucket in SessionAggregates Object corresponding to the status of the session
-   * captured
-   */
-  incrementSessionStatusCount(): void;
-
-  /** Submits the aggregates request mode sessions to Sentry */
-  sendSessionAggregates(sessionAggregates: SessionAggregates): void;
-
-  /** Empties Aggregate Buckets and Sends them to Transport Buffer */
-  flush(): void;
-
-  /** Clears setInterval and calls flush */
-  close(): void;
 }
 
 export interface AggregationCounts {

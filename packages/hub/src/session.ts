@@ -1,10 +1,10 @@
-import { Session as SessionInterface, SessionContext, SessionStatus } from '@sentry/types';
+import { SessionContext, SessionStatus } from '@sentry/types';
 import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 /**
  * Session Context
  */
-export class Session implements SessionInterface {
+export class Session {
   public userAgent?: string;
   public errors: number = 0;
   public release?: string;

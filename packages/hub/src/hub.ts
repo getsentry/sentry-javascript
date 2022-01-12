@@ -20,8 +20,21 @@ import {
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
-import { cloneScope, getSession, Scope } from './scope';
-import { Session } from './session';
+import {
+  addBreadcrumbScope,
+  cloneScope,
+  getSession,
+  getUserScope,
+  Scope,
+  setContextScope,
+  setExtraScope,
+  setExtrasScope,
+  setSessionScope,
+  setTagScope,
+  setTagsScope,
+  setUserScope,
+} from './scope';
+import { closeSession, Session, updateSession } from './session';
 
 /**
  * API compatibility version of this hub.
@@ -219,7 +232,7 @@ export function getClient<C extends Client>(hub: Hub): C | undefined {
  */
 export function setUser(hub: Hub, user: User | null): void {
   const scope = getScope(hub);
-  if (scope) scope.setUser(user);
+  if (scope) setUserScope(scope, user);
 }
 
 /** Returns the scope of the top stack. */
@@ -258,7 +271,7 @@ function _sendSessionUpdate(hub: Hub): void {
   const { scope, client } = getStackTop(hub);
   if (!scope) return;
 
-  const session = getSession(scope)
+  const session = getSession(scope);
   if (session) {
     if (client && client.captureSession) {
       client.captureSession(session);
@@ -274,14 +287,14 @@ function endSession(hub: Hub): void {
   const scope = layer && layer.scope;
   const session = getSession(scope);
   if (session) {
-    session.close();
+    closeSession(session);
   }
 
   _sendSessionUpdate(hub);
 
   // the session is over; take it off of the scope
   if (scope) {
-    scope.setSession();
+    setSessionScope(scope);
   }
 }
 
@@ -297,6 +310,7 @@ function endSession(hub: Hub): void {
  * @param context Optional properties of the new `Session`.
  *
  * @returns The session which was just started
+ *
  */
 export function startSession(hub: Hub, context?: SessionContext): Session {
   const { scope, client } = getStackTop(hub);
@@ -309,7 +323,7 @@ export function startSession(hub: Hub, context?: SessionContext): Session {
   const session = new Session({
     release,
     environment,
-    ...(scope && { user: scope.getUser() }),
+    ...(scope && { user: getUserScope(scope) }),
     ...(userAgent && { userAgent }),
     ...context,
   });
@@ -318,12 +332,12 @@ export function startSession(hub: Hub, context?: SessionContext): Session {
     // End existing session if there's one
     const currentSession = getSession(scope);
     if (currentSession && currentSession.status === 'ok') {
-      currentSession.update({ status: 'exited' });
+      updateSession(currentSession, { status: 'exited' });
     }
     endSession(hub);
 
     // Afterwards we set the new session on the scope
-    scope.setSession(session);
+    setSessionScope(scope, session);
   }
 
   return session;
@@ -438,9 +452,9 @@ export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: Breadcrum
 
   if (!scope || !client) return;
 
-// eslint-disable-next-line @typescript-eslint/unbound-method
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
-  (client.getOptions && client.getOptions()) || {};
+    (client.getOptions && client.getOptions()) || {};
 
   if (maxBreadcrumbs <= 0) return;
 
@@ -452,7 +466,7 @@ export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: Breadcrum
 
   if (finalBreadcrumb === null) return;
 
-  scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
+  addBreadcrumbScope(scope, finalBreadcrumb, maxBreadcrumbs);
 }
 
 /**
@@ -463,7 +477,7 @@ export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: Breadcrum
  */
 export function setTags(hub: Hub, tags: { [key: string]: Primitive }): void {
   const scope = getScope(hub);
-  if (scope) scope.setTags(tags);
+  if (scope) setTagsScope(scope, tags);
 }
 
 /**
@@ -473,7 +487,7 @@ export function setTags(hub: Hub, tags: { [key: string]: Primitive }): void {
  */
 export function setExtras(hub: Hub, extras: Extras): void {
   const scope = getScope(hub);
-  if (scope) scope.setExtras(extras);
+  if (scope) setExtrasScope(scope, extras);
 }
 
 /**
@@ -487,7 +501,7 @@ export function setExtras(hub: Hub, extras: Extras): void {
  */
 export function setTag(hub: Hub, key: string, value: Primitive): void {
   const scope = getScope(hub);
-  if (scope) scope.setTag(key, value);
+  if (scope) setTagScope(scope, key, value);
 }
 
 /**
@@ -498,7 +512,7 @@ export function setTag(hub: Hub, key: string, value: Primitive): void {
  */
 export function setExtra(hub: Hub, key: string, extra: Extra): void {
   const scope = getScope(hub);
-  if (scope) scope.setExtra(key, extra);
+  if (scope) setExtraScope(scope, key, extra);
 }
 
 /**
@@ -509,7 +523,7 @@ export function setExtra(hub: Hub, key: string, extra: Extra): void {
  */
 export function setContext(hub: Hub, name: string, context: { [key: string]: any } | null): void {
   const scope = getScope(hub);
-  if (scope) scope.setContext(name, context);
+  if (scope) setContextScope(scope, name, context);
 }
 
 /**
@@ -576,7 +590,11 @@ export function startSpan(hub: Hub, context: SpanContext): Span {
  *
  * @returns The transaction which was just started
  */
-export function startTransaction(hub: Hub, context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
+export function startTransaction(
+  hub: Hub,
+  context: TransactionContext,
+  customSamplingContext?: CustomSamplingContext,
+): Transaction {
   return _callExtensionMethod(hub, 'startTransaction', context, customSamplingContext);
 }
 

@@ -129,7 +129,7 @@ export function addEventProcessor(scope: Scope, callback: EventProcessor): Scope
  * @param key String key of tag
  * @param value Value of tag
  */
-export function setTag(scope: Scope, key: string, value: Primitive): Scope {
+export function setTagScope(scope: Scope, key: string, value: Primitive): Scope {
   scope._tags = { ...scope._tags, [key]: value };
   notifyScopeListeners(scope);
   return scope;
@@ -140,7 +140,7 @@ export function setTag(scope: Scope, key: string, value: Primitive): Scope {
  * @param scope
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(scope: Scope, extras: Extras): Scope {
+export function setExtrasScope(scope: Scope, extras: Extras): Scope {
   scope._extra = {
     ...scope._extra,
     ...extras,
@@ -155,7 +155,7 @@ export function setExtras(scope: Scope, extras: Extras): Scope {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-export function setExtra(scope: Scope, key: string, extra: Extra): Scope {
+export function setExtraScope(scope: Scope, key: string, extra: Extra): Scope {
   scope._extra = { ...scope._extra, [key]: extra };
   notifyScopeListeners(scope);
   return scope;
@@ -205,7 +205,7 @@ export function setTransaction(scope: Scope, name?: string): Scope {
  * @param key
  * @param context an object containing context data. This data will be normalized. Pass `null` to unset the context.
  */
-export function setContext(scope: Scope, key: string, context: Context | null): Scope {
+export function setContextScope(scope: Scope, key: string, context: Context | null): Scope {
   if (context === null) {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete scope._contexts[key];
@@ -262,7 +262,7 @@ export function getTransaction(scope: Scope): Transaction | undefined {
  * @param scope
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export function setUser(scope: Scope, user: User | null): Scope {
+export function setUserScope(scope: Scope, user: User | null): Scope {
   scope._user = user || {};
   if (scope._session) {
     updateSession(scope._session, { user });
@@ -274,7 +274,7 @@ export function setUser(scope: Scope, user: User | null): Scope {
 /**
  * Returns the `User` if there is one
  */
-export function getUser(scope: Scope): User | undefined {
+export function getUserScope(scope: Scope): User | undefined {
   return scope._user;
 }
 
@@ -290,7 +290,7 @@ export function getRequestSession(scope: Scope): RequestSession | undefined {
  * @param scope
  * @param tags Tags context object to merge into current context.
  */
-export function setTags(scope: Scope, tags: { [key: string]: Primitive }): Scope {
+export function setTagsScope(scope: Scope, tags: { [key: string]: Primitive }): Scope {
   scope._tags = {
     ...scope._tags,
     ...tags,
@@ -310,7 +310,7 @@ export function setRequestSession(scope: Scope, requestSession?: RequestSession)
 /**
  * Sets the `Session` on the scope
  */
-export function setSession(scope: Scope, session?: Session): Scope {
+export function setSessionScope(scope: Scope, session?: Session): Scope {
   if (!session) {
     delete scope._session;
   } else {
@@ -400,7 +400,7 @@ export function clear(scope: Scope): Scope {
  * @param breadcrumb
  * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
  */
-export function addBreadcrumb(scope: Scope, breadcrumb: Breadcrumb, maxBreadcrumbs?: number): Scope {
+export function addBreadcrumbScope(scope: Scope, breadcrumb: Breadcrumb, maxBreadcrumbs?: number): Scope {
   const maxCrumbs = typeof maxBreadcrumbs === 'number' ? Math.min(maxBreadcrumbs, MAX_BREADCRUMBS) : MAX_BREADCRUMBS;
 
   // No data has been changed, so don't notify scope listeners
