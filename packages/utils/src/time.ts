@@ -21,7 +21,7 @@ const dateTimestampSource: TimestampSource = {
 
 /**
  * A partial definition of the [Performance Web API]{@link https://developer.mozilla.org/en-US/docs/Web/API/Performance}
- * for accessing a high resolution monotonic clock.
+ * for accessing a high-resolution monotonic clock.
  */
 interface Performance {
   /**
