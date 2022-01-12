@@ -28,36 +28,6 @@ import { Session, updateSession } from './session';
 const MAX_BREADCRUMBS = 100;
 
 /**
- * Inherit values from the parent scope.
- * @param scope to clone.
- */
-export function cloneScope(scope?: Scope): Scope {
-  const newScope = new Scope();
-  if (scope) {
-    newScope._breadcrumbs = [...scope._breadcrumbs];
-    newScope._tags = { ...scope._tags };
-    newScope._extra = { ...scope._extra };
-    newScope._contexts = { ...scope._contexts };
-    newScope._user = scope._user;
-    newScope._level = scope._level;
-    newScope._span = scope._span;
-    newScope._session = scope._session;
-    newScope._transactionName = scope._transactionName;
-    newScope._fingerprint = scope._fingerprint;
-    newScope._eventProcessors = [...scope._eventProcessors];
-    newScope._requestSession = scope._requestSession;
-  }
-  return newScope;
-}
-
-/**
- * Returns the `Session` if there is one
- */
-export function getSession(scope?: Scope): Session | undefined {
-  return scope && scope._session;
-}
-
-/**
  * Holds additional event information. {@link applyToEvent} will be
  * called by the client before an event will be sent.
  */
@@ -103,6 +73,36 @@ export class Scope {
 
   /** Request Mode Session Status */
   public _requestSession?: RequestSession;
+}
+
+/**
+ * Inherit values from the parent scope.
+ * @param scope to clone.
+ */
+export function cloneScope(scope?: Scope): Scope {
+  const newScope = new Scope();
+  if (scope) {
+    newScope._breadcrumbs = [...scope._breadcrumbs];
+    newScope._tags = { ...scope._tags };
+    newScope._extra = { ...scope._extra };
+    newScope._contexts = { ...scope._contexts };
+    newScope._user = scope._user;
+    newScope._level = scope._level;
+    newScope._span = scope._span;
+    newScope._session = scope._session;
+    newScope._transactionName = scope._transactionName;
+    newScope._fingerprint = scope._fingerprint;
+    newScope._eventProcessors = [...scope._eventProcessors];
+    newScope._requestSession = scope._requestSession;
+  }
+  return newScope;
+}
+
+/**
+ * Returns the `Session` if there is one
+ */
+export function getSession(scope?: Scope): Session | undefined {
+  return scope && scope._session;
 }
 
 /**
