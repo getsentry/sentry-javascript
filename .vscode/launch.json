@@ -29,7 +29,8 @@
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "args": [
         "--watch",
-        // this makes the output less noisy (and at some point in the past seemed necessary to fix... something)
+        // this runs one test at a time, rather than running them in parallel (necessary for debugging so that you know
+        // you're hitting a single test's breakpoints, in order)
         "--runInBand",
         // TODO: when we unify jest config, we may need to change this
         "--config",

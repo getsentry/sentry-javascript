@@ -24,11 +24,11 @@ import { NoopTransport } from './transports/noop';
  * @hidden
  */
 export interface Backend {
-  /** Creates a {@link Event} from an exception. */
+  /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
-  /** Creates a {@link Event} from a plain message. */
+  /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
   eventFromMessage(message: string, level?: SeverityLevel, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */

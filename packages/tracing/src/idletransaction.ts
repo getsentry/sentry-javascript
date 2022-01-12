@@ -81,7 +81,7 @@ export class IdleTransaction extends Transaction {
      * @default 1000
      */
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
-    // If an idle transaction should be put itself on and off the scope automatically.
+    // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
   ) {
     super(transactionContext, _idleHub);
@@ -143,7 +143,7 @@ export class IdleTransaction extends Transaction {
       logger.log('[Tracing] No active IdleTransaction');
     }
 
-    // this._onScope is true if the transaction was previously on the scope.
+    // if `this._onScope` is `true`, the transaction put itself on the scope when it started
     if (this._onScope) {
       clearActiveTransaction(this._idleHub);
     }
@@ -272,7 +272,7 @@ export class IdleTransaction extends Transaction {
 }
 
 /**
- * Reset active transaction on scope
+ * Reset transaction on scope to `undefined`
  */
 function clearActiveTransaction(hub?: Hub): void {
   if (hub) {

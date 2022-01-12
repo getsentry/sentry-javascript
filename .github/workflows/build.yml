@@ -120,6 +120,7 @@ jobs:
         if: github.ref == 'refs/heads/master' || github.event_name == 'pull_request'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # see https://github.com/getsentry/size-limit-action#usage
           skip_step: build
           workflow_name: 'build'
 

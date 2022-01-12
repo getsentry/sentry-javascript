@@ -34,8 +34,8 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  * Called every time a transaction is created. Only transactions which emerge with a `sampled` value of `true` will be
  * sent to Sentry.
  *
- * @param hub: The hub off of which to read config options
  * @param transaction: The transaction needing a sampling decision
+ * @param options: The current client's options, so we can access `tracesSampleRate` and/or `tracesSampler`
  * @param samplingContext: Default and user-provided data which may be used to help make the decision
  *
  * @returns The given transaction with its `sampled` value set
