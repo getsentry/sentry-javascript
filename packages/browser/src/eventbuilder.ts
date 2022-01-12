@@ -15,7 +15,7 @@ import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from
 import { computeStackTrace } from './tracekit';
 
 /**
- * Builds and Event from a Exception
+ * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
  * @hidden
  */
 export function eventFromException(options: Options, exception: unknown, hint?: EventHint): PromiseLike<Event> {
@@ -104,9 +104,9 @@ export function eventFromUnknownInput(
     return event;
   }
   if (isPlainObject(exception) || isEvent(exception)) {
-    // If it is plain Object or Event, serialize it manually and extract options
-    // This will allow us to group events based on top-level keys
-    // which is much better than creating new group when any key/value change
+    // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
+    // it manually. This will allow us to group events based on top-level keys which is much better than creating a new
+    // group on any key/value change.
     const objectException = exception as Record<string, unknown>;
     event = eventFromPlainObject(objectException, syntheticException, options.rejection);
     addExceptionMechanism(event, {
