@@ -266,21 +266,10 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public getTransaction(): Transaction | undefined {
-    // often, this span will be a transaction, but it's not guaranteed to be
-    const span = this.getSpan() as undefined | (Span & { spanRecorder: { spans: Span[] } });
-
-    // try it the new way first
-    if (span && span.transaction) {
-      return span.transaction;
-    }
-
-    // fallback to the old way (known bug: this only finds transactions with sampled = true)
-    if (span && span.spanRecorder && span.spanRecorder.spans[0]) {
-      return span.spanRecorder.spans[0] as Transaction;
-    }
-
-    // neither way found a transaction
-    return undefined;
+    // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
+    // have a pointer to the currently-active transaction.
+    const span = this.getSpan();
+    return span && span.transaction;
   }
 
   /**
