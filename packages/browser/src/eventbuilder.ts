@@ -59,7 +59,7 @@ export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
   options: {
-    rejection?: boolean;
+    isRejection?: boolean;
     attachStacktrace?: boolean;
   } = {},
 ): Event {
@@ -108,7 +108,7 @@ export function eventFromUnknownInput(
     // This will allow us to group events based on top-level keys
     // which is much better than creating new group when any key/value change
     const objectException = exception as Record<string, unknown>;
-    event = eventFromPlainObject(objectException, syntheticException, options.rejection);
+    event = eventFromPlainObject(objectException, syntheticException, options.isRejection);
     addExceptionMechanism(event, {
       synthetic: true,
     });

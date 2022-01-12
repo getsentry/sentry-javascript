@@ -94,7 +94,7 @@ function _installGlobalOnErrorHandler(): void {
           : _enhanceEventWithInitialFrame(
               eventFromUnknownInput(error || msg, undefined, {
                 attachStacktrace,
-                rejection: false,
+                isRejection: false,
               }),
               url,
               line,
@@ -145,7 +145,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
         ? _eventFromRejectionWithPrimitive(error)
         : eventFromUnknownInput(error, undefined, {
             attachStacktrace,
-            rejection: true,
+            isRejection: true,
           });
 
       event.level = 'error';
