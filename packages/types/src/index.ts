@@ -24,12 +24,10 @@ export { SdkMetadata } from './sdkmetadata';
 export {
   SessionAggregates,
   AggregationCounts,
-  Session,
   SessionContext,
   SessionStatus,
   RequestSession,
   RequestSessionStatus,
-  SessionFlusherLike,
 } from './session';
 
 /* eslint-disable-next-line deprecation/deprecation */

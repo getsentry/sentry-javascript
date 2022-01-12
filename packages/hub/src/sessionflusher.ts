@@ -1,16 +1,27 @@
-import { AggregationCounts, RequestSessionStatus, SessionAggregates, Transport } from '@sentry/types';
+import { AggregationCounts, Event, EventStatus, RequestSessionStatus, SessionAggregates } from '@sentry/types';
+import { EventType } from '@sentry/types/src/event';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { getCurrentHub, getScope } from './hub';
 import { getRequestSession, setRequestSession } from './scope';
+import { Session } from './session';
 
 type ReleaseHealthAttributes = {
   environment?: string;
   release: string;
 };
 
+export interface Response {
+  status: EventStatus;
+  event?: Event | Session;
+  type?: EventType;
+  reason?: string;
+}
+
+export type Transporter = (session: Session | SessionAggregates) => PromiseLike<Response>;
+
 /**
- * @inheritdoc
+ * ...
  */
 export class SessionFlusher {
   public readonly flushTimeout: number = 60;
@@ -18,27 +29,14 @@ export class SessionFlusher {
   public sessionAttrs: ReleaseHealthAttributes;
   public intervalId: ReturnType<typeof setInterval>;
   public isEnabled: boolean = true;
-  public transport: Transport;
+  public transport: Transporter;
 
-  public constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
+  public constructor(transport: Transporter, attrs: ReleaseHealthAttributes) {
     this.transport = transport;
-    // Call to setInterval, so that flush is called every 60 seconds
+    // Call to setInterval, so that flush is called every ~60 seconds
     this.intervalId = setInterval(() => flush(this), this.flushTimeout * 1000);
     this.sessionAttrs = attrs;
   }
-}
-
-/** Submits the aggregates request mode sessions to Sentry */
-function sendSessionAggregates(sessionFlusher: SessionFlusher, sessionAggregates: SessionAggregates): void {
-  // TODO: But why to take a Transport when it may be the case that doesn't implement the callback?
-  // The only point of taking `transport` is to call this one function thou.
-  if (!sessionFlusher.transport.sendSession) {
-    logger.warn("Dropping session because custom transport doesn't implement sendSession");
-    return;
-  }
-  void sessionFlusher.transport.sendSession(sessionAggregates).then(null, reason => {
-    logger.error(`Error while sending session: ${reason}`);
-  });
 }
 
 /**
@@ -51,7 +49,9 @@ function flush(sessionFlusher: SessionFlusher): void {
     return;
   }
   sessionFlusher.pendingAggregates = {};
-  sendSessionAggregates(sessionFlusher, sessionAggregates);
+  void sessionFlusher.transport(sessionAggregates).then(null, reason => {
+    logger.error(`Error while sending session: ${reason}`);
+  });
 }
 
 /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
