@@ -24,13 +24,13 @@ export function truncate(str: string, max: number = 0): string {
  */
 export function snipLine(line: string, colno: number): string {
   let newLine = line;
-  const ll = newLine.length;
-  if (ll <= 150) {
+  const lineLength = newLine.length;
+  if (lineLength <= 150) {
     return newLine;
   }
-  if (colno > ll) {
+  if (colno > lineLength) {
     // eslint-disable-next-line no-param-reassign
-    colno = ll;
+    colno = lineLength;
   }
 
   let start = Math.max(colno - 60, 0);
@@ -38,11 +38,11 @@ export function snipLine(line: string, colno: number): string {
     start = 0;
   }
 
-  let end = Math.min(start + 140, ll);
-  if (end > ll - 5) {
-    end = ll;
+  let end = Math.min(start + 140, lineLength);
+  if (end > lineLength - 5) {
+    end = lineLength;
   }
-  if (end === ll) {
+  if (end === lineLength) {
     start = Math.max(end - 140, 0);
   }
 
@@ -50,7 +50,7 @@ export function snipLine(line: string, colno: number): string {
   if (start > 0) {
     newLine = `'{snip} ${newLine}`;
   }
-  if (end < ll) {
+  if (end < lineLength) {
     newLine += ' {snip}';
   }
 
