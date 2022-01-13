@@ -4,7 +4,9 @@ import { initAPIDetails } from '../../src/api';
 import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
 
 const ingestDsn = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
-const ingestUrl =
+const storeUrl =
+  'https://squirrelchasers.ingest.sentry.io/api/12312012/store/?sentry_key=dogsarebadatkeepingsecrets&sentry_version=7';
+const envelopeUrl =
   'https://squirrelchasers.ingest.sentry.io/api/12312012/envelope/?sentry_key=dogsarebadatkeepingsecrets&sentry_version=7';
 const tunnel = 'https://hello.com/world';
 
@@ -136,7 +138,7 @@ describe('eventToSentryRequest', () => {
     expect(tunnelRequest.url).toEqual(tunnel);
 
     const defaultRequest = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}));
-    expect(defaultRequest.url).toEqual(ingestUrl);
+    expect(defaultRequest.url).toEqual(envelopeUrl);
   });
 
   it('adds dsn to envelope header if tunnel is configured', () => {
@@ -170,6 +172,20 @@ describe('eventToSentryRequest', () => {
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.event.processingMetadata).toBeUndefined();
+  });
+
+  it("doesn't depend on optional event fields for success ", () => {
+    // all event fields are optional
+    const emptyEvent = {};
+
+    const result = eventToSentryRequest(emptyEvent, api);
+    expect(result).toEqual({
+      // The body isn't empty because SDK info gets added in `eventToSentryRequest`. (The specifics of that SDK info are
+      // tested elsewhere.)
+      body: expect.any(String),
+      type: 'event',
+      url: storeUrl,
+    });
   });
 });
 
@@ -206,7 +222,7 @@ describe('sessionToSentryRequest', () => {
     expect(tunnelRequest.url).toEqual(tunnel);
 
     const defaultRequest = sessionToSentryRequest({ aggregates: [] }, initAPIDetails(ingestDsn, {}));
-    expect(defaultRequest.url).toEqual(ingestUrl);
+    expect(defaultRequest.url).toEqual(envelopeUrl);
   });
 
   it('adds dsn to envelope header if tunnel is configured', () => {
