@@ -1,4 +1,4 @@
-import { getClient, getMainCarrier, getScope, Hub } from '@sentry/hub';
+import { getHubClient, getMainCarrier, getHubScope, Hub, getScopeSpan } from '@sentry/hub';
 import {
   CustomSamplingContext,
   Integration,
@@ -16,9 +16,9 @@ import { hasTracingEnabled } from './utils';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
-  const scope = getScope(this);
+  const scope = getHubScope(this);
   if (scope) {
-    const span = scope.getSpan();
+    const span = getScopeSpan(scope);
     if (span) {
       return {
         'sentry-trace': span.toTraceparent(),
@@ -165,7 +165,7 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  const client = getClient(this);
+  const client = getHubClient(this);
   const options = (client && client.getOptions()) || {};
 
   let transaction = new Transaction(transactionContext, this);
@@ -190,7 +190,7 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
-  const client = getClient(hub);
+  const client = getHubClient(hub);
   const options = (client && client.getOptions()) || {};
 
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);

@@ -1,4 +1,4 @@
-import { getClient, getCurrentHub, getScope, Hub } from '@sentry/hub';
+import { getCurrentHub, getHubClient, getHubScope, getScopeTransaction, Hub } from '@sentry/hub';
 import { Options, TraceparentData, Transaction } from '@sentry/types';
 
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -15,7 +15,7 @@ export const TRACEPARENT_REGEXP = new RegExp(
  * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
  */
 export function hasTracingEnabled(maybeOptions?: Options | undefined): boolean {
-  const client = getClient(getCurrentHub());
+  const client = getHubClient(getCurrentHub());
   const options = maybeOptions || (client && client.getOptions());
   return !!options && ('tracesSampleRate' in options || 'tracesSampler' in options);
 }
@@ -48,8 +48,8 @@ export function extractTraceparentData(traceparent: string): TraceparentData | u
 /** Grabs active transaction off scope, if any */
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
   const hub = maybeHub || getCurrentHub();
-  const scope = getScope(hub);
-  return scope && (scope.getTransaction() as T | undefined);
+  const scope = getHubScope(hub);
+  return scope && (getScopeTransaction(scope) as T | undefined);
 }
 
 /**

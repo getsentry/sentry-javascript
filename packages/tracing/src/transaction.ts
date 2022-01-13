@@ -1,4 +1,4 @@
-import { captureEvent, getClient, getCurrentHub, Hub } from '@sentry/hub';
+import { captureHubEvent, getCurrentHub, getHubClient, Hub } from '@sentry/hub';
 import {
   Event,
   Measurements,
@@ -103,7 +103,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       // At this point if `sampled !== true` we want to discard the transaction.
       logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
-      const client = getClient(this._hub);
+      const client = getHubClient(this._hub);
       const transport = client && client.getTransport && client.getTransport();
       if (transport && transport.recordLostEvent) {
         transport.recordLostEvent('sample_rate', 'transaction');
@@ -144,7 +144,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
-    return captureEvent(this._hub, transaction);
+    return captureHubEvent(this._hub, transaction);
   }
 
   /**

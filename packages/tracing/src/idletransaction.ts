@@ -1,4 +1,4 @@
-import { getScope, Hub, configureScope } from '@sentry/hub';
+import { getHubScope, Hub, configureHubScope, setScopeSpan, getScopeTransaction } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 
@@ -93,7 +93,7 @@ export class IdleTransaction extends Transaction {
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
       logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
-      configureScope(_idleHub, scope => scope.setSpan(this));
+      configureHubScope(_idleHub, scope => setScopeSpan(scope, this));
     }
 
     this._initTimeout = setTimeout(() => {
@@ -276,11 +276,11 @@ export class IdleTransaction extends Transaction {
  */
 function clearActiveTransaction(hub?: Hub): void {
   if (hub) {
-    const scope = getScope(hub);
+    const scope = getHubScope(hub);
     if (scope) {
-      const transaction = scope.getTransaction();
+      const transaction = getScopeTransaction(scope);
       if (transaction) {
-        scope.setSpan(undefined);
+        setScopeSpan(scope, undefined);
       }
     }
   }
