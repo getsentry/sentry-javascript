@@ -45,13 +45,21 @@ export {
   getHubIntegration,
   captureHubMessage,
   configureHubScope,
+  startHubTransaction,
   Hub,
+  setHubTags,
+  setHubTag,
+  setHubExtras,
+  setHubExtra,
   makeMain,
   Carrier,
   // eslint-disable-next-line deprecation/deprecation
   DomainAsCarrier,
   Layer,
   getHubFromCarrier,
+  setHubContext,
   setHubOnCarrier,
   getMainCarrier,
+  // TODO: This is being used from outside ... weird
+  _invokeHubClient,
 } from './hub';

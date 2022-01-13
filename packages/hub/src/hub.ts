@@ -339,7 +339,7 @@ export function captureHubException(hub: Hub, exception: any, hint?: EventHint):
     };
   }
 
-  _invokeClient(hub, 'captureException', exception, {
+  _invokeHubClient(hub, 'captureException', exception, {
     ...finalHint,
     event_id: eventId,
   });
@@ -376,7 +376,7 @@ export function captureHubMessage(hub: Hub, message: string, level?: SeverityLev
     };
   }
 
-  _invokeClient(hub, 'captureMessage', message, level, {
+  _invokeHubClient(hub, 'captureMessage', message, level, {
     ...finalHint,
     event_id: eventId,
   });
@@ -396,7 +396,7 @@ export function captureHubEvent(hub: Hub, event: Event, hint?: EventHint): strin
     hub.lastEventId = eventId;
   }
 
-  _invokeClient(hub, 'captureEvent', event, {
+  _invokeHubClient(hub, 'captureEvent', event, {
     ...hint,
     event_id: eventId,
   });
@@ -577,7 +577,7 @@ export function traceHeaders(hub: Hub): { [key: string]: string } {
  * @param args Arguments to pass to the client function.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function _invokeClient<M extends keyof Client>(hub: Hub, method: M, ...args: any[]): void {
+export function _invokeHubClient<M extends keyof Client>(hub: Hub, method: M, ...args: any[]): void {
   const { scope, client } = getHubStackTop(hub);
   if (client && client[method]) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any

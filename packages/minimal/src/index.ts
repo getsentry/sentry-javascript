@@ -1,4 +1,21 @@
-import { getCurrentHub, Hub, Scope } from '@sentry/hub';
+import {
+  _invokeHubClient,
+  addHubBreadcrumb,
+  captureHubEvent,
+  captureHubException,
+  captureHubMessage,
+  configureHubScope,
+  setHubUser,
+  withHubScope,
+  getCurrentHub,
+  setHubContext,
+  setHubExtra,
+  setHubExtras,
+  setHubTag,
+  setHubTags,
+  startHubTransaction,
+  Scope,
+} from '@sentry/hub';
 import {
   Breadcrumb,
   CaptureContext,
@@ -13,19 +30,21 @@ import {
   User,
 } from '@sentry/types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFunction = (...args: any[]) => any;
+
 /**
  * This calls a function on the current hub.
  * @param method function to call on hub.
  * @param args to pass to function.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function callOnHub<T>(method: string, ...args: any[]): T {
+function callOnHub<TMethod extends AnyFunction>(method: TMethod, ...args: any[]): ReturnType<TMethod> {
   const hub = getCurrentHub();
-  if (hub && hub[method as keyof Hub]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (hub[method as keyof Hub] as any)(...args);
+  if (hub) {
+    return method(hub, ...args);
   }
-  throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
+  throw new Error(`No hub defined please open a bug report.`);
 }
 
 /**
@@ -42,7 +61,7 @@ export function captureException(exception: any, captureContext?: CaptureContext
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  return callOnHub('captureException', exception, {
+  return callOnHub(captureHubException, exception, {
     captureContext,
     originalException: exception,
     syntheticException,
@@ -69,7 +88,7 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
 
-  return callOnHub('captureMessage', message, level, {
+  return callOnHub(captureHubMessage, message, level, {
     originalException: message,
     syntheticException,
     ...context,
@@ -83,7 +102,7 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
  * @returns The generated eventId.
  */
 export function captureEvent(event: Event): string {
-  return callOnHub('captureEvent', event);
+  return callOnHub(captureHubEvent, event);
 }
 
 /**
@@ -91,7 +110,7 @@ export function captureEvent(event: Event): string {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('configureScope', callback);
+  callOnHub(configureHubScope, callback);
 }
 
 /**
@@ -103,7 +122,7 @@ export function configureScope(callback: (scope: Scope) => void): void {
  * @param breadcrumb The breadcrumb to record.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  callOnHub<void>('addBreadcrumb', breadcrumb);
+  callOnHub(addHubBreadcrumb, breadcrumb);
 }
 
 /**
@@ -113,7 +132,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): void {
-  callOnHub<void>('setContext', name, context);
+  callOnHub(setHubContext, name, context);
 }
 
 /**
@@ -121,7 +140,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * @param extras Extras object to merge into current context.
  */
 export function setExtras(extras: Extras): void {
-  callOnHub<void>('setExtras', extras);
+  callOnHub(setHubExtras, extras);
 }
 
 /**
@@ -129,7 +148,7 @@ export function setExtras(extras: Extras): void {
  * @param tags Tags context object to merge into current context.
  */
 export function setTags(tags: { [key: string]: Primitive }): void {
-  callOnHub<void>('setTags', tags);
+  callOnHub(setHubTags, tags);
 }
 
 /**
@@ -138,7 +157,7 @@ export function setTags(tags: { [key: string]: Primitive }): void {
  * @param extra Any kind of data. This data will be normalized.
  */
 export function setExtra(key: string, extra: Extra): void {
-  callOnHub<void>('setExtra', key, extra);
+  callOnHub(setHubExtra, key, extra);
 }
 
 /**
@@ -150,7 +169,7 @@ export function setExtra(key: string, extra: Extra): void {
  * @param value Value of tag
  */
 export function setTag(key: string, value: Primitive): void {
-  callOnHub<void>('setTag', key, value);
+  callOnHub(setHubTag, key, value);
 }
 
 /**
@@ -159,7 +178,7 @@ export function setTag(key: string, value: Primitive): void {
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
 export function setUser(user: User | null): void {
-  callOnHub<void>('setUser', user);
+  callOnHub(setHubUser, user);
 }
 
 /**
@@ -176,7 +195,7 @@ export function setUser(user: User | null): void {
  * @param callback that will be enclosed into push/popScope.
  */
 export function withScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('withScope', callback);
+  callOnHub(withHubScope, callback);
 }
 
 /**
@@ -191,7 +210,7 @@ export function withScope(callback: (scope: Scope) => void): void {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function _callOnClient(method: string, ...args: any[]): void {
-  callOnHub<void>('_invokeClient', method, ...args);
+  callOnHub(_invokeHubClient, method, ...args);
 }
 
 /**
@@ -215,5 +234,5 @@ export function startTransaction(
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  return callOnHub('startTransaction', { ...context }, customSamplingContext);
+  return callOnHub(startHubTransaction, { ...context }, customSamplingContext);
 }

@@ -1,7 +1,7 @@
 import { Event } from '@sentry/types';
 
 import {
-  _invokeClient,
+  _invokeHubClient,
   addHubBreadcrumb,
   bindHubClient,
   captureHubEvent,
@@ -64,7 +64,7 @@ describe('Hub', () => {
   test("don't invoke client sync with wrong func", () => {
     const hub = new Hub(clientFn);
     // @ts-ignore we want to able to call private method
-    _invokeClient(hub, 'funca', true);
+    _invokeHubClient(hub, 'funca', true);
     expect(clientFn).not.toHaveBeenCalled();
   });
 
