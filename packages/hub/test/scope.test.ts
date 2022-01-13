@@ -1,7 +1,15 @@
 import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
-import { addGlobalEventProcessor, applyScopeToEvent, cloneScope, Scope, updateScope } from '../src';
+import {
+  addGlobalEventProcessor,
+  applyScopeToEvent,
+  cloneScope,
+  getScopeSession,
+  Scope,
+  Session,
+  updateScope,
+} from '../src';
 import {
   addScopeBreadcrumb,
   addScopeEventProcessor,
@@ -15,17 +23,40 @@ import {
   setScopeFingerprint,
   setScopeLevel,
   setScopeRequestSession,
+  setScopeSession,
   setScopeSpan,
   setScopeTag,
   setScopeTags,
+  setScopeTransactionName,
   setScopeUser,
-  setTransactionName,
 } from '../src/scope';
 
 describe('Scope', () => {
   afterEach(() => {
     jest.resetAllMocks();
     getGlobalObject<any>().__SENTRY__.globalEventProcessors = undefined;
+  });
+
+  describe('setScopeSession', () => {
+    test('given an session then set the session to the scope', () => {
+      // GIVEN
+      const session = new Session();
+      const scope = new Scope();
+      // WHEN
+      setScopeSession(scope, session);
+      // THEN
+      expect(getScopeSession(scope)).toEqual(session);
+    });
+    test('given an undefined or null session then removes the existing session', () => {
+      // GIVEN
+      const session = new Session();
+      const scope = new Scope();
+      setScopeSession(scope, session);
+      // WHEN
+      setScopeSession(scope, undefined);
+      // THEN
+      expect(getScopeSession(scope)).toBeUndefined();
+    });
   });
 
   describe('attributes modification', () => {
@@ -109,14 +140,14 @@ describe('Scope', () => {
 
     test('setTransactionName', () => {
       const scope = new Scope();
-      setTransactionName(scope, '/abc');
+      setScopeTransactionName(scope, '/abc');
       expect(scope.transactionName).toEqual('/abc');
     });
 
     test('setTransactionName with no value unsets it', () => {
       const scope = new Scope();
-      setTransactionName(scope, '/abc');
-      setTransactionName(scope);
+      setScopeTransactionName(scope, '/abc');
+      setScopeTransactionName(scope);
       expect(scope.transactionName).toBeUndefined();
     });
 
@@ -217,7 +248,7 @@ describe('Scope', () => {
       setScopeUser(scope, { id: '1' });
       setScopeFingerprint(scope, ['abcd']);
       setScopeLevel(scope, 'warning');
-      setTransactionName(scope, '/abc');
+      setScopeTransactionName(scope, '/abc');
       addScopeBreadcrumb(scope, { message: 'test' });
       setScopeContext(scope, 'os', { id: '1' });
       const event: Event = {};
@@ -316,7 +347,7 @@ describe('Scope', () => {
     test('scope transaction should have priority over event transaction', () => {
       expect.assertions(1);
       const scope = new Scope();
-      setTransactionName(scope, '/abc');
+      setScopeTransactionName(scope, '/abc');
       const event: Event = {};
       event.transaction = '/cdf';
       return applyScopeToEvent(scope, event).then(processedEvent => {

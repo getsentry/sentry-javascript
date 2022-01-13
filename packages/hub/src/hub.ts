@@ -23,15 +23,15 @@ import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, log
 import {
   addScopeBreadcrumb,
   cloneScope,
-  getSession,
-  getUserScope,
+  getScopeUser,
+  getScopeSession,
   Scope,
   setScopeContext,
   setScopeExtra,
   setScopeExtras,
-  setSessionScope,
+  setScopeSession,
   setScopeTag,
-  setTagsScope,
+  setScopeTags,
   setScopeUser,
 } from './scope';
 import { closeSession, Session, updateSession } from './session';
@@ -271,7 +271,7 @@ function _sendSessionUpdate(hub: Hub): void {
   const { scope, client } = getStackTop(hub);
   if (!scope) return;
 
-  const session = getSession(scope);
+  const session = getScopeSession(scope);
   if (session) {
     if (client && client.captureSession) {
       client.captureSession(session);
@@ -285,7 +285,7 @@ function _sendSessionUpdate(hub: Hub): void {
 function endSession(hub: Hub): void {
   const layer = getStackTop(hub);
   const scope = layer && layer.scope;
-  const session = getSession(scope);
+  const session = getScopeSession(scope);
   if (session) {
     closeSession(session);
   }
@@ -294,7 +294,7 @@ function endSession(hub: Hub): void {
 
   // the session is over; take it off of the scope
   if (scope) {
-    setSessionScope(scope);
+    setScopeSession(scope);
   }
 }
 
@@ -323,21 +323,21 @@ export function startSession(hub: Hub, context?: SessionContext): Session {
   const session = new Session({
     release,
     environment,
-    ...(scope && { user: getUserScope(scope) }),
+    ...(scope && { user: getScopeUser(scope) }),
     ...(userAgent && { userAgent }),
     ...context,
   });
 
   if (scope) {
     // End existing session if there's one
-    const currentSession = getSession(scope);
+    const currentSession = getScopeSession(scope);
     if (currentSession && currentSession.status === 'ok') {
       updateSession(currentSession, { status: 'exited' });
     }
     endSession(hub);
 
     // Afterwards we set the new session on the scope
-    setSessionScope(scope, session);
+    setScopeSession(scope, session);
   }
 
   return session;
@@ -477,7 +477,7 @@ export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: Breadcrum
  */
 export function setTags(hub: Hub, tags: { [key: string]: Primitive }): void {
   const scope = getScope(hub);
-  if (scope) setTagsScope(scope, tags);
+  if (scope) setScopeTags(scope, tags);
 }
 
 /**

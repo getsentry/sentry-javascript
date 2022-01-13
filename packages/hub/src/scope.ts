@@ -103,7 +103,7 @@ export function cloneScope(scope?: Scope): Scope {
 /**
  * Returns the `Session` if there is one
  */
-export function getSession(scope?: Scope): Session | undefined {
+export function getScopeSession(scope?: Scope): Session | undefined {
   return scope && scope.session;
 }
 
@@ -183,7 +183,7 @@ export function setScopeLevel(scope: Scope, level: SeverityLevel): Scope {
 /**
  * Sets the transaction name on the scope for future events.
  */
-export function setTransactionName(scope: Scope, name?: string): Scope {
+export function setScopeTransactionName(scope: Scope, name?: string): Scope {
   scope.transactionName = name;
   return notifyListeners(scope);
 }
@@ -191,8 +191,8 @@ export function setTransactionName(scope: Scope, name?: string): Scope {
 /**
  * Sets the transaction name on the scope for future events.
  */
-export function setTransaction(scope: Scope, name?: string): Scope {
-  return setTransactionName(scope, name);
+export function setScopeTransaction(scope: Scope, name?: string): Scope {
+  return setScopeTransactionName(scope, name);
 }
 
 /**
@@ -232,7 +232,7 @@ export function getScopeSpan(scope: Scope): Span | undefined {
 /**
  * Returns the `Transaction` attached to the scope (if there is one)
  */
-export function getTransaction(scope: Scope): Transaction | undefined {
+export function getScopeTransaction(scope: Scope): Transaction | undefined {
   // often, this span will be a transaction, but it's not guaranteed to be
   const span = getScopeSpan(scope) as undefined | (Span & { spanRecorder: { spans: Span[] } });
 
@@ -267,7 +267,7 @@ export function setScopeUser(scope: Scope, user: User | null): Scope {
 /**
  * Returns the `User` if there is one
  */
-export function getUserScope(scope: Scope): User | undefined {
+export function getScopeUser(scope: Scope): User | undefined {
   return scope.user;
 }
 
@@ -302,7 +302,7 @@ export function setScopeRequestSession(scope: Scope, requestSession?: RequestSes
 /**
  * Sets the `Session` on the scope
  */
-export function setSessionScope(scope: Scope, session?: Session): Scope {
+export function setScopeSession(scope: Scope, session?: Session): Scope {
   if (!session) {
     delete scope.session;
   } else {
@@ -340,54 +340,6 @@ export function updateScope(scope: Scope, captureContext?: CaptureContext): Scop
   return scope;
 }
 
-function mergeScopeContext(scope: Scope, captureContext: Partial<ScopeContext>): Scope {
-  scope.tags = { ...scope.tags, ...captureContext.tags };
-  scope.extra = { ...scope.extra, ...captureContext.extra };
-  scope.contexts = { ...scope.contexts, ...captureContext.contexts };
-  if (captureContext.user) {
-    scope.user = captureContext.user;
-  }
-  if (captureContext.level) {
-    scope.level = captureContext.level;
-  }
-  if (captureContext.fingerprint) {
-    scope.fingerprint = captureContext.fingerprint;
-  }
-  if (captureContext.requestSession) {
-    scope.requestSession = captureContext.requestSession;
-  }
-
-  return scope;
-}
-
-function mergeScopes(scope: Scope, newScope: Scope): Scope {
-  scope.tags = { ...scope.tags, ...newScope.tags };
-  scope.extra = { ...scope.extra, ...newScope.extra };
-  scope.contexts = { ...scope.contexts, ...newScope.contexts };
-  if (newScope.user && Object.keys(newScope.user).length) {
-    scope.user = newScope.user;
-  }
-  if (newScope.level) {
-    scope.level = newScope.level;
-  }
-  if (newScope.fingerprint) {
-    scope.fingerprint = newScope.fingerprint;
-  }
-  if (newScope.requestSession) {
-    scope.requestSession = newScope.requestSession;
-  }
-
-  return scope;
-}
-
-function isCaptureContextCallback(val: unknown): val is CaptureContextCallback {
-  return typeof val === 'function';
-}
-
-function isScopeContext(val: unknown): val is Partial<ScopeContext> {
-  return isPlainObject(val);
-}
-
 /**
  * Clears the current scope and resets its properties.
  * */
@@ -414,6 +366,7 @@ export function clearScope(scope: Scope): Scope {
  * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
  */
 export function addScopeBreadcrumb(scope: Scope, breadcrumb: Breadcrumb, maxBreadcrumbs?: number): Scope {
+  // TODO: Defensive programming checking for `number`
   const maxCrumbs = typeof maxBreadcrumbs === 'number' ? Math.min(maxBreadcrumbs, MAX_BREADCRUMBS) : MAX_BREADCRUMBS;
 
   // No data has been changed, so don't notify scope listeners
@@ -486,6 +439,62 @@ export function applyScopeToEvent(scope: Scope, event: Event, hint?: EventHint):
 }
 
 /**
+ * Add a EventProcessor to be kept globally.
+ * @param callback EventProcessor to add
+ */
+export function addGlobalEventProcessor(callback: EventProcessor): void {
+  getGlobalEventProcessors().push(callback);
+}
+
+function mergeScopeContext(scope: Scope, captureContext: Partial<ScopeContext>): Scope {
+  scope.tags = { ...scope.tags, ...captureContext.tags };
+  scope.extra = { ...scope.extra, ...captureContext.extra };
+  scope.contexts = { ...scope.contexts, ...captureContext.contexts };
+  if (captureContext.user) {
+    scope.user = captureContext.user;
+  }
+  if (captureContext.level) {
+    scope.level = captureContext.level;
+  }
+  if (captureContext.fingerprint) {
+    scope.fingerprint = captureContext.fingerprint;
+  }
+  if (captureContext.requestSession) {
+    scope.requestSession = captureContext.requestSession;
+  }
+
+  return scope;
+}
+
+function mergeScopes(scope: Scope, newScope: Scope): Scope {
+  scope.tags = { ...scope.tags, ...newScope.tags };
+  scope.extra = { ...scope.extra, ...newScope.extra };
+  scope.contexts = { ...scope.contexts, ...newScope.contexts };
+  if (newScope.user && Object.keys(newScope.user).length) {
+    scope.user = newScope.user;
+  }
+  if (newScope.level) {
+    scope.level = newScope.level;
+  }
+  if (newScope.fingerprint) {
+    scope.fingerprint = newScope.fingerprint;
+  }
+  if (newScope.requestSession) {
+    scope.requestSession = newScope.requestSession;
+  }
+
+  return scope;
+}
+
+function isCaptureContextCallback(val: unknown): val is CaptureContextCallback {
+  return typeof val === 'function';
+}
+
+function isScopeContext(val: unknown): val is Partial<ScopeContext> {
+  return isPlainObject(val);
+}
+
+/**
  * This will be called after {@link applyScopeToEvent} is finished.
  */
 function notifyEventProcessors(
@@ -553,6 +562,7 @@ function applyFingerprint(scope: Scope, event: Event): void {
   }
 }
 
+// TODO: I would move this out of there and move it to some globals package like `getGlobalObject` is
 /**
  * Returns the global event processors.
  */
@@ -563,12 +573,4 @@ function getGlobalEventProcessors(): EventProcessor[] {
   global.__SENTRY__.globalEventProcessors = global.__SENTRY__.globalEventProcessors || [];
   return global.__SENTRY__.globalEventProcessors ?? [];
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
-}
-
-/**
- * Add a EventProcessor to be kept globally.
- * @param callback EventProcessor to add
- */
-export function addGlobalEventProcessor(callback: EventProcessor): void {
-  getGlobalEventProcessors().push(callback);
 }
