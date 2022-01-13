@@ -16,12 +16,10 @@ describe('Session Flusher', () => {
   afterEach(() => jest.clearAllTimers());
 
   test('test incrementSessionStatusCount updates the internal SessionFlusher state', () => {
-    // GIVEN
     const transporter = makeTransporter();
     const flusher = new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
     const date = new Date('2021-04-08T12:18:23.043Z');
 
-    // WHEN
     let count = _incrementSessionStatusCount(flusher, 'ok', date);
     expect(count).toEqual(1);
     count = _incrementSessionStatusCount(flusher, 'ok', date);
@@ -42,16 +40,13 @@ describe('Session Flusher', () => {
   });
 
   test('test undefined attributes are excluded, on incrementSessionStatusCount call', () => {
-    // GIVEN
     const transporter = makeTransporter();
     const flusher = new SessionFlusher(transporter, { release: '1.0.0' });
     const date = new Date('2021-04-08T12:18:23.043Z');
 
-    // WHEN
     _incrementSessionStatusCount(flusher, 'ok', date);
     _incrementSessionStatusCount(flusher, 'errored', date);
 
-    // THEN
     expect(getSessionAggregates(flusher)).toEqual({
       aggregates: [{ errored: 1, exited: 1, started: '2021-04-08T12:18:00.000Z' }],
       attrs: { release: '1.0.0' },
