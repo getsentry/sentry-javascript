@@ -104,12 +104,10 @@ describe('Session Flusher', () => {
   test('transporter is not called on flush if no sessions were captured', () => {
     const transporter = makeTransporter();
 
-    const flusher = new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
+    new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
 
     expect(transporter).toHaveBeenCalledTimes(0);
     jest.advanceTimersByTime(61000);
-
-    expect(transporter).toHaveBeenCalledTimes(1);
     expect(transporter).toHaveBeenCalledTimes(0);
   });
 
