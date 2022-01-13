@@ -23,8 +23,8 @@ import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, log
 import {
   addScopeBreadcrumb,
   cloneScope,
-  getScopeUser,
   getScopeSession,
+  getScopeUser,
   Scope,
   setScopeContext,
   setScopeExtra,
@@ -606,11 +606,12 @@ export function traceHeaders(hub: Hub): { [key: string]: string } {
 /**
  * Internal helper function to call a method on the top client if it exists.
  *
+ * @param hub
  * @param method The method to call on the client.
  * @param args Arguments to pass to the client function.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _invokeClient<M extends keyof Client>(hub: Hub, method: M, ...args: any[]): void {
+export function _invokeClient<M extends keyof Client>(hub: Hub, method: M, ...args: any[]): void {
   const { scope, client } = getStackTop(hub);
   if (client && client[method]) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
