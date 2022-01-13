@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { getClient } from '@sentry/hub';
+import { getHubClient } from '@sentry/hub';
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -12,7 +12,7 @@ const NODE_VERSION = parseSemver(process.versions.node);
  * @param url url to verify
  */
 export function isSentryRequest(url: string): boolean {
-  const dsn = getClient(getCurrentHub())?.getDsn();
+  const dsn = getHubClient(getCurrentHub())?.getDsn();
   return dsn ? url.includes(dsn.host) : false;
 }
 

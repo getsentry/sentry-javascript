@@ -11,6 +11,8 @@ import * as nock from 'nock';
 import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
+import { bindHubClient } from '@sentry/hub/src';
+import { startHubTransaction } from '@sentry/hub/src/hub';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
@@ -30,7 +32,7 @@ describe('tracing', () => {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
 
-    const transaction = hub.startTransaction({ name: 'dogpark' });
+    const transaction = startHubTransaction(hub, { name: 'dogpark' });
     hub.getScope()?.setSpan(transaction);
 
     return transaction;
@@ -107,7 +109,8 @@ describe('default protocols', () => {
     const p = new Promise<Breadcrumb>(r => {
       resolve = r;
     });
-    hub.bindClient(
+    bindHubClient(
+      hub,
       new NodeClient({
         dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
         integrations: [new HttpIntegration({ breadcrumbs: true })],

@@ -520,7 +520,7 @@ export function run(hub: Hub, callback: (hub: Hub) => void): void {
 }
 
 /** Returns the integration if installed on the current client. */
-export function getIntegration<T extends Integration>(hub: Hub, integration: IntegrationClass<T>): T | null {
+export function getHubIntegration<T extends Integration>(hub: Hub, integration: IntegrationClass<T>): T | null {
   const client = getHubClient(hub);
   if (!client) return null;
   try {
@@ -731,7 +731,7 @@ function sendSessionUpdate(hub: Hub): void {
 /**
  * Ends the session that lives on the current scope and sends it to Sentry
  */
-function endHubSession(hub: Hub): void {
+export function endHubSession(hub: Hub): void {
   const layer = getHubStackTop(hub);
   const scope = layer && layer.scope;
   const session = getScopeSession(scope);

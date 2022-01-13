@@ -1,5 +1,5 @@
 import { getCurrentHub, Scope } from '@sentry/core';
-import { getClient, getIntegration, withScope } from '@sentry/hub';
+import { captureHubException, getHubClient, getHubIntegration, setScopeLevel, withHubScope } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -38,6 +38,7 @@ export class OnUncaughtException implements Integration {
       onFatalError?(firstError: Error, secondError?: Error): void;
     } = {},
   ) {}
+
   /**
    * @inheritDoc
    */
@@ -57,7 +58,7 @@ export class OnUncaughtException implements Integration {
 
     return (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
-      const client = getClient<NodeClient>(getCurrentHub());
+      const client = getHubClient<NodeClient>(getCurrentHub());
 
       if (this._options.onFatalError) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -76,10 +77,10 @@ export class OnUncaughtException implements Integration {
         firstError = error;
         caughtFirstError = true;
 
-        if (getIntegration(hub, OnUncaughtException)) {
-          withScope(hub, (scope: Scope) => {
-            scope.setLevel('fatal');
-            hub.captureException(error, {
+        if (getHubIntegration(hub, OnUncaughtException)) {
+          withHubScope(hub, (scope: Scope) => {
+            setScopeLevel(scope, 'fatal');
+            captureHubException(hub, error, {
               originalException: error,
               data: { mechanism: { handled: false, type: 'onuncaughtexception' } },
             });

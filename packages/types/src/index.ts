@@ -22,6 +22,7 @@ export { CaptureContext, Scope, ScopeContext } from './scope';
 export { SdkInfo } from './sdkinfo';
 export { SdkMetadata } from './sdkmetadata';
 export {
+  Session,
   SessionAggregates,
   AggregationCounts,
   SessionContext,

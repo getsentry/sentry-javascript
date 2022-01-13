@@ -1,4 +1,4 @@
-import { getCurrentHub, configureScope } from '@sentry/hub';
+import { getCurrentHub, configureHubScope, setScopeExtra } from '@sentry/hub';
 import { Event, EventHint, Mechanism, Options, SeverityLevel } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -32,8 +32,8 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
       // which is much better than creating new group when any key/value change
       const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
-      configureScope(getCurrentHub(), scope => {
-        scope.setExtra('__serialized__', normalizeToSize(exception as Record<string, unknown>));
+      configureHubScope(getCurrentHub(), scope => {
+        setScopeExtra(scope, '__serialized__', normalizeToSize(exception as Record<string, unknown>));
       });
 
       ex = (hint && hint.syntheticException) || new Error(message);

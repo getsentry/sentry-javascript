@@ -1,12 +1,36 @@
-export { updateScope, applyScopeToEvent, addGlobalEventProcessor, cloneScope, getScopeSession, Scope } from './scope';
+export {
+  getScopeRequestSession,
+  setScopeExtra,
+  setScopeUser,
+  setScopeTags,
+  setScopeExtras,
+  updateScope,
+  applyScopeToEvent,
+  setScopeLevel,
+  addGlobalEventProcessor,
+  cloneScope,
+  getScopeSession,
+  setScopeSpan,
+  setScopeRequestSession,
+  addScopeEventProcessor,
+  setScopeSession,
+  getScopeSpan,
+  Scope,
+} from './scope';
 export { Session, updateSession } from './session';
-export { SessionFlusher } from './sessionflusher';
+export {
+  SessionFlusher,
+  closeSessionFlusher,
+  incrementSessionStatusCount,
+  SessionFlusherTransporter,
+} from './sessionflusher';
 export {
   // eslint-disable-next-line deprecation/deprecation
   getActiveDomain,
   getCurrentHub,
   bindHubClient,
   popHubScope,
+  endHubSession,
   pushHubScope,
   withHubScope,
   getHubClient,
@@ -18,7 +42,7 @@ export {
   addHubBreadcrumb,
   captureHubEvent,
   captureHubException,
-  getIntegration,
+  getHubIntegration,
   captureHubMessage,
   configureHubScope,
   Hub,

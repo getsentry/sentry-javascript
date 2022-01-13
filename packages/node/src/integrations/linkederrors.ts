@@ -1,9 +1,9 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
+import { getHubIntegration } from '@sentry/hub';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
 import { isInstanceOf, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
 
 import { getExceptionFromError } from '../parsers';
-import { getIntegration } from '@sentry/hub';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
@@ -43,7 +43,7 @@ export class LinkedErrors implements Integration {
    */
   public setupOnce(): void {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
-      const self = getIntegration(getCurrentHub(), LinkedErrors);
+      const self = getHubIntegration(getCurrentHub(), LinkedErrors);
       if (self) {
         const handler = self._handler && self._handler.bind(self);
         return typeof handler === 'function' ? handler(event, hint) : event;

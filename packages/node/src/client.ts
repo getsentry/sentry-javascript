@@ -1,10 +1,11 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
-import { SessionFlusher } from '@sentry/hub';
+import { closeSessionFlusher, getScopeRequestSession, incrementSessionStatusCount, SessionFlusher } from '@sentry/hub';
 import { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { NodeBackend } from './backend';
 import { NodeOptions } from './types';
+import { SessionFlusherTransporter } from '@sentry/hub/src';
 
 /**
  * The Sentry Node SDK Client.
@@ -44,7 +45,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
     // sent to the Server only when the `requestHandler` middleware is used
     if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
-      const requestSession = scope.getRequestSession();
+      const requestSession = getScopeRequestSession(scope);
 
       // Necessary checks to ensure this is code block is executed only within a request
       // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
@@ -70,7 +71,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
 
       // If the event is of type Exception, then a request session should be captured
       if (isException) {
-        const requestSession = scope.getRequestSession();
+        const requestSession = getScopeRequestSession(scope);
 
         // Ensure that this is happening within the bounds of a request, and make sure not to override
         // Session Status if Errored / Crashed
@@ -88,7 +89,9 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    * @inheritdoc
    */
   public close(timeout?: number): PromiseLike<boolean> {
-    this._sessionFlusher?.close();
+    if (this._sessionFlusher) {
+      closeSessionFlusher(this._sessionFlusher);
+    }
     return super.close(timeout);
   }
 
@@ -98,9 +101,14 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     if (!release) {
       logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
     } else {
-      this._sessionFlusher = new SessionFlusher(this.getTransport().sendSession!, {
+      this._sessionFlusher = new SessionFlusher({
         release,
         environment,
+        // How to make this a required option?
+        // The existing transporter could omit implementing this method.
+        // Would it makesense to have a default implementation that does nothing?
+        // Or should the session flusher be optional?
+        transporter: this.getTransport().sendSession || (Function.prototype as SessionFlusherTransporter),
       });
     }
   }
@@ -124,7 +132,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     if (!this._sessionFlusher) {
       logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
     } else {
-      this._sessionFlusher.incrementSessionStatusCount();
+      incrementSessionStatusCount(this._sessionFlusher);
     }
   }
 }

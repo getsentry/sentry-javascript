@@ -1,10 +1,9 @@
 import { AggregationCounts, Event, EventStatus, RequestSessionStatus, SessionAggregates } from '@sentry/types';
 import { EventType } from '@sentry/types/src/event';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
-
+import { Session } from './session';
 import { getCurrentHub, getHubScope } from './hub';
 import { getScopeRequestSession, setScopeRequestSession } from './scope';
-import { Session } from './session';
 
 export interface Response {
   status: EventStatus;
@@ -13,7 +12,7 @@ export interface Response {
   reason?: string;
 }
 
-export type Transporter = (session: Session | SessionAggregates) => PromiseLike<Response>;
+export type SessionFlusherTransporter = (session: Session | SessionAggregates) => PromiseLike<Response>;
 
 /**
  * ...
@@ -26,11 +25,11 @@ export class SessionFlusher {
   public pendingAggregates: Record<number, AggregationCounts> = {};
   public intervalId: ReturnType<typeof setInterval>;
   public isEnabled: boolean = true;
-  public transport: Transporter;
+  public transport: SessionFlusherTransporter;
   public environment?: string;
   public release: string;
 
-  public constructor(opts: { environment?: string; release: string; transporter: Transporter }) {
+  public constructor(opts: { environment?: string; release: string; transporter: SessionFlusherTransporter }) {
     this.transport = opts.transporter;
     this.environment = opts.environment;
     this.release = opts.release;

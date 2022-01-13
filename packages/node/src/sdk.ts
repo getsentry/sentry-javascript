@@ -1,11 +1,13 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import {
-  getClient,
+  getHubClient,
+  getHubLastEventId,
   getMainCarrier,
-  startSession,
-  getSession,
-  lastEventId as hubLastEventId,
+  getScopeSession,
   setHubOnCarrier,
+  endHubSession,
+  getHubScope,
+  startHubSession,
 } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
@@ -143,7 +145,7 @@ export function init(options: NodeOptions = {}): void {
  * @returns The last event id of a captured event.
  */
 export function lastEventId(): string | undefined {
-  return hubLastEventId(getCurrentHub());
+  return getHubLastEventId(getCurrentHub());
 }
 
 /**
@@ -155,7 +157,7 @@ export function lastEventId(): string | undefined {
  * doesn't (or if there's no client defined).
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  const client = getClient<NodeClient>(getCurrentHub());
+  const client = getHubClient<NodeClient>(getCurrentHub());
   if (client) {
     return client.flush(timeout);
   }
@@ -172,7 +174,7 @@ export async function flush(timeout?: number): Promise<boolean> {
  * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getClient<NodeClient>(getCurrentHub());
+  const client = getHubClient<NodeClient>(getCurrentHub());
   if (client) {
     return client.close(timeout);
   }
@@ -232,18 +234,18 @@ export function getSentryRelease(fallback?: string): string | undefined {
  */
 function startSessionTracking(): void {
   const hub = getCurrentHub();
-  startSession(hub);
+  startHubSession(hub);
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
   // The 'beforeExit' event is not emitted for conditions causing explicit termination,
   // such as calling process.exit() or uncaught exceptions.
   // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
   process.on('beforeExit', () => {
-    const session = getSession(hub.getScope());
+    const session = getScopeSession(getHubScope(hub));
     const terminalStates: SessionStatus[] = ['exited', 'crashed'];
     // Only call endSession, if the Session exists on Scope and SessionStatus is not a
     // Terminal Status i.e. Exited or Crashed because
     // "When a session is moved away from ok it must not be updated anymore."
     // Ref: https://develop.sentry.dev/sdk/sessions/
-    if (session && !terminalStates.includes(session.status)) hub.endSession();
+    if (session && !terminalStates.includes(session.status)) endHubSession(hub);
   });
 }

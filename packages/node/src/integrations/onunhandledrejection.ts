@@ -1,5 +1,13 @@
 import { getCurrentHub, Scope } from '@sentry/core';
-import { getIntegration, withScope } from '@sentry/hub';
+import {
+  captureHubException,
+  getHubIntegration,
+  setScopeExtra,
+  setScopeExtras,
+  setScopeTags,
+  setScopeUser,
+  withHubScope,
+} from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
@@ -48,7 +56,7 @@ export class OnUnhandledRejection implements Integration {
   public sendUnhandledPromise(reason: any, promise: any): void {
     const hub = getCurrentHub();
 
-    if (!getIntegration(hub, OnUnhandledRejection)) {
+    if (!getHubIntegration(hub, OnUnhandledRejection)) {
       this._handleRejection(reason);
       return;
     }
@@ -56,21 +64,21 @@ export class OnUnhandledRejection implements Integration {
     /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     const context = (promise.domain && promise.domain.sentryContext) || {};
 
-    withScope(hub, (scope: Scope) => {
-      scope.setExtra('unhandledPromiseRejection', true);
+    withHubScope(hub, (scope: Scope) => {
+      setScopeExtra(scope, 'unhandledPromiseRejection', true);
 
       // Preserve backwards compatibility with raven-node for now
       if (context.user) {
-        scope.setUser(context.user);
+        setScopeUser(scope, context.user);
       }
       if (context.tags) {
-        scope.setTags(context.tags);
+        setScopeTags(scope, context.tags);
       }
       if (context.extra) {
-        scope.setExtras(context.extra);
+        setScopeExtras(scope, context.extra);
       }
 
-      hub.captureException(reason, {
+      captureHubException(hub, reason, {
         originalException: promise,
         data: { mechanism: { handled: false, type: 'onunhandledrejection' } },
       });

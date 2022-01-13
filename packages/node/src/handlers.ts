@@ -1,7 +1,18 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { configureScope, getClient, getSession } from '@sentry/hub';
+import {
+  getHubClient,
+  getHubScope,
+  getScopeRequestSession,
+  getScopeSession,
+  getScopeSpan,
+  setScopeSpan,
+  setScopeRequestSession,
+  addScopeEventProcessor,
+  configureHubScope,
+  setScopeSession,
+} from '@sentry/hub';
 import { extractTraceparentData, Span } from '@sentry/tracing';
 import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -71,8 +82,8 @@ export function tracingHandler(): (
     );
 
     // We put the transaction on the scope so users can attach children to it
-    configureScope(getCurrentHub(), scope => {
-      scope.setSpan(transaction);
+    configureHubScope(getCurrentHub(), scope => {
+      setScopeSpan(scope, transaction);
     });
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
@@ -380,16 +391,16 @@ export function requestHandler(
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   const currentHub = getCurrentHub();
-  const client = getClient<NodeClient>(currentHub);
+  const client = getHubClient<NodeClient>(currentHub);
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
   // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
   if (client && isAutoSessionTrackingEnabled(client)) {
     client.initSessionFlusher();
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
-    const scope = currentHub.getScope();
-    if (scope && getSession(scope)) {
-      scope.setSession();
+    const scope = getHubScope(currentHub);
+    if (scope && getScopeSession(scope)) {
+      setScopeSession(scope);
     }
   }
   return function sentryRequestMiddleware(
@@ -418,20 +429,20 @@ export function requestHandler(
     local.run(() => {
       const currentHub = getCurrentHub();
 
-      configureScope(currentHub, scope => {
-        scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
-        const client = getClient<NodeClient>(currentHub);
+      configureHubScope(currentHub, scope => {
+        addScopeEventProcessor(scope, (event: Event) => parseRequest(event, req, options));
+        const client = getHubClient<NodeClient>(currentHub);
         if (isAutoSessionTrackingEnabled(client)) {
-          const scope = currentHub.getScope();
+          const scope = getHubScope(currentHub);
           if (scope) {
             // Set `status` of `RequestSession` to Ok, at the beginning of the request
-            scope.setRequestSession({ status: 'ok' });
+            setScopeRequestSession(scope, { status: 'ok' });
           }
         }
       });
 
       res.once('finish', () => {
-        const client = getClient<NodeClient>(currentHub);
+        const client = getHubClient<NodeClient>(currentHub);
         if (isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -501,11 +512,11 @@ export function errorHandler(options?: {
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;
-        if (transaction && _scope.getSpan() === undefined) {
-          _scope.setSpan(transaction);
+        if (transaction && getScopeSpan(_scope) === undefined) {
+          setScopeSpan(_scope, transaction);
         }
 
-        const client = getClient<NodeClient>(getCurrentHub());
+        const client = getHubClient<NodeClient>(getCurrentHub());
         if (client && isAutoSessionTrackingEnabled(client)) {
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
           // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
@@ -514,7 +525,7 @@ export function errorHandler(options?: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const isSessionAggregatesMode = (client as any)._sessionFlusher !== undefined;
           if (isSessionAggregatesMode) {
-            const requestSession = _scope.getRequestSession();
+            const requestSession = getScopeRequestSession(_scope);
             // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
             // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
             // the bounds of a request, and if so the status is updated

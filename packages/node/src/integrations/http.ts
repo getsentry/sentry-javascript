@@ -12,7 +12,8 @@ import {
   RequestMethod,
   RequestMethodArgs,
 } from './utils/http';
-import { addBreadcrumb, getIntegration } from '@sentry/hub';
+import { addHubBreadcrumb, getHubScope, getHubIntegration } from '@sentry/hub';
+import { getScopeSpan } from '@sentry/hub/src/scope';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
@@ -109,9 +110,9 @@ function _createWrappedRequestMethodFactory(
       let span: Span | undefined;
       let parentSpan: Span | undefined;
 
-      const scope = getCurrentHub().getScope();
+      const scope = getHubScope(getCurrentHub());
       if (scope && tracingEnabled) {
-        parentSpan = scope.getSpan();
+        parentSpan = getScopeSpan(scope);
         if (parentSpan) {
           span = parentSpan.startChild({
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,
@@ -164,11 +165,11 @@ function _createWrappedRequestMethodFactory(
  * Captures Breadcrumb based on provided request/response pair
  */
 function addRequestBreadcrumb(event: string, url: string, req: http.ClientRequest, res?: http.IncomingMessage): void {
-  if (!getIntegration(getCurrentHub(), Http)) {
+  if (!getHubIntegration(getCurrentHub(), Http)) {
     return;
   }
 
-  addBreadcrumb(
+  addHubBreadcrumb(
     getCurrentHub(),
     {
       category: 'http',
