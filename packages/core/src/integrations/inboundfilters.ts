@@ -1,4 +1,4 @@
-import { addGlobalEventProcessor, getClient,getCurrentHub, getIntegration } from '@sentry/hub';
+import { addGlobalEventProcessor, getHubClient, getCurrentHub, getHubIntegration } from '@sentry/hub';
 import { Event, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@sentry/utils';
 
@@ -44,9 +44,9 @@ export class InboundFilters implements Integration {
       }
       // TODO: this is really confusing, why would ask back the integration?
       // setupOnce() belongs already to `self` (this) so it is confusing to ask for it. No?
-      const self = getIntegration(hub, InboundFilters);
+      const self = getHubIntegration(hub, InboundFilters);
       if (self) {
-        const client = getClient(hub);
+        const client = getHubClient(hub);
         const clientOptions = client ? client.getOptions() : {};
         // This checks prevents most of the occurrences of the bug linked below:
         // https://github.com/getsentry/sentry-javascript/issues/2622

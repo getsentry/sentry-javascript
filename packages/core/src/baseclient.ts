@@ -1,5 +1,13 @@
 /* eslint-disable max-lines */
-import { Scope, Session, updateSession, cloneScope, getSession } from '@sentry/hub';
+import {
+  applyScopeToEvent,
+  cloneScope,
+  getScopeSession,
+  Scope,
+  Session,
+  updateScope,
+  updateSession,
+} from '@sentry/hub';
 import {
   Client,
   DsnComponents,
@@ -360,7 +368,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
     let finalScope = scope;
     if (hint && hint.captureContext) {
-      finalScope = cloneScope(finalScope).update(hint.captureContext);
+      finalScope = updateScope(cloneScope(finalScope), hint.captureContext);
     }
 
     // We prepare the result here with a resolved Event.
@@ -370,7 +378,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (finalScope) {
       // In case we have a hub we reassign it.
-      result = finalScope.applyToEvent(prepared, hint);
+      result = applyScopeToEvent(finalScope, prepared, hint);
     }
 
     return result.then(evt => {
@@ -576,7 +584,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
-        const session = getSession(scope);
+        const session = getScopeSession(scope);
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
