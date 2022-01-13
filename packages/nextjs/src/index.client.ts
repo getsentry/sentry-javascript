@@ -5,6 +5,8 @@ import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration, UserIntegrations } from './utils/userIntegrations';
+import { addScopeEventProcessor } from '@sentry/hub';
+import { setScopeTag } from '@sentry/hub/dist/scope';
 
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
@@ -27,8 +29,10 @@ export function init(options: NextjsOptions): void {
     integrations,
   });
   configureScope(scope => {
-    scope.setTag('runtime', 'browser');
-    scope.addEventProcessor(event => (event.type === 'transaction' && event.transaction === '/404' ? null : event));
+    setScopeTag(scope, 'runtime', 'browser');
+    addScopeEventProcessor(scope, event =>
+      event.type === 'transaction' && event.transaction === '/404' ? null : event,
+    );
   });
 }
 

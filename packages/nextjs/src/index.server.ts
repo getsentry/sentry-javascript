@@ -1,4 +1,13 @@
-import { bindClient, Carrier, getClient,getHubFromCarrier, getMainCarrier } from '@sentry/hub';
+import {
+  addScopeEventProcessor,
+  bindHubClient,
+  Carrier,
+  getHubClient,
+  getHubFromCarrier,
+  getHubScope,
+  getMainCarrier,
+  updateScope,
+} from '@sentry/hub';
 import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { Event } from '@sentry/types';
@@ -9,6 +18,7 @@ import * as path from 'path';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
+import { setScopeTag } from '@sentry/hub/dist/scope';
 
 export * from '@sentry/node';
 
@@ -62,12 +72,12 @@ export function init(options: NextjsOptions): void {
   nodeInit(options);
 
   configureScope(scope => {
-    scope.setTag('runtime', 'node');
+    setScopeTag(scope, 'runtime', 'node');
     if (isVercel) {
-      scope.setTag('vercel', true);
+      setScopeTag(scope, 'vercel', true);
     }
 
-    scope.addEventProcessor(filterTransactions);
+    addScopeEventProcessor(scope, filterTransactions);
   });
 
   if (activeDomain) {
@@ -75,10 +85,18 @@ export function init(options: NextjsOptions): void {
     const domainHub = getHubFromCarrier(activeDomain);
 
     // apply the changes made by `nodeInit` to the domain's hub also
-    bindClient(domainHub, getClient(globalHub));
-    domainHub.getScope()?.update(globalHub.getScope());
+    bindHubClient(domainHub, getHubClient(globalHub));
+    const domainScope = getHubScope(domainHub);
+    const globalScope = getHubScope(globalHub);
+    if (domainScope) {
+      updateScope(domainScope, globalScope);
+    }
+
     // `scope.update()` doesn’t copy over event processors, so we have to add it manually
-    domainHub.getScope()?.addEventProcessor(filterTransactions);
+    const scope = getHubScope(domainHub);
+    if (scope) {
+      addScopeEventProcessor(scope, filterTransactions);
+    }
 
     // restore the domain hub as the current one
     domain.active = activeDomain;
@@ -89,7 +107,7 @@ export function init(options: NextjsOptions): void {
 
 function sdkAlreadyInitialized(): boolean {
   const hub = getCurrentHub();
-  return !!getClient(hub);
+  return !!getHubClient(hub);
 }
 
 function addServerIntegrations(options: NextjsOptions): void {

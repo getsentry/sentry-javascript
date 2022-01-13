@@ -14,6 +14,7 @@ import * as http from 'http';
 import { default as createNextServer } from 'next';
 import * as querystring from 'querystring';
 import * as url from 'url';
+import { addScopeEventProcessor, getHubScope, setScopeSpan } from '@sentry/hub';
 
 const { parseRequest } = Handlers;
 
@@ -159,7 +160,7 @@ function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogge
     // gets its own scope. (`configureScope` has the advantage of not creating a clone of the current scope before
     // modifying it, which in this case is unnecessary.)
     configureScope(scope => {
-      scope.addEventProcessor(event => {
+      addScopeEventProcessor(scope, event => {
         addExceptionMechanism(event, {
           type: 'instrument',
           handled: true,
@@ -217,10 +218,10 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
     // local.on('error', Sentry.captureException);
 
     local.run(() => {
-      const currentScope = getCurrentHub().getScope();
+      const currentScope = getHubScope(getCurrentHub());
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, req));
+        addScopeEventProcessor(currentScope, event => parseRequest(event, req));
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
@@ -249,7 +250,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             { request: req },
           );
 
-          currentScope.setSpan(transaction);
+          setScopeSpan(currentScope, transaction);
 
           res.once('finish', () => {
             const transaction = getActiveTransaction();

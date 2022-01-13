@@ -1,3 +1,4 @@
+import { addScopeEventProcessor, getHubScope, setScopeSpan } from '@sentry/hub';
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
@@ -33,10 +34,10 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
     // return a value. In our case, all any of the codepaths return is a promise of `void`, but nextjs still counts on
     // getting that before it will finish the response.
     const boundHandler = local.bind(async () => {
-      const currentScope = getCurrentHub().getScope();
+      const currentScope = getHubScope(getCurrentHub());
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, req));
+        addScopeEventProcessor(currentScope, event => parseRequest(event, req));
 
         if (hasTracingEnabled()) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
@@ -68,7 +69,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
             // extra context passed to the `tracesSampler`
             { request: req },
           );
-          currentScope.setSpan(transaction);
+          setScopeSpan(currentScope, transaction);
 
           // save a link to the transaction on the response, so that even if there's an error (landing us outside of
           // the domain), we can still finish it (albeit possibly missing some scope data)
@@ -136,7 +137,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
         const objectifiedErr = objectify(e);
 
         if (currentScope) {
-          currentScope.addEventProcessor(event => {
+          addScopeEventProcessor(currentScope, event => {
             addExceptionMechanism(event, {
               type: 'instrument',
               handled: true,
