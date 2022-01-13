@@ -1,5 +1,13 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { startSession, getClient, getScope, Hub, lastEventId as hubLastEventId, captureSession } from '@sentry/hub';
+import {
+  getScopeUser,
+  captureHubSession,
+  getHubClient,
+  getHubLastEventId,
+  getHubScope,
+  Hub,
+  startHubSession,
+} from '@sentry/hub';
 import { addInstrumentationHandler, getGlobalObject, isDebugBuild, logger, resolvedSyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
@@ -107,18 +115,18 @@ export function init(options: BrowserOptions = {}): void {
  */
 export function showReportDialog(options: ReportDialogOptions = {}): void {
   const hub = getCurrentHub();
-  const scope = getScope(hub);
+  const scope = getHubScope(hub);
   if (scope) {
     options.user = {
-      ...scope.getUser(),
+      ...getScopeUser(scope),
       ...options.user,
     };
   }
 
   if (!options.eventId) {
-    options.eventId = hubLastEventId(hub);
+    options.eventId = getHubLastEventId(hub);
   }
-  const client = getClient<BrowserClient>(hub);
+  const client = getHubClient<BrowserClient>(hub);
   if (client) {
     client.showReportDialog(options);
   }
@@ -130,7 +138,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
  * @returns The last event id of a captured event.
  */
 export function lastEventId(): string | undefined {
-  return hubLastEventId(getCurrentHub());
+  return getHubLastEventId(getCurrentHub());
 }
 
 /**
@@ -158,7 +166,7 @@ export function onLoad(callback: () => void): void {
  * doesn't (or if there's no client defined).
  */
 export function flush(timeout?: number): PromiseLike<boolean> {
-  const client = getClient<BrowserClient>(getCurrentHub());
+  const client = getHubClient<BrowserClient>(getCurrentHub());
   if (client) {
     return client.flush(timeout);
   }
@@ -177,7 +185,7 @@ export function flush(timeout?: number): PromiseLike<boolean> {
  * doesn't (or if there's no client defined).
  */
 export function close(timeout?: number): PromiseLike<boolean> {
-  const client = getClient<BrowserClient>(getCurrentHub());
+  const client = getHubClient<BrowserClient>(getCurrentHub());
   if (client) {
     return client.close(timeout);
   }
@@ -200,8 +208,8 @@ export function wrap(fn: (...args: any) => any): any {
 }
 
 function startSessionOnHub(hub: Hub): void {
-  startSession(hub, { ignoreDuration: true });
-  captureSession(hub);
+  startHubSession(hub, { ignoreDuration: true });
+  captureHubSession(hub);
 }
 
 /**

@@ -15,6 +15,7 @@ export {
   addScopeEventProcessor,
   setScopeSession,
   getScopeSpan,
+  getScopeUser,
   Scope,
 } from './scope';
 export { Session, updateSession } from './session';

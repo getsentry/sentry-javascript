@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { addBreadcrumb } from '@sentry/hub';
+import { addHubBreadcrumb } from '@sentry/hub';
 import { Event, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
@@ -63,7 +63,7 @@ export class Breadcrumbs implements Integration {
     if (!this._options.sentry) {
       return;
     }
-    addBreadcrumb(
+    addHubBreadcrumb(
       getCurrentHub(),
       {
         category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
@@ -132,7 +132,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
       return;
     }
 
-    addBreadcrumb(
+    addHubBreadcrumb(
       getCurrentHub(),
       {
         category: `ui.${handlerData.name}`,
@@ -174,7 +174,7 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
     }
   }
 
-  addBreadcrumb(getCurrentHub(), breadcrumb, {
+  addHubBreadcrumb(getCurrentHub(), breadcrumb, {
     input: handlerData.args,
     level: handlerData.level,
   });
@@ -193,7 +193,7 @@ function _xhrBreadcrumb(handlerData: { [key: string]: any }): void {
 
     const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
 
-    addBreadcrumb(
+    addHubBreadcrumb(
       getCurrentHub(),
       {
         category: 'xhr',
@@ -230,7 +230,7 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
   }
 
   if (handlerData.error) {
-    addBreadcrumb(
+    addHubBreadcrumb(
       getCurrentHub(),
       {
         category: 'fetch',
@@ -244,7 +244,7 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
       },
     );
   } else {
-    addBreadcrumb(
+    addHubBreadcrumb(
       getCurrentHub(),
       {
         category: 'fetch',
@@ -288,7 +288,7 @@ function _historyBreadcrumb(handlerData: { [key: string]: any }): void {
     from = parsedFrom.relative;
   }
 
-  addBreadcrumb(getCurrentHub(), {
+  addHubBreadcrumb(getCurrentHub(), {
     category: 'navigation',
     data: {
       from,

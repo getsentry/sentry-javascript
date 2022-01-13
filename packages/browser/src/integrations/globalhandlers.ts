@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { captureEvent, getClient, getIntegration, Hub } from '@sentry/hub';
+import { captureHubEvent, getHubClient, getHubIntegration, Hub } from '@sentry/hub';
 import { Event, EventHint, Integration, Primitive } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -81,7 +81,7 @@ function _installGlobalOnErrorHandler(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (data: { msg: any; url: any; line: any; column: any; error: any }) => {
       const [hub, attachStacktrace] = getHubAndAttachStacktrace();
-      if (!getIntegration(hub, GlobalHandlers)) {
+      if (!getHubIntegration(hub, GlobalHandlers)) {
         return;
       }
       const { msg, url, line, column, error } = data;
@@ -114,7 +114,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (e: any) => {
       const [hub, attachStacktrace] = getHubAndAttachStacktrace();
-      if (!getIntegration(hub, GlobalHandlers)) {
+      if (!getHubIntegration(hub, GlobalHandlers)) {
         return;
       }
       let error = e;
@@ -251,14 +251,14 @@ function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'],
     handled: false,
     type,
   });
-  captureEvent(hub, event, {
+  captureHubEvent(hub, event, {
     originalException: error,
   });
 }
 
 function getHubAndAttachStacktrace(): [Hub, boolean | undefined] {
   const hub = getCurrentHub();
-  const client = getClient(hub);
+  const client = getHubClient(hub);
   const attachStacktrace = client && client.getOptions().attachStacktrace;
   return [hub, attachStacktrace];
 }
