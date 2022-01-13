@@ -1,4 +1,4 @@
-export { applyToEvent, addGlobalEventProcessor, cloneScope, getSession, Scope } from './scope';
+export { updateScope, applyScopeToEvent, addGlobalEventProcessor, cloneScope, getSession, Scope } from './scope';
 export { Session, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export {

@@ -11,17 +11,17 @@ function makeTransporter() {
   return jest.fn(() => Promise.resolve({ status: 'success' as EventStatus }));
 }
 
-jest.useFakeTimers();
-
 describe('Session Flusher', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.clearAllTimers());
 
   test('test incrementSessionStatusCount updates the internal SessionFlusher state', () => {
+    // GIVEN
     const transporter = makeTransporter();
     const flusher = new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
-
     const date = new Date('2021-04-08T12:18:23.043Z');
+
+    // WHEN
     let count = _incrementSessionStatusCount(flusher, 'ok', date);
     expect(count).toEqual(1);
     count = _incrementSessionStatusCount(flusher, 'ok', date);
@@ -42,13 +42,16 @@ describe('Session Flusher', () => {
   });
 
   test('test undefined attributes are excluded, on incrementSessionStatusCount call', () => {
+    // GIVEN
     const transporter = makeTransporter();
     const flusher = new SessionFlusher(transporter, { release: '1.0.0' });
-
     const date = new Date('2021-04-08T12:18:23.043Z');
+
+    // WHEN
     _incrementSessionStatusCount(flusher, 'ok', date);
     _incrementSessionStatusCount(flusher, 'errored', date);
 
+    // THEN
     expect(getSessionAggregates(flusher)).toEqual({
       aggregates: [{ errored: 1, exited: 1, started: '2021-04-08T12:18:00.000Z' }],
       attrs: { release: '1.0.0' },
@@ -56,8 +59,13 @@ describe('Session Flusher', () => {
   });
 
   test('flush is called every ~60 seconds after initialisation of an instance of SessionFlusher', () => {
+    // GIVEN
     const transporter = makeTransporter();
+
+    // WHEN
     new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
+
+    // THEN
     jest.advanceTimersByTime(59000);
     expect(transporter).toHaveBeenCalledTimes(0);
     jest.advanceTimersByTime(2000);
@@ -69,12 +77,16 @@ describe('Session Flusher', () => {
   });
 
   test('transporter is called on flush if sessions were captured', () => {
+    // GIVEN
     const transporter = makeTransporter();
     const flusher = new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
     const date = new Date('2021-04-08T12:18:23.043Z');
+
+    // WHEN
     _incrementSessionStatusCount(flusher, 'ok', date);
     _incrementSessionStatusCount(flusher, 'ok', date);
 
+    // THEN
     expect(transporter).toHaveBeenCalledTimes(0);
 
     jest.advanceTimersByTime(61000);
@@ -89,9 +101,13 @@ describe('Session Flusher', () => {
   });
 
   test('transporter is not called on flush if no sessions were captured', () => {
+    // GIVEN
     const transporter = makeTransporter();
+
+    // WHEN
     new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
 
+    // THEN
     expect(transporter).toHaveBeenCalledTimes(0);
     jest.advanceTimersByTime(61000);
     expect(transporter).toHaveBeenCalledTimes(1);
@@ -99,9 +115,14 @@ describe('Session Flusher', () => {
   });
 
   test('calling close on SessionFlusher should disable SessionFlusher', () => {
+    // GIVEN
     const transporter = makeTransporter();
     const flusher = new SessionFlusher(transporter, { release: '1.0.x' });
+
+    // WHEN
     closeSessionFlusher(flusher);
+
+    // THEN
     expect(flusher.isEnabled).toEqual(false);
   });
 

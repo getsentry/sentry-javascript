@@ -6,7 +6,8 @@ import { SeverityLevel } from './severity';
 import { User } from './user';
 
 /** JSDocs */
-export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => Scope);
+export type CaptureContextCallback = (scope: Scope) => Scope;
+export type CaptureContext = Scope | Partial<ScopeContext> | CaptureContextCallback;
 
 /** JSDocs */
 export interface ScopeContext {
@@ -19,4 +20,4 @@ export interface ScopeContext {
   requestSession: RequestSession;
 }
 
-export interface Scope {}
+export type Scope = any;

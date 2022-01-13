@@ -3,7 +3,7 @@ import { EventType } from '@sentry/types/src/event';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { getCurrentHub, getScope } from './hub';
-import { getRequestSession, setRequestSession } from './scope';
+import { getScopeRequestSession, setScopeRequestSession } from './scope';
 import { Session } from './session';
 
 type ReleaseHealthAttributes = {
@@ -33,9 +33,9 @@ export class SessionFlusher {
 
   public constructor(transport: Transporter, attrs: ReleaseHealthAttributes) {
     this.transport = transport;
+    this.sessionAttrs = attrs;
     // Call to setInterval, so that flush is called every ~60 seconds
     this.intervalId = setInterval(() => flush(this), this.flushTimeout * 1000);
-    this.sessionAttrs = attrs;
   }
 }
 
@@ -86,14 +86,14 @@ export function incrementSessionStatusCount(sessionFlusher: SessionFlusher): voi
     return;
   }
   const scope = getScope(getCurrentHub());
-  const requestSession = scope && getRequestSession(scope);
+  const requestSession = scope && getScopeRequestSession(scope);
 
   if (requestSession && requestSession.status) {
     _incrementSessionStatusCount(sessionFlusher, requestSession.status, new Date());
     // This is not entirely necessarily but is added as a safe guard to indicate the bounds of a request and so in
     // case captureRequestSession is called more than once to prevent double count
     if (scope) {
-      setRequestSession(scope, undefined);
+      setScopeRequestSession(scope, undefined);
     }
     /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   }

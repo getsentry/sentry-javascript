@@ -44,3 +44,5 @@ export interface AggregationCounts {
   exited?: number;
   crashed?: number;
 }
+
+export type Session = any;

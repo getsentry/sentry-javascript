@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import {
   Breadcrumb,
   CaptureContext,
@@ -17,9 +16,12 @@ import {
   Transaction,
   User,
 } from '@sentry/types';
+import { CaptureContextCallback } from '@sentry/types/src/scope';
 import { dateTimestampInSeconds, getGlobalObject, isPlainObject, isThenable, SyncPromise } from '@sentry/utils';
 
 import { Session, updateSession } from './session';
+
+type ScopeListener = (scope: Scope) => void;
 
 /**
  * Absolute maximum number of breadcrumbs added to an event.
@@ -28,51 +30,51 @@ import { Session, updateSession } from './session';
 const MAX_BREADCRUMBS = 100;
 
 /**
- * Holds additional event information. {@link applyToEvent} will be
+ * Holds additional event information. {@link applyScopeToEvent} will be
  * called by the client before an event will be sent.
  */
 export class Scope {
   /** Flag if notifying is happening. */
-  public _notifyingListeners: boolean = false;
+  public notifyingListeners: boolean = false;
 
   /** Callback for client to receive scope changes. */
-  public _scopeListeners: Array<(scope: Scope) => void> = [];
+  public scopeListeners: Array<(scope: Scope) => void> = [];
 
-  /** Callback list that will be called after {@link applyToEvent}. */
-  public _eventProcessors: EventProcessor[] = [];
+  /** Callback list that will be called after {@link applyScopeToEvent}. */
+  public eventProcessors: EventProcessor[] = [];
 
   /** Array of breadcrumbs. */
-  public _breadcrumbs: Breadcrumb[] = [];
+  public breadcrumbs: Breadcrumb[] = [];
 
   /** User */
-  public _user: User = {};
+  public user: User = {};
 
   /** Tags */
-  public _tags: { [key: string]: Primitive } = {};
+  public tags: Record<string, Primitive> = {};
 
   /** Extra */
-  public _extra: Extras = {};
+  public extra: Extras = {};
 
   /** Contexts */
-  public _contexts: Contexts = {};
+  public contexts: Contexts = {};
 
   /** Fingerprint */
-  public _fingerprint?: string[];
+  public fingerprint?: string[];
 
   /** Severity */
-  public _level?: SeverityLevel;
+  public level?: SeverityLevel;
 
   /** Transaction Name */
-  public _transactionName?: string;
+  public transactionName?: string;
 
   /** Span */
-  public _span?: Span;
+  public span?: Span;
 
   /** Session */
-  public _session?: Session;
+  public session?: Session;
 
   /** Request Mode Session Status */
-  public _requestSession?: RequestSession;
+  public requestSession?: RequestSession;
 }
 
 /**
@@ -82,18 +84,18 @@ export class Scope {
 export function cloneScope(scope?: Scope): Scope {
   const newScope = new Scope();
   if (scope) {
-    newScope._breadcrumbs = [...scope._breadcrumbs];
-    newScope._tags = { ...scope._tags };
-    newScope._extra = { ...scope._extra };
-    newScope._contexts = { ...scope._contexts };
-    newScope._user = scope._user;
-    newScope._level = scope._level;
-    newScope._span = scope._span;
-    newScope._session = scope._session;
-    newScope._transactionName = scope._transactionName;
-    newScope._fingerprint = scope._fingerprint;
-    newScope._eventProcessors = [...scope._eventProcessors];
-    newScope._requestSession = scope._requestSession;
+    newScope.breadcrumbs = [...scope.breadcrumbs];
+    newScope.tags = { ...scope.tags };
+    newScope.extra = { ...scope.extra };
+    newScope.contexts = { ...scope.contexts };
+    newScope.user = scope.user;
+    newScope.level = scope.level;
+    newScope.span = scope.span;
+    newScope.session = scope.session;
+    newScope.transactionName = scope.transactionName;
+    newScope.fingerprint = scope.fingerprint;
+    newScope.eventProcessors = [...scope.eventProcessors];
+    newScope.requestSession = scope.requestSession;
   }
   return newScope;
 }
@@ -102,21 +104,21 @@ export function cloneScope(scope?: Scope): Scope {
  * Returns the `Session` if there is one
  */
 export function getSession(scope?: Scope): Session | undefined {
-  return scope && scope._session;
+  return scope && scope.session;
 }
 
 /**
  * Add internal on change listener. Used for sub SDKs that need to store the scope.
  * @hidden
  */
-export function addScopeListener(scope: Scope, callback: (scope: Scope) => void): Scope {
-  scope._scopeListeners.push(callback);
+export function addScopeListener(scope: Scope, callback: ScopeListener): Scope {
+  scope.scopeListeners.push(callback);
   return scope;
 }
 
-/** Add new event processor that will be called after {@link applyToEvent}. */
-export function addEventProcessor(scope: Scope, callback: EventProcessor): Scope {
-  scope._eventProcessors.push(callback);
+/** Add new event processor that will be called after {@link applyScopeToEvent}. */
+export function addScopeEventProcessor(scope: Scope, callback: EventProcessor): Scope {
+  scope.eventProcessors.push(callback);
   return scope;
 }
 
@@ -129,10 +131,9 @@ export function addEventProcessor(scope: Scope, callback: EventProcessor): Scope
  * @param key String key of tag
  * @param value Value of tag
  */
-export function setTagScope(scope: Scope, key: string, value: Primitive): Scope {
-  scope._tags = { ...scope._tags, [key]: value };
-  notifyScopeListeners(scope);
-  return scope;
+export function setScopeTag(scope: Scope, key: string, value: Primitive): Scope {
+  scope.tags = { ...scope.tags, [key]: value };
+  return notifyListeners(scope);
 }
 
 /**
@@ -140,13 +141,12 @@ export function setTagScope(scope: Scope, key: string, value: Primitive): Scope 
  * @param scope
  * @param extras Extras object to merge into current context.
  */
-export function setExtrasScope(scope: Scope, extras: Extras): Scope {
-  scope._extra = {
-    ...scope._extra,
+export function setScopeExtras(scope: Scope, extras: Extras): Scope {
+  scope.extra = {
+    ...scope.extra,
     ...extras,
   };
-  notifyScopeListeners(scope);
-  return scope;
+  return notifyListeners(scope);
 }
 
 /**
@@ -155,10 +155,9 @@ export function setExtrasScope(scope: Scope, extras: Extras): Scope {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-export function setExtraScope(scope: Scope, key: string, extra: Extra): Scope {
-  scope._extra = { ...scope._extra, [key]: extra };
-  notifyScopeListeners(scope);
-  return scope;
+export function setScopeExtra(scope: Scope, key: string, extra: Extra): Scope {
+  scope.extra = { ...scope.extra, [key]: extra };
+  return notifyListeners(scope);
 }
 
 /**
@@ -166,10 +165,9 @@ export function setExtraScope(scope: Scope, key: string, extra: Extra): Scope {
  * @param scope
  * @param fingerprint string[] to group events in Sentry.
  */
-export function setFingerprint(scope: Scope, fingerprint: string[]): Scope {
-  scope._fingerprint = fingerprint;
-  notifyScopeListeners(scope);
-  return scope;
+export function setScopeFingerprint(scope: Scope, fingerprint: string[]): Scope {
+  scope.fingerprint = fingerprint;
+  return notifyListeners(scope);
 }
 
 /**
@@ -177,19 +175,17 @@ export function setFingerprint(scope: Scope, fingerprint: string[]): Scope {
  * @param scope
  * @param level string {@link Severity}
  */
-export function setLevel(scope: Scope, level: SeverityLevel): Scope {
-  scope._level = level;
-  notifyScopeListeners(scope);
-  return scope;
+export function setScopeLevel(scope: Scope, level: SeverityLevel): Scope {
+  scope.level = level;
+  return notifyListeners(scope);
 }
 
 /**
  * Sets the transaction name on the scope for future events.
  */
 export function setTransactionName(scope: Scope, name?: string): Scope {
-  scope._transactionName = name;
-  notifyScopeListeners(scope);
-  return scope;
+  scope.transactionName = name;
+  return notifyListeners(scope);
 }
 
 /**
@@ -205,16 +201,15 @@ export function setTransaction(scope: Scope, name?: string): Scope {
  * @param key
  * @param context an object containing context data. This data will be normalized. Pass `null` to unset the context.
  */
-export function setContextScope(scope: Scope, key: string, context: Context | null): Scope {
+export function setScopeContext(scope: Scope, key: string, context: Context | null): Scope {
   if (context === null) {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    delete scope._contexts[key];
+    delete scope.contexts[key];
   } else {
-    scope._contexts = { ...scope._contexts, [key]: context };
+    scope.contexts = { ...scope.contexts, [key]: context };
   }
 
-  notifyScopeListeners(scope);
-  return scope;
+  return notifyListeners(scope);
 }
 
 /**
@@ -222,17 +217,16 @@ export function setContextScope(scope: Scope, key: string, context: Context | nu
  * @param scope
  * @param span Span
  */
-export function setSpan(scope: Scope, span?: Span): Scope {
-  scope._span = span;
-  notifyScopeListeners(scope);
-  return scope;
+export function setScopeSpan(scope: Scope, span?: Span): Scope {
+  scope.span = span;
+  return notifyListeners(scope);
 }
 
 /**
  * @inheritDoc
  */
-export function getSpan(scope: Scope): Span | undefined {
-  return scope._span;
+export function getScopeSpan(scope: Scope): Span | undefined {
+  return scope.span;
 }
 
 /**
@@ -240,7 +234,7 @@ export function getSpan(scope: Scope): Span | undefined {
  */
 export function getTransaction(scope: Scope): Transaction | undefined {
   // often, this span will be a transaction, but it's not guaranteed to be
-  const span = getSpan(scope) as undefined | (Span & { spanRecorder: { spans: Span[] } });
+  const span = getScopeSpan(scope) as undefined | (Span & { spanRecorder: { spans: Span[] } });
 
   // try it the new way first
   if (span && span.transaction) {
@@ -262,27 +256,26 @@ export function getTransaction(scope: Scope): Transaction | undefined {
  * @param scope
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export function setUserScope(scope: Scope, user: User | null): Scope {
-  scope._user = user || {};
-  if (scope._session) {
-    updateSession(scope._session, { user });
+export function setScopeUser(scope: Scope, user: User | null): Scope {
+  scope.user = user || {};
+  if (scope.session) {
+    updateSession(scope.session, { user });
   }
-  notifyScopeListeners(scope);
-  return scope;
+  return notifyListeners(scope);
 }
 
 /**
  * Returns the `User` if there is one
  */
 export function getUserScope(scope: Scope): User | undefined {
-  return scope._user;
+  return scope.user;
 }
 
 /**
  * Returns the `RequestSession` if there is one
  */
-export function getRequestSession(scope: Scope): RequestSession | undefined {
-  return scope._requestSession;
+export function getScopeRequestSession(scope: Scope): RequestSession | undefined {
+  return scope.requestSession;
 }
 
 /**
@@ -290,20 +283,19 @@ export function getRequestSession(scope: Scope): RequestSession | undefined {
  * @param scope
  * @param tags Tags context object to merge into current context.
  */
-export function setTagsScope(scope: Scope, tags: { [key: string]: Primitive }): Scope {
-  scope._tags = {
-    ...scope._tags,
+export function setScopeTags(scope: Scope, tags: { [key: string]: Primitive }): Scope {
+  scope.tags = {
+    ...scope.tags,
     ...tags,
   };
-  notifyScopeListeners(scope);
-  return scope;
+  return notifyListeners(scope);
 }
 
 /**
  * Sets the `RequestSession` on the scope
  */
-export function setRequestSession(scope: Scope, requestSession?: RequestSession): Scope {
-  scope._requestSession = requestSession;
+export function setScopeRequestSession(scope: Scope, requestSession?: RequestSession): Scope {
+  scope.requestSession = requestSession;
   return scope;
 }
 
@@ -312,12 +304,11 @@ export function setRequestSession(scope: Scope, requestSession?: RequestSession)
  */
 export function setSessionScope(scope: Scope, session?: Session): Scope {
   if (!session) {
-    delete scope._session;
+    delete scope.session;
   } else {
-    scope._session = session;
+    scope.session = session;
   }
-  notifyScopeListeners(scope);
-  return scope;
+  return notifyListeners(scope);
 }
 
 /**
@@ -328,69 +319,91 @@ export function setSessionScope(scope: Scope, session?: Session): Scope {
  * @param scope
  * @param captureContext scope modifier to be used
  */
-export function update(scope: Scope, captureContext?: CaptureContext): Scope {
+export function updateScope(scope: Scope, captureContext?: CaptureContext): Scope {
   if (!captureContext) {
     return scope;
   }
 
-  if (typeof captureContext === 'function') {
-    const updatedScope = (captureContext as <T>(scope: T) => T)(scope);
+  if (isCaptureContextCallback(captureContext)) {
+    const updatedScope = captureContext(scope);
+    // TODO: It seems to be defensive programming to check to check, since the
+    // the type says you need to return a Scope back.
     return updatedScope instanceof Scope ? updatedScope : scope;
   }
 
   if (captureContext instanceof Scope) {
-    scope._tags = { ...scope._tags, ...captureContext._tags };
-    scope._extra = { ...scope._extra, ...captureContext._extra };
-    scope._contexts = { ...scope._contexts, ...captureContext._contexts };
-    if (captureContext._user && Object.keys(captureContext._user).length) {
-      scope._user = captureContext._user;
-    }
-    if (captureContext._level) {
-      scope._level = captureContext._level;
-    }
-    if (captureContext._fingerprint) {
-      scope._fingerprint = captureContext._fingerprint;
-    }
-    if (captureContext._requestSession) {
-      scope._requestSession = captureContext._requestSession;
-    }
-  } else if (isPlainObject(captureContext)) {
-    // eslint-disable-next-line no-param-reassign
-    captureContext = captureContext as ScopeContext;
-    scope._tags = { ...scope._tags, ...captureContext.tags };
-    scope._extra = { ...scope._extra, ...captureContext.extra };
-    scope._contexts = { ...scope._contexts, ...captureContext.contexts };
-    if (captureContext.user) {
-      scope._user = captureContext.user;
-    }
-    if (captureContext.level) {
-      scope._level = captureContext.level;
-    }
-    if (captureContext.fingerprint) {
-      scope._fingerprint = captureContext.fingerprint;
-    }
-    if (captureContext.requestSession) {
-      scope._requestSession = captureContext.requestSession;
-    }
+    return mergeScopes(scope, captureContext);
+  } else if (isScopeContext(captureContext)) {
+    return mergeScopeContext(scope, captureContext);
   }
 
   return scope;
 }
 
-/** Clears the current scope and resets its properties. */
-export function clear(scope: Scope): Scope {
-  scope._breadcrumbs = [];
-  scope._tags = {};
-  scope._extra = {};
-  scope._user = {};
-  scope._contexts = {};
-  scope._level = undefined;
-  scope._transactionName = undefined;
-  scope._fingerprint = undefined;
-  scope._requestSession = undefined;
-  scope._span = undefined;
-  scope._session = undefined;
-  notifyScopeListeners(scope);
+function mergeScopeContext(scope: Scope, captureContext: Partial<ScopeContext>): Scope {
+  scope.tags = { ...scope.tags, ...captureContext.tags };
+  scope.extra = { ...scope.extra, ...captureContext.extra };
+  scope.contexts = { ...scope.contexts, ...captureContext.contexts };
+  if (captureContext.user) {
+    scope.user = captureContext.user;
+  }
+  if (captureContext.level) {
+    scope.level = captureContext.level;
+  }
+  if (captureContext.fingerprint) {
+    scope.fingerprint = captureContext.fingerprint;
+  }
+  if (captureContext.requestSession) {
+    scope.requestSession = captureContext.requestSession;
+  }
+
+  return scope;
+}
+
+function mergeScopes(scope: Scope, newScope: Scope): Scope {
+  scope.tags = { ...scope.tags, ...newScope.tags };
+  scope.extra = { ...scope.extra, ...newScope.extra };
+  scope.contexts = { ...scope.contexts, ...newScope.contexts };
+  if (newScope.user && Object.keys(newScope.user).length) {
+    scope.user = newScope.user;
+  }
+  if (newScope.level) {
+    scope.level = newScope.level;
+  }
+  if (newScope.fingerprint) {
+    scope.fingerprint = newScope.fingerprint;
+  }
+  if (newScope.requestSession) {
+    scope.requestSession = newScope.requestSession;
+  }
+
+  return scope;
+}
+
+function isCaptureContextCallback(val: unknown): val is CaptureContextCallback {
+  return typeof val === 'function';
+}
+
+function isScopeContext(val: unknown): val is Partial<ScopeContext> {
+  return isPlainObject(val);
+}
+
+/**
+ * Clears the current scope and resets its properties.
+ * */
+export function clearScope(scope: Scope): Scope {
+  scope.breadcrumbs = [];
+  scope.tags = {};
+  scope.extra = {};
+  scope.user = {};
+  scope.contexts = {};
+  scope.level = undefined;
+  scope.transactionName = undefined;
+  scope.fingerprint = undefined;
+  scope.requestSession = undefined;
+  scope.span = undefined;
+  scope.session = undefined;
+  notifyListeners(scope);
   return scope;
 }
 
@@ -400,7 +413,7 @@ export function clear(scope: Scope): Scope {
  * @param breadcrumb
  * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
  */
-export function addBreadcrumbScope(scope: Scope, breadcrumb: Breadcrumb, maxBreadcrumbs?: number): Scope {
+export function addScopeBreadcrumb(scope: Scope, breadcrumb: Breadcrumb, maxBreadcrumbs?: number): Scope {
   const maxCrumbs = typeof maxBreadcrumbs === 'number' ? Math.min(maxBreadcrumbs, MAX_BREADCRUMBS) : MAX_BREADCRUMBS;
 
   // No data has been changed, so don't notify scope listeners
@@ -412,19 +425,17 @@ export function addBreadcrumbScope(scope: Scope, breadcrumb: Breadcrumb, maxBrea
     timestamp: dateTimestampInSeconds(),
     ...breadcrumb,
   };
-  scope._breadcrumbs = [...scope._breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
-  notifyScopeListeners(scope);
+  scope.breadcrumbs = [...scope.breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
 
-  return scope;
+  return notifyListeners(scope);
 }
 
 /**
  * Clears all currently set Breadcrumbs.
  */
-export function clearBreadcrumbs(scope: Scope): Scope {
-  scope._breadcrumbs = [];
-  notifyScopeListeners(scope);
-  return scope;
+export function clearScopeBreadcrumbs(scope: Scope): Scope {
+  scope.breadcrumbs = [];
+  return notifyListeners(scope);
 }
 
 /**
@@ -436,31 +447,31 @@ export function clearBreadcrumbs(scope: Scope): Scope {
  * @param hint May contain additional information about the original exception.
  * @hidden
  */
-export function applyToEvent(scope: Scope, event: Event, hint?: EventHint): PromiseLike<Event | null> {
-  if (scope._extra && Object.keys(scope._extra).length) {
-    event.extra = { ...scope._extra, ...event.extra };
+export function applyScopeToEvent(scope: Scope, event: Event, hint?: EventHint): PromiseLike<Event | null> {
+  if (scope.extra && Object.keys(scope.extra).length) {
+    event.extra = { ...scope.extra, ...event.extra };
   }
-  if (scope._tags && Object.keys(scope._tags).length) {
-    event.tags = { ...scope._tags, ...event.tags };
+  if (scope.tags && Object.keys(scope.tags).length) {
+    event.tags = { ...scope.tags, ...event.tags };
   }
-  if (scope._user && Object.keys(scope._user).length) {
-    event.user = { ...scope._user, ...event.user };
+  if (scope.user && Object.keys(scope.user).length) {
+    event.user = { ...scope.user, ...event.user };
   }
-  if (scope._contexts && Object.keys(scope._contexts).length) {
-    event.contexts = { ...scope._contexts, ...event.contexts };
+  if (scope.contexts && Object.keys(scope.contexts).length) {
+    event.contexts = { ...scope.contexts, ...event.contexts };
   }
-  if (scope._level) {
-    event.level = scope._level;
+  if (scope.level) {
+    event.level = scope.level;
   }
-  if (scope._transactionName) {
-    event.transaction = scope._transactionName;
+  if (scope.transactionName) {
+    event.transaction = scope.transactionName;
   }
   // We want to set the trace context for normal events only if there isn't already
   // a trace context on the event. There is a product feature in place where we link
   // errors with transaction and it relies on that.
-  if (scope._span) {
-    event.contexts = { trace: scope._span.getTraceContext(), ...event.contexts };
-    const transactionName = scope._span.transaction && scope._span.transaction.name;
+  if (scope.span) {
+    event.contexts = { trace: scope.span.getTraceContext(), ...event.contexts };
+    const transactionName = scope.span.transaction && scope.span.transaction.name;
     if (transactionName) {
       event.tags = { transaction: transactionName, ...event.tags };
     }
@@ -468,14 +479,14 @@ export function applyToEvent(scope: Scope, event: Event, hint?: EventHint): Prom
 
   applyFingerprint(scope, event);
 
-  event.breadcrumbs = [...(event.breadcrumbs || []), ...scope._breadcrumbs];
+  event.breadcrumbs = [...(event.breadcrumbs || []), ...scope.breadcrumbs];
   event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
-  return notifyEventProcessors(scope, [...getGlobalEventProcessors(), ...scope._eventProcessors], event, hint);
+  return notifyEventProcessors(scope, [...getGlobalEventProcessors(), ...scope.eventProcessors], event, hint);
 }
 
 /**
- * This will be called after {@link applyToEvent} is finished.
+ * This will be called after {@link applyScopeToEvent} is finished.
  */
 function notifyEventProcessors(
   scope: Scope,
@@ -506,17 +517,17 @@ function notifyEventProcessors(
 /**
  * This will be called on every set call.
  */
-function notifyScopeListeners(scope: Scope): void {
+function notifyListeners(scope: Scope): Scope {
   // We need this check for this._notifyingListeners to be able to work on scope during updates
   // If this check is not here we'll produce endless recursion when something is done with the scope
   // during the callback.
-  if (!scope._notifyingListeners) {
-    scope._notifyingListeners = true;
-    scope._scopeListeners.forEach(callback => {
-      callback(scope);
-    });
-    scope._notifyingListeners = false;
+  if (!scope.notifyingListeners) {
+    scope.notifyingListeners = true;
+    scope.scopeListeners.forEach(callback => callback(scope));
+    scope.notifyingListeners = false;
   }
+
+  return scope;
 }
 
 /**
@@ -532,8 +543,8 @@ function applyFingerprint(scope: Scope, event: Event): void {
     : [];
 
   // If we have something on the scope, then merge it with event
-  if (scope._fingerprint) {
-    event.fingerprint = event.fingerprint.concat(scope._fingerprint);
+  if (scope.fingerprint) {
+    event.fingerprint = event.fingerprint.concat(scope.fingerprint);
   }
 
   // If we have no data at all, remove empty array default
@@ -550,7 +561,7 @@ function getGlobalEventProcessors(): EventProcessor[] {
   const global = getGlobalObject<any>();
   global.__SENTRY__ = global.__SENTRY__ || {};
   global.__SENTRY__.globalEventProcessors = global.__SENTRY__.globalEventProcessors || [];
-  return global.__SENTRY__.globalEventProcessors;
+  return global.__SENTRY__.globalEventProcessors ?? [];
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 }
 

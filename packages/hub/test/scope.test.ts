@@ -1,189 +1,209 @@
 import { Event, EventHint } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
-import { addGlobalEventProcessor, cloneScope, Scope } from '../src';
+import { addGlobalEventProcessor, applyScopeToEvent, cloneScope, Scope, updateScope } from '../src';
+import {
+  addScopeBreadcrumb,
+  addScopeEventProcessor,
+  addScopeListener,
+  clearScope,
+  clearScopeBreadcrumbs,
+  getScopeRequestSession,
+  setScopeContext,
+  setScopeExtra,
+  setScopeExtras,
+  setScopeFingerprint,
+  setScopeLevel,
+  setScopeRequestSession,
+  setScopeSpan,
+  setScopeTag,
+  setScopeTags,
+  setScopeUser,
+  setTransactionName,
+} from '../src/scope';
 
 describe('Scope', () => {
   afterEach(() => {
     jest.resetAllMocks();
-    jest.useRealTimers();
     getGlobalObject<any>().__SENTRY__.globalEventProcessors = undefined;
   });
 
   describe('attributes modification', () => {
     test('setFingerprint', () => {
       const scope = new Scope();
-      scope.setFingerprint(['abcd']);
-      expect((scope as any)._fingerprint).toEqual(['abcd']);
+      setScopeFingerprint(scope, ['abcd']);
+      expect(scope.fingerprint).toEqual(['abcd']);
     });
 
     test('setExtra', () => {
       const scope = new Scope();
-      scope.setExtra('a', 1);
-      expect((scope as any)._extra).toEqual({ a: 1 });
+      setScopeExtra(scope, 'a', 1);
+      expect(scope.extra).toEqual({ a: 1 });
     });
 
     test('setExtras', () => {
       const scope = new Scope();
-      scope.setExtras({ a: 1 });
-      expect((scope as any)._extra).toEqual({ a: 1 });
+      setScopeExtras(scope, { a: 1 });
+      expect(scope.extra).toEqual({ a: 1 });
     });
 
     test('setExtras with undefined overrides the value', () => {
       const scope = new Scope();
-      scope.setExtra('a', 1);
-      scope.setExtras({ a: undefined });
-      expect((scope as any)._extra).toEqual({ a: undefined });
+      setScopeExtra(scope, 'a', 1);
+      setScopeExtras(scope, { a: undefined });
+      expect(scope.extra).toEqual({ a: undefined });
     });
 
     test('setTag', () => {
       const scope = new Scope();
-      scope.setTag('a', 'b');
-      expect((scope as any)._tags).toEqual({ a: 'b' });
+      setScopeTag(scope, 'a', 'b');
+      expect(scope.tags).toEqual({ a: 'b' });
     });
 
     test('setTags', () => {
       const scope = new Scope();
-      scope.setTags({ a: 'b' });
-      expect((scope as any)._tags).toEqual({ a: 'b' });
+      setScopeTags(scope, { a: 'b' });
+      expect(scope.tags).toEqual({ a: 'b' });
     });
 
     test('setUser', () => {
       const scope = new Scope();
-      scope.setUser({ id: '1' });
-      expect((scope as any)._user).toEqual({ id: '1' });
+      setScopeUser(scope, { id: '1' });
+      expect(scope.user).toEqual({ id: '1' });
     });
 
     test('setUser with null unsets the user', () => {
       const scope = new Scope();
-      scope.setUser({ id: '1' });
-      scope.setUser(null);
-      expect((scope as any)._user).toEqual({});
+      setScopeUser(scope, { id: '1' });
+      setScopeUser(scope, null);
+      expect(scope.user).toEqual({});
     });
 
     test('addBreadcrumb', () => {
       const scope = new Scope();
-      scope.addBreadcrumb({ message: 'test' });
-      expect((scope as any)._breadcrumbs[0]).toHaveProperty('message', 'test');
+      addScopeBreadcrumb(scope, { message: 'test' });
+      expect(scope.breadcrumbs[0]).toHaveProperty('message', 'test');
     });
 
     test('addBreadcrumb can be limited to hold up to N breadcrumbs', () => {
       const scope = new Scope();
       for (let i = 0; i < 10; i++) {
-        scope.addBreadcrumb({ message: 'test' }, 5);
+        addScopeBreadcrumb(scope, { message: 'test' }, 5);
       }
-      expect((scope as any)._breadcrumbs).toHaveLength(5);
+      expect(scope.breadcrumbs).toHaveLength(5);
     });
 
     test('addBreadcrumb cannot go over MAX_BREADCRUMBS value', () => {
       const scope = new Scope();
       for (let i = 0; i < 111; i++) {
-        scope.addBreadcrumb({ message: 'test' }, 111);
+        addScopeBreadcrumb(scope, { message: 'test' }, 111);
       }
-      expect((scope as any)._breadcrumbs).toHaveLength(100);
+      expect(scope.breadcrumbs).toHaveLength(100);
     });
 
     test('setLevel', () => {
       const scope = new Scope();
-      scope.setLevel('critical');
-      expect((scope as any)._level).toEqual('critical');
+      setScopeLevel(scope, 'critical');
+      expect(scope.level).toEqual('critical');
     });
 
     test('setTransactionName', () => {
       const scope = new Scope();
-      scope.setTransactionName('/abc');
-      expect((scope as any)._transactionName).toEqual('/abc');
+      setTransactionName(scope, '/abc');
+      expect(scope.transactionName).toEqual('/abc');
     });
 
     test('setTransactionName with no value unsets it', () => {
       const scope = new Scope();
-      scope.setTransactionName('/abc');
-      scope.setTransactionName();
-      expect((scope as any)._transactionName).toBeUndefined();
+      setTransactionName(scope, '/abc');
+      setTransactionName(scope);
+      expect(scope.transactionName).toBeUndefined();
     });
 
     test('setContext', () => {
       const scope = new Scope();
-      scope.setContext('os', { id: '1' });
-      expect((scope as any)._contexts.os).toEqual({ id: '1' });
+      setScopeContext(scope, 'os', { id: '1' });
+      expect(scope.contexts.os).toEqual({ id: '1' });
     });
 
     test('setContext with null unsets it', () => {
       const scope = new Scope();
-      scope.setContext('os', { id: '1' });
-      scope.setContext('os', null);
-      expect((scope as any)._user).toEqual({});
+      setScopeContext(scope, 'os', { id: '1' });
+      setScopeContext(scope, 'os', null);
+      expect(scope.user).toEqual({});
     });
 
     test('setSpan', () => {
       const scope = new Scope();
       const span = { fake: 'span' } as any;
-      scope.setSpan(span);
-      expect((scope as any)._span).toEqual(span);
+      setScopeSpan(scope, span);
+      expect(scope.span).toEqual(span);
     });
 
     test('setSpan with no value unsets it', () => {
       const scope = new Scope();
-      scope.setSpan({ fake: 'span' } as any);
-      scope.setSpan();
-      expect((scope as any)._span).toEqual(undefined);
+      const span = { fake: 'span' } as any;
+      setScopeSpan(scope, span);
+      setScopeSpan(scope);
+      expect(scope.span).toEqual(undefined);
     });
 
     test('chaining', () => {
       const scope = new Scope();
-      scope.setLevel('critical').setUser({ id: '1' });
-      expect((scope as any)._level).toEqual('critical');
-      expect((scope as any)._user).toEqual({ id: '1' });
+      setScopeLevel(scope, 'critical');
+      setScopeUser(scope, { id: '1' });
+      expect(scope.level).toEqual('critical');
+      expect(scope.user).toEqual({ id: '1' });
     });
   });
 
   describe('clone', () => {
     test('basic inheritance', () => {
       const parentScope = new Scope();
-      parentScope.setExtra('a', 1);
+      setScopeExtra(parentScope, 'a', 1);
       const scope = cloneScope(parentScope);
-      expect((parentScope as any)._extra).toEqual((scope as any)._extra);
+      expect(parentScope.extra).toEqual(scope.extra);
     });
 
     test('_requestSession clone', () => {
       const parentScope = new Scope();
-      parentScope.setRequestSession({ status: 'errored' });
+      setScopeRequestSession(parentScope, { status: 'errored' });
       const scope = cloneScope(parentScope);
-      expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
+      expect(getScopeRequestSession(parentScope)).toEqual(getScopeRequestSession(scope));
     });
 
     test('parent changed inheritance', () => {
       const parentScope = new Scope();
       const scope = cloneScope(parentScope);
-      parentScope.setExtra('a', 2);
-      expect((scope as any)._extra).toEqual({});
-      expect((parentScope as any)._extra).toEqual({ a: 2 });
+      setScopeExtra(parentScope, 'a', 2);
+      expect(scope.extra).toEqual({});
+      expect(parentScope.extra).toEqual({ a: 2 });
     });
 
     test('child override inheritance', () => {
       const parentScope = new Scope();
-      parentScope.setExtra('a', 1);
+      setScopeExtra(parentScope, 'a', 1);
 
       const scope = cloneScope(parentScope);
-      scope.setExtra('a', 2);
-      expect((parentScope as any)._extra).toEqual({ a: 1 });
-      expect((scope as any)._extra).toEqual({ a: 2 });
+      setScopeExtra(scope, 'a', 2);
+      expect(parentScope.extra).toEqual({ a: 1 });
+      expect(scope.extra).toEqual({ a: 2 });
     });
 
     test('child override should set the value of parent _requestSession', () => {
       // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
       // that it should also change in parent scope because we are copying the reference to the object
       const parentScope = new Scope();
-      parentScope.setRequestSession({ status: 'errored' });
+      setScopeRequestSession(parentScope, { status: 'errored' });
 
       const scope = cloneScope(parentScope);
-      const requestSession = scope.getRequestSession();
+      const requestSession = getScopeRequestSession(scope);
       if (requestSession) {
         requestSession.status = 'ok';
       }
 
-      expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
-      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
+      expect(getScopeRequestSession(parentScope)).toEqual({ status: 'ok' });
+      expect(getScopeRequestSession(scope)).toEqual({ status: 'ok' });
     });
   });
 
@@ -191,16 +211,17 @@ describe('Scope', () => {
     test('basic usage', () => {
       expect.assertions(8);
       const scope = new Scope();
-      scope.setExtra('a', 2);
-      scope.setTag('a', 'b');
-      scope.setUser({ id: '1' });
-      scope.setFingerprint(['abcd']);
-      scope.setLevel('warning');
-      scope.setTransactionName('/abc');
-      scope.addBreadcrumb({ message: 'test' });
-      scope.setContext('os', { id: '1' });
+
+      setScopeExtra(scope, 'a', 2);
+      setScopeTag(scope, 'a', 'b');
+      setScopeUser(scope, { id: '1' });
+      setScopeFingerprint(scope, ['abcd']);
+      setScopeLevel(scope, 'warning');
+      setTransactionName(scope, '/abc');
+      addScopeBreadcrumb(scope, { message: 'test' });
+      setScopeContext(scope, 'os', { id: '1' });
       const event: Event = {};
-      return scope.applyToEvent(event).then(processedEvent => {
+      return applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.extra).toEqual({ a: 2 });
         expect(processedEvent!.tags).toEqual({ a: 'b' });
         expect(processedEvent!.user).toEqual({ id: '1' });
@@ -215,12 +236,12 @@ describe('Scope', () => {
     test('merge with existing event data', () => {
       expect.assertions(8);
       const scope = new Scope();
-      scope.setExtra('a', 2);
-      scope.setTag('a', 'b');
-      scope.setUser({ id: '1' });
-      scope.setFingerprint(['abcd']);
-      scope.addBreadcrumb({ message: 'test' });
-      scope.setContext('server', { id: '2' });
+      setScopeExtra(scope, 'a', 2);
+      setScopeTag(scope, 'a', 'b');
+      setScopeUser(scope, { id: '1' });
+      setScopeFingerprint(scope, ['abcd']);
+      addScopeBreadcrumb(scope, { message: 'test' });
+      setScopeContext(scope, 'server', { id: '2' });
       const event: Event = {
         breadcrumbs: [{ message: 'test1' }],
         contexts: { os: { id: '1' } },
@@ -229,7 +250,7 @@ describe('Scope', () => {
         tags: { b: 'c' },
         user: { id: '3' },
       };
-      return scope.applyToEvent(event).then(processedEvent => {
+      return applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.extra).toEqual({ a: 2, b: 3 });
         expect(processedEvent!.tags).toEqual({ a: 'b', b: 'c' });
         expect(processedEvent!.user).toEqual({ id: '3' });
@@ -250,25 +271,25 @@ describe('Scope', () => {
 
       // @ts-ignore we want to be able to assign string value
       event.fingerprint = 'foo';
-      await scope.applyToEvent(event).then(processedEvent => {
+      await applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.fingerprint).toEqual(['foo']);
       });
 
       // @ts-ignore we want to be able to assign string value
       event.fingerprint = 'bar';
-      await scope.applyToEvent(event).then(processedEvent => {
+      await applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.fingerprint).toEqual(['bar']);
       });
     });
 
     test('should merge fingerprint from event and scope', async () => {
       const scope = new Scope();
-      scope.setFingerprint(['foo']);
+      setScopeFingerprint(scope, ['foo']);
       const event: Event = {
         fingerprint: ['bar'],
       };
 
-      await scope.applyToEvent(event).then(processedEvent => {
+      await applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.fingerprint).toEqual(['bar', 'foo']);
       });
     });
@@ -276,7 +297,7 @@ describe('Scope', () => {
     test('should remove default empty fingerprint array if theres no data available', async () => {
       const scope = new Scope();
       const event: Event = {};
-      await scope.applyToEvent(event).then(processedEvent => {
+      await applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.fingerprint).toEqual(undefined);
       });
     });
@@ -284,10 +305,10 @@ describe('Scope', () => {
     test('scope level should have priority over event level', () => {
       expect.assertions(1);
       const scope = new Scope();
-      scope.setLevel('warning');
+      setScopeLevel(scope, 'warning');
       const event: Event = {};
       event.level = 'critical';
-      return scope.applyToEvent(event).then(processedEvent => {
+      return applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.level).toEqual('warning');
       });
     });
@@ -295,10 +316,10 @@ describe('Scope', () => {
     test('scope transaction should have priority over event transaction', () => {
       expect.assertions(1);
       const scope = new Scope();
-      scope.setTransactionName('/abc');
+      setTransactionName(scope, '/abc');
       const event: Event = {};
       event.transaction = '/cdf';
-      return scope.applyToEvent(event).then(processedEvent => {
+      return applyScopeToEvent(scope, event).then(processedEvent => {
         expect(processedEvent!.transaction).toEqual('/abc');
       });
     });
@@ -311,10 +332,10 @@ describe('Scope', () => {
       fake: 'span',
       getTraceContext: () => ({ a: 'b' }),
     } as any;
-    scope.setSpan(span);
+    setScopeSpan(scope, span);
     const event: Event = {};
-    return scope.applyToEvent(event).then(processedEvent => {
-      expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
+    return applyScopeToEvent(scope, event).then(processedEvent => {
+      expect(processedEvent!.contexts!.trace.a).toEqual('b');
     });
   });
 
@@ -325,14 +346,14 @@ describe('Scope', () => {
       fake: 'span',
       getTraceContext: () => ({ a: 'b' }),
     } as any;
-    scope.setSpan(span);
+    setScopeSpan(scope, span);
     const event: Event = {
       contexts: {
         trace: { a: 'c' },
       },
     };
-    return scope.applyToEvent(event).then(processedEvent => {
-      expect((processedEvent!.contexts!.trace as any).a).toEqual('c');
+    return applyScopeToEvent(scope, event).then(processedEvent => {
+      expect(processedEvent!.contexts!.trace.a).toEqual('c');
     });
   });
 
@@ -345,9 +366,9 @@ describe('Scope', () => {
       name: 'fake transaction',
     } as any;
     transaction.transaction = transaction; // because this is a transaction, its transaction pointer points to itself
-    scope.setSpan(transaction);
+    setScopeSpan(scope, transaction);
     const event: Event = {};
-    return scope.applyToEvent(event).then(processedEvent => {
+    return applyScopeToEvent(scope, event).then(processedEvent => {
       expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
     });
   });
@@ -361,33 +382,33 @@ describe('Scope', () => {
       getTraceContext: () => ({ a: 'b' }),
       transaction,
     } as any;
-    scope.setSpan(span);
+    setScopeSpan(scope, span);
     const event: Event = {};
-    return scope.applyToEvent(event).then(processedEvent => {
+    return applyScopeToEvent(scope, event).then(processedEvent => {
       expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
     });
   });
 
   test('clear', () => {
     const scope = new Scope();
-    scope.setExtra('a', 2);
-    scope.setTag('a', 'b');
-    scope.setUser({ id: '1' });
-    scope.setFingerprint(['abcd']);
-    scope.addBreadcrumb({ message: 'test' });
-    scope.setRequestSession({ status: 'ok' });
-    expect((scope as any)._extra).toEqual({ a: 2 });
-    scope.clear();
-    expect((scope as any)._extra).toEqual({});
-    expect((scope as any)._requestSession).toEqual(undefined);
+    setScopeExtra(scope, 'a', 2);
+    setScopeTag(scope, 'a', 'b');
+    setScopeUser(scope, { id: '1' });
+    setScopeFingerprint(scope, ['abcd']);
+    addScopeBreadcrumb(scope, { message: 'test' });
+    setScopeRequestSession(scope, { status: 'ok' });
+    expect(scope.extra).toEqual({ a: 2 });
+    clearScope(scope);
+    expect(scope.extra).toEqual({});
+    expect(scope.requestSession).toEqual(undefined);
   });
 
   test('clearBreadcrumbs', () => {
     const scope = new Scope();
-    scope.addBreadcrumb({ message: 'test' });
-    expect((scope as any)._breadcrumbs).toHaveLength(1);
-    scope.clearBreadcrumbs();
-    expect((scope as any)._breadcrumbs).toHaveLength(0);
+    addScopeBreadcrumb(scope, { message: 'test' });
+    expect(scope.breadcrumbs).toHaveLength(1);
+    clearScopeBreadcrumbs(scope);
+    expect(scope.breadcrumbs).toHaveLength(0);
   });
 
   describe('update', () => {
@@ -395,24 +416,24 @@ describe('Scope', () => {
 
     beforeEach(() => {
       scope = new Scope();
-      scope.setTags({ foo: '1', bar: '2' });
-      scope.setExtras({ foo: '1', bar: '2' });
-      scope.setContext('foo', { id: '1' });
-      scope.setContext('bar', { id: '2' });
-      scope.setUser({ id: '1337' });
-      scope.setLevel('info');
-      scope.setFingerprint(['foo']);
-      scope.setRequestSession({ status: 'ok' });
+      setScopeTags(scope, { foo: '1', bar: '2' });
+      setScopeExtras(scope, { foo: '1', bar: '2' });
+      setScopeContext(scope, 'foo', { id: '1' });
+      setScopeContext(scope, 'bar', { id: '2' });
+      setScopeUser(scope, { id: '1337' });
+      setScopeLevel(scope, 'info');
+      setScopeFingerprint(scope, ['foo']);
+      setScopeRequestSession(scope, { status: 'ok' });
     });
 
     test('given no data, returns the original scope', () => {
-      const updatedScope = scope.update();
+      const updatedScope = updateScope(scope);
       expect(updatedScope).toEqual(scope);
     });
 
     test('given neither function, Scope or plain object, returns original scope', () => {
       // @ts-ignore we want to be able to update scope with string
-      const updatedScope = scope.update('wat');
+      const updatedScope = updateScope(scope, 'wat');
       expect(updatedScope).toEqual(scope);
     });
 
@@ -421,79 +442,79 @@ describe('Scope', () => {
         .fn()
         .mockImplementationOnce(v => v)
         .mockImplementationOnce(v => {
-          v.setTag('foo', 'bar');
+          setScopeTag(v, 'foo', 'bar');
           return v;
         });
 
-      let updatedScope = scope.update(cb);
+      let updatedScope = updateScope(scope, cb);
       expect(cb).toHaveBeenNthCalledWith(1, scope);
       expect(updatedScope).toEqual(scope);
 
-      updatedScope = scope.update(cb);
+      updatedScope = updateScope(scope, cb);
       expect(cb).toHaveBeenNthCalledWith(2, scope);
       expect(updatedScope).toEqual(scope);
     });
 
     test('given callback function, when it doesnt return instanceof Scope, ignore it and return original scope', () => {
       const cb = jest.fn().mockImplementationOnce(_v => 'wat');
-      const updatedScope = scope.update(cb);
+      const updatedScope = updateScope(scope, cb);
       expect(cb).toHaveBeenCalledWith(scope);
       expect(updatedScope).toEqual(scope);
     });
 
     test('given another instance of Scope, it should merge two together, with the passed scope having priority', () => {
       const localScope = new Scope();
-      localScope.setTags({ bar: '3', baz: '4' });
-      localScope.setExtras({ bar: '3', baz: '4' });
-      localScope.setContext('bar', { id: '3' });
-      localScope.setContext('baz', { id: '4' });
-      localScope.setUser({ id: '42' });
-      localScope.setLevel('warning');
-      localScope.setFingerprint(['bar']);
-      (localScope as any)._requestSession = { status: 'ok' };
+      setScopeTags(localScope, { bar: '3', baz: '4' });
+      setScopeExtras(localScope, { bar: '3', baz: '4' });
+      setScopeContext(localScope, 'bar', { id: '3' });
+      setScopeContext(localScope, 'baz', { id: '4' });
+      setScopeUser(localScope, { id: '42' });
+      setScopeLevel(localScope, 'warning');
+      setScopeFingerprint(localScope, ['bar']);
+      localScope.requestSession = { status: 'ok' };
 
-      const updatedScope = scope.update(localScope) as any;
+      const updatedScope = updateScope(scope, localScope);
 
-      expect(updatedScope._tags).toEqual({
+      expect(updatedScope.tags).toEqual({
         bar: '3',
         baz: '4',
         foo: '1',
       });
-      expect(updatedScope._extra).toEqual({
+      expect(updatedScope.extra).toEqual({
         bar: '3',
         baz: '4',
         foo: '1',
       });
-      expect(updatedScope._contexts).toEqual({
+      expect(updatedScope.contexts).toEqual({
         bar: { id: '3' },
         baz: { id: '4' },
         foo: { id: '1' },
       });
-      expect(updatedScope._user).toEqual({ id: '42' });
-      expect(updatedScope._level).toEqual('warning');
-      expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession.status).toEqual('ok');
+      expect(updatedScope.user).toEqual({ id: '42' });
+      expect(updatedScope.level).toEqual('warning');
+      expect(updatedScope.fingerprint).toEqual(['bar']);
+      expect(updatedScope.requestSession?.status).toEqual('ok');
     });
 
     test('given an empty instance of Scope, it should preserve all the original scope data', () => {
-      const updatedScope = scope.update(new Scope()) as any;
+      const updatedScope = updateScope(scope, new Scope());
 
-      expect(updatedScope._tags).toEqual({
+      expect(updatedScope.tags).toEqual({
         bar: '2',
         foo: '1',
       });
-      expect(updatedScope._extra).toEqual({
+      expect(updatedScope.extra).toEqual({
         bar: '2',
         foo: '1',
       });
-      expect(updatedScope._contexts).toEqual({
+      expect(updatedScope.contexts).toEqual({
         bar: { id: '2' },
         foo: { id: '1' },
       });
-      expect(updatedScope._user).toEqual({ id: '1337' });
-      expect(updatedScope._level).toEqual('info');
-      expect(updatedScope._fingerprint).toEqual(['foo']);
-      expect(updatedScope._requestSession.status).toEqual('ok');
+      expect(updatedScope.user).toEqual({ id: '1337' });
+      expect(updatedScope.level).toEqual('info');
+      expect(updatedScope.fingerprint).toEqual(['foo']);
+      expect(updatedScope.requestSession?.status).toEqual('ok');
     });
 
     test('given a plain object, it should merge two together, with the passed object having priority', () => {
@@ -506,27 +527,27 @@ describe('Scope', () => {
         user: { id: '42' },
         requestSession: { status: 'errored' },
       };
-      const updatedScope = scope.update(localAttributes) as any;
+      const updatedScope = updateScope(scope, localAttributes);
 
-      expect(updatedScope._tags).toEqual({
+      expect(updatedScope.tags).toEqual({
         bar: '3',
         baz: '4',
         foo: '1',
       });
-      expect(updatedScope._extra).toEqual({
+      expect(updatedScope.extra).toEqual({
         bar: '3',
         baz: '4',
         foo: '1',
       });
-      expect(updatedScope._contexts).toEqual({
+      expect(updatedScope.contexts).toEqual({
         bar: { id: '3' },
         baz: { id: '4' },
         foo: { id: '1' },
       });
-      expect(updatedScope._user).toEqual({ id: '42' });
-      expect(updatedScope._level).toEqual('warning');
-      expect(updatedScope._fingerprint).toEqual(['bar']);
-      expect(updatedScope._requestSession).toEqual({ status: 'errored' });
+      expect(updatedScope.user).toEqual({ id: '42' });
+      expect(updatedScope.level).toEqual('warning');
+      expect(updatedScope.fingerprint).toEqual(['bar']);
+      expect(updatedScope.requestSession).toEqual({ status: 'errored' });
     });
   });
 
@@ -537,21 +558,21 @@ describe('Scope', () => {
         extra: { b: 3 },
       };
       const localScope = new Scope();
-      localScope.setExtra('a', 'b');
-      localScope.addEventProcessor((processedEvent: Event) => {
+      setScopeExtra(localScope, 'a', 'b');
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
         return processedEvent;
       });
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         processedEvent.dist = '1';
         return processedEvent;
       });
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         expect(processedEvent.dist).toEqual('1');
         return processedEvent;
       });
 
-      return localScope.applyToEvent(event).then(final => {
+      return applyScopeToEvent(localScope, event).then(final => {
         expect(final!.dist).toEqual('1');
       });
     });
@@ -562,24 +583,24 @@ describe('Scope', () => {
         extra: { b: 3 },
       };
       const localScope = new Scope();
-      localScope.setExtra('a', 'b');
+      setScopeExtra(localScope, 'a', 'b');
 
       addGlobalEventProcessor((processedEvent: Event) => {
         processedEvent.dist = '1';
         return processedEvent;
       });
 
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
         return processedEvent;
       });
 
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         expect(processedEvent.dist).toEqual('1');
         return processedEvent;
       });
 
-      return localScope.applyToEvent(event).then(final => {
+      return applyScopeToEvent(localScope, event).then(final => {
         expect(final!.dist).toEqual('1');
       });
     });
@@ -591,14 +612,15 @@ describe('Scope', () => {
         extra: { b: 3 },
       };
       const localScope = new Scope();
-      localScope.setExtra('a', 'b');
+      setScopeExtra(localScope, 'a', 'b');
       const callCounter = jest.fn();
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         callCounter(1);
         expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
         return processedEvent;
       });
-      localScope.addEventProcessor(
+      addScopeEventProcessor(
+        localScope,
         async (processedEvent: Event) =>
           new Promise<Event>(resolve => {
             callCounter(2);
@@ -610,12 +632,12 @@ describe('Scope', () => {
             jest.runAllTimers();
           }),
       );
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         callCounter(4);
         return processedEvent;
       });
 
-      return localScope.applyToEvent(event).then(processedEvent => {
+      return applyScopeToEvent(localScope, event).then(processedEvent => {
         expect(callCounter.mock.calls[0][0]).toBe(1);
         expect(callCounter.mock.calls[1][0]).toBe(2);
         expect(callCounter.mock.calls[2][0]).toBe(3);
@@ -631,14 +653,15 @@ describe('Scope', () => {
         extra: { b: 3 },
       };
       const localScope = new Scope();
-      localScope.setExtra('a', 'b');
+      setScopeExtra(localScope, 'a', 'b');
       const callCounter = jest.fn();
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         callCounter(1);
         expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
         return processedEvent;
       });
-      localScope.addEventProcessor(
+      addScopeEventProcessor(
+        localScope,
         async (_processedEvent: Event) =>
           new Promise<Event>((_, reject) => {
             setTimeout(() => {
@@ -647,12 +670,12 @@ describe('Scope', () => {
             jest.runAllTimers();
           }),
       );
-      localScope.addEventProcessor((processedEvent: Event) => {
+      addScopeEventProcessor(localScope, (processedEvent: Event) => {
         callCounter(4);
         return processedEvent;
       });
 
-      return localScope.applyToEvent(event).then(null, reason => {
+      return applyScopeToEvent(localScope, event).then(null, reason => {
         expect(reason).toEqual('bla');
       });
     });
@@ -663,9 +686,9 @@ describe('Scope', () => {
         extra: { b: 3 },
       };
       const localScope = new Scope();
-      localScope.setExtra('a', 'b');
-      localScope.addEventProcessor(async (_: Event) => null);
-      return localScope.applyToEvent(event).then(processedEvent => {
+      setScopeExtra(localScope, 'a', 'b');
+      addScopeEventProcessor(localScope, async (_: Event) => null);
+      return applyScopeToEvent(localScope, event).then(processedEvent => {
         expect(processedEvent).toBeNull();
       });
     });
@@ -676,13 +699,13 @@ describe('Scope', () => {
         extra: { b: 3 },
       };
       const localScope = new Scope();
-      localScope.setExtra('a', 'b');
-      localScope.addEventProcessor(async (internalEvent: Event, hint?: EventHint) => {
+      setScopeExtra(localScope, 'a', 'b');
+      addScopeEventProcessor(localScope, async (internalEvent: Event, hint?: EventHint) => {
         expect(hint).toBeTruthy();
         expect(hint!.syntheticException).toBeTruthy();
         return internalEvent;
       });
-      return localScope.applyToEvent(event, { syntheticException: new Error('what') }).then(processedEvent => {
+      return applyScopeToEvent(localScope, event, { syntheticException: new Error('what') }).then(processedEvent => {
         expect(processedEvent).toEqual(event);
       });
     });
@@ -691,11 +714,11 @@ describe('Scope', () => {
       jest.useFakeTimers();
       const scope = new Scope();
       const listener = jest.fn();
-      scope.addScopeListener(listener);
-      scope.setExtra('a', 2);
+      addScopeListener(scope, listener);
+      setScopeExtra(scope, 'a', 2);
       jest.runAllTimers();
       expect(listener).toHaveBeenCalled();
-      expect(listener.mock.calls[0][0]._extra).toEqual({ a: 2 });
+      expect(listener.mock.calls[0][0].extra).toEqual({ a: 2 });
     });
   });
 });

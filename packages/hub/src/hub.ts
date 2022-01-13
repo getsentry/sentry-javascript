@@ -21,18 +21,18 @@ import {
 import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
 import {
-  addBreadcrumbScope,
+  addScopeBreadcrumb,
   cloneScope,
   getSession,
   getUserScope,
   Scope,
-  setContextScope,
-  setExtraScope,
-  setExtrasScope,
+  setScopeContext,
+  setScopeExtra,
+  setScopeExtras,
   setSessionScope,
-  setTagScope,
+  setScopeTag,
   setTagsScope,
-  setUserScope,
+  setScopeUser,
 } from './scope';
 import { closeSession, Session, updateSession } from './session';
 
@@ -232,7 +232,7 @@ export function getClient<C extends Client>(hub: Hub): C | undefined {
  */
 export function setUser(hub: Hub, user: User | null): void {
   const scope = getScope(hub);
-  if (scope) setUserScope(scope, user);
+  if (scope) setScopeUser(scope, user);
 }
 
 /** Returns the scope of the top stack. */
@@ -466,7 +466,7 @@ export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: Breadcrum
 
   if (finalBreadcrumb === null) return;
 
-  addBreadcrumbScope(scope, finalBreadcrumb, maxBreadcrumbs);
+  addScopeBreadcrumb(scope, finalBreadcrumb, maxBreadcrumbs);
 }
 
 /**
@@ -487,7 +487,7 @@ export function setTags(hub: Hub, tags: { [key: string]: Primitive }): void {
  */
 export function setExtras(hub: Hub, extras: Extras): void {
   const scope = getScope(hub);
-  if (scope) setExtrasScope(scope, extras);
+  if (scope) setScopeExtras(scope, extras);
 }
 
 /**
@@ -501,7 +501,7 @@ export function setExtras(hub: Hub, extras: Extras): void {
  */
 export function setTag(hub: Hub, key: string, value: Primitive): void {
   const scope = getScope(hub);
-  if (scope) setTagScope(scope, key, value);
+  if (scope) setScopeTag(scope, key, value);
 }
 
 /**
@@ -512,7 +512,7 @@ export function setTag(hub: Hub, key: string, value: Primitive): void {
  */
 export function setExtra(hub: Hub, key: string, extra: Extra): void {
   const scope = getScope(hub);
-  if (scope) setExtraScope(scope, key, extra);
+  if (scope) setScopeExtra(scope, key, extra);
 }
 
 /**
@@ -523,7 +523,7 @@ export function setExtra(hub: Hub, key: string, extra: Extra): void {
  */
 export function setContext(hub: Hub, name: string, context: { [key: string]: any } | null): void {
   const scope = getScope(hub);
-  if (scope) setContextScope(scope, name, context);
+  if (scope) setScopeContext(scope, name, context);
 }
 
 /**
