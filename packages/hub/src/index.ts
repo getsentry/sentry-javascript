@@ -18,6 +18,7 @@ export {
   getScopeUser,
   setScopeContext,
   getScopeTransaction,
+  addScopeBreadcrumb,
   Scope,
 } from './scope';
 export { Session, updateSession } from './session';

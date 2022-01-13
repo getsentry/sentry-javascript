@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { captureHubEvent, getHubIntegration, Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration } from '@sentry/types';
-import { captureEvent, getIntegration, Hub } from '@sentry/hub';
 import { getGlobalObject, logger, normalize, uuid4 } from '@sentry/utils';
 import localForage from 'localforage';
 
@@ -77,7 +77,7 @@ export class Offline implements Integration {
     }
 
     addGlobalEventProcessor((event: Event) => {
-      if (this.hub && getIntegration(this.hub, Offline)) {
+      if (this.hub && getHubIntegration(this.hub, Offline)) {
         // cache if we are positively offline
         if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
           void this._cacheEvent(event)
@@ -158,7 +158,7 @@ export class Offline implements Integration {
   private async _sendEvents(): Promise<void> {
     return this.offlineEventStore.iterate<Event, void>((event: Event, cacheKey: string, _index: number): void => {
       if (this.hub) {
-        captureEvent(this.hub, event);
+        captureHubEvent(this.hub, event);
 
         void this._purgeEvent(cacheKey).catch((_error): void => {
           logger.warn('could not purge event from cache');

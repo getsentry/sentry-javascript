@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { configureScope } from '@sentry/minimal';
 import { Scope } from '@sentry/types';
-import { setScopeContext } from '@sentry/hub';
-import { addScopeBreadcrumb } from '@sentry/hub/src/scope';
+import { addScopeBreadcrumb, setScopeContext } from '@sentry/hub';
 
 interface Action<T = any> {
   type: T;

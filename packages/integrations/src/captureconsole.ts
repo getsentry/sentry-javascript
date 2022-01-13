@@ -1,4 +1,13 @@
-import { captureException, captureMessage, getIntegration, Hub, withScope } from '@sentry/hub';
+import {
+  addScopeEventProcessor,
+  captureHubException,
+  captureHubMessage,
+  getHubIntegration,
+  Hub,
+  setScopeExtra,
+  setScopeLevel,
+  withHubScope,
+} from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, getGlobalObject, safeJoin, severityFromString } from '@sentry/utils';
 
@@ -47,11 +56,11 @@ export class CaptureConsole implements Integration {
       fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]): void => {
         const hub = getCurrentHub();
 
-        if (getIntegration(hub, CaptureConsole)) {
-          withScope(hub, scope => {
-            scope.setLevel(severityFromString(level));
-            scope.setExtra('arguments', args);
-            scope.addEventProcessor(event => {
+        if (getHubIntegration(hub, CaptureConsole)) {
+          withHubScope(hub, scope => {
+            setScopeLevel(scope, severityFromString(level));
+            setScopeExtra(scope, 'arguments', args);
+            addScopeEventProcessor(scope, event => {
               event.logger = 'console';
               return event;
             });
@@ -60,13 +69,13 @@ export class CaptureConsole implements Integration {
             if (level === 'assert') {
               if (args[0] === false) {
                 message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-                scope.setExtra('arguments', args.slice(1));
-                captureMessage(hub, message);
+                setScopeExtra(scope, 'arguments', args.slice(1));
+                captureHubMessage(hub, message);
               }
             } else if (level === 'error' && args[0] instanceof Error) {
-              captureException(hub, args[0]);
+              captureHubException(hub, args[0]);
             } else {
-              captureMessage(hub, message);
+              captureHubMessage(hub, message);
             }
           });
         }

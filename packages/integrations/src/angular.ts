@@ -1,4 +1,11 @@
-import { captureException, getIntegration, Hub, withScope } from '@sentry/hub';
+import {
+  addScopeEventProcessor,
+  captureHubException,
+  getHubIntegration,
+  Hub,
+  setScopeExtra,
+  withHubScope,
+} from '@sentry/hub';
 import { Event, EventProcessor, Integration } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
@@ -91,13 +98,13 @@ export class Angular implements Integration {
     return (exception: Error, cause?: string): void => {
       const hub = this._getCurrentHub && this._getCurrentHub();
 
-      if (hub && getIntegration(hub, Angular)) {
-        withScope(hub, scope => {
+      if (hub && getHubIntegration(hub, Angular)) {
+        withHubScope(hub, scope => {
           if (cause) {
-            scope.setExtra('cause', cause);
+            setScopeExtra(scope, 'cause', cause);
           }
 
-          scope.addEventProcessor((event: Event) => {
+          addScopeEventProcessor(scope, (event: Event) => {
             const ex = event.exception && event.exception.values && event.exception.values[0];
 
             if (ex) {
@@ -119,7 +126,7 @@ export class Angular implements Integration {
             return event;
           });
 
-          captureException(hub, exception);
+          captureHubException(hub, exception);
         });
       }
       $delegate(exception, cause);

@@ -1,7 +1,7 @@
 import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
-import { getScope } from '@sentry/hub';
+import { getScopeTransaction, getHubScope } from '@sentry/hub';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
 import { Observable, Subscription } from 'rxjs';
@@ -45,9 +45,9 @@ export function getActiveTransaction(): Transaction | undefined {
   const currentHub = getCurrentHub();
 
   if (currentHub) {
-    const scope = getScope(currentHub);
+    const scope = getHubScope(currentHub);
     if (scope) {
-      return scope.getTransaction();
+      return getScopeTransaction(scope);
     }
   }
 

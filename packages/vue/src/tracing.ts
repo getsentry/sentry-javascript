@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/browser';
-import { getScope } from '@sentry/hub';
+import { getHubScope, getScopeTransaction } from '@sentry/hub';
 import { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
@@ -31,7 +31,8 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 
 /** Grabs active transaction off scope, if any */
 function getActiveTransaction(): Transaction | undefined {
-  return getScope(getCurrentHub())?.getTransaction();
+  const scope = getHubScope(getCurrentHub());
+  return scope ? getScopeTransaction(scope) : undefined;
 }
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */

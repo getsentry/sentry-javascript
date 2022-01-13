@@ -11,8 +11,7 @@ import * as nock from 'nock';
 import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
-import { bindHubClient } from '@sentry/hub/src';
-import { startHubTransaction } from '@sentry/hub/src/hub';
+import { startHubTransaction, bindHubClient } from '@sentry/hub';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { captureMessage, getIntegration, Hub, withScope } from '@sentry/hub';
+import { captureHubMessage, getHubIntegration, Hub, setScopeExtra, withHubScope } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
 
@@ -105,12 +105,12 @@ export class ReportingObserver implements Integration {
    */
   public handler(reports: Report[]): void {
     const hub = this._getCurrentHub && this._getCurrentHub();
-    if (!hub || !getIntegration(hub, ReportingObserver)) {
+    if (!hub || !getHubIntegration(hub, ReportingObserver)) {
       return;
     }
     for (const report of reports) {
-      withScope(hub, scope => {
-        scope.setExtra('url', report.url);
+      withHubScope(hub, scope => {
+        setScopeExtra(scope, 'url', report.url);
 
         const label = `ReportingObserver [${report.type}]`;
         let details = 'No details available';
@@ -126,7 +126,7 @@ export class ReportingObserver implements Integration {
             plainBody[prop] = report.body[prop];
           }
 
-          scope.setExtra('body', plainBody);
+          setScopeExtra(scope, 'body', plainBody);
 
           if (report.type === ReportTypes.Crash) {
             const body = report.body as CrashReportBody;
@@ -138,7 +138,7 @@ export class ReportingObserver implements Integration {
           }
         }
 
-        captureMessage(hub, `${label}: ${details}`);
+        captureHubMessage(hub, `${label}: ${details}`);
       });
     }
   }

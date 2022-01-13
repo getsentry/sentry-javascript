@@ -12,8 +12,7 @@ import {
   RequestMethod,
   RequestMethodArgs,
 } from './utils/http';
-import { addHubBreadcrumb, getHubScope, getHubIntegration } from '@sentry/hub';
-import { getScopeSpan } from '@sentry/hub/src/scope';
+import { getScopeSpan, addHubBreadcrumb, getHubScope, getHubIntegration } from '@sentry/hub';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 

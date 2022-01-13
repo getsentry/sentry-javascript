@@ -1,4 +1,11 @@
-import { captureException, captureMessage, getIntegration, Hub, withScope } from '@sentry/hub';
+import {
+  captureHubException,
+  captureHubMessage,
+  getHubIntegration,
+  Hub,
+  setScopeExtra,
+  withHubScope,
+} from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { getGlobalObject, isInstanceOf, logger } from '@sentry/utils';
 
@@ -42,8 +49,8 @@ export class Ember implements Integration {
     const oldOnError = this._Ember.onerror;
 
     this._Ember.onerror = (error: Error): void => {
-      if (getIntegration(getCurrentHub(), Ember)) {
-        captureException(getCurrentHub(), error, { originalException: error });
+      if (getHubIntegration(getCurrentHub(), Ember)) {
+        captureHubException(getCurrentHub(), error, { originalException: error });
       }
 
       if (typeof oldOnError === 'function') {
@@ -55,18 +62,19 @@ export class Ember implements Integration {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._Ember.RSVP.on('error', (reason: unknown): void => {
-      if (getIntegration(getCurrentHub(), Ember)) {
-        withScope(getCurrentHub(), scope => {
+      if (getHubIntegration(getCurrentHub(), Ember)) {
+        withHubScope(getCurrentHub(), scope => {
           if (isInstanceOf(reason, Error)) {
-            scope.setExtra('context', 'Unhandled Promise error detected');
-            captureException(getCurrentHub(), reason, { originalException: reason as Error });
+            setScopeExtra(scope, 'context', 'Unhandled Promise error detected');
+            captureHubException(getCurrentHub(), reason, { originalException: reason as Error });
           } else {
-            scope.setExtra('reason', reason);
-            captureMessage(getCurrentHub(), 'Unhandled Promise error detected');
+            setScopeExtra(scope, 'reason', reason);
+            captureHubMessage(getCurrentHub(), 'Unhandled Promise error detected');
           }
         });
       }
     });
   }
+
   /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }

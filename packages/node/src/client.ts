@@ -1,11 +1,16 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
-import { closeSessionFlusher, getScopeRequestSession, incrementSessionStatusCount, SessionFlusher } from '@sentry/hub';
+import {
+  SessionFlusherTransporter,
+  closeSessionFlusher,
+  getScopeRequestSession,
+  incrementSessionStatusCount,
+  SessionFlusher,
+} from '@sentry/hub';
 import { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { NodeBackend } from './backend';
 import { NodeOptions } from './types';
-import { SessionFlusherTransporter } from '@sentry/hub/src';
 
 /**
  * The Sentry Node SDK Client.
