@@ -2,24 +2,24 @@ import { Event } from '@sentry/types';
 
 import {
   _invokeClient,
-  addBreadcrumb,
-  bindClient,
-  captureEvent,
-  captureException,
-  captureMessage,
-  configureScope,
-  getClient,
+  addHubBreadcrumb,
+  bindHubClient,
+  captureHubEvent,
+  captureHubException,
+  captureHubMessage,
+  configureHubScope,
+  getHubClient,
   getCurrentHub,
-  getScope,
-  getStack,
-  getStackTop,
+  getHubScope,
+  getHubStack,
+  getHubStackTop,
   Hub,
   isOlderThan,
-  lastEventId,
-  popScope,
-  pushScope,
+  getHubLastEventId,
+  popHubScope,
+  pushHubScope,
   run,
-  withScope,
+  withHubScope,
 } from '../src/hub';
 import { addScopeBreadcrumb, addScopeEventProcessor, applyScopeToEvent, Scope, setScopeExtra } from '../src/scope';
 
@@ -48,17 +48,17 @@ describe('Hub', () => {
   test('call bindClient with provided client when constructing new instance', () => {
     const testClient = makeClient();
     const hub = new Hub(testClient);
-    expect(getStackTop(hub).client).toBe(testClient);
+    expect(getHubStackTop(hub).client).toBe(testClient);
   });
 
   test('push process into stack', () => {
     const hub = new Hub();
-    expect(getStack(hub)).toHaveLength(1);
+    expect(getHubStack(hub)).toHaveLength(1);
   });
 
   test('pass in filled layer', () => {
     const hub = new Hub(clientFn);
-    expect(getStack(hub)).toHaveLength(1);
+    expect(getHubStack(hub)).toHaveLength(1);
   });
 
   test("don't invoke client sync with wrong func", () => {
@@ -78,18 +78,18 @@ describe('Hub', () => {
       const localScope = new Scope();
       setScopeExtra(localScope, 'a', 'b');
       const hub = new Hub(undefined, localScope);
-      pushScope(hub);
-      expect(getStack(hub)).toHaveLength(2);
-      expect(getStack(hub)[1].scope).not.toBe(localScope);
-      expect((getStack(hub)[1].scope as Scope).extra).toEqual({ a: 'b' });
+      pushHubScope(hub);
+      expect(getHubStack(hub)).toHaveLength(2);
+      expect(getHubStack(hub)[1].scope).not.toBe(localScope);
+      expect((getHubStack(hub)[1].scope as Scope).extra).toEqual({ a: 'b' });
     });
 
     test('inherit client', () => {
       const testClient: any = { bla: 'a' };
       const hub = new Hub(testClient);
-      pushScope(hub);
-      expect(getStack(hub)).toHaveLength(2);
-      expect(getStack(hub)[1].client).toBe(testClient);
+      pushHubScope(hub);
+      expect(getHubStack(hub)).toHaveLength(2);
+      expect(getHubStack(hub)[1].client).toBe(testClient);
     });
 
     describe('bindClient', () => {
@@ -97,27 +97,27 @@ describe('Hub', () => {
         const testClient = makeClient();
         const nextClient = makeClient();
         const hub = new Hub(testClient);
-        bindClient(hub, nextClient);
-        expect(getStack(hub)).toHaveLength(1);
-        expect(getStack(hub)[0].client).toBe(nextClient);
+        bindHubClient(hub, nextClient);
+        expect(getHubStack(hub)).toHaveLength(1);
+        expect(getHubStack(hub)[0].client).toBe(nextClient);
       });
 
       test('should bind client to the top-most layer', () => {
         const testClient: any = { bla: 'a' };
         const nextClient: any = { foo: 'bar' };
         const hub = new Hub(testClient);
-        pushScope(hub);
-        bindClient(hub, nextClient);
-        expect(getStack(hub)).toHaveLength(2);
-        expect(getStack(hub)[0].client).toBe(testClient);
-        expect(getStack(hub)[1].client).toBe(nextClient);
+        pushHubScope(hub);
+        bindHubClient(hub, nextClient);
+        expect(getHubStack(hub)).toHaveLength(2);
+        expect(getHubStack(hub)[0].client).toBe(testClient);
+        expect(getHubStack(hub)[1].client).toBe(nextClient);
       });
 
       test('should call setupIntegration method of passed client', () => {
         const testClient = makeClient();
         const nextClient = makeClient();
         const hub = new Hub(testClient);
-        bindClient(hub, nextClient);
+        bindHubClient(hub, nextClient);
         expect(testClient.setupIntegrations).toHaveBeenCalled();
         expect(nextClient.setupIntegrations).toHaveBeenCalled();
       });
@@ -137,8 +137,8 @@ describe('Hub', () => {
         return processedEvent;
       });
 
-      pushScope(hub);
-      const pushedScope = getStackTop(hub).scope;
+      pushHubScope(hub);
+      const pushedScope = getHubStackTop(hub).scope;
 
       return applyScopeToEvent(pushedScope!, event).then(final => {
         expect(final!.dist).toEqual('1');
@@ -148,10 +148,10 @@ describe('Hub', () => {
 
   test('popScope', () => {
     const hub = new Hub();
-    pushScope(hub);
-    expect(getStack(hub)).toHaveLength(2);
-    popScope(hub);
-    expect(getStack(hub)).toHaveLength(1);
+    pushHubScope(hub);
+    expect(getHubStack(hub)).toHaveLength(2);
+    popHubScope(hub);
+    expect(getHubStack(hub)).toHaveLength(1);
   });
 
   describe('withScope', () => {
@@ -162,26 +162,26 @@ describe('Hub', () => {
     });
 
     test('simple', () => {
-      withScope(hub, () => {
-        expect(getStack(hub)).toHaveLength(2);
+      withHubScope(hub, () => {
+        expect(getHubStack(hub)).toHaveLength(2);
       });
-      expect(getStack(hub)).toHaveLength(1);
+      expect(getHubStack(hub)).toHaveLength(1);
     });
 
     test('bindClient', () => {
       const testClient: any = { bla: 'a' };
-      withScope(hub, () => {
-        bindClient(hub, testClient);
-        expect(getStack(hub)).toHaveLength(2);
-        expect(getStack(hub)[1].client).toBe(testClient);
+      withHubScope(hub, () => {
+        bindHubClient(hub, testClient);
+        expect(getHubStack(hub)).toHaveLength(2);
+        expect(getHubStack(hub)[1].client).toBe(testClient);
       });
-      expect(getStack(hub)).toHaveLength(1);
+      expect(getHubStack(hub)).toHaveLength(1);
     });
 
     test('should bubble up exceptions', () => {
       const error = new Error('test');
       expect(() => {
-        withScope(hub, () => {
+        withHubScope(hub, () => {
           throw error;
         });
       }).toThrow(error);
@@ -191,22 +191,22 @@ describe('Hub', () => {
   test('getCurrentClient', () => {
     const testClient: any = { bla: 'a' };
     const hub = new Hub(testClient);
-    expect(getClient(hub)).toBe(testClient);
+    expect(getHubClient(hub)).toBe(testClient);
   });
 
   test('getStack', () => {
     const client: any = { a: 'b' };
     const hub = new Hub(client);
-    expect(getStack(hub)[0].client).toBe(client);
+    expect(getHubStack(hub)[0].client).toBe(client);
   });
 
   test('getStackTop', () => {
     const testClient: any = { bla: 'a' };
     const hub = new Hub();
-    pushScope(hub);
-    pushScope(hub);
-    bindClient(hub, testClient);
-    expect(getStackTop(hub).client).toEqual({ bla: 'a' });
+    pushHubScope(hub);
+    pushHubScope(hub);
+    bindHubClient(hub, testClient);
+    expect(getHubStackTop(hub).client).toEqual({ bla: 'a' });
   });
 
   describe('configureScope', () => {
@@ -215,14 +215,14 @@ describe('Hub', () => {
       setScopeExtra(localScope, 'a', 'b');
       const hub = new Hub({} as any, localScope);
       const cb = jest.fn();
-      configureScope(hub, cb);
+      configureHubScope(hub, cb);
       expect(cb).toHaveBeenCalledWith(localScope);
     });
 
     test('should not invoke without client and scope', () => {
       const hub = new Hub();
       const cb = jest.fn();
-      configureScope(hub, cb);
+      configureHubScope(hub, cb);
       expect(cb).not.toHaveBeenCalled();
     });
   });
@@ -231,7 +231,7 @@ describe('Hub', () => {
     test('simple', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
-      captureException(hub, 'a');
+      captureHubException(hub, 'a');
       expect(testClient.captureException).toHaveBeenCalled();
       expect(testClient.captureException.mock.calls[0][0]).toBe('a');
     });
@@ -239,7 +239,7 @@ describe('Hub', () => {
     test('should set event_id in hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
-      captureException(hub, 'a');
+      captureHubException(hub, 'a');
       expect(testClient.captureException.mock.calls[0][1].event_id).toBeTruthy();
     });
 
@@ -247,7 +247,7 @@ describe('Hub', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const ex = new Error('foo');
-      captureException(hub, ex);
+      captureHubException(hub, ex);
       expect(testClient.captureException.mock.calls[0][1].originalException).toBe(ex);
       expect(testClient.captureException.mock.calls[0][1].syntheticException).toBeInstanceOf(Error);
       expect(testClient.captureException.mock.calls[0][1].syntheticException.message).toBe('Sentry syntheticException');
@@ -258,7 +258,7 @@ describe('Hub', () => {
     test('simple', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
-      captureMessage(hub, 'a');
+      captureHubMessage(hub, 'a');
       expect(testClient.captureMessage).toHaveBeenCalled();
       expect(testClient.captureMessage.mock.calls[0][0]).toBe('a');
     });
@@ -266,14 +266,14 @@ describe('Hub', () => {
     test('should set event_id in hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
-      captureMessage(hub, 'a');
+      captureHubMessage(hub, 'a');
       expect(testClient.captureMessage.mock.calls[0][2].event_id).toBeTruthy();
     });
 
     test('should generate hint if not provided in the call', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
-      captureMessage(hub, 'foo');
+      captureHubMessage(hub, 'foo');
       expect(testClient.captureMessage.mock.calls[0][2].originalException).toBe('foo');
       expect(testClient.captureMessage.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
       expect(testClient.captureMessage.mock.calls[0][2].syntheticException.message).toBe('foo');
@@ -287,7 +287,7 @@ describe('Hub', () => {
         extra: { b: 3 },
       };
       const hub = new Hub(testClient);
-      captureEvent(hub, event);
+      captureHubEvent(hub, event);
       expect(testClient.captureEvent).toHaveBeenCalled();
       expect(testClient.captureEvent.mock.calls[0][0]).toBe(event);
     });
@@ -298,7 +298,7 @@ describe('Hub', () => {
         extra: { b: 3 },
       };
       const hub = new Hub(testClient);
-      captureEvent(hub, event);
+      captureHubEvent(hub, event);
       expect(testClient.captureEvent.mock.calls[0][1].event_id).toBeTruthy();
     });
 
@@ -308,8 +308,8 @@ describe('Hub', () => {
         extra: { b: 3 },
       };
       const hub = new Hub(testClient);
-      captureEvent(hub, event);
-      expect(testClient.captureEvent.mock.calls[0][1].event_id).toEqual(lastEventId(hub));
+      captureHubEvent(hub, event);
+      expect(testClient.captureEvent.mock.calls[0][1].event_id).toEqual(getHubLastEventId(hub));
     });
 
     test('transactions do not set lastEventId', () => {
@@ -319,8 +319,8 @@ describe('Hub', () => {
         type: 'transaction',
       };
       const hub = new Hub(testClient);
-      captureEvent(hub, event);
-      expect(testClient.captureEvent.mock.calls[0][1].event_id).not.toEqual(lastEventId(hub));
+      captureHubEvent(hub, event);
+      expect(testClient.captureEvent.mock.calls[0][1].event_id).not.toEqual(getHubLastEventId(hub));
     });
   });
 
@@ -329,8 +329,8 @@ describe('Hub', () => {
       extra: { b: 3 },
     };
     const hub = new Hub();
-    const eventId = captureEvent(hub, event);
-    expect(eventId).toBe(lastEventId(hub));
+    const eventId = captureHubEvent(hub, event);
+    expect(eventId).toBe(getHubLastEventId(hub));
   });
 
   describe('run', () => {
@@ -341,8 +341,8 @@ describe('Hub', () => {
       setScopeExtra(myScope, 'a', 'b');
       const myHub = new Hub(myClient, myScope);
       run(myHub, hub => {
-        expect(getScope(hub)).toBe(myScope);
-        expect(getClient(hub)).toBe(myClient);
+        expect(getHubScope(hub)).toBe(myScope);
+        expect(getHubClient(hub)).toBe(myClient);
         expect(hub).toBe(getCurrentHub());
       });
       expect(currentHub).toBe(getCurrentHub());
@@ -363,8 +363,8 @@ describe('Hub', () => {
     test('withScope', () => {
       expect.assertions(6);
       const hub = new Hub(clientFn);
-      addBreadcrumb(hub, { message: 'My Breadcrumb' });
-      withScope(hub, scope => {
+      addHubBreadcrumb(hub, { message: 'My Breadcrumb' });
+      withHubScope(hub, scope => {
         addScopeBreadcrumb(scope, { message: 'scope breadcrumb' });
         const event: Event = {};
         void applyScopeToEvent(scope, event)

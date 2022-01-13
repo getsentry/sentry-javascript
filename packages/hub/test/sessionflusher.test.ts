@@ -17,7 +17,11 @@ describe('Session Flusher', () => {
 
   test('test incrementSessionStatusCount updates the internal SessionFlusher state', () => {
     const transporter = makeTransporter();
-    const flusher = new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
+    const flusher = new SessionFlusher({
+      transporter: transporter,
+      release: '1.0.0',
+      environment: 'dev',
+    });
     const date = new Date('2021-04-08T12:18:23.043Z');
 
     let count = _incrementSessionStatusCount(flusher, 'ok', date);
@@ -41,7 +45,7 @@ describe('Session Flusher', () => {
 
   test('test undefined attributes are excluded, on incrementSessionStatusCount call', () => {
     const transporter = makeTransporter();
-    const flusher = new SessionFlusher(transporter, { release: '1.0.0' });
+    const flusher = new SessionFlusher({ transporter, release: '1.0.0' });
     const date = new Date('2021-04-08T12:18:23.043Z');
 
     _incrementSessionStatusCount(flusher, 'ok', date);
@@ -55,7 +59,7 @@ describe('Session Flusher', () => {
 
   test('flush is called every ~60 seconds after initialisation of an instance of SessionFlusher', () => {
     const transporter = makeTransporter();
-    const flusher = new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
+    const flusher = new SessionFlusher({ transporter, release: '1.0.0', environment: 'dev' });
 
     jest.advanceTimersByTime(59000);
     expect(transporter).toHaveBeenCalledTimes(0);
@@ -77,7 +81,7 @@ describe('Session Flusher', () => {
 
   test('transporter is called on flush if sessions were captured', () => {
     const transporter = makeTransporter();
-    const flusher = new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
+    const flusher = new SessionFlusher({ transporter, release: '1.0.0', environment: 'dev' });
     const date = new Date('2021-04-08T12:18:23.043Z');
 
     _incrementSessionStatusCount(flusher, 'ok', date);
@@ -99,7 +103,7 @@ describe('Session Flusher', () => {
   test('transporter is not called on flush if no sessions were captured', () => {
     const transporter = makeTransporter();
 
-    new SessionFlusher(transporter, { release: '1.0.0', environment: 'dev' });
+    new SessionFlusher({ transporter, release: '1.0.0', environment: 'dev' });
 
     expect(transporter).toHaveBeenCalledTimes(0);
     jest.advanceTimersByTime(61000);
@@ -108,7 +112,7 @@ describe('Session Flusher', () => {
 
   test('calling close on SessionFlusher should disable SessionFlusher', () => {
     const transporter = makeTransporter();
-    const flusher = new SessionFlusher(transporter, { release: '1.0.x' });
+    const flusher = new SessionFlusher({ transporter, release: '1.0.x' });
 
     closeSessionFlusher(flusher);
 
@@ -117,7 +121,7 @@ describe('Session Flusher', () => {
 
   test('calling close on SessionFlusher will force call flush', () => {
     const transporter = makeTransporter();
-    const flusher = new SessionFlusher(transporter, { release: '1.0.x' });
+    const flusher = new SessionFlusher({ transporter, release: '1.0.x' });
     const date = new Date('2021-04-08T12:18:23.043Z');
 
     // TODO: code-smell using internal function

@@ -2,14 +2,9 @@ import { AggregationCounts, Event, EventStatus, RequestSessionStatus, SessionAgg
 import { EventType } from '@sentry/types/src/event';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
-import { getCurrentHub, getScope } from './hub';
+import { getCurrentHub, getHubScope } from './hub';
 import { getScopeRequestSession, setScopeRequestSession } from './scope';
 import { Session } from './session';
-
-type ReleaseHealthAttributes = {
-  environment?: string;
-  release: string;
-};
 
 export interface Response {
   status: EventStatus;
@@ -24,18 +19,22 @@ export type Transporter = (session: Session | SessionAggregates) => PromiseLike<
  * ...
  */
 export class SessionFlusher {
-  public readonly flushTimeout: number = 60;
+  /**
+   * Flush the session every ~60 seconds.
+   */
+  public readonly flushTimeout: number = 60 * 1000;
   public pendingAggregates: Record<number, AggregationCounts> = {};
-  public sessionAttrs: ReleaseHealthAttributes;
   public intervalId: ReturnType<typeof setInterval>;
   public isEnabled: boolean = true;
   public transport: Transporter;
+  public environment?: string;
+  public release: string;
 
-  public constructor(transport: Transporter, attrs: ReleaseHealthAttributes) {
-    this.transport = transport;
-    this.sessionAttrs = attrs;
-    // Call to setInterval, so that flush is called every ~60 seconds
-    this.intervalId = setInterval(() => flush(this), this.flushTimeout * 1000);
+  public constructor(opts: { environment?: string; release: string; transporter: Transporter }) {
+    this.transport = opts.transporter;
+    this.environment = opts.environment;
+    this.release = opts.release;
+    this.intervalId = setInterval(() => flush(this), this.flushTimeout);
   }
 }
 
@@ -61,7 +60,10 @@ export function getSessionAggregates(sessionFlusher: SessionFlusher): SessionAgg
   });
 
   const sessionAggregates: SessionAggregates = {
-    attrs: sessionFlusher.sessionAttrs,
+    attrs: {
+      environment: sessionFlusher.environment,
+      release: sessionFlusher.release,
+    },
     aggregates,
   };
   return dropUndefinedKeys(sessionAggregates);
@@ -85,7 +87,7 @@ export function incrementSessionStatusCount(sessionFlusher: SessionFlusher): voi
   if (!sessionFlusher.isEnabled) {
     return;
   }
-  const scope = getScope(getCurrentHub());
+  const scope = getHubScope(getCurrentHub());
   const requestSession = scope && getScopeRequestSession(scope);
 
   if (requestSession && requestSession.status) {

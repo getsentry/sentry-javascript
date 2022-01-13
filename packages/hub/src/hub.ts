@@ -117,9 +117,9 @@ export class Hub {
    */
   public constructor(client?: Client, scope: Scope = new Scope(), version: number = API_VERSION) {
     this.version = version;
-    getStackTop(this).scope = scope;
+    getHubStackTop(this).scope = scope;
     if (client) {
-      bindClient(this, client);
+      bindHubClient(this, client);
     }
   }
 }
@@ -129,12 +129,12 @@ export class Hub {
  *
  * @hidden
  * */
-export function getStackTop(hub: Hub): Layer {
+export function getHubStackTop(hub: Hub): Layer {
   return hub.stack[hub.stack.length - 1];
 }
 
 /** Returns the scope stack for domains or the process. */
-export function getStack(hub: Hub): Layer[] {
+export function getHubStack(hub: Hub): Layer[] {
   return hub.stack;
 }
 
@@ -143,8 +143,8 @@ export function getStack(hub: Hub): Layer[] {
  * @param hub The Hub instance.
  * @param client An SDK client (client) instance.
  */
-export function bindClient(hub: Hub, client?: Client): void {
-  const top = getStackTop(hub);
+export function bindHubClient(hub: Hub, client?: Client): void {
+  const top = getHubStackTop(hub);
   top.client = client;
   if (client && client.setupIntegrations) {
     client.setupIntegrations();
@@ -155,12 +155,12 @@ export function bindClient(hub: Hub, client?: Client): void {
  * Removes a previously pushed scope from the stack.
  *
  * This restores the state before the scope was pushed. All breadcrumbs and
- * context information added since the last call to {@link pushScope} are
+ * context information added since the last call to {@link pushHubScope} are
  * discarded.
  */
-export function popScope(hub: Hub): boolean {
-  if (getStack(hub).length <= 1) return false;
-  return !!getStack(hub).pop();
+export function popHubScope(hub: Hub): boolean {
+  if (getHubStack(hub).length <= 1) return false;
+  return !!getHubStack(hub).pop();
 }
 
 /**
@@ -168,16 +168,16 @@ export function popScope(hub: Hub): boolean {
  *
  * The scope will be layered on top of the current one. It is isolated, i.e. all
  * breadcrumbs and context information added to this scope will be removed once
- * the scope ends. Be sure to always remove this scope with {@link popScope}
+ * the scope ends. Be sure to always remove this scope with {@link popHubScope}
  * when the operation finishes or throws.
  *
  * @returns Scope, the new cloned scope
  */
-export function pushScope(hub: Hub): Scope {
+export function pushHubScope(hub: Hub): Scope {
   // We want to clone the content of prev scope
-  const scope = cloneScope(getScope(hub));
-  getStack(hub).push({
-    client: getClient(hub),
+  const scope = cloneScope(getHubScope(hub));
+  getHubStack(hub).push({
+    client: getHubClient(hub),
     scope,
   });
   return scope;
@@ -210,18 +210,18 @@ export function isOlderThan(hub: Hub, version: number): boolean {
  * @param hub The Hub instance.
  * @param callback that will be enclosed into push/popScope.
  */
-export function withScope(hub: Hub, callback: (scope: Scope) => void): void {
-  const scope = pushScope(hub);
+export function withHubScope(hub: Hub, callback: (scope: Scope) => void): void {
+  const scope = pushHubScope(hub);
   try {
     callback(scope);
   } finally {
-    popScope(hub);
+    popHubScope(hub);
   }
 }
 
 /** Returns the client of the top stack. */
-export function getClient<C extends Client>(hub: Hub): C | undefined {
-  return getStackTop(hub).client as C;
+export function getHubClient<C extends Client>(hub: Hub): C | undefined {
+  return getHubStackTop(hub).client as C;
 }
 
 /**
@@ -230,14 +230,14 @@ export function getClient<C extends Client>(hub: Hub): C | undefined {
  * @param hub The Hub instance.
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export function setUser(hub: Hub, user: User | null): void {
-  const scope = getScope(hub);
+export function setHubUser(hub: Hub, user: User | null): void {
+  const scope = getHubScope(hub);
   if (scope) setScopeUser(scope, user);
 }
 
 /** Returns the scope of the top stack. */
-export function getScope(hub: Hub): Scope | undefined {
-  return getStackTop(hub).scope;
+export function getHubScope(hub: Hub): Scope | undefined {
+  return getHubStackTop(hub).scope;
 }
 
 /**
@@ -245,7 +245,7 @@ export function getScope(hub: Hub): Scope | undefined {
  *
  * @returns The last event id of a captured event.
  */
-export function lastEventId(hub: Hub): string | undefined {
+export function getHubLastEventId(hub: Hub): string | undefined {
   return hub.lastEventId;
 }
 
@@ -254,55 +254,21 @@ export function lastEventId(hub: Hub): string | undefined {
  * @param hub The Hub instance
  * @param shouldEndSession If set the session will be marked as exited and removed from the scope
  */
-export function captureSession(hub: Hub, shouldEndSession: boolean = false): void {
+export function captureHubSession(hub: Hub, shouldEndSession: boolean = false): void {
   // both send the update and pull the session from the scope
   if (shouldEndSession) {
-    return endSession(hub);
+    return endHubSession(hub);
   }
 
   // only send the update
-  _sendSessionUpdate(hub);
-}
-
-/**
- * Sends the current Session on the scope
- */
-function _sendSessionUpdate(hub: Hub): void {
-  const { scope, client } = getStackTop(hub);
-  if (!scope) return;
-
-  const session = getScopeSession(scope);
-  if (session) {
-    if (client && client.captureSession) {
-      client.captureSession(session);
-    }
-  }
-}
-
-/**
- * Ends the session that lives on the current scope and sends it to Sentry
- */
-function endSession(hub: Hub): void {
-  const layer = getStackTop(hub);
-  const scope = layer && layer.scope;
-  const session = getScopeSession(scope);
-  if (session) {
-    closeSession(session);
-  }
-
-  _sendSessionUpdate(hub);
-
-  // the session is over; take it off of the scope
-  if (scope) {
-    setScopeSession(scope);
-  }
+  sendSessionUpdate(hub);
 }
 
 /**
  * Starts a new `Session`, sets on the current scope and returns it.
  *
  * To finish a `session`, it has to be passed directly to `client.captureSession`, which is done automatically
- * when using `endSession(hub)` for the session currently stored on the scope.
+ * when using `endHubSession(hub)` for the session currently stored on the scope.
  *
  * When there's already an existing session on the scope, it'll be automatically ended.
  *
@@ -312,8 +278,8 @@ function endSession(hub: Hub): void {
  * @returns The session which was just started
  *
  */
-export function startSession(hub: Hub, context?: SessionContext): Session {
-  const { scope, client } = getStackTop(hub);
+export function startHubSession(hub: Hub, context?: SessionContext): Session {
+  const { scope, client } = getHubStackTop(hub);
   const { release, environment } = (client && client.getOptions()) || {};
 
   // Will fetch userAgent if called from browser sdk
@@ -334,7 +300,7 @@ export function startSession(hub: Hub, context?: SessionContext): Session {
     if (currentSession && currentSession.status === 'ok') {
       updateSession(currentSession, { status: 'exited' });
     }
-    endSession(hub);
+    endHubSession(hub);
 
     // Afterwards we set the new session on the scope
     setScopeSession(scope, session);
@@ -352,7 +318,7 @@ export function startSession(hub: Hub, context?: SessionContext): Session {
  * @returns The generated eventId.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function captureException(hub: Hub, exception: any, hint?: EventHint): string {
+export function captureHubException(hub: Hub, exception: any, hint?: EventHint): string {
   const eventId = (hub.lastEventId = uuid4());
   let finalHint = hint;
 
@@ -389,7 +355,7 @@ export function captureException(hub: Hub, exception: any, hint?: EventHint): st
  * @param hint May contain additional information about the original exception.
  * @returns The generated eventId.
  */
-export function captureMessage(hub: Hub, message: string, level?: SeverityLevel, hint?: EventHint): string {
+export function captureHubMessage(hub: Hub, message: string, level?: SeverityLevel, hint?: EventHint): string {
   const eventId = (hub.lastEventId = uuid4());
   let finalHint = hint;
 
@@ -424,7 +390,7 @@ export function captureMessage(hub: Hub, message: string, level?: SeverityLevel,
  * @param event The event to send to Sentry.
  * @param hint May contain additional information about the original exception.
  */
-export function captureEvent(hub: Hub, event: Event, hint?: EventHint): string {
+export function captureHubEvent(hub: Hub, event: Event, hint?: EventHint): string {
   const eventId = uuid4();
   if (event.type !== 'transaction') {
     hub.lastEventId = eventId;
@@ -447,8 +413,8 @@ export function captureEvent(hub: Hub, event: Event, hint?: EventHint): string {
  * @param breadcrumb The breadcrumb to record.
  * @param hint May contain additional information about the original breadcrumb.
  */
-export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
-  const { scope, client } = getStackTop(hub);
+export function addHubBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
+  const { scope, client } = getHubStackTop(hub);
 
   if (!scope || !client) return;
 
@@ -475,8 +441,8 @@ export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb, hint?: Breadcrum
  * @param hub The Hub instance.
  * @param tags Tags context object to merge into current context.
  */
-export function setTags(hub: Hub, tags: { [key: string]: Primitive }): void {
-  const scope = getScope(hub);
+export function setHubTags(hub: Hub, tags: { [key: string]: Primitive }): void {
+  const scope = getHubScope(hub);
   if (scope) setScopeTags(scope, tags);
 }
 
@@ -485,8 +451,8 @@ export function setTags(hub: Hub, tags: { [key: string]: Primitive }): void {
  * @param hub The Hub instance.
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(hub: Hub, extras: Extras): void {
-  const scope = getScope(hub);
+export function setHubExtras(hub: Hub, extras: Extras): void {
+  const scope = getHubScope(hub);
   if (scope) setScopeExtras(scope, extras);
 }
 
@@ -499,8 +465,8 @@ export function setExtras(hub: Hub, extras: Extras): void {
  * @param key String key of tag
  * @param value Value of tag
  */
-export function setTag(hub: Hub, key: string, value: Primitive): void {
-  const scope = getScope(hub);
+export function setHubTag(hub: Hub, key: string, value: Primitive): void {
+  const scope = getHubScope(hub);
   if (scope) setScopeTag(scope, key, value);
 }
 
@@ -510,8 +476,8 @@ export function setTag(hub: Hub, key: string, value: Primitive): void {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-export function setExtra(hub: Hub, key: string, extra: Extra): void {
-  const scope = getScope(hub);
+export function setHubExtra(hub: Hub, key: string, extra: Extra): void {
+  const scope = getHubScope(hub);
   if (scope) setScopeExtra(scope, key, extra);
 }
 
@@ -521,8 +487,8 @@ export function setExtra(hub: Hub, key: string, extra: Extra): void {
  * @param name of the context
  * @param context Any kind of data. This data will be normalized.
  */
-export function setContext(hub: Hub, name: string, context: { [key: string]: any } | null): void {
-  const scope = getScope(hub);
+export function setHubContext(hub: Hub, name: string, context: { [key: string]: any } | null): void {
+  const scope = getHubScope(hub);
   if (scope) setScopeContext(scope, name, context);
 }
 
@@ -532,8 +498,8 @@ export function setContext(hub: Hub, name: string, context: { [key: string]: any
  * @param hub The Hub instance.
  * @param callback Callback function that receives Scope.
  */
-export function configureScope(hub: Hub, callback: (scope: Scope) => void): void {
-  const { scope, client } = getStackTop(hub);
+export function configureHubScope(hub: Hub, callback: (scope: Scope) => void): void {
+  const { scope, client } = getHubStackTop(hub);
   if (scope && client) {
     callback(scope);
   }
@@ -555,7 +521,7 @@ export function run(hub: Hub, callback: (hub: Hub) => void): void {
 
 /** Returns the integration if installed on the current client. */
 export function getIntegration<T extends Integration>(hub: Hub, integration: IntegrationClass<T>): T | null {
-  const client = getClient(hub);
+  const client = getHubClient(hub);
   if (!client) return null;
   try {
     return client.getIntegration(integration);
@@ -568,8 +534,8 @@ export function getIntegration<T extends Integration>(hub: Hub, integration: Int
 /**
  * @deprecated No longer does anything. Use use {@link Transaction.startChild} instead.
  */
-export function startSpan(hub: Hub, context: SpanContext): Span {
-  return _callExtensionMethod(hub, 'startSpan', context);
+export function startHubSpan(hub: Hub, context: SpanContext): Span {
+  return callExtensionMethod(hub, 'startSpan', context);
 }
 
 /**
@@ -590,17 +556,17 @@ export function startSpan(hub: Hub, context: SpanContext): Span {
  *
  * @returns The transaction which was just started
  */
-export function startTransaction(
+export function startHubTransaction(
   hub: Hub,
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
-  return _callExtensionMethod(hub, 'startTransaction', context, customSamplingContext);
+  return callExtensionMethod(hub, 'startTransaction', context, customSamplingContext);
 }
 
 /** Returns all trace headers that are currently on the top scope. */
 export function traceHeaders(hub: Hub): { [key: string]: string } {
-  return _callExtensionMethod<{ [key: string]: string }>(hub, 'traceHeaders');
+  return callExtensionMethod<{ [key: string]: string }>(hub, 'traceHeaders');
 }
 
 /**
@@ -612,25 +578,11 @@ export function traceHeaders(hub: Hub): { [key: string]: string } {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function _invokeClient<M extends keyof Client>(hub: Hub, method: M, ...args: any[]): void {
-  const { scope, client } = getStackTop(hub);
+  const { scope, client } = getHubStackTop(hub);
   if (client && client[method]) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     (client as any)[method](...args, scope);
   }
-}
-
-/**
- * Calls global extension method and binding current instance to the function call
- */
-// @ts-ignore Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _callExtensionMethod<T>(hub: Hub, method: string, ...args: any[]): T {
-  const carrier = getMainCarrier();
-  const sentry = carrier.__SENTRY__;
-  if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
-    return sentry.extensions[method].apply(hub, args);
-  }
-  logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
 }
 
 /**
@@ -700,42 +652,6 @@ export function getActiveDomain(): DomainAsCarrier | undefined {
 }
 
 /**
- * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
- * @returns discovered hub
- */
-function getHubFromActiveDomain(registry: Carrier): Hub {
-  try {
-    const sentry = getMainCarrier().__SENTRY__;
-    const activeDomain = sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
-
-    // If there's no active domain, just return global hub
-    if (!activeDomain) {
-      return getHubFromCarrier(registry);
-    }
-
-    // If there's no hub on current domain, or it's an old API, assign a new one
-    if (!hasHubOnCarrier(activeDomain) || isOlderThan(getHubFromCarrier(activeDomain), API_VERSION)) {
-      const registryHubTopStack = getStackTop(getHubFromCarrier(registry));
-      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, cloneScope(registryHubTopStack.scope)));
-    }
-
-    // Return hub that lives on a domain
-    return getHubFromCarrier(activeDomain);
-  } catch (_Oo) {
-    // Return hub that lives on a global object
-    return getHubFromCarrier(registry);
-  }
-}
-
-/**
- * This will tell whether a carrier has a hub on it or not
- * @param carrier object
- */
-function hasHubOnCarrier(carrier: Carrier): boolean {
-  return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub);
-}
-
-/**
  * This will create a new {@link Hub} and add to the passed object on
  * __SENTRY__.hub.
  * @param carrier object
@@ -759,4 +675,88 @@ export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   carrier.__SENTRY__ = carrier.__SENTRY__ || {};
   carrier.__SENTRY__.hub = hub;
   return true;
+}
+
+/**
+ * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
+ * @returns discovered hub
+ */
+function getHubFromActiveDomain(registry: Carrier): Hub {
+  try {
+    const sentry = getMainCarrier().__SENTRY__;
+    const activeDomain = sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
+
+    // If there's no active domain, just return global hub
+    if (!activeDomain) {
+      return getHubFromCarrier(registry);
+    }
+
+    // If there's no hub on current domain, or it's an old API, assign a new one
+    if (!hasHubOnCarrier(activeDomain) || isOlderThan(getHubFromCarrier(activeDomain), API_VERSION)) {
+      const registryHubTopStack = getHubStackTop(getHubFromCarrier(registry));
+      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, cloneScope(registryHubTopStack.scope)));
+    }
+
+    // Return hub that lives on a domain
+    return getHubFromCarrier(activeDomain);
+  } catch (_Oo) {
+    // Return hub that lives on a global object
+    return getHubFromCarrier(registry);
+  }
+}
+
+/**
+ * This will tell whether a carrier has a hub on it or not
+ * @param carrier object
+ */
+function hasHubOnCarrier(carrier: Carrier): boolean {
+  return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub);
+}
+
+/**
+ * Sends the current Session on the scope
+ */
+function sendSessionUpdate(hub: Hub): void {
+  const { scope, client } = getHubStackTop(hub);
+  if (!scope) return;
+
+  const session = getScopeSession(scope);
+  if (session) {
+    if (client && client.captureSession) {
+      client.captureSession(session);
+    }
+  }
+}
+
+/**
+ * Ends the session that lives on the current scope and sends it to Sentry
+ */
+function endHubSession(hub: Hub): void {
+  const layer = getHubStackTop(hub);
+  const scope = layer && layer.scope;
+  const session = getScopeSession(scope);
+  if (session) {
+    closeSession(session);
+  }
+
+  sendSessionUpdate(hub);
+
+  // the session is over; take it off of the scope
+  if (scope) {
+    setScopeSession(scope);
+  }
+}
+
+/**
+ * Calls global extension method and binding current instance to the function call
+ */
+// @ts-ignore Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function callExtensionMethod<T>(hub: Hub, method: string, ...args: any[]): T {
+  const carrier = getMainCarrier();
+  const sentry = carrier.__SENTRY__;
+  if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
+    return sentry.extensions[method].apply(hub, args);
+  }
+  logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
 }
