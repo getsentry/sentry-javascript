@@ -16,6 +16,8 @@ export {
   setScopeSession,
   getScopeSpan,
   getScopeUser,
+  setScopeContext,
+  getScopeTransaction,
   Scope,
 } from './scope';
 export { Session, updateSession } from './session';

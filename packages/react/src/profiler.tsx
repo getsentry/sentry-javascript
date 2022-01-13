@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getCurrentHub, Hub } from '@sentry/browser';
-import { getScope, getIntegration } from '@sentry/hub';
+import { getHubIntegration, getHubScope, getScopeTransaction } from '@sentry/hub';
 import { Integration, IntegrationClass, Span, Transaction } from '@sentry/types';
 import { timestampWithMs } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
@@ -22,7 +22,7 @@ const getTracingIntegration = (): Integration | null => {
     return globalTracingIntegration;
   }
 
-  globalTracingIntegration = getIntegration(getCurrentHub(), TRACING_GETTER);
+  globalTracingIntegration = getHubIntegration(getCurrentHub(), TRACING_GETTER);
   return globalTracingIntegration;
 };
 
@@ -90,21 +90,19 @@ export type ProfilerProps = {
  * spans based on component lifecycles.
  */
 class Profiler extends React.Component<ProfilerProps> {
-  /**
-   * The span of the mount activity
-   * Made protected for the React Native SDK to access
-   */
-  protected _mountSpan: Span | undefined = undefined;
-
-  // The activity representing how long it takes to mount a component.
-  private _mountActivity: number | null = null;
-
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
     includeRender: true,
     includeUpdates: true,
   };
+  /**
+   * The span of the mount activity
+   * Made protected for the React Native SDK to access
+   */
+  protected _mountSpan: Span | undefined = undefined;
+  // The activity representing how long it takes to mount a component.
+  private _mountActivity: number | null = null;
 
   public constructor(props: ProfilerProps) {
     super(props);
@@ -275,9 +273,9 @@ export { withProfiler, Profiler, useProfiler };
 /** Grabs active transaction off scope */
 export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
   if (hub) {
-    const scope = getScope(hub);
+    const scope = getHubScope(hub);
     if (scope) {
-      return scope.getTransaction() as T | undefined;
+      return getScopeTransaction(scope) as T | undefined;
     }
   }
 

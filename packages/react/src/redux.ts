@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { configureScope } from '@sentry/minimal';
 import { Scope } from '@sentry/types';
+import { setScopeContext } from '@sentry/hub';
+import { addScopeBreadcrumb } from '@sentry/hub/src/scope';
 
 interface Action<T = any> {
   type: T;
@@ -98,7 +100,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         /* Action breadcrumbs */
         const transformedAction = options.actionTransformer(action);
         if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
-          scope.addBreadcrumb({
+          addScopeBreadcrumb(scope, {
             category: ACTION_BREADCRUMB_CATEGORY,
             data: transformedAction,
             type: ACTION_BREADCRUMB_TYPE,
@@ -108,9 +110,9 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         /* Set latest state to scope */
         const transformedState = options.stateTransformer(newState);
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
-          scope.setContext(STATE_CONTEXT_KEY, transformedState);
+          setScopeContext(scope, STATE_CONTEXT_KEY, transformedState);
         } else {
-          scope.setContext(STATE_CONTEXT_KEY, null);
+          setScopeContext(scope, STATE_CONTEXT_KEY, null);
         }
 
         /* Allow user to configure scope with latest state */
