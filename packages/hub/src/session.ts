@@ -100,7 +100,7 @@ export function closeSession(session: Session, status?: Exclude<SessionStatus, '
 }
 
 /** JSDoc */
-export function sessionAsJSON(
+export function toJSON(
   session: Session,
 ): {
   init: boolean;

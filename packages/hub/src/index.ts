@@ -5,8 +5,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getActiveDomain,
   getCurrentHub,
-  getHubFromCarrier,
-  getMainCarrier,
   bindClient,
   popScope,
   pushScope,
@@ -25,9 +23,11 @@ export {
   configureScope,
   Hub,
   makeMain,
-  setHubOnCarrier,
   Carrier,
   // eslint-disable-next-line deprecation/deprecation
   DomainAsCarrier,
   Layer,
+  getHubFromCarrier,
+  setHubOnCarrier,
+  getMainCarrier,
 } from './hub';

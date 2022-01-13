@@ -1,11 +1,11 @@
 import { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 
-import { Session } from '../src/session';
+import { closeSession, Session, toJSON, updateSession } from '../src/session';
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {
-    const session = new Session().toJSON();
+    const session = toJSON(new Session());
 
     // Grab current year to check if we are converting from sec -> ms correctly
     const currentYear = new Date(timestampInSeconds() * 1000).toISOString().slice(0, 4);
@@ -83,10 +83,10 @@ describe('Session', () => {
       const DEFAULT_OUT = { duration: expect.any(Number), timestamp: expect.any(String) };
 
       const session = new Session();
-      const initSessionProps = session.toJSON();
+      const initSessionProps = toJSON(session);
 
-      session.update(test[1]);
-      expect(session.toJSON()).toEqual({ ...initSessionProps, ...DEFAULT_OUT, ...test[2] });
+      updateSession(session, test[1]);
+      expect(toJSON(session)).toEqual({ ...initSessionProps, ...DEFAULT_OUT, ...test[2] });
     });
   });
 
@@ -94,7 +94,7 @@ describe('Session', () => {
     it('exits a normal session', () => {
       const session = new Session();
       expect(session.status).toEqual('ok');
-      session.close();
+      closeSession(session);
       expect(session.status).toEqual('exited');
     });
 
@@ -102,16 +102,16 @@ describe('Session', () => {
       const session = new Session();
       expect(session.status).toEqual('ok');
 
-      session.close('abnormal');
+      closeSession(session, 'abnormal');
       expect(session.status).toEqual('abnormal');
     });
 
     it('only changes status ok to exited', () => {
       const session = new Session();
-      session.update({ status: 'crashed' });
+      updateSession(session, { status: 'crashed' });
       expect(session.status).toEqual('crashed');
 
-      session.close();
+      closeSession(session);
       expect(session.status).toEqual('crashed');
     });
   });

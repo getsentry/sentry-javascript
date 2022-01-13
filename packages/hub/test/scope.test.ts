@@ -3,20 +3,16 @@ import { getGlobalObject } from '@sentry/utils';
 
 import {
   addGlobalEventProcessor,
-  applyScopeToEvent,
-  cloneScope,
-  getScopeSession,
-  Scope,
-  Session,
-  updateScope,
-} from '../src';
-import {
   addScopeBreadcrumb,
   addScopeEventProcessor,
   addScopeListener,
+  applyScopeToEvent,
   clearScope,
   clearScopeBreadcrumbs,
+  cloneScope,
   getScopeRequestSession,
+  getScopeSession,
+  Scope,
   setScopeContext,
   setScopeExtra,
   setScopeExtras,
@@ -29,7 +25,9 @@ import {
   setScopeTags,
   setScopeTransactionName,
   setScopeUser,
+  updateScope,
 } from '../src/scope';
+import { Session } from '../src/session';
 
 describe('Scope', () => {
   afterEach(() => {
