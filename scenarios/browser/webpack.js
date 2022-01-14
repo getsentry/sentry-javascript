@@ -1,53 +1,44 @@
 const path = require('path');
 const { promises } = require('fs');
 
-const inquirer = require('inquirer');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-async function init() {
-  const scenarios = await getScenariosFromDirectories();
-
-  const answers = await inquirer.prompt([
-    {
-      type: 'rawlist',
-      name: 'scenario',
-      message: 'Which scenario you want to run?',
-      choices: scenarios,
-      pageSize: scenarios.length,
-      loop: false,
-    },
-  ]);
-
-  console.log(`Bundling scenario: ${answers.scenario}`);
-
-  await runWebpack(answers.scenario);
-}
-
-async function runWebpack(scenario) {
+async function runWebpack(scenario, analyzerMode = 'json') {
   const alias = await generateAlias();
 
-  webpack(
-    {
-      mode: 'production',
-      entry: path.resolve(__dirname, scenario),
-      output: {
-        filename: 'main.js',
-        path: path.resolve(__dirname, 'dist', scenario),
+  return await new Promise((resolve, reject) => {
+    webpack(
+      {
+        mode: 'production',
+        entry: path.resolve(__dirname, scenario),
+        output: {
+          filename: 'main.js',
+          path: path.resolve(__dirname, 'dist', scenario),
+        },
+        plugins: [new BundleAnalyzerPlugin({ analyzerMode }), new HtmlWebpackPlugin()],
+        resolve: {
+          alias,
+        },
       },
-      plugins: [new BundleAnalyzerPlugin({ analyzerMode: 'static' }), new HtmlWebpackPlugin()],
-      resolve: {
-        alias,
+      (err, stats) => {
+        if (err || stats.hasErrors()) {
+          console.log(err);
+          reject(err);
+        }
+
+        const usedModules = [];
+        const modules = stats.compilation._modules;
+
+        modules.forEach(async (value, key) => {
+          usedModules.push(key);
+        });
+
+        return resolve(usedModules);
       },
-    },
-    (err, stats) => {
-      if (err || stats.hasErrors()) {
-        console.log(err);
-      }
-      console.log('DONE', stats);
-    },
-  );
+    );
+  });
 }
 
 const PACKAGE_PATH = '../../packages';
@@ -69,14 +60,4 @@ async function generateAlias() {
   );
 }
 
-/**
- * Generates an array of available scenarios
- */
-async function getScenariosFromDirectories() {
-  const exclude = ['node_modules', 'dist', '~', 'package.json', 'yarn.lock', 'webpack.js'];
-
-  const dirents = await promises.readdir(__dirname, { withFileTypes: true });
-  return dirents.map(dirent => dirent.name).filter(mape => !exclude.includes(mape));
-}
-
-init();
+module.exports = runWebpack;
