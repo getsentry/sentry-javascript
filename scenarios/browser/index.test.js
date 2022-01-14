@@ -1,21 +1,35 @@
+const { promises } = require('fs');
+const path = require('path');
+
 const runWebpack = require('./webpack');
 
 function expectNotToExist(module, consumedModules) {
   const matching = consumedModules.find(mod => mod.includes(module));
-
   expect(matching).not.toContain(module);
 }
 
-// Example ["scenario-name", ["list", "of", "unwelcome", "modules"]]
-const cases = [
-  ['basic', ['minimal']],
-  ['basic-with-tunnel', ['minimal']],
-];
+async function getBundleAsString(scenario) {
+  const bundle = await promises.readFile(path.resolve(__dirname, 'dist', scenario, 'main.js'));
+  return bundle.toString();
+}
 
-test.each(cases)('scenario: %s', async (scenario, unwelcomeModules) => {
-  const consumedModules = await runWebpack(scenario);
+// Example case ["scenario", ["list", "of", "unwelcome", "modules"], ["list", "of", "unwelcome", "methods"]]
+const cases = [['basic', ['minimal'], ['captureException']]];
 
-  unwelcomeModules.forEach(module => {
-    expectNotToExist(module, consumedModules);
+describe.each(cases)('scenario: "%s"', (scenario, unwelcomeModules, unwelcomeMethods) => {
+  let consumedModules;
+  let bundleAsAString;
+
+  beforeAll(async () => {
+    consumedModules = await runWebpack(scenario);
+    bundleAsAString = await getBundleAsString(scenario);
+  });
+
+  test.each(unwelcomeModules)(`module: "%s" should not be present`, async unwelcomeModule => {
+    expectNotToExist(unwelcomeModule, consumedModules);
+  });
+
+  test.each(unwelcomeMethods)(`method: "%s" should not be present`, async unwelcomeMethod => {
+    expect(bundleAsAString).not.toContain(`${unwelcomeMethod}=function`);
   });
 });
