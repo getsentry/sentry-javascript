@@ -1,7 +1,7 @@
 const path = require('path');
 const { promises } = require('fs');
 
-var inquirer = require('inquirer');
+const inquirer = require('inquirer');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const HtmlWebpackPlugin = require('html-webpack-plugin');
