@@ -1,9 +1,9 @@
-import { SeverityLevel } from './severity';
+import { Severity } from './severity';
 
 /** JSDoc */
 export interface Breadcrumb {
   type?: string;
-  level?: SeverityLevel;
+  level?: Severity;
   event_id?: string;
   category?: string;
   message?: string;

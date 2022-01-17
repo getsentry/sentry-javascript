@@ -6,7 +6,7 @@ import { Integration, IntegrationClass } from './integration';
 import { Primitive } from './misc';
 import { Scope } from './scope';
 import { Session, SessionContext } from './session';
-import { SeverityLevel } from './severity';
+import { Severity } from './severity';
 import { Span, SpanContext } from './span';
 import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import { User } from './user';
@@ -88,7 +88,7 @@ export interface Hub {
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
-  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string;
+  captureMessage(message: string, level?: Severity, hint?: EventHint): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
