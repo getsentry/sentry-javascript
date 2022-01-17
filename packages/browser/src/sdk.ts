@@ -1,5 +1,12 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { addInstrumentationHandler, getGlobalObject, logger, makePlatformResolvedPromise } from '@sentry/utils';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegration } from '@sentry/core';
+import { Hub } from '@sentry/types';
+import {
+  addInstrumentationHandler,
+  getGlobalObject,
+  isDebugBuild,
+  logger,
+  makePlatformResolvedPromise,
+} from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
@@ -162,7 +169,9 @@ export function flush(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  logger.warn('Cannot flush events. No client defined.');
+  if (isDebugBuild()) {
+    logger.warn('Cannot flush events. No client defined.');
+  }
   return makePlatformResolvedPromise(false);
 }
 
@@ -179,7 +188,9 @@ export function close(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  logger.warn('Cannot flush events and disable SDK. No client defined.');
+  if (isDebugBuild()) {
+    logger.warn('Cannot flush events and disable SDK. No client defined.');
+  }
   return makePlatformResolvedPromise(false);
 }
 

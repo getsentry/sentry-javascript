@@ -14,17 +14,15 @@ import {
 import {
   checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
-  isDebugBuild,
   isPlainObject,
   isPrimitive,
   isThenable,
   logger,
+  makeDsn,
   makePlatformPromise,
   makePlatformRejectedPromise,
   makePlatformResolvedPromise,
   normalize,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
   SentryError,
   truncate,
   uuid4,
@@ -79,7 +77,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected readonly _options: O;
 
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
-  protected readonly _dsn?: DsnComponents;
+  protected readonly _dsn?: Dsn;
 
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
@@ -174,16 +172,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureSession(session: Session): void {
     if (!this._isEnabled()) {
-      if (isDebugBuild()) {
-        logger.warn('SDK not enabled, will not capture session.');
-      }
+      logger.warn('SDK not enabled, will not capture session.');
       return;
     }
 
     if (!(typeof session.release === 'string')) {
-      if (isDebugBuild()) {
-        logger.warn('Discarded session because of missing or non-string release');
-      }
+      logger.warn('Discarded session because of missing or non-string release');
     } else {
       this._sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
