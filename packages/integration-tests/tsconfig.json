@@ -5,7 +5,11 @@
     "lib": ["dom", "es2019"],
     "moduleResolution": "node",
     "noEmit": true,
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@utils/*": ["./utils/*"]
+    }
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

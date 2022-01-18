@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
-
-import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryRequest } from '../../../../utils/helpers';
+import { sentryTest } from '@utils/fixtures';
+import { getSentryRequest } from '@utils/helpers';
 
 sentryTest('should capture an undefined error when no arguments are provided', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });

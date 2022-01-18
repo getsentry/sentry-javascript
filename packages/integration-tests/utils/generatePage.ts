@@ -2,7 +2,7 @@ import { Package } from '@sentry/types';
 import { existsSync, mkdirSync, promises } from 'fs';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import path from 'path';
-import webpack from 'webpack';
+import { webpack } from 'webpack';
 
 import webpackConfig from '../webpack.config';
 
@@ -39,6 +39,8 @@ export async function generatePage(
   const bundlePath = `${localPath}/index.html`;
 
   const alias = await generateSentryAlias();
+
+  alias['@utils'] = `${__dirname}`;
 
   if (!existsSync(localPath)) {
     mkdirSync(localPath, { recursive: true });

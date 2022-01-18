@@ -1,7 +1,6 @@
 import { expect, Route } from '@playwright/test';
-
-import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { sentryTest } from '@utils/fixtures';
+import { getSentryTransactionRequest } from '@utils/helpers';
 
 sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestPath, page }) => {
   // Intercepting asset requests to avoid network-related flakiness and random retries (on Firefox).

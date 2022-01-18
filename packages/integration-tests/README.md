@@ -27,13 +27,17 @@ suites/
 
 ## Writing Tests
 
+### Utils
+
+Test utilities can be imported using `@utils` alias from tests and test subjects.
+
 ### Helpers
 
-`utils/helpers.ts` contains helpers that could be used in assertions (`test.ts`). These helpers define a convenient and reliable API to interact with Playwright's native API. It's highly recommended to define all common patterns of Playwright usage in helpers.
+`@utils/helpers.ts` contains helpers that could be used in assertions (`test.ts`). These helpers define a convenient and reliable API to interact with Playwright's native API. It's highly recommended to define all common patterns of Playwright usage in helpers.
 
 ### Fixtures
 
-[Fixtures](https://playwright.dev/docs/api/class-fixtures) allows us to define the globals and test-specific information in assertion groups (`test.ts` files). In it's current state, `fixtures.ts` contains an extension over the pure version of `test()` function of Playwright. All the tests should import `sentryTest` function from `utils/fixtures.ts` instead of `@playwright/test` to be able to access the extra fixtures.
+[Fixtures](https://playwright.dev/docs/api/class-fixtures) allows us to define the globals and test-specific information in assertion groups (`test.ts` files). In it's current state, `fixtures.ts` contains an extension over the pure version of `test()` function of Playwright. All the tests should import `sentryTest` function from `@utils/fixtures` instead of `@playwright/test` to be able to access the extra fixtures.
 
 ## Running Tests Locally
 

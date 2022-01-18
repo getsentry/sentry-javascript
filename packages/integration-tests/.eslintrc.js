@@ -8,4 +8,12 @@ module.exports = {
   parserOptions: {
     sourceType: 'module',
   },
+  settings: {
+    'import/resolver': {
+      alias: {
+        map: [['@utils', './utils']],
+        extensions: ['.ts', '.js'],
+      },
+    },
+  },
 };

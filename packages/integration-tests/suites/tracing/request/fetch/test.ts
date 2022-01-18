@@ -1,7 +1,6 @@
 import { expect, Request } from '@playwright/test';
-
-import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { sentryTest } from '@utils/fixtures';
+import { getSentryTransactionRequest } from '@utils/helpers';
 
 sentryTest('should create spans for multiple fetch requests', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });

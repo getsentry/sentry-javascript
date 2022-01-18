@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
-
-import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryRequests } from '../../../../utils/helpers';
+import { sentryTest } from '@utils/fixtures';
+import { getMultipleSentryRequests } from '@utils/helpers';
 
 sentryTest('should capture with different severity levels', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });

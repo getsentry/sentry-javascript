@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
-
-import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { sentryTest } from '@utils/fixtures';
+import { getSentryTransactionRequest } from '@utils/helpers';
 
 sentryTest('should report a transaction in an envelope', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
