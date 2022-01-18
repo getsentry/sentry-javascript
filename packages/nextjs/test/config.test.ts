@@ -403,7 +403,7 @@ describe('webpack config', () => {
       );
     });
 
-    it('does not inject anything into non-_app, non-API routes', async () => {
+    it('does not inject anything into non-_app, non-_error, non-API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
