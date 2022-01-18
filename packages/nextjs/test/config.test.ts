@@ -380,6 +380,30 @@ describe('webpack config', () => {
       );
     });
 
+    it('injects user config file into `_error` in server bundle but not client bundle', async () => {
+      const finalServerWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+      const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      expect(finalServerWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_error': expect.arrayContaining([serverConfigFilePath]),
+        }),
+      );
+      expect(finalClientWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_error': expect.not.arrayContaining([clientConfigFilePath]),
+        }),
+      );
+    });
+
     it('injects user config file into API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
