@@ -329,13 +329,13 @@ describe('webpack config', () => {
           ],
 
           // original entry point value is an object containing a string `import` value
-          // (`import` was 'private-next-pages/api/simulator/dogStats/[name].js')
+          // (was { import: 'private-next-pages/api/simulator/dogStats/[name].js' })
           'pages/api/simulator/dogStats/[name]': {
             import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
           },
 
           // original entry point value is an object containing a string array `import` value
-          // (`import` was ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'])
+          // (was { import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'] })
           'pages/api/simulator/leaderboard': {
             import: [
               rewriteFramesHelper,
@@ -346,10 +346,10 @@ describe('webpack config', () => {
           },
 
           // original entry point value is an object containg properties besides `import`
-          // (`dependOn` remains untouched)
+          // (was { import: 'private-next-pages/api/tricks/[trickName].js', dependOn: 'treats', })
           'pages/api/tricks/[trickName]': {
             import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
-            dependOn: 'treats',
+            dependOn: 'treats', // untouched
           },
         }),
       );
