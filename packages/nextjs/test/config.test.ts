@@ -90,7 +90,7 @@ const defaultsObject = { defaultConfig: {} as NextConfigObject };
 const serverWebpackConfig = {
   entry: () =>
     Promise.resolve({
-      'pages/api/dogs/[name]': 'private-next-pages/api/dogs/[name].js',
+      'pages/_error': 'private-next-pages/_error.js',
       'pages/_app': ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
       'pages/api/simulator/dogStats/[name]': { import: 'private-next-pages/api/simulator/dogStats/[name].js' },
       'pages/api/simulator/leaderboard': {
@@ -111,6 +111,7 @@ const clientWebpackConfig = {
     Promise.resolve({
       main: './src/index.ts',
       'pages/_app': 'next-client-pages-loader?page=%2F_app',
+      'pages/_error': 'next-client-pages-loader?page=%2F_error',
     }),
   output: { filename: 'static/chunks/[name].js', path: '/Users/Maisey/projects/squirrelChasingSimulator/.next' },
   target: 'web',
@@ -316,8 +317,8 @@ describe('webpack config', () => {
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
           // original entrypoint value is a string
-          // (was 'private-next-pages/api/dogs/[name].js')
-          'pages/api/dogs/[name]': [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/dogs/[name].js'],
+          // (was 'private-next-pages/_error.js')
+          'pages/_error': [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/_error.js'],
 
           // original entrypoint value is a string array
           // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
@@ -379,6 +380,30 @@ describe('webpack config', () => {
       );
     });
 
+    it('injects user config file into `_error` in server bundle but not client bundle', async () => {
+      const finalServerWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+      const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      expect(finalServerWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_error': expect.arrayContaining([serverConfigFilePath]),
+        }),
+      );
+      expect(finalClientWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_error': expect.not.arrayContaining([clientConfigFilePath]),
+        }),
+      );
+    });
+
     it('injects user config file into API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
@@ -403,7 +428,7 @@ describe('webpack config', () => {
       );
     });
 
-    it('does not inject anything into non-_app, non-API routes', async () => {
+    it('does not inject anything into non-_app, non-_error, non-API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
