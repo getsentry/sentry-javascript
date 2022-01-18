@@ -19,6 +19,7 @@
     "test": "playwright test ./suites"
   },
   "dependencies": {
+    "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.17.0",
     "babel-loader": "^8.2.2",
     "handlebars-loader": "^1.7.1",
