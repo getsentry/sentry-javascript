@@ -7,7 +7,7 @@ import { Primitive } from './misc';
 import { Request } from './request';
 import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
-import { SeverityLevel } from './severity';
+import { Severity } from './severity';
 import { Span } from './span';
 import { Stacktrace } from './stacktrace';
 import { Measurements } from './transaction';
@@ -19,7 +19,7 @@ export interface Event {
   message?: string;
   timestamp?: number;
   start_timestamp?: number;
-  level?: SeverityLevel;
+  level?: Severity;
   platform?: string;
   logger?: string;
   server_name?: string;

@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/hub';
-import { Event, EventHint, Mechanism, Options, SeverityLevel } from '@sentry/types';
+import { Event, EventHint, Mechanism, Options, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -69,7 +69,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
 export function eventFromMessage(
   options: Options,
   message: string,
-  level: SeverityLevel = 'info',
+  level: Severity = Severity.Info,
   hint?: EventHint,
 ): PromiseLike<Event> {
   const event: Event = {

@@ -1,6 +1,6 @@
-import { SeverityLevel, SeverityLevels } from '@sentry/types';
+import { Severity, SeverityLevel, SeverityLevels } from '@sentry/types';
 
-function isSupportedSeverity(level: string): level is SeverityLevel {
+function isSupportedSeverity(level: string): level is Severity {
   return SeverityLevels.indexOf(level as SeverityLevel) !== -1;
 }
 /**
@@ -9,10 +9,10 @@ function isSupportedSeverity(level: string): level is SeverityLevel {
  * @param level string representation of Severity
  * @returns Severity
  */
-export function severityFromString(level: SeverityLevel | string): SeverityLevel {
-  if (level === 'warn') return 'warning';
+export function severityFromString(level: SeverityLevel | string): Severity {
+  if (level === 'warn') return Severity.Warning;
   if (isSupportedSeverity(level)) {
     return level;
   }
-  return 'log';
+  return Severity.Log;
 }

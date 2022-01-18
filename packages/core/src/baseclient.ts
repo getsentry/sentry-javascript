@@ -8,7 +8,7 @@ import {
   Integration,
   IntegrationClass,
   Options,
-  SeverityLevel,
+  Severity,
   Transport,
 } from '@sentry/types';
 import {
@@ -129,7 +129,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
