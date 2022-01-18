@@ -315,11 +315,11 @@ describe('webpack config', () => {
 
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          // original entry point value is a string
+          // original entrypoint value is a string
           // (was 'private-next-pages/api/dogs/[name].js')
           'pages/api/dogs/[name]': [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/dogs/[name].js'],
 
-          // original entry point value is a string array
+          // original entrypoint value is a string array
           // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
           'pages/_app': [
             rewriteFramesHelper,
@@ -328,13 +328,13 @@ describe('webpack config', () => {
             'private-next-pages/_app.js',
           ],
 
-          // original entry point value is an object containing a string `import` value
+          // original entrypoint value is an object containing a string `import` value
           // (was { import: 'private-next-pages/api/simulator/dogStats/[name].js' })
           'pages/api/simulator/dogStats/[name]': {
             import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
           },
 
-          // original entry point value is an object containing a string array `import` value
+          // original entrypoint value is an object containing a string array `import` value
           // (was { import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'] })
           'pages/api/simulator/leaderboard': {
             import: [
@@ -345,7 +345,7 @@ describe('webpack config', () => {
             ],
           },
 
-          // original entry point value is an object containg properties besides `import`
+          // original entrypoint value is an object containg properties besides `import`
           // (was { import: 'private-next-pages/api/tricks/[trickName].js', dependOn: 'treats', })
           'pages/api/tricks/[trickName]': {
             import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
