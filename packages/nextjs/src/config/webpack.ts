@@ -269,8 +269,8 @@ export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): SentryWebpackPluginOptions {
-  const { isServer, dir: projectDir, buildId, dev: isDev, config: nextConfig, webpack } = buildContext;
   const distDir = nextConfig.distDir ?? '.next'; // `.next` is the default directory
+  const { buildId, isServer, webpack, config: userNextConfig, dev: isDev, dir: projectDir } = buildContext;
 
   const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = nextConfig.target === 'experimental-serverless-trace';
