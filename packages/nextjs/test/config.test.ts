@@ -315,11 +315,11 @@ describe('webpack config', () => {
 
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          // original entry point value is a string
+          // original entrypoint value is a string
           // (was 'private-next-pages/api/dogs/[name].js')
           'pages/api/dogs/[name]': [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/dogs/[name].js'],
 
-          // original entry point value is a string array
+          // original entrypoint value is a string array
           // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
           'pages/_app': [
             rewriteFramesHelper,
@@ -328,14 +328,14 @@ describe('webpack config', () => {
             'private-next-pages/_app.js',
           ],
 
-          // original entry point value is an object containing a string `import` value
-          // (`import` was 'private-next-pages/api/simulator/dogStats/[name].js')
+          // original entrypoint value is an object containing a string `import` value
+          // (was { import: 'private-next-pages/api/simulator/dogStats/[name].js' })
           'pages/api/simulator/dogStats/[name]': {
             import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
           },
 
-          // original entry point value is an object containing a string array `import` value
-          // (`import` was ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'])
+          // original entrypoint value is an object containing a string array `import` value
+          // (was { import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'] })
           'pages/api/simulator/leaderboard': {
             import: [
               rewriteFramesHelper,
@@ -345,12 +345,60 @@ describe('webpack config', () => {
             ],
           },
 
-          // original entry point value is an object containg properties besides `import`
-          // (`dependOn` remains untouched)
+          // original entrypoint value is an object containg properties besides `import`
+          // (was { import: 'private-next-pages/api/tricks/[trickName].js', dependOn: 'treats', })
           'pages/api/tricks/[trickName]': {
             import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
-            dependOn: 'treats',
+            dependOn: 'treats', // untouched
           },
+        }),
+      );
+    });
+
+    it('injects user config file into `_app` in both server and client bundles', async () => {
+      const finalServerWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+      const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      expect(finalServerWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_app': expect.arrayContaining([serverConfigFilePath]),
+        }),
+      );
+      expect(finalClientWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_app': expect.arrayContaining([clientConfigFilePath]),
+        }),
+      );
+    });
+
+    it('injects user config file into API routes', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/api/simulator/dogStats/[name]': {
+            import: expect.arrayContaining([serverConfigFilePath]),
+          },
+
+          'pages/api/simulator/leaderboard': {
+            import: expect.arrayContaining([serverConfigFilePath]),
+          },
+
+          'pages/api/tricks/[trickName]': expect.objectContaining({
+            import: expect.arrayContaining([serverConfigFilePath]),
+          }),
         }),
       );
     });

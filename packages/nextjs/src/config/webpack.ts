@@ -116,13 +116,13 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
+  const { isServer, dir: projectDir, dev: isDev, config: userNextConfig } = buildContext;
+
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
   // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
-  const userConfigFile = buildContext.isServer
-    ? getUserConfigFile(buildContext.dir, 'server')
-    : getUserConfigFile(buildContext.dir, 'client');
+  const userConfigFile = isServer ? getUserConfigFile(projectDir, 'server') : getUserConfigFile(projectDir, 'client');
 
   // we need to turn the filename into a path so webpack can find it
   const filesToInject = [`./${userConfigFile}`];
@@ -131,12 +131,12 @@ async function addSentryToEntryProperty(
   // server SDK's default `RewriteFrames` instance (which needs it at runtime). Doesn't work when using the dev server
   // because it somehow tricks the file watcher into thinking that compilation itself is a file change, triggering an
   // infinite recompiling loop. (This should be fine because we don't upload sourcemaps in dev in any case.)
-  if (buildContext.isServer && !buildContext.dev) {
+  if (isServer && !isDev) {
     const rewriteFramesHelper = path.resolve(
       fs.mkdtempSync(path.resolve(os.tmpdir(), 'sentry-')),
       'rewriteFramesHelper.js',
     );
-    fs.writeFileSync(rewriteFramesHelper, `global.__rewriteFramesDistDir__ = '${buildContext.config.distDir}';\n`);
+    fs.writeFileSync(rewriteFramesHelper, `global.__rewriteFramesDistDir__ = '${userNextConfig.distDir}';\n`);
     // stick our helper file ahead of the user's config file so the value is in the global namespace *before*
     // `Sentry.init()` is called
     filesToInject.unshift(rewriteFramesHelper);
@@ -269,13 +269,13 @@ export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): SentryWebpackPluginOptions {
-  const { isServer, dir: projectDir, buildId, dev: isDev, config: nextConfig, webpack } = buildContext;
-  const distDir = nextConfig.distDir ?? '.next'; // `.next` is the default directory
+  const { buildId, isServer, webpack, config: userNextConfig, dev: isDev, dir: projectDir } = buildContext;
+  const distDir = userNextConfig.distDir ?? '.next'; // `.next` is the default directory
 
   const isWebpack5 = webpack.version.startsWith('5');
-  const isServerless = nextConfig.target === 'experimental-serverless-trace';
+  const isServerless = userNextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
-  const urlPrefix = nextConfig.basePath ? `~${nextConfig.basePath}/_next` : '~/_next';
+  const urlPrefix = userNextConfig.basePath ? `~${userNextConfig.basePath}/_next` : '~/_next';
 
   const serverInclude = isServerless
     ? [{ paths: [`${distDir}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
