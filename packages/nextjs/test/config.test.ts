@@ -355,6 +355,54 @@ describe('webpack config', () => {
       );
     });
 
+    it('injects user config file into `_app` in both server and client bundles', async () => {
+      const finalServerWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+      const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      expect(finalServerWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_app': expect.arrayContaining([serverConfigFilePath]),
+        }),
+      );
+      expect(finalClientWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/_app': expect.arrayContaining([clientConfigFilePath]),
+        }),
+      );
+    });
+
+    it('injects user config file into API routes', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/api/simulator/dogStats/[name]': {
+            import: expect.arrayContaining([serverConfigFilePath]),
+          },
+
+          'pages/api/simulator/leaderboard': {
+            import: expect.arrayContaining([serverConfigFilePath]),
+          },
+
+          'pages/api/tricks/[trickName]': expect.objectContaining({
+            import: expect.arrayContaining([serverConfigFilePath]),
+          }),
+        }),
+      );
+    });
+
     it('does not inject anything into non-_app, non-API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
