@@ -23,6 +23,8 @@ This release contains several internal refactors that help reduce the bundle siz
 - ref(types): deprecate status enum (#4298)
 - ref(types): deprecate severity enum (#4280)
 
+Work in this release contributed by @yordis. Thank you for your contribution!
+
 ## 6.16.1
 
 - feat(nextjs): Support Next.js v12 (#4093)
