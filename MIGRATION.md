@@ -44,7 +44,11 @@ const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
 
 ## Enum changes
 
-We've detailed how to migrate off the enums `Status` and `SpanStatus`. We also made changes to deprecate `TransactionMethod`, `Outcome` and `RequestSessionStatus` enums, but those are internal only APIs.
+The enums `Status` and `SpanStatus` were deprecated, and we've detailed how to migrate away from them below. We also deprecated the `TransactionMethod`, `Outcome` and `RequestSessionStatus` enums, but those are internal-only APIs. If you are using them, we encourage you to take a look at the corresponding PRs to see how we've changed our code as a result.
+
+- `TransactionMethod`: https://github.com/getsentry/sentry-javascript/pull/4314
+- `Outcome`: https://github.com/getsentry/sentry-javascript/pull/4315
+- `RequestSessionStatus`: https://github.com/getsentry/sentry-javascript/pull/4316
 
 #### Status
 
@@ -87,7 +91,7 @@ In this version upgrade, there are a few breaking changes. This guide should hel
 We moved optional integrations into their own package, called `@sentry/integrations`. Also, we made a few default
 integrations now optional. This is probably the biggest breaking change regarding the upgrade.
 
-Integrations that are now opt-in and were default before:
+Integrations that are now opt-in and were Wedefault before:
 
 - Dedupe (responsible for sending the same error only once)
 - ExtraErrorData (responsible for doing fancy magic, trying to extract data out of the error object using any
