@@ -91,7 +91,7 @@ In this version upgrade, there are a few breaking changes. This guide should hel
 We moved optional integrations into their own package, called `@sentry/integrations`. Also, we made a few default
 integrations now optional. This is probably the biggest breaking change regarding the upgrade.
 
-Integrations that are now opt-in and were Wedefault before:
+Integrations that are now opt-in and were default before:
 
 - Dedupe (responsible for sending the same error only once)
 - ExtraErrorData (responsible for doing fancy magic, trying to extract data out of the error object using any
