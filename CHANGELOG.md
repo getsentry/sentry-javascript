@@ -4,9 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 6.17.0-beta.0
+## 6.17.0
 
-This beta releases contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class. We also deprecated our typescript enums and our internal `API` class. We've detailed how to update your sdk usage if you are using the `Dsn` class or any of the deprecated methods in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0).
+This release contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class. We also deprecated our typescript enums and our internal `API` class. We've detailed how to update your sdk usage if you are using the `Dsn` class or any of the deprecated methods in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0).
+
+- feat: Undeprecate Severity Enum (#4412)
+- feat(core): Add processing metadata to scope and event (#4252)
+- fix(nextjs): Inject sentry.x.config.js into pages/_error (#4397)
+
+## 6.17.0-beta.0
 
 - feat(core): Deprecate API class (#4281)
 - feat(dsn): Remove Dsn class (#4325)
