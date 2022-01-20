@@ -31,7 +31,7 @@ function dsnFromString(str: string): DsnComponents {
   const match = DSN_REGEX.exec(str);
 
   if (!match) {
-    throw new SentryError('Invalid Dsn');
+    throw new SentryError(`Invalid Sentry Dsn: ${str}`);
   }
 
   const [protocol, publicKey, pass = '', host, port = '', lastPath] = match.slice(1);
@@ -82,20 +82,20 @@ function validateDsn(dsn: DsnComponents): boolean | void {
   const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
   requiredComponents.forEach(component => {
     if (!dsn[component]) {
-      throw new SentryError(`Invalid Dsn: ${component} missing`);
+      throw new SentryError(`Invalid Sentry Dsn: ${component} missing`);
     }
   });
 
   if (!projectId.match(/^\d+$/)) {
-    throw new SentryError(`Invalid Dsn: Invalid projectId ${projectId}`);
+    throw new SentryError(`Invalid Sentry Dsn: Invalid projectId ${projectId}`);
   }
 
   if (!isValidProtocol(protocol)) {
-    throw new SentryError(`Invalid Dsn: Invalid protocol ${protocol}`);
+    throw new SentryError(`Invalid Sentry Dsn: Invalid protocol ${protocol}`);
   }
 
   if (port && isNaN(parseInt(port, 10))) {
-    throw new SentryError(`Invalid Dsn: Invalid port ${port}`);
+    throw new SentryError(`Invalid Sentry Dsn: Invalid port ${port}`);
   }
 
   return true;
