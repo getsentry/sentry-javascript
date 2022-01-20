@@ -216,7 +216,9 @@ export function xhrCallback(
   const xhr = handlerData.xhr.__sentry_xhr__;
 
   // check first if the request has finished and is tracked by an existing span which should now end
-  if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
+  if (handlerData.endTimestamp) {
+    if (!handlerData.xhr.__sentry_xhr_span_id__) return;
+
     const span = spans[handlerData.xhr.__sentry_xhr_span_id__];
     if (span) {
       span.setHttpStatus(xhr.status_code);
