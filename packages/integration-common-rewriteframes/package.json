@@ -1,9 +1,9 @@
 {
-  "name": "@sentry/integrations",
+  "name": "@sentry/integration-common-rewriteframes",
   "version": "6.17.0-beta.0",
-  "description": "Pluggable integrations that can be used to enhance JS SDKs",
+  "description": "Integration that allows users to apply a transformation to each frame of the stack trace",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/integration-common-rewriteframes",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
@@ -16,25 +16,15 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/integration-common-rewriteframes": "6.17.0-beta.0",
     "@sentry/types": "6.17.0-beta.0",
     "@sentry/utils": "6.17.0-beta.0",
-    "localforage": "^1.8.1",
     "tslib": "^1.9.3"
   },
-  "devDependencies": {
-    "chai": "^4.1.2",
-    "rollup": "^1.10.1",
-    "rollup-plugin-commonjs": "^9.3.4",
-    "rollup-plugin-node-resolve": "^4.2.3",
-    "rollup-plugin-terser": "^4.0.4",
-    "rollup-plugin-typescript2": "^0.21.0"
-  },
+  "devDependencies": {},
   "scripts": {
-    "build": "run-p build:cjs build:esm build:bundle",
-    "build:bundle": "rollup --config",
+    "build": "run-p build:cjs build:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:dev": "run-s build:cjs build:esm",
+    "build:dev": "run-s build",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "run-p build:cjs:watch build:esm:watch",
@@ -43,7 +33,7 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf dist esm build coverage .rpt2_cache",
+    "clean": "rimraf dist esm coverage",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",

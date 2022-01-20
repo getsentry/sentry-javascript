@@ -35,6 +35,7 @@
     "packages/eslint-plugin-sdk",
     "packages/gatsby",
     "packages/hub",
+    "packages/integration-common-rewriteframes",
     "packages/integration-tests",
     "packages/integrations",
     "packages/minimal",

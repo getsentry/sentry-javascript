@@ -1,6 +1,6 @@
 import { Event, StackFrame } from '@sentry/types';
 
-import { RewriteFrames } from '../src/rewriteframes';
+import { RewriteFrames } from '../src';
 
 let rewriteFrames: RewriteFrames;
 let messageEvent: Event;
