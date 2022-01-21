@@ -428,10 +428,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       normalized.contexts.trace = event.contexts.trace;
     }
 
-    const { _experiments = {} } = this.getOptions();
-    if (_experiments.ensureNoCircularStructures) {
-      return normalize(normalized);
-    }
 
     return normalized;
   }
