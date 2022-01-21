@@ -300,6 +300,19 @@ describe('webpack config', () => {
     expect(finalWebpackConfig).toEqual(expect.objectContaining(materializedUserWebpackConfig));
   });
 
+  it('allows for the use of `hidden-source-map` as `devtool` value', async () => {
+    const userNextConfigHiddenSourceMaps = { ...userNextConfig, sentry: { ...userNextConfig.sentry } };
+    userNextConfigHiddenSourceMaps.sentry.hideSourceMaps = true;
+
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      userNextConfig: userNextConfigHiddenSourceMaps,
+      incomingWebpackConfig: serverWebpackConfig,
+      incomingWebpackBuildContext: serverBuildContext,
+    });
+
+    expect(finalWebpackConfig.devtool).toEqual('hidden-source-map');
+  });
+
   describe('webpack `entry` property config', () => {
     const serverConfigFilePath = `./${SERVER_SDK_CONFIG_FILE}`;
     const clientConfigFilePath = `./${CLIENT_SDK_CONFIG_FILE}`;

@@ -77,12 +77,11 @@ export function constructWebpackConfigFunction(
     if (enableWebpackPlugin) {
       // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
       // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
-      // TODO Give user option to use `hidden-source-map` ?
 
       // Next doesn't let you change this is dev even if you want to - see
       // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
       if (!buildContext.dev) {
-        newConfig.devtool = 'source-map';
+        newConfig.devtool = userNextConfig.sentry?.hideSourceMaps ? 'hidden-source-map' : 'source-map';
       }
 
       newConfig.plugins = newConfig.plugins || [];
