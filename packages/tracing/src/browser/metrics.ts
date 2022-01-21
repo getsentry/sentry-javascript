@@ -44,23 +44,7 @@ export class MetricsInstrumentation {
     logger.log('[Tracing] Adding & adjusting spans using Performance API');
 
     const timeOrigin = msToSec(browserPerformanceTimeOrigin);
-    let entryScriptSrc = '';
 
-    if (global.document && global.document.scripts) {
-      // eslint-disable-next-line @typescript-eslint/prefer-for-of
-      for (let i = 0; i < global.document.scripts.length; i++) {
-        // We go through all scripts on the page and look for 'data-entry'
-        // We remember the name and measure the time between this script finished loading and
-        // our mark 'sentry-tracing-init'
-        if (global.document.scripts[i].dataset.entry === 'true') {
-          entryScriptSrc = global.document.scripts[i].src;
-          break;
-        }
-      }
-    }
-
-    let entryScriptStartTimestamp: number | undefined;
-    let tracingInitMarkStartTime: number | undefined;
     let responseStartTimestamp: number | undefined;
     let requestStartTimestamp: number | undefined;
 
@@ -86,10 +70,6 @@ export class MetricsInstrumentation {
           case 'paint':
           case 'measure': {
             const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
-            if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
-              tracingInitMarkStartTime = startTimestamp;
-            }
-
             // capture web vitals
 
             const firstHidden = getVisibilityWatcher();
@@ -112,26 +92,13 @@ export class MetricsInstrumentation {
           }
           case 'resource': {
             const resourceName = (entry.name as string).replace(global.location.origin, '');
-            const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
-            // We remember the entry script end time to calculate the difference to the first init mark
-            if (entryScriptStartTimestamp === undefined && entryScriptSrc.indexOf(resourceName) > -1) {
-              entryScriptStartTimestamp = endTimestamp;
-            }
+            addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
             break;
           }
           default:
           // Ignore other entry types.
         }
       });
-
-    if (entryScriptStartTimestamp !== undefined && tracingInitMarkStartTime !== undefined) {
-      _startChild(transaction, {
-        description: 'evaluation',
-        endTimestamp: tracingInitMarkStartTime,
-        op: 'script',
-        startTimestamp: entryScriptStartTimestamp,
-      });
-    }
 
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
@@ -335,11 +302,11 @@ export function addResourceSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
-): number | undefined {
+): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-    return undefined;
+    return;
   }
 
   const data: Record<string, any> = {};
@@ -363,8 +330,6 @@ export function addResourceSpans(
     startTimestamp,
     data,
   });
-
-  return endTimestamp;
 }
 
 /** Create performance navigation related spans */
