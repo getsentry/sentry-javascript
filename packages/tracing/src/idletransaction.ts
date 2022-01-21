@@ -223,7 +223,6 @@ export class IdleTransaction extends Transaction {
 
       if (this._initTimeout) {
         clearTimeout(this._initTimeout);
-        this._initTimeout = undefined;
       }
 
       this._initTimeout = setTimeout(() => {
