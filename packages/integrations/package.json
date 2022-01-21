@@ -16,7 +16,6 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/integration-common-rewriteframes": "6.17.0-beta.0",
     "@sentry/types": "6.17.0-beta.0",
     "@sentry/utils": "6.17.0-beta.0",
     "localforage": "^1.8.1",
