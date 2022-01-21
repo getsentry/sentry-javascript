@@ -72,6 +72,12 @@ export function eventToSentryRequest(event: Event, api: APIDetails): SentryReque
   event.tags = event.tags || {};
   event.extra = event.extra || {};
 
+  // In theory, all events should be marked as having gone through normalization and so
+  // we should never set this tag
+  if (!(event.sdkProcessingMetadata && event.sdkProcessingMetadata.baseClientNormalized)) {
+    event.tags.skippedNormalization = true;
+  }
+
   // prevent this data from being sent to sentry
   // TODO: This is NOT part of the hack - DO NOT DELETE
   delete event.sdkProcessingMetadata;
