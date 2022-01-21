@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration } from '@sentry/types';
+import { Event, Integration, Severity } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -230,7 +230,7 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
       {
         category: 'fetch',
         data: handlerData.fetchData,
-        level: 'error',
+        level: Severity.Error,
         type: 'http',
       },
       {

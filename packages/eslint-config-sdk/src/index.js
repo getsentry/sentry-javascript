@@ -179,7 +179,7 @@ module.exports = {
       },
     },
     {
-      // Configuration for config files like webpack/rollback
+      // Configuration for config files like webpack/rollup
       files: ['*.config.js'],
       parserOptions: {
         sourceType: 'module',

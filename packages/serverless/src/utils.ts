@@ -5,7 +5,7 @@ import * as domain from 'domain';
 /**
  * Event processor that will override SDK details to point to the serverless SDK instead of Node,
  * as well as set correct mechanism type, which should be set to `handled: false`.
- * We do it like this, so that we don't introduce any side-effects in this module, which makes it tree-shakeable.
+ * We do it like this so that we don't introduce any side-effects in this module, which makes it tree-shakeable.
  * @param event Event
  * @param integration Name of the serverless integration ('AWSLambda', 'GCPFunction', etc)
  */

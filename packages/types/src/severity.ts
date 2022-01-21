@@ -1,5 +1,5 @@
-/** JSDoc
- * @deprecated Use string literals - if you require type casting, cast to SeverityLevel type
+/**
+ * TODO(v7): Remove this enum and replace with SeverityLevel
  */
 export enum Severity {
   /** JSDoc */

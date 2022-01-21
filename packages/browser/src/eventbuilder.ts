@@ -1,4 +1,4 @@
-import { Event, EventHint, Options, SeverityLevel } from '@sentry/types';
+import { Event, EventHint, Options, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -15,7 +15,7 @@ import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from
 import { computeStackTrace } from './tracekit';
 
 /**
- * Builds and Event from a Exception
+ * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
  * @hidden
  */
 export function eventFromException(options: Options, exception: unknown, hint?: EventHint): PromiseLike<Event> {
@@ -24,7 +24,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
     attachStacktrace: options.attachStacktrace,
   });
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
-  event.level = 'error';
+  event.level = Severity.Error;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
@@ -38,7 +38,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
 export function eventFromMessage(
   options: Options,
   message: string,
-  level: SeverityLevel = 'info',
+  level: Severity = Severity.Info,
   hint?: EventHint,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
@@ -59,7 +59,7 @@ export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
   options: {
-    rejection?: boolean;
+    isRejection?: boolean;
     attachStacktrace?: boolean;
   } = {},
 ): Event {
@@ -104,11 +104,11 @@ export function eventFromUnknownInput(
     return event;
   }
   if (isPlainObject(exception) || isEvent(exception)) {
-    // If it is plain Object or Event, serialize it manually and extract options
-    // This will allow us to group events based on top-level keys
-    // which is much better than creating new group when any key/value change
+    // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
+    // it manually. This will allow us to group events based on top-level keys which is much better than creating a new
+    // group on any key/value change.
     const objectException = exception as Record<string, unknown>;
-    event = eventFromPlainObject(objectException, syntheticException, options.rejection);
+    event = eventFromPlainObject(objectException, syntheticException, options.isRejection);
     addExceptionMechanism(event, {
       synthetic: true,
     });

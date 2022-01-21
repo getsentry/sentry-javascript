@@ -44,23 +44,11 @@ const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
 
 ## Enum changes
 
-We've detailed how to migrate off our enums `Severity`, `Status` and `SpanStatus`. We also made changes to deprecate `TransactionMethod`, `Outcome` and `RequestSessionStatus` enums, but those are internal only APIs.
+The enums `Status` and `SpanStatus` were deprecated, and we've detailed how to migrate away from them below. We also deprecated the `TransactionMethod`, `Outcome` and `RequestSessionStatus` enums, but those are internal-only APIs. If you are using them, we encourage you to take a look at the corresponding PRs to see how we've changed our code as a result.
 
-#### Severity
-
-We deprecated the `Severity` enum in `@sentry/types` and it will be removed in the next major release. We recommend using string literals to save on bundle size. [PR](https://github.com/getsentry/sentry-javascript/pull/4280). We also removed the `Severity.fromString` method. This was done to save on bundle size.
-
-```js
-// New in 6.17.0:
-import { severityFromString } from '@sentry/utils';
-
-const severity = severityFromString(level);
-
-// Before:
-import { Severity } from '@sentry/types';
-
-const severity = Severity.fromString(level);
-```
+- `TransactionMethod`: https://github.com/getsentry/sentry-javascript/pull/4314
+- `Outcome`: https://github.com/getsentry/sentry-javascript/pull/4315
+- `RequestSessionStatus`: https://github.com/getsentry/sentry-javascript/pull/4316
 
 #### Status
 

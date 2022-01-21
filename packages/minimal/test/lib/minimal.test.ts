@@ -1,4 +1,5 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
+import { Severity } from '@sentry/types';
 
 import {
   _callOnClient,
@@ -164,8 +165,8 @@ describe('Minimal', () => {
       const client: any = new TestClient({});
       const scope = getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
-      scope.setLevel('warning');
-      expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
+      scope.setLevel(Severity.Warning);
+      expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
     });
   });
 
@@ -244,16 +245,16 @@ describe('Minimal', () => {
 
   test('withScope', () => {
     withScope(scope => {
-      scope.setLevel('warning');
+      scope.setLevel(Severity.Warning);
       scope.setFingerprint(['1']);
       withScope(scope2 => {
-        scope2.setLevel('info');
+        scope2.setLevel(Severity.Info);
         scope2.setFingerprint(['2']);
         withScope(scope3 => {
           scope3.clear();
-          expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
+          expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
           expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['1']);
-          expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual('info');
+          expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual(Severity.Info);
           expect(global.__SENTRY__.hub._stack[2].scope._fingerprint).toEqual(['2']);
           expect(global.__SENTRY__.hub._stack[3].scope._level).toBeUndefined();
         });

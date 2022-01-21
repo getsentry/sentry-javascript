@@ -139,9 +139,9 @@ export function supportsReportingObserver(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsReferrerPolicy(): boolean {
-  // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default
-  // https://caniuse.com/#feat=referrer-policy
-  // It doesn't. And it throw exception instead of ignoring this parameter...
+  // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default'
+  // (see https://caniuse.com/#feat=referrer-policy),
+  // it doesn't. And it throws an exception instead of ignoring this parameter...
   // REF: https://github.com/getsentry/raven-js/issues/1233
 
   if (!supportsFetch()) {

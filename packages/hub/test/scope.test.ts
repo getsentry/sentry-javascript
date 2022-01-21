@@ -1,4 +1,4 @@
-import { Event, EventHint } from '@sentry/types';
+import { Event, EventHint, Severity } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';
@@ -85,8 +85,8 @@ describe('Scope', () => {
 
     test('setLevel', () => {
       const scope = new Scope();
-      scope.setLevel('critical');
-      expect((scope as any)._level).toEqual('critical');
+      scope.setLevel(Severity.Critical);
+      expect((scope as any)._level).toEqual(Severity.Critical);
     });
 
     test('setTransactionName', () => {
@@ -129,10 +129,16 @@ describe('Scope', () => {
       expect((scope as any)._span).toEqual(undefined);
     });
 
+    test('setProcessingMetadata', () => {
+      const scope = new Scope();
+      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+      expect((scope as any)._sdkProcessingMetadata.dogs).toEqual('are great!');
+    });
+
     test('chaining', () => {
       const scope = new Scope();
-      scope.setLevel('critical').setUser({ id: '1' });
-      expect((scope as any)._level).toEqual('critical');
+      scope.setLevel(Severity.Critical).setUser({ id: '1' });
+      expect((scope as any)._level).toEqual(Severity.Critical);
       expect((scope as any)._user).toEqual({ id: '1' });
     });
   });
@@ -189,16 +195,19 @@ describe('Scope', () => {
 
   describe('applyToEvent', () => {
     test('basic usage', () => {
-      expect.assertions(8);
+      expect.assertions(9);
+
       const scope = new Scope();
       scope.setExtra('a', 2);
       scope.setTag('a', 'b');
       scope.setUser({ id: '1' });
       scope.setFingerprint(['abcd']);
-      scope.setLevel('warning');
+      scope.setLevel(Severity.Warning);
       scope.setTransactionName('/abc');
       scope.addBreadcrumb({ message: 'test' });
       scope.setContext('os', { id: '1' });
+      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+
       const event: Event = {};
       return scope.applyToEvent(event).then(processedEvent => {
         expect(processedEvent!.extra).toEqual({ a: 2 });
@@ -209,6 +218,7 @@ describe('Scope', () => {
         expect(processedEvent!.transaction).toEqual('/abc');
         expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
         expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
+        expect(processedEvent!.sdkProcessingMetadata).toEqual({ dogs: 'are great!' });
       });
     });
 
@@ -284,11 +294,11 @@ describe('Scope', () => {
     test('scope level should have priority over event level', () => {
       expect.assertions(1);
       const scope = new Scope();
-      scope.setLevel('warning');
+      scope.setLevel(Severity.Warning);
       const event: Event = {};
-      event.level = 'critical';
+      event.level = Severity.Critical;
       return scope.applyToEvent(event).then(processedEvent => {
-        expect(processedEvent!.level).toEqual('warning');
+        expect(processedEvent!.level).toEqual(Severity.Warning);
       });
     });
 
@@ -302,69 +312,69 @@ describe('Scope', () => {
         expect(processedEvent!.transaction).toEqual('/abc');
       });
     });
-  });
 
-  test('applyToEvent trace context', async () => {
-    expect.assertions(1);
-    const scope = new Scope();
-    const span = {
-      fake: 'span',
-      getTraceContext: () => ({ a: 'b' }),
-    } as any;
-    scope.setSpan(span);
-    const event: Event = {};
-    return scope.applyToEvent(event).then(processedEvent => {
-      expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
+    test('adds trace context', async () => {
+      expect.assertions(1);
+      const scope = new Scope();
+      const span = {
+        fake: 'span',
+        getTraceContext: () => ({ a: 'b' }),
+      } as any;
+      scope.setSpan(span);
+      const event: Event = {};
+      return scope.applyToEvent(event).then(processedEvent => {
+        expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
+      });
     });
-  });
 
-  test('applyToEvent existing trace context in event should be stronger', async () => {
-    expect.assertions(1);
-    const scope = new Scope();
-    const span = {
-      fake: 'span',
-      getTraceContext: () => ({ a: 'b' }),
-    } as any;
-    scope.setSpan(span);
-    const event: Event = {
-      contexts: {
-        trace: { a: 'c' },
-      },
-    };
-    return scope.applyToEvent(event).then(processedEvent => {
-      expect((processedEvent!.contexts!.trace as any).a).toEqual('c');
+    test('existing trace context in event should take precedence', async () => {
+      expect.assertions(1);
+      const scope = new Scope();
+      const span = {
+        fake: 'span',
+        getTraceContext: () => ({ a: 'b' }),
+      } as any;
+      scope.setSpan(span);
+      const event: Event = {
+        contexts: {
+          trace: { a: 'c' },
+        },
+      };
+      return scope.applyToEvent(event).then(processedEvent => {
+        expect((processedEvent!.contexts!.trace as any).a).toEqual('c');
+      });
     });
-  });
 
-  test('applyToEvent transaction name tag when transaction on scope', async () => {
-    expect.assertions(1);
-    const scope = new Scope();
-    const transaction = {
-      fake: 'span',
-      getTraceContext: () => ({ a: 'b' }),
-      name: 'fake transaction',
-    } as any;
-    transaction.transaction = transaction; // because this is a transaction, its transaction pointer points to itself
-    scope.setSpan(transaction);
-    const event: Event = {};
-    return scope.applyToEvent(event).then(processedEvent => {
-      expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
+    test('adds `transaction` tag when transaction on scope', async () => {
+      expect.assertions(1);
+      const scope = new Scope();
+      const transaction = {
+        fake: 'span',
+        getTraceContext: () => ({ a: 'b' }),
+        name: 'fake transaction',
+      } as any;
+      transaction.transaction = transaction; // because this is a transaction, its `transaction` pointer points to itself
+      scope.setSpan(transaction);
+      const event: Event = {};
+      return scope.applyToEvent(event).then(processedEvent => {
+        expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
+      });
     });
-  });
 
-  test('applyToEvent transaction name tag when span on scope', async () => {
-    expect.assertions(1);
-    const scope = new Scope();
-    const transaction = { name: 'fake transaction' };
-    const span = {
-      fake: 'span',
-      getTraceContext: () => ({ a: 'b' }),
-      transaction,
-    } as any;
-    scope.setSpan(span);
-    const event: Event = {};
-    return scope.applyToEvent(event).then(processedEvent => {
-      expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
+    test('adds `transaction` tag when span on scope', async () => {
+      expect.assertions(1);
+      const scope = new Scope();
+      const transaction = { name: 'fake transaction' };
+      const span = {
+        fake: 'span',
+        getTraceContext: () => ({ a: 'b' }),
+        transaction,
+      } as any;
+      scope.setSpan(span);
+      const event: Event = {};
+      return scope.applyToEvent(event).then(processedEvent => {
+        expect(processedEvent!.tags!.transaction).toEqual('fake transaction');
+      });
     });
   });
 
@@ -400,7 +410,7 @@ describe('Scope', () => {
       scope.setContext('foo', { id: '1' });
       scope.setContext('bar', { id: '2' });
       scope.setUser({ id: '1337' });
-      scope.setLevel('info');
+      scope.setLevel(Severity.Info);
       scope.setFingerprint(['foo']);
       scope.setRequestSession({ status: 'ok' });
     });
@@ -448,7 +458,7 @@ describe('Scope', () => {
       localScope.setContext('bar', { id: '3' });
       localScope.setContext('baz', { id: '4' });
       localScope.setUser({ id: '42' });
-      localScope.setLevel('warning');
+      localScope.setLevel(Severity.Warning);
       localScope.setFingerprint(['bar']);
       (localScope as any)._requestSession = { status: 'ok' };
 

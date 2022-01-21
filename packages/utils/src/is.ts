@@ -73,7 +73,7 @@ export function isString(wat: unknown): boolean {
 }
 
 /**
- * Checks whether given value's is a primitive (undefined, null, number, boolean, string, bigint, symbol)
+ * Checks whether given value is a primitive (undefined, null, number, boolean, string, bigint, symbol)
  * {@link isPrimitive}.
  *
  * @param wat A value to be checked.

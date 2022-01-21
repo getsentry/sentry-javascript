@@ -1,6 +1,7 @@
 import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/hub';
 import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { hasTracingEnabled } from '@sentry/tracing';
 import { Event } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
@@ -113,7 +114,7 @@ function addServerIntegrations(options: NextjsOptions): void {
     options.integrations = [defaultRewriteFramesIntegration];
   }
 
-  if (options.tracesSampleRate !== undefined || options.tracesSampler !== undefined) {
+  if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
     options.integrations = addIntegration(defaultHttpTracingIntegration, options.integrations, {
       Http: { keyPath: '_tracing', value: true },

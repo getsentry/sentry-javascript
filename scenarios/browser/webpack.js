@@ -1,18 +1,28 @@
 const path = require('path');
 const { promises } = require('fs');
 
+const inquirer = require('inquirer');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-async function init(scenario) {
-  if (!hasCurrentScenario(scenario)) {
-    throw new Error(`Scenario "${scenario}" does not exist`);
-  }
+async function init() {
+  const scenarios = await getScenariosFromDirectories();
 
-  console.log(`Bundling scenario: ${scenario}`);
+  const answers = await inquirer.prompt([
+    {
+      type: 'rawlist',
+      name: 'scenario',
+      message: 'Which scenario you want to run?',
+      choices: scenarios,
+      pageSize: scenarios.length,
+      loop: false,
+    },
+  ]);
 
-  await runWebpack(scenario);
+  console.log(`Bundling scenario: ${answers.scenario}`);
+
+  await runWebpack(answers.scenario);
 }
 
 async function runWebpack(scenario) {
@@ -59,11 +69,14 @@ async function generateAlias() {
   );
 }
 
-async function hasCurrentScenario(scenario) {
+/**
+ * Generates an array of available scenarios
+ */
+async function getScenariosFromDirectories() {
+  const exclude = ['node_modules', 'dist', '~', 'package.json', 'yarn.lock', 'webpack.js'];
+
   const dirents = await promises.readdir(__dirname, { withFileTypes: true });
-  return dirents.filter(dir => dir.isDirectory()).find(dir => dir.name === scenario);
+  return dirents.map(dirent => dirent.name).filter(mape => !exclude.includes(mape));
 }
 
-const CURRENT_SCENARIO = 'basic';
-
-init(CURRENT_SCENARIO);
+init();

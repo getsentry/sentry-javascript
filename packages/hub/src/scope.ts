@@ -13,7 +13,7 @@ import {
   RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
-  SeverityLevel,
+  Severity,
   Span,
   Transaction,
   User,
@@ -61,7 +61,7 @@ export class Scope implements ScopeInterface {
   protected _fingerprint?: string[];
 
   /** Severity */
-  protected _level?: SeverityLevel;
+  protected _level?: Severity;
 
   /** Transaction Name */
   protected _transactionName?: string;
@@ -74,6 +74,12 @@ export class Scope implements ScopeInterface {
 
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
+
+  /**
+   * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
+   * sent to Sentry
+   */
+  protected _sdkProcessingMetadata?: { [key: string]: unknown } = {};
 
   /**
    * Inherit values from the parent scope.
@@ -202,7 +208,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setLevel(level: SeverityLevel): this {
+  public setLevel(level: Severity): this {
     this._level = level;
     this._notifyScopeListeners();
     return this;
@@ -260,21 +266,10 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public getTransaction(): Transaction | undefined {
-    // often, this span will be a transaction, but it's not guaranteed to be
-    const span = this.getSpan() as undefined | (Span & { spanRecorder: { spans: Span[] } });
-
-    // try it the new way first
-    if (span && span.transaction) {
-      return span.transaction;
-    }
-
-    // fallback to the old way (known bug: this only finds transactions with sampled = true)
-    if (span && span.spanRecorder && span.spanRecorder.spans[0]) {
-      return span.spanRecorder.spans[0] as Transaction;
-    }
-
-    // neither way found a transaction
-    return undefined;
+    // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
+    // have a pointer to the currently-active transaction.
+    const span = this.getSpan();
+    return span && span.transaction;
   }
 
   /**
@@ -441,7 +436,18 @@ export class Scope implements ScopeInterface {
     event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
     event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
+    event.sdkProcessingMetadata = this._sdkProcessingMetadata;
+
     return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
+  }
+
+  /**
+   * Add data which will be accessible during event processing but won't get sent to Sentry
+   */
+  public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
+    this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
+
+    return this;
   }
 
   /**

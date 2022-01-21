@@ -1,5 +1,5 @@
 import { BaseBackend } from '@sentry/core';
-import { Event, EventHint, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
+import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -22,7 +22,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: SeverityLevel = 'info', hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
     return Promise.resolve(eventFromMessage(this._options, message, level, hint));
   }
 
