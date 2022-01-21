@@ -217,15 +217,16 @@ export function xhrCallback(
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp) {
-    if (!handlerData.xhr.__sentry_xhr_span_id__) return;
+    const spanId = handlerData.xhr.__sentry_xhr_span_id__;
+    if (!spanId) return;
 
-    const span = spans[handlerData.xhr.__sentry_xhr_span_id__];
+    const span = spans[spanId];
     if (span) {
       span.setHttpStatus(xhr.status_code);
       span.finish();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete spans[handlerData.xhr.__sentry_xhr_span_id__];
+      delete spans[spanId];
     }
     return;
   }
