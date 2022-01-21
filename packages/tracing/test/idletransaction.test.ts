@@ -193,6 +193,42 @@ describe('IdleTransaction', () => {
       jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
       expect(transaction.endTimestamp).toBeUndefined();
     });
+
+    it('does not finish when idleTimeout is not exceed after last activity finished', () => {
+      const idleTimeout = 10;
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      transaction.initSpanRecorder(10);
+
+      const span = transaction.startChild({});
+      span.finish();
+
+      jest.advanceTimersByTime(2);
+
+      const span2 = transaction.startChild({});
+      span2.finish();
+
+      jest.advanceTimersByTime(8);
+
+      expect(transaction.endTimestamp).toBeUndefined();
+    });
+
+    it('finish when idleTimeout is exceeded after last activity finished', () => {
+      const idleTimeout = 10;
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      transaction.initSpanRecorder(10);
+
+      const span = transaction.startChild({});
+      span.finish();
+
+      jest.advanceTimersByTime(2);
+
+      const span2 = transaction.startChild({});
+      span2.finish();
+
+      jest.advanceTimersByTime(10);
+
+      expect(transaction.endTimestamp).toBeDefined();
+    });
   });
 
   describe('heartbeat', () => {
