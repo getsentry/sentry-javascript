@@ -1,2 +1,5 @@
 // export { RewriteFrames } from '@sentry/integration-common-rewriteframes';
-console.log('hello');
+/** JSDoc */
+export function RewriteFrames(): void {
+  console.log('hello');
+}
