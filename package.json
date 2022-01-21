@@ -35,7 +35,7 @@
     "packages/eslint-plugin-sdk",
     "packages/gatsby",
     "packages/hub",
-    "packages/integration-tests",
+    "packages/browser-integration-tests",
     "packages/integrations",
     "packages/minimal",
     "packages/nextjs",

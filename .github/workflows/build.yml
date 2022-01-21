@@ -298,7 +298,7 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run Playwright tests
         run: |
-          cd packages/integration-tests
+          cd packages/browser-integration-tests
           yarn run playwright install-deps webkit
           yarn test:ci
 
