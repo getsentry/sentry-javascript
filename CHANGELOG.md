@@ -24,7 +24,7 @@ This release contains several internal refactors that help reduce the bundle siz
 - ref(utils): improve invalid dsn error message (#4430)
 - fix(vue): Prioritize app variable to avoid duplicate name pollution (#4437)
 
-Work in this release contributed by @yordis. Thank you for your contribution!
+Work in this release contributed by @yordis, @Badisi, and @lh1me. Thank you for your contribution!
 
 ## 6.16.1
 
