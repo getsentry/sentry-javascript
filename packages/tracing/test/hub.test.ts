@@ -376,6 +376,7 @@ describe('Hub', () => {
 
           const request = new XMLHttpRequest();
           request.open('GET', '/chase-partners');
+          request.send();
 
           // mock a response having been received successfully (we have to do it in this roundabout way because readyState
           // is readonly and changing it doesn't trigger a readystatechange event)
@@ -418,6 +419,7 @@ describe('Hub', () => {
 
           const request = new XMLHttpRequest();
           request.open('GET', '/chase-partners');
+          request.send();
 
           // mock a response having been received successfully (we have to do it in this roundabout way because readyState
           // is readonly and changing it doesn't trigger a readystatechange event)
