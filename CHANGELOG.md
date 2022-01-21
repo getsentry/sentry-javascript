@@ -8,7 +8,6 @@
 
 This release contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class, which has been removed. We also deprecated a few of our typescript enums and our internal `API` class. We've detailed in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0) how to update your sdk usage if you are using any of these in your code.
 
-- feat: Undeprecate Severity Enum (#4412)
 - feat: Remove Dsn class (#4325)
 - feat(core): Add processing metadata to scope and event (#4252)
 - feat(core): Deprecate API class (#4281)
@@ -16,12 +15,14 @@ This release contains several internal refactors that help reduce the bundle siz
 - fix(nextjs): Inject sentry.x.config.js into pages/_error (#4397)
 - fix(nextjs): Add sentry-cli existence check for enabling webpack plugin #4311
 - ref(tracing): deprecate span status enum (#4299)
+- ref(tracing): Remove script evaluation span (#4433)
 - ref(types): drop unused logLevel (#4317)
 - ref(types): deprecate request status enum (#4316)
 - ref(types): deprecate outcome enum (#4315)
 - ref(types): deprecate transactionmethod enum (#4314)
 - ref(types): deprecate status enum (#4298)
-- ref(types): deprecate severity enum (#4280)
+- ref(utils): improve invalid dsn error message (#4430)
+- fix(vue): Prioritize app variable to avoid duplicate name pollution (#4437)
 
 Work in this release contributed by @yordis. Thank you for your contribution!
 
