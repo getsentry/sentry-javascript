@@ -78,10 +78,16 @@ export function constructWebpackConfigFunction(
       // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
       // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
 
-      // Next doesn't let you change this is dev even if you want to - see
+      // Next doesn't let you change `devtool` in dev even if you want to, so don't bother trying - see
       // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
       if (!buildContext.dev) {
-        newConfig.devtool = userNextConfig.sentry?.hideSourceMaps ? 'hidden-source-map' : 'source-map';
+        // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
+        // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
+        // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
+        // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
+        // without, the option to use `hidden-source-map` only applies to the client-side build.
+        newConfig.devtool =
+          userNextConfig.sentry?.hideSourceMaps && !buildContext.isServer ? 'hidden-source-map' : 'source-map';
       }
 
       newConfig.plugins = newConfig.plugins || [];

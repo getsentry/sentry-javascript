@@ -300,17 +300,24 @@ describe('webpack config', () => {
     expect(finalWebpackConfig).toEqual(expect.objectContaining(materializedUserWebpackConfig));
   });
 
-  it('allows for the use of `hidden-source-map` as `devtool` value', async () => {
+  it('allows for the use of `hidden-source-map` as `devtool` value for client-side builds', async () => {
     const userNextConfigHiddenSourceMaps = { ...userNextConfig, sentry: { ...userNextConfig.sentry } };
     userNextConfigHiddenSourceMaps.sentry.hideSourceMaps = true;
 
-    const finalWebpackConfig = await materializeFinalWebpackConfig({
+    const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+      userNextConfig: userNextConfigHiddenSourceMaps,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+    });
+
+    const finalServerWebpackConfig = await materializeFinalWebpackConfig({
       userNextConfig: userNextConfigHiddenSourceMaps,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
 
-    expect(finalWebpackConfig.devtool).toEqual('hidden-source-map');
+    expect(finalClientWebpackConfig.devtool).toEqual('hidden-source-map');
+    expect(finalServerWebpackConfig.devtool).toEqual('source-map');
   });
 
   describe('webpack `entry` property config', () => {
