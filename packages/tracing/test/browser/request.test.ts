@@ -174,6 +174,23 @@ describe('callbacks', () => {
       expect(newSpan!.status).toBe(spanStatusfromHttpCode(404));
     });
 
+    it('ignores response with no associated span', () => {
+      // the request might be missed somehow. E.g. if it was sent before tracing gets enabled.
+
+      const postRequestFetchHandlerData = {
+        ...fetchHandlerData,
+        endTimestamp,
+        response: { status: 404 } as Response,
+      };
+
+      // in that case, the response coming back will be ignored
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, {});
+
+      const newSpan = transaction.spanRecorder?.spans[1];
+
+      expect(newSpan).toBeUndefined();
+    });
+
     it('adds sentry-trace header to fetch requests', () => {
       // TODO
     });

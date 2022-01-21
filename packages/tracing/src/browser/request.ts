@@ -141,8 +141,11 @@ export function fetchCallback(
     return;
   }
 
-  if (handlerData.endTimestamp && handlerData.fetchData.__span) {
-    const span = spans[handlerData.fetchData.__span];
+  if (handlerData.endTimestamp) {
+    const spanId = handlerData.fetchData.__span;
+    if (!spanId) return;
+
+    const span = spans[spanId];
     if (span) {
       if (handlerData.response) {
         // TODO (kmclb) remove this once types PR goes through
@@ -154,7 +157,7 @@ export function fetchCallback(
       span.finish();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete spans[handlerData.fetchData.__span];
+      delete spans[spanId];
     }
     return;
   }
