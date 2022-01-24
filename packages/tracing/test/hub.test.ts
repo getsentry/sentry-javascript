@@ -359,7 +359,7 @@ describe('Hub', () => {
       // TODO the way we dig out the headers to test them doesn't work on Node < 10
       testOnlyIfNodeVersionAtLeast(10)(
         'should propagate positive sampling decision to child transactions in XHR header',
-        () => {
+        async () => {
           const hub = new Hub(
             new BrowserClient({
               dsn: 'https://1231@dogs.are.great/1121',
@@ -375,12 +375,12 @@ describe('Hub', () => {
           });
 
           const request = new XMLHttpRequest();
-          request.open('GET', '/chase-partners');
-
-          // mock a response having been received successfully (we have to do it in this roundabout way because readyState
-          // is readonly and changing it doesn't trigger a readystatechange event)
-          Object.defineProperty(request, 'readyState', { value: 4 });
-          request.dispatchEvent(new Event('readystatechange'));
+          await new Promise(resolve => {
+            request.timeout = 1;
+            request.onloadend = request.ontimeout = resolve;
+            request.open('GET', '/chase-partners');
+            request.send('');
+          });
 
           // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
           // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
@@ -401,7 +401,7 @@ describe('Hub', () => {
       // TODO the way we dig out the headers to test them doesn't work on Node < 10
       testOnlyIfNodeVersionAtLeast(10)(
         'should propagate negative sampling decision to child transactions in XHR header',
-        () => {
+        async () => {
           const hub = new Hub(
             new BrowserClient({
               dsn: 'https://1231@dogs.are.great/1121',
@@ -417,12 +417,12 @@ describe('Hub', () => {
           });
 
           const request = new XMLHttpRequest();
-          request.open('GET', '/chase-partners');
-
-          // mock a response having been received successfully (we have to do it in this roundabout way because readyState
-          // is readonly and changing it doesn't trigger a readystatechange event)
-          Object.defineProperty(request, 'readyState', { value: 4 });
-          request.dispatchEvent(new Event('readystatechange'));
+          await new Promise(resolve => {
+            request.timeout = 1;
+            request.onloadend = request.ontimeout = resolve;
+            request.open('GET', '/chase-partners');
+            request.send('');
+          });
 
           // this looks weird, it's true, but it's really just `request.impl.flag.requestHeaders` - it's just that the
           // `impl` key is a symbol rather than a string, and therefore needs to be referred to by reference rather than
