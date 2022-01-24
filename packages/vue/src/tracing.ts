@@ -108,7 +108,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         } else {
           // The span should already be added via the first handler call (in the 'before' hook)
           const span = this.$_sentrySpans[operation];
-          if (!span) return; // If not, then the before hook did not start the tracking span, probably because it happened even before there is an active transaction
+          // The before hook did not start the tracking span, so the span was not added.
+          // This is probably because it happened before there is an active transaction
+          if (!span) return;
 
           span.finish();
           finishRootSpan(this, timestampInSeconds(), options.timeout);
