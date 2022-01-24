@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.1
+
+- ref(core): Renormalize event only after stringification errors (#4425)
+- feat(nextjs): Add option to use `hidden-source-map` as webpack devtool value (#4436)
+- fix(tracing): ignore the xhr/fetch response if its request is not being tracked (#4428)
+- fix(vue): prevent after hook from starting new span (#4438)
+
+Work in this release contributed by @datbth. Thank you for your contribution!
+
 ## 6.17.0
 
 This release contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class, which has been removed. We also deprecated a few of our typescript enums and our internal `API` class. We've detailed in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0) how to update your sdk usage if you are using any of these in your code.
