@@ -95,14 +95,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
 
         this.$_sentrySpans = this.$_sentrySpans || {};
 
-        // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
-        // However, on the second call (after), it'll be already in place.
-        const span = this.$_sentrySpans[operation];
-
-        if (span) {
-          span.finish();
-          finishRootSpan(this, timestampInSeconds(), options.timeout);
-        } else {
+        // Start a new span if current hook is a 'before' hook.
+        // Otherwise, retrieve the current span and finish it.
+        if (internalHook == internalHooks[0]) {
           const activeTransaction = this.$root?.$_sentryRootSpan || getActiveTransaction();
           if (activeTransaction) {
             this.$_sentrySpans[operation] = activeTransaction.startChild({
@@ -110,6 +105,13 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               op: `${VUE_OP}.${operation}`,
             });
           }
+        } else {
+          // The span should already be added via the first handler call (in the 'before' hook)
+          const span = this.$_sentrySpans[operation];
+          if (!span) return; // If not, then the before hook did not start the tracking span, probably because it happened even before there is an active transaction
+
+          span.finish();
+          finishRootSpan(this, timestampInSeconds(), options.timeout);
         }
       };
     }
