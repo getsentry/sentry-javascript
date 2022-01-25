@@ -71,7 +71,7 @@ export class IdleTransaction extends Transaction {
    * If a transaction is created and no activities are added, we want to make sure that
    * it times out properly. This is cleared and not used when activities are added.
    */
-  private _initTimeout: ReturnType<typeof setTimeout> | undefined;
+  private _idleTimeout: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
@@ -80,7 +80,7 @@ export class IdleTransaction extends Transaction {
      * The time to wait in ms until the idle transaction will be finished.
      * @default 1000
      */
-    private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
+    private readonly _idleTimeoutDuration: number = DEFAULT_IDLE_TIMEOUT,
     // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
   ) {
@@ -96,11 +96,11 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this._initTimeout = setTimeout(() => {
+    this._idleTimeout = setTimeout(() => {
       if (!this._finished) {
         this.finish();
       }
-    }, this._idleTimeout);
+    }, this._idleTimeoutDuration);
   }
 
   /** {@inheritDoc} */
@@ -194,9 +194,9 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    if (this._initTimeout) {
-      clearTimeout(this._initTimeout);
-      this._initTimeout = undefined;
+    if (this._idleTimeout) {
+      clearTimeout(this._idleTimeout);
+      this._idleTimeout = undefined;
     }
     logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
@@ -216,15 +216,15 @@ export class IdleTransaction extends Transaction {
     }
 
     if (Object.keys(this.activities).length === 0) {
-      const timeout = this._idleTimeout;
+      const timeout = this._idleTimeoutDuration;
       // We need to add the timeout here to have the real endtimestamp of the transaction
       // Remember timestampWithMs is in seconds, timeout is in ms
       const end = timestampWithMs() + timeout / 1000;
 
-      if (this._initTimeout) {
-        clearTimeout(this._initTimeout);
+      if (this._idleTimeout) {
+        clearTimeout(this._idleTimeout);
       }
-      this._initTimeout = setTimeout(() => {
+      this._idleTimeout = setTimeout(() => {
         if (!this._finished) {
           this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[1]);
           this.finish(end);
