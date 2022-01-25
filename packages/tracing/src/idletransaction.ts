@@ -221,7 +221,10 @@ export class IdleTransaction extends Transaction {
       // Remember timestampWithMs is in seconds, timeout is in ms
       const end = timestampWithMs() + timeout / 1000;
 
-      setTimeout(() => {
+      if (this._initTimeout) {
+        clearTimeout(this._initTimeout);
+      }
+      this._initTimeout = setTimeout(() => {
         if (!this._finished) {
           this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[1]);
           this.finish(end);

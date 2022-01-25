@@ -188,6 +188,8 @@ describe('IdleTransaction', () => {
     it('does not finish if a activity is started', () => {
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, DEFAULT_IDLE_TIMEOUT);
       transaction.initSpanRecorder(10);
+      const span = transaction.startChild({});
+      span.finish();
       transaction.startChild({});
 
       jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
