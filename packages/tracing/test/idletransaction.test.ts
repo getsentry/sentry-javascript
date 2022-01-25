@@ -190,10 +190,14 @@ describe('IdleTransaction', () => {
       transaction.initSpanRecorder(10);
       const span = transaction.startChild({});
       span.finish();
-      transaction.startChild({});
+      const span2 = transaction.startChild({});
 
       jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
       expect(transaction.endTimestamp).toBeUndefined();
+
+      span2.finish();
+      jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT + DEFAULT_IDLE_TIMEOUT);
+      expect(transaction.endTimestamp).toBeDefined();
     });
   });
 
