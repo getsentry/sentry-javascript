@@ -62,4 +62,4 @@ export function configureScopeWithContext(scope: Scope, context: Context): void 
   scope.setContext('gcp.function.context', { ...context } as SentryContext);
 }
 
-export { Request, Response };
+export type { Request, Response };
