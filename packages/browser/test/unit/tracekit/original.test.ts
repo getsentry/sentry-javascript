@@ -881,8 +881,7 @@ describe('Tracekit - Original Tests', () => {
       column: 24,
     });
     expect(stackFrames.stack[7]).toEqual({
-      url:
-        '/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/native/ReactNativeBaseComponent.js',
+      url: '/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/native/ReactNativeBaseComponent.js',
       func: 'this',
       args: [],
       line: 74,

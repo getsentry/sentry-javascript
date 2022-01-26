@@ -22,7 +22,7 @@ module.exports = {
       equality: 'Do not apply the equality operator on an empty {{ name }}.{{ fix }}',
     },
   },
-  create: function(context) {
+  create: function (context) {
     // variables should be defined here
 
     //----------------------------------------------------------------------

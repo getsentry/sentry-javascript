@@ -53,7 +53,7 @@ export class AWSServices implements Integration {
 function wrapMakeRequest<TService extends AWSService, TResult>(
   orig: MakeRequestFunction<GenericParams, TResult>,
 ): MakeRequestFunction<GenericParams, TResult> {
-  return function(this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
+  return function (this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
     let transaction: Transaction | undefined;
     let span: Span | undefined;
     const scope = getCurrentHub().getScope();

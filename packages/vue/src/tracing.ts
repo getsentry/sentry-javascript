@@ -30,9 +30,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 
 /** Grabs active transaction off scope, if any */
 function getActiveTransaction(): Transaction | undefined {
-  return getCurrentHub()
-    .getScope()
-    ?.getTransaction();
+  return getCurrentHub().getScope()?.getTransaction();
 }
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */
@@ -67,7 +65,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
     }
 
     for (const internalHook of internalHooks) {
-      mixins[internalHook] = function(this: VueSentry) {
+      mixins[internalHook] = function (this: VueSentry) {
         const isRoot = this.$root === this;
 
         if (isRoot) {

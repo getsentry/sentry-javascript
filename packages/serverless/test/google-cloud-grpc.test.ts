@@ -71,7 +71,7 @@ function mockHttp2Session(): FakeSession {
   const session = new FakeSession();
   spyConnect.mockImplementationOnce(() => {
     process.nextTick(() => session.emit('connect'));
-    return (session as unknown) as http2.ClientHttp2Session;
+    return session as unknown as http2.ClientHttp2Session;
   });
   return session;
 }
@@ -82,9 +82,7 @@ describe('GoogleCloudGrpc tracing', () => {
   });
 
   beforeEach(() => {
-    nock('https://www.googleapis.com')
-      .post('/oauth2/v4/token')
-      .reply(200, []);
+    nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, []);
   });
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note

@@ -33,8 +33,8 @@ export class Mysql implements Integration {
     //    function (callback) => void
     //    function (options, callback) => void
     //    function (options, values, callback) => void
-    fill(pkg, 'createQuery', function(orig: () => void) {
-      return function(this: unknown, options: unknown, values: unknown, callback: unknown) {
+    fill(pkg, 'createQuery', function (orig: () => void) {
+      return function (this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
@@ -43,14 +43,14 @@ export class Mysql implements Integration {
         });
 
         if (typeof callback === 'function') {
-          return orig.call(this, options, values, function(err: Error, result: unknown, fields: unknown) {
+          return orig.call(this, options, values, function (err: Error, result: unknown, fields: unknown) {
             span?.finish();
             callback(err, result, fields);
           });
         }
 
         if (typeof values === 'function') {
-          return orig.call(this, options, function(err: Error, result: unknown, fields: unknown) {
+          return orig.call(this, options, function (err: Error, result: unknown, fields: unknown) {
             span?.finish();
             values(err, result, fields);
           });

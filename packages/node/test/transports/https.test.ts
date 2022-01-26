@@ -229,7 +229,7 @@ describe('HTTPSTransport', () => {
         dsn,
         httpsProxy: 'https://example.com:8080',
       });
-      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
       expect(client).toBeInstanceOf(HttpsProxyAgent);
       expect(client.secureProxy).toEqual(true);
       expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
@@ -241,7 +241,7 @@ describe('HTTPSTransport', () => {
         dsn,
         httpsProxy: 'https://example.com:8080',
       });
-      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
       expect(client).toBeInstanceOf(HttpsProxyAgent);
       expect(client.secureProxy).toEqual(true);
       expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
@@ -254,7 +254,7 @@ describe('HTTPSTransport', () => {
         httpProxy: 'http://unsecure-example.com:8080',
         httpsProxy: 'https://example.com:8080',
       });
-      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
       expect(client).toBeInstanceOf(HttpsProxyAgent);
       expect(client.secureProxy).toEqual(true);
       expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
@@ -266,7 +266,7 @@ describe('HTTPSTransport', () => {
       const transport = createTransport({
         dsn,
       });
-      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
       expect(client).toBeInstanceOf(HttpsProxyAgent);
       expect(client.secureProxy).toEqual(true);
       expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
@@ -280,7 +280,7 @@ describe('HTTPSTransport', () => {
         dsn,
         httpsProxy: 'https://example.com:8080',
       });
-      const client = (transport.client as unknown) as { proxy: Record<string, string | number>; secureProxy: boolean };
+      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
       expect(client).toBeInstanceOf(HttpsProxyAgent);
       expect(client.secureProxy).toEqual(true);
       expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));

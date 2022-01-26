@@ -97,9 +97,7 @@ export function urlEncode(object: { [key: string]: any }): string {
  *
  * @param value Initial source that we have to transform in order for it to be usable by the serializer
  */
-function getWalkSource(
-  value: any,
-): {
+function getWalkSource(value: any): {
   [key: string]: any;
 } {
   if (isError(value)) {
@@ -135,7 +133,7 @@ function getWalkSource(
       currentTarget?: unknown;
     }
 
-    const event = (value as unknown) as SimpleEvent;
+    const event = value as unknown as SimpleEvent;
 
     const source: {
       [key: string]: any;
@@ -245,7 +243,7 @@ function serializeValue(value: any): any {
  * - filter global objects
  */
 function normalizeValue<T>(value: T, key?: any): T | string {
-  if (key === 'domain' && value && typeof value === 'object' && ((value as unknown) as { _events: any })._events) {
+  if (key === 'domain' && value && typeof value === 'object' && (value as unknown as { _events: any })._events) {
     return '[Domain]';
   }
 

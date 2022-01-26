@@ -117,7 +117,7 @@ export function instrumentServer(): void {
 function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHandlerGetter {
   // We wrap this purely in order to be able to grab data and do further monkeypatching the first time it runs.
   // Otherwise, it's just a pass-through to the original method.
-  const wrappedHandlerGetter = async function(this: NextServer): Promise<ReqHandler> {
+  const wrappedHandlerGetter = async function (this: NextServer): Promise<ReqHandler> {
     if (!sdkSetupComplete) {
       // stash this in the closure so that `makeWrappedReqHandler` can use it
       liveServer = this.server;
@@ -152,7 +152,7 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
  * @returns A wrapped version of that logger
  */
 function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogger {
-  return function(this: Server, err: Error): void {
+  return function (this: Server, err: Error): void {
     // TODO add more context data here
 
     // We can use `configureScope` rather than `withScope` here because we're using domains to ensure that each request
@@ -203,7 +203,7 @@ function getPublicDirFiles(): Set<string> {
 function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
   const publicDirFiles = getPublicDirFiles();
   // add transaction start and stop to the normal request handling
-  const wrappedReqHandler = async function(
+  const wrappedReqHandler = async function (
     this: Server,
     req: NextRequest,
     res: NextResponse,
@@ -288,7 +288,7 @@ function makeWrappedMethodForGettingParameterizedPath(
   origMethod: ApiPageEnsurer | PageComponentFinder,
 ): WrappedApiPageEnsurer | WrappedPageComponentFinder {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wrappedMethod = async function(this: Server, parameterizedPath: string, ...args: any[]): Promise<any> {
+  const wrappedMethod = async function (this: Server, parameterizedPath: string, ...args: any[]): Promise<any> {
     const transaction = getActiveTransaction();
 
     // replace specific URL with parameterized version

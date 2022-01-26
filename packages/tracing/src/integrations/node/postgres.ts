@@ -55,8 +55,8 @@ export class Postgres implements Integration {
      * function (query, params) => Promise
      * function (pg.Cursor) => pg.Cursor
      */
-    fill(Client.prototype, 'query', function(orig: () => void | Promise<unknown>) {
-      return function(this: unknown, config: unknown, values: unknown, callback: unknown) {
+    fill(Client.prototype, 'query', function (orig: () => void | Promise<unknown>) {
+      return function (this: unknown, config: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
@@ -65,14 +65,14 @@ export class Postgres implements Integration {
         });
 
         if (typeof callback === 'function') {
-          return orig.call(this, config, values, function(err: Error, result: unknown) {
+          return orig.call(this, config, values, function (err: Error, result: unknown) {
             span?.finish();
             callback(err, result);
           });
         }
 
         if (typeof values === 'function') {
-          return orig.call(this, config, function(err: Error, result: unknown) {
+          return orig.call(this, config, function (err: Error, result: unknown) {
             span?.finish();
             values(err, result);
           });

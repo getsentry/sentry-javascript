@@ -48,7 +48,7 @@ export class GoogleCloudHttp implements Integration {
 
 /** Returns a wrapped function that makes a request with tracing enabled */
 function wrapRequestFunction(orig: RequestFunction): RequestFunction {
-  return function(this: common.Service, reqOpts: RequestOptions, callback: ResponseCallback): void {
+  return function (this: common.Service, reqOpts: RequestOptions, callback: ResponseCallback): void {
     let transaction: Transaction | undefined;
     let span: Span | undefined;
     const scope = getCurrentHub().getScope();
