@@ -335,7 +335,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   const source = getWalkSource(value);
 
   // Create an accumulator that will act as a parent for all future itterations of that branch
-  const acc = Array.isArray(value) ? [] : {};
+  const acc: { [key: string]: any } = Array.isArray(value) ? [] : {};
 
   // If we already walked that branch, bail out, as it's circular reference
   if (memo[0](value)) {
@@ -349,7 +349,8 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
       continue;
     }
     // Recursively walk through all the child nodes
-    (acc as { [key: string]: any })[innerKey] = walk(innerKey, source[innerKey], depth - 1, memo);
+    const innerValue: any = source[innerKey];
+    acc[innerKey] = walk(innerKey, innerValue, depth - 1, memo);
   }
 
   // Once walked through all the branches, remove the parent from memo storage
