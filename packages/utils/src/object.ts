@@ -372,7 +372,8 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function normalize(input: any, depth?: number): any {
   try {
-    return JSON.parse(JSON.stringify(input, (key: string, value: any) => walk(key, value, depth)));
+    // since we're at the outermost level, there is no key
+    return walk('', input, depth);
   } catch (_oO) {
     return '**non-serializable**';
   }
