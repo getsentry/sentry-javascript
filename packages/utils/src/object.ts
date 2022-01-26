@@ -231,20 +231,20 @@ function serializeValue(value: any): any {
     return '[Array]';
   }
 
-  const normalized = normalizeValue(value);
-  return isPrimitive(normalized) ? normalized : type;
+  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+  // pass-through.
+  const serializable = makeSerializable(value);
+  return isPrimitive(serializable) ? serializable : type;
 }
 
 /**
- * normalizeValue()
+ * makeSerializable()
  *
- * Takes unserializable input and make it serializable friendly
+ * Takes unserializable input and make it serializer-friendly.
  *
- * - translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
- * - serializes Error objects
- * - filter global objects
+ * Handles globals, functions, `undefined`, `NaN`, and other non-serializable values.
  */
-function normalizeValue<T>(value: T, key?: any): T | string {
+function makeSerializable<T>(value: T, key?: any): T | string {
   if (key === 'domain' && value && typeof value === 'object' && (value as unknown as { _events: any })._events) {
     return '[Domain]';
   }
@@ -322,10 +322,12 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   }
   /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
-  // If normalized value is a primitive, there are no branches left to walk, so bail out
-  const normalized = normalizeValue(value, key);
-  if (isPrimitive(normalized)) {
-    return normalized;
+  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+  // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
+  // all along), we're done.
+  const serializable = makeSerializable(value, key);
+  if (isPrimitive(serializable)) {
+    return serializable;
   }
 
   // Create source that we will use for the next iteration. It will either be an objectified error object (`Error` type
