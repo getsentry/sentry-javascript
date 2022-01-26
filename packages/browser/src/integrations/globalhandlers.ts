@@ -181,7 +181,8 @@ function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any): Event {
-  const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
+  const ERROR_TYPES_RE =
+    /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
 
   // If 'message' is ErrorEvent, get real message from inside
   let message = isErrorEvent(msg) ? msg.message : msg;

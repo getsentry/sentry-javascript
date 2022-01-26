@@ -33,7 +33,7 @@ function createConsoleWrapper(level: string): (originalConsoleMethod: () => void
     const sentryLevel = severityFromString(level);
 
     /* eslint-disable prefer-rest-params */
-    return function(this: typeof console): void {
+    return function (this: typeof console): void {
       if (getCurrentHub().getIntegration(Console)) {
         getCurrentHub().addBreadcrumb(
           {

@@ -186,32 +186,28 @@ describe('Tracekit - Custom Tests', () => {
     const stacktrace = computeStackTrace(REACT_NATIVE_EXPO_EXCEPTION);
     expect(stacktrace.stack).toEqual([
       {
-        url:
-          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        url: '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
         func: 'onPress',
         args: [],
         line: 595,
         column: 658,
       },
       {
-        url:
-          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        url: '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
         func: 'value',
         args: [],
         line: 221,
         column: 7656,
       },
       {
-        url:
-          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        url: '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
         func: 'onResponderRelease',
         args: [],
         line: 221,
         column: 5666,
       },
       {
-        url:
-          '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
+        url: '/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3',
         func: 'p',
         args: [],
         line: 96,

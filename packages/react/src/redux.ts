@@ -41,7 +41,7 @@ type PreloadedState<S> = Required<S> extends {
 
 type StoreEnhancerStoreCreator<Ext = Record<string, unknown>, StateExt = never> = <
   S = any,
-  A extends Action = AnyAction
+  A extends Action = AnyAction,
 >(
   reducer: Reducer<S, A>,
   preloadedState?: PreloadedState<S>,
@@ -87,45 +87,43 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
     ...enhancerOptions,
   };
 
-  return (next: StoreEnhancerStoreCreator): StoreEnhancerStoreCreator => <S = any, A extends Action = AnyAction>(
-    reducer: Reducer<S, A>,
-    initialState?: PreloadedState<S>,
-  ) => {
-    const sentryReducer: Reducer<S, A> = (state, action): S => {
-      const newState = reducer(state, action);
+  return (next: StoreEnhancerStoreCreator): StoreEnhancerStoreCreator =>
+    <S = any, A extends Action = AnyAction>(reducer: Reducer<S, A>, initialState?: PreloadedState<S>) => {
+      const sentryReducer: Reducer<S, A> = (state, action): S => {
+        const newState = reducer(state, action);
 
-      configureScope(scope => {
-        /* Action breadcrumbs */
-        const transformedAction = options.actionTransformer(action);
-        if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
-          scope.addBreadcrumb({
-            category: ACTION_BREADCRUMB_CATEGORY,
-            data: transformedAction,
-            type: ACTION_BREADCRUMB_TYPE,
-          });
-        }
+        configureScope(scope => {
+          /* Action breadcrumbs */
+          const transformedAction = options.actionTransformer(action);
+          if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
+            scope.addBreadcrumb({
+              category: ACTION_BREADCRUMB_CATEGORY,
+              data: transformedAction,
+              type: ACTION_BREADCRUMB_TYPE,
+            });
+          }
 
-        /* Set latest state to scope */
-        const transformedState = options.stateTransformer(newState);
-        if (typeof transformedState !== 'undefined' && transformedState !== null) {
-          scope.setContext(STATE_CONTEXT_KEY, transformedState);
-        } else {
-          scope.setContext(STATE_CONTEXT_KEY, null);
-        }
+          /* Set latest state to scope */
+          const transformedState = options.stateTransformer(newState);
+          if (typeof transformedState !== 'undefined' && transformedState !== null) {
+            scope.setContext(STATE_CONTEXT_KEY, transformedState);
+          } else {
+            scope.setContext(STATE_CONTEXT_KEY, null);
+          }
 
-        /* Allow user to configure scope with latest state */
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const { configureScopeWithState } = options;
-        if (typeof configureScopeWithState === 'function') {
-          configureScopeWithState(scope, newState);
-        }
-      });
+          /* Allow user to configure scope with latest state */
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const { configureScopeWithState } = options;
+          if (typeof configureScopeWithState === 'function') {
+            configureScopeWithState(scope, newState);
+          }
+        });
 
-      return newState;
+        return newState;
+      };
+
+      return next(sentryReducer, initialState);
     };
-
-    return next(sentryReducer, initialState);
-  };
 }
 
 export { createReduxEnhancer };

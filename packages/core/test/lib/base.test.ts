@@ -834,7 +834,7 @@ describe('BaseClient', () => {
         environment: 'production',
         event_id: '972f45b826a248bba98e990878a177e1',
         spans: [
-          ({
+          {
             data: { _sentry_extra_metrics: { M1: { value: 1 }, M2: { value: 2 } } },
             description: 'first-paint',
             endTimestamp: 1591603196.637835,
@@ -843,8 +843,8 @@ describe('BaseClient', () => {
             spanId: '9e15bf99fbe4bc80',
             startTimestamp: 1591603196.637835,
             traceId: '86f39e84263a4de99c326acab3bfe3bd',
-          } as unknown) as Span,
-          ({
+          } as unknown as Span,
+          {
             description: 'first-contentful-paint',
             endTimestamp: 1591603196.637835,
             op: 'paint',
@@ -852,7 +852,7 @@ describe('BaseClient', () => {
             spanId: 'aa554c1f506b0783',
             startTimestamp: 1591603196.637835,
             traceId: '86f39e84263a4de99c326acab3bfe3bd',
-          } as any) as Span,
+          } as any as Span,
         ],
         start_timestamp: 1591603196.614865,
         timestamp: 1591603196.728485,
@@ -1026,9 +1026,9 @@ describe('BaseClient', () => {
       const recordLostEventSpy = jest.fn();
       jest.spyOn(client, 'getTransport').mockImplementationOnce(
         () =>
-          (({
+          ({
             recordLostEvent: recordLostEventSpy,
-          } as any) as Transport),
+          } as any as Transport),
       );
 
       client.captureEvent({ message: 'hello' }, {});
@@ -1060,9 +1060,9 @@ describe('BaseClient', () => {
       const recordLostEventSpy = jest.fn();
       jest.spyOn(client, 'getTransport').mockImplementationOnce(
         () =>
-          (({
+          ({
             recordLostEvent: recordLostEventSpy,
-          } as any) as Transport),
+          } as any as Transport),
       );
 
       const scope = new Scope();
@@ -1112,9 +1112,9 @@ describe('BaseClient', () => {
       const recordLostEventSpy = jest.fn();
       jest.spyOn(client, 'getTransport').mockImplementationOnce(
         () =>
-          (({
+          ({
             recordLostEvent: recordLostEventSpy,
-          } as any) as Transport),
+          } as any as Transport),
       );
 
       client.captureEvent({ message: 'hello' }, {});

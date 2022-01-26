@@ -7,7 +7,7 @@ describe('forget', () => {
   };
 
   beforeEach(() => {
-    global.console = (console as any) as Console;
+    global.console = console as any as Console;
   });
 
   test('logs rejections to console.error', done => {

@@ -65,7 +65,7 @@ export class GoogleCloudGrpc implements Integration {
 
 /** Returns a wrapped function that returns a stub with tracing enabled */
 function wrapCreateStub(origCreate: CreateStubFunc): CreateStubFunc {
-  return async function(this: unknown, ...args: Parameters<CreateStubFunc>) {
+  return async function (this: unknown, ...args: Parameters<CreateStubFunc>) {
     const servicePath = args[1]?.servicePath;
     if (servicePath == null || servicePath == undefined) {
       return origCreate.apply(this, args);
@@ -99,30 +99,31 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
   fill(
     stub,
     methodName,
-    (orig: GrpcFunction): GrpcFunction => (...args) => {
-      const ret = orig.apply(stub, args);
-      if (typeof ret?.on !== 'function') {
-        return ret;
-      }
-      let transaction: Transaction | undefined;
-      let span: Span | undefined;
-      const scope = getCurrentHub().getScope();
-      if (scope) {
-        transaction = scope.getTransaction();
-      }
-      if (transaction) {
-        span = transaction.startChild({
-          description: `${callType} ${methodName}`,
-          op: `gcloud.grpc.${serviceIdentifier}`,
-        });
-      }
-      ret.on('status', () => {
-        if (span) {
-          span.finish();
+    (orig: GrpcFunction): GrpcFunction =>
+      (...args) => {
+        const ret = orig.apply(stub, args);
+        if (typeof ret?.on !== 'function') {
+          return ret;
         }
-      });
-      return ret;
-    },
+        let transaction: Transaction | undefined;
+        let span: Span | undefined;
+        const scope = getCurrentHub().getScope();
+        if (scope) {
+          transaction = scope.getTransaction();
+        }
+        if (transaction) {
+          span = transaction.startChild({
+            description: `${callType} ${methodName}`,
+            op: `gcloud.grpc.${serviceIdentifier}`,
+          });
+        }
+        ret.on('status', () => {
+          if (span) {
+            span.finish();
+          }
+        });
+        return ret;
+      },
   );
 }
 

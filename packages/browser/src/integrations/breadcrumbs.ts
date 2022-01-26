@@ -121,7 +121,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
     try {
       target = handlerData.event.target
         ? htmlTreeAsString(handlerData.event.target as Node, keyAttrs)
-        : htmlTreeAsString((handlerData.event as unknown) as Node, keyAttrs);
+        : htmlTreeAsString(handlerData.event as unknown as Node, keyAttrs);
     } catch (e) {
       target = '<unknown>';
     }

@@ -19,7 +19,7 @@ module.exports = {
     fixable: null,
     schema: [],
   },
-  create: function(context) {
+  create: function (context) {
     // variables should be defined here
 
     //----------------------------------------------------------------------
