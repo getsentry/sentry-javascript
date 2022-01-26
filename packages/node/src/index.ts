@@ -1,4 +1,4 @@
-export {
+export type {
   Breadcrumb,
   BreadcrumbHint,
   Request,
@@ -15,7 +15,9 @@ export {
   User,
 } from '@sentry/types';
 
-export { SeverityLevel } from '@sentry/utils';
+export type { SeverityLevel } from '@sentry/utils';
+
+export type { NodeOptions } from './types';
 
 export {
   addGlobalEventProcessor,
@@ -40,7 +42,6 @@ export {
   withScope,
 } from '@sentry/core';
 
-export { NodeOptions } from './types';
 export { NodeBackend } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';

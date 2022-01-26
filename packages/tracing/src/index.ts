@@ -1,6 +1,9 @@
 import { addExtensionMethods } from './hubextensions';
 import * as Integrations from './integrations';
 
+export type { RequestInstrumentationOptions } from './browser';
+export type { SpanStatusType } from './span';
+
 export { Integrations };
 
 // This is already exported as part of `Integrations` above (and for the moment will remain so for
@@ -21,14 +24,13 @@ export { Integrations };
 // For an example of of the new usage of BrowserTracing, see @sentry/nextjs index.client.ts
 export { BrowserTracing } from './browser';
 
-export { Span, SpanStatusType, spanStatusfromHttpCode } from './span';
+export { Span, spanStatusfromHttpCode } from './span';
 // eslint-disable-next-line deprecation/deprecation
 export { SpanStatus } from './spanstatus';
 export { Transaction } from './transaction';
 export {
   // TODO deprecate old name in v7
   instrumentOutgoingRequests as registerRequestInstrumentation,
-  RequestInstrumentationOptions,
   defaultRequestInstrumentationOptions,
 } from './browser';
 export { IdleTransaction } from './idletransaction';

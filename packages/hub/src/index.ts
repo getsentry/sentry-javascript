@@ -1,3 +1,10 @@
+export type {
+  Carrier,
+  // eslint-disable-next-line deprecation/deprecation
+  DomainAsCarrier,
+  Layer,
+} from './hub';
+
 export { addGlobalEventProcessor, Scope } from './scope';
 export { Session } from './session';
 export { SessionFlusher } from './sessionflusher';
@@ -10,8 +17,4 @@ export {
   Hub,
   makeMain,
   setHubOnCarrier,
-  Carrier,
-  // eslint-disable-next-line deprecation/deprecation
-  DomainAsCarrier,
-  Layer,
 } from './hub';

@@ -1,3 +1,7 @@
+export type { APIDetails } from './api';
+export type { BackendClass } from './basebackend';
+export type { ClientClass } from './sdk';
+
 export {
   addBreadcrumb,
   captureException,
@@ -17,7 +21,6 @@ export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMai
 export {
   // eslint-disable-next-line deprecation/deprecation
   API,
-  APIDetails,
   getEnvelopeEndpointWithUrlEncodedAuth,
   getStoreEndpointWithUrlEncodedAuth,
   getRequestHeaders,
@@ -25,9 +28,9 @@ export {
   getReportDialogEndpoint,
 } from './api';
 export { BaseClient } from './baseclient';
-export { BackendClass, BaseBackend } from './basebackend';
+export { BaseBackend } from './basebackend';
 export { eventToSentryRequest, sessionToSentryRequest } from './request';
-export { initAndBind, ClientClass } from './sdk';
+export { initAndBind } from './sdk';
 export { NoopTransport } from './transports/noop';
 export { SDK_VERSION } from './version';
 

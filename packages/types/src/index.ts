@@ -1,27 +1,27 @@
-export { Breadcrumb, BreadcrumbHint } from './breadcrumb';
-export { Client } from './client';
-export { Context, Contexts } from './context';
-export { DsnComponents, DsnLike, DsnProtocol } from './dsn';
-export { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
-export { ExtendedError } from './error';
-export { Event, EventHint } from './event';
-export { EventStatus } from './eventstatus';
-export { EventProcessor } from './eventprocessor';
-export { Exception } from './exception';
-export { Extra, Extras } from './extra';
-export { Hub } from './hub';
-export { Integration, IntegrationClass } from './integration';
-export { Mechanism } from './mechanism';
-export { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
-export { Options } from './options';
-export { Package } from './package';
-export { QueryParams, Request, SentryRequest, SentryRequestType } from './request';
-export { Response } from './response';
-export { Runtime } from './runtime';
-export { CaptureContext, Scope, ScopeContext } from './scope';
-export { SdkInfo } from './sdkinfo';
-export { SdkMetadata } from './sdkmetadata';
-export {
+export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+export type { Client } from './client';
+export type { Context, Contexts } from './context';
+export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
+export type { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
+export type { ExtendedError } from './error';
+export type { Event, EventHint } from './event';
+export type { EventStatus } from './eventstatus';
+export type { EventProcessor } from './eventprocessor';
+export type { Exception } from './exception';
+export type { Extra, Extras } from './extra';
+export type { Hub } from './hub';
+export type { Integration, IntegrationClass } from './integration';
+export type { Mechanism } from './mechanism';
+export type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
+export type { Options } from './options';
+export type { Package } from './package';
+export type { QueryParams, Request, SentryRequest, SentryRequestType } from './request';
+export type { Response } from './response';
+export type { Runtime } from './runtime';
+export type { CaptureContext, Scope, ScopeContext } from './scope';
+export type { SdkInfo } from './sdkinfo';
+export type { SdkMetadata } from './sdkmetadata';
+export type {
   SessionAggregates,
   AggregationCounts,
   Session,
@@ -32,12 +32,12 @@ export {
   SessionFlusherLike,
 } from './session';
 
-export { Severity } from './severity';
-export { SeverityLevel, SeverityLevels } from './severity';
-export { Span, SpanContext } from './span';
-export { StackFrame } from './stackframe';
-export { Stacktrace } from './stacktrace';
-export {
+export type { Severity } from './severity';
+export type { SeverityLevel, SeverityLevels } from './severity';
+export type { Span, SpanContext } from './span';
+export type { StackFrame } from './stackframe';
+export type { Stacktrace } from './stacktrace';
+export type {
   CustomSamplingContext,
   Measurements,
   SamplingContext,
@@ -47,7 +47,7 @@ export {
   TransactionMetadata,
   TransactionSamplingMethod,
 } from './transaction';
-export { Thread } from './thread';
-export { Outcome, Transport, TransportOptions, TransportClass } from './transport';
-export { User } from './user';
-export { WrappedFunction } from './wrappedfunction';
+export type { Thread } from './thread';
+export type { Outcome, Transport, TransportOptions, TransportClass } from './transport';
+export type { User } from './user';
+export type { WrappedFunction } from './wrappedfunction';
