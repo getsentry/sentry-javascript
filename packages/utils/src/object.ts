@@ -310,6 +310,8 @@ function makeSerializable<T>(value: T, key?: any): T | string {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function walk(key: string, value: any, depth: number = +Infinity, memo: MemoFunc = memoBuilder()): any {
+  const [memoize, unmemoize] = memo;
+
   // If we reach the maximum depth, serialize whatever is left
   if (depth === 0) {
     return serializeValue(value);
@@ -338,7 +340,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   const acc: { [key: string]: any } = Array.isArray(value) ? [] : {};
 
   // If we already walked that branch, bail out, as it's circular reference
-  if (memo[0](value)) {
+  if (memoize(value)) {
     return '[Circular ~]';
   }
 
@@ -354,7 +356,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   }
 
   // Once walked through all the branches, remove the parent from memo storage
-  memo[1](value);
+  unmemoize(value);
 
   // Return accumulated values
   return acc;
