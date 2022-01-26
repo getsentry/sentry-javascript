@@ -165,8 +165,8 @@ describe('Minimal', () => {
       const client: any = new TestClient({});
       const scope = getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
-      scope.setLevel(Severity.Warning);
-      expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
+      scope.setLevel('warning' as Severity);
+      expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning' as Severity);
     });
   });
 
@@ -245,16 +245,16 @@ describe('Minimal', () => {
 
   test('withScope', () => {
     withScope(scope => {
-      scope.setLevel(Severity.Warning);
+      scope.setLevel('warning' as Severity);
       scope.setFingerprint(['1']);
       withScope(scope2 => {
-        scope2.setLevel(Severity.Info);
+        scope2.setLevel('info' as Severity);
         scope2.setFingerprint(['2']);
         withScope(scope3 => {
           scope3.clear();
-          expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual(Severity.Warning);
+          expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning' as Severity);
           expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['1']);
-          expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual(Severity.Info);
+          expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual('info' as Severity);
           expect(global.__SENTRY__.hub._stack[2].scope._fingerprint).toEqual(['2']);
           expect(global.__SENTRY__.hub._stack[3].scope._level).toBeUndefined();
         });

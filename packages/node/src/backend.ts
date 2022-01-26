@@ -22,7 +22,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: Severity = 'info' as Severity, hint?: EventHint): PromiseLike<Event> {
     return eventFromMessage(this._options, message, level, hint);
   }
 

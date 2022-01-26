@@ -38,7 +38,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
     });
   }
 
-  public eventFromMessage(message: string, level: Severity = Severity.Info): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: Severity = 'info' as Severity): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 

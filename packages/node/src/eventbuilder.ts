@@ -69,7 +69,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
 export function eventFromMessage(
   options: Options,
   message: string,
-  level: Severity = Severity.Info,
+  level: Severity = 'info' as Severity,
   hint?: EventHint,
 ): PromiseLike<Event> {
   const event: Event = {

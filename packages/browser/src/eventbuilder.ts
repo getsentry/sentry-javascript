@@ -24,7 +24,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
     attachStacktrace: options.attachStacktrace,
   });
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
-  event.level = Severity.Error;
+  event.level = 'error' as Severity;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
@@ -38,7 +38,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
 export function eventFromMessage(
   options: Options,
   message: string,
-  level: Severity = Severity.Info,
+  level: Severity = 'info' as Severity,
   hint?: EventHint,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
