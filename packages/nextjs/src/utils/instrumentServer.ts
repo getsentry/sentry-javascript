@@ -41,7 +41,11 @@ export interface NextRequest extends http.IncomingMessage {
   headers: { [key: string]: string };
   body: string | { [key: string]: unknown };
 }
-type NextResponse = http.ServerResponse;
+type NextResponse =
+  | http.ServerResponse
+  | {
+      originalRequest: http.ServerResponse;
+    };
 
 // the methods we'll wrap
 type HandlerGetter = () => Promise<ReqHandler>;
@@ -105,6 +109,21 @@ export function instrumentServer(): void {
 
   const nextServerPrototype = Object.getPrototypeOf(createNextServer({}));
   fill(nextServerPrototype, 'getServerRequestHandler', makeWrappedHandlerGetter);
+}
+
+/**
+ * Return http.ServerResponse object regardless of Next.js version.
+ * Since Next.js version 12.0.9, a custom object called NodeNextResponse is used instead of http.ServerResponse.
+ *
+ * @param nextRes Next.js's response object
+ * @returns pure http.ServerResponse object
+ */
+function convertToHttpSeverResponse(nextRes: NextResponse): http.ServerResponse {
+  if ('originalRequest' in nextRes) {
+    return nextRes.originalRequest;
+  } else {
+    return nextRes;
+  }
 }
 
 /**
@@ -206,9 +225,11 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
   const wrappedReqHandler = async function (
     this: Server,
     req: NextRequest,
-    res: NextResponse,
+    nextRes: NextResponse,
     parsedUrl?: url.UrlWithParsedQuery,
   ): Promise<void> {
+    const res = convertToHttpSeverResponse(nextRes);
+
     // wrap everything in a domain in order to prevent scope bleed between requests
     const local = domain.create();
     local.add(req);
