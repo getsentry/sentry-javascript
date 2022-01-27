@@ -47,7 +47,7 @@ export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): stri
 };
 
 export const generateComponentTrace = (vm?: ViewModel): string => {
-  if (vm?._isVue && vm?.$parent) {
+  if ((vm?._isVue || vm?.__isVue) && vm?.$parent) {
     const tree = [];
     let currentRecursiveSequence = 0;
     while (vm) {
