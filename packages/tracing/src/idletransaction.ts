@@ -18,7 +18,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   public constructor(
     private readonly _pushActivity: (id: string) => void,
     private readonly _popActivity: (id: string) => void,
-    public transactionSpanId: string = '',
+    private readonly _transactionSpanId: string,
     maxlen?: number,
   ) {
     super(maxlen);
@@ -30,7 +30,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   public add(span: Span): void {
     // We should make sure we do not push and pop activities for
     // the transaction that this span recorder belongs to.
-    if (span.spanId !== this.transactionSpanId) {
+    if (span.spanId !== this._transactionSpanId) {
       // We patch span.finish() to pop an activity after setting an endTimestamp.
       span.finish = (endTimestamp?: number) => {
         span.endTimestamp = typeof endTimestamp === 'number' ? endTimestamp : timestampWithMs();

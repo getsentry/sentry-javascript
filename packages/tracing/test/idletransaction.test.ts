@@ -208,7 +208,7 @@ describe('IdleTransactionSpanRecorder', () => {
   it('pushes and pops activities', () => {
     const mockPushActivity = jest.fn();
     const mockPopActivity = jest.fn();
-    const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, undefined, 10);
+    const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, '', 10);
     expect(mockPushActivity).toHaveBeenCalledTimes(0);
     expect(mockPopActivity).toHaveBeenCalledTimes(0);
 
@@ -231,7 +231,7 @@ describe('IdleTransactionSpanRecorder', () => {
   it('does not push activities if a span has a timestamp', () => {
     const mockPushActivity = jest.fn();
     const mockPopActivity = jest.fn();
-    const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, undefined, 10);
+    const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, '', 10);
 
     const span = new Span({ sampled: true, startTimestamp: 765, endTimestamp: 345 });
     spanRecorder.add(span);
