@@ -135,7 +135,7 @@ describe('internal wrap()', () => {
       },
     };
     // @ts-ignore eventFn does not have property handleEvent
-    context.eventFn.handleEvent = function(): void {
+    context.eventFn.handleEvent = function (): void {
       expect(this).toBe(context);
     };
 

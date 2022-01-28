@@ -7,9 +7,10 @@ const config = function(userConfig: Record<string, unknown>): Configuration {
     module: {
       rules: [
         {
-          test: /\.js$/,
+          test: /\.(js|ts)$/,
           exclude: /node_modules/,
           loader: 'babel-loader',
+          options: { presets: [['@babel/preset-typescript', { allowNamespaces: true }]] },
         },
         {
           test: /\.hbs$/,

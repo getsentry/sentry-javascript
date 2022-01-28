@@ -34,11 +34,13 @@ const fallbackGlobalObject = {};
  * @returns Global scope object
  */
 export function getGlobalObject<T>(): T & SentryGlobal {
-  return (isNodeEnv()
-    ? global
-    : typeof window !== 'undefined' // eslint-disable-line no-restricted-globals
-    ? window // eslint-disable-line no-restricted-globals
-    : typeof self !== 'undefined'
-    ? self
-    : fallbackGlobalObject) as T & SentryGlobal;
+  return (
+    isNodeEnv()
+      ? global
+      : typeof window !== 'undefined' // eslint-disable-line no-restricted-globals
+      ? window // eslint-disable-line no-restricted-globals
+      : typeof self !== 'undefined'
+      ? self
+      : fallbackGlobalObject
+  ) as T & SentryGlobal;
 }

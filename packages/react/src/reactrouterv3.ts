@@ -44,7 +44,7 @@ export function reactRouterV3Instrumentation(
 
     // Have to use global.location because history.location might not be defined.
     if (startTransactionOnPageLoad && global && global.location) {
-      normalizeTransactionName(routes, (global.location as unknown) as Location, match, (localName: string) => {
+      normalizeTransactionName(routes, global.location as unknown as Location, match, (localName: string) => {
         prevName = localName;
         activeTransaction = startTransaction({
           name: prevName,

@@ -14,7 +14,7 @@ describe('BaseTransport', () => {
       navigator.sendBeacon = sendBeaconSpy;
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
-        get: function() {
+        get: function () {
           return visibilityState;
         },
       });

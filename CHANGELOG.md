@@ -4,21 +4,47 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 6.17.0-beta.0
+## 6.17.3
 
-This beta releases contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class. We also deprecated our typescript enums and our internal `API` class. We've detailed how to update your sdk usage if you are using the `Dsn` class or any of the deprecated methods in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0).
+- fix(nextjs): Unwrap `req` and `res` if necessary when instrumenting server (#4467)
 
+## 6.17.2
+
+This patch contains a breaking change for anyone setting the undocumented `rethrowAfterCapture` option for `@sentry/serverless`'s AWS wrapper to `false`, as its functionality has been removed. For backwards compatibility with anyone setting it to `true` (which is also the default), the option remains in the `WrapperOptions` type for now. It will be removed in the next major release, though, so we recommend removing it from your code.
+
+- ref(serverless): Remove `rethrowAfterCapture` use in AWS lambda wrapper (#4448)
+- fix(utils): Remove dom is casting (#4451)
+
+## 6.17.1
+
+- ref(core): Renormalize event only after stringification errors (#4425)
+- feat(nextjs): Add option to use `hidden-source-map` as webpack devtool value (#4436)
+- fix(tracing): ignore the xhr/fetch response if its request is not being tracked (#4428)
+- fix(vue): prevent after hook from starting new span (#4438)
+
+Work in this release contributed by @datbth. Thank you for your contribution!
+
+## 6.17.0
+
+This release contains several internal refactors that help reduce the bundle size of the SDK and help prep for our [upcoming major release](https://github.com/getsentry/sentry-javascript/issues/4240). There are no breaking changes in this patch unless you are using our internal `Dsn` class, which has been removed. We also deprecated a few of our typescript enums and our internal `API` class. We've detailed in our [migration documentation](./MIGRATION.md#upgrading-from-6.x-to-6.17.0) how to update your sdk usage if you are using any of these in your code.
+
+- feat: Remove Dsn class (#4325)
+- feat(core): Add processing metadata to scope and event (#4252)
 - feat(core): Deprecate API class (#4281)
-- feat(dsn): Remove Dsn class (#4325)
 - feat(ember): Update ember dependencies (#4253)
+- fix(nextjs): Inject sentry.x.config.js into pages/_error (#4397)
 - fix(nextjs): Add sentry-cli existence check for enabling webpack plugin #4311
 - ref(tracing): deprecate span status enum (#4299)
+- ref(tracing): Remove script evaluation span (#4433)
 - ref(types): drop unused logLevel (#4317)
 - ref(types): deprecate request status enum (#4316)
 - ref(types): deprecate outcome enum (#4315)
 - ref(types): deprecate transactionmethod enum (#4314)
 - ref(types): deprecate status enum (#4298)
-- ref(types): deprecate severity enum (#4280)
+- ref(utils): improve invalid dsn error message (#4430)
+- fix(vue): Prioritize app variable to avoid duplicate name pollution (#4437)
+
+Work in this release contributed by @yordis, @Badisi, and @lh1me. Thank you for your contribution!
 
 ## 6.16.1
 
@@ -930,7 +956,7 @@ removed in the future. If you are only using the `Tracing` integration there is 
 
 ## 5.6.3
 
-- [browser] fix: Don't capture our own XHR events that somehow bubbled-up to global handler
+- [browser] fix: Don't capture our own XHR events that somehow bubbled-up to global handler (#2221)
 
 ## 5.6.2
 

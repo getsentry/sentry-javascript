@@ -14,7 +14,7 @@ const terserInstance = terser({
     // want to have unnecessary debug functionality.
     global_defs: {
       __SENTRY_BROWSER_BUNDLE__: true,
-      __SENTRY_NO_DEBUG__: true,
+      __SENTRY_NO_DEBUG__: false,
     },
   },
   mangle: {

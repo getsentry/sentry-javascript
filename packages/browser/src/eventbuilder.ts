@@ -1,4 +1,4 @@
-import { Event, EventHint, Options, SeverityLevel } from '@sentry/types';
+import { Event, EventHint, Options, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -24,7 +24,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
     attachStacktrace: options.attachStacktrace,
   });
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
-  event.level = 'error';
+  event.level = Severity.Error;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
@@ -38,7 +38,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
 export function eventFromMessage(
   options: Options,
   message: string,
-  level: SeverityLevel = 'info',
+  level: Severity = Severity.Info,
   hint?: EventHint,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;

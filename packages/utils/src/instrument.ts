@@ -111,13 +111,13 @@ function instrumentConsole(): void {
     return;
   }
 
-  ['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function(level: string): void {
+  ['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function (level: string): void {
     if (!(level in global.console)) {
       return;
     }
 
-    fill(global.console, level, function(originalConsoleLevel: () => any): Function {
-      return function(...args: any[]): void {
+    fill(global.console, level, function (originalConsoleLevel: () => any): Function {
+      return function (...args: any[]): void {
         triggerHandlers('console', { args, level });
 
         // this fails for some browsers. :(
@@ -135,8 +135,8 @@ function instrumentFetch(): void {
     return;
   }
 
-  fill(global, 'fetch', function(originalFetch: () => void): () => void {
-    return function(...args: any[]): void {
+  fill(global, 'fetch', function (originalFetch: () => void): () => void {
+    return function (...args: any[]): void {
       const handlerData = {
         args,
         fetchData: {
@@ -219,13 +219,10 @@ function instrumentXHR(): void {
     return;
   }
 
-  // Poor man's implementation of ES6 `Map`, tracking and keeping in sync key and value separately.
-  const requestKeys: XMLHttpRequest[] = [];
-  const requestValues: Array<any>[] = [];
   const xhrproto = XMLHttpRequest.prototype;
 
-  fill(xhrproto, 'open', function(originalOpen: () => void): () => void {
-    return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+  fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
+    return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const xhr = this;
       const url = args[1];
@@ -241,26 +238,12 @@ function instrumentXHR(): void {
         xhr.__sentry_own_request__ = true;
       }
 
-      const onreadystatechangeHandler = function(): void {
+      const onreadystatechangeHandler = function (): void {
         if (xhr.readyState === 4) {
           try {
             // touching statusCode in some platforms throws
             // an exception
             xhrInfo.status_code = xhr.status;
-          } catch (e) {
-            /* do nothing */
-          }
-
-          try {
-            const requestPos = requestKeys.indexOf(xhr);
-            if (requestPos !== -1) {
-              // Make sure to pop both key and value to keep it in sync.
-              requestKeys.splice(requestPos);
-              const args = requestValues.splice(requestPos)[0];
-              if (args[0] !== undefined) {
-                xhrInfo.body = args[0] as XHRSendInput;
-              }
-            }
           } catch (e) {
             /* do nothing */
           }
@@ -275,8 +258,8 @@ function instrumentXHR(): void {
       };
 
       if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
-        fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
-          return function(...readyStateArgs: any[]): void {
+        fill(xhr, 'onreadystatechange', function (original: WrappedFunction): Function {
+          return function (...readyStateArgs: any[]): void {
             onreadystatechangeHandler();
             return original.apply(xhr, readyStateArgs);
           };
@@ -289,10 +272,11 @@ function instrumentXHR(): void {
     };
   });
 
-  fill(xhrproto, 'send', function(originalSend: () => void): () => void {
-    return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      requestKeys.push(this);
-      requestValues.push(args);
+  fill(xhrproto, 'send', function (originalSend: () => void): () => void {
+    return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      if (this.__sentry_xhr__ && args[0] !== undefined) {
+        this.__sentry_xhr__.body = args[0];
+      }
 
       triggerHandlers('xhr', {
         args,
@@ -314,7 +298,7 @@ function instrumentHistory(): void {
   }
 
   const oldOnPopState = global.onpopstate;
-  global.onpopstate = function(this: WindowEventHandlers, ...args: any[]): any {
+  global.onpopstate = function (this: WindowEventHandlers, ...args: any[]): any {
     const to = global.location.href;
     // keep track of the current URL state, as we always receive only the updated state
     const from = lastHref;
@@ -337,7 +321,7 @@ function instrumentHistory(): void {
 
   /** @hidden */
   function historyReplacementFunction(originalHistoryFunction: () => void): () => void {
-    return function(this: History, ...args: any[]): void {
+    return function (this: History, ...args: any[]): void {
       const url = args.length > 2 ? args[2] : undefined;
       if (url) {
         // coerce to string (this is what pushState does)
@@ -524,8 +508,8 @@ function instrumentDOM(): void {
       return;
     }
 
-    fill(proto, 'addEventListener', function(originalAddEventListener: AddEventListener): AddEventListener {
-      return function(
+    fill(proto, 'addEventListener', function (originalAddEventListener: AddEventListener): AddEventListener {
+      return function (
         this: Element,
         type: string,
         listener: EventListenerOrEventListenerObject,
@@ -554,42 +538,46 @@ function instrumentDOM(): void {
       };
     });
 
-    fill(proto, 'removeEventListener', function(originalRemoveEventListener: RemoveEventListener): RemoveEventListener {
-      return function(
-        this: Element,
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-        options?: boolean | EventListenerOptions,
-      ): () => void {
-        if (type === 'click' || type == 'keypress') {
-          try {
-            const el = this as InstrumentedElement;
-            const handlers = el.__sentry_instrumentation_handlers__ || {};
-            const handlerForType = handlers[type];
+    fill(
+      proto,
+      'removeEventListener',
+      function (originalRemoveEventListener: RemoveEventListener): RemoveEventListener {
+        return function (
+          this: Element,
+          type: string,
+          listener: EventListenerOrEventListenerObject,
+          options?: boolean | EventListenerOptions,
+        ): () => void {
+          if (type === 'click' || type == 'keypress') {
+            try {
+              const el = this as InstrumentedElement;
+              const handlers = el.__sentry_instrumentation_handlers__ || {};
+              const handlerForType = handlers[type];
 
-            if (handlerForType) {
-              handlerForType.refCount -= 1;
-              // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
-              if (handlerForType.refCount <= 0) {
-                originalRemoveEventListener.call(this, type, handlerForType.handler, options);
-                handlerForType.handler = undefined;
-                delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
-              }
+              if (handlerForType) {
+                handlerForType.refCount -= 1;
+                // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
+                if (handlerForType.refCount <= 0) {
+                  originalRemoveEventListener.call(this, type, handlerForType.handler, options);
+                  handlerForType.handler = undefined;
+                  delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
+                }
 
-              // If there are no longer any custom handlers of any type on this element, cleanup everything.
-              if (Object.keys(handlers).length === 0) {
-                delete el.__sentry_instrumentation_handlers__;
+                // If there are no longer any custom handlers of any type on this element, cleanup everything.
+                if (Object.keys(handlers).length === 0) {
+                  delete el.__sentry_instrumentation_handlers__;
+                }
               }
+            } catch (e) {
+              // Accessing dom properties is always fragile.
+              // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
             }
-          } catch (e) {
-            // Accessing dom properties is always fragile.
-            // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
           }
-        }
 
-        return originalRemoveEventListener.call(this, type, listener, options);
-      };
-    });
+          return originalRemoveEventListener.call(this, type, listener, options);
+        };
+      },
+    );
   });
 }
 
@@ -598,7 +586,7 @@ let _oldOnErrorHandler: OnErrorEventHandler = null;
 function instrumentError(): void {
   _oldOnErrorHandler = global.onerror;
 
-  global.onerror = function(msg: any, url: any, line: any, column: any, error: any): boolean {
+  global.onerror = function (msg: any, url: any, line: any, column: any, error: any): boolean {
     triggerHandlers('error', {
       column,
       error,
@@ -621,7 +609,7 @@ let _oldOnUnhandledRejectionHandler: ((e: any) => void) | null = null;
 function instrumentUnhandledRejection(): void {
   _oldOnUnhandledRejectionHandler = global.onunhandledrejection;
 
-  global.onunhandledrejection = function(e: any): boolean {
+  global.onunhandledrejection = function (e: any): boolean {
     triggerHandlers('unhandledrejection', e);
 
     if (_oldOnUnhandledRejectionHandler) {

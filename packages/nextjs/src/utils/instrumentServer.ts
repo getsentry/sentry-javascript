@@ -34,18 +34,31 @@ interface Server {
   publicDir: string;
 }
 
-export interface NextRequest extends http.IncomingMessage {
+export type NextRequest = (
+  | http.IncomingMessage // in nextjs versions < 12.0.9, `NextRequest` extends `http.IncomingMessage`
+  | {
+      _req: http.IncomingMessage; // in nextjs versions >= 12.0.9, `NextRequest` wraps `http.IncomingMessage`
+    }
+) & {
   cookies: Record<string, string>;
   url: string;
   query: { [key: string]: string };
   headers: { [key: string]: string };
   body: string | { [key: string]: unknown };
-}
-type NextResponse = http.ServerResponse;
+  method: string;
+};
+
+type NextResponse =
+  // in nextjs versions < 12.0.9, `NextResponse` extends `http.ServerResponse`
+  | http.ServerResponse
+  // in nextjs versions >= 12.0.9, `NextResponse` wraps `http.ServerResponse`
+  | {
+      _res: http.ServerResponse;
+    };
 
 // the methods we'll wrap
 type HandlerGetter = () => Promise<ReqHandler>;
-type ReqHandler = (req: NextRequest, res: NextResponse, parsedUrl?: url.UrlWithParsedQuery) => Promise<void>;
+type ReqHandler = (nextReq: NextRequest, nextRes: NextResponse, parsedUrl?: url.UrlWithParsedQuery) => Promise<void>;
 type ErrorLogger = (err: Error) => void;
 type ApiPageEnsurer = (path: string) => Promise<void>;
 type PageComponentFinder = (
@@ -117,7 +130,7 @@ export function instrumentServer(): void {
 function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHandlerGetter {
   // We wrap this purely in order to be able to grab data and do further monkeypatching the first time it runs.
   // Otherwise, it's just a pass-through to the original method.
-  const wrappedHandlerGetter = async function(this: NextServer): Promise<ReqHandler> {
+  const wrappedHandlerGetter = async function (this: NextServer): Promise<ReqHandler> {
     if (!sdkSetupComplete) {
       // stash this in the closure so that `makeWrappedReqHandler` can use it
       liveServer = this.server;
@@ -152,7 +165,7 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
  * @returns A wrapped version of that logger
  */
 function makeWrappedErrorLogger(origErrorLogger: ErrorLogger): WrappedErrorLogger {
-  return function(this: Server, err: Error): void {
+  return function (this: Server, err: Error): void {
     // TODO add more context data here
 
     // We can use `configureScope` rather than `withScope` here because we're using domains to ensure that each request
@@ -203,12 +216,18 @@ function getPublicDirFiles(): Set<string> {
 function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
   const publicDirFiles = getPublicDirFiles();
   // add transaction start and stop to the normal request handling
-  const wrappedReqHandler = async function(
+  const wrappedReqHandler = async function (
     this: Server,
-    req: NextRequest,
-    res: NextResponse,
+    nextReq: NextRequest,
+    nextRes: NextResponse,
     parsedUrl?: url.UrlWithParsedQuery,
   ): Promise<void> {
+    // Starting with version 12.0.9, nextjs wraps the incoming request in a `NodeNextRequest` object and the outgoing
+    // response in a `NodeNextResponse` object before passing them to the handler. (This is necessary here but not in
+    // `withSentry` because by the time nextjs passes them to an API handler, it's unwrapped them again.)
+    const req = '_req' in nextReq ? nextReq._req : nextReq;
+    const res = '_res' in nextRes ? nextRes._res : nextRes;
+
     // wrap everything in a domain in order to prevent scope bleed between requests
     const local = domain.create();
     local.add(req);
@@ -220,23 +239,23 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, req));
+        currentScope.addEventProcessor(event => parseRequest(event, nextReq));
 
         // We only want to record page and API requests
-        if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
+        if (hasTracingEnabled() && shouldTraceRequest(nextReq.url, publicDirFiles)) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
-          if (req.headers && isString(req.headers['sentry-trace'])) {
-            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
+          if (nextReq.headers && isString(nextReq.headers['sentry-trace'])) {
+            traceparentData = extractTraceparentData(nextReq.headers['sentry-trace'] as string);
             logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
           // pull off query string, if any
-          const reqPath = stripUrlQueryAndFragment(req.url);
+          const reqPath = stripUrlQueryAndFragment(nextReq.url);
 
           // requests for pages will only ever be GET requests, so don't bother to include the method in the transaction
           // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
-          const namePrefix = req.url.startsWith('/api') ? `${(req.method || 'GET').toUpperCase()} ` : '';
+          const namePrefix = nextReq.url.startsWith('/api') ? `${nextReq.method.toUpperCase()} ` : '';
 
           const transaction = startTransaction(
             {
@@ -245,8 +264,12 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
               metadata: { requestPath: reqPath },
               ...traceparentData,
             },
-            // extra context passed to the `tracesSampler`
-            { request: req },
+            // Extra context passed to the `tracesSampler` (Note: We're combining `nextReq` and `req` this way in order
+            // to not break people's `tracesSampler` functions, even though the format of `nextReq` has changed (see
+            // note above re: nextjs 12.0.9). If `nextReq === req` (pre 12.0.9), then spreading `req` is a no-op - we're
+            // just spreading the same stuff twice. If `nextReq` contains `req` (12.0.9 and later), then spreading `req`
+            // mimics the old format by flattening the data.)
+            { request: { ...nextReq, ...req } },
           );
 
           currentScope.setSpan(transaction);
@@ -270,7 +293,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
         }
       }
 
-      return origReqHandler.call(this, req, res, parsedUrl);
+      return origReqHandler.call(this, nextReq, nextRes, parsedUrl);
     });
   };
 
@@ -288,7 +311,7 @@ function makeWrappedMethodForGettingParameterizedPath(
   origMethod: ApiPageEnsurer | PageComponentFinder,
 ): WrappedApiPageEnsurer | WrappedPageComponentFinder {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wrappedMethod = async function(this: Server, parameterizedPath: string, ...args: any[]): Promise<any> {
+  const wrappedMethod = async function (this: Server, parameterizedPath: string, ...args: any[]): Promise<any> {
     const transaction = getActiveTransaction();
 
     // replace specific URL with parameterized version
