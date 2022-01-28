@@ -58,7 +58,7 @@ type NextResponse =
 
 // the methods we'll wrap
 type HandlerGetter = () => Promise<ReqHandler>;
-type ReqHandler = (req: NextRequest, res: NextResponse, parsedUrl?: url.UrlWithParsedQuery) => Promise<void>;
+type ReqHandler = (nextReq: NextRequest, nextRes: NextResponse, parsedUrl?: url.UrlWithParsedQuery) => Promise<void>;
 type ErrorLogger = (err: Error) => void;
 type ApiPageEnsurer = (path: string) => Promise<void>;
 type PageComponentFinder = (
@@ -218,8 +218,8 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
   // add transaction start and stop to the normal request handling
   const wrappedReqHandler = async function (
     this: Server,
-    req: NextRequest,
-    res: NextResponse,
+    nextReq: NextRequest,
+    nextRes: NextResponse,
     parsedUrl?: url.UrlWithParsedQuery,
   ): Promise<void> {
     // wrap everything in a domain in order to prevent scope bleed between requests
@@ -233,23 +233,23 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, req));
+        currentScope.addEventProcessor(event => parseRequest(event, nextReq));
 
         // We only want to record page and API requests
-        if (hasTracingEnabled() && shouldTraceRequest(req.url, publicDirFiles)) {
+        if (hasTracingEnabled() && shouldTraceRequest(nextReq.url, publicDirFiles)) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
-          if (req.headers && isString(req.headers['sentry-trace'])) {
-            traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
+          if (nextReq.headers && isString(nextReq.headers['sentry-trace'])) {
+            traceparentData = extractTraceparentData(nextReq.headers['sentry-trace'] as string);
             logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
           // pull off query string, if any
-          const reqPath = stripUrlQueryAndFragment(req.url);
+          const reqPath = stripUrlQueryAndFragment(nextReq.url);
 
           // requests for pages will only ever be GET requests, so don't bother to include the method in the transaction
           // name; requests to API routes could be GET, POST, PUT, etc, so do include it there
-          const namePrefix = req.url.startsWith('/api') ? `${(req.method || 'GET').toUpperCase()} ` : '';
+          const namePrefix = nextReq.url.startsWith('/api') ? `${nextReq.method.toUpperCase()} ` : '';
 
           const transaction = startTransaction(
             {
@@ -259,7 +259,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
               ...traceparentData,
             },
             // extra context passed to the `tracesSampler`
-            { request: req },
+            { request: nextReq },
           );
 
           currentScope.setSpan(transaction);
@@ -283,7 +283,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
         }
       }
 
-      return origReqHandler.call(this, req, res, parsedUrl);
+      return origReqHandler.call(this, nextReq, nextRes, parsedUrl);
     });
   };
 
