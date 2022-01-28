@@ -1,14 +1,16 @@
-import { DebugMeta, Event, SentryRequest, TransactionSamplingMethod } from '@sentry/types';
+import { Event, SentryRequest } from '@sentry/types';
 
-import { API } from '../../src/api';
+import { initAPIDetails } from '../../src/api';
 import { eventToSentryRequest, sessionToSentryRequest } from '../../src/request';
 
 const ingestDsn = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
-const ingestUrl =
+const storeUrl =
+  'https://squirrelchasers.ingest.sentry.io/api/12312012/store/?sentry_key=dogsarebadatkeepingsecrets&sentry_version=7';
+const envelopeUrl =
   'https://squirrelchasers.ingest.sentry.io/api/12312012/envelope/?sentry_key=dogsarebadatkeepingsecrets&sentry_version=7';
 const tunnel = 'https://hello.com/world';
 
-const api = new API(ingestDsn, {
+const api = initAPIDetails(ingestDsn, {
   sdk: {
     integrations: ['AWSLambda'],
     name: 'sentry.javascript.browser',
@@ -40,44 +42,21 @@ describe('eventToSentryRequest', () => {
       transaction: '/dogs/are/great/',
       type: 'transaction',
       user: { id: '1121', username: 'CharlieDog', ip_address: '11.21.20.12' },
+      sdkProcessingMetadata: {},
     };
   });
 
   it('adds transaction sampling information to item header', () => {
-    event.debug_meta = { transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 } };
+    event.sdkProcessingMetadata = { transactionSampling: { method: 'client_rate', rate: 0.1121 } };
 
     const result = eventToSentryRequest(event, api);
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.itemHeader).toEqual(
       expect.objectContaining({
-        sample_rates: [{ id: TransactionSamplingMethod.Rate, rate: 0.1121 }],
+        sample_rates: [{ id: 'client_rate', rate: 0.1121 }],
       }),
     );
-  });
-
-  it('removes transaction sampling information (and only that) from debug_meta', () => {
-    event.debug_meta = {
-      transactionSampling: { method: TransactionSamplingMethod.Sampler, rate: 0.1121 },
-      dog: 'Charlie',
-    } as DebugMeta;
-
-    const result = eventToSentryRequest(event, api);
-    const envelope = parseEnvelopeRequest(result);
-
-    expect('transactionSampling' in envelope.event.debug_meta).toBe(false);
-    expect('dog' in envelope.event.debug_meta).toBe(true);
-  });
-
-  it('removes debug_meta entirely if it ends up empty', () => {
-    event.debug_meta = {
-      transactionSampling: { method: TransactionSamplingMethod.Rate, rate: 0.1121 },
-    } as DebugMeta;
-
-    const result = eventToSentryRequest(event, api);
-    const envelope = parseEnvelopeRequest(result);
-
-    expect('debug_meta' in envelope.event).toBe(false);
   });
 
   it('adds sdk info to envelope header', () => {
@@ -132,15 +111,15 @@ describe('eventToSentryRequest', () => {
   });
 
   it('uses tunnel as the url if it is configured', () => {
-    const tunnelRequest = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
+    const tunnelRequest = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}, tunnel));
     expect(tunnelRequest.url).toEqual(tunnel);
 
-    const defaultRequest = eventToSentryRequest(event, new API(ingestDsn, {}));
-    expect(defaultRequest.url).toEqual(ingestUrl);
+    const defaultRequest = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}));
+    expect(defaultRequest.url).toEqual(envelopeUrl);
   });
 
   it('adds dsn to envelope header if tunnel is configured', () => {
-    const result = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
+    const result = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.envelopeHeader).toEqual(
@@ -153,7 +132,7 @@ describe('eventToSentryRequest', () => {
   it('adds default "event" item type to item header if tunnel is configured', () => {
     delete event.type;
 
-    const result = eventToSentryRequest(event, new API(ingestDsn, {}, tunnel));
+    const result = eventToSentryRequest(event, initAPIDetails(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.itemHeader).toEqual(
@@ -161,6 +140,29 @@ describe('eventToSentryRequest', () => {
         type: 'event',
       }),
     );
+  });
+
+  it('removes processing metadata before serializing event', () => {
+    event.sdkProcessingMetadata = { dogs: 'are great!' };
+
+    const result = eventToSentryRequest(event, api);
+    const envelope = parseEnvelopeRequest(result);
+
+    expect(envelope.event.processingMetadata).toBeUndefined();
+  });
+
+  it("doesn't depend on optional event fields for success ", () => {
+    // all event fields are optional
+    const emptyEvent = {};
+
+    const result = eventToSentryRequest(emptyEvent, api);
+    expect(result).toEqual({
+      // The body isn't empty because SDK info gets added in `eventToSentryRequest`. (The specifics of that SDK info are
+      // tested elsewhere.)
+      body: expect.any(String),
+      type: 'event',
+      url: storeUrl,
+    });
   });
 });
 
@@ -193,15 +195,15 @@ describe('sessionToSentryRequest', () => {
   });
 
   it('uses tunnel as the url if it is configured', () => {
-    const tunnelRequest = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}, tunnel));
+    const tunnelRequest = sessionToSentryRequest({ aggregates: [] }, initAPIDetails(ingestDsn, {}, tunnel));
     expect(tunnelRequest.url).toEqual(tunnel);
 
-    const defaultRequest = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}));
-    expect(defaultRequest.url).toEqual(ingestUrl);
+    const defaultRequest = sessionToSentryRequest({ aggregates: [] }, initAPIDetails(ingestDsn, {}));
+    expect(defaultRequest.url).toEqual(envelopeUrl);
   });
 
   it('adds dsn to envelope header if tunnel is configured', () => {
-    const result = sessionToSentryRequest({ aggregates: [] }, new API(ingestDsn, {}, tunnel));
+    const result = sessionToSentryRequest({ aggregates: [] }, initAPIDetails(ingestDsn, {}, tunnel));
     const envelope = parseEnvelopeRequest(result);
 
     expect(envelope.envelopeHeader).toEqual(

@@ -2,25 +2,27 @@
 import { Scope, Session } from '@sentry/hub';
 import {
   Client,
+  DsnComponents,
   Event,
   EventHint,
   Integration,
   IntegrationClass,
   Options,
-  Outcome,
-  SessionStatus,
   Severity,
   Transport,
 } from '@sentry/types';
 import {
   checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
-  Dsn,
+  isDebugBuild,
   isPlainObject,
   isPrimitive,
   isThenable,
   logger,
+  makeDsn,
   normalize,
+  rejectedSyncPromise,
+  resolvedSyncPromise,
   SentryError,
   SyncPromise,
   truncate,
@@ -76,7 +78,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected readonly _options: O;
 
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
-  protected readonly _dsn?: Dsn;
+  protected readonly _dsn?: DsnComponents;
 
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
@@ -95,7 +97,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     this._options = options;
 
     if (options.dsn) {
-      this._dsn = new Dsn(options.dsn);
+      this._dsn = makeDsn(options.dsn);
     }
   }
 
@@ -150,7 +152,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
-    if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
+    if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       logger.log(ALREADY_SEEN_ERROR);
       return;
     }
@@ -171,12 +173,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureSession(session: Session): void {
     if (!this._isEnabled()) {
-      logger.warn('SDK not enabled, will not capture session.');
+      if (isDebugBuild()) {
+        logger.warn('SDK not enabled, will not capture session.');
+      }
       return;
     }
 
     if (!(typeof session.release === 'string')) {
-      logger.warn('Discarded session because of missing or non-string release');
+      if (isDebugBuild()) {
+        logger.warn('Discarded session because of missing or non-string release');
+      }
     } else {
       this._sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
@@ -187,7 +193,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public getDsn(): Dsn | undefined {
+  public getDsn(): DsnComponents | undefined {
     return this._dsn;
   }
 
@@ -268,12 +274,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // A session is updated and that session update is sent in only one of the two following scenarios:
     // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
     // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
-    const sessionNonTerminal = session.status === SessionStatus.Ok;
+    const sessionNonTerminal = session.status === 'ok';
     const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
 
     if (shouldUpdateAndSend) {
       session.update({
-        ...(crashed && { status: SessionStatus.Crashed }),
+        ...(crashed && { status: 'crashed' }),
         errors: session.errors || Number(errored || crashed),
       });
       this.captureSession(session);
@@ -358,7 +364,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     // We prepare the result here with a resolved Event.
-    let result = SyncPromise.resolve<Event | null>(prepared);
+    let result = resolvedSyncPromise<Event | null>(prepared);
 
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
@@ -422,10 +428,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       normalized.contexts.trace = event.contexts.trace;
     }
 
-    const { _experiments = {} } = this.getOptions();
-    if (_experiments.ensureNoCircularStructures) {
-      return normalize(normalized);
-    }
+    event.sdkProcessingMetadata = { ...event.sdkProcessingMetadata, baseClientNormalized: true };
 
     return normalized;
   }
@@ -523,8 +526,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const { beforeSend, sampleRate } = this.getOptions();
     const transport = this.getTransport();
 
+    type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
+    type RecordLostEventParams = Parameters<RecordLostEvent>;
+
+    function recordLostEvent(outcome: RecordLostEventParams[0], category: RecordLostEventParams[1]): void {
+      if (transport.recordLostEvent) {
+        transport.recordLostEvent(outcome, category);
+      }
+    }
+
     if (!this._isEnabled()) {
-      return SyncPromise.reject(new SentryError('SDK not enabled, will not capture event.'));
+      return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.'));
     }
 
     const isTransaction = event.type === 'transaction';
@@ -532,8 +544,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      transport.recordLostEvent?.(Outcome.SampleRate, 'event');
-      return SyncPromise.reject(
+      recordLostEvent('sample_rate', 'event');
+      return rejectedSyncPromise(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
         ),
@@ -543,7 +555,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     return this._prepareEvent(event, scope, hint)
       .then(prepared => {
         if (prepared === null) {
-          transport.recordLostEvent?.(Outcome.EventProcessor, event.type || 'event');
+          recordLostEvent('event_processor', event.type || 'event');
           throw new SentryError('An event processor returned null, will not send event.');
         }
 
@@ -553,11 +565,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
 
         const beforeSendResult = beforeSend(prepared, hint);
-        return this._ensureBeforeSendRv(beforeSendResult);
+        return _ensureBeforeSendRv(beforeSendResult);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          transport.recordLostEvent?.(Outcome.BeforeSend, event.type || 'event');
+          recordLostEvent('before_send', event.type || 'event');
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
@@ -602,29 +614,27 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       },
     );
   }
+}
 
-  /**
-   * Verifies that return value of configured `beforeSend` is of expected type.
-   */
-  protected _ensureBeforeSendRv(
-    rv: PromiseLike<Event | null> | Event | null,
-  ): PromiseLike<Event | null> | Event | null {
-    const nullErr = '`beforeSend` method has to return `null` or a valid event.';
-    if (isThenable(rv)) {
-      return (rv as PromiseLike<Event | null>).then(
-        event => {
-          if (!(isPlainObject(event) || event === null)) {
-            throw new SentryError(nullErr);
-          }
-          return event;
-        },
-        e => {
-          throw new SentryError(`beforeSend rejected with ${e}`);
-        },
-      );
-    } else if (!(isPlainObject(rv) || rv === null)) {
-      throw new SentryError(nullErr);
-    }
-    return rv;
+/**
+ * Verifies that return value of configured `beforeSend` is of expected type.
+ */
+function _ensureBeforeSendRv(rv: PromiseLike<Event | null> | Event | null): PromiseLike<Event | null> | Event | null {
+  const nullErr = '`beforeSend` method has to return `null` or a valid event.';
+  if (isThenable(rv)) {
+    return rv.then(
+      event => {
+        if (!(isPlainObject(event) || event === null)) {
+          throw new SentryError(nullErr);
+        }
+        return event;
+      },
+      e => {
+        throw new SentryError(`beforeSend rejected with ${e}`);
+      },
+    );
+  } else if (!(isPlainObject(rv) || rv === null)) {
+    throw new SentryError(nullErr);
   }
+  return rv;
 }

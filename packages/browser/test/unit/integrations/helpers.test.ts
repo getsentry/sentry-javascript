@@ -1,5 +1,5 @@
 import { WrappedFunction } from '@sentry/types';
-import { SinonSpy, spy } from 'sinon';
+import { spy } from 'sinon';
 
 import { wrap } from '../../../src/helpers';
 
@@ -31,20 +31,10 @@ describe('internal wrap()', () => {
 
   it('bail out with the original if accessing custom props go bad', () => {
     const fn = (() => 1337) as WrappedFunction;
-    fn.__sentry__ = false;
     Object.defineProperty(fn, '__sentry_wrapped__', {
       get(): void {
         throw new Error('boom');
       },
-    });
-
-    expect(wrap(fn)).toBe(fn);
-
-    Object.defineProperty(fn, '__sentry__', {
-      get(): void {
-        throw new Error('boom');
-      },
-      configurable: true,
     });
 
     expect(wrap(fn)).toBe(fn);
@@ -82,9 +72,6 @@ describe('internal wrap()', () => {
 
     expect(fn).toHaveProperty('__sentry_wrapped__');
     expect(fn.__sentry_wrapped__).toBe(wrapped);
-
-    expect(wrapped).toHaveProperty('__sentry__');
-    expect(wrapped.__sentry__).toBe(true);
 
     expect(wrapped).toHaveProperty('__sentry_original__');
     expect(wrapped.__sentry_original__).toBe(fn);
@@ -128,27 +115,14 @@ describe('internal wrap()', () => {
     expect(fnArgB).toHaveProperty('__sentry_wrapped__');
   });
 
-  it('calls either `handleEvent` property if it exists or the original function', () => {
-    interface SinonEventSpy extends SinonSpy {
-      handleEvent: SinonSpy;
-    }
-
+  it('calls the original function', () => {
     const fn = spy();
-    const eventFn = spy() as SinonEventSpy;
-    eventFn.handleEvent = spy();
 
     wrap(fn)(123, 'Rick');
-    wrap(eventFn)(123, 'Morty');
 
     expect(fn.called).toBe(true);
     expect(fn.getCalls()[0].args[0]).toBe(123);
     expect(fn.getCalls()[0].args[1]).toBe('Rick');
-
-    expect(eventFn.handleEvent.called).toBe(true);
-    expect(eventFn.handleEvent.getCalls()[0].args[0]).toBe(123);
-    expect(eventFn.handleEvent.getCalls()[0].args[1]).toBe('Morty');
-
-    expect(eventFn.called).toBe(false);
   });
 
   it('preserves `this` context for all the calls', () => {
@@ -161,7 +135,7 @@ describe('internal wrap()', () => {
       },
     };
     // @ts-ignore eventFn does not have property handleEvent
-    context.eventFn.handleEvent = function(): void {
+    context.eventFn.handleEvent = function (): void {
       expect(this).toBe(context);
     };
 
@@ -192,14 +166,11 @@ describe('internal wrap()', () => {
     const wrapped = wrap(fn);
 
     // Shouldn't show up in iteration
-    expect(Object.keys(fn)).toEqual(expect.not.arrayContaining(['__sentry__']));
     expect(Object.keys(fn)).toEqual(expect.not.arrayContaining(['__sentry_original__']));
     expect(Object.keys(fn)).toEqual(expect.not.arrayContaining(['__sentry_wrapped__']));
-    expect(Object.keys(wrapped)).toEqual(expect.not.arrayContaining(['__sentry__']));
     expect(Object.keys(wrapped)).toEqual(expect.not.arrayContaining(['__sentry_original__']));
     expect(Object.keys(wrapped)).toEqual(expect.not.arrayContaining(['__sentry_wrapped__']));
     // But should be accessible directly
-    expect(wrapped.__sentry__).toBe(true);
     expect(wrapped.__sentry_original__).toBe(fn);
     expect(fn.__sentry_wrapped__).toBe(wrapped);
   });

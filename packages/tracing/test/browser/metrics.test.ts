@@ -94,7 +94,7 @@ describe('addResourceSpans', () => {
     const startTime = 23;
     const duration = 356;
 
-    const endTimestamp = addResourceSpans(transaction, entry, '/assets/to/css', startTime, duration, timeOrigin);
+    addResourceSpans(transaction, entry, '/assets/to/css', startTime, duration, timeOrigin);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
@@ -110,8 +110,6 @@ describe('addResourceSpans', () => {
       op: 'resource.css',
       startTimestamp: timeOrigin + startTime,
     });
-
-    expect(endTimestamp).toBe(timeOrigin + startTime + duration);
   });
 
   it('creates a variety of resource spans', () => {

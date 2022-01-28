@@ -4,7 +4,6 @@ import { logger, timestampWithMs } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants';
 import { Span, SpanRecorder } from './span';
-import { SpanStatus } from './spanstatus';
 import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
@@ -82,7 +81,7 @@ export class IdleTransaction extends Transaction {
      * @default 1000
      */
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
-    // If an idle transaction should be put itself on and off the scope automatically.
+    // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
   ) {
     super(transactionContext, _idleHub);
@@ -125,7 +124,7 @@ export class IdleTransaction extends Transaction {
         // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
         if (!span.endTimestamp) {
           span.endTimestamp = endTimestamp;
-          span.setStatus(SpanStatus.Cancelled);
+          span.setStatus('cancelled');
           logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
         }
 
@@ -144,7 +143,7 @@ export class IdleTransaction extends Transaction {
       logger.log('[Tracing] No active IdleTransaction');
     }
 
-    // this._onScope is true if the transaction was previously on the scope.
+    // if `this._onScope` is `true`, the transaction put itself on the scope when it started
     if (this._onScope) {
       clearActiveTransaction(this._idleHub);
     }
@@ -253,7 +252,7 @@ export class IdleTransaction extends Transaction {
 
     if (this._heartbeatCounter >= 3) {
       logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
-      this.setStatus(SpanStatus.DeadlineExceeded);
+      this.setStatus('deadline_exceeded');
       this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[0]);
       this.finish();
     } else {
@@ -273,7 +272,7 @@ export class IdleTransaction extends Transaction {
 }
 
 /**
- * Reset active transaction on scope
+ * Reset transaction on scope to `undefined`
  */
 function clearActiveTransaction(hub?: Hub): void {
   if (hub) {

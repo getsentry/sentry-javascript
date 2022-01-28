@@ -1,9 +1,8 @@
 /**
- * Holds meta information to customize the behavior of sentry's event processing.
+ * Holds meta information to customize the behavior of Sentry's server-side event processing.
  **/
 export interface DebugMeta {
   images?: Array<DebugImage>;
-  transactionSampling?: { rate?: number; method?: string };
 }
 
 /**

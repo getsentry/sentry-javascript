@@ -8,14 +8,14 @@ import {
   isErrorEvent,
   isEvent,
   isPlainObject,
-  SyncPromise,
+  resolvedSyncPromise,
 } from '@sentry/utils';
 
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 
 /**
- * Builds and Event from a Exception
+ * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
  * @hidden
  */
 export function eventFromException(options: Options, exception: unknown, hint?: EventHint): PromiseLike<Event> {
@@ -28,7 +28,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
-  return SyncPromise.resolve(event);
+  return resolvedSyncPromise(event);
 }
 
 /**
@@ -49,7 +49,7 @@ export function eventFromMessage(
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
-  return SyncPromise.resolve(event);
+  return resolvedSyncPromise(event);
 }
 
 /**
@@ -59,7 +59,7 @@ export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
   options: {
-    rejection?: boolean;
+    isRejection?: boolean;
     attachStacktrace?: boolean;
   } = {},
 ): Event {
@@ -104,11 +104,11 @@ export function eventFromUnknownInput(
     return event;
   }
   if (isPlainObject(exception) || isEvent(exception)) {
-    // If it is plain Object or Event, serialize it manually and extract options
-    // This will allow us to group events based on top-level keys
-    // which is much better than creating new group when any key/value change
+    // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
+    // it manually. This will allow us to group events based on top-level keys which is much better than creating a new
+    // group on any key/value change.
     const objectException = exception as Record<string, unknown>;
-    event = eventFromPlainObject(objectException, syntheticException, options.rejection);
+    event = eventFromPlainObject(objectException, syntheticException, options.isRejection);
     addExceptionMechanism(event, {
       synthetic: true,
     });

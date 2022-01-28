@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "6.16.0",
+  "version": "6.17.2",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -16,9 +16,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "6.16.0",
-    "@sentry/types": "6.16.0",
-    "@sentry/utils": "6.16.0",
+    "@sentry/core": "6.17.2",
+    "@sentry/types": "6.17.2",
+    "@sentry/utils": "6.17.2",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
@@ -47,7 +47,6 @@
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",
     "sinon": "^7.3.2",
-    "typescript": "3.7.5",
     "webpack": "^4.30.0"
   },
   "scripts": {
@@ -59,10 +58,10 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "run-p build:cjs:watch build:esm:watch build:bundle:watch",
     "build:bundle:watch": "rollup --config --watch",
-    "build:cjs:watch": "tsc -p tsconfig.cjs.json -w --preserveWatchOutput",
+    "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:dev:watch": "run-p build:cjs:watch build:esm:watch",
-    "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm build coverage .rpt2_cache",
     "fix": "run-s fix:eslint fix:prettier",

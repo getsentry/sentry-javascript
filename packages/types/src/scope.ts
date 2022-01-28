@@ -24,8 +24,7 @@ export interface ScopeContext {
 }
 
 /**
- * Holds additional event information. {@link Scope.applyToEvent} will be
- * called by the client before an event will be sent.
+ * Holds additional event information. {@link Scope.applyToEvent} will be called by the client before an event is sent.
  */
 export interface Scope {
   /** Add new event processor that will be called after {@link applyToEvent}. */

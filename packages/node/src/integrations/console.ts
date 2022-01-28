@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration, Severity } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { Integration } from '@sentry/types';
+import { fill, severityFromString } from '@sentry/utils';
 import * as util from 'util';
 
 /** Console module integration */
@@ -30,27 +30,10 @@ export class Console implements Integration {
  */
 function createConsoleWrapper(level: string): (originalConsoleMethod: () => void) => void {
   return function consoleWrapper(originalConsoleMethod: () => void): () => void {
-    let sentryLevel: Severity;
-
-    switch (level) {
-      case 'debug':
-        sentryLevel = Severity.Debug;
-        break;
-      case 'error':
-        sentryLevel = Severity.Error;
-        break;
-      case 'info':
-        sentryLevel = Severity.Info;
-        break;
-      case 'warn':
-        sentryLevel = Severity.Warning;
-        break;
-      default:
-        sentryLevel = Severity.Log;
-    }
+    const sentryLevel = severityFromString(level);
 
     /* eslint-disable prefer-rest-params */
-    return function(this: typeof console): void {
+    return function (this: typeof console): void {
       if (getCurrentHub().getIntegration(Console)) {
         getCurrentHub().addBreadcrumb(
           {

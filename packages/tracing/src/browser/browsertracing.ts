@@ -4,7 +4,6 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
-import { SpanStatus } from '../spanstatus';
 import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
@@ -269,7 +268,7 @@ function adjustTransactionDuration(maxDuration: number, transaction: IdleTransac
   const diff = endTimestamp - transaction.startTimestamp;
   const isOutdatedTransaction = endTimestamp && (diff > maxDuration || diff < 0);
   if (isOutdatedTransaction) {
-    transaction.setStatus(SpanStatus.DeadlineExceeded);
+    transaction.setStatus('deadline_exceeded');
     transaction.setTag('maxTransactionDurationExceeded', 'true');
   }
 }

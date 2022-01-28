@@ -2,7 +2,6 @@ import { getCurrentHub, Hub } from '@sentry/hub';
 import {
   Event,
   Measurements,
-  Outcome,
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionMetadata,
@@ -22,7 +21,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
+  private readonly _hub: Hub = getCurrentHub() as unknown as Hub;
 
   private _trimEnd?: boolean;
 
@@ -104,11 +103,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
       // At this point if `sampled !== true` we want to discard the transaction.
       logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
-      this._hub
-        .getClient()
-        ?.getTransport?.()
-        .recordLostEvent?.(Outcome.SampleRate, 'transaction');
-
+      const client = this._hub.getClient();
+      const transport = client && client.getTransport && client.getTransport();
+      if (transport && transport.recordLostEvent) {
+        transport.recordLostEvent('sample_rate', 'transaction');
+      }
       return undefined;
     }
 
@@ -133,7 +132,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
-      debug_meta: this.metadata,
+      sdkProcessingMetadata: this.metadata,
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;

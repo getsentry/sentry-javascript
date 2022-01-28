@@ -9,11 +9,19 @@ const commitHash = require('child_process')
   .trim();
 
 const terserInstance = terser({
+  compress: {
+    // Tell env.ts that we're building a browser bundle and that we do not
+    // want to have unnecessary debug functionality.
+    global_defs: {
+      __SENTRY_BROWSER_BUNDLE__: true,
+      __SENTRY_NO_DEBUG__: false,
+    },
+  },
   mangle: {
     // captureExceptions and captureMessage are public API methods and they don't need to be listed here
     // as mangler doesn't touch user-facing thing, however sentryWrapped is not, and it would be mangled into a minified version.
     // We need those full names to correctly detect our internal frames for stripping.
-    // I listed all of them here just for the clarity sake, as they are all used in the frames manipulation process.
+    // I listed all of them here just for the clarity's sake, as they are all used in the frame-manipulation process.
     reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
     properties: {
       regex: /^_[^_]/,

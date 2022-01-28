@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/eslint-plugin-sdk",
-  "version": "6.16.0",
+  "version": "6.17.2",
   "description": "Official Sentry SDK eslint plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-plugin-sdk",
@@ -22,8 +22,7 @@
     "requireindex": "~1.1.0"
   },
   "devDependencies": {
-    "mocha": "^6.2.0",
-    "typescript": "3.7.5"
+    "mocha": "^6.2.0"
   },
   "scripts": {
     "link:yarn": "yarn link",

@@ -6,9 +6,22 @@ module.exports = [
     limit: '100 KB',
   },
   {
+    name: '@sentry/browser - CDN Bundle (minified)',
+    path: 'packages/browser/build/bundle.min.js',
+    gzip: false,
+    limit: '120 KB',
+  },
+  {
     name: '@sentry/browser - Webpack',
     path: 'packages/browser/esm/index.js',
     import: '{ init }',
+    limit: '100 KB',
+  },
+  {
+    name: '@sentry/browser - Webpack - gzip = false',
+    path: 'packages/browser/esm/index.js',
+    import: '{ init }',
+    gzip: false,
     limit: '100 KB',
   },
   {

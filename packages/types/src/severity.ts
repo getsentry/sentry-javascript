@@ -1,5 +1,6 @@
-/** JSDoc */
-// eslint-disable-next-line import/export
+/**
+ * TODO(v7): Remove this enum and replace with SeverityLevel
+ */
 export enum Severity {
   /** JSDoc */
   Fatal = 'fatal',
@@ -17,32 +18,5 @@ export enum Severity {
   Critical = 'critical',
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace, import/export
-export namespace Severity {
-  /**
-   * Converts a string-based level into a {@link Severity}.
-   *
-   * @param level string representation of Severity
-   * @returns Severity
-   */
-  export function fromString(level: string): Severity {
-    switch (level) {
-      case 'debug':
-        return Severity.Debug;
-      case 'info':
-        return Severity.Info;
-      case 'warn':
-      case 'warning':
-        return Severity.Warning;
-      case 'error':
-        return Severity.Error;
-      case 'fatal':
-        return Severity.Fatal;
-      case 'critical':
-        return Severity.Critical;
-      case 'log':
-      default:
-        return Severity.Log;
-    }
-  }
-}
+export const SeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug', 'critical'] as const;
+export type SeverityLevel = typeof SeverityLevels[number];

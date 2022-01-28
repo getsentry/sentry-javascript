@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Event, Integration, StackFrame } from '@sentry/types';
-import { getEventDescription, isMatchingPattern, logger } from '@sentry/utils';
+import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -64,29 +64,37 @@ export class InboundFilters implements Integration {
   /** JSDoc */
   private _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
     if (this._isSentryError(event, options)) {
-      logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
+      if (isDebugBuild()) {
+        logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
+      }
       return true;
     }
     if (this._isIgnoredError(event, options)) {
-      logger.warn(
-        `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
-      );
+      if (isDebugBuild()) {
+        logger.warn(
+          `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
+        );
+      }
       return true;
     }
     if (this._isDeniedUrl(event, options)) {
-      logger.warn(
-        `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
-          event,
-        )}.\nUrl: ${this._getEventFilterUrl(event)}`,
-      );
+      if (isDebugBuild()) {
+        logger.warn(
+          `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
+            event,
+          )}.\nUrl: ${this._getEventFilterUrl(event)}`,
+        );
+      }
       return true;
     }
     if (!this._isAllowedUrl(event, options)) {
-      logger.warn(
-        `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
-          event,
-        )}.\nUrl: ${this._getEventFilterUrl(event)}`,
-      );
+      if (isDebugBuild()) {
+        logger.warn(
+          `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
+            event,
+          )}.\nUrl: ${this._getEventFilterUrl(event)}`,
+        );
+      }
       return true;
     }
     return false;
@@ -99,17 +107,14 @@ export class InboundFilters implements Integration {
     }
 
     try {
-      return (
-        (event &&
-          event.exception &&
-          event.exception.values &&
-          event.exception.values[0] &&
-          event.exception.values[0].type === 'SentryError') ||
-        false
-      );
-    } catch (_oO) {
-      return false;
+      // @ts-ignore can't be a sentry error if undefined
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      return event.exception.values[0].type === 'SentryError';
+    } catch (e) {
+      // ignore
     }
+
+    return false;
   }
 
   /** JSDoc */
@@ -182,7 +187,9 @@ export class InboundFilters implements Integration {
         const { type = '', value = '' } = (event.exception.values && event.exception.values[0]) || {};
         return [`${value}`, `${type}: ${value}`];
       } catch (oO) {
-        logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
+        if (isDebugBuild()) {
+          logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
+        }
         return [];
       }
     }
@@ -194,7 +201,7 @@ export class InboundFilters implements Integration {
     for (let i = frames.length - 1; i >= 0; i--) {
       const frame = frames[i];
 
-      if (frame?.filename !== '<anonymous>' && frame?.filename !== '[native code]') {
+      if (frame && frame.filename !== '<anonymous>' && frame.filename !== '[native code]') {
         return frame.filename || null;
       }
     }
@@ -206,17 +213,20 @@ export class InboundFilters implements Integration {
   private _getEventFilterUrl(event: Event): string | null {
     try {
       if (event.stacktrace) {
-        const frames = event.stacktrace.frames;
-        return this._getLastValidUrl(frames);
+        return this._getLastValidUrl(event.stacktrace.frames);
       }
-      if (event.exception) {
-        const frames =
-          event.exception.values && event.exception.values[0].stacktrace && event.exception.values[0].stacktrace.frames;
-        return this._getLastValidUrl(frames);
+      let frames;
+      try {
+        // @ts-ignore we only care about frames if the whole thing here is defined
+        frames = event.exception.values[0].stacktrace.frames;
+      } catch (e) {
+        // ignore
       }
-      return null;
+      return frames ? this._getLastValidUrl(frames) : null;
     } catch (oO) {
-      logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+      if (isDebugBuild()) {
+        logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+      }
       return null;
     }
   }

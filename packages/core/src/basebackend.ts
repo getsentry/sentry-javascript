@@ -1,5 +1,5 @@
 import { Event, EventHint, Options, Session, Severity, Transport } from '@sentry/types';
-import { logger, SentryError } from '@sentry/utils';
+import { isDebugBuild, logger, SentryError } from '@sentry/utils';
 
 import { NoopTransport } from './transports/noop';
 
@@ -24,11 +24,11 @@ import { NoopTransport } from './transports/noop';
  * @hidden
  */
 export interface Backend {
-  /** Creates a {@link Event} from an exception. */
+  /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
-  /** Creates a {@link Event} from a plain message. */
+  /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
   eventFromMessage(message: string, level?: Severity, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
@@ -92,7 +92,9 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendEvent(event: Event): void {
     void this._transport.sendEvent(event).then(null, reason => {
-      logger.error(`Error while sending event: ${reason}`);
+      if (isDebugBuild()) {
+        logger.error(`Error while sending event: ${reason}`);
+      }
     });
   }
 
@@ -101,12 +103,16 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendSession(session: Session): void {
     if (!this._transport.sendSession) {
-      logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      if (isDebugBuild()) {
+        logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      }
       return;
     }
 
     void this._transport.sendSession(session).then(null, reason => {
-      logger.error(`Error while sending session: ${reason}`);
+      if (isDebugBuild()) {
+        logger.error(`Error while sending session: ${reason}`);
+      }
     });
   }
 

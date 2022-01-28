@@ -1,7 +1,6 @@
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
-import { SpanStatus } from '../spanstatus';
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
@@ -118,20 +117,14 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    addInstrumentationHandler({
-      callback: (handlerData: FetchData) => {
-        fetchCallback(handlerData, shouldCreateSpan, spans);
-      },
-      type: 'fetch',
+    addInstrumentationHandler('fetch', (handlerData: FetchData) => {
+      fetchCallback(handlerData, shouldCreateSpan, spans);
     });
   }
 
   if (traceXHR) {
-    addInstrumentationHandler({
-      callback: (handlerData: XHRData) => {
-        xhrCallback(handlerData, shouldCreateSpan, spans);
-      },
-      type: 'xhr',
+    addInstrumentationHandler('xhr', (handlerData: XHRData) => {
+      xhrCallback(handlerData, shouldCreateSpan, spans);
     });
   }
 }
@@ -148,20 +141,23 @@ export function fetchCallback(
     return;
   }
 
-  if (handlerData.endTimestamp && handlerData.fetchData.__span) {
-    const span = spans[handlerData.fetchData.__span];
+  if (handlerData.endTimestamp) {
+    const spanId = handlerData.fetchData.__span;
+    if (!spanId) return;
+
+    const span = spans[spanId];
     if (span) {
       if (handlerData.response) {
         // TODO (kmclb) remove this once types PR goes through
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(handlerData.response.status);
       } else if (handlerData.error) {
-        span.setStatus(SpanStatus.InternalError);
+        span.setStatus('internal_error');
       }
       span.finish();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete spans[handlerData.fetchData.__span];
+      delete spans[spanId];
     }
     return;
   }
@@ -214,8 +210,8 @@ export function xhrCallback(
 ): void {
   if (
     !hasTracingEnabled() ||
-    handlerData.xhr?.__sentry_own_request__ ||
-    !(handlerData.xhr?.__sentry_xhr__ && shouldCreateSpan(handlerData.xhr.__sentry_xhr__.url))
+    (handlerData.xhr && handlerData.xhr.__sentry_own_request__) ||
+    !(handlerData.xhr && handlerData.xhr.__sentry_xhr__ && shouldCreateSpan(handlerData.xhr.__sentry_xhr__.url))
   ) {
     return;
   }
@@ -223,14 +219,17 @@ export function xhrCallback(
   const xhr = handlerData.xhr.__sentry_xhr__;
 
   // check first if the request has finished and is tracked by an existing span which should now end
-  if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_span_id__) {
-    const span = spans[handlerData.xhr.__sentry_xhr_span_id__];
+  if (handlerData.endTimestamp) {
+    const spanId = handlerData.xhr.__sentry_xhr_span_id__;
+    if (!spanId) return;
+
+    const span = spans[spanId];
     if (span) {
       span.setHttpStatus(xhr.status_code);
       span.finish();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete spans[handlerData.xhr.__sentry_xhr_span_id__];
+      delete spans[spanId];
     }
     return;
   }

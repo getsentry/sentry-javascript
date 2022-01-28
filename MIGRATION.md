@@ -1,3 +1,87 @@
+# Upgrading from 6.x to 6.17.0
+
+You only need to make changes when migrating to `6.17.0` if you are using our internal `Dsn` class. Our internal API class and typescript enums were deprecated, so we recommend you migrate them as well.
+
+The internal `Dsn` class was removed in `6.17.0`. For additional details, you can look at the [PR where this change happened](https://github.com/getsentry/sentry-javascript/pull/4325). To migrate, see the following example.
+
+```js
+// New in 6.17.0:
+import { dsnToString, makeDsn } from '@sentry/utils';
+
+const dsn = makeDsn(process.env.SENTRY_DSN);
+console.log(dsnToString(dsn));
+
+// Before:
+import { Dsn } from '@sentry/utils';
+
+const dsn = new Dsn(process.env.SENTRY_DSN);
+console.log(dsn.toString());
+```
+
+The internal API class was deprecated, and will be removed in the next major release. More details can be found in the [PR that made this change](https://github.com/getsentry/sentry-javascript/pull/4281). To migrate, see the following example.
+
+```js
+// New in 6.17.0:
+import {
+  initAPIDetails,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getStoreEndpointWithUrlEncodedAuth,
+} from '@sentry/core';
+
+const dsn = initAPIDetails(dsn, metadata, tunnel);
+const dsn = api.dsn;
+const storeEndpoint = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
+const envelopeEndpoint = getStoreEndpointWithUrlEncodedAuth(api.dsn);
+
+// Before:
+import { API } from '@sentry/core';
+
+const api = new API(dsn, metadata, tunnel);
+const dsn = api.getDsn();
+const storeEndpoint = api.getStoreEndpointWithUrlEncodedAuth();
+const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
+```
+
+## Enum changes
+
+The enums `Status` and `SpanStatus` were deprecated, and we've detailed how to migrate away from them below. We also deprecated the `TransactionMethod`, `Outcome` and `RequestSessionStatus` enums, but those are internal-only APIs. If you are using them, we encourage you to take a look at the corresponding PRs to see how we've changed our code as a result.
+
+- `TransactionMethod`: https://github.com/getsentry/sentry-javascript/pull/4314
+- `Outcome`: https://github.com/getsentry/sentry-javascript/pull/4315
+- `RequestSessionStatus`: https://github.com/getsentry/sentry-javascript/pull/4316
+
+#### Status
+
+We deprecated the `Status` enum in `@sentry/types` and it will be removed in the next major release. We recommend using string literals to save on bundle size. [PR](https://github.com/getsentry/sentry-javascript/pull/4298). We also removed the `Status.fromHttpCode` method. This was done to save on bundle size.
+
+```js
+// New in 6.17.0:
+import { eventStatusFromHttpCode } from '@sentry/utils';
+
+const status = eventStatusFromHttpCode(500);
+
+// Before:
+import { Status } from '@sentry/types';
+
+const status = Status.fromHttpCode(500);
+```
+
+#### SpanStatus
+
+We deprecated the `Status` enum in `@sentry/tracing` and it will be removed in the next major release. We recommend using string literals to save on bundle size. [PR](https://github.com/getsentry/sentry-javascript/pull/4299). We also removed the `SpanStatus.fromHttpCode` method. This was done to save on bundle size.
+
+```js
+// New in 6.17.0:
+import { spanStatusfromHttpCode } from '@sentry/utils';
+
+const status = spanStatusfromHttpCode(403);
+
+// Before:
+import { SpanStatus } from '@sentry/tracing';
+
+const status = SpanStatus.fromHttpCode(403);
+```
+
 # Upgrading from 4.x to 5.x/6.x
 
 In this version upgrade, there are a few breaking changes. This guide should help you update your code accordingly.

@@ -4,6 +4,20 @@ import { getCurrentHub, Hub, Scope } from '../src';
 
 const clientFn: any = jest.fn();
 
+function makeClient() {
+  return {
+    getOptions: jest.fn(),
+    captureEvent: jest.fn(),
+    captureException: jest.fn(),
+    close: jest.fn(),
+    flush: jest.fn(),
+    getDsn: jest.fn(),
+    getIntegration: jest.fn(),
+    setupIntegrations: jest.fn(),
+    captureMessage: jest.fn(),
+  };
+}
+
 describe('Hub', () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -11,10 +25,9 @@ describe('Hub', () => {
   });
 
   test('call bindClient with provided client when constructing new instance', () => {
-    const testClient: any = { setupIntegrations: jest.fn() };
-    const spy = jest.spyOn(Hub.prototype, 'bindClient');
-    new Hub(testClient);
-    expect(spy).toHaveBeenCalledWith(testClient);
+    const testClient = makeClient();
+    const hub = new Hub(testClient);
+    expect(hub.getClient()).toBe(testClient);
   });
 
   test('push process into stack', () => {
@@ -47,7 +60,7 @@ describe('Hub', () => {
       hub.pushScope();
       expect(hub.getStack()).toHaveLength(2);
       expect(hub.getStack()[1].scope).not.toBe(localScope);
-      expect(((hub.getStack()[1].scope as Scope) as any)._extra).toEqual({ a: 'b' });
+      expect((hub.getStack()[1].scope as Scope as any)._extra).toEqual({ a: 'b' });
     });
 
     test('inherit client', () => {
@@ -60,8 +73,8 @@ describe('Hub', () => {
 
     describe('bindClient', () => {
       test('should override current client', () => {
-        const testClient: any = { setupIntegrations: jest.fn() };
-        const nextClient: any = { setupIntegrations: jest.fn() };
+        const testClient = makeClient();
+        const nextClient = makeClient();
         const hub = new Hub(testClient);
         hub.bindClient(nextClient);
         expect(hub.getStack()).toHaveLength(1);
@@ -80,8 +93,8 @@ describe('Hub', () => {
       });
 
       test('should call setupIntegration method of passed client', () => {
-        const testClient: any = { setupIntegrations: jest.fn() };
-        const nextClient: any = { setupIntegrations: jest.fn() };
+        const testClient = makeClient();
+        const nextClient = makeClient();
         const hub = new Hub(testClient);
         hub.bindClient(nextClient);
         expect(testClient.setupIntegrations).toHaveBeenCalled();
@@ -195,64 +208,53 @@ describe('Hub', () => {
 
   describe('captureException', () => {
     test('simple', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureException('a');
-      expect(spy).toHaveBeenCalled();
-      expect(spy.mock.calls[0][0]).toBe('captureException');
-      expect(spy.mock.calls[0][1]).toBe('a');
+      expect(testClient.captureException).toHaveBeenCalled();
+      expect(testClient.captureException.mock.calls[0][0]).toBe('a');
     });
 
     test('should set event_id in hint', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureException('a');
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).toBeTruthy();
+      expect(testClient.captureException.mock.calls[0][1].event_id).toBeTruthy();
     });
 
     test('should generate hint if not provided in the call', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       const ex = new Error('foo');
       hub.captureException(ex);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].originalException).toBe(ex);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].syntheticException.message).toBe('Sentry syntheticException');
+      expect(testClient.captureException.mock.calls[0][1].originalException).toBe(ex);
+      expect(testClient.captureException.mock.calls[0][1].syntheticException).toBeInstanceOf(Error);
+      expect(testClient.captureException.mock.calls[0][1].syntheticException.message).toBe('Sentry syntheticException');
     });
   });
 
   describe('captureMessage', () => {
     test('simple', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureMessage('a');
-      expect(spy).toHaveBeenCalled();
-      expect(spy.mock.calls[0][0]).toBe('captureMessage');
-      expect(spy.mock.calls[0][1]).toBe('a');
+      expect(testClient.captureMessage.mock.calls[0][0]).toBe('a');
     });
 
     test('should set event_id in hint', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureMessage('a');
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][3].event_id).toBeTruthy();
+      expect(testClient.captureMessage.mock.calls[0][2].event_id).toBeTruthy();
     });
 
     test('should generate hint if not provided in the call', () => {
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureMessage('foo');
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][3].originalException).toBe('foo');
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][3].syntheticException).toBeInstanceOf(Error);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][3].syntheticException.message).toBe('foo');
+      expect(testClient.captureMessage.mock.calls[0][2].originalException).toBe('foo');
+      expect(testClient.captureMessage.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
+      expect(testClient.captureMessage.mock.calls[0][2].syntheticException.message).toBe('foo');
     });
   });
 
@@ -261,34 +263,30 @@ describe('Hub', () => {
       const event: Event = {
         extra: { b: 3 },
       };
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureEvent(event);
-      expect(spy).toHaveBeenCalled();
-      expect(spy.mock.calls[0][0]).toBe('captureEvent');
-      expect(spy.mock.calls[0][1]).toBe(event);
+      expect(testClient.captureEvent.mock.calls[0][0]).toBe(event);
     });
 
     test('should set event_id in hint', () => {
       const event: Event = {
         extra: { b: 3 },
       };
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureEvent(event);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).toBeTruthy();
+      expect(testClient.captureEvent.mock.calls[0][1].event_id).toBeTruthy();
     });
 
     test('sets lastEventId', () => {
       const event: Event = {
         extra: { b: 3 },
       };
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureEvent(event);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).toEqual(hub.lastEventId());
+      expect(testClient.captureEvent.mock.calls[0][1].event_id).toEqual(hub.lastEventId());
     });
 
     test('transactions do not set lastEventId', () => {
@@ -296,11 +294,10 @@ describe('Hub', () => {
         extra: { b: 3 },
         type: 'transaction',
       };
-      const hub = new Hub();
-      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
       hub.captureEvent(event);
-      // @ts-ignore Says mock object is type unknown
-      expect(spy.mock.calls[0][2].event_id).not.toEqual(hub.lastEventId());
+      expect(testClient.captureEvent.mock.calls[0][1].event_id).not.toEqual(hub.lastEventId());
     });
   });
 

@@ -61,14 +61,14 @@ describe('withSentry', () => {
 
   beforeEach(() => {
     req = { url: 'http://dogs.are.great' } as NextApiRequest;
-    res = ({
-      send: function(this: AugmentedNextApiResponse) {
+    res = {
+      send: function (this: AugmentedNextApiResponse) {
         this.end();
       },
-      end: function(this: AugmentedNextApiResponse) {
+      end: function (this: AugmentedNextApiResponse) {
         this.finished = true;
       },
-    } as unknown) as AugmentedNextApiResponse;
+    } as unknown as AugmentedNextApiResponse;
   });
 
   afterEach(() => {

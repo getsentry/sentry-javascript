@@ -8,7 +8,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: ({ callback, type }: any): void => {
+    addInstrumentationHandler: (type, callback): void => {
       addInstrumentationHandlerType = type;
       mockChangeHistory = callback;
     },

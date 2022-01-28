@@ -33,12 +33,12 @@ module.exports = {
       },
     },
     {
-      files: ["scenarios/**"],
+      files: ['scenarios/**'],
       parserOptions: {
-        sourceType: "module",
+        sourceType: 'module',
       },
       rules: {
-        "no-console": "off",
+        'no-console': 'off',
       },
     },
   ],

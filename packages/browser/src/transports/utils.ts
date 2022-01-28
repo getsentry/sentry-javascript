@@ -1,4 +1,4 @@
-import { forget, getGlobalObject, isNativeFetch, logger, supportsFetch } from '@sentry/utils';
+import { forget, getGlobalObject, isDebugBuild, isNativeFetch, logger, supportsFetch } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 let cachedFetchImpl: FetchImpl;
@@ -58,17 +58,20 @@ export function getNativeFetchImplementation(): FetchImpl {
   const document = global.document;
   let fetchImpl = global.fetch;
   // eslint-disable-next-line deprecation/deprecation
-  if (typeof document?.createElement === `function`) {
+  if (document && typeof document.createElement === `function`) {
     try {
       const sandbox = document.createElement('iframe');
       sandbox.hidden = true;
       document.head.appendChild(sandbox);
-      if (sandbox.contentWindow?.fetch) {
-        fetchImpl = sandbox.contentWindow.fetch;
+      const contentWindow = sandbox.contentWindow;
+      if (contentWindow && contentWindow.fetch) {
+        fetchImpl = contentWindow.fetch;
       }
       document.head.removeChild(sandbox);
     } catch (e) {
-      logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', e);
+      if (isDebugBuild()) {
+        logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', e);
+      }
     }
   }
 

@@ -30,9 +30,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 
 /** Grabs active transaction off scope, if any */
 function getActiveTransaction(): Transaction | undefined {
-  return getCurrentHub()
-    .getScope()
-    ?.getTransaction();
+  return getCurrentHub().getScope()?.getTransaction();
 }
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */
@@ -67,7 +65,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
     }
 
     for (const internalHook of internalHooks) {
-      mixins[internalHook] = function(this: VueSentry) {
+      mixins[internalHook] = function (this: VueSentry) {
         const isRoot = this.$root === this;
 
         if (isRoot) {
@@ -95,14 +93,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
 
         this.$_sentrySpans = this.$_sentrySpans || {};
 
-        // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
-        // However, on the second call (after), it'll be already in place.
-        const span = this.$_sentrySpans[operation];
-
-        if (span) {
-          span.finish();
-          finishRootSpan(this, timestampInSeconds(), options.timeout);
-        } else {
+        // Start a new span if current hook is a 'before' hook.
+        // Otherwise, retrieve the current span and finish it.
+        if (internalHook == internalHooks[0]) {
           const activeTransaction = this.$root?.$_sentryRootSpan || getActiveTransaction();
           if (activeTransaction) {
             this.$_sentrySpans[operation] = activeTransaction.startChild({
@@ -110,6 +103,15 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               op: `${VUE_OP}.${operation}`,
             });
           }
+        } else {
+          // The span should already be added via the first handler call (in the 'before' hook)
+          const span = this.$_sentrySpans[operation];
+          // The before hook did not start the tracking span, so the span was not added.
+          // This is probably because it happened before there is an active transaction
+          if (!span) return;
+
+          span.finish();
+          finishRootSpan(this, timestampInSeconds(), options.timeout);
         }
       };
     }

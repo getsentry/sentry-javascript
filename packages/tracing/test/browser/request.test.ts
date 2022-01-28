@@ -2,7 +2,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
-import { Span, SpanStatus, Transaction } from '../../src';
+import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
 import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
@@ -26,26 +26,20 @@ describe('instrumentOutgoingRequests', () => {
   it('instruments fetch and xhr requests', () => {
     instrumentOutgoingRequests();
 
-    expect(addInstrumentationHandler).toHaveBeenCalledWith({
-      callback: expect.any(Function),
-      type: 'fetch',
-    });
-    expect(addInstrumentationHandler).toHaveBeenCalledWith({
-      callback: expect.any(Function),
-      type: 'xhr',
-    });
+    expect(addInstrumentationHandler).toHaveBeenCalledWith('fetch', expect.any(Function));
+    expect(addInstrumentationHandler).toHaveBeenCalledWith('xhr', expect.any(Function));
   });
 
   it('does not instrument fetch requests if traceFetch is false', () => {
     instrumentOutgoingRequests({ traceFetch: false });
 
-    expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'fetch' });
+    expect(addInstrumentationHandler).not.toHaveBeenCalledWith('fetch', expect.any(Function));
   });
 
   it('does not instrument xhr requests if traceXHR is false', () => {
     instrumentOutgoingRequests({ traceXHR: false });
 
-    expect(addInstrumentationHandler).not.toHaveBeenCalledWith({ callback: expect.any(Function), type: 'xhr' });
+    expect(addInstrumentationHandler).not.toHaveBeenCalledWith('xhr', expect.any(Function));
   });
 });
 
@@ -54,10 +48,12 @@ describe('callbacks', () => {
   let transaction: Transaction;
   const alwaysCreateSpan = () => true;
   const neverCreateSpan = () => false;
+  const startTimestamp = 1356996072000;
+  const endTimestamp = 1356996072000;
   const fetchHandlerData: FetchData = {
     args: ['http://dogs.are.great/', {}],
     fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
-    startTimestamp: 1356996072000,
+    startTimestamp,
   };
   const xhrHandlerData: XHRData = {
     xhr: {
@@ -72,9 +68,8 @@ describe('callbacks', () => {
       // setRequestHeader: XMLHttpRequest.prototype.setRequestHeader,
       setRequestHeader,
     },
-    startTimestamp: 1353501072000,
+    startTimestamp,
   };
-  const endTimestamp = 1356996072000;
 
   beforeAll(() => {
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
@@ -176,7 +171,24 @@ describe('callbacks', () => {
       // triggered by response coming back
       fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.status).toBe(SpanStatus.fromHttpCode(404));
+      expect(newSpan!.status).toBe(spanStatusfromHttpCode(404));
+    });
+
+    it('ignores response with no associated span', () => {
+      // the request might be missed somehow. E.g. if it was sent before tracing gets enabled.
+
+      const postRequestFetchHandlerData = {
+        ...fetchHandlerData,
+        endTimestamp,
+        response: { status: 404 } as Response,
+      };
+
+      // in that case, the response coming back will be ignored
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, {});
+
+      const newSpan = transaction.spanRecorder?.spans[1];
+
+      expect(newSpan).toBeUndefined();
     });
 
     it('adds sentry-trace header to fetch requests', () => {
@@ -267,7 +279,28 @@ describe('callbacks', () => {
       // triggered by response coming back
       xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.status).toBe(SpanStatus.fromHttpCode(404));
+      expect(newSpan!.status).toBe(spanStatusfromHttpCode(404));
+    });
+
+    it('ignores response with no associated span', () => {
+      // the request might be missed somehow. E.g. if it was sent before tracing gets enabled.
+
+      const postRequestXHRHandlerData = {
+        ...{
+          xhr: {
+            __sentry_xhr__: xhrHandlerData.xhr.__sentry_xhr__,
+          },
+        },
+        startTimestamp,
+        endTimestamp,
+      };
+
+      // in that case, the response coming back will be ignored
+      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, {});
+
+      const newSpan = transaction.spanRecorder?.spans[1];
+
+      expect(newSpan).toBeUndefined();
     });
   });
 });

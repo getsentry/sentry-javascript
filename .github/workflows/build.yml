@@ -120,6 +120,7 @@ jobs:
         if: github.ref == 'refs/heads/master' || github.event_name == 'pull_request'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # see https://github.com/getsentry/size-limit-action#usage
           skip_step: build
           workflow_name: 'build'
 
@@ -213,6 +214,10 @@ jobs:
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
+        # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
+        # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
+        # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
+        # well, we can pull it out.
         with:
           fetch-depth: 0
       - name: Set up Node
@@ -223,7 +228,6 @@ jobs:
           # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
           # tests in our Node matrix above.
           node-version: '10'
-          fetch-depth: 0
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -270,6 +274,33 @@ jobs:
             ${{ github.workspace }}/packages/tracing/build/**
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+
+  job_browser_playwright_tests:
+    name: Browser Playwright Tests
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16'
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run Playwright tests
+        run: |
+          cd packages/integration-tests
+          yarn run playwright install-deps webkit
+          yarn test:ci
 
   job_browser_integration_tests:
     name: Browser Integration Tests (${{ matrix.browser }})

@@ -8,9 +8,9 @@ const global = getGlobalObject<Window>();
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 
-const DEFAULT_TAGS = Object.freeze({
+const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-router',
-});
+} as const;
 
 let activeTransaction: Transaction | undefined = undefined;
 let prevTransactionName: string | undefined = undefined;
@@ -73,7 +73,7 @@ type WrappedRouterChangeState = RouterChangeState;
  * Start a navigation transaction every time the router changes state.
  */
 function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): WrappedRouterChangeState {
-  const wrapper = function(
+  const wrapper = function (
     this: any,
     method: string,
     // The parameterized url, ex. posts/[id]/[comment]

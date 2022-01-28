@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event, ExtractedNodeRequestData, RequestSessionStatus, Transaction } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
@@ -399,7 +399,7 @@ export function requestHandler(
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
-      res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
+      res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
         void flush(options.flushTimeout)
           .then(() => {
             _end.call(this, chunk, encoding, cb);
@@ -424,7 +424,7 @@ export function requestHandler(
           const scope = currentHub.getScope();
           if (scope) {
             // Set `status` of `RequestSession` to Ok, at the beginning of the request
-            scope.setRequestSession({ status: RequestSessionStatus.Ok });
+            scope.setRequestSession({ status: 'ok' });
           }
         }
       });
@@ -517,8 +517,9 @@ export function errorHandler(options?: {
             // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
             // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
             // the bounds of a request, and if so the status is updated
-            if (requestSession && requestSession.status !== undefined)
-              requestSession.status = RequestSessionStatus.Crashed;
+            if (requestSession && requestSession.status !== undefined) {
+              requestSession.status = 'crashed';
+            }
           }
         }
 

@@ -23,7 +23,7 @@ export class MetricsInstrumentation {
   private _clsEntry: LayoutShift | undefined;
 
   public constructor(private _reportAllChanges: boolean = false) {
-    if (!isNodeEnv() && global?.performance && global?.document) {
+    if (!isNodeEnv() && global && global.performance && global.document) {
       if (global.performance.mark) {
         global.performance.mark('sentry-tracing-init');
       }
@@ -44,23 +44,7 @@ export class MetricsInstrumentation {
     logger.log('[Tracing] Adding & adjusting spans using Performance API');
 
     const timeOrigin = msToSec(browserPerformanceTimeOrigin);
-    let entryScriptSrc: string | undefined;
 
-    if (global.document && global.document.scripts) {
-      // eslint-disable-next-line @typescript-eslint/prefer-for-of
-      for (let i = 0; i < global.document.scripts.length; i++) {
-        // We go through all scripts on the page and look for 'data-entry'
-        // We remember the name and measure the time between this script finished loading and
-        // our mark 'sentry-tracing-init'
-        if (global.document.scripts[i].dataset.entry === 'true') {
-          entryScriptSrc = global.document.scripts[i].src;
-          break;
-        }
-      }
-    }
-
-    let entryScriptStartTimestamp: number | undefined;
-    let tracingInitMarkStartTime: number | undefined;
     let responseStartTimestamp: number | undefined;
     let requestStartTimestamp: number | undefined;
 
@@ -86,10 +70,6 @@ export class MetricsInstrumentation {
           case 'paint':
           case 'measure': {
             const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
-            if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
-              tracingInitMarkStartTime = startTimestamp;
-            }
-
             // capture web vitals
 
             const firstHidden = getVisibilityWatcher();
@@ -112,26 +92,13 @@ export class MetricsInstrumentation {
           }
           case 'resource': {
             const resourceName = (entry.name as string).replace(global.location.origin, '');
-            const endTimestamp = addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
-            // We remember the entry script end time to calculate the difference to the first init mark
-            if (entryScriptStartTimestamp === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
-              entryScriptStartTimestamp = endTimestamp;
-            }
+            addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
             break;
           }
           default:
           // Ignore other entry types.
         }
       });
-
-    if (entryScriptStartTimestamp !== undefined && tracingInitMarkStartTime !== undefined) {
-      _startChild(transaction, {
-        description: 'evaluation',
-        endTimestamp: tracingInitMarkStartTime,
-        op: 'script',
-        startTimestamp: entryScriptStartTimestamp,
-      });
-    }
 
     this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
@@ -194,58 +161,9 @@ export class MetricsInstrumentation {
       }
 
       transaction.setMeasurements(this._measurements);
-      this._tagMetricInfo(transaction);
-
+      tagMetricInfo(transaction, this._lcpEntry, this._clsEntry);
       transaction.setTag('sentry_reportAllChanges', this._reportAllChanges);
     }
-  }
-
-  /** Add LCP / CLS data to transaction to allow debugging */
-  private _tagMetricInfo(transaction: Transaction): void {
-    if (this._lcpEntry) {
-      logger.log('[Measurements] Adding LCP Data');
-      // Capture Properties of the LCP element that contributes to the LCP.
-
-      if (this._lcpEntry.element) {
-        transaction.setTag('lcp.element', htmlTreeAsString(this._lcpEntry.element));
-      }
-
-      if (this._lcpEntry.id) {
-        transaction.setTag('lcp.id', this._lcpEntry.id);
-      }
-
-      if (this._lcpEntry.url) {
-        // Trim URL to the first 200 characters.
-        transaction.setTag('lcp.url', this._lcpEntry.url.trim().slice(0, 200));
-      }
-
-      transaction.setTag('lcp.size', this._lcpEntry.size);
-    }
-
-    // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
-    if (this._clsEntry && this._clsEntry.sources) {
-      logger.log('[Measurements] Adding CLS Data');
-      this._clsEntry.sources.forEach((source, index) =>
-        transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
-      );
-    }
-  }
-
-  /** Starts tracking the Cumulative Layout Shift on the current page. */
-  private _trackCLS(): void {
-    // See:
-    // https://web.dev/evolving-cls/
-    // https://web.dev/cls-web-tooling/
-    getCLS(metric => {
-      const entry = metric.entries.pop();
-      if (!entry) {
-        return;
-      }
-
-      logger.log('[Measurements] Adding CLS');
-      this._measurements['cls'] = { value: metric.value };
-      this._clsEntry = entry as LayoutShift;
-    });
   }
 
   /**
@@ -286,11 +204,27 @@ export class MetricsInstrumentation {
     }
   }
 
+  /** Starts tracking the Cumulative Layout Shift on the current page. */
+  private _trackCLS(): void {
+    // See:
+    // https://web.dev/evolving-cls/
+    // https://web.dev/cls-web-tooling/
+    getCLS(metric => {
+      const entry = metric.entries.pop();
+      if (!entry) {
+        return;
+      }
+
+      logger.log('[Measurements] Adding CLS');
+      this._measurements['cls'] = { value: metric.value };
+      this._clsEntry = entry as LayoutShift;
+    });
+  }
+
   /** Starts tracking the Largest Contentful Paint on the current page. */
   private _trackLCP(): void {
     getLCP(metric => {
       const entry = metric.entries.pop();
-
       if (!entry) {
         return;
       }
@@ -308,7 +242,6 @@ export class MetricsInstrumentation {
   private _trackFID(): void {
     getFID(metric => {
       const entry = metric.entries.pop();
-
       if (!entry) {
         return;
       }
@@ -324,28 +257,12 @@ export class MetricsInstrumentation {
 
 /** Instrument navigation entries */
 function addNavigationSpans(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  addPerformanceNavigationTiming({ transaction, entry, event: 'unloadEvent', timeOrigin });
-  addPerformanceNavigationTiming({ transaction, entry, event: 'redirect', timeOrigin });
-  addPerformanceNavigationTiming({ transaction, entry, event: 'domContentLoadedEvent', timeOrigin });
-  addPerformanceNavigationTiming({ transaction, entry, event: 'loadEvent', timeOrigin });
-  addPerformanceNavigationTiming({ transaction, entry, event: 'connect', timeOrigin });
-  addPerformanceNavigationTiming({
-    transaction,
-    entry,
-    event: 'secureConnection',
-    timeOrigin,
-    eventEnd: 'connectEnd',
-    description: 'TLS/SSL',
+  ['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'].forEach(event => {
+    addPerformanceNavigationTiming(transaction, entry, event, timeOrigin);
   });
-  addPerformanceNavigationTiming({
-    transaction,
-    entry,
-    event: 'fetch',
-    timeOrigin,
-    eventEnd: 'domainLookupStart',
-    description: 'cache',
-  });
-  addPerformanceNavigationTiming({ transaction, entry, event: 'domainLookup', timeOrigin, description: 'DNS' });
+  addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'TLS/SSL', 'connectEnd');
+  addPerformanceNavigationTiming(transaction, entry, 'fetch', timeOrigin, 'cache', 'domainLookupStart');
+  addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin, 'DNS');
   addRequest(transaction, entry, timeOrigin);
 }
 
@@ -385,11 +302,11 @@ export function addResourceSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
-): number | undefined {
+): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
   if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-    return undefined;
+    return;
   }
 
   const data: Record<string, any> = {};
@@ -413,21 +330,17 @@ export function addResourceSpans(
     startTimestamp,
     data,
   });
-
-  return endTimestamp;
 }
 
 /** Create performance navigation related spans */
-function addPerformanceNavigationTiming(props: {
-  transaction: Transaction;
-  entry: Record<string, any>;
-  event: string;
-  timeOrigin: number;
-  eventEnd?: string;
-  description?: string;
-}): void {
-  const { transaction, entry, event, timeOrigin, eventEnd, description } = props;
-
+function addPerformanceNavigationTiming(
+  transaction: Transaction,
+  entry: Record<string, any>,
+  event: string,
+  timeOrigin: number,
+  description?: string,
+  eventEnd?: string,
+): void {
   const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
   const start = entry[`${event}Start`] as number | undefined;
   if (!start || !end) {
@@ -479,4 +392,40 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
  */
 function isMeasurementValue(value: any): boolean {
   return typeof value === 'number' && isFinite(value);
+}
+
+/** Add LCP / CLS data to transaction to allow debugging */
+function tagMetricInfo(
+  transaction: Transaction,
+  lcpEntry: MetricsInstrumentation['_lcpEntry'],
+  clsEntry: MetricsInstrumentation['_clsEntry'],
+): void {
+  if (lcpEntry) {
+    logger.log('[Measurements] Adding LCP Data');
+
+    // Capture Properties of the LCP element that contributes to the LCP.
+
+    if (lcpEntry.element) {
+      transaction.setTag('lcp.element', htmlTreeAsString(lcpEntry.element));
+    }
+
+    if (lcpEntry.id) {
+      transaction.setTag('lcp.id', lcpEntry.id);
+    }
+
+    if (lcpEntry.url) {
+      // Trim URL to the first 200 characters.
+      transaction.setTag('lcp.url', lcpEntry.url.trim().slice(0, 200));
+    }
+
+    transaction.setTag('lcp.size', lcpEntry.size);
+  }
+
+  // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
+  if (clsEntry && clsEntry.sources) {
+    logger.log('[Measurements] Adding CLS Data');
+    clsEntry.sources.forEach((source, index) =>
+      transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+    );
+  }
 }

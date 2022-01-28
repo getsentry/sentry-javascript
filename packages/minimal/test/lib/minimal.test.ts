@@ -96,10 +96,10 @@ describe('Minimal', () => {
       getCurrentHub().withScope(() => {
         getCurrentHub().bindClient(client);
         const message = 'yo';
-        const level = Severity.Warning;
+        const level = 'warning';
         captureMessage(message, level);
         expect(client.captureMessage.mock.calls[0][0]).toBe(message);
-        expect(client.captureMessage.mock.calls[0][1]).toBe(Severity.Warning);
+        expect(client.captureMessage.mock.calls[0][1]).toBe('warning');
       });
     });
 

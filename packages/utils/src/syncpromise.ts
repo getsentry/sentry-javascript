@@ -7,11 +7,35 @@ import { isThenable } from './is';
 /** SyncPromise internal states */
 const enum States {
   /** Pending */
-  PENDING = 'PENDING',
+  PENDING = 0,
   /** Resolved / OK */
-  RESOLVED = 'RESOLVED',
+  RESOLVED = 1,
   /** Rejected / Error */
-  REJECTED = 'REJECTED',
+  REJECTED = 2,
+}
+
+/**
+ * Creates a resolved sync promise.
+ *
+ * @param value the value to resolve the promise with
+ * @returns the resolved sync promise
+ */
+export function resolvedSyncPromise<T>(value: T | PromiseLike<T>): PromiseLike<T> {
+  return new SyncPromise(resolve => {
+    resolve(value);
+  });
+}
+
+/**
+ * Creates a rejected sync promise.
+ *
+ * @param value the value to reject the promise with
+ * @returns the rejected sync promise
+ */
+export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
+  return new SyncPromise((_, reject) => {
+    reject(reason);
+  });
 }
 
 /**
@@ -20,11 +44,7 @@ const enum States {
  */
 class SyncPromise<T> implements PromiseLike<T> {
   private _state: States = States.PENDING;
-  private _handlers: Array<{
-    done: boolean;
-    onfulfilled?: ((value: T) => T | PromiseLike<T>) | null;
-    onrejected?: ((reason: any) => any) | null;
-  }> = [];
+  private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]> = [];
   private _value: any;
 
   public constructor(
@@ -38,88 +58,39 @@ class SyncPromise<T> implements PromiseLike<T> {
   }
 
   /** JSDoc */
-  public static resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
-    return new SyncPromise(resolve => {
-      resolve(value);
-    });
-  }
-
-  /** JSDoc */
-  public static reject<T = never>(reason?: any): PromiseLike<T> {
-    return new SyncPromise((_, reject) => {
-      reject(reason);
-    });
-  }
-
-  /** JSDoc */
-  public static all<U = any>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
-    return new SyncPromise<U[]>((resolve, reject) => {
-      if (!Array.isArray(collection)) {
-        reject(new TypeError(`Promise.all requires an array as input.`));
-        return;
-      }
-
-      if (collection.length === 0) {
-        resolve([]);
-        return;
-      }
-
-      let counter = collection.length;
-      const resolvedCollection: U[] = [];
-
-      collection.forEach((item, index) => {
-        void SyncPromise.resolve(item)
-          .then(value => {
-            resolvedCollection[index] = value;
-            counter -= 1;
-
-            if (counter !== 0) {
-              return;
-            }
-            resolve(resolvedCollection);
-          })
-          .then(null, reject);
-      });
-    });
-  }
-
-  /** JSDoc */
   public then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
   ): PromiseLike<TResult1 | TResult2> {
     return new SyncPromise((resolve, reject) => {
-      this._attachHandler({
-        done: false,
-        onfulfilled: result => {
+      this._handlers.push([
+        false,
+        result => {
           if (!onfulfilled) {
             // TODO: ¯\_(ツ)_/¯
             // TODO: FIXME
             resolve(result as any);
-            return;
-          }
-          try {
-            resolve(onfulfilled(result));
-            return;
-          } catch (e) {
-            reject(e);
-            return;
+          } else {
+            try {
+              resolve(onfulfilled(result));
+            } catch (e) {
+              reject(e);
+            }
           }
         },
-        onrejected: reason => {
+        reason => {
           if (!onrejected) {
             reject(reason);
-            return;
-          }
-          try {
-            resolve(onrejected(reason));
-            return;
-          } catch (e) {
-            reject(e);
-            return;
+          } else {
+            try {
+              resolve(onrejected(reason));
+            } catch (e) {
+              reject(e);
+            }
           }
         },
-      });
+      ]);
+      this._executeHandlers();
     });
   }
 
@@ -157,14 +128,9 @@ class SyncPromise<T> implements PromiseLike<T> {
           return;
         }
 
-        resolve((val as unknown) as any);
+        resolve(val as unknown as any);
       });
     });
-  }
-
-  /** JSDoc */
-  public toString(): string {
-    return '[object SyncPromise]';
   }
 
   /** JSDoc */
@@ -194,20 +160,6 @@ class SyncPromise<T> implements PromiseLike<T> {
     this._executeHandlers();
   };
 
-  // TODO: FIXME
-  /** JSDoc */
-  private readonly _attachHandler = (handler: {
-    /** JSDoc */
-    done: boolean;
-    /** JSDoc */
-    onfulfilled?(value: T): any;
-    /** JSDoc */
-    onrejected?(reason: any): any;
-  }) => {
-    this._handlers = this._handlers.concat(handler);
-    this._executeHandlers();
-  };
-
   /** JSDoc */
   private readonly _executeHandlers = () => {
     if (this._state === States.PENDING) {
@@ -218,24 +170,20 @@ class SyncPromise<T> implements PromiseLike<T> {
     this._handlers = [];
 
     cachedHandlers.forEach(handler => {
-      if (handler.done) {
+      if (handler[0]) {
         return;
       }
 
       if (this._state === States.RESOLVED) {
-        if (handler.onfulfilled) {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          handler.onfulfilled((this._value as unknown) as any);
-        }
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        handler[1](this._value as unknown as any);
       }
 
       if (this._state === States.REJECTED) {
-        if (handler.onrejected) {
-          handler.onrejected(this._value);
-        }
+        handler[2](this._value);
       }
 
-      handler.done = true;
+      handler[0] = true;
     });
   };
 }

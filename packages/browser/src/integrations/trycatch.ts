@@ -1,5 +1,5 @@
 import { Integration, WrappedFunction } from '@sentry/types';
-import { fill, getFunctionName, getGlobalObject } from '@sentry/utils';
+import { fill, getFunctionName, getGlobalObject, getOriginalFunction } from '@sentry/utils';
 
 import { wrap } from '../helpers';
 
@@ -83,130 +83,176 @@ export class TryCatch implements Integration {
     const global = getGlobalObject();
 
     if (this._options.setTimeout) {
-      fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
+      fill(global, 'setTimeout', _wrapTimeFunction);
     }
 
     if (this._options.setInterval) {
-      fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
+      fill(global, 'setInterval', _wrapTimeFunction);
     }
 
     if (this._options.requestAnimationFrame) {
-      fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
+      fill(global, 'requestAnimationFrame', _wrapRAF);
     }
 
     if (this._options.XMLHttpRequest && 'XMLHttpRequest' in global) {
-      fill(XMLHttpRequest.prototype, 'send', this._wrapXHR.bind(this));
+      fill(XMLHttpRequest.prototype, 'send', _wrapXHR);
     }
 
-    if (this._options.eventTarget) {
-      const eventTarget = Array.isArray(this._options.eventTarget) ? this._options.eventTarget : DEFAULT_EVENT_TARGET;
-      eventTarget.forEach(this._wrapEventTarget.bind(this));
+    const eventTargetOption = this._options.eventTarget;
+    if (eventTargetOption) {
+      const eventTarget = Array.isArray(eventTargetOption) ? eventTargetOption : DEFAULT_EVENT_TARGET;
+      eventTarget.forEach(_wrapEventTarget);
     }
   }
+}
 
-  /** JSDoc */
-  private _wrapTimeFunction(original: () => void): () => number {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return function(this: any, ...args: any[]): number {
-      const originalCallback = args[0];
-      args[0] = wrap(originalCallback, {
+/** JSDoc */
+function _wrapTimeFunction(original: () => void): () => number {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (this: any, ...args: any[]): number {
+    const originalCallback = args[0];
+    args[0] = wrap(originalCallback, {
+      mechanism: {
+        data: { function: getFunctionName(original) },
+        handled: true,
+        type: 'instrument',
+      },
+    });
+    return original.apply(this, args);
+  };
+}
+
+/** JSDoc */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _wrapRAF(original: any): (callback: () => void) => any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (this: any, callback: () => void): () => void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return original.call(
+      this,
+      wrap(callback, {
         mechanism: {
-          data: { function: getFunctionName(original) },
+          data: {
+            function: 'requestAnimationFrame',
+            handler: getFunctionName(original),
+          },
           handled: true,
           type: 'instrument',
         },
-      });
-      return original.apply(this, args);
-    };
-  }
+      }),
+    );
+  };
+}
 
-  /** JSDoc */
+/** JSDoc */
+function _wrapXHR(originalSend: () => void): () => void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _wrapRAF(original: any): (callback: () => void) => any {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return function(this: any, callback: () => void): () => void {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return original.call(
-        this,
-        wrap(callback, {
-          mechanism: {
-            data: {
-              function: 'requestAnimationFrame',
-              handler: getFunctionName(original),
-            },
-            handled: true,
-            type: 'instrument',
-          },
-        }),
-      );
-    };
-  }
+  return function (this: XMLHttpRequest, ...args: any[]): void {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const xhr = this;
+    const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress', 'onreadystatechange'];
 
-  /** JSDoc */
-  private _wrapEventTarget(target: string): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const global = getGlobalObject() as { [key: string]: any };
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const proto = global[target] && global[target].prototype;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
-    if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
-      return;
-    }
-
-    fill(proto, 'addEventListener', function(
-      original: () => void,
-    ): (eventName: string, fn: EventListenerObject, options?: boolean | AddEventListenerOptions) => void {
-      return function(
+    xmlHttpRequestProps.forEach(prop => {
+      if (prop in xhr && typeof xhr[prop] === 'function') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this: any,
-        eventName: string,
-        fn: EventListenerObject,
-        options?: boolean | AddEventListenerOptions,
-      ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
-        try {
-          if (typeof fn.handleEvent === 'function') {
-            fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
-              mechanism: {
-                data: {
-                  function: 'handleEvent',
-                  handler: getFunctionName(fn),
-                  target,
-                },
-                handled: true,
-                type: 'instrument',
-              },
-            });
-          }
-        } catch (err) {
-          // can sometimes get 'Permission denied to access property "handle Event'
-        }
-
-        return original.call(
-          this,
-          eventName,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          wrap((fn as any) as WrappedFunction, {
+        fill(xhr, prop, function (original: WrappedFunction): () => any {
+          const wrapOptions = {
             mechanism: {
               data: {
-                function: 'addEventListener',
+                function: prop,
+                handler: getFunctionName(original),
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          };
+
+          // If Instrument integration has been called before TryCatch, get the name of original function
+          const originalFunction = getOriginalFunction(original);
+          if (originalFunction) {
+            wrapOptions.mechanism.data.handler = getFunctionName(originalFunction);
+          }
+
+          // Otherwise wrap directly
+          return wrap(original, wrapOptions);
+        });
+      }
+    });
+
+    return originalSend.apply(this, args);
+  };
+}
+
+/** JSDoc */
+function _wrapEventTarget(target: string): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const global = getGlobalObject() as { [key: string]: any };
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const proto = global[target] && global[target].prototype;
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
+  if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+    return;
+  }
+
+  fill(proto, 'addEventListener', function (original: () => void): (
+    eventName: string,
+    fn: EventListenerObject,
+    options?: boolean | AddEventListenerOptions,
+  ) => void {
+    return function (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this: any,
+      eventName: string,
+      fn: EventListenerObject,
+      options?: boolean | AddEventListenerOptions,
+    ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
+      try {
+        if (typeof fn.handleEvent === 'function') {
+          fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
+            mechanism: {
+              data: {
+                function: 'handleEvent',
                 handler: getFunctionName(fn),
                 target,
               },
               handled: true,
               type: 'instrument',
             },
-          }),
-          options,
-        );
-      };
-    });
+          });
+        }
+      } catch (err) {
+        // can sometimes get 'Permission denied to access property "handle Event'
+      }
 
-    fill(proto, 'removeEventListener', function(
+      return original.call(
+        this,
+        eventName,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        wrap(fn as any as WrappedFunction, {
+          mechanism: {
+            data: {
+              function: 'addEventListener',
+              handler: getFunctionName(fn),
+              target,
+            },
+            handled: true,
+            type: 'instrument',
+          },
+        }),
+        options,
+      );
+    };
+  });
+
+  fill(
+    proto,
+    'removeEventListener',
+    function (
       originalRemoveEventListener: () => void,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): (this: any, eventName: string, fn: EventListenerObject, options?: boolean | EventListenerOptions) => () => void {
-      return function(
+      return function (
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this: any,
         eventName: string,
@@ -230,9 +276,9 @@ export class TryCatch implements Integration {
          * then we have to detach both of them. Otherwise, if we'd detach only wrapped one, it'd be impossible
          * to get rid of the initial handler and it'd stick there forever.
          */
-        const wrappedEventHandler = (fn as unknown) as WrappedFunction;
+        const wrappedEventHandler = fn as unknown as WrappedFunction;
         try {
-          const originalEventHandler = wrappedEventHandler?.__sentry_wrapped__;
+          const originalEventHandler = wrappedEventHandler && wrappedEventHandler.__sentry_wrapped__;
           if (originalEventHandler) {
             originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
           }
@@ -241,44 +287,6 @@ export class TryCatch implements Integration {
         }
         return originalRemoveEventListener.call(this, eventName, wrappedEventHandler, options);
       };
-    });
-  }
-
-  /** JSDoc */
-  private _wrapXHR(originalSend: () => void): () => void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return function(this: XMLHttpRequest, ...args: any[]): void {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const xhr = this;
-      const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress', 'onreadystatechange'];
-
-      xmlHttpRequestProps.forEach(prop => {
-        if (prop in xhr && typeof xhr[prop] === 'function') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fill(xhr, prop, function(original: WrappedFunction): () => any {
-            const wrapOptions = {
-              mechanism: {
-                data: {
-                  function: prop,
-                  handler: getFunctionName(original),
-                },
-                handled: true,
-                type: 'instrument',
-              },
-            };
-
-            // If Instrument integration has been called before TryCatch, get the name of original function
-            if (original.__sentry_original__) {
-              wrapOptions.mechanism.data.handler = getFunctionName(original.__sentry_original__);
-            }
-
-            // Otherwise wrap directly
-            return wrap(original, wrapOptions);
-          });
-        }
-      });
-
-      return originalSend.apply(this, args);
-    };
-  }
+    },
+  );
 }
