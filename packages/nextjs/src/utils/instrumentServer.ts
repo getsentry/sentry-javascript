@@ -222,6 +222,12 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
     nextRes: NextResponse,
     parsedUrl?: url.UrlWithParsedQuery,
   ): Promise<void> {
+    // Starting with version 12.0.9, nextjs wraps the incoming request in a `NodeNextRequest` object and the outgoing
+    // response in a `NodeNextResponse` object before passing them to the handler. (This is necessary here but not in
+    // `withSentry` because by the time nextjs passes them to an API handler, it's unwrapped them again.)
+    const req = '_req' in nextReq ? nextReq._req : nextReq;
+    const res = '_res' in nextRes ? nextRes._res : nextRes;
+
     // wrap everything in a domain in order to prevent scope bleed between requests
     const local = domain.create();
     local.add(req);
