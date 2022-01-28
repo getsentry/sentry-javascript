@@ -85,9 +85,7 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this._idleTimeoutID = setTimeout(() => {
-      this.finish();
-    }, this._idleTimeout);
+    this._idleTimeoutID = setTimeout(this.finish.bind(this), this._idleTimeout);
   }
 
   /** {@inheritDoc} */
