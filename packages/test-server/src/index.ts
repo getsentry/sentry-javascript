@@ -2,7 +2,7 @@ import { ChildProcess, spawn } from 'child_process';
 import * as got from 'got';
 
 import { downloadAndCacheBinary } from './download';
-import { Envelope, ServerEvent } from './types';
+import { Envelope } from './types';
 
 export * from './types';
 
@@ -54,7 +54,7 @@ export class RelayTestServer {
     this.errors = [];
   }
 
-  /** */
+  /** Waits for a specific number of events to be received */
   public async waitForEvents(events: number, timeout: number = 8_000): Promise<void> {
     let remaining = timeout;
     while (this.events.length + this.errors.length < events) {
@@ -70,28 +70,29 @@ export class RelayTestServer {
   private _pollForEvents(): void {
     void this._getEvents().then(events => {
       events.forEach(event => {
-        if ('Ok' in event) {
-          this.events.push(event.Ok);
-        } else {
-          this.errors.push(event.Err);
-        }
+        this.events.push(event);
       });
     });
   }
 
   /** Fetches available events */
-  private async _getEvents(): Promise<ServerEvent[]> {
+  private async _getEvents(): Promise<Envelope[]> {
     const port = this._options.port || 3000;
     const events: any[] = [];
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
-        const { body } = await got.default.get<ServerEvent>(`http://localhost:${port}/api/relay/last-event/`, {
+        const { body } = await got.default.get<Envelope>(`http://localhost:${port}/api/relay/get-envelope/`, {
           responseType: 'json',
         });
         events.push(body);
-      } catch (_) {
+      } catch (e) {
+        if ((e as Error)?.message?.includes('404')) {
+          break;
+        }
+
+        this.errors.push((e as Error)?.message);
         break;
       }
     }

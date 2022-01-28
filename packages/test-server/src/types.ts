@@ -27,16 +27,6 @@ export interface Envelope {
   items: Item[];
 }
 
-export interface OkEvent {
-  Ok: Envelope;
-}
-
-export interface ErrEvent {
-  Err: any;
-}
-
-export type ServerEvent = OkEvent | ErrEvent;
-
 export interface Event {
   breadcrumbs?: Breadcrumbs;
   contexts?: Contexts;
