@@ -3,18 +3,18 @@ import { Hub } from '@sentry/hub';
 
 import {
   DEFAULT_IDLE_TIMEOUT,
-  HEARTBEAT_INTERVAL,
   IdleTransaction,
   IdleTransactionSpanRecorder,
 } from '../src/idletransaction';
 import { Span } from '../src/span';
 
+// @ts-ignore we don't need to implement methods
 export class SimpleTransport extends Transports.BaseTransport {}
 
 const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
 beforeEach(() => {
-  hub = new Hub(new BrowserClient({ dsn, tracesSampleRate: 1, transport: SimpleTransport }));
+  hub = new Hub(new BrowserClient({ dsn, tracesSampleRate: 1 }));
 });
 
 describe('IdleTransaction', () => {
@@ -192,105 +192,6 @@ describe('IdleTransaction', () => {
 
       jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
       expect(transaction.endTimestamp).toBeUndefined();
-    });
-  });
-
-  describe('heartbeat', () => {
-    it('does not mark transaction as `DeadlineExceeded` if idle timeout has not been reached', () => {
-      // 20s to exceed 3 heartbeats
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
-      const mockFinish = jest.spyOn(transaction, 'finish');
-
-      expect(transaction.status).not.toEqual('deadline_exceeded');
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
-      expect(transaction.status).not.toEqual('deadline_exceeded');
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
-      expect(transaction.status).not.toEqual('deadline_exceeded');
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 3
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
-      expect(transaction.status).not.toEqual('deadline_exceeded');
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-    });
-
-    it('finishes a transaction after 3 beats', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
-      const mockFinish = jest.spyOn(transaction, 'finish');
-      transaction.initSpanRecorder(10);
-
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-      transaction.startChild({});
-
-      // Beat 1
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 2
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 3
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(1);
-    });
-
-    it('resets after new activities are added', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
-      const mockFinish = jest.spyOn(transaction, 'finish');
-      transaction.initSpanRecorder(10);
-
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-      transaction.startChild({});
-
-      // Beat 1
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      const span = transaction.startChild(); // push activity
-
-      // Beat 1
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 2
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      transaction.startChild(); // push activity
-      transaction.startChild(); // push activity
-
-      // Beat 1
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 2
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      span.finish(); // pop activity
-
-      // Beat 1
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 2
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 3
-      jest.runOnlyPendingTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(1);
-
-      // Heartbeat does not keep going after finish has been called
-      jest.runAllTimers();
-      expect(mockFinish).toHaveBeenCalledTimes(1);
     });
   });
 });
