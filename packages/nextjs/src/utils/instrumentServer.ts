@@ -34,14 +34,27 @@ interface Server {
   publicDir: string;
 }
 
-export interface NextRequest extends http.IncomingMessage {
+export type NextRequest = (
+  | http.IncomingMessage // in nextjs versions < 12.0.9, `NextRequest` extends `http.IncomingMessage`
+  | {
+      _req: http.IncomingMessage; // in nextjs versions >= 12.0.9, `NextRequest` wraps `http.IncomingMessage`
+    }
+) & {
   cookies: Record<string, string>;
   url: string;
   query: { [key: string]: string };
   headers: { [key: string]: string };
   body: string | { [key: string]: unknown };
-}
-type NextResponse = http.ServerResponse;
+  method: string;
+};
+
+type NextResponse =
+  // in nextjs versions < 12.0.9, `NextResponse` extends `http.ServerResponse`
+  | http.ServerResponse
+  // in nextjs versions >= 12.0.9, `NextResponse` wraps `http.ServerResponse`
+  | {
+      _res: http.ServerResponse;
+    };
 
 // the methods we'll wrap
 type HandlerGetter = () => Promise<ReqHandler>;
