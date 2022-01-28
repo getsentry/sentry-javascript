@@ -69,15 +69,18 @@ describe('IdleTransaction', () => {
     const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     const mockFinish = jest.spyOn(transaction, 'finish');
     transaction.initSpanRecorder(10);
-    expect(transaction.activities).toMatchObject({});
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({});
 
     const span = transaction.startChild();
-    expect(transaction.activities).toMatchObject({ [span.spanId]: true });
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({ [span.spanId]: true });
 
     expect(mockFinish).toHaveBeenCalledTimes(0);
 
     span.finish();
-    expect(transaction.activities).toMatchObject({});
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({});
 
     jest.runOnlyPendingTimers();
     expect(mockFinish).toHaveBeenCalledTimes(1);
@@ -86,27 +89,32 @@ describe('IdleTransaction', () => {
   it('does not push activities if a span already has an end timestamp', () => {
     const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     transaction.initSpanRecorder(10);
-    expect(transaction.activities).toMatchObject({});
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({});
 
     transaction.startChild({ startTimestamp: 1234, endTimestamp: 5678 });
-    expect(transaction.activities).toMatchObject({});
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({});
   });
 
   it('does not finish if there are still active activities', () => {
     const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
     const mockFinish = jest.spyOn(transaction, 'finish');
     transaction.initSpanRecorder(10);
-    expect(transaction.activities).toMatchObject({});
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({});
 
     const span = transaction.startChild();
     const childSpan = span.startChild();
 
-    expect(transaction.activities).toMatchObject({ [span.spanId]: true, [childSpan.spanId]: true });
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({ [span.spanId]: true, [childSpan.spanId]: true });
     span.finish();
     jest.runOnlyPendingTimers();
 
     expect(mockFinish).toHaveBeenCalledTimes(0);
-    expect(transaction.activities).toMatchObject({ [childSpan.spanId]: true });
+    // @ts-ignore reach into internal store
+    expect(transaction._activities).toMatchObject({ [childSpan.spanId]: true });
   });
 
   it('calls beforeFinish callback before finishing', () => {

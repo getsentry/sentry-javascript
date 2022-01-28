@@ -54,7 +54,7 @@ export type BeforeFinishCallback = (transactionSpan: IdleTransaction, endTimesta
  */
 export class IdleTransaction extends Transaction {
   // Activities store a list of active spans
-  public activities: Record<string, boolean> = {};
+  private _activities: Record<string, boolean> = {};
 
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
@@ -90,7 +90,7 @@ export class IdleTransaction extends Transaction {
 
   /** {@inheritDoc} */
   public finish(endTimestamp: number = timestampWithMs()): string | undefined {
-    this.activities = {};
+    this._activities = {};
 
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
@@ -167,8 +167,8 @@ export class IdleTransaction extends Transaction {
       this._idleTimeoutID = undefined;
     }
     logger.log(`[Tracing] pushActivity: ${spanId}`);
-    this.activities[spanId] = true;
-    logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
+    this._activities[spanId] = true;
+    logger.log('[Tracing] new activities count', Object.keys(this._activities).length);
   }
 
   /**
@@ -176,14 +176,14 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _popActivity(spanId: string): void {
-    if (this.activities[spanId]) {
+    if (this._activities[spanId]) {
       logger.log(`[Tracing] popActivity ${spanId}`);
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.activities[spanId];
-      logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
+      delete this._activities[spanId];
+      logger.log('[Tracing] new activities count', Object.keys(this._activities).length);
     }
 
-    if (Object.keys(this.activities).length === 0) {
+    if (Object.keys(this._activities).length === 0) {
       const timeout = this._idleTimeout;
       // We need to add the timeout here to have the real endtimestamp of the transaction
       // Remember timestampWithMs is in seconds, timeout is in ms
