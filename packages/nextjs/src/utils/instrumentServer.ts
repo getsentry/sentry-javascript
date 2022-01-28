@@ -264,10 +264,11 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
               metadata: { requestPath: reqPath },
               ...traceparentData,
             },
-            // Extra context passed to the `tracesSampler` (Note: this weird format is in order to not break people's
-            // `tracesSampler` functions, even though the format of `nextReq` has changed (see note above re: nextjs
-            // 12.0.9). If `nextReq === req` (the old format), then we'll just spread the same stuff twice. If `nextReq`
-            // contains `req` (the new format), then this mimics the old format by flattening the data.)
+            // Extra context passed to the `tracesSampler` (Note: We're combining `nextReq` and `req` this way in order
+            // to not break people's `tracesSampler` functions, even though the format of `nextReq` has changed (see
+            // note above re: nextjs 12.0.9). If `nextReq === req` (pre 12.0.9), then spreading `req` is a no-op - we're
+            // just spreading the same stuff twice. If `nextReq` contains `req` (12.0.9 and later), then spreading `req`
+            // mimics the old format by flattening the data.)
             { request: { ...nextReq, ...req } },
           );
 
