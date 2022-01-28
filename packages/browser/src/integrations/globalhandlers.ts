@@ -101,6 +101,8 @@ function _installGlobalOnErrorHandler(): void {
               column,
             );
 
+      event.level = Severity.Error;
+
       addMechanismAndCapture(hub, error, event, 'onerror');
     },
   );
