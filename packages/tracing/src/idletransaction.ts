@@ -58,11 +58,7 @@ export class IdleTransaction extends Transaction {
 
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
-  /**
-   * If a transaction is created and no activities are added, we want to make sure that
-   * it times out properly. This is cleared and not used when activities are added.
-   */
-  private _initTimeout: ReturnType<typeof setTimeout> | undefined;
+  private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
@@ -87,7 +83,7 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this._initTimeout = setTimeout(() => {
+    this._idleTimeoutID = setTimeout(() => {
       this.finish();
     }, this._idleTimeout);
   }
@@ -165,9 +161,10 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    if (this._initTimeout) {
-      clearTimeout(this._initTimeout);
-      this._initTimeout = undefined;
+    const id = this._idleTimeoutID;
+    if (id) {
+      clearTimeout(id)
+      this._idleTimeoutID = undefined;
     }
     logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
