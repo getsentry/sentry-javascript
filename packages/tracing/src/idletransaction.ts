@@ -6,8 +6,10 @@ import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants'
 import { Span, SpanRecorder } from './span';
 import { Transaction } from './transaction';
 
+// 1 second
 export const DEFAULT_IDLE_TIMEOUT = 1000;
-export const HEARTBEAT_INTERVAL = 5000;
+// 10 seconds
+export const DEFAULT_FINAL_TIMEOUT = 10000;
 
 /**
  * @inheritDoc
