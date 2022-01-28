@@ -3,7 +3,7 @@ import { EventProcessor, Integration, Transaction, TransactionContext } from '@s
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
+import { DEFAULT_FINAL_TIMEOUT,DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
@@ -26,6 +26,15 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Default: 1000
    */
   idleTimeout: number;
+
+  /**
+   *
+   * Time is in ms
+   *
+   * Default: 10000
+   *
+   */
+  finalTimeout: number;
 
   /**
    * Flag to enable/disable creation of `navigation` transaction on history changes.
@@ -93,6 +102,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
 const DEFAULT_BROWSER_TRACING_OPTIONS = {
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
+  finalTimeout: DEFAULT_FINAL_TIMEOUT,
   markBackgroundTransactions: true,
   maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
   routingInstrumentation: instrumentRoutingWithDefaults,
@@ -201,7 +211,7 @@ export class BrowserTracing implements Integration {
     }
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
+    const { beforeNavigate, idleTimeout, maxTransactionDuration, finalTimeout } = this.options;
 
     const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
 
@@ -228,8 +238,9 @@ export class BrowserTracing implements Integration {
     const idleTransaction = startIdleTransaction(
       hub,
       finalContext,
-      idleTimeout,
       true,
+      idleTimeout,
+      finalTimeout,
       { location }, // for use in the tracesSampler
     );
     idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {

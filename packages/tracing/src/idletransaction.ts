@@ -61,17 +61,15 @@ export class IdleTransaction extends Transaction {
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
   private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
+  private _finalTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
-    private readonly _idleHub?: Hub,
-    /**
-     * The time to wait in ms until the idle transaction will be finished.
-     * @default 1000
-     */
-    private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
+    private readonly _idleHub: Hub,
     // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
-    private readonly _onScope: boolean = false,
+    private readonly _onScope: boolean,
+    private readonly _idleTimeout: number,
+    private readonly _finalTimeout: number,
   ) {
     super(transactionContext, _idleHub);
 
@@ -86,6 +84,7 @@ export class IdleTransaction extends Transaction {
     }
 
     this._idleTimeoutID = setTimeout(this.finish.bind(this), this._idleTimeout);
+    // this._finalTimeoutID = setTimeout(this.finish.bind(this), this._finalTimeout)
   }
 
   /** {@inheritDoc} */
