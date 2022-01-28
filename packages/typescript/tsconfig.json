@@ -27,6 +27,7 @@
         "suppressWhileTypeErrorsPresent": false
       }
     ],
+    "preserveWatchOutput": true,
     "pretty": true,
     "sourceMap": true,
     "strict": true,
