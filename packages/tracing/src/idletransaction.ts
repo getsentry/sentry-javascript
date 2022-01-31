@@ -84,7 +84,9 @@ export class IdleTransaction extends Transaction {
     }
 
     this._idleTimeoutID = setTimeout(this.finish.bind(this), this._idleTimeout);
-    // this._finalTimeoutID = setTimeout(this.finish.bind(this), this._finalTimeout)
+    this._finalTimeoutID = setTimeout(() => {
+
+    }, this._finalTimeout)
   }
 
   /** {@inheritDoc} */
@@ -187,12 +189,20 @@ export class IdleTransaction extends Transaction {
       // We need to add the timeout here to have the real endtimestamp of the transaction
       // Remember timestampWithMs is in seconds, timeout is in ms
       const end = timestampWithMs() + timeout / 1000;
-
-      setTimeout(() => {
-        this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[1]);
-        this.finish(end);
-      }, timeout);
+      this._idleTimeoutID = this._setTimeoutAndFinish(timeout, end, IDLE_TRANSACTION_FINISH_REASONS[1]);
     }
+  }
+
+  /**
+   * JSDoc
+   */
+  private _setTimeoutAndFinish(timeout: number, endTimestamp?: number, finishReason?: typeof IDLE_TRANSACTION_FINISH_REASONS[number]): ReturnType<typeof setTimeout> {
+    return setTimeout(() => {
+      if (finishReason) {
+        this.setTag(FINISH_REASON_TAG, finishReason)
+      }
+      this.finish(endTimestamp);
+    }, timeout);
   }
 }
 
