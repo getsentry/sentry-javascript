@@ -19,6 +19,7 @@ import {
   getWebpackPluginOptions,
   SentryWebpackPlugin,
 } from '../src/config/webpack';
+import { addSrcToEntryPoints } from './testUtils';
 
 const SERVER_SDK_CONFIG_FILE = 'sentry.server.config.js';
 const CLIENT_SDK_CONFIG_FILE = 'sentry.client.config.js';
@@ -401,6 +402,33 @@ describe('webpack config', () => {
       );
     });
 
+    it('injects user config file into `_app` in both server and client bundles when using `src` directory', async () => {
+      const serverWebpackConfigWithSrc = await addSrcToEntryPoints(serverWebpackConfig);
+      const clientWebpackConfigWithSrc = await addSrcToEntryPoints(clientWebpackConfig);
+
+      const finalServerWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfigWithSrc,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+      const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfigWithSrc,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      expect(finalServerWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'src/pages/_app': expect.arrayContaining([serverConfigFilePath]),
+        }),
+      );
+      expect(finalClientWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'src/pages/_app': expect.arrayContaining([clientConfigFilePath]),
+        }),
+      );
+    });
+
     it('injects user config file into `_error` in server bundle but not client bundle', async () => {
       const finalServerWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
@@ -425,6 +453,33 @@ describe('webpack config', () => {
       );
     });
 
+    it('injects user config file into `_error` in server bundle but not client bundle when using `src` directory', async () => {
+      const serverWebpackConfigWithSrc = await addSrcToEntryPoints(serverWebpackConfig);
+      const clientWebpackConfigWithSrc = await addSrcToEntryPoints(clientWebpackConfig);
+
+      const finalServerWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfigWithSrc,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+      const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfigWithSrc,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      expect(finalServerWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'src/pages/_error': expect.arrayContaining([serverConfigFilePath]),
+        }),
+      );
+      expect(finalClientWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'src/pages/_error': expect.not.arrayContaining([clientConfigFilePath]),
+        }),
+      );
+    });
+
     it('injects user config file into API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
@@ -443,6 +498,31 @@ describe('webpack config', () => {
           },
 
           'pages/api/tricks/[trickName]': expect.objectContaining({
+            import: expect.arrayContaining([serverConfigFilePath]),
+          }),
+        }),
+      );
+    });
+
+    it('injects user config file into API routes when using `src` directory', async () => {
+      const webpackConfigWithSrc = await addSrcToEntryPoints(serverWebpackConfig);
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: webpackConfigWithSrc,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'src/pages/api/simulator/dogStats/[name]': {
+            import: expect.arrayContaining([serverConfigFilePath]),
+          },
+
+          'src/pages/api/simulator/leaderboard': {
+            import: expect.arrayContaining([serverConfigFilePath]),
+          },
+
+          'src/pages/api/tricks/[trickName]': expect.objectContaining({
             import: expect.arrayContaining([serverConfigFilePath]),
           }),
         }),
