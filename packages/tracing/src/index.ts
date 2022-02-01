@@ -22,6 +22,8 @@ export { Integrations };
 export { BrowserTracing } from './browser';
 
 export { Span, SpanStatusType, spanStatusfromHttpCode } from './span';
+// eslint-disable-next-line deprecation/deprecation
+export { SpanStatus } from './spanstatus';
 export { Transaction } from './transaction';
 export {
   // TODO deprecate old name in v7
