@@ -28,7 +28,7 @@ export interface Event {
   environment?: string;
   sdk?: SdkInfo;
   request?: Request;
-  transaction?: string | Symbol;
+  transaction?: string;
   modules?: { [key: string]: string };
   fingerprint?: string[];
   exception?: {
@@ -37,7 +37,7 @@ export interface Event {
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: Contexts;
-  tags?: { [key: string]: Primitive | Symbol };
+  tags?: { [key: string]: Primitive };
   extra?: Extras;
   user?: User;
   type?: EventType;
