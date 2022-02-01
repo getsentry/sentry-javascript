@@ -47,7 +47,7 @@ export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): stri
 };
 
 export const generateComponentTrace = (vm?: ViewModel): string => {
-  if (vm?._isVue && vm?.$parent) {
+  if ((vm?._isVue || vm?.__isVue) && vm?.$parent) {
     const tree = [];
     let currentRecursiveSequence = 0;
     while (vm) {
@@ -71,10 +71,12 @@ export const generateComponentTrace = (vm?: ViewModel): string => {
     const formattedTree = tree
       .map(
         (vm, i) =>
-          `${(i === 0 ? '---> ' : repeat(' ', 5 + i * 2)) +
+          `${
+            (i === 0 ? '---> ' : repeat(' ', 5 + i * 2)) +
             (Array.isArray(vm)
               ? `${formatComponentName(vm[0])}... (${vm[1]} recursive calls)`
-              : formatComponentName(vm))}`,
+              : formatComponentName(vm))
+          }`,
       )
       .join('\n');
 

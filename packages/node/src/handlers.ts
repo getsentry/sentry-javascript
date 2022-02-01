@@ -399,7 +399,7 @@ export function requestHandler(
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
-      res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
+      res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
         void flush(options.flushTimeout)
           .then(() => {
             _end.call(this, chunk, encoding, cb);

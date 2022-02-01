@@ -128,7 +128,7 @@ function _createWrappedRequestMethodFactory(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalRequestMethod
         .apply(httpModule, requestArgs)
-        .once('response', function(this: http.ClientRequest, res: http.IncomingMessage): void {
+        .once('response', function (this: http.ClientRequest, res: http.IncomingMessage): void {
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
           if (breadcrumbsEnabled) {
@@ -142,7 +142,7 @@ function _createWrappedRequestMethodFactory(
             span.finish();
           }
         })
-        .once('error', function(this: http.ClientRequest): void {
+        .once('error', function (this: http.ClientRequest): void {
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
 

@@ -101,7 +101,7 @@ export function isPlainObject(wat: unknown): wat is Record<string, unknown> {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isEvent(wat: unknown): wat is Event {
+export function isEvent(wat: unknown): boolean {
   return typeof Event !== 'undefined' && isInstanceOf(wat, Event);
 }
 
@@ -112,7 +112,7 @@ export function isEvent(wat: unknown): wat is Event {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isElement(wat: unknown): wat is Element {
+export function isElement(wat: unknown): boolean {
   return typeof Element !== 'undefined' && isInstanceOf(wat, Element);
 }
 

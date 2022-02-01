@@ -11,9 +11,7 @@ const NODE_VERSION = parseSemver(process.versions.node);
  * @param url url to verify
  */
 export function isSentryRequest(url: string): boolean {
-  const dsn = getCurrentHub()
-    .getClient()
-    ?.getDsn();
+  const dsn = getCurrentHub().getClient()?.getDsn();
   return dsn ? url.includes(dsn.host) : false;
 }
 

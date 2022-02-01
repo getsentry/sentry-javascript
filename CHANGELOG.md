@@ -4,9 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.3
+
+- fix(nextjs): Unwrap `req` and `res` if necessary when instrumenting server (#4467)
+
+## 6.17.2
+
 This patch contains a breaking change for anyone setting the undocumented `rethrowAfterCapture` option for `@sentry/serverless`'s AWS wrapper to `false`, as its functionality has been removed. For backwards compatibility with anyone setting it to `true` (which is also the default), the option remains in the `WrapperOptions` type for now. It will be removed in the next major release, though, so we recommend removing it from your code.
 
 - ref(serverless): Remove `rethrowAfterCapture` use in AWS lambda wrapper (#4448)
+- fix(utils): Remove dom is casting (#4451)
 
 ## 6.17.1
 

@@ -108,9 +108,7 @@ export class Mongo implements Integration {
    * @inheritDoc
    */
   public constructor(options: MongoOptions = {}) {
-    this._operations = Array.isArray(options.operations)
-      ? options.operations
-      : ((OPERATIONS as unknown) as Operation[]);
+    this._operations = Array.isArray(options.operations) ? options.operations : (OPERATIONS as unknown as Operation[]);
     this._describeOperations = 'describeOperations' in options ? options.describeOperations : true;
     this._useMongoose = !!options.useMongoose;
   }
@@ -145,8 +143,8 @@ export class Mongo implements Integration {
 
     const getSpanContext = this._getSpanContextFromOperationArguments.bind(this);
 
-    fill(collection.prototype, operation, function(orig: () => void | Promise<unknown>) {
-      return function(this: unknown, ...args: unknown[]) {
+    fill(collection.prototype, operation, function (orig: () => void | Promise<unknown>) {
+      return function (this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
@@ -169,7 +167,7 @@ export class Mongo implements Integration {
         }
 
         const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
-        return orig.call(this, ...args.slice(0, -1), function(err: Error, result: unknown) {
+        return orig.call(this, ...args.slice(0, -1), function (err: Error, result: unknown) {
           span?.finish();
           lastArg(err, result);
         });
