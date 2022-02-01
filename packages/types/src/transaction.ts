@@ -8,7 +8,7 @@ export interface TransactionContext extends SpanContext {
   /**
    * Human-readable identifier for the transaction
    */
-  name: string;
+  name: string | Symbol;
 
   /**
    * If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
@@ -56,7 +56,7 @@ export interface Transaction extends TransactionContext, Span {
   /**
    * @inheritDoc
    */
-  tags: { [key: string]: Primitive };
+  tags: { [key: string]: Primitive | Symbol };
 
   /**
    * @inheritDoc
@@ -71,7 +71,7 @@ export interface Transaction extends TransactionContext, Span {
   /**
    * Set the name of the transaction
    */
-  setName(name: string): void;
+  setName(name: string | Symbol): void;
 
   /** Returns the current transaction properties as a `TransactionContext` */
   toContext(): TransactionContext;

@@ -12,7 +12,7 @@ import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
-  public name: string;
+  public name: string | Symbol;
 
   public metadata: TransactionMetadata;
 
@@ -51,7 +51,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * JSDoc
    */
-  public setName(name: string): void {
+  public setName(name: string | Symbol): void {
     this.name = name;
   }
 
@@ -142,7 +142,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+    logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name.toString()}.`);
 
     return this._hub.captureEvent(transaction);
   }
