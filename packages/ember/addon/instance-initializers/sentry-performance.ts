@@ -37,7 +37,7 @@ function getBackburner() {
 
 function getTransitionInformation(transition: any, router: any) {
   const fromRoute = transition?.from?.name;
-  const toRoute = transition && transition.to ? transition.to.name : router.currentRouteName;
+  const toRoute = transition && transition.to ? transition.to.name.toString() : router.currentRouteName;
   return {
     fromRoute,
     toRoute,
@@ -88,7 +88,7 @@ export function _instrumentEmberRouter(
     });
   }
 
-  const finishActiveTransaction = function(_: any, nextInstance: any) {
+  const finishActiveTransaction = function (_: any, nextInstance: any) {
     if (nextInstance) {
       return;
     }
