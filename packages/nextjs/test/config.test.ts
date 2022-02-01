@@ -71,7 +71,7 @@ const userNextConfig: Partial<NextConfigObject> = {
     mode: 'universal-sniffing',
     entry: async () =>
       Promise.resolve({
-        ...(await (config.entry as EntryPropertyFunction)()),
+        ...(typeof config.entry === 'function' ? await config.entry() : config.entry),
         simulatorBundle: './src/simulator/index.ts',
       }),
   }),
@@ -203,8 +203,9 @@ async function materializeFinalWebpackConfig(options: {
 
   // call it to get concrete values for comparison
   const finalWebpackConfigValue = webpackConfigFunction(incomingWebpackConfig, incomingWebpackBuildContext);
-  const webpackEntryProperty = finalWebpackConfigValue.entry as EntryPropertyFunction;
-  finalWebpackConfigValue.entry = await webpackEntryProperty();
+  const webpackEntryProperty = finalWebpackConfigValue.entry;
+  finalWebpackConfigValue.entry =
+    typeof webpackEntryProperty === 'function' ? await webpackEntryProperty() : webpackEntryProperty;
 
   return finalWebpackConfigValue;
 }
