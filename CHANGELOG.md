@@ -12,6 +12,8 @@
 - fix(tracing): Export SpanStatus enum (#4478)
 - fix(vue): Property _isVue not defined in Vue3 (#4461)
 
+Work in this release contributed by @7inspire and @jaeseokk. Thank you for your contributions!
+
 ## 6.17.3
 
 - fix(nextjs): Unwrap `req` and `res` if necessary when instrumenting server (#4467)
