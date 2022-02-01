@@ -261,9 +261,9 @@ function checkWebpackPluginOverrides(
  */
 function shouldAddSentryToEntryPoint(entryPointName: string, isServer: boolean): boolean {
   return (
-    entryPointName === 'pages/_app' ||
+    entryPointName.includes('pages/_app') ||
     entryPointName.includes('pages/api') ||
-    (isServer && entryPointName === 'pages/_error')
+    (isServer && entryPointName.includes('pages/_error'))
   );
 }
 
