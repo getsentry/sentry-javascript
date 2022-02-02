@@ -7,7 +7,7 @@ async function getPropertyValue(handle: JSHandle, prop: string) {
   return (await handle.getProperty(prop))?.jsonValue();
 }
 
-sentryTest('should finish transaction when the goes background', async ({ getLocalTestPath, page }) => {
+sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const pageloadTransaction = await getSentryTransactionRequest(page, url);
