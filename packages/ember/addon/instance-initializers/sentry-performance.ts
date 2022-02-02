@@ -88,7 +88,7 @@ export function _instrumentEmberRouter(
     });
   }
 
-  const finishActiveTransaction = function(_: any, nextInstance: any) {
+  const finishActiveTransaction = function (_: any, nextInstance: any) {
     if (nextInstance) {
       return;
     }
