@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.4
+
+- chore(deps): Bump `@sentry/webpack-plugin` from 1.18.3 to 1.18.4 (#4464)
+- fix(browser): Set severity level for events captured by the global error handler (#4460)
+- fix(integrations): Add default for `ExtraErrorData`'s `depth` option (#4487)
+- fix(nextjs): Export `BrowserTracing` integration directly (#4480)
+- fix(tracing): Export `SpanStatus` enum (#4478)
+- fix(vue): Property `_isVue` not defined in Vue3 (#4461)
+
+Work in this release contributed by @7inspire, @jaeseokk, and @rchl. Thank you for your contributions!
+
 ## 6.17.3
 
 - fix(nextjs): Unwrap `req` and `res` if necessary when instrumenting server (#4467)
