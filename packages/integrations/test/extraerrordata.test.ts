@@ -42,6 +42,31 @@ describe('ExtraErrorData()', () => {
     });
   });
 
+  it('should stringify up to 3 nested levels by default', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error['1'] = {
+      2: {
+        3: {
+          4: 'foo',
+        },
+      },
+    };
+
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        1: {
+          2: {
+            3: '[Object]',
+          },
+        },
+      },
+    });
+  });
+
   it('should not remove previous data existing in extra field', () => {
     event = {
       // @ts-ignore Allow contexts on event
