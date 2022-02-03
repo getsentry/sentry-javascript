@@ -75,7 +75,7 @@
     "size-limit": "^4.5.5",
     "ts-jest": "^24.3.0",
     "typedoc": "^0.18.0",
-    "typescript": "3.7.5"
+    "typescript": "3.8.3"
   },
   "resolutions": {
     "**/agent-base": "5",
