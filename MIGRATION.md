@@ -102,6 +102,7 @@ import { Severity, SeverityLevel } from '@sentry/types';
 const levelA = Severity.error;
 
 const levelB: SeverityLevel = "error"
+```
 
 # Upgrading from 4.x to 5.x/6.x
 
