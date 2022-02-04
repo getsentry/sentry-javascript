@@ -1,5 +1,5 @@
 import { Page, Request } from '@playwright/test';
-import { Event } from '@sentry/types';
+import { Event, Session } from '@sentry/types';
 
 const storeUrlRegex = /\.sentry\.io\/api\/\d+\/store\//;
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -147,6 +147,23 @@ async function getMultipleSentryTransactionRequests(page: Page, count: number, u
 }
 
 /**
+ * Get current Sentry session at the given URL, or the current page
+ *
+ * @param {Page} page
+ * @param {string} [url]
+ * @return {*}  {Promise<Session>}
+ */
+async function getCurrentSession(page: Page, url?: string): Promise<Session> {
+  if (url) {
+    await page.goto(url);
+  }
+
+  const session = await page.evaluateHandle<Session>('window.Sentry.getCurrentHub().getScope().getSession()');
+
+  return session.jsonValue();
+}
+
+/**
  * Manually inject a script into the page of given URL.
  * This function is useful to create more complex test subjects that can't be achieved by pre-built pages.
  * The given script should be vanilla browser JavaScript
@@ -170,5 +187,6 @@ export {
   getSentryRequest,
   getSentryTransactionRequest,
   getSentryEvents,
+  getCurrentSession,
   injectScriptAndGetEvents,
 };
