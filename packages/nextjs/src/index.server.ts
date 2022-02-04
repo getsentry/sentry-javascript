@@ -140,13 +140,7 @@ if (!isVercel && !isBuild) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { instrumentServer } = require('./utils/instrumentServer.js');
     instrumentServer();
-  } catch {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { instrumentServer } = require('./utils/instrumentServer.ts');
-      instrumentServer();
-    } catch {
-      // Server not instrumented. Not adding logs to avoid noise.
-    }
+  } catch (err) {
+    logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
   }
 }
