@@ -71,8 +71,8 @@ export class CaptureConsole implements Integration {
         }
 
         // this fails for some browsers. :(
-        if (originalConsoleLevel) {
-          Function.prototype.apply.call(originalConsoleLevel, global.console, args);
+        if (originalConsoleLevel && 'originalConsoleLevel' in global.console) {
+          global.console[originalConsoleLevel](...args);
         }
       });
     });
