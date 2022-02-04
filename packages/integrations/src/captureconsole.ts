@@ -70,7 +70,6 @@ export class CaptureConsole implements Integration {
           });
         }
 
-        // this fails for some browsers. :(
         if (originalConsoleLevel && 'originalConsoleLevel' in global.console) {
           global.console[originalConsoleLevel](...args);
         }
