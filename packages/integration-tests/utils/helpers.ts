@@ -1,5 +1,5 @@
 import { Page, Request } from '@playwright/test';
-import { Event, Session } from '@sentry/types';
+import { Event, SessionContext } from '@sentry/types';
 
 const storeUrlRegex = /\.sentry\.io\/api\/\d+\/store\//;
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -43,6 +43,17 @@ async function getSentryRequest(page: Page, url?: string): Promise<Event> {
  * @return {*}  {Promise<Event>}
  */
 async function getSentryTransactionRequest(page: Page, url?: string): Promise<Event> {
+  return (await getMultipleSentryTransactionRequests(page, 1, url))[0];
+}
+
+/**
+ * Get current Sentry session at the given URL, or the current page
+ *
+ * @param {Page} page
+ * @param {string} [url]
+ * @return {*}  {Promise<SessionContext>}
+ */
+async function getCurrentSession(page: Page, url?: string): Promise<SessionContext> {
   return (await getMultipleSentryTransactionRequests(page, 1, url))[0];
 }
 
@@ -144,23 +155,6 @@ async function getMultipleSentryRequests(page: Page, count: number, url?: string
  */
 async function getMultipleSentryTransactionRequests(page: Page, count: number, url?: string): Promise<Event[]> {
   return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, url);
-}
-
-/**
- * Get current Sentry session at the given URL, or the current page
- *
- * @param {Page} page
- * @param {string} [url]
- * @return {*}  {Promise<Session>}
- */
-async function getCurrentSession(page: Page, url?: string): Promise<Session> {
-  if (url) {
-    await page.goto(url);
-  }
-
-  const session = await page.evaluateHandle<Session>('window.Sentry.getCurrentHub().getScope().getSession()');
-
-  return session.jsonValue();
 }
 
 /**
