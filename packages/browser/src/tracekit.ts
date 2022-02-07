@@ -18,7 +18,6 @@
 export interface StackFrame {
   url: string;
   func: string;
-  args: string[];
   line: number | null;
   column: number | null;
 }
@@ -43,7 +42,7 @@ const UNKNOWN_FUNCTION = '?';
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
 const chrome =
-  /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|address|native|eval|webpack|<anonymous>|[-a-z]+:|.*bundle|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+  /^\s*at (?:(.*?) ?\((?:address at )?)?((?:file|https?|blob|chrome-extension|address|native|eval|webpack|<anonymous>|[-a-z]+:|.*bundle|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
 // We need this specific case for now because we want no other regex to match.
@@ -113,9 +112,8 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
   let parts;
   let element;
 
-  for (let i = 0; i < lines.length; ++i) {
-    if ((parts = chrome.exec(lines[i]))) {
-      const isNative = parts[2] && parts[2].indexOf('native') === 0; // start of line
+  for (const line of lines) {
+    if ((parts = chrome.exec(line))) {
       isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
       if (isEval && (submatch = chromeEval.exec(parts[2]))) {
         // throw out eval line/column and use top-most line/column number
@@ -124,30 +122,24 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
         parts[4] = submatch[3]; // column
       }
 
-      // Arpad: Working with the regexp above is super painful. it is quite a hack, but just stripping the `address at `
-      // prefix here seems like the quickest solution for now.
-      let url = parts[2] && parts[2].indexOf('address at ') === 0 ? parts[2].substr('address at '.length) : parts[2];
       // Kamil: One more hack won't hurt us right? Understanding and adding more rules on top of these regexps right now
       // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
-      let func = parts[1] || UNKNOWN_FUNCTION;
-      [func, url] = extractSafariExtensionDetails(func, url);
+      const [func, url] = extractSafariExtensionDetails(parts[1] || UNKNOWN_FUNCTION, parts[2]);
 
       element = {
         url,
         func,
-        args: isNative ? [parts[2]] : [],
         line: parts[3] ? +parts[3] : null,
         column: parts[4] ? +parts[4] : null,
       };
-    } else if ((parts = winjs.exec(lines[i]))) {
+    } else if ((parts = winjs.exec(line))) {
       element = {
         url: parts[2],
         func: parts[1] || UNKNOWN_FUNCTION,
-        args: [],
         line: +parts[3],
         column: parts[4] ? +parts[4] : null,
       };
-    } else if ((parts = gecko.exec(lines[i]))) {
+    } else if ((parts = gecko.exec(line))) {
       isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
       if (isEval && (submatch = geckoEval.exec(parts[3]))) {
         // throw out eval line/column and use top-most line number
@@ -155,12 +147,6 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
         parts[3] = submatch[1];
         parts[4] = submatch[2];
         parts[5] = ''; // no column when eval
-      } else if (i === 0 && !parts[5] && ex.columnNumber !== void 0) {
-        // FireFox uses this awesome columnNumber property for its top frame
-        // Also note, Firefox's column number is 0-based and everything else expects 1-based,
-        // so adding 1
-        // NOTE: this hack doesn't work if top-most frame is eval
-        stack[0].column = (ex.columnNumber as number) + 1;
       }
 
       let url = parts[3];
@@ -170,16 +156,11 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
       element = {
         url,
         func,
-        args: parts[2] ? parts[2].split(',') : [],
         line: parts[4] ? +parts[4] : null,
         column: parts[5] ? +parts[5] : null,
       };
     } else {
       continue;
-    }
-
-    if (!element.func && element.line) {
-      element.func = UNKNOWN_FUNCTION;
     }
 
     stack.push(element);
@@ -208,7 +189,7 @@ function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
   const stacktrace = ex.stacktrace;
   const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
   const opera11Regex =
-    / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\((.*)\))? in (.*):\s*$/i;
+    / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
   const lines = stacktrace.split('\n');
   const stack = [];
   let parts;
@@ -219,15 +200,13 @@ function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
       element = {
         url: parts[2],
         func: parts[3],
-        args: [],
         line: +parts[1],
         column: null,
       };
     } else if ((parts = opera11Regex.exec(lines[line]))) {
       element = {
-        url: parts[6],
+        url: parts[5],
         func: parts[3] || parts[4],
-        args: parts[5] ? parts[5].split(',') : [],
         line: +parts[1],
         column: +parts[2],
       };
