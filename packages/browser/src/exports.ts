@@ -29,6 +29,7 @@ export {
   Hub,
   makeMain,
   Scope,
+  Session,
   startTransaction,
   SDK_VERSION,
   setContext,
