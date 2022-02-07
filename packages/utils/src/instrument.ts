@@ -13,15 +13,7 @@ import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();
 
-type InstrumentHandlerType =
-  | 'console'
-  | 'dom'
-  | 'fetch'
-  | 'history'
-  | 'sentry'
-  | 'xhr'
-  | 'error'
-  | 'unhandledrejection';
+type InstrumentHandlerType = 'console' | 'dom' | 'fetch' | 'history' | 'xhr' | 'error' | 'unhandledrejection';
 type InstrumentHandlerCallback = (data: any) => void;
 
 /**
@@ -34,42 +26,29 @@ type InstrumentHandlerCallback = (data: any) => void;
  *  - Error API
  *  - UnhandledRejection API
  */
-
 const handlers: { [key in InstrumentHandlerType]?: InstrumentHandlerCallback[] } = {};
 const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 
+const instrumentHandlers: Record<InstrumentHandlerType, () => void | undefined> = {
+  console: instrumentConsole,
+  dom: instrumentDOM,
+  xhr: instrumentXHR,
+  fetch: instrumentFetch,
+  history: instrumentHistory,
+  error: instrumentError,
+  unhandledrejection: instrumentUnhandledRejection,
+};
+
 /** Instruments given API */
 function instrument(type: InstrumentHandlerType): void {
-  if (instrumented[type]) {
-    return;
-  }
-
-  instrumented[type] = true;
-
-  switch (type) {
-    case 'console':
-      instrumentConsole();
-      break;
-    case 'dom':
-      instrumentDOM();
-      break;
-    case 'xhr':
-      instrumentXHR();
-      break;
-    case 'fetch':
-      instrumentFetch();
-      break;
-    case 'history':
-      instrumentHistory();
-      break;
-    case 'error':
-      instrumentError();
-      break;
-    case 'unhandledrejection':
-      instrumentUnhandledRejection();
-      break;
-    default:
+  if (!instrumented[type]) {
+    instrumented[type] = true;
+    const handler = instrumentHandlers[type];
+    if (handler) {
+      handler();
+    } else {
       logger.warn('unknown instrumentation type:', type);
+    }
   }
 }
 
@@ -86,10 +65,6 @@ export function addInstrumentationHandler(type: InstrumentHandlerType, callback:
 
 /** JSDoc */
 function triggerHandlers(type: InstrumentHandlerType, data: any): void {
-  if (!type || !handlers[type]) {
-    return;
-  }
-
   for (const handler of handlers[type] || []) {
     try {
       handler(data);
@@ -105,7 +80,10 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
   }
 }
 
-/** JSDoc */
+/**
+ * TODO: This has the same functionality as the `captureConsole` integration.
+ * Perhaps we can reuse the code.
+ */
 function instrumentConsole(): void {
   if (!('console' in global)) {
     return;
@@ -116,13 +94,13 @@ function instrumentConsole(): void {
       return;
     }
 
-    fill(global.console, level, function (originalConsoleLevel: () => any): Function {
+    fill(global.console, level, function (originalConsoleMethod: () => any): Function {
       return function (...args: any[]): void {
         triggerHandlers('console', { args, level });
 
         // this fails for some browsers. :(
-        if (originalConsoleLevel) {
-          Function.prototype.apply.call(originalConsoleLevel, global.console, args);
+        if (originalConsoleMethod) {
+          originalConsoleMethod.call(global.console, args);
         }
       };
     });

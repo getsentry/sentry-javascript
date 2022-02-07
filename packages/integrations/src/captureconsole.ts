@@ -25,7 +25,7 @@ export class CaptureConsole implements Integration {
    */
   public constructor(options: { levels?: string[] } = {}) {
     if (options.levels) {
-      this._levels = options.levels;
+      this._levels = [...this._levels, ...options.levels];
     }
   }
 
