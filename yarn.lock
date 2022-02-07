@@ -3100,10 +3100,10 @@
     progress "^2.0.3"
     proxy-from-env "^1.1.0"
 
-"@sentry/webpack-plugin@1.18.4":
-  version "1.18.4"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.18.4.tgz#bf1ba2575251264a61d519272b8e119e120b0822"
-  integrity sha512-1NVnxCmNxcJ7+UQwpMGiSEFNgc52vGCZ0pjpfvmmtJMxnJFYnSNy2vTVStL4xwGMe6vLR9luJRT9Smoy3lxJYg==
+"@sentry/webpack-plugin@1.18.5":
+  version "1.18.5"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.18.5.tgz#aaff79d8e05b8d803654490324252406c976b1cd"
+  integrity sha512-HycNZEcVRj/LxaG6hLsxjHo47mpxop3j7u2aUkriE2pT7XNpeypsa0WiokYzStxzCfSu8rbAbX4PchTGLMlTjw==
   dependencies:
     "@sentry/cli" "^1.72.0"
 
