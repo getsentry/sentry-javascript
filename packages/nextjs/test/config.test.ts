@@ -92,6 +92,7 @@ const serverWebpackConfig = {
     Promise.resolve({
       'pages/_error': 'private-next-pages/_error.js',
       'pages/_app': ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+      'pages/api/_middleware': 'private-next-pages/api/_middleware.js',
       'pages/api/simulator/dogStats/[name]': { import: 'private-next-pages/api/simulator/dogStats/[name].js' },
       'pages/api/simulator/leaderboard': {
         import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'],
@@ -444,6 +445,21 @@ describe('webpack config', () => {
           'pages/api/tricks/[trickName]': expect.objectContaining({
             import: expect.arrayContaining([serverConfigFilePath]),
           }),
+        }),
+      );
+    });
+
+    it('does not inject user config file into API middleware', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          // no injected file
+          'pages/api/_middleware': 'private-next-pages/api/_middleware.js',
         }),
       );
     });

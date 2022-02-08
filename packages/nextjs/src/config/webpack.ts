@@ -262,7 +262,7 @@ function checkWebpackPluginOverrides(
 function shouldAddSentryToEntryPoint(entryPointName: string, isServer: boolean): boolean {
   return (
     entryPointName === 'pages/_app' ||
-    entryPointName.includes('pages/api') ||
+    (entryPointName.includes('pages/api') && !entryPointName.includes('_middleware')) ||
     (isServer && entryPointName === 'pages/_error')
   );
 }
