@@ -82,7 +82,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
         if (process.env.NODE_ENV === 'development') {
           // eslint-disable-next-line no-console
           console.warn(
-            '\n[sentry] If Next.js logs a warning "API resolved without sending a response", it\'s a false positive, which we\'re working to rectify.\n',
+            '[sentry] If Next.js logs a warning "API resolved without sending a response", it\'s a false positive, which we\'re working to rectify.',
           );
         }
 
