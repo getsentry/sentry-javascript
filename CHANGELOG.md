@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.6
+
+- fix(angular): Add check for global.location in angular universal (#4513)
+- fix(nextjs): Stop injecting sentry into API middleware (#4517)
+- fix(nextjs): Revert #4139 - remove manipulation of res.finished value (#4516)
+
+Work in this release contributed by @mobilestar1. Thank you for your contribution!
+
 ## 6.17.5
 
 This release deprecates the `Severity` enum, the `SeverityLevel` type, and the internal `SeverityLevels` array, all from `@sentry/types`. In v7, `Severity` will disappear (in favor of `SeverityLevel`) and `SeverityLevel` and `SeverityLevels` will live in `@sentry/utils`. If you are using any of the three, we encourage you to migrate your usage now, using our [migration guide](./MIGRATION.md#upgrading-from-6.x-to-6.17.x).
