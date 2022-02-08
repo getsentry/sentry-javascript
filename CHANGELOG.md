@@ -4,7 +4,24 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.6
+
+- fix(angular): Add check for global.location in angular universal ([#4513](https://github.com/getsentry/sentry-javascript/issues/4513))
+- fix(nextjs): Stop injecting sentry into API middleware ([#4517](https://github.com/getsentry/sentry-javascript/issues/4517))
+- fix(nextjs): Revert #4139 - remove manipulation of res.finished value ([#4516](https://github.com/getsentry/sentry-javascript/issues/4516))
+
+Work in this release contributed by @mobilestar1. Thank you for your contribution!
+
+## 6.17.5
+
 This release deprecates the `Severity` enum, the `SeverityLevel` type, and the internal `SeverityLevels` array, all from `@sentry/types`. In v7, `Severity` will disappear (in favor of `SeverityLevel`) and `SeverityLevel` and `SeverityLevels` will live in `@sentry/utils`. If you are using any of the three, we encourage you to migrate your usage now, using our [migration guide](./MIGRATION.md#upgrading-from-6.x-to-6.17.x).
+
+- ref: Export Session class from core/browser/node ([#4508](https://github.com/getsentry/sentry-javascript/issues/4508))
+- chore(nextjs): Bump`@sentry/webpack-plugin` to 1.18.5 ([#4501](https://github.com/getsentry/sentry-javascript/issues/4501))
+- ref(types): Move SeverityLevel and SeverityLevels to `@sentry/utils` ([#4492](https://github.com/getsentry/sentry-javascript/issues/4492))
+- fix(vue): Cast name parameter to string ([#4483](https://github.com/getsentry/sentry-javascript/issues/4483))
+
+Work in this release contributed by @Bobakanoosh and @ssnielsen. Thank you for your contributions!
 
 ## 6.17.4
 
