@@ -12,28 +12,31 @@ module.exports = [
     limit: '120 KB',
   },
   {
-    name: '@sentry/browser - Webpack',
+    name: '@sentry/browser - Webpack (gzipped)',
     path: 'packages/browser/esm/index.js',
     import: '{ init }',
+    gzip: true,
     limit: '100 KB',
   },
   {
-    name: '@sentry/browser - Webpack - gzip = false',
+    name: '@sentry/browser - Webpack (minified)',
     path: 'packages/browser/esm/index.js',
     import: '{ init }',
     gzip: false,
     limit: '100 KB',
   },
   {
-    name: '@sentry/react - Webpack',
+    name: '@sentry/react - Webpack (gzipped)',
     path: 'packages/react/esm/index.js',
     import: '{ init }',
+    gzip: true,
     limit: '100 KB',
   },
   {
-    name: '@sentry/nextjs Client - Webpack',
+    name: '@sentry/nextjs Client - Webpack (gzipped)',
     path: 'packages/nextjs/esm/index.client.js',
     import: '{ init }',
+    gzip: true,
     limit: '100 KB',
   },
   {
@@ -41,5 +44,17 @@ module.exports = [
     path: 'packages/tracing/build/bundle.tracing.min.js',
     gzip: true,
     limit: '100 KB',
+  },
+  {
+    name: '@sentry/browser - ES6 CDN Bundle (gzipped)',
+    path: 'packages/browser/build/bundle.es6.min.js',
+    gzip: true,
+    limit: '100 KB',
+  },
+  {
+    name: '@sentry/browser - ES6 CDN Bundle (minified)',
+    path: 'packages/browser/build/bundle.es6.min.js',
+    gzip: false,
+    limit: '120 KB',
   },
 ];
