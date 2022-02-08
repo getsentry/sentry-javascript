@@ -20,10 +20,10 @@ describe('Tracekit - Safari Tests', () => {
       message: "'null' is not an object (evaluating 'x.undef')",
       name: 'foo',
       stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 48, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'onclick', lineno: 82, colno: undefined },
-        { filename: '[native code]', function: '?', lineno: undefined, colno: undefined },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 48 },
+        { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52 },
+        { filename: 'http://path/to/file.js', function: 'onclick', lineno: 82 },
+        { filename: '[native code]', function: '?' },
       ],
     });
   });
@@ -96,7 +96,7 @@ describe('Tracekit - Safari Tests', () => {
       message: "Can't find variable: getExceptionProps",
       name: 'ReferenceError',
       stack: [
-        { filename: '[native code]', function: 'eval', lineno: undefined, colno: undefined },
+        { filename: '[native code]', function: 'eval' },
         { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 21 },
         { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 91 },
       ],
@@ -161,7 +161,7 @@ describe('Tracekit - Safari Tests', () => {
             lineno: 2,
             colno: 1588410,
           },
-          { filename: '[native code]', function: 'promiseReactionJob', lineno: undefined, colno: undefined },
+          { filename: '[native code]', function: 'promiseReactionJob' },
         ],
       });
     });
@@ -223,7 +223,7 @@ describe('Tracekit - Safari Tests', () => {
             lineno: 29,
             colno: 56027,
           },
-          { filename: '[native code]', function: 'promiseReactionJob', lineno: undefined, colno: undefined },
+          { filename: '[native code]', function: 'promiseReactionJob' },
         ],
       });
     });
@@ -246,7 +246,7 @@ describe('Tracekit - Safari Tests', () => {
       name: 'Error',
       stack: [
         { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 26 },
-        { filename: '[native code]', function: 'map', lineno: undefined, colno: undefined },
+        { filename: '[native code]', function: 'map' },
         { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 22 },
         { filename: 'http://localhost:5000/test', function: 'global code', lineno: 24, colno: 10 },
       ],
@@ -278,13 +278,13 @@ describe('Tracekit - Safari Tests', () => {
       name: 'Error',
       stack: [
         { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 22 },
-        { filename: '[native code]', function: 'aha', lineno: undefined, colno: undefined },
+        { filename: '[native code]', function: 'aha' },
         { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
         { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 23 },
         { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 25 },
-        { filename: '[native code]', function: 'map', lineno: undefined, colno: undefined },
+        { filename: '[native code]', function: 'map' },
         { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 26 },
-        { filename: '[native code]', function: 'eval', lineno: undefined, colno: undefined },
+        { filename: '[native code]', function: 'eval' },
         { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 9 },
         { filename: 'http://localhost:5000/', function: 'testMethod', lineno: 44, colno: 10 },
         { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 29 },

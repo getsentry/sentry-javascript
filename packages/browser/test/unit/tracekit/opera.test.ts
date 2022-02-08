@@ -30,13 +30,13 @@ describe('Tracekit - Opera Tests', () => {
       message: 'Statement on line 42: Type mismatch (usually non-object value supplied where object required)',
       name: 'foo',
       stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 42, colno: undefined },
-        { filename: 'http://path/to/file.js', function: '?', lineno: 27, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, colno: undefined },
-        { filename: 'http://path/to/file.js', function: '?', lineno: 15, colno: undefined },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 42 },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 27 },
+        { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 4 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 7 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 11 },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 15 },
       ],
     });
   });

@@ -8,7 +8,7 @@ describe('Tracekit - Chrome Tests', () => {
     expect(stackFrames).toEqual({
       message: 'foo',
       name: 'bar',
-      stack: [{ filename: 'native', function: 'Array.forEach', lineno: undefined, colno: undefined }],
+      stack: [{ filename: 'native', function: 'Array.forEach' }],
     });
   });
 
@@ -164,7 +164,7 @@ describe('Tracekit - Chrome Tests', () => {
       message: 'Error: test',
       name: 'Error',
       stack: [
-        { filename: 'native', function: 'Error', lineno: undefined, colno: undefined },
+        { filename: 'native', function: 'Error' },
         {
           filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
           function: 's',
@@ -247,7 +247,7 @@ describe('Tracekit - Chrome Tests', () => {
       name: 'Error',
       stack: [
         { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 17 },
-        { filename: '<anonymous>', function: 'Array.map', lineno: undefined, colno: undefined },
+        { filename: '<anonymous>', function: 'Array.map' },
         { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 19 },
         { filename: 'http://localhost:5000/test', function: '?', lineno: 24, colno: 7 },
       ],
@@ -281,7 +281,7 @@ describe('Tracekit - Chrome Tests', () => {
         { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
         { filename: 'http://localhost:5000/', function: 'Object.callback', lineno: 25, colno: 7 },
         { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 17 },
-        { filename: '<anonymous>', function: 'Array.map', lineno: undefined, colno: undefined },
+        { filename: '<anonymous>', function: 'Array.map' },
         { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23 },
         { filename: 'http://localhost:5000/', function: 'eval', lineno: 37, colno: 5 },
         { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
@@ -309,7 +309,7 @@ describe('Tracekit - Chrome Tests', () => {
       name: 'Error',
       stack: [
         { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 11 },
-        { filename: 'native code', function: 'Array.prototype.map', lineno: undefined, colno: undefined },
+        { filename: 'native code', function: 'Array.prototype.map' },
         { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 9 },
         { filename: 'http://localhost:5000/test', function: 'Global code', lineno: 24, colno: 7 },
       ],
@@ -343,7 +343,7 @@ describe('Tracekit - Chrome Tests', () => {
         { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 18, colno: 6 },
         { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 7 },
         { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 34, colno: 7 },
-        { filename: 'native code', function: 'Array.prototype.map', lineno: undefined, colno: undefined },
+        { filename: 'native code', function: 'Array.prototype.map' },
         { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 5 },
         { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1 },
         { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },

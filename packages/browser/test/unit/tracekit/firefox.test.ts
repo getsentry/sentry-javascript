@@ -24,18 +24,17 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'this.undef is not a function',
       name: 'TypeError',
       stack: [
-        { filename: 'http://127.0.0.1:8000/js/stacktrace.js', function: '?', lineno: 44, colno: undefined },
-        { filename: 'http://127.0.0.1:8000/js/stacktrace.js', function: '?', lineno: 31, colno: undefined },
+        { filename: 'http://127.0.0.1:8000/js/stacktrace.js', function: '?', lineno: 44 },
+        { filename: 'http://127.0.0.1:8000/js/stacktrace.js', function: '?', lineno: 31 },
         {
           filename: 'http://127.0.0.1:8000/js/stacktrace.js',
           function: 'printStackTrace',
           lineno: 18,
-          colno: undefined,
         },
-        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'bar', lineno: 13, colno: undefined },
-        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'bar', lineno: 16, colno: undefined },
-        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'foo', lineno: 20, colno: undefined },
-        { filename: 'http://127.0.0.1:8000/js/file.js', function: '?', lineno: 24, colno: undefined },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'bar', lineno: 13 },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'bar', lineno: 16 },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'foo', lineno: 20 },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: '?', lineno: 24 },
       ],
     });
   });
@@ -63,13 +62,13 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'bar',
       name: 'foo',
       stack: [
-        { filename: 'file:///G:/js/stacktrace.js', function: '?', lineno: 44, colno: undefined },
-        { filename: 'file:///G:/js/stacktrace.js', function: '?', lineno: 31, colno: undefined },
-        { filename: 'file:///G:/js/stacktrace.js', function: 'printStackTrace', lineno: 18, colno: undefined },
-        { filename: 'file:///G:/js/file.js', function: 'bar', lineno: 13, colno: undefined },
-        { filename: 'file:///G:/js/file.js', function: 'bar', lineno: 16, colno: undefined },
-        { filename: 'file:///G:/js/file.js', function: 'foo', lineno: 20, colno: undefined },
-        { filename: 'file:///G:/js/file.js', function: '?', lineno: 24, colno: undefined },
+        { filename: 'file:///G:/js/stacktrace.js', function: '?', lineno: 44 },
+        { filename: 'file:///G:/js/stacktrace.js', function: '?', lineno: 31 },
+        { filename: 'file:///G:/js/stacktrace.js', function: 'printStackTrace', lineno: 18 },
+        { filename: 'file:///G:/js/file.js', function: 'bar', lineno: 13 },
+        { filename: 'file:///G:/js/file.js', function: 'bar', lineno: 16 },
+        { filename: 'file:///G:/js/file.js', function: 'foo', lineno: 20 },
+        { filename: 'file:///G:/js/file.js', function: '?', lineno: 24 },
       ],
     });
   });
@@ -93,9 +92,9 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'x is null',
       name: 'foo',
       stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 48, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52, colno: undefined },
-        { filename: 'http://path/to/file.js', function: 'onclick', lineno: 1, colno: undefined },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 48 },
+        { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52 },
+        { filename: 'http://path/to/file.js', function: 'onclick', lineno: 1 },
       ],
     });
   });
@@ -213,9 +212,9 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'message string',
       name: 'foo',
       stack: [
-        { filename: 'http://localhost:8080/file.js', function: 'baz', lineno: 26, colno: undefined },
-        { filename: 'http://localhost:8080/file.js', function: 'foo', lineno: 26, colno: undefined },
-        { filename: 'http://localhost:8080/file.js', function: 'eval', lineno: 26, colno: undefined },
+        { filename: 'http://localhost:8080/file.js', function: 'baz', lineno: 26 },
+        { filename: 'http://localhost:8080/file.js', function: 'foo', lineno: 26 },
+        { filename: 'http://localhost:8080/file.js', function: 'eval', lineno: 26 },
         { filename: 'http://localhost:8080/file.js', function: 'speak', lineno: 26, colno: 17 },
         { filename: 'http://localhost:8080/file.js', function: '?', lineno: 33, colno: 9 },
       ],
@@ -270,7 +269,7 @@ describe('Tracekit - Firefox Tests', () => {
         { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 7 },
         { filename: 'http://localhost:5000/', function: 'test/<', lineno: 34, colno: 7 },
         { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23 },
-        { filename: 'http://localhost:5000/', function: 'eval', lineno: 39, colno: undefined },
+        { filename: 'http://localhost:5000/', function: 'eval', lineno: 39 },
         { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
         { filename: 'http://localhost:5000/', function: 'testMethod', lineno: 44, colno: 7 },
         { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19 },
