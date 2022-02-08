@@ -71,6 +71,7 @@
     "prettier": "2.5.1",
     "replace-in-file": "^4.0.0",
     "rimraf": "^3.0.2",
+    "rollup-plugin-license": "^2.6.1",
     "sinon": "^7.3.2",
     "size-limit": "^4.5.5",
     "ts-jest": "^24.3.0",
