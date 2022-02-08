@@ -20,10 +20,10 @@ describe('Tracekit - Safari Tests', () => {
       message: "'null' is not an object (evaluating 'x.undef')",
       name: 'foo',
       stack: [
-        { url: 'http://path/to/file.js', func: '?', line: 48, column: null },
-        { url: 'http://path/to/file.js', func: 'dumpException3', line: 52, column: null },
-        { url: 'http://path/to/file.js', func: 'onclick', line: 82, column: null },
-        { url: '[native code]', func: '?', line: null, column: null },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 48, colno: undefined },
+        { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52, colno: undefined },
+        { filename: 'http://path/to/file.js', function: 'onclick', lineno: 82, colno: undefined },
+        { filename: '[native code]', function: '?', lineno: undefined, colno: undefined },
       ],
     });
   });
@@ -44,9 +44,9 @@ describe('Tracekit - Safari Tests', () => {
       message: "'null' is not an object (evaluating 'x.undef')",
       name: 'TypeError',
       stack: [
-        { url: 'http://path/to/file.js', func: '?', line: 48, column: 22 },
-        { url: 'http://path/to/file.js', func: 'foo', line: 52, column: 15 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 108, column: 107 },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 48, colno: 22 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 107 },
       ],
     });
   });
@@ -68,9 +68,9 @@ describe('Tracekit - Safari Tests', () => {
       message: "null is not an object (evaluating 'x.undef')",
       name: 'TypeError',
       stack: [
-        { url: 'http://path/to/file.js', func: '?', line: 47, column: 22 },
-        { url: 'http://path/to/file.js', func: 'foo', line: 52, column: 15 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 108, column: 23 },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 23 },
       ],
     });
   });
@@ -96,9 +96,9 @@ describe('Tracekit - Safari Tests', () => {
       message: "Can't find variable: getExceptionProps",
       name: 'ReferenceError',
       stack: [
-        { url: '[native code]', func: 'eval', line: null, column: null },
-        { url: 'http://path/to/file.js', func: 'foo', line: 58, column: 21 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 109, column: 91 },
+        { filename: '[native code]', function: 'eval', lineno: undefined, colno: undefined },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 21 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 91 },
       ],
     });
   });
@@ -120,16 +120,16 @@ describe('Tracekit - Safari Tests', () => {
         name: 'Error',
         stack: [
           {
-            url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-            func: 'ClipperError',
-            line: 223036,
-            column: 10,
+            filename: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+            function: 'ClipperError',
+            lineno: 223036,
+            colno: 10,
           },
           {
-            url: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-            func: '?',
-            line: 3313,
-            column: 26,
+            filename: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+            function: '?',
+            lineno: 3313,
+            colno: 26,
           },
         ],
       });
@@ -150,18 +150,18 @@ describe('Tracekit - Safari Tests', () => {
         name: 'TypeError',
         stack: [
           {
-            url: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
-            func: 'isClaimed',
-            line: 2,
-            column: 929865,
+            filename: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+            function: 'isClaimed',
+            lineno: 2,
+            colno: 929865,
           },
           {
-            url: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
-            func: '?',
-            line: 2,
-            column: 1588410,
+            filename: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+            function: '?',
+            lineno: 2,
+            colno: 1588410,
           },
-          { url: '[native code]', func: 'promiseReactionJob', line: null, column: null },
+          { filename: '[native code]', function: 'promiseReactionJob', lineno: undefined, colno: undefined },
         ],
       });
     });
@@ -182,16 +182,16 @@ describe('Tracekit - Safari Tests', () => {
         name: 'Error',
         stack: [
           {
-            url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-            func: 'ClipperError',
-            line: 223036,
-            column: 10,
+            filename: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+            function: 'ClipperError',
+            lineno: 223036,
+            colno: 10,
           },
           {
-            url: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-            func: '?',
-            line: 3313,
-            column: 26,
+            filename: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+            function: '?',
+            lineno: 3313,
+            colno: 26,
           },
         ],
       });
@@ -212,18 +212,18 @@ describe('Tracekit - Safari Tests', () => {
         name: 'TypeError',
         stack: [
           {
-            url: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
-            func: 'p_',
-            line: 29,
-            column: 33314,
+            filename: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+            function: 'p_',
+            lineno: 29,
+            colno: 33314,
           },
           {
-            url: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
-            func: '?',
-            line: 29,
-            column: 56027,
+            filename: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+            function: '?',
+            lineno: 29,
+            colno: 56027,
           },
-          { url: '[native code]', func: 'promiseReactionJob', line: null, column: null },
+          { filename: '[native code]', function: 'promiseReactionJob', lineno: undefined, colno: undefined },
         ],
       });
     });
@@ -245,10 +245,10 @@ describe('Tracekit - Safari Tests', () => {
       message: 'test',
       name: 'Error',
       stack: [
-        { url: 'http://localhost:5000/test', func: 'fooIterator', line: 20, column: 26 },
-        { url: '[native code]', func: 'map', line: null, column: null },
-        { url: 'http://localhost:5000/test', func: 'foo', line: 19, column: 22 },
-        { url: 'http://localhost:5000/test', func: 'global code', line: 24, column: 10 },
+        { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 26 },
+        { filename: '[native code]', function: 'map', lineno: undefined, colno: undefined },
+        { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 22 },
+        { filename: 'http://localhost:5000/test', function: 'global code', lineno: 24, colno: 10 },
       ],
     });
   });
@@ -277,17 +277,17 @@ describe('Tracekit - Safari Tests', () => {
       message: 'aha',
       name: 'Error',
       stack: [
-        { url: 'http://localhost:5000/', func: 'aha', line: 19, column: 22 },
-        { url: '[native code]', func: 'aha', line: null, column: null },
-        { url: 'http://localhost:5000/', func: 'callAnotherThing', line: 20, column: 16 },
-        { url: 'http://localhost:5000/', func: 'callback', line: 25, column: 23 },
-        { url: 'http://localhost:5000/', func: '?', line: 34, column: 25 },
-        { url: '[native code]', func: 'map', line: null, column: null },
-        { url: 'http://localhost:5000/', func: 'test', line: 33, column: 26 },
-        { url: '[native code]', func: 'eval', line: null, column: null },
-        { url: 'http://localhost:5000/', func: 'aha', line: 39, column: 9 },
-        { url: 'http://localhost:5000/', func: 'testMethod', line: 44, column: 10 },
-        { url: 'http://localhost:5000/', func: '?', line: 50, column: 29 },
+        { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 22 },
+        { filename: '[native code]', function: 'aha', lineno: undefined, colno: undefined },
+        { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
+        { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 23 },
+        { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 25 },
+        { filename: '[native code]', function: 'map', lineno: undefined, colno: undefined },
+        { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 26 },
+        { filename: '[native code]', function: 'eval', lineno: undefined, colno: undefined },
+        { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 9 },
+        { filename: 'http://localhost:5000/', function: 'testMethod', lineno: 44, colno: 10 },
+        { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 29 },
       ],
     });
   });

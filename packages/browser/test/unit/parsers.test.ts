@@ -5,9 +5,9 @@ describe('Parsers', () => {
     describe('removed top frame if its internally reserved word (public API)', () => {
       it('reserved captureException', () => {
         const stack = [
-          { context: ['x'], column: 1, line: 4, url: 'anything.js', func: 'captureException', args: [] },
-          { context: ['x'], column: 1, line: 3, url: 'anything.js', func: 'foo', args: [] },
-          { context: ['x'], column: 1, line: 2, url: 'anything.js', func: 'bar', args: [] },
+          { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureException' },
+          { colno: 1, lineno: 3, filename: 'anything.js', function: 'foo' },
+          { colno: 1, lineno: 2, filename: 'anything.js', function: 'bar' },
         ];
 
         // Should remove `captureException` as its a name considered "internal"
@@ -20,9 +20,9 @@ describe('Parsers', () => {
 
       it('reserved captureMessage', () => {
         const stack = [
-          { context: ['x'], column: 1, line: 4, url: 'anything.js', func: 'captureMessage', args: [] },
-          { context: ['x'], column: 1, line: 3, url: 'anything.js', func: 'foo', args: [] },
-          { context: ['x'], column: 1, line: 2, url: 'anything.js', func: 'bar', args: [] },
+          { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' },
+          { colno: 1, lineno: 3, filename: 'anything.js', function: 'foo' },
+          { colno: 1, lineno: 2, filename: 'anything.js', function: 'bar' },
         ];
 
         // Should remove `captureMessage` as its a name considered "internal"
@@ -37,9 +37,9 @@ describe('Parsers', () => {
     describe('removed bottom frame if its internally reserved word (internal API)', () => {
       it('reserved sentryWrapped', () => {
         const stack = [
-          { context: ['x'], column: 1, line: 3, url: 'anything.js', func: 'foo', args: [] },
-          { context: ['x'], column: 1, line: 2, url: 'anything.js', func: 'bar', args: [] },
-          { context: ['x'], column: 1, line: 1, url: 'anything.js', func: 'sentryWrapped', args: [] },
+          { colno: 1, lineno: 3, filename: 'anything.js', function: 'foo' },
+          { colno: 1, lineno: 2, filename: 'anything.js', function: 'bar' },
+          { colno: 1, lineno: 1, filename: 'anything.js', function: 'sentryWrapped' },
         ];
 
         // Should remove `sentryWrapped` as its a name considered "internal"
@@ -53,10 +53,10 @@ describe('Parsers', () => {
 
     it('removed top and bottom frame if they are internally reserved words', () => {
       const stack = [
-        { context: ['x'], column: 1, line: 4, url: 'anything.js', func: 'captureMessage', args: [] },
-        { context: ['x'], column: 1, line: 3, url: 'anything.js', func: 'foo', args: [] },
-        { context: ['x'], column: 1, line: 2, url: 'anything.js', func: 'bar', args: [] },
-        { context: ['x'], column: 1, line: 1, url: 'anything.js', func: 'sentryWrapped', args: [] },
+        { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' },
+        { colno: 1, lineno: 3, filename: 'anything.js', function: 'foo' },
+        { colno: 1, lineno: 2, filename: 'anything.js', function: 'bar' },
+        { colno: 1, lineno: 1, filename: 'anything.js', function: 'sentryWrapped' },
       ];
 
       // Should remove `captureMessage` and `sentryWrapped` as its a name considered "internal"

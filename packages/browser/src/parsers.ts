@@ -1,7 +1,7 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
 import { extractExceptionKeysForMessage, isEvent, normalizeToSize } from '@sentry/utils';
 
-import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
+import { computeStackTrace, StackTrace as TraceKitStackTrace } from './tracekit';
 
 const STACKTRACE_LIMIT = 50;
 
@@ -80,15 +80,15 @@ export function eventFromStacktrace(stacktrace: TraceKitStackTrace): Event {
 /**
  * @hidden
  */
-export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[] {
+export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
   if (!stack || !stack.length) {
     return [];
   }
 
   let localStack = stack;
 
-  const firstFrameFunction = localStack[0].func || '';
-  const lastFrameFunction = localStack[localStack.length - 1].func || '';
+  const firstFrameFunction = localStack[0].function || '';
+  const lastFrameFunction = localStack[localStack.length - 1].function || '';
 
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
   if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
@@ -103,14 +103,12 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   // The frame where the crash happened, should be the last entry in the array
   return localStack
     .slice(0, STACKTRACE_LIMIT)
-    .map(
-      (frame: TraceKitStackFrame): StackFrame => ({
-        colno: frame.column === null ? undefined : frame.column,
-        filename: frame.url || localStack[0].url,
-        function: frame.func || '?',
-        in_app: true,
-        lineno: frame.line === null ? undefined : frame.line,
-      }),
-    )
+    .map(frame => ({
+      colno: frame.colno,
+      filename: frame.filename || localStack[0].filename,
+      function: frame.function || '?',
+      in_app: true,
+      lineno: frame.lineno,
+    }))
     .reverse();
 }

@@ -21,10 +21,10 @@ describe('Tracekit - React Tests', () => {
         'Minified React error #31; visit https://reactjs.org/docs/error-decoder.html?invariant=31&args[]=object%20with%20keys%20%7B%7D&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings. ',
       name: 'Invariant Violation',
       stack: [
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: '?', line: 1, column: 21738 },
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: 'a', line: 1, column: 21841 },
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: 'ho', line: 1, column: 68735 },
-        { url: 'http://localhost:5000/', func: 'f', line: 1, column: 980 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
+        { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
       ],
     });
   });
@@ -48,10 +48,10 @@ describe('Tracekit - React Tests', () => {
         'Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.',
       name: 'Error',
       stack: [
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: '?', line: 1, column: 21738 },
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: 'a', line: 1, column: 21841 },
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: 'ho', line: 1, column: 68735 },
-        { url: 'http://localhost:5000/', func: 'f', line: 1, column: 980 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
+        { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
       ],
     });
   });
@@ -76,10 +76,10 @@ describe('Tracekit - React Tests', () => {
         'Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.',
       name: 'Error',
       stack: [
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: '?', line: 1, column: 21738 },
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: 'a', line: 1, column: 21841 },
-        { url: 'http://localhost:5000/static/js/foo.chunk.js', func: 'ho', line: 1, column: 68735 },
-        { url: 'http://localhost:5000/', func: 'f', line: 1, column: 980 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
+        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
+        { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
       ],
     });
   });

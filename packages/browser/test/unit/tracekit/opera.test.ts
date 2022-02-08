@@ -30,13 +30,13 @@ describe('Tracekit - Opera Tests', () => {
       message: 'Statement on line 42: Type mismatch (usually non-object value supplied where object required)',
       name: 'foo',
       stack: [
-        { url: 'http://path/to/file.js', func: '?', line: 42, column: null },
-        { url: 'http://path/to/file.js', func: '?', line: 27, column: null },
-        { url: 'http://path/to/file.js', func: 'printStackTrace', line: 18, column: null },
-        { url: 'http://path/to/file.js', func: 'bar', line: 4, column: null },
-        { url: 'http://path/to/file.js', func: 'bar', line: 7, column: null },
-        { url: 'http://path/to/file.js', func: 'foo', line: 11, column: null },
-        { url: 'http://path/to/file.js', func: '?', line: 15, column: null },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 42, colno: undefined },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 27, colno: undefined },
+        { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, colno: undefined },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, colno: undefined },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, colno: undefined },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, colno: undefined },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 15, colno: undefined },
       ],
     });
   });
@@ -74,13 +74,13 @@ describe('Tracekit - Opera Tests', () => {
       message: "'this.undef' is not a function",
       name: 'foo',
       stack: [
-        { url: 'http://path/to/file.js', func: 'createException', line: 42, column: 12 },
-        { url: 'http://path/to/file.js', func: 'run', line: 27, column: 8 },
-        { url: 'http://path/to/file.js', func: 'printStackTrace', line: 18, column: 4 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 4, column: 5 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 7, column: 4 },
-        { url: 'http://path/to/file.js', func: 'foo', line: 11, column: 4 },
-        { url: 'http://path/to/file.js', func: '?', line: 15, column: 3 },
+        { filename: 'http://path/to/file.js', function: 'createException', lineno: 42, colno: 12 },
+        { filename: 'http://path/to/file.js', function: 'run', lineno: 27, colno: 8 },
+        { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, colno: 4 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, colno: 5 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, colno: 4 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, colno: 4 },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 15, colno: 3 },
       ],
     });
   });
@@ -109,9 +109,14 @@ describe('Tracekit - Opera Tests', () => {
       message: "Cannot convert 'x' to object",
       name: 'foo',
       stack: [
-        { url: 'http://localhost:8000/ExceptionLab.html', func: '<anonymous function>', line: 48, column: 12 },
-        { url: 'http://localhost:8000/ExceptionLab.html', func: 'dumpException3', line: 46, column: 8 },
-        { url: 'http://localhost:8000/ExceptionLab.html', func: '<anonymous function>', line: 1, column: 0 },
+        {
+          filename: 'http://localhost:8000/ExceptionLab.html',
+          function: '<anonymous function>',
+          lineno: 48,
+          colno: 12,
+        },
+        { filename: 'http://localhost:8000/ExceptionLab.html', function: 'dumpException3', lineno: 46, colno: 8 },
+        { filename: 'http://localhost:8000/ExceptionLab.html', function: '<anonymous function>', lineno: 1, colno: 0 },
       ],
     });
   });
@@ -133,9 +138,9 @@ describe('Tracekit - Opera Tests', () => {
       message: "Cannot read property 'undef' of null",
       name: 'TypeError',
       stack: [
-        { url: 'http://path/to/file.js', func: '?', line: 47, column: 22 },
-        { url: 'http://path/to/file.js', func: 'foo', line: 52, column: 15 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 108, column: 168 },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 168 },
       ],
     });
   });
