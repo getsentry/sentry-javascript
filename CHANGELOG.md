@@ -10,7 +10,7 @@
 - fix(nextjs): Stop injecting sentry into API middleware (#4517)
 - fix(nextjs): Revert #4139 - remove manipulation of res.finished value (#4516)
 
-Work in this release contributed by @mobilestar1. Thank you for your contributions!
+Work in this release contributed by @mobilestar1. Thank you for your contribution!
 
 ## 6.17.5
 
