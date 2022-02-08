@@ -37,9 +37,7 @@ describe('tracing', () => {
   }
 
   it("creates a span for each outgoing non-sentry request when there's a transaction on the scope", () => {
-    nock('http://dogs.are.great')
-      .get('/')
-      .reply(200);
+    nock('http://dogs.are.great').get('/').reply(200);
 
     const transaction = createTransactionOnScope();
     const spans = (transaction as Span).spanRecorder?.spans as Span[];
@@ -56,9 +54,7 @@ describe('tracing', () => {
   });
 
   it("doesn't create a span for outgoing sentry requests", () => {
-    nock('http://squirrelchasers.ingest.sentry.io')
-      .get('/api/12312012/store/')
-      .reply(200);
+    nock('http://squirrelchasers.ingest.sentry.io').get('/api/12312012/store/').reply(200);
 
     const transaction = createTransactionOnScope();
     const spans = (transaction as Span).spanRecorder?.spans as Span[];
@@ -71,9 +67,7 @@ describe('tracing', () => {
   });
 
   it('attaches the sentry-trace header to outgoing non-sentry requests', async () => {
-    nock('http://dogs.are.great')
-      .get('/')
-      .reply(200);
+    nock('http://dogs.are.great').get('/').reply(200);
 
     createTransactionOnScope();
 
@@ -85,9 +79,7 @@ describe('tracing', () => {
   });
 
   it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {
-    nock('http://squirrelchasers.ingest.sentry.io')
-      .get('/api/12312012/store/')
-      .reply(200);
+    nock('http://squirrelchasers.ingest.sentry.io').get('/api/12312012/store/').reply(200);
 
     createTransactionOnScope();
 
@@ -127,9 +119,7 @@ describe('default protocols', () => {
     const key = 'catrunners';
     const p = captureBreadcrumb(key);
 
-    nock(`http://${key}.ingest.sentry.io`)
-      .get('/api/123122332/store/')
-      .reply(200);
+    nock(`http://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
 
     http.get({
       host: `${key}.ingest.sentry.io`,
@@ -163,9 +153,7 @@ describe('default protocols', () => {
     if (NODE_VERSION.major && NODE_VERSION.major < 9) {
       nockProtocol = 'http';
     }
-    nock(`${nockProtocol}://${key}.ingest.sentry.io`)
-      .get('/api/123122332/store/')
-      .reply(200);
+    nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
 
     https.get({
       host: `${key}.ingest.sentry.io`,
@@ -189,9 +177,7 @@ describe('default protocols', () => {
       nockProtocol = 'http';
     }
 
-    nock(`${nockProtocol}://${key}.ingest.sentry.io`)
-      .get('/api/123122332/store/')
-      .reply(200);
+    nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
 
     https.get({
       host: `${key}.ingest.sentry.io`,

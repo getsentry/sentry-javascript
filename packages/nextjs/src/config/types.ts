@@ -20,6 +20,7 @@ export type NextConfigObject = {
   sentry?: {
     disableServerWebpackPlugin?: boolean;
     disableClientWebpackPlugin?: boolean;
+    hideSourceMaps?: boolean;
   };
 } & {
   // other `next.config.js` options

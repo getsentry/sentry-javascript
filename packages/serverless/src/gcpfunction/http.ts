@@ -85,7 +85,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const _end = res.end;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
+    res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
       transaction.setHttpStatus(res.statusCode);
       transaction.finish();
 

@@ -1,5 +1,4 @@
-import { SeverityLevels } from '@sentry/types';
-
+import { SeverityLevels } from '../src/enums';
 import { severityFromString } from '../src/severity';
 
 describe('severityFromString()', () => {

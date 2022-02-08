@@ -205,13 +205,13 @@ describe('requestHandler', () => {
   }
 
   beforeEach(() => {
-    req = ({
+    req = {
       headers,
       method,
       protocol,
       hostname,
       originalUrl: `${path}?${queryString}`,
-    } as unknown) as http.IncomingMessage;
+    } as unknown as http.IncomingMessage;
     res = new http.ServerResponse(req);
     next = createNoOpSpy();
   });
@@ -302,13 +302,13 @@ describe('tracingHandler', () => {
   }
 
   beforeEach(() => {
-    req = ({
+    req = {
       headers,
       method,
       protocol,
       hostname,
       originalUrl: `${path}?${queryString}`,
-    } as unknown) as http.IncomingMessage;
+    } as unknown as http.IncomingMessage;
     res = new http.ServerResponse(req);
     next = createNoOpSpy();
   });
@@ -370,10 +370,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore
-      .getCurrentHub()
-      .getScope()
-      ?.getTransaction();
+    const transaction = sentryCore.getCurrentHub().getScope()?.getTransaction();
 
     expect(transaction).toBeDefined();
     expect(transaction).toEqual(
@@ -680,13 +677,13 @@ describe('errorHandler()', () => {
   }
 
   beforeEach(() => {
-    req = ({
+    req = {
       headers,
       method,
       protocol,
       hostname,
       originalUrl: `${path}?${queryString}`,
-    } as unknown) as http.IncomingMessage;
+    } as unknown as http.IncomingMessage;
     res = new http.ServerResponse(req);
     next = createNoOpSpy();
   });

@@ -17,7 +17,6 @@ export function logAndExitProcess(error: Error): void {
   if (client === undefined) {
     logger.warn('No NodeClient was defined, we are exiting the process now.');
     global.process.exit(1);
-    return;
   }
 
   const options = client.getOptions();

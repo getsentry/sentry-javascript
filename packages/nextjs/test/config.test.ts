@@ -92,6 +92,7 @@ const serverWebpackConfig = {
     Promise.resolve({
       'pages/_error': 'private-next-pages/_error.js',
       'pages/_app': ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+      'pages/api/_middleware': 'private-next-pages/api/_middleware.js',
       'pages/api/simulator/dogStats/[name]': { import: 'private-next-pages/api/simulator/dogStats/[name].js' },
       'pages/api/simulator/leaderboard': {
         import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'],
@@ -300,6 +301,26 @@ describe('webpack config', () => {
     expect(finalWebpackConfig).toEqual(expect.objectContaining(materializedUserWebpackConfig));
   });
 
+  it('allows for the use of `hidden-source-map` as `devtool` value for client-side builds', async () => {
+    const userNextConfigHiddenSourceMaps = { ...userNextConfig, sentry: { ...userNextConfig.sentry } };
+    userNextConfigHiddenSourceMaps.sentry.hideSourceMaps = true;
+
+    const finalClientWebpackConfig = await materializeFinalWebpackConfig({
+      userNextConfig: userNextConfigHiddenSourceMaps,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+    });
+
+    const finalServerWebpackConfig = await materializeFinalWebpackConfig({
+      userNextConfig: userNextConfigHiddenSourceMaps,
+      incomingWebpackConfig: serverWebpackConfig,
+      incomingWebpackBuildContext: serverBuildContext,
+    });
+
+    expect(finalClientWebpackConfig.devtool).toEqual('hidden-source-map');
+    expect(finalServerWebpackConfig.devtool).toEqual('source-map');
+  });
+
   describe('webpack `entry` property config', () => {
     const serverConfigFilePath = `./${SERVER_SDK_CONFIG_FILE}`;
     const clientConfigFilePath = `./${CLIENT_SDK_CONFIG_FILE}`;
@@ -424,6 +445,21 @@ describe('webpack config', () => {
           'pages/api/tricks/[trickName]': expect.objectContaining({
             import: expect.arrayContaining([serverConfigFilePath]),
           }),
+        }),
+      );
+    });
+
+    it('does not inject user config file into API middleware', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          // no injected file
+          'pages/api/_middleware': 'private-next-pages/api/_middleware.js',
         }),
       );
     });

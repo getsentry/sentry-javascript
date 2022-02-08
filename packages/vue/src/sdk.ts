@@ -49,11 +49,11 @@ export function init(
     return;
   }
 
-  if (options.Vue) {
-    vueInit(options.Vue, options);
-  } else if (options.app) {
+  if (options.app) {
     const apps = Array.isArray(options.app) ? options.app : [options.app];
     apps.forEach(app => vueInit(app, options));
+  } else if (options.Vue) {
+    vueInit(options.Vue, options);
   }
 }
 

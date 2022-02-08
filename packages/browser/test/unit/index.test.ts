@@ -325,7 +325,7 @@ describe('wrap()', () => {
 
   it('should allow for passing this and arguments through binding', () => {
     const result = wrap(
-      function(this: unknown, a: string, b: number): unknown[] {
+      function (this: unknown, a: string, b: number): unknown[] {
         return [this, a, b];
       }.bind({ context: 'this' }, 'b', 42),
     );
@@ -335,7 +335,7 @@ describe('wrap()', () => {
     expect((result as unknown[])[2]).toBe(42);
 
     const result2 = wrap(
-      function(this: { x: number }): number {
+      function (this: { x: number }): number {
         return this.x;
       }.bind({ x: 42 }),
     );

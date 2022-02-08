@@ -42,6 +42,31 @@ describe('ExtraErrorData()', () => {
     });
   });
 
+  it('should stringify up to 3 nested levels by default', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error['1'] = {
+      2: {
+        3: {
+          4: 'foo',
+        },
+      },
+    };
+
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        1: {
+          2: {
+            3: '[Object]',
+          },
+        },
+      },
+    });
+  });
+
   it('should not remove previous data existing in extra field', () => {
     event = {
       // @ts-ignore Allow contexts on event
@@ -93,7 +118,7 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
     error.foo = 'bar';
-    error.toJSON = function() {
+    error.toJSON = function () {
       return {
         bar: 1337,
         qux: `${this.message} but nicer`,
@@ -117,7 +142,7 @@ describe('ExtraErrorData()', () => {
   it('toJSON props should have priority over directly assigned ones', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
-    error.toJSON = function() {
+    error.toJSON = function () {
       return {
         baz: 1337,
       };
@@ -137,7 +162,7 @@ describe('ExtraErrorData()', () => {
   it('toJSON props should allow for usage of native names', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
-    error.toJSON = function() {
+    error.toJSON = function () {
       return {
         message: 'bar',
       };

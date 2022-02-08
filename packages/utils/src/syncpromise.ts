@@ -128,7 +128,7 @@ class SyncPromise<T> implements PromiseLike<T> {
           return;
         }
 
-        resolve((val as unknown) as any);
+        resolve(val as unknown as any);
       });
     });
   }
@@ -176,7 +176,7 @@ class SyncPromise<T> implements PromiseLike<T> {
 
       if (this._state === States.RESOLVED) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        handler[1]((this._value as unknown) as any);
+        handler[1](this._value as unknown as any);
       }
 
       if (this._state === States.REJECTED) {

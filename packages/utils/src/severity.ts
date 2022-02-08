@@ -1,4 +1,6 @@
-import { Severity, SeverityLevel, SeverityLevels } from '@sentry/types';
+import { Severity } from '@sentry/types';
+
+import { SeverityLevel, SeverityLevels } from './enums';
 
 function isSupportedSeverity(level: string): level is Severity {
   return SeverityLevels.indexOf(level as SeverityLevel) !== -1;

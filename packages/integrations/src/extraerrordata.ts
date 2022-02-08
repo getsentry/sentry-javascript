@@ -18,10 +18,18 @@ export class ExtraErrorData implements Integration {
    */
   public name: string = ExtraErrorData.id;
 
+  /** JSDoc */
+  private readonly _options: ExtraErrorDataOptions;
+
   /**
    * @inheritDoc
    */
-  public constructor(private readonly _options: ExtraErrorDataOptions = { depth: 3 }) {}
+  public constructor(options?: ExtraErrorDataOptions) {
+    this._options = {
+      depth: 3,
+      ...options,
+    };
+  }
 
   /**
    * @inheritDoc

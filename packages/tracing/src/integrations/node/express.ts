@@ -106,7 +106,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
 
   switch (arity) {
     case 2: {
-      return function(this: NodeJS.Global, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
+      return function (this: NodeJS.Global, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
         const transaction = res.__sentry_transaction;
         if (transaction) {
           const span = transaction.startChild({
@@ -121,7 +121,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
       };
     }
     case 3: {
-      return function(
+      return function (
         this: NodeJS.Global,
         req: unknown,
         res: ExpressResponse & SentryTracingResponse,
@@ -132,14 +132,14 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
           description: fn.name,
           op: `express.middleware.${method}`,
         });
-        fn.call(this, req, res, function(this: NodeJS.Global, ...args: unknown[]): void {
+        fn.call(this, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
           span?.finish();
           next.call(this, ...args);
         });
       };
     }
     case 4: {
-      return function(
+      return function (
         this: NodeJS.Global,
         err: Error,
         req: Request,
@@ -151,7 +151,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
           description: fn.name,
           op: `express.middleware.${method}`,
         });
-        fn.call(this, err, req, res, function(this: NodeJS.Global, ...args: unknown[]): void {
+        fn.call(this, err, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
           span?.finish();
           next.call(this, ...args);
         });
@@ -198,7 +198,7 @@ function wrapMiddlewareArgs(args: unknown[], method: Method): unknown[] {
 function patchMiddleware(router: Router, method: Method): Router {
   const originalCallback = router[method];
 
-  router[method] = function(...args: unknown[]): void {
+  router[method] = function (...args: unknown[]): void {
     return originalCallback.call(this, ...wrapMiddlewareArgs(args, method));
   };
 

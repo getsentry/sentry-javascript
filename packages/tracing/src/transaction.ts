@@ -21,7 +21,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
+  private readonly _hub: Hub = getCurrentHub() as unknown as Hub;
 
   private _trimEnd?: boolean;
 

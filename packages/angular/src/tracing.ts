@@ -27,7 +27,7 @@ export function routingInstrumentation(
   stashedStartTransaction = customStartTransaction;
   stashedStartTransactionOnLocationChange = startTransactionOnLocationChange;
 
-  if (startTransactionOnPageLoad) {
+  if (startTransactionOnPageLoad && global && global.location) {
     customStartTransaction({
       name: global.location.pathname,
       op: 'pageload',
@@ -183,7 +183,7 @@ export function TraceClassDecorator(): ClassDecorator {
   return target => {
     const originalOnInit = target.prototype.ngOnInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    target.prototype.ngOnInit = function(...args: any[]): ReturnType<typeof originalOnInit> {
+    target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
         tracingSpan = activeTransaction.startChild({
@@ -198,7 +198,7 @@ export function TraceClassDecorator(): ClassDecorator {
 
     const originalAfterViewInit = target.prototype.ngAfterViewInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    target.prototype.ngAfterViewInit = function(...args: any[]): ReturnType<typeof originalAfterViewInit> {
+    target.prototype.ngAfterViewInit = function (...args: any[]): ReturnType<typeof originalAfterViewInit> {
       if (tracingSpan) {
         tracingSpan.finish();
       }
@@ -218,7 +218,7 @@ export function TraceMethodDecorator(): MethodDecorator {
   return (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function(...args: any[]): ReturnType<typeof originalMethod> {
+    descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
       const now = timestampWithMs();
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {

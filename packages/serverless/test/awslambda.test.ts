@@ -91,21 +91,6 @@ describe('AWSLambda', () => {
       expect(Sentry.flush).toBeCalledWith(1337);
     });
 
-    test('rethrowAfterCapture', async () => {
-      expect.assertions(3);
-
-      const error = new Error('wat');
-      const handler = () => {
-        throw error;
-      };
-      const wrappedHandlerWithRethrow = wrapHandler(handler, { rethrowAfterCapture: true });
-      const wrappedHandlerWithoutRethrow = wrapHandler(handler, { rethrowAfterCapture: false });
-
-      await expect(wrappedHandlerWithRethrow(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(error);
-      await expect(wrappedHandlerWithoutRethrow(fakeEvent, fakeContext, fakeCallback)).resolves.not.toThrow();
-      expect(Sentry.flush).toBeCalledTimes(2);
-    });
-
     test('captureTimeoutWarning enabled (default)', async () => {
       expect.assertions(2);
 

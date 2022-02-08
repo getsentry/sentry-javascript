@@ -42,7 +42,8 @@ export type AsyncHandler<T extends Handler> = (
 
 export interface WrapperOptions {
   flushTimeout: number;
-  rethrowAfterCapture: boolean;
+  // TODO: DEPRECATED - remove `rethrowAfterCapture` in v7
+  rethrowAfterCapture?: boolean;
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
   timeoutWarningLimit: number;
@@ -215,11 +216,10 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
 export function wrapHandler<TEvent, TResult>(
   handler: Handler<TEvent, TResult>,
   wrapOptions: Partial<WrapperOptions> = {},
-): Handler<TEvent, TResult | undefined> {
+): Handler<TEvent, TResult> {
   const START_TIME = performance.now();
   const options: WrapperOptions = {
     flushTimeout: 2000,
-    rethrowAfterCapture: true,
     callbackWaitsForEmptyEventLoop: false,
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
@@ -293,7 +293,7 @@ export function wrapHandler<TEvent, TResult>(
 
     const hub = getCurrentHub();
     const scope = hub.pushScope();
-    let rv: TResult | undefined;
+    let rv: TResult;
     try {
       enhanceScopeWithEnvironmentData(scope, context, START_TIME);
       // We put the transaction on the scope so users can attach children to it
@@ -309,9 +309,7 @@ export function wrapHandler<TEvent, TResult>(
       }
     } catch (e) {
       captureException(e);
-      if (options.rethrowAfterCapture) {
-        throw e;
-      }
+      throw e;
     } finally {
       clearTimeout(timeoutWarningTimer);
       transaction.finish();

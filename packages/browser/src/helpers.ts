@@ -80,7 +80,7 @@ export function wrap(
 
   /* eslint-disable prefer-rest-params */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sentryWrapped: WrappedFunction = function(this: any): void {
+  const sentryWrapped: WrappedFunction = function (this: any): void {
     const args = Array.prototype.slice.call(arguments);
 
     try {

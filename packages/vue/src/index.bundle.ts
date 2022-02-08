@@ -6,12 +6,13 @@ export {
   EventStatus,
   Exception,
   Response,
-  SeverityLevel,
   StackFrame,
   Stacktrace,
   Thread,
   User,
 } from '@sentry/types';
+
+export { SeverityLevel } from '@sentry/utils';
 
 export {
   BrowserClient,

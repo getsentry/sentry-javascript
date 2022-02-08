@@ -73,7 +73,7 @@ type WrappedRouterChangeState = RouterChangeState;
  * Start a navigation transaction every time the router changes state.
  */
 function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): WrappedRouterChangeState {
-  const wrapper = function(
+  const wrapper = function (
     this: any,
     method: string,
     // The parameterized url, ex. posts/[id]/[comment]

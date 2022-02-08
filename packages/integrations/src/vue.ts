@@ -8,16 +8,16 @@ import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/util
  * without the need to import `Tracing` itself from the @sentry/apm package.
  * @deprecated as @sentry/tracing should be used over @sentry/apm.
  */
-const TRACING_GETTER = ({
+const TRACING_GETTER = {
   id: 'Tracing',
-} as any) as IntegrationClass<Integration>;
+} as any as IntegrationClass<Integration>;
 
 /**
  * Used to extract BrowserTracing integration from @sentry/tracing
  */
-const BROWSER_TRACING_GETTER = ({
+const BROWSER_TRACING_GETTER = {
   id: 'BrowserTracing',
-} as any) as IntegrationClass<Integration>;
+} as any as IntegrationClass<Integration>;
 
 const VUE_OP = 'ui.vue';
 

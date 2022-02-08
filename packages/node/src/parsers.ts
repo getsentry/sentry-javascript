@@ -15,8 +15,9 @@ function getFunction(frame: stacktrace.StackFrame): string {
   }
 }
 
-const mainModule: string = `${(require.main && require.main.filename && dirname(require.main.filename)) ||
-  global.process.cwd()}/`;
+const mainModule: string = `${
+  (require.main && require.main.filename && dirname(require.main.filename)) || global.process.cwd()
+}/`;
 
 /** JSDoc */
 function getModule(filename: string, base?: string): string {
