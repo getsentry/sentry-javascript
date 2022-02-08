@@ -1,7 +1,10 @@
+import { getCurrentHub } from '@sentry/core';
 import { Event, EventProcessor, Integration } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
+
+import { NodeClient } from '../client';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 
@@ -44,12 +47,17 @@ export class ContextLines implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    if (this._options.frameContextLines == undefined) {
+      const initOptions = getCurrentHub().getClient<NodeClient>()?.getOptions();
+      this._options.frameContextLines = initOptions?.frameContextLines;
+    }
+
     addGlobalEventProcessor(event => this.addToEvent(event));
   }
 
   /** Processes an event and adds context lines */
   public async addToEvent(event: Event): Promise<Event> {
-    const contextLines = this._options.frameContextLines != undefined ? this._options.frameContextLines : 7;
+    const contextLines = this._options.frameContextLines == undefined ? 7 : this._options.frameContextLines;
 
     const frames = event.exception?.values?.[0].stacktrace?.frames;
 

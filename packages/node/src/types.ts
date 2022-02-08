@@ -20,6 +20,9 @@ export interface NodeOptions extends Options {
   /** HTTPS proxy certificates path */
   caCerts?: string;
 
+  /** Sets the number of context lines for each frame when loading a file. */
+  frameContextLines?: number;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 }
