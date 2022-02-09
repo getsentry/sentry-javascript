@@ -42,16 +42,18 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
 }
 
 /**
- * Defines a non enumerable property.  This creates a non enumerable property on an object.
+ * Defines a non-enumerable property on the given object.
  *
- * @param func The function to set a property to
- * @param name the name of the special sentry property
- * @param value the property to define
+ * @param obj The object on which to set the property
+ * @param name The name of the property to be set
+ * @param value The value to which to set the property
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function addNonEnumerableProperty(func: any, name: string, value: any): void {
-  Object.defineProperty(func, name, {
+export function addNonEnumerableProperty(obj: { [key: string]: unknown }, name: string, value: unknown): void {
+  Object.defineProperty(obj, name, {
+    // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
     value: value,
+    writable: true,
+    configurable: true,
   });
 }
 
