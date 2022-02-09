@@ -93,7 +93,7 @@ export class IdleTransaction extends Transaction {
     private readonly _onScope: boolean = false,
     /**
      * The final value that a transaction cannot exceed
-     * @default 15000
+     * @default 30000
      * @experimental
      * @internal
      */
