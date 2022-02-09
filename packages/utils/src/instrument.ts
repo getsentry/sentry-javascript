@@ -116,13 +116,13 @@ function instrumentConsole(): void {
       return;
     }
 
-    fill(global.console, level, function (originalConsoleLevel: () => any): Function {
+    fill(global.console, level, function (originalConsoleMethod: () => any): Function {
       return function (...args: any[]): void {
         triggerHandlers('console', { args, level });
 
         // this fails for some browsers. :(
-        if (originalConsoleLevel) {
-          Function.prototype.apply.call(originalConsoleLevel, global.console, args);
+        if (originalConsoleMethod) {
+          originalConsoleMethod.call(global.console, args);
         }
       };
     });
