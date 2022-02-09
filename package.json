@@ -72,6 +72,7 @@
     "replace-in-file": "^4.0.0",
     "rimraf": "^3.0.2",
     "rollup-plugin-license": "^2.6.1",
+    "rollup-plugin-terser": "^5.0.2",
     "rollup-plugin-typescript2": "^0.31.2",
     "sinon": "^7.3.2",
     "size-limit": "^4.5.5",
