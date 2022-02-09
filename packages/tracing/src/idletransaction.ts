@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
-import { logger, timestampWithMs } from '@sentry/utils';
+import { getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants';
 import { Span, SpanRecorder } from './span';
@@ -8,6 +8,8 @@ import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
 export const HEARTBEAT_INTERVAL = 5000;
+
+const global = getGlobalObject<Window>();
 
 /**
  * @inheritDoc
@@ -71,7 +73,7 @@ export class IdleTransaction extends Transaction {
    * If a transaction is created and no activities are added, we want to make sure that
    * it times out properly. This is cleared and not used when activities are added.
    */
-  private _initTimeout: ReturnType<typeof setTimeout> | undefined;
+  private _initTimeout: ReturnType<typeof global.setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
@@ -96,7 +98,7 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this._initTimeout = setTimeout(() => {
+    this._initTimeout = global.setTimeout(() => {
       if (!this._finished) {
         this.finish();
       }
@@ -221,7 +223,7 @@ export class IdleTransaction extends Transaction {
       // Remember timestampWithMs is in seconds, timeout is in ms
       const end = timestampWithMs() + timeout / 1000;
 
-      setTimeout(() => {
+      global.setTimeout(() => {
         if (!this._finished) {
           this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[1]);
           this.finish(end);
@@ -265,7 +267,7 @@ export class IdleTransaction extends Transaction {
    */
   private _pingHeartbeat(): void {
     logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
-    setTimeout(() => {
+    global.setTimeout(() => {
       this._beat();
     }, HEARTBEAT_INTERVAL);
   }
