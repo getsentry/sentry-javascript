@@ -14,7 +14,7 @@ import { MetricsInstrumentation } from '../../src/browser/metrics';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction, DEFAULT_FINAL_TIMEOUT } from '../../src/idletransaction';
+import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 import { getActiveTransaction, secToMs } from '../../src/utils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
