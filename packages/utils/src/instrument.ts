@@ -13,17 +13,6 @@ import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();
 
-type InstrumentHandlerType =
-  | 'console'
-  | 'dom'
-  | 'fetch'
-  | 'history'
-  | 'sentry'
-  | 'xhr'
-  | 'error'
-  | 'unhandledrejection';
-type InstrumentHandlerCallback = (data: any) => void;
-
 /**
  * Instrument native APIs to call handlers that can be used to create breadcrumbs, APM spans etc.
  *  - Console API
@@ -34,42 +23,31 @@ type InstrumentHandlerCallback = (data: any) => void;
  *  - Error API
  *  - UnhandledRejection API
  */
+type InstrumentHandlerType = 'console' | 'dom' | 'fetch' | 'history' | 'xhr' | 'error' | 'unhandledrejection';
+type InstrumentHandlerCallback = (data: any) => void;
 
 const handlers: { [key in InstrumentHandlerType]?: InstrumentHandlerCallback[] } = {};
 const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
+
+const instrumentationCreatorMap: Record<InstrumentHandlerType, (() => void) | undefined> = {
+  console: 'console' in global ? instrumentConsole : undefined,
+  dom: 'document' in global ? instrumentDOM : undefined,
+  xhr: 'XMLHttpRequest' in global ? instrumentXHR : undefined,
+  fetch: supportsNativeFetch() ? instrumentFetch : undefined,
+  history: supportsHistory() ? instrumentHistory : undefined,
+  error: instrumentError,
+  unhandledrejection: instrumentUnhandledRejection,
+};
 
 /** Instruments given API */
 function instrument(type: InstrumentHandlerType): void {
   if (instrumented[type]) {
     return;
   }
-
   instrumented[type] = true;
-
-  switch (type) {
-    case 'console':
-      instrumentConsole();
-      break;
-    case 'dom':
-      instrumentDOM();
-      break;
-    case 'xhr':
-      instrumentXHR();
-      break;
-    case 'fetch':
-      instrumentFetch();
-      break;
-    case 'history':
-      instrumentHistory();
-      break;
-    case 'error':
-      instrumentError();
-      break;
-    case 'unhandledrejection':
-      instrumentUnhandledRejection();
-      break;
-    default:
-      logger.warn('unknown instrumentation type:', type);
+  const instrumentationCreator = instrumentationCreatorMap[type];
+  if (instrumentationCreator) {
+    instrumentationCreator();
   }
 }
 
@@ -107,10 +85,6 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
 
 /** JSDoc */
 function instrumentConsole(): void {
-  if (!('console' in global)) {
-    return;
-  }
-
   ['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function (level: string): void {
     if (!(level in global.console)) {
       return;
@@ -131,10 +105,6 @@ function instrumentConsole(): void {
 
 /** JSDoc */
 function instrumentFetch(): void {
-  if (!supportsNativeFetch()) {
-    return;
-  }
-
   fill(global, 'fetch', function (originalFetch: () => void): () => void {
     return function (...args: any[]): void {
       const handlerData = {
@@ -215,10 +185,6 @@ function getFetchUrl(fetchArgs: any[] = []): string {
 
 /** JSDoc */
 function instrumentXHR(): void {
-  if (!('XMLHttpRequest' in global)) {
-    return;
-  }
-
   const xhrproto = XMLHttpRequest.prototype;
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
@@ -293,10 +259,6 @@ let lastHref: string;
 
 /** JSDoc */
 function instrumentHistory(): void {
-  if (!supportsHistory()) {
-    return;
-  }
-
   const oldOnPopState = global.onpopstate;
   global.onpopstate = function (this: WindowEventHandlers, ...args: any[]): any {
     const to = global.location.href;
@@ -483,10 +445,6 @@ type InstrumentedElement = Element & {
 
 /** JSDoc */
 function instrumentDOM(): void {
-  if (!('document' in global)) {
-    return;
-  }
-
   // Make it so that any click or keypress that is unhandled / bubbled up all the way to the document triggers our dom
   // handlers. (Normally we have only one, which captures a breadcrumb for each click or keypress.) Do this before
   // we instrument `addEventListener` so that we don't end up attaching this handler twice.
@@ -594,12 +552,10 @@ function instrumentError(): void {
       msg,
       url,
     });
-
     if (_oldOnErrorHandler) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnErrorHandler.apply(this, arguments);
     }
-
     return false;
   };
 }
@@ -608,15 +564,12 @@ let _oldOnUnhandledRejectionHandler: ((e: any) => void) | null = null;
 /** JSDoc */
 function instrumentUnhandledRejection(): void {
   _oldOnUnhandledRejectionHandler = global.onunhandledrejection;
-
   global.onunhandledrejection = function (e: any): boolean {
     triggerHandlers('unhandledrejection', e);
-
     if (_oldOnUnhandledRejectionHandler) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnUnhandledRejectionHandler.apply(this, arguments);
     }
-
     return true;
   };
 }
