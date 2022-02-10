@@ -1,5 +1,5 @@
 import { Page, Request } from '@playwright/test';
-import { Event, SessionContext } from '@sentry/types';
+import { Event } from '@sentry/types';
 
 const storeUrlRegex = /\.sentry\.io\/api\/\d+\/store\//;
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -43,18 +43,8 @@ async function getSentryRequest(page: Page, url?: string): Promise<Event> {
  * @return {*}  {Promise<Event>}
  */
 async function getSentryTransactionRequest(page: Page, url?: string): Promise<Event> {
-  return (await getMultipleSentryTransactionRequests(page, 1, url))[0];
-}
-
-/**
- * Get current Sentry session at the given URL, or the current page
- *
- * @param {Page} page
- * @param {string} [url]
- * @return {*}  {Promise<SessionContext>}
- */
-async function getCurrentSession(page: Page, url?: string): Promise<SessionContext> {
-  return (await getMultipleSentryTransactionRequests(page, 1, url))[0];
+  // TODO: Remove this and update all usages in favour of `getFirstSentryEnvelopeRequest` and `getMultipleSentryEnvelopeRequests`
+  return (await getMultipleSentryEnvelopeRequests<Event>(page, 1, url))[0];
 }
 
 /**
@@ -146,15 +136,30 @@ async function getMultipleSentryRequests(page: Page, count: number, url?: string
 }
 
 /**
- * Wait and get multiple transaction requests at the given URL, or the current page
+ * Wait and get multiple envelope requests at the given URL, or the current page
  *
+ * @template T
  * @param {Page} page
  * @param {number} count
  * @param {string} [url]
- * @return {*}  {Promise<Event>}
+ * @return {*}  {Promise<T[]>}
  */
-async function getMultipleSentryTransactionRequests(page: Page, count: number, url?: string): Promise<Event[]> {
-  return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, url);
+async function getMultipleSentryEnvelopeRequests<T>(page: Page, count: number, url?: string): Promise<T[]> {
+  // TODO: This is not currently checking the type of envelope, just casting for now.
+  // We can update this to include optional type-guarding when we have types for Envelope.
+  return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, url) as Promise<T[]>;
+}
+
+/**
+ * Wait and get the first envelope request at the given URL, or the current page
+ *
+ * @template T
+ * @param {Page} page
+ * @param {string} [url]
+ * @return {*}  {Promise<T>}
+ */
+async function getFirstSentryEnvelopeRequest<T>(page: Page, url?: string): Promise<T> {
+  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, url))[0];
 }
 
 /**
@@ -177,10 +182,10 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
 export {
   runScriptInSandbox,
   getMultipleSentryRequests,
-  getMultipleSentryTransactionRequests,
+  getMultipleSentryEnvelopeRequests,
+  getFirstSentryEnvelopeRequest,
   getSentryRequest,
   getSentryTransactionRequest,
   getSentryEvents,
-  getCurrentSession,
   injectScriptAndGetEvents,
 };

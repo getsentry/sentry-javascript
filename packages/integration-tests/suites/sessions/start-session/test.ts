@@ -1,11 +1,12 @@
 import { expect, Route } from '@playwright/test';
+import { SessionContext } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getCurrentSession } from '../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest('should start a new session on pageload.', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const session = await getCurrentSession(page, url);
+  const session = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   expect(session).toBeDefined();
   expect(session.init).toBe(true);
@@ -22,11 +23,11 @@ sentryTest('should start a new session with navigation.', async ({ getLocalTestP
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.route('**/foo', (route: Route) => route.fulfill({ path: `${__dirname}/dist/index.html` }));
 
-  const initSession = await getCurrentSession(page, url);
+  const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   await page.click('#navigate');
 
-  const newSession = await getCurrentSession(page);
+  const newSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   expect(newSession).toBeDefined();
   expect(newSession.init).toBe(true);

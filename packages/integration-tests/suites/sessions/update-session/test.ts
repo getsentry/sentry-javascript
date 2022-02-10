@@ -1,12 +1,15 @@
 import { expect } from '@playwright/test';
+import { SessionContext } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getCurrentSession } from '../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest('should update session when an error is thrown.', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const pageloadSession = await getCurrentSession(page, url);
-  const updatedSession = (await Promise.all([page.click('#throw-error'), getCurrentSession(page)]))[1];
+  const pageloadSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
+  const updatedSession = (
+    await Promise.all([page.click('#throw-error'), getFirstSentryEnvelopeRequest<SessionContext>(page)])
+  )[1];
 
   expect(pageloadSession).toBeDefined();
   expect(pageloadSession.init).toBe(true);
@@ -21,8 +24,10 @@ sentryTest('should update session when an error is thrown.', async ({ getLocalTe
 sentryTest('should update session when an exception is captured.', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const pageloadSession = await getCurrentSession(page, url);
-  const updatedSession = (await Promise.all([page.click('#capture-exception'), getCurrentSession(page)]))[1];
+  const pageloadSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
+  const updatedSession = (
+    await Promise.all([page.click('#capture-exception'), getFirstSentryEnvelopeRequest<SessionContext>(page)])
+  )[1];
 
   expect(pageloadSession).toBeDefined();
   expect(pageloadSession.init).toBe(true);
