@@ -68,6 +68,7 @@ const bundleConfig = {
       banner: `/*! @sentry/vue <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
     }),
   ],
+  treeshake: 'smallest',
 };
 
 export default [

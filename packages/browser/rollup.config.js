@@ -81,6 +81,7 @@ const bundleConfig = {
       banner: `/*! @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
     }),
   ],
+  treeshake: 'smallest',
 };
 
 export default [
