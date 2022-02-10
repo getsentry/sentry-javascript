@@ -81,7 +81,7 @@ export function eventFromStacktrace(stacktrace: TraceKitStackTrace): Event {
  * @hidden
  */
 export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
-  if (!stack || !stack.length) {
+  if (!stack.length) {
     return [];
   }
 
@@ -104,11 +104,11 @@ export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
   return localStack
     .slice(0, STACKTRACE_LIMIT)
     .map(frame => ({
-      colno: frame.colno,
       filename: frame.filename || localStack[0].filename,
       function: frame.function || '?',
-      in_app: true,
       lineno: frame.lineno,
+      colno: frame.colno,
+      in_app: true,
     }))
     .reverse();
 }
