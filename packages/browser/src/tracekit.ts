@@ -148,7 +148,7 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
         column: parts[4] ? +parts[4] : null,
       };
     } else if ((parts = gecko.exec(lines[i]))) {
-      isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
+      isEval = parts[3] && parts[3].includes(' > eval');
       if (isEval && (submatch = geckoEval.exec(parts[3]))) {
         // throw out eval line/column and use top-most line number
         parts[1] = parts[1] || `eval`;
