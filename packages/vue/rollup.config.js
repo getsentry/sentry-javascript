@@ -19,6 +19,9 @@ const terserInstance = terser({
       regex: /^_[^_]/,
     },
   },
+  output: {
+    comments: false,
+  },
 });
 
 const paths = {
