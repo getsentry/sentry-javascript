@@ -1,11 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { StackFrame } from '@sentry/types';
 
-/**
- * This was originally forked from https://github.com/occ/TraceKit, but has since been
- * largely modified and is now maintained as part of Sentry JS SDK.
- */
-
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, max-lines */
+// global reference to slice
+const UNKNOWN_FUNCTION = '?';
 
 /**
  * An object representing a JavaScript stack trace.
@@ -20,26 +17,132 @@ export interface StackTrace {
   stack: StackFrame[];
 }
 
-// global reference to slice
-const UNKNOWN_FUNCTION = '?';
+type StackLineParser = (line: string) => StackFrame | undefined;
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
-const chrome =
+const chromeRegex =
   /^\s*at (?:(.*?) ?\((?:address at )?)?((?:file|https?|blob|chrome-extension|address|native|eval|webpack|<anonymous>|[-a-z]+:|.*bundle|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
+
+const chrome: StackLineParser = line => {
+  const parts = chromeRegex.exec(line);
+
+  if (parts) {
+    const isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
+
+    if (isEval) {
+      const subMatch = chromeEvalRegex.exec(parts[2]);
+
+      if (subMatch) {
+        // throw out eval line/column and use top-most line/column number
+        parts[2] = subMatch[1]; // url
+        parts[3] = subMatch[2]; // line
+        parts[4] = subMatch[3]; // column
+      }
+    }
+
+    // Kamil: One more hack won't hurt us right? Understanding and adding more rules on top of these regexps right now
+    // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
+    const [func, filename] = extractSafariExtensionDetails(parts[1] || UNKNOWN_FUNCTION, parts[2]);
+
+    return {
+      filename,
+      function: func,
+      lineno: parts[3] ? +parts[3] : undefined,
+      colno: parts[4] ? +parts[4] : undefined,
+    };
+  }
+
+  return;
+};
+
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
 // We need this specific case for now because we want no other regex to match.
-const gecko =
+const geckoREgex =
   /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:file|https?|blob|chrome|webpack|resource|moz-extension|capacitor).*?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
-const winjs =
+const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
+
+const gecko: StackLineParser = line => {
+  const parts = geckoREgex.exec(line);
+
+  if (parts) {
+    const isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
+    if (isEval) {
+      const subMatch = geckoEvalRegex.exec(parts[3]);
+
+      if (subMatch) {
+        // throw out eval line/column and use top-most line number
+        parts[1] = parts[1] || `eval`;
+        parts[3] = subMatch[1];
+        parts[4] = subMatch[2];
+        parts[5] = ''; // no column when eval
+      }
+    }
+
+    let filename = parts[3];
+    let func = parts[1] || UNKNOWN_FUNCTION;
+    [func, filename] = extractSafariExtensionDetails(func, filename);
+
+    return {
+      filename,
+      function: func,
+      lineno: parts[4] ? +parts[4] : undefined,
+      colno: parts[5] ? +parts[5] : undefined,
+    };
+  }
+
+  return;
+};
+
+const winjsRegex =
   /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
-const geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
-const chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
-// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
-const reactMinifiedRegexp = /Minified React error #\d+;/i;
+
+const winjs: StackLineParser = line => {
+  const parts = winjsRegex.exec(line);
+
+  return parts
+    ? {
+        filename: parts[2],
+        function: parts[1] || UNKNOWN_FUNCTION,
+        lineno: +parts[3],
+        colno: parts[4] ? +parts[4] : undefined,
+      }
+    : undefined;
+};
+
 const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
+
+const opera10: StackLineParser = line => {
+  const parts = opera10Regex.exec(line);
+
+  return parts
+    ? {
+        filename: parts[2],
+        function: parts[3] || UNKNOWN_FUNCTION,
+        lineno: +parts[1],
+      }
+    : undefined;
+};
+
 const opera11Regex =
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
+
+const opera11: StackLineParser = line => {
+  const parts = opera11Regex.exec(line);
+
+  return parts
+    ? {
+        filename: parts[5],
+        function: parts[3] || parts[4] || UNKNOWN_FUNCTION,
+        lineno: +parts[1],
+        colno: +parts[2],
+      }
+    : undefined;
+};
+
+// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
+const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
 /** JSDoc */
 export function computeStackTrace(ex: Error & { framesToPop?: number; stacktrace?: string }): StackTrace {
@@ -60,7 +163,16 @@ export function computeStackTrace(ex: Error & { framesToPop?: number; stacktrace
     // reliably in other circumstances.
     const stacktrace = ex.stacktrace || ex.stack || '';
 
-    frames = parseFrames(stacktrace);
+    for (const line of stacktrace.split('\n')) {
+      for (const parser of [opera10, opera11, chrome, winjs, gecko]) {
+        const frame = parser(line);
+
+        if (frame) {
+          frames.push(frame);
+          break;
+        }
+      }
+    }
   } catch (e) {
     // no-empty
   }
@@ -74,86 +186,6 @@ export function computeStackTrace(ex: Error & { framesToPop?: number; stacktrace
     name: ex && ex.name,
     stack: frames,
   };
-}
-
-/** JSDoc */
-// eslint-disable-next-line complexity
-function parseFrames(stackString: string): StackFrame[] {
-  const frames: StackFrame[] = [];
-  const lines = stackString.split('\n');
-  let isEval;
-  let submatch;
-  let parts;
-  let element: StackFrame | undefined;
-
-  for (const line of lines) {
-    if ((parts = opera10Regex.exec(line))) {
-      element = {
-        filename: parts[2],
-        function: parts[3] || UNKNOWN_FUNCTION,
-        lineno: +parts[1],
-      };
-    } else if ((parts = opera11Regex.exec(line))) {
-      element = {
-        filename: parts[5],
-        function: parts[3] || parts[4] || UNKNOWN_FUNCTION,
-        lineno: +parts[1],
-        colno: +parts[2],
-      };
-    } else if ((parts = chrome.exec(line))) {
-      isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
-      if (isEval && (submatch = chromeEval.exec(parts[2]))) {
-        // throw out eval line/column and use top-most line/column number
-        parts[2] = submatch[1]; // url
-        parts[3] = submatch[2]; // line
-        parts[4] = submatch[3]; // column
-      }
-
-      // Kamil: One more hack won't hurt us right? Understanding and adding more rules on top of these regexps right now
-      // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
-      const [func, filename] = extractSafariExtensionDetails(parts[1] || UNKNOWN_FUNCTION, parts[2]);
-
-      element = {
-        filename,
-        function: func,
-        lineno: parts[3] ? +parts[3] : undefined,
-        colno: parts[4] ? +parts[4] : undefined,
-      };
-    } else if ((parts = winjs.exec(line))) {
-      element = {
-        filename: parts[2],
-        function: parts[1] || UNKNOWN_FUNCTION,
-        lineno: +parts[3],
-        colno: parts[4] ? +parts[4] : undefined,
-      };
-    } else if ((parts = gecko.exec(line))) {
-      isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
-      if (isEval && (submatch = geckoEval.exec(parts[3]))) {
-        // throw out eval line/column and use top-most line number
-        parts[1] = parts[1] || `eval`;
-        parts[3] = submatch[1];
-        parts[4] = submatch[2];
-        parts[5] = ''; // no column when eval
-      }
-
-      let filename = parts[3];
-      let func = parts[1] || UNKNOWN_FUNCTION;
-      [func, filename] = extractSafariExtensionDetails(func, filename);
-
-      element = {
-        filename,
-        function: func,
-        lineno: parts[4] ? +parts[4] : undefined,
-        colno: parts[5] ? +parts[5] : undefined,
-      };
-    } else {
-      continue;
-    }
-
-    frames.push(element);
-  }
-
-  return frames;
 }
 
 /**
