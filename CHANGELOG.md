@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.7
+
+- fix(utils): Make new non-enumerable properties mutable ([#4528](https://github.com/getsentry/sentry-javascript/pull/4528))
+- fix(vue): Check if route name is defined before casting ([#4530](https://github.com/getsentry/sentry-javascript/pull/4530))
+
+Work in this release contributed by @connorjclark. Thank you for your contribution!
+
 ## 6.17.6
 
 - fix(angular): Add check for global.location in angular universal ([#4513](https://github.com/getsentry/sentry-javascript/issues/4513))
