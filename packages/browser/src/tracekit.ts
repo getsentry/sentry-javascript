@@ -37,10 +37,13 @@ const geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 const chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 // Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
 const reactMinifiedRegexp = /Minified React error #\d+;/i;
+const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
+const opera11Regex =
+  / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
 
 /** JSDoc */
-export function computeStackTrace(ex: Error & { framesToPop?: number }): StackTrace {
-  let stack;
+export function computeStackTrace(ex: Error & { framesToPop?: number; stacktrace?: string }): StackTrace {
+  let frames: StackFrame[] = [];
   let popSize = 0;
 
   if (ex) {
@@ -52,49 +55,52 @@ export function computeStackTrace(ex: Error & { framesToPop?: number }): StackTr
   }
 
   try {
-    // This must be tried first because Opera 10 *destroys*
-    // its stacktrace property if you try to access the stack
-    // property first!!
-    stack = computeStackTraceFromStacktraceProp(ex);
-    if (stack) {
-      return popFrames(stack, popSize);
-    }
+    // Access and store the stacktrace property before doing ANYTHING
+    // else to it because Opera is not very good at providing it
+    // reliably in other circumstances.
+    const stacktrace = ex.stacktrace || ex.stack || '';
+
+    frames = parseFrames(stacktrace);
   } catch (e) {
     // no-empty
   }
 
-  try {
-    stack = computeStackTraceFromStackProp(ex);
-    if (stack) {
-      return popFrames(stack, popSize);
-    }
-  } catch (e) {
-    // no-empty
+  if (frames.length && popSize > 0) {
+    frames = frames.slice(popSize);
   }
 
   return {
     message: extractMessage(ex),
     name: ex && ex.name,
-    stack: [],
+    stack: frames,
   };
 }
 
 /** JSDoc */
 // eslint-disable-next-line complexity
-function computeStackTraceFromStackProp(ex: Error): StackTrace | null {
-  if (!ex || !ex.stack) {
-    return null;
-  }
-
-  const stack = [];
-  const lines = ex.stack.split('\n');
+function parseFrames(stackString: string): StackFrame[] {
+  const frames: StackFrame[] = [];
+  const lines = stackString.split('\n');
   let isEval;
   let submatch;
   let parts;
-  let element: StackFrame | undefined = undefined;
+  let element: StackFrame | undefined;
 
   for (const line of lines) {
-    if ((parts = chrome.exec(line))) {
+    if ((parts = opera10Regex.exec(line))) {
+      element = {
+        filename: parts[2],
+        function: parts[3] || UNKNOWN_FUNCTION,
+        lineno: +parts[1],
+      };
+    } else if ((parts = opera11Regex.exec(line))) {
+      element = {
+        filename: parts[5],
+        function: parts[3] || parts[4] || UNKNOWN_FUNCTION,
+        lineno: +parts[1],
+        colno: +parts[2],
+      };
+    } else if ((parts = chrome.exec(line))) {
       isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
       if (isEval && (submatch = chromeEval.exec(parts[2]))) {
         // throw out eval line/column and use top-most line/column number
@@ -144,68 +150,10 @@ function computeStackTraceFromStackProp(ex: Error): StackTrace | null {
       continue;
     }
 
-    stack.push(element);
+    frames.push(element);
   }
 
-  if (!stack.length) {
-    return null;
-  }
-
-  return {
-    message: extractMessage(ex),
-    name: ex.name,
-    stack,
-  };
-}
-
-/** JSDoc */
-function computeStackTraceFromStacktraceProp(ex: Error & { stacktrace?: string }): StackTrace | null {
-  if (!ex || !ex.stacktrace) {
-    return null;
-  }
-  // Access and store the stacktrace property before doing ANYTHING
-  // else to it because Opera is not very good at providing it
-  // reliably in other circumstances.
-  const stacktrace = ex.stacktrace;
-  const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
-  const opera11Regex =
-    / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
-  const lines = stacktrace.split('\n');
-  const stack = [];
-  let parts;
-
-  for (const line of lines) {
-    let element: StackFrame | undefined = undefined;
-
-    if ((parts = opera10Regex.exec(line))) {
-      element = {
-        filename: parts[2],
-        function: parts[3] || UNKNOWN_FUNCTION,
-        lineno: +parts[1],
-      };
-    } else if ((parts = opera11Regex.exec(line))) {
-      element = {
-        filename: parts[5],
-        function: parts[3] || parts[4] || UNKNOWN_FUNCTION,
-        lineno: +parts[1],
-        colno: +parts[2],
-      };
-    }
-
-    if (element) {
-      stack.push(element);
-    }
-  }
-
-  if (!stack.length) {
-    return null;
-  }
-
-  return {
-    message: extractMessage(ex),
-    name: ex.name,
-    stack,
-  };
+  return frames;
 }
 
 /**
@@ -239,18 +187,6 @@ const extractSafariExtensionDetails = (func: string, filename: string): [string,
       ]
     : [func, filename];
 };
-
-/** Remove N number of frames from the stack */
-function popFrames(stacktrace: StackTrace, popSize: number): StackTrace {
-  try {
-    return {
-      ...stacktrace,
-      stack: stacktrace.stack.slice(popSize),
-    };
-  } catch (e) {
-    return stacktrace;
-  }
-}
 
 /**
  * There are cases where stacktrace.message is an Event object
