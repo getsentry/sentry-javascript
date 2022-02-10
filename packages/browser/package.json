@@ -40,7 +40,6 @@
     "karma-webkit-launcher": "^1.0.2",
     "node-fetch": "^2.6.0",
     "playwright": "^1.17.1",
-    "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.3",
     "sinon": "^7.3.2",
