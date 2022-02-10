@@ -54,7 +54,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
       if (startTransactionOnPageLoad && isPageLoadNavigation) {
         startTransaction({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          name: to.name.toString() || to.path,
+          name: (to.name && to.name.toString()) || to.path,
           op: 'pageload',
           tags,
           data,
@@ -64,7 +64,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
       if (startTransactionOnLocationChange && !isPageLoadNavigation) {
         startTransaction({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          name: to.name.toString() || (to.matched[0] && to.matched[0].path) || to.path,
+          name: (to.name && to.name.toString()) || (to.matched[0] && to.matched[0].path) || to.path,
           op: 'navigation',
           tags,
           data,

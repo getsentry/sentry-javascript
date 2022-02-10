@@ -1,6 +1,6 @@
 {
   "name": "@sentry/integrations",
-  "version": "6.17.5",
+  "version": "6.17.6",
   "description": "Pluggable integrations that can be used to enhance JS SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations",
@@ -16,8 +16,8 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/types": "6.17.5",
-    "@sentry/utils": "6.17.5",
+    "@sentry/types": "6.17.6",
+    "@sentry/utils": "6.17.6",
     "localforage": "^1.8.1",
     "tslib": "^1.9.3"
   },
@@ -26,8 +26,7 @@
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.3",
-    "rollup-plugin-terser": "^4.0.4",
-    "rollup-plugin-typescript2": "^0.21.0"
+    "rollup-plugin-terser": "^4.0.4"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:bundle",

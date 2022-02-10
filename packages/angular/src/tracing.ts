@@ -27,7 +27,7 @@ export function routingInstrumentation(
   stashedStartTransaction = customStartTransaction;
   stashedStartTransactionOnLocationChange = startTransactionOnLocationChange;
 
-  if (startTransactionOnPageLoad) {
+  if (startTransactionOnPageLoad && global && global.location) {
     customStartTransaction({
       name: global.location.pathname,
       op: 'pageload',
