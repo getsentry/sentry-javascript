@@ -12,6 +12,9 @@ const terserInstance = terser({
     reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
     properties: false,
   },
+  output: {
+    comments: false,
+  },
 });
 
 const plugins = [
