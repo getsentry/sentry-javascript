@@ -9,7 +9,11 @@ import webpackConfig from '../webpack.config';
 const PACKAGE_PATH = '../../packages';
 
 const bundleKey = process.env.PW_BUNDLE;
+
+// `esm` and `dist` builds are modules that can be imported / aliased by webpack
 const useCompiledModule = bundleKey && (bundleKey === 'esm' || bundleKey === 'dist');
+
+// bundles need to be injected into HTML before Sentry initialization.
 const useBundle = bundleKey && !useCompiledModule;
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
@@ -26,6 +30,7 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     esm: 'esm/index.js',
     bundle: 'build/bundle.tracing.js',
     bundle_min: 'build/bundle.tracing.min.js',
+    // `tracing` doesn't have an es6 build
     bundle_es6: 'build/bundle.tracing.js',
     bundle_es6_min: 'build/bundle.tracing.min.js',
   },
