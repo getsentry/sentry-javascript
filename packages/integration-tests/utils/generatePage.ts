@@ -99,6 +99,7 @@ export async function generatePage(
           },
           externals: useBundle
             ? {
+                // To prevent import declarations to override browser bundles.
                 '@sentry/browser': 'var Sentry',
                 '@sentry/tracing': 'var Sentry',
                 Integrations: 'var Sentry.Integrations',
@@ -122,7 +123,7 @@ export async function generatePage(
               subject: 'subject.bundle.js',
               inject: false,
             }),
-          ].filter(Boolean),
+          ],
         }),
       );
 
