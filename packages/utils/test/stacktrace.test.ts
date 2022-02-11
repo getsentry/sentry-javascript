@@ -1,7 +1,7 @@
-import { prepareFramesForEvent } from '../../src/parsers';
+import { stripSentryFramesAndReverse } from '../src/stacktrace';
 
-describe('Parsers', () => {
-  describe('prepareFramesForEvent()', () => {
+describe('Stacktrace', () => {
+  describe('stripSentryFramesAndReverse()', () => {
     describe('removed top frame if its internally reserved word (public API)', () => {
       it('reserved captureException', () => {
         const stack = [
@@ -11,7 +11,7 @@ describe('Parsers', () => {
         ];
 
         // Should remove `captureException` as its a name considered "internal"
-        const frames = prepareFramesForEvent(stack);
+        const frames = stripSentryFramesAndReverse(stack);
 
         expect(frames.length).toBe(2);
         expect(frames[0].function).toBe('bar');
@@ -26,7 +26,7 @@ describe('Parsers', () => {
         ];
 
         // Should remove `captureMessage` as its a name considered "internal"
-        const frames = prepareFramesForEvent(stack);
+        const frames = stripSentryFramesAndReverse(stack);
 
         expect(frames.length).toBe(2);
         expect(frames[0].function).toBe('bar');
@@ -43,7 +43,7 @@ describe('Parsers', () => {
         ];
 
         // Should remove `sentryWrapped` as its a name considered "internal"
-        const frames = prepareFramesForEvent(stack);
+        const frames = stripSentryFramesAndReverse(stack);
 
         expect(frames.length).toBe(2);
         expect(frames[0].function).toBe('bar');
@@ -60,7 +60,7 @@ describe('Parsers', () => {
       ];
 
       // Should remove `captureMessage` and `sentryWrapped` as its a name considered "internal"
-      const frames = prepareFramesForEvent(stack);
+      const frames = stripSentryFramesAndReverse(stack);
 
       expect(frames.length).toBe(2);
       expect(frames[0].function).toBe('bar');

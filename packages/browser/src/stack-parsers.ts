@@ -5,12 +5,23 @@ import { StackLineParser } from '@sentry/utils';
 const UNKNOWN_FUNCTION = '?';
 
 function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
-  return {
+  const frame: StackFrame = {
     filename,
     function: func,
-    lineno,
-    colno,
   };
+
+  if (lineno != undefined) {
+    frame.lineno = lineno;
+  }
+
+  if (colno != undefined) {
+    frame.colno = colno;
+  }
+
+  // All browser frames are considered in_app
+  frame.in_app = true;
+
+  return frame;
 }
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge

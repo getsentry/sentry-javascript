@@ -31,13 +31,13 @@ describe('Tracekit - Opera Tests', () => {
       type: 'foo',
       stacktrace: {
         frames: [
-          { filename: 'http://path/to/file.js', function: '?', lineno: 42 },
-          { filename: 'http://path/to/file.js', function: '?', lineno: 27 },
-          { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18 },
-          { filename: 'http://path/to/file.js', function: 'bar', lineno: 4 },
-          { filename: 'http://path/to/file.js', function: 'bar', lineno: 7 },
-          { filename: 'http://path/to/file.js', function: 'foo', lineno: 11 },
-          { filename: 'http://path/to/file.js', function: '?', lineno: 15 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 15, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, in_app: true },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 27, in_app: true },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 42, in_app: true },
         ],
       },
     });
@@ -77,13 +77,13 @@ describe('Tracekit - Opera Tests', () => {
       type: 'foo',
       stacktrace: {
         frames: [
-          { filename: 'http://path/to/file.js', function: 'createException', lineno: 42, colno: 12 },
-          { filename: 'http://path/to/file.js', function: 'run', lineno: 27, colno: 8 },
-          { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, colno: 4 },
-          { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, colno: 5 },
-          { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, colno: 4 },
-          { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, colno: 4 },
-          { filename: 'http://path/to/file.js', function: '?', lineno: 15, colno: 3 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 15, colno: 3, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, colno: 4, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, colno: 4, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, colno: 5, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, colno: 4, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'run', lineno: 27, colno: 8, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'createException', lineno: 42, colno: 12, in_app: true },
         ],
       },
     });
@@ -117,15 +117,23 @@ describe('Tracekit - Opera Tests', () => {
           {
             filename: 'http://localhost:8000/ExceptionLab.html',
             function: '<anonymous function>',
-            lineno: 48,
-            colno: 12,
+            lineno: 1,
+            colno: 0,
+            in_app: true,
           },
-          { filename: 'http://localhost:8000/ExceptionLab.html', function: 'dumpException3', lineno: 46, colno: 8 },
+          {
+            filename: 'http://localhost:8000/ExceptionLab.html',
+            function: 'dumpException3',
+            lineno: 46,
+            colno: 8,
+            in_app: true,
+          },
           {
             filename: 'http://localhost:8000/ExceptionLab.html',
             function: '<anonymous function>',
-            lineno: 1,
-            colno: 0,
+            lineno: 48,
+            colno: 12,
+            in_app: true,
           },
         ],
       },
@@ -150,9 +158,9 @@ describe('Tracekit - Opera Tests', () => {
       type: 'TypeError',
       stacktrace: {
         frames: [
-          { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22 },
-          { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
-          { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 168 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 168, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15, in_app: true },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22, in_app: true },
         ],
       },
     });

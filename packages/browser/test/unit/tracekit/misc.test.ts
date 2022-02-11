@@ -18,9 +18,9 @@ describe('Tracekit - Misc Tests', () => {
       type: 'foo',
       stacktrace: {
         frames: [
-          { filename: 'file:///path/to/file.js', function: '?', lineno: 878 },
-          { filename: 'http://path/to/file.js', function: 'foo', lineno: 4283 },
-          { filename: 'http://path/to/file.js', function: '?', lineno: 4287 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 4287, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 4283, in_app: true },
+          { filename: 'file:///path/to/file.js', function: '?', lineno: 878, in_app: true },
         ],
       },
     });

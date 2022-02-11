@@ -4,8 +4,6 @@ import { createStackParser, extractExceptionKeysForMessage, isEvent, normalizeTo
 
 import { chrome, gecko, opera10, opera11, winjs } from './stack-parsers';
 
-const STACKTRACE_LIMIT = 50;
-
 /**
  * This function creates an exception from an TraceKitStackTrace
  * @param stacktrace TraceKitStackTrace that will be converted to an exception
@@ -56,10 +54,8 @@ export function eventFromPlainObject(
   };
 
   if (syntheticException) {
-    const stacktrace = parseStackFrames(syntheticException);
-    const frames = prepareFramesForEvent(stacktrace);
     event.stacktrace = {
-      frames,
+      frames: parseStackFrames(syntheticException),
     };
   }
 
@@ -89,8 +85,7 @@ export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?
   try {
     // The order of the parsers in important
     const frames = createStackParser(opera10, opera11, chrome, winjs, gecko)(stacktrace);
-
-    return popSize > 0 && frames.length >= popSize ? frames.slice(popSize) : frames;
+    return popSize > 0 && frames.length ? frames.slice(0, frames.length - popSize) : frames;
   } catch (e) {
     // no-empty
   }
@@ -128,40 +123,4 @@ function extractMessage(ex: any): string {
     return message.error.message;
   }
   return message;
-}
-
-/**
- * @hidden
- */
-export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
-  if (!stack.length) {
-    return [];
-  }
-
-  let localStack = stack;
-
-  const firstFrameFunction = localStack[0].function || '';
-  const lastFrameFunction = localStack[localStack.length - 1].function || '';
-
-  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
-    localStack = localStack.slice(1);
-  }
-
-  // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (lastFrameFunction.indexOf('sentryWrapped') !== -1) {
-    localStack = localStack.slice(0, -1);
-  }
-
-  // The frame where the crash happened, should be the last entry in the array
-  return localStack
-    .slice(0, STACKTRACE_LIMIT)
-    .map(frame => ({
-      filename: frame.filename || localStack[0].filename,
-      function: frame.function || '?',
-      lineno: frame.lineno,
-      colno: frame.colno,
-      in_app: true,
-    }))
-    .reverse();
 }

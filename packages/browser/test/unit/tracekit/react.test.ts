@@ -22,10 +22,28 @@ describe('Tracekit - React Tests', () => {
       type: 'Invariant Violation',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
-          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
+          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980, in_app: true },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: 'ho',
+            lineno: 1,
+            colno: 68735,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: 'a',
+            lineno: 1,
+            colno: 21841,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: '?',
+            lineno: 1,
+            colno: 21738,
+            in_app: true,
+          },
         ],
       },
     });
@@ -51,10 +69,28 @@ describe('Tracekit - React Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
-          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
+          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980, in_app: true },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: 'ho',
+            lineno: 1,
+            colno: 68735,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: 'a',
+            lineno: 1,
+            colno: 21841,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: '?',
+            lineno: 1,
+            colno: 21738,
+            in_app: true,
+          },
         ],
       },
     });
@@ -81,10 +117,28 @@ describe('Tracekit - React Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
-          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
-          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
+          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980, in_app: true },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: 'ho',
+            lineno: 1,
+            colno: 68735,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: 'a',
+            lineno: 1,
+            colno: 21841,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/static/js/foo.chunk.js',
+            function: '?',
+            lineno: 1,
+            colno: 21738,
+            in_app: true,
+          },
         ],
       },
     });

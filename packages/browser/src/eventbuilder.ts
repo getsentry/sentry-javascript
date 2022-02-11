@@ -11,7 +11,7 @@ import {
   resolvedSyncPromise,
 } from '@sentry/utils';
 
-import { eventFromError, eventFromPlainObject, parseStackFrames, prepareFramesForEvent } from './parsers';
+import { eventFromError, eventFromPlainObject, parseStackFrames } from './parsers';
 
 /**
  * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
@@ -147,10 +147,8 @@ export function eventFromString(
   };
 
   if (options.attachStacktrace && syntheticException) {
-    const stacktrace = parseStackFrames(syntheticException);
-    const frames = prepareFramesForEvent(stacktrace);
     event.stacktrace = {
-      frames,
+      frames: parseStackFrames(syntheticException),
     };
   }
 

@@ -8,7 +8,7 @@ describe('Tracekit - Chrome Tests', () => {
     expect(ex).toEqual({
       value: 'foo',
       type: 'bar',
-      stacktrace: { frames: [{ filename: 'native', function: 'Array.forEach' }] },
+      stacktrace: { frames: [{ filename: 'native', function: 'Array.forEach', in_app: true }] },
     });
   });
 
@@ -32,10 +32,10 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'foo',
       stacktrace: {
         frames: [
-          { filename: 'http://path/to/file.js', function: 'bar', lineno: 13, colno: 17 },
-          { filename: 'http://path/to/file.js', function: 'bar', lineno: 16, colno: 5 },
-          { filename: 'http://path/to/file.js', function: 'foo', lineno: 20, colno: 5 },
-          { filename: 'http://path/to/file.js', function: '?', lineno: 24, colno: 4 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 24, colno: 4, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 20, colno: 5, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 16, colno: 5, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 13, colno: 17, in_app: true },
         ],
       },
     });
@@ -59,13 +59,26 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:8080/file.js', function: 'dumpExceptionError', lineno: 41, colno: 27 },
-          { filename: 'http://localhost:8080/file.js', function: 'HTMLButtonElement.onclick', lineno: 107, colno: 146 },
           {
             filename: 'http://localhost:8080/file.js',
             function: 'I.e.fn.(anonymous function) [as index]',
             lineno: 10,
             colno: 3651,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:8080/file.js',
+            function: 'HTMLButtonElement.onclick',
+            lineno: 107,
+            colno: 146,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:8080/file.js',
+            function: 'dumpExceptionError',
+            lineno: 41,
+            colno: 27,
+            in_app: true,
           },
         ],
       },
@@ -93,28 +106,32 @@ describe('Tracekit - Chrome Tests', () => {
       stacktrace: {
         frames: [
           {
-            filename: 'webpack:///./src/components/test/test.jsx?',
-            function: 'TESTTESTTEST.eval',
-            lineno: 295,
-            colno: 108,
-          },
-          {
-            filename: 'webpack:///./src/components/test/test.jsx?',
-            function: 'TESTTESTTEST.render',
-            lineno: 272,
-            colno: 32,
+            filename: 'webpack:///./~/react-proxy/modules/createPrototypeProxy.js?',
+            function: 'TESTTESTTEST.proxiedMethod',
+            lineno: 44,
+            colno: 30,
+            in_app: true,
           },
           {
             filename: 'webpack:///./~/react-transform-catch-errors/lib/index.js?',
             function: 'TESTTESTTEST.tryRender',
             lineno: 34,
             colno: 31,
+            in_app: true,
           },
           {
-            filename: 'webpack:///./~/react-proxy/modules/createPrototypeProxy.js?',
-            function: 'TESTTESTTEST.proxiedMethod',
-            lineno: 44,
-            colno: 30,
+            filename: 'webpack:///./src/components/test/test.jsx?',
+            function: 'TESTTESTTEST.render',
+            lineno: 272,
+            colno: 32,
+            in_app: true,
+          },
+          {
+            filename: 'webpack:///./src/components/test/test.jsx?',
+            function: 'TESTTESTTEST.eval',
+            lineno: 295,
+            colno: 108,
+            in_app: true,
           },
         ],
       },
@@ -141,11 +158,11 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:8080/file.js', function: 'baz', lineno: 21, colno: 17 },
-          { filename: 'http://localhost:8080/file.js', function: 'foo', lineno: 21, colno: 17 },
-          { filename: 'http://localhost:8080/file.js', function: 'eval', lineno: 21, colno: 17 },
-          { filename: 'http://localhost:8080/file.js', function: 'Object.speak', lineno: 21, colno: 17 },
-          { filename: 'http://localhost:8080/file.js', function: '?', lineno: 31, colno: 13 },
+          { filename: 'http://localhost:8080/file.js', function: '?', lineno: 31, colno: 13, in_app: true },
+          { filename: 'http://localhost:8080/file.js', function: 'Object.speak', lineno: 21, colno: 17, in_app: true },
+          { filename: 'http://localhost:8080/file.js', function: 'eval', lineno: 21, colno: 17, in_app: true },
+          { filename: 'http://localhost:8080/file.js', function: 'foo', lineno: 21, colno: 17, in_app: true },
+          { filename: 'http://localhost:8080/file.js', function: 'baz', lineno: 21, colno: 17, in_app: true },
         ],
       },
     });
@@ -173,43 +190,49 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'native', function: 'Error' },
           {
             filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-            function: 's',
-            lineno: 31,
-            colno: 29146,
-          },
-          {
-            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-            function: 'Object.d [as add]',
-            lineno: 31,
-            colno: 30039,
-          },
-          {
-            filename: 'blob:http%3A//localhost%3A8080/d4eefe0f-361a-4682-b217-76587d9f712a',
-            function: '?',
-            lineno: 15,
-            colno: 10978,
-          },
-          {
-            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-            function: '?',
-            lineno: 1,
-            colno: 6911,
+            function: 'n.handle',
+            lineno: 7,
+            colno: 2863,
+            in_app: true,
           },
           {
             filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
             function: 'n.fire',
             lineno: 7,
             colno: 3019,
+            in_app: true,
           },
           {
             filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-            function: 'n.handle',
-            lineno: 7,
-            colno: 2863,
+            function: '?',
+            lineno: 1,
+            colno: 6911,
+            in_app: true,
           },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/d4eefe0f-361a-4682-b217-76587d9f712a',
+            function: '?',
+            lineno: 15,
+            colno: 10978,
+            in_app: true,
+          },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
+            function: 'Object.d [as add]',
+            lineno: 31,
+            colno: 30039,
+            in_app: true,
+          },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
+            function: 's',
+            lineno: 31,
+            colno: 29146,
+            in_app: true,
+          },
+          { filename: 'native', function: 'Error', in_app: true },
         ],
       },
     });
@@ -235,6 +258,7 @@ describe('Tracekit - Chrome Tests', () => {
             function: '?',
             lineno: 70179,
             colno: 15,
+            in_app: true,
           },
         ],
       },
@@ -259,10 +283,10 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 17 },
-          { filename: '<anonymous>', function: 'Array.map' },
-          { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 19 },
-          { filename: 'http://localhost:5000/test', function: '?', lineno: 24, colno: 7 },
+          { filename: 'http://localhost:5000/test', function: '?', lineno: 24, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 19, in_app: true },
+          { filename: '<anonymous>', function: 'Array.map', in_app: true },
+          { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 17, in_app: true },
         ],
       },
     });
@@ -292,16 +316,16 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:5000/', function: 'Object.aha', lineno: 19, colno: 13 },
-          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
-          { filename: 'http://localhost:5000/', function: 'Object.callback', lineno: 25, colno: 7 },
-          { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 17 },
-          { filename: '<anonymous>', function: 'Array.map' },
-          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23 },
-          { filename: 'http://localhost:5000/', function: 'eval', lineno: 37, colno: 5 },
-          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
-          { filename: 'http://localhost:5000/', function: 'Foo.testMethod', lineno: 44, colno: 7 },
-          { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19 },
+          { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'Foo.testMethod', lineno: 44, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'eval', lineno: 37, colno: 5, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23, in_app: true },
+          { filename: '<anonymous>', function: 'Array.map', in_app: true },
+          { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 17, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'Object.callback', lineno: 25, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'Object.aha', lineno: 19, colno: 13, in_app: true },
         ],
       },
     });
@@ -325,10 +349,10 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 11 },
-          { filename: 'native code', function: 'Array.prototype.map' },
-          { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 9 },
-          { filename: 'http://localhost:5000/test', function: 'Global code', lineno: 24, colno: 7 },
+          { filename: 'http://localhost:5000/test', function: 'Global code', lineno: 24, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 9, in_app: true },
+          { filename: 'native code', function: 'Array.prototype.map', in_app: true },
+          { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 11, in_app: true },
         ],
       },
     });
@@ -358,16 +382,22 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 7 },
-          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 18, colno: 6 },
-          { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 7 },
-          { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 34, colno: 7 },
-          { filename: 'native code', function: 'Array.prototype.map' },
-          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 5 },
-          { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1 },
-          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
-          { filename: 'http://localhost:5000/', function: 'Foo.prototype.testMethod', lineno: 44, colno: 7 },
-          { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 50, colno: 8 },
+          { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 50, colno: 8, in_app: true },
+          {
+            filename: 'http://localhost:5000/',
+            function: 'Foo.prototype.testMethod',
+            lineno: 44,
+            colno: 7,
+            in_app: true,
+          },
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5, in_app: true },
+          { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 5, in_app: true },
+          { filename: 'native code', function: 'Array.prototype.map', in_app: true },
+          { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 34, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 18, colno: 6, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 7, in_app: true },
         ],
       },
     });
@@ -393,6 +423,7 @@ describe('Tracekit - Chrome Tests', () => {
             function: 'TESTTESTTEST.someMethod',
             lineno: 295,
             colno: 108,
+            in_app: true,
           },
         ],
       },
