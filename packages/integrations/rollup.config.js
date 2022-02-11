@@ -4,6 +4,7 @@ import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
+import replace from '@rollup/plugin-replace';
 
 const terserInstance = terser({
   mangle: {
@@ -37,6 +38,16 @@ const plugins = [
       },
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
+  }),
+  replace({
+    // don't replace `__placeholder__` where it's followed immediately by a single `=` (to prevent ending up
+    // with something of the form `let "replacementValue" = "some assigned value"`, which would cause a
+    // syntax error)
+    preventAssignment: true,
+    // the replacements to make
+    values: {
+      __SENTRY_BROWSER_BUNDLE__: true,
+    },
   }),
   resolve({
     mainFields: ['module'],
