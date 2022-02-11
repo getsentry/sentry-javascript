@@ -12,10 +12,10 @@ export type StackLineParser = (line: string) => StackFrame | undefined;
  *
  * */
 export function createStackParser(...parsers: StackLineParser[]) {
-  return (stack: string): StackFrame[] => {
+  return (stack: string, skipFirst: number = 0): StackFrame[] => {
     const frames: StackFrame[] = [];
 
-    for (const line of stack.split('\n')) {
+    for (const line of stack.split('\n').slice(skipFirst)) {
       for (const parser of parsers) {
         const frame = parser(line);
 
@@ -57,10 +57,9 @@ export function stripSentryFramesAndReverse(stack: StackFrame[]): StackFrame[] {
   return localStack
     .slice(0, STACKTRACE_LIMIT)
     .map(frame => ({
+      ...frame,
       filename: frame.filename || localStack[0].filename,
       function: frame.function || '?',
-      lineno: frame.lineno,
-      colno: frame.colno,
     }))
     .reverse();
 }

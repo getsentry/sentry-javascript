@@ -84,8 +84,7 @@ export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?
 
   try {
     // The order of the parsers in important
-    const frames = createStackParser(opera10, opera11, chrome, winjs, gecko)(stacktrace);
-    return popSize > 0 && frames.length ? frames.slice(0, frames.length - popSize) : frames;
+    return createStackParser(opera10, opera11, chrome, winjs, gecko)(stacktrace, popSize);
   } catch (e) {
     // no-empty
   }

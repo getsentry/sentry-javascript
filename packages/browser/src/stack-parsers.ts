@@ -10,11 +10,11 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
     function: func,
   };
 
-  if (lineno != undefined) {
+  if (lineno !== undefined) {
     frame.lineno = lineno;
   }
 
-  if (colno != undefined) {
+  if (colno !== undefined) {
     frame.colno = colno;
   }
 
