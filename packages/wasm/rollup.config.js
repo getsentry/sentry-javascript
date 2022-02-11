@@ -90,6 +90,7 @@ function loadAllIntegrations() {
         strict: false,
       },
       plugins: build.plugins,
+      treeshake: 'smallest',
     });
   });
   return builds;
