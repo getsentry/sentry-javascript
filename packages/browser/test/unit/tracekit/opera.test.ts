@@ -1,4 +1,4 @@
-import { computeStackTrace } from '../../../src/tracekit';
+import { exceptionFromError } from '../../../src/parsers';
 
 describe('Tracekit - Opera Tests', () => {
   it('should parse Opera 10 error', () => {
@@ -24,20 +24,22 @@ describe('Tracekit - Opera Tests', () => {
         '',
     };
 
-    const stackFrames = computeStackTrace(OPERA_10);
+    const ex = exceptionFromError(OPERA_10);
 
-    expect(stackFrames).toEqual({
-      message: 'Statement on line 42: Type mismatch (usually non-object value supplied where object required)',
-      name: 'foo',
-      stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 42 },
-        { filename: 'http://path/to/file.js', function: '?', lineno: 27 },
-        { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 4 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 7 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 11 },
-        { filename: 'http://path/to/file.js', function: '?', lineno: 15 },
-      ],
+    expect(ex).toEqual({
+      value: 'Statement on line 42: Type mismatch (usually non-object value supplied where object required)',
+      type: 'foo',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: '?', lineno: 42 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 27 },
+          { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 4 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 7 },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 11 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 15 },
+        ],
+      },
     });
   });
 
@@ -68,20 +70,22 @@ describe('Tracekit - Opera Tests', () => {
         '    foo();',
     };
 
-    const stackFrames = computeStackTrace(OPERA_11);
+    const ex = exceptionFromError(OPERA_11);
 
-    expect(stackFrames).toEqual({
-      message: "'this.undef' is not a function",
-      name: 'foo',
-      stack: [
-        { filename: 'http://path/to/file.js', function: 'createException', lineno: 42, colno: 12 },
-        { filename: 'http://path/to/file.js', function: 'run', lineno: 27, colno: 8 },
-        { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, colno: 4 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, colno: 5 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, colno: 4 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, colno: 4 },
-        { filename: 'http://path/to/file.js', function: '?', lineno: 15, colno: 3 },
-      ],
+    expect(ex).toEqual({
+      value: "'this.undef' is not a function",
+      type: 'foo',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: 'createException', lineno: 42, colno: 12 },
+          { filename: 'http://path/to/file.js', function: 'run', lineno: 27, colno: 8 },
+          { filename: 'http://path/to/file.js', function: 'printStackTrace', lineno: 18, colno: 4 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 4, colno: 5 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 7, colno: 4 },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 11, colno: 4 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 15, colno: 3 },
+        ],
+      },
     });
   });
 
@@ -103,21 +107,28 @@ describe('Tracekit - Opera Tests', () => {
         '    dumpException3();',
     };
 
-    const stackFrames = computeStackTrace(OPERA_12);
+    const ex = exceptionFromError(OPERA_12);
 
-    expect(stackFrames).toEqual({
-      message: "Cannot convert 'x' to object",
-      name: 'foo',
-      stack: [
-        {
-          filename: 'http://localhost:8000/ExceptionLab.html',
-          function: '<anonymous function>',
-          lineno: 48,
-          colno: 12,
-        },
-        { filename: 'http://localhost:8000/ExceptionLab.html', function: 'dumpException3', lineno: 46, colno: 8 },
-        { filename: 'http://localhost:8000/ExceptionLab.html', function: '<anonymous function>', lineno: 1, colno: 0 },
-      ],
+    expect(ex).toEqual({
+      value: "Cannot convert 'x' to object",
+      type: 'foo',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'http://localhost:8000/ExceptionLab.html',
+            function: '<anonymous function>',
+            lineno: 48,
+            colno: 12,
+          },
+          { filename: 'http://localhost:8000/ExceptionLab.html', function: 'dumpException3', lineno: 46, colno: 8 },
+          {
+            filename: 'http://localhost:8000/ExceptionLab.html',
+            function: '<anonymous function>',
+            lineno: 1,
+            colno: 0,
+          },
+        ],
+      },
     });
   });
 
@@ -132,16 +143,18 @@ describe('Tracekit - Opera Tests', () => {
         '    at bar (http://path/to/file.js:108:168)',
     };
 
-    const stackFrames = computeStackTrace(OPERA_25);
+    const ex = exceptionFromError(OPERA_25);
 
-    expect(stackFrames).toEqual({
-      message: "Cannot read property 'undef' of null",
-      name: 'TypeError',
-      stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 168 },
-      ],
+    expect(ex).toEqual({
+      value: "Cannot read property 'undef' of null",
+      type: 'TypeError',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22 },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 168 },
+        ],
+      },
     });
   });
 });

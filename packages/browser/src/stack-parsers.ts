@@ -1,30 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { StackFrame } from '@sentry/types';
+import { StackLineParser } from '@sentry/utils';
 
 // global reference to slice
 const UNKNOWN_FUNCTION = '?';
-
-/**
- * An object representing a JavaScript stack trace.
- * {Object} StackTrace
- * {string} name The name of the thrown exception.
- * {string} message The exception error message.
- * {TraceKit.StackFrame[]} stack An array of stack frames.
- */
-export interface StackTrace {
-  name: string;
-  message: string;
-  stack: StackFrame[];
-}
-
-type StackLineParser = (line: string) => StackFrame | undefined;
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
 const chromeRegex =
   /^\s*at (?:(.*?) ?\((?:address at )?)?((?:file|https?|blob|chrome-extension|address|native|eval|webpack|<anonymous>|[-a-z]+:|.*bundle|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
-const chrome: StackLineParser = line => {
+export const chrome: StackLineParser = line => {
   const parts = chromeRegex.exec(line);
 
   if (parts) {
@@ -63,7 +47,7 @@ const geckoREgex =
   /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:file|https?|blob|chrome|webpack|resource|moz-extension|capacitor).*?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
 const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 
-const gecko: StackLineParser = line => {
+export const gecko: StackLineParser = line => {
   const parts = geckoREgex.exec(line);
 
   if (parts) {
@@ -98,7 +82,7 @@ const gecko: StackLineParser = line => {
 const winjsRegex =
   /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 
-const winjs: StackLineParser = line => {
+export const winjs: StackLineParser = line => {
   const parts = winjsRegex.exec(line);
 
   return parts
@@ -113,7 +97,7 @@ const winjs: StackLineParser = line => {
 
 const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 
-const opera10: StackLineParser = line => {
+export const opera10: StackLineParser = line => {
   const parts = opera10Regex.exec(line);
 
   return parts
@@ -128,7 +112,7 @@ const opera10: StackLineParser = line => {
 const opera11Regex =
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
 
-const opera11: StackLineParser = line => {
+export const opera11: StackLineParser = line => {
   const parts = opera11Regex.exec(line);
 
   return parts
@@ -140,53 +124,6 @@ const opera11: StackLineParser = line => {
       }
     : undefined;
 };
-
-// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
-const reactMinifiedRegexp = /Minified React error #\d+;/i;
-
-/** JSDoc */
-export function computeStackTrace(ex: Error & { framesToPop?: number; stacktrace?: string }): StackTrace {
-  let frames: StackFrame[] = [];
-  let popSize = 0;
-
-  if (ex) {
-    if (typeof ex.framesToPop === 'number') {
-      popSize = ex.framesToPop;
-    } else if (reactMinifiedRegexp.test(ex.message)) {
-      popSize = 1;
-    }
-  }
-
-  try {
-    // Access and store the stacktrace property before doing ANYTHING
-    // else to it because Opera is not very good at providing it
-    // reliably in other circumstances.
-    const stacktrace = ex.stacktrace || ex.stack || '';
-
-    for (const line of stacktrace.split('\n')) {
-      for (const parser of [opera10, opera11, chrome, winjs, gecko]) {
-        const frame = parser(line);
-
-        if (frame) {
-          frames.push(frame);
-          break;
-        }
-      }
-    }
-  } catch (e) {
-    // no-empty
-  }
-
-  if (frames.length && popSize > 0) {
-    frames = frames.slice(popSize);
-  }
-
-  return {
-    message: extractMessage(ex),
-    name: ex && ex.name,
-    stack: frames,
-  };
-}
 
 /**
  * Safari web extensions, starting version unknown, can produce "frames-only" stacktraces.
@@ -205,7 +142,7 @@ export function computeStackTrace(ex: Error & { framesToPop?: number; stacktrace
  *
  * Because of that, it won't be captured by `chrome` RegExp and will fall into `Gecko` branch.
  * This function is extracted so that we can use it in both places without duplicating the logic.
- * Unfortunatelly "just" changing RegExp is too complicated now and making it pass all tests
+ * Unfortunately "just" changing RegExp is too complicated now and making it pass all tests
  * and fix this case seems like an impossible, or at least way too time-consuming task.
  */
 const extractSafariExtensionDetails = (func: string, filename: string): [string, string] => {
@@ -219,20 +156,3 @@ const extractSafariExtensionDetails = (func: string, filename: string): [string,
       ]
     : [func, filename];
 };
-
-/**
- * There are cases where stacktrace.message is an Event object
- * https://github.com/getsentry/sentry-javascript/issues/1949
- * In this specific case we try to extract stacktrace.message.error.message
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractMessage(ex: any): string {
-  const message = ex && ex.message;
-  if (!message) {
-    return 'No error message';
-  }
-  if (message.error && typeof message.error.message === 'string') {
-    return message.error.message;
-  }
-  return message;
-}

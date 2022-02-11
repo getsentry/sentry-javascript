@@ -11,8 +11,7 @@ import {
   resolvedSyncPromise,
 } from '@sentry/utils';
 
-import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
-import { computeStackTrace } from './tracekit';
+import { eventFromError, eventFromPlainObject, parseStackFrames, prepareFramesForEvent } from './parsers';
 
 /**
  * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
@@ -70,7 +69,7 @@ export function eventFromUnknownInput(
     const errorEvent = exception as ErrorEvent;
     // eslint-disable-next-line no-param-reassign
     exception = errorEvent.error;
-    event = eventFromStacktrace(computeStackTrace(exception as Error));
+    event = eventFromError(exception as Error);
     return event;
   }
 
@@ -85,7 +84,7 @@ export function eventFromUnknownInput(
     const domException = exception as DOMException;
 
     if ('stack' in (exception as Error)) {
-      event = eventFromStacktrace(computeStackTrace(exception as Error));
+      event = eventFromError(exception as Error);
     } else {
       const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
       const message = domException.message ? `${name}: ${domException.message}` : name;
@@ -100,7 +99,7 @@ export function eventFromUnknownInput(
   }
   if (isError(exception as Error)) {
     // we have a real Error object, do nothing
-    event = eventFromStacktrace(computeStackTrace(exception as Error));
+    event = eventFromError(exception as Error);
     return event;
   }
   if (isPlainObject(exception) || isEvent(exception)) {
@@ -148,8 +147,8 @@ export function eventFromString(
   };
 
   if (options.attachStacktrace && syntheticException) {
-    const stacktrace = computeStackTrace(syntheticException);
-    const frames = prepareFramesForEvent(stacktrace.stack);
+    const stacktrace = parseStackFrames(syntheticException);
+    const frames = prepareFramesForEvent(stacktrace);
     event.stacktrace = {
       frames,
     };

@@ -1,4 +1,4 @@
-import { computeStackTrace } from '../../../src/tracekit';
+import { exceptionFromError } from '../../../src/parsers';
 
 describe('Tracekit - Safari Tests', () => {
   it('should parse Safari 6 error', () => {
@@ -14,17 +14,19 @@ describe('Tracekit - Safari Tests', () => {
       sourceURL: 'http://path/to/file.js',
     };
 
-    const stackFrames = computeStackTrace(SAFARI_6);
+    const stackFrames = exceptionFromError(SAFARI_6);
 
     expect(stackFrames).toEqual({
-      message: "'null' is not an object (evaluating 'x.undef')",
-      name: 'foo',
-      stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 48 },
-        { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52 },
-        { filename: 'http://path/to/file.js', function: 'onclick', lineno: 82 },
-        { filename: '[native code]', function: '?' },
-      ],
+      value: "'null' is not an object (evaluating 'x.undef')",
+      type: 'foo',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: '?', lineno: 48 },
+          { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52 },
+          { filename: 'http://path/to/file.js', function: 'onclick', lineno: 82 },
+          { filename: '[native code]', function: '?' },
+        ],
+      },
     });
   });
 
@@ -38,16 +40,18 @@ describe('Tracekit - Safari Tests', () => {
       sourceURL: 'http://path/to/file.js',
     };
 
-    const stackFrames = computeStackTrace(SAFARI_7);
+    const stackFrames = exceptionFromError(SAFARI_7);
 
     expect(stackFrames).toEqual({
-      message: "'null' is not an object (evaluating 'x.undef')",
-      name: 'TypeError',
-      stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 48, colno: 22 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 107 },
-      ],
+      value: "'null' is not an object (evaluating 'x.undef')",
+      type: 'TypeError',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: '?', lineno: 48, colno: 22 },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 107 },
+        ],
+      },
     });
   });
 
@@ -62,16 +66,18 @@ describe('Tracekit - Safari Tests', () => {
       sourceURL: 'http://path/to/file.js',
     };
 
-    const stackFrames = computeStackTrace(SAFARI_8);
+    const stackFrames = exceptionFromError(SAFARI_8);
 
     expect(stackFrames).toEqual({
-      message: "null is not an object (evaluating 'x.undef')",
-      name: 'TypeError',
-      stack: [
-        { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 23 },
-      ],
+      value: "null is not an object (evaluating 'x.undef')",
+      type: 'TypeError',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: '?', lineno: 47, colno: 22 },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 52, colno: 15 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 23 },
+        ],
+      },
     });
   });
 
@@ -90,16 +96,18 @@ describe('Tracekit - Safari Tests', () => {
       column: 18,
     };
 
-    const stackFrames = computeStackTrace(SAFARI_8_EVAL);
+    const stackFrames = exceptionFromError(SAFARI_8_EVAL);
 
     expect(stackFrames).toEqual({
-      message: "Can't find variable: getExceptionProps",
-      name: 'ReferenceError',
-      stack: [
-        { filename: '[native code]', function: 'eval' },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 21 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 91 },
-      ],
+      value: "Can't find variable: getExceptionProps",
+      type: 'ReferenceError',
+      stacktrace: {
+        frames: [
+          { filename: '[native code]', function: 'eval' },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 21 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 91 },
+        ],
+      },
     });
   });
 
@@ -113,25 +121,27 @@ describe('Tracekit - Safari Tests', () => {
       at safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
       };
 
-      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(SAFARI_EXTENSION_EXCEPTION);
 
-      expect(stacktrace).toEqual({
-        message: 'wat',
-        name: 'Error',
-        stack: [
-          {
-            filename: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-            function: 'ClipperError',
-            lineno: 223036,
-            colno: 10,
-          },
-          {
-            filename: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-            function: '?',
-            lineno: 3313,
-            colno: 26,
-          },
-        ],
+      expect(ex).toEqual({
+        value: 'wat',
+        type: 'Error',
+        stacktrace: {
+          frames: [
+            {
+              filename: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+              function: 'ClipperError',
+              lineno: 223036,
+              colno: 10,
+            },
+            {
+              filename: 'safari-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+              function: '?',
+              lineno: 3313,
+              colno: 26,
+            },
+          ],
+        },
       });
     });
 
@@ -143,26 +153,28 @@ describe('Tracekit - Safari Tests', () => {
         safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:1588410
         promiseReactionJob@[native code]`,
       };
-      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(SAFARI_EXTENSION_EXCEPTION);
 
-      expect(stacktrace).toEqual({
-        message: "undefined is not an object (evaluating 'e.groups.includes')",
-        name: 'TypeError',
-        stack: [
-          {
-            filename: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
-            function: 'isClaimed',
-            lineno: 2,
-            colno: 929865,
-          },
-          {
-            filename: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
-            function: '?',
-            lineno: 2,
-            colno: 1588410,
-          },
-          { filename: '[native code]', function: 'promiseReactionJob' },
-        ],
+      expect(ex).toEqual({
+        value: "undefined is not an object (evaluating 'e.groups.includes')",
+        type: 'TypeError',
+        stacktrace: {
+          frames: [
+            {
+              filename: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+              function: 'isClaimed',
+              lineno: 2,
+              colno: 929865,
+            },
+            {
+              filename: 'safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js',
+              function: '?',
+              lineno: 2,
+              colno: 1588410,
+            },
+            { filename: '[native code]', function: 'promiseReactionJob' },
+          ],
+        },
       });
     });
 
@@ -175,25 +187,27 @@ describe('Tracekit - Safari Tests', () => {
       at safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
       };
 
-      const stacktrace = computeStackTrace(SAFARI_WEB_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(SAFARI_WEB_EXTENSION_EXCEPTION);
 
-      expect(stacktrace).toEqual({
-        message: 'wat',
-        name: 'Error',
-        stack: [
-          {
-            filename: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
-            function: 'ClipperError',
-            lineno: 223036,
-            colno: 10,
-          },
-          {
-            filename: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
-            function: '?',
-            lineno: 3313,
-            colno: 26,
-          },
-        ],
+      expect(ex).toEqual({
+        value: 'wat',
+        type: 'Error',
+        stacktrace: {
+          frames: [
+            {
+              filename: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/commons.js',
+              function: 'ClipperError',
+              lineno: 223036,
+              colno: 10,
+            },
+            {
+              filename: 'safari-web-extension://3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js',
+              function: '?',
+              lineno: 3313,
+              colno: 26,
+            },
+          ],
+        },
       });
     });
 
@@ -205,26 +219,28 @@ describe('Tracekit - Safari Tests', () => {
       safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:56027
       promiseReactionJob@[native code]`,
       };
-      const stacktrace = computeStackTrace(SAFARI_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(SAFARI_EXTENSION_EXCEPTION);
 
-      expect(stacktrace).toEqual({
-        message: "undefined is not an object (evaluating 'e.groups.includes')",
-        name: 'TypeError',
-        stack: [
-          {
-            filename: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
-            function: 'p_',
-            lineno: 29,
-            colno: 33314,
-          },
-          {
-            filename: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
-            function: '?',
-            lineno: 29,
-            colno: 56027,
-          },
-          { filename: '[native code]', function: 'promiseReactionJob' },
-        ],
+      expect(ex).toEqual({
+        value: "undefined is not an object (evaluating 'e.groups.includes')",
+        type: 'TypeError',
+        stacktrace: {
+          frames: [
+            {
+              filename: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+              function: 'p_',
+              lineno: 29,
+              colno: 33314,
+            },
+            {
+              filename: 'safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js',
+              function: '?',
+              lineno: 29,
+              colno: 56027,
+            },
+            { filename: '[native code]', function: 'promiseReactionJob' },
+          ],
+        },
       });
     });
   });
@@ -239,17 +255,19 @@ describe('Tracekit - Safari Tests', () => {
           global code@http://localhost:5000/test:24:10`,
     };
 
-    const stacktrace = computeStackTrace(SAFARI12_NATIVE_CODE_EXCEPTION);
+    const ex = exceptionFromError(SAFARI12_NATIVE_CODE_EXCEPTION);
 
-    expect(stacktrace).toEqual({
-      message: 'test',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 26 },
-        { filename: '[native code]', function: 'map' },
-        { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 22 },
-        { filename: 'http://localhost:5000/test', function: 'global code', lineno: 24, colno: 10 },
-      ],
+    expect(ex).toEqual({
+      value: 'test',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 26 },
+          { filename: '[native code]', function: 'map' },
+          { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 22 },
+          { filename: 'http://localhost:5000/test', function: 'global code', lineno: 24, colno: 10 },
+        ],
+      },
     });
   });
 
@@ -271,24 +289,26 @@ describe('Tracekit - Safari Tests', () => {
           http://localhost:5000/:50:29`,
     };
 
-    const stacktrace = computeStackTrace(SAFARI12_EVAL_EXCEPTION);
+    const ex = exceptionFromError(SAFARI12_EVAL_EXCEPTION);
 
-    expect(stacktrace).toEqual({
-      message: 'aha',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 22 },
-        { filename: '[native code]', function: 'aha' },
-        { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
-        { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 23 },
-        { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 25 },
-        { filename: '[native code]', function: 'map' },
-        { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 26 },
-        { filename: '[native code]', function: 'eval' },
-        { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 9 },
-        { filename: 'http://localhost:5000/', function: 'testMethod', lineno: 44, colno: 10 },
-        { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 29 },
-      ],
+    expect(ex).toEqual({
+      value: 'aha',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 22 },
+          { filename: '[native code]', function: 'aha' },
+          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
+          { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 23 },
+          { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 25 },
+          { filename: '[native code]', function: 'map' },
+          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 26 },
+          { filename: '[native code]', function: 'eval' },
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 9 },
+          { filename: 'http://localhost:5000/', function: 'testMethod', lineno: 44, colno: 10 },
+          { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 29 },
+        ],
+      },
     });
   });
 });

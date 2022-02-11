@@ -1,4 +1,4 @@
-import { computeStackTrace } from '../../../src/tracekit';
+import { exceptionFromError } from '../../../src/parsers';
 
 describe('Tracekit - React Tests', () => {
   it('should correctly parse Invariant Violation errors and use framesToPop to drop info message', () => {
@@ -14,18 +14,20 @@ describe('Tracekit - React Tests', () => {
           at f (http://localhost:5000/:1:980)`,
     };
 
-    const stacktrace = computeStackTrace(REACT_INVARIANT_VIOLATION_EXCEPTION);
+    const ex = exceptionFromError(REACT_INVARIANT_VIOLATION_EXCEPTION);
 
-    expect(stacktrace).toEqual({
-      message:
+    expect(ex).toEqual({
+      value:
         'Minified React error #31; visit https://reactjs.org/docs/error-decoder.html?invariant=31&args[]=object%20with%20keys%20%7B%7D&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings. ',
-      name: 'Invariant Violation',
-      stack: [
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
-        { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
-      ],
+      type: 'Invariant Violation',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
+          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
+        ],
+      },
     });
   });
 
@@ -41,18 +43,20 @@ describe('Tracekit - React Tests', () => {
         at f (http://localhost:5000/:1:980)`,
     };
 
-    const stacktrace = computeStackTrace(REACT_PRODUCTION_ERROR);
+    const ex = exceptionFromError(REACT_PRODUCTION_ERROR);
 
-    expect(stacktrace).toEqual({
-      message:
+    expect(ex).toEqual({
+      value:
         'Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
-        { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
-      ],
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
+          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
+        ],
+      },
     });
   });
 
@@ -69,18 +73,20 @@ describe('Tracekit - React Tests', () => {
         at f (http://localhost:5000/:1:980)`,
     };
 
-    const stacktrace = computeStackTrace(REACT_PRODUCTION_ERROR);
+    const ex = exceptionFromError(REACT_PRODUCTION_ERROR);
 
-    expect(stacktrace).toEqual({
-      message:
+    expect(ex).toEqual({
+      value:
         'Minified React error #200; visit https://reactjs.org/docs/error-decoder.html?invariant=200 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
-        { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
-        { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
-      ],
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: '?', lineno: 1, colno: 21738 },
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'a', lineno: 1, colno: 21841 },
+          { filename: 'http://localhost:5000/static/js/foo.chunk.js', function: 'ho', lineno: 1, colno: 68735 },
+          { filename: 'http://localhost:5000/', function: 'f', lineno: 1, colno: 980 },
+        ],
+      },
     });
   });
 });

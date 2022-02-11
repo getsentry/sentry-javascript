@@ -1,14 +1,14 @@
-import { computeStackTrace } from '../../../src/tracekit';
+import { exceptionFromError } from '../../../src/parsers';
 
 describe('Tracekit - Chrome Tests', () => {
   it('should parse Chrome error with no location', () => {
     const NO_LOCATION = { message: 'foo', name: 'bar', stack: 'error\n at Array.forEach (native)' };
-    const stackFrames = computeStackTrace(NO_LOCATION);
+    const ex = exceptionFromError(NO_LOCATION);
 
-    expect(stackFrames).toEqual({
-      message: 'foo',
-      name: 'bar',
-      stack: [{ filename: 'native', function: 'Array.forEach' }],
+    expect(ex).toEqual({
+      value: 'foo',
+      type: 'bar',
+      stacktrace: { frames: [{ filename: 'native', function: 'Array.forEach' }] },
     });
   });
 
@@ -25,17 +25,19 @@ describe('Tracekit - Chrome Tests', () => {
         '    at http://path/to/file.js:24:4',
     };
 
-    const stackFrames = computeStackTrace(CHROME_15);
+    const ex = exceptionFromError(CHROME_15);
 
-    expect(stackFrames).toEqual({
-      message: "Object #<Object> has no method 'undef'",
-      name: 'foo',
-      stack: [
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 13, colno: 17 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 16, colno: 5 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 20, colno: 5 },
-        { filename: 'http://path/to/file.js', function: '?', lineno: 24, colno: 4 },
-      ],
+    expect(ex).toEqual({
+      value: "Object #<Object> has no method 'undef'",
+      type: 'foo',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 13, colno: 17 },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 16, colno: 5 },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 20, colno: 5 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 24, colno: 4 },
+        ],
+      },
     });
   });
 
@@ -50,21 +52,23 @@ describe('Tracekit - Chrome Tests', () => {
         '    at I.e.fn.(anonymous function) [as index] (http://localhost:8080/file.js:10:3651)',
     };
 
-    const stackFrames = computeStackTrace(CHROME_36);
+    const ex = exceptionFromError(CHROME_36);
 
-    expect(stackFrames).toEqual({
-      message: 'Default error',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:8080/file.js', function: 'dumpExceptionError', lineno: 41, colno: 27 },
-        { filename: 'http://localhost:8080/file.js', function: 'HTMLButtonElement.onclick', lineno: 107, colno: 146 },
-        {
-          filename: 'http://localhost:8080/file.js',
-          function: 'I.e.fn.(anonymous function) [as index]',
-          lineno: 10,
-          colno: 3651,
-        },
-      ],
+    expect(ex).toEqual({
+      value: 'Default error',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:8080/file.js', function: 'dumpExceptionError', lineno: 41, colno: 27 },
+          { filename: 'http://localhost:8080/file.js', function: 'HTMLButtonElement.onclick', lineno: 107, colno: 146 },
+          {
+            filename: 'http://localhost:8080/file.js',
+            function: 'I.e.fn.(anonymous function) [as index]',
+            lineno: 10,
+            colno: 3651,
+          },
+        ],
+      },
     });
   });
 
@@ -81,37 +85,39 @@ describe('Tracekit - Chrome Tests', () => {
         '   at TESTTESTTEST.proxiedMethod(webpack:///./~/react-proxy/modules/createPrototypeProxy.js?:44:30)',
     };
 
-    const stackFrames = computeStackTrace(CHROME_XX_WEBPACK);
+    const ex = exceptionFromError(CHROME_XX_WEBPACK);
 
-    expect(stackFrames).toEqual({
-      message: "Cannot read property 'error' of undefined",
-      name: 'TypeError',
-      stack: [
-        {
-          filename: 'webpack:///./src/components/test/test.jsx?',
-          function: 'TESTTESTTEST.eval',
-          lineno: 295,
-          colno: 108,
-        },
-        {
-          filename: 'webpack:///./src/components/test/test.jsx?',
-          function: 'TESTTESTTEST.render',
-          lineno: 272,
-          colno: 32,
-        },
-        {
-          filename: 'webpack:///./~/react-transform-catch-errors/lib/index.js?',
-          function: 'TESTTESTTEST.tryRender',
-          lineno: 34,
-          colno: 31,
-        },
-        {
-          filename: 'webpack:///./~/react-proxy/modules/createPrototypeProxy.js?',
-          function: 'TESTTESTTEST.proxiedMethod',
-          lineno: 44,
-          colno: 30,
-        },
-      ],
+    expect(ex).toEqual({
+      value: "Cannot read property 'error' of undefined",
+      type: 'TypeError',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'webpack:///./src/components/test/test.jsx?',
+            function: 'TESTTESTTEST.eval',
+            lineno: 295,
+            colno: 108,
+          },
+          {
+            filename: 'webpack:///./src/components/test/test.jsx?',
+            function: 'TESTTESTTEST.render',
+            lineno: 272,
+            colno: 32,
+          },
+          {
+            filename: 'webpack:///./~/react-transform-catch-errors/lib/index.js?',
+            function: 'TESTTESTTEST.tryRender',
+            lineno: 34,
+            colno: 31,
+          },
+          {
+            filename: 'webpack:///./~/react-proxy/modules/createPrototypeProxy.js?',
+            function: 'TESTTESTTEST.proxiedMethod',
+            lineno: 44,
+            colno: 30,
+          },
+        ],
+      },
     });
   });
 
@@ -128,18 +134,20 @@ describe('Tracekit - Chrome Tests', () => {
         'at http://localhost:8080/file.js:31:13\n',
     };
 
-    const stackFrames = computeStackTrace(CHROME_48_EVAL);
+    const ex = exceptionFromError(CHROME_48_EVAL);
 
-    expect(stackFrames).toEqual({
-      message: 'message string',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:8080/file.js', function: 'baz', lineno: 21, colno: 17 },
-        { filename: 'http://localhost:8080/file.js', function: 'foo', lineno: 21, colno: 17 },
-        { filename: 'http://localhost:8080/file.js', function: 'eval', lineno: 21, colno: 17 },
-        { filename: 'http://localhost:8080/file.js', function: 'Object.speak', lineno: 21, colno: 17 },
-        { filename: 'http://localhost:8080/file.js', function: '?', lineno: 31, colno: 13 },
-      ],
+    expect(ex).toEqual({
+      value: 'message string',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:8080/file.js', function: 'baz', lineno: 21, colno: 17 },
+          { filename: 'http://localhost:8080/file.js', function: 'foo', lineno: 21, colno: 17 },
+          { filename: 'http://localhost:8080/file.js', function: 'eval', lineno: 21, colno: 17 },
+          { filename: 'http://localhost:8080/file.js', function: 'Object.speak', lineno: 21, colno: 17 },
+          { filename: 'http://localhost:8080/file.js', function: '?', lineno: 31, colno: 13 },
+        ],
+      },
     });
   });
 
@@ -158,50 +166,52 @@ describe('Tracekit - Chrome Tests', () => {
         '    at n.handle (blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379:7:2863)',
     };
 
-    const stackFrames = computeStackTrace(CHROME_48_BLOB);
+    const ex = exceptionFromError(CHROME_48_BLOB);
 
-    expect(stackFrames).toEqual({
-      message: 'Error: test',
-      name: 'Error',
-      stack: [
-        { filename: 'native', function: 'Error' },
-        {
-          filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-          function: 's',
-          lineno: 31,
-          colno: 29146,
-        },
-        {
-          filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-          function: 'Object.d [as add]',
-          lineno: 31,
-          colno: 30039,
-        },
-        {
-          filename: 'blob:http%3A//localhost%3A8080/d4eefe0f-361a-4682-b217-76587d9f712a',
-          function: '?',
-          lineno: 15,
-          colno: 10978,
-        },
-        {
-          filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-          function: '?',
-          lineno: 1,
-          colno: 6911,
-        },
-        {
-          filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-          function: 'n.fire',
-          lineno: 7,
-          colno: 3019,
-        },
-        {
-          filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
-          function: 'n.handle',
-          lineno: 7,
-          colno: 2863,
-        },
-      ],
+    expect(ex).toEqual({
+      value: 'Error: test',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'native', function: 'Error' },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
+            function: 's',
+            lineno: 31,
+            colno: 29146,
+          },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
+            function: 'Object.d [as add]',
+            lineno: 31,
+            colno: 30039,
+          },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/d4eefe0f-361a-4682-b217-76587d9f712a',
+            function: '?',
+            lineno: 15,
+            colno: 10978,
+          },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
+            function: '?',
+            lineno: 1,
+            colno: 6911,
+          },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
+            function: 'n.fire',
+            lineno: 7,
+            colno: 3019,
+          },
+          {
+            filename: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379',
+            function: 'n.handle',
+            lineno: 7,
+            colno: 2863,
+          },
+        ],
+      },
     });
   });
 
@@ -213,19 +223,21 @@ describe('Tracekit - Chrome Tests', () => {
             at examplescheme://examplehost/cd351f7250857e22ceaa.worker.js:70179:15`,
     };
 
-    const stacktrace = computeStackTrace(CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME);
+    const ex = exceptionFromError(CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME);
 
-    expect(stacktrace).toEqual({
-      message: 'message string',
-      name: 'Error',
-      stack: [
-        {
-          filename: 'examplescheme://examplehost/cd351f7250857e22ceaa.worker.js',
-          function: '?',
-          lineno: 70179,
-          colno: 15,
-        },
-      ],
+    expect(ex).toEqual({
+      value: 'message string',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'examplescheme://examplehost/cd351f7250857e22ceaa.worker.js',
+            function: '?',
+            lineno: 70179,
+            colno: 15,
+          },
+        ],
+      },
     });
   });
 
@@ -240,17 +252,19 @@ describe('Tracekit - Chrome Tests', () => {
           at http://localhost:5000/test:24:7`,
     };
 
-    const stacktrace = computeStackTrace(CHROME73_NATIVE_CODE_EXCEPTION);
+    const ex = exceptionFromError(CHROME73_NATIVE_CODE_EXCEPTION);
 
-    expect(stacktrace).toEqual({
-      message: 'test',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 17 },
-        { filename: '<anonymous>', function: 'Array.map' },
-        { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 19 },
-        { filename: 'http://localhost:5000/test', function: '?', lineno: 24, colno: 7 },
-      ],
+    expect(ex).toEqual({
+      value: 'test',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 17 },
+          { filename: '<anonymous>', function: 'Array.map' },
+          { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 19 },
+          { filename: 'http://localhost:5000/test', function: '?', lineno: 24, colno: 7 },
+        ],
+      },
     });
   });
 
@@ -271,23 +285,25 @@ describe('Tracekit - Chrome Tests', () => {
           at http://localhost:5000/:50:19`,
     };
 
-    const stacktrace = computeStackTrace(CHROME73_EVAL_EXCEPTION);
+    const ex = exceptionFromError(CHROME73_EVAL_EXCEPTION);
 
-    expect(stacktrace).toEqual({
-      message: 'bad',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/', function: 'Object.aha', lineno: 19, colno: 13 },
-        { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
-        { filename: 'http://localhost:5000/', function: 'Object.callback', lineno: 25, colno: 7 },
-        { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 17 },
-        { filename: '<anonymous>', function: 'Array.map' },
-        { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23 },
-        { filename: 'http://localhost:5000/', function: 'eval', lineno: 37, colno: 5 },
-        { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
-        { filename: 'http://localhost:5000/', function: 'Foo.testMethod', lineno: 44, colno: 7 },
-        { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19 },
-      ],
+    expect(ex).toEqual({
+      value: 'bad',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/', function: 'Object.aha', lineno: 19, colno: 13 },
+          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16 },
+          { filename: 'http://localhost:5000/', function: 'Object.callback', lineno: 25, colno: 7 },
+          { filename: 'http://localhost:5000/', function: '?', lineno: 34, colno: 17 },
+          { filename: '<anonymous>', function: 'Array.map' },
+          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23 },
+          { filename: 'http://localhost:5000/', function: 'eval', lineno: 37, colno: 5 },
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
+          { filename: 'http://localhost:5000/', function: 'Foo.testMethod', lineno: 44, colno: 7 },
+          { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19 },
+        ],
+      },
     });
   });
 
@@ -302,17 +318,19 @@ describe('Tracekit - Chrome Tests', () => {
             at Global code (http://localhost:5000/test:24:7)`,
     };
 
-    const stacktrace = computeStackTrace(EDGE44_NATIVE_CODE_EXCEPTION);
+    const ex = exceptionFromError(EDGE44_NATIVE_CODE_EXCEPTION);
 
-    expect(stacktrace).toEqual({
-      message: 'test',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 11 },
-        { filename: 'native code', function: 'Array.prototype.map' },
-        { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 9 },
-        { filename: 'http://localhost:5000/test', function: 'Global code', lineno: 24, colno: 7 },
-      ],
+    expect(ex).toEqual({
+      value: 'test',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 11 },
+          { filename: 'native code', function: 'Array.prototype.map' },
+          { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 9 },
+          { filename: 'http://localhost:5000/test', function: 'Global code', lineno: 24, colno: 7 },
+        ],
+      },
     });
   });
 
@@ -333,23 +351,25 @@ describe('Tracekit - Chrome Tests', () => {
             at Anonymous function (http://localhost:5000/:50:8)`,
     };
 
-    const stacktrace = computeStackTrace(EDGE44_EVAL_EXCEPTION);
+    const ex = exceptionFromError(EDGE44_EVAL_EXCEPTION);
 
-    expect(stacktrace).toEqual({
-      message: 'aha',
-      name: 'Error',
-      stack: [
-        { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 7 },
-        { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 18, colno: 6 },
-        { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 7 },
-        { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 34, colno: 7 },
-        { filename: 'native code', function: 'Array.prototype.map' },
-        { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 5 },
-        { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1 },
-        { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
-        { filename: 'http://localhost:5000/', function: 'Foo.prototype.testMethod', lineno: 44, colno: 7 },
-        { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 50, colno: 8 },
-      ],
+    expect(ex).toEqual({
+      value: 'aha',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 7 },
+          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 18, colno: 6 },
+          { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 7 },
+          { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 34, colno: 7 },
+          { filename: 'native code', function: 'Array.prototype.map' },
+          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 5 },
+          { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1 },
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
+          { filename: 'http://localhost:5000/', function: 'Foo.prototype.testMethod', lineno: 44, colno: 7 },
+          { filename: 'http://localhost:5000/', function: 'Anonymous function', lineno: 50, colno: 8 },
+        ],
+      },
     });
   });
 
@@ -361,19 +381,21 @@ describe('Tracekit - Chrome Tests', () => {
             at TESTTESTTEST.someMethod (C:\\Users\\user\\path\\to\\file.js:295:108)`,
     };
 
-    const stacktrace = computeStackTrace(CHROME_ELECTRON_RENDERER);
+    const ex = exceptionFromError(CHROME_ELECTRON_RENDERER);
 
-    expect(stacktrace).toEqual({
-      message: "Cannot read property 'error' of undefined",
-      name: 'TypeError',
-      stack: [
-        {
-          filename: 'C:\\Users\\user\\path\\to\\file.js',
-          function: 'TESTTESTTEST.someMethod',
-          lineno: 295,
-          colno: 108,
-        },
-      ],
+    expect(ex).toEqual({
+      value: "Cannot read property 'error' of undefined",
+      type: 'TypeError',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'C:\\Users\\user\\path\\to\\file.js',
+            function: 'TESTTESTTEST.someMethod',
+            lineno: 295,
+            colno: 108,
+          },
+        ],
+      },
     });
   });
 });

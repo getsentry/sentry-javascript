@@ -1,4 +1,4 @@
-import { computeStackTrace } from '../../../src/tracekit';
+import { exceptionFromError } from '../../../src/parsers';
 
 describe('Tracekit - Misc Tests', () => {
   it('should parse PhantomJS 1.19 error', () => {
@@ -11,16 +11,18 @@ describe('Tracekit - Misc Tests', () => {
         '    at foo (http://path/to/file.js:4283)\n' +
         '    at http://path/to/file.js:4287',
     };
-    const stackFrames = computeStackTrace(PHANTOMJS_1_19);
+    const ex = exceptionFromError(PHANTOMJS_1_19);
 
-    expect(stackFrames).toEqual({
-      message: 'bar',
-      name: 'foo',
-      stack: [
-        { filename: 'file:///path/to/file.js', function: '?', lineno: 878 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 4283 },
-        { filename: 'http://path/to/file.js', function: '?', lineno: 4287 },
-      ],
+    expect(ex).toEqual({
+      value: 'bar',
+      type: 'foo',
+      stacktrace: {
+        frames: [
+          { filename: 'file:///path/to/file.js', function: '?', lineno: 878 },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 4283 },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 4287 },
+        ],
+      },
     });
   });
 });

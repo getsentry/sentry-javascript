@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, Exception, StackFrame } from '@sentry/types';
-import { extractExceptionKeysForMessage, isEvent, normalizeToSize } from '@sentry/utils';
+import { createStackParser, extractExceptionKeysForMessage, isEvent, normalizeToSize } from '@sentry/utils';
 
-import { computeStackTrace, StackTrace as TraceKitStackTrace } from './tracekit';
+import { chrome, gecko, opera10, opera11, winjs } from './stack-parsers';
 
 const STACKTRACE_LIMIT = 50;
 
@@ -10,13 +11,13 @@ const STACKTRACE_LIMIT = 50;
  * @param stacktrace TraceKitStackTrace that will be converted to an exception
  * @hidden
  */
-export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): Exception {
-  const frames = prepareFramesForEvent(stacktrace.stack);
-
+export function exceptionFromError(ex: Error): Exception {
   const exception: Exception = {
-    type: stacktrace.name,
-    value: stacktrace.message,
+    type: ex && ex.name,
+    value: extractMessage(ex),
   };
+
+  const frames = parseStackFrames(ex);
 
   if (frames && frames.length) {
     exception.stacktrace = { frames };
@@ -54,8 +55,8 @@ export function eventFromPlainObject(
   };
 
   if (syntheticException) {
-    const stacktrace = computeStackTrace(syntheticException);
-    const frames = prepareFramesForEvent(stacktrace.stack);
+    const stacktrace = parseStackFrames(syntheticException);
+    const frames = prepareFramesForEvent(stacktrace);
     event.stacktrace = {
       frames,
     };
@@ -67,14 +68,59 @@ export function eventFromPlainObject(
 /**
  * @hidden
  */
-export function eventFromStacktrace(stacktrace: TraceKitStackTrace): Event {
-  const exception = exceptionFromStacktrace(stacktrace);
-
+export function eventFromError(ex: Error): Event {
   return {
     exception: {
-      values: [exception],
+      values: [exceptionFromError(ex)],
     },
   };
+}
+
+// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
+const reactMinifiedRegexp = /Minified React error #\d+;/i;
+
+/** JSDoc */
+export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?: string }): StackFrame[] {
+  let popSize = 0;
+
+  if (ex) {
+    if (typeof ex.framesToPop === 'number') {
+      popSize = ex.framesToPop;
+    } else if (reactMinifiedRegexp.test(ex.message)) {
+      popSize = 1;
+    }
+  }
+
+  try {
+    // Access and store the stacktrace property before doing ANYTHING
+    // else to it because Opera is not very good at providing it
+    // reliably in other circumstances.
+    const stacktrace = ex.stacktrace || ex.stack || '';
+    const frames = createStackParser(opera10, opera11, chrome, winjs, gecko)(stacktrace);
+
+    return popSize > 0 && frames.length >= popSize ? frames.slice(popSize) : frames;
+  } catch (e) {
+    // no-empty
+  }
+
+  return [];
+}
+
+/**
+ * There are cases where stacktrace.message is an Event object
+ * https://github.com/getsentry/sentry-javascript/issues/1949
+ * In this specific case we try to extract stacktrace.message.error.message
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractMessage(ex: any): string {
+  const message = ex && ex.message;
+  if (!message) {
+    return 'No error message';
+  }
+  if (message.error && typeof message.error.message === 'string') {
+    return message.error.message;
+  }
+  return message;
 }
 
 /**
