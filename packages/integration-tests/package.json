@@ -13,10 +13,16 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
-    "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
     "type-check": "tsc",
     "pretest": "yarn clean && yarn type-check",
-    "test": "playwright test ./suites"
+    "test": "playwright test ./suites",
+    "test:bundle": "PW_BUNDLE=bundle yarn test",
+    "test:bundle:min": "PW_BUNDLE=bundle_min yarn test",
+    "test:bundle:es6": "PW_BUNDLE=bundle_es6 yarn test",
+    "test:bundle:es6:min": "PW_BUNDLE=bundle_es6_min yarn test",
+    "test:dist": "PW_BUNDLE=dist yarn test",
+    "test:esm": "PW_BUNDLE=esm yarn test",
+    "test:ci": "playwright test ./suites --browser='all' --reporter='line'"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",

@@ -1,6 +1,6 @@
 import { Configuration } from 'webpack';
 
-const config = function(userConfig: Record<string, unknown>): Configuration {
+const config = function (userConfig: Record<string, unknown>): Configuration {
   return {
     ...userConfig,
     mode: 'none',

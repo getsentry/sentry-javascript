@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Package } from '@sentry/types';
 import { existsSync, mkdirSync, promises } from 'fs';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -7,6 +8,29 @@ import webpack from 'webpack';
 import webpackConfig from '../webpack.config';
 
 const PACKAGE_PATH = '../../packages';
+
+const bundleKey = process.env.PW_BUNDLE || '';
+const useCompiledModule = (bundleKey && bundleKey === 'esm') || bundleKey === 'dist';
+const useBundle = bundleKey && !useCompiledModule;
+
+const TEST_PATHS: Record<string, Record<string, string>> = {
+  browser: {
+    dist: 'dist/index.js',
+    esm: 'esm/index.js',
+    bundle: 'build/bundle.js',
+    bundle_min: 'build/bundle.min.js',
+    bundle_es6: 'build/bundle.es6.js',
+    bundle_es6_min: 'build/bundle.es6.min.js',
+  },
+  tracing: {
+    dist: 'dist/index.js',
+    esm: 'esm/index.js',
+    bundle: 'build/bundle.tracing.js',
+    bundle_min: 'build/bundle.tracing.min.js',
+    bundle_es6: 'build/bundle.tracing.js',
+    bundle_es6_min: 'build/bundle.tracing.min.js',
+  },
+};
 
 /**
  * Generate webpack aliases based on packages in monorepo
@@ -19,11 +43,26 @@ async function generateSentryAlias(): Promise<Record<string, string>> {
 
   return Object.fromEntries(
     await Promise.all(
-      dirents.map(async d => {
+      dirents.map(async packageName => {
         const packageJSON: Package = JSON.parse(
-          (await promises.readFile(path.resolve(PACKAGE_PATH, d, 'package.json'), { encoding: 'utf-8' })).toString(),
+          (
+            await promises.readFile(path.resolve(PACKAGE_PATH, packageName, 'package.json'), { encoding: 'utf-8' })
+          ).toString(),
         );
-        return [packageJSON['name'], path.resolve(PACKAGE_PATH, d)];
+
+        const packagePath = path.resolve(PACKAGE_PATH, packageName);
+
+        if (useCompiledModule && TEST_PATHS[packageName]) {
+          const bundlePath = path.resolve(packagePath, TEST_PATHS[packageName][bundleKey]);
+
+          if (!existsSync(bundlePath)) {
+            console.warn(`${bundlePath} is not found. Try building the package before running tests.`);
+          }
+
+          return [packageJSON['name'], bundlePath];
+        }
+
+        return [packageJSON['name'], packagePath];
       }),
     ),
   );
@@ -44,6 +83,14 @@ export async function generatePage(
     mkdirSync(localPath, { recursive: true });
   }
 
+  const bundlesToInject = useBundle
+    ? ['browser', 'tracing'].map(sentryPackage =>
+        path.resolve(PACKAGE_PATH, sentryPackage, TEST_PATHS[sentryPackage][bundleKey]),
+      )
+    : [];
+
+  const initializationEntry = bundlesToInject.concat(initializationPath);
+
   if (!existsSync(bundlePath)) {
     await new Promise<void>((resolve, reject) => {
       const compiler = webpack(
@@ -52,7 +99,7 @@ export async function generatePage(
             alias,
           },
           entry: {
-            initialization: initializationPath,
+            initialization: initializationEntry,
             subject: subjectPath,
           },
           output: {
@@ -65,7 +112,6 @@ export async function generatePage(
               template: templatePath,
               initialization: 'initialization.bundle.js',
               subject: `subject.bundle.js`,
-              inject: false,
             }),
           ],
         }),

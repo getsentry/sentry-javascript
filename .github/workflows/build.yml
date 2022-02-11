@@ -276,9 +276,18 @@ jobs:
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   job_browser_playwright_tests:
-    name: Browser Playwright Tests
+    name: Browser Playwright Tests (Bundle ${{ matrix.bundle }})
     needs: job_build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bundle:
+          - esm
+          - dist
+          - bundle
+          - bundle_min
+          - bundle_es6
+          - bundle_es6_min
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -297,6 +306,8 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run Playwright tests
+        env:
+          PW_BUNDLE: ${{ matrix.bundle }}
         run: |
           cd packages/integration-tests
           yarn run playwright install-deps webkit
