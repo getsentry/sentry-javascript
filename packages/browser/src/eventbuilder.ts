@@ -67,10 +67,7 @@ export function eventFromUnknownInput(
   if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
     // If it is an ErrorEvent with `error` property, extract it to get actual Error
     const errorEvent = exception as ErrorEvent;
-    // eslint-disable-next-line no-param-reassign
-    exception = errorEvent.error;
-    event = eventFromError(exception as Error);
-    return event;
+    return eventFromError(errorEvent.error as Error);
   }
 
   // If it is a `DOMError` (which is a legacy API, but still supported in some browsers) then we just extract the name
@@ -99,8 +96,7 @@ export function eventFromUnknownInput(
   }
   if (isError(exception as Error)) {
     // we have a real Error object, do nothing
-    event = eventFromError(exception as Error);
-    return event;
+    return eventFromError(exception as Error);
   }
   if (isPlainObject(exception) || isEvent(exception)) {
     // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
