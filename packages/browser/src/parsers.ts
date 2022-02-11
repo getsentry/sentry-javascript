@@ -12,12 +12,13 @@ const STACKTRACE_LIMIT = 50;
  * @hidden
  */
 export function exceptionFromError(ex: Error): Exception {
+  // Get the frames first since Opera can lose the stack if we touch anything else first
+  const frames = parseStackFrames(ex);
+
   const exception: Exception = {
     type: ex && ex.name,
     value: extractMessage(ex),
   };
-
-  const frames = parseStackFrames(ex);
 
   if (frames && frames.length) {
     exception.stacktrace = { frames };
@@ -79,23 +80,17 @@ export function eventFromError(ex: Error): Event {
 // Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
 const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
-/** JSDoc */
+/** Parses stack frames from an error */
 export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?: string }): StackFrame[] {
-  let popSize = 0;
+  // Access and store the stacktrace property before doing ANYTHING
+  // else to it because Opera is not very good at providing it
+  // reliably in other circumstances.
+  const stacktrace = ex.stacktrace || ex.stack || '';
 
-  if (ex) {
-    if (typeof ex.framesToPop === 'number') {
-      popSize = ex.framesToPop;
-    } else if (reactMinifiedRegexp.test(ex.message)) {
-      popSize = 1;
-    }
-  }
+  const popSize = getPopSize(ex);
 
   try {
-    // Access and store the stacktrace property before doing ANYTHING
-    // else to it because Opera is not very good at providing it
-    // reliably in other circumstances.
-    const stacktrace = ex.stacktrace || ex.stack || '';
+    // The order of the parsers in important
     const frames = createStackParser(opera10, opera11, chrome, winjs, gecko)(stacktrace);
 
     return popSize > 0 && frames.length >= popSize ? frames.slice(popSize) : frames;
@@ -104,6 +99,18 @@ export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?
   }
 
   return [];
+}
+
+function getPopSize(ex: Error & { framesToPop?: number }): number {
+  if (ex) {
+    if (typeof ex.framesToPop === 'number') {
+      return ex.framesToPop;
+    } else if (reactMinifiedRegexp.test(ex.message)) {
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 /**
