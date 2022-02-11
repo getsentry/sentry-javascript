@@ -276,7 +276,7 @@ jobs:
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   job_browser_playwright_tests:
-    name: Browser Playwright Tests (Bundle ${{ matrix.bundle }})
+    name: Browser Playwright Tests (${{ matrix.bundle }})
     needs: job_build
     runs-on: ubuntu-latest
     strategy:
