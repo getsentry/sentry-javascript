@@ -1,7 +1,17 @@
+import { StackFrame } from '@sentry/types';
 import { StackLineParser } from '@sentry/utils';
 
 // global reference to slice
 const UNKNOWN_FUNCTION = '?';
+
+function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
+  return {
+    filename,
+    function: func,
+    lineno,
+    colno,
+  };
+}
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
 const chromeRegex =
@@ -29,12 +39,7 @@ export const chrome: StackLineParser = line => {
     // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
     const [func, filename] = extractSafariExtensionDetails(parts[1] || UNKNOWN_FUNCTION, parts[2]);
 
-    return {
-      filename,
-      function: func,
-      lineno: parts[3] ? +parts[3] : undefined,
-      colno: parts[4] ? +parts[4] : undefined,
-    };
+    return createFrame(filename, func, parts[3] ? +parts[3] : undefined, parts[4] ? +parts[4] : undefined);
   }
 
   return;
@@ -68,12 +73,7 @@ export const gecko: StackLineParser = line => {
     let func = parts[1] || UNKNOWN_FUNCTION;
     [func, filename] = extractSafariExtensionDetails(func, filename);
 
-    return {
-      filename,
-      function: func,
-      lineno: parts[4] ? +parts[4] : undefined,
-      colno: parts[5] ? +parts[5] : undefined,
-    };
+    return createFrame(filename, func, parts[4] ? +parts[4] : undefined, parts[5] ? +parts[5] : undefined);
   }
 
   return;
@@ -86,12 +86,7 @@ export const winjs: StackLineParser = line => {
   const parts = winjsRegex.exec(line);
 
   return parts
-    ? {
-        filename: parts[2],
-        function: parts[1] || UNKNOWN_FUNCTION,
-        lineno: +parts[3],
-        colno: parts[4] ? +parts[4] : undefined,
-      }
+    ? createFrame(parts[2], parts[1] || UNKNOWN_FUNCTION, +parts[3], parts[4] ? +parts[4] : undefined)
     : undefined;
 };
 
@@ -99,14 +94,7 @@ const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$
 
 export const opera10: StackLineParser = line => {
   const parts = opera10Regex.exec(line);
-
-  return parts
-    ? {
-        filename: parts[2],
-        function: parts[3] || UNKNOWN_FUNCTION,
-        lineno: +parts[1],
-      }
-    : undefined;
+  return parts ? createFrame(parts[2], parts[3] || UNKNOWN_FUNCTION, +parts[1]) : undefined;
 };
 
 const opera11Regex =
@@ -114,15 +102,7 @@ const opera11Regex =
 
 export const opera11: StackLineParser = line => {
   const parts = opera11Regex.exec(line);
-
-  return parts
-    ? {
-        filename: parts[5],
-        function: parts[3] || parts[4] || UNKNOWN_FUNCTION,
-        lineno: +parts[1],
-        colno: +parts[2],
-      }
-    : undefined;
+  return parts ? createFrame(parts[5], parts[3] || parts[4] || UNKNOWN_FUNCTION, +parts[1], +parts[2]) : undefined;
 };
 
 /**
