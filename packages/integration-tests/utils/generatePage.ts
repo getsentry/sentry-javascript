@@ -49,7 +49,7 @@ async function generateSentryAlias(): Promise<Record<string, string>> {
 
         const modulePath = path.resolve(PACKAGE_PATH, d);
 
-        if (useCompiledModule && bundleKey && BUNDLE_PATHS[d][bundleKey]) {
+        if (useCompiledModule && bundleKey && BUNDLE_PATHS[d]?.[bundleKey]) {
           const bundlePath = path.resolve(modulePath, BUNDLE_PATHS[d][bundleKey]);
 
           return [packageJSON['name'], bundlePath];
