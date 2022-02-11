@@ -3,9 +3,9 @@
     {{#each htmlWebpackPlugin.options.sentry_bundles}}
       <script src='{{this}}'></script>
     {{/each}}
+    <script src='{{htmlWebpackPlugin.options.initialization}}'></script>
   </head>
   <body>
-    <script src='{{htmlWebpackPlugin.options.initialization}}'></script>
     <img src='https://example.com/path/to/image.svg' />
     <script src='https://example.com/path/to/script.js'></script>
     <link href='https://example.com/path/to/style.css' type='text/css' rel='stylesheet' />
