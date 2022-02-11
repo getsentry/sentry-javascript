@@ -26,8 +26,12 @@
   },
   "scripts": {
     "link:yarn": "yarn link",
-    "lint": "prettier --check \"{src,test}/**/*.js\"",
-    "fix": "prettier --write \"{src,test}/**/*.js\"",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.js\"",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.js\"",
     "test": "mocha test --recursive",
     "pack": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"

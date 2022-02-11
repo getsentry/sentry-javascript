@@ -33,6 +33,9 @@ const terserInstance = terser({
       reserved: ['_mergeOptions'],
     },
   },
+  output: {
+    comments: false,
+  },
 });
 
 const paths = {

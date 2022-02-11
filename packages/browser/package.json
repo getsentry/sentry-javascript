@@ -43,7 +43,6 @@
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.3",
-    "rollup-plugin-terser": "^4.0.4",
     "sinon": "^7.3.2",
     "webpack": "^4.30.0"
   },
