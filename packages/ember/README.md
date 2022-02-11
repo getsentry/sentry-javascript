@@ -54,24 +54,55 @@ export default class App extends Application {
 
 ### Additional Configuration
 
-Aside from configuration passed from this addon into `@sentry/browser` via the `sentry` property, there is also the following Ember specific configuration.
+Aside from configuration passed from this addon into `@sentry/browser` via the `sentry` property, there is also the following Ember specific configuration:
 
 ```javascript
-  ENV['@sentry/ember'] = {
-    ignoreEmberOnErrorWarning: false, // Will silence Ember.onError warning without the need of using Ember debugging tools. False by default.
-    sentry: ... // See sentry-javascript configuration https://docs.sentry.io/error-reporting/configuration/?platform=javascript
-  };
+ENV['@sentry/ember'] = {
+  // Will silence Ember.onError warning without the need of using Ember debugging tools.
+  ignoreEmberOnErrorWarning: false,
+
+  // Will disable automatic instrumentation of performance.
+  // Manual instrumentation will still be sent.
+  disablePerformance: true,
+
+  // All runloop queue durations will be added as spans.
+  minimumRunloopQueueDuration: 0,
+
+  // Will disable automatic instrumentation for components.
+  disableInstrumentComponents: true,
+
+  // All (non-glimmer) component render durations will be added as spans.
+  minimumComponentRenderDuration: 0,
+
+  // All component definitions will be added as spans.
+  enableComponentDefinition: true,
+
+  // See sentry-javascript configuration https://docs.sentry.io/error-reporting/configuration/?platform=javascript
+  sentry: {}
+};
 ```
+
+You can also pass additional configuration for sentry-javascript directly to the `InitSentryForEmber` method.
+This configuration will be merged with `ENV['@sentry/ember'].sentry`:
+
+```javascript
+InitSentryForEmber({
+  ignoreErrors: [
+     /You appear to be offline/,
+  ],
+})
+```
+
+It is recommended to pass all static sentry-javascript configuration directly to `InitSentryForEmber`, and only keeping configuration that depends on the build environment/secrets in `config/environment.js`. Please note that due to how the environment config is serialized, any non-JSON-serializable config (like a regex) will not work properly when being kept in `config/environment.js`.
 
 #### Disabling Performance
 
 `@sentry/ember` captures performance by default, if you would like to disable the automatic performance instrumentation, you can add the following to your `config/environment.js`:
 
 ```javascript
-  ENV['@sentry/ember'] = {
-    disablePerformance: true, // Will disable automatic instrumentation of performance. Manual instrumentation will still be sent.
-    sentry: ... // See sentry-javascript configuration https://docs.sentry.io/error-reporting/configuration/?platform=javascript
-  };
+ENV['@sentry/ember'] = {
+  disablePerformance: true, // Will disable automatic instrumentation of performance. Manual instrumentation will still be sent.
+};
 ```
 
 
@@ -100,9 +131,9 @@ such as when using glimmer components.
 
 If you would like to change the runloop queue threshold, add the following to your config:
 ```javascript
-  ENV['@sentry/ember'] = {
-    minimumRunloopQueueDuration: 0, // All runloop queue durations will be added as spans.
-  };
+ENV['@sentry/ember'] = {
+  minimumRunloopQueueDuration: 0, // All runloop queue durations will be added as spans.
+};
 ```
 
 #### Components
@@ -110,17 +141,17 @@ Non-glimmer component render times will automatically get captured.
 
 If you would like to disable component render being instrumented, add the following to your config:
 ```javascript
-  ENV['@sentry/ember'] = {
-    disableInstrumentComponents: true, // Will disable automatic instrumentation for components.
-  };
+ENV['@sentry/ember'] = {
+  disableInstrumentComponents: true, // Will disable automatic instrumentation for components.
+};
 ```
 
 Additionally, components whose render time is below a threshold (by default 2ms) will not be included as spans.
 If you would like to change this threshold, add the following to your config:
 ```javascript
-  ENV['@sentry/ember'] = {
-    minimumComponentRenderDuration: 0, // All (non-glimmer) component render durations will be added as spans.
-  };
+ENV['@sentry/ember'] = {
+  minimumComponentRenderDuration: 0, // All (non-glimmer) component render durations will be added as spans.
+};
 ```
 
 #### Glimmer components
@@ -128,9 +159,9 @@ Currently glimmer component render durations can only be captured indirectly via
 optionally enable a setting to show component definitions (which will indicate which components are being rendered) be
 adding the following to your config:
 ```javascript
-  ENV['@sentry/ember'] = {
-    enableComponentDefinition: true, // All component definitions will be added as spans.
-  };
+ENV['@sentry/ember'] = {
+  enableComponentDefinition: true, // All component definitions will be added as spans.
+};
 ```
 
 ### Supported Versions
