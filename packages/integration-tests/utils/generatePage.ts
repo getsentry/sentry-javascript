@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { Package } from '@sentry/types';
 import { existsSync, mkdirSync, promises } from 'fs';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -9,11 +8,11 @@ import webpackConfig from '../webpack.config';
 
 const PACKAGE_PATH = '../../packages';
 
-const bundleKey = process.env.PW_BUNDLE || '';
-const useCompiledModule = (bundleKey && bundleKey === 'esm') || bundleKey === 'dist';
+const bundleKey = process.env.PW_BUNDLE;
+const useCompiledModule = bundleKey && (bundleKey === 'esm' || bundleKey === 'dist');
 const useBundle = bundleKey && !useCompiledModule;
 
-const TEST_PATHS: Record<string, Record<string, string>> = {
+const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
     dist: 'dist/index.js',
     esm: 'esm/index.js',
@@ -43,26 +42,20 @@ async function generateSentryAlias(): Promise<Record<string, string>> {
 
   return Object.fromEntries(
     await Promise.all(
-      dirents.map(async packageName => {
+      dirents.map(async d => {
         const packageJSON: Package = JSON.parse(
-          (
-            await promises.readFile(path.resolve(PACKAGE_PATH, packageName, 'package.json'), { encoding: 'utf-8' })
-          ).toString(),
+          (await promises.readFile(path.resolve(PACKAGE_PATH, d, 'package.json'), { encoding: 'utf-8' })).toString(),
         );
 
-        const packagePath = path.resolve(PACKAGE_PATH, packageName);
+        const modulePath = path.resolve(PACKAGE_PATH, d);
 
-        if (useCompiledModule && TEST_PATHS[packageName]) {
-          const bundlePath = path.resolve(packagePath, TEST_PATHS[packageName][bundleKey]);
-
-          if (!existsSync(bundlePath)) {
-            console.warn(`${bundlePath} is not found. Try building the package before running tests.`);
-          }
+        if (useCompiledModule && bundleKey && BUNDLE_PATHS[d][bundleKey]) {
+          const bundlePath = path.resolve(modulePath, BUNDLE_PATHS[d][bundleKey]);
 
           return [packageJSON['name'], bundlePath];
         }
 
-        return [packageJSON['name'], packagePath];
+        return [packageJSON['name'], modulePath];
       }),
     ),
   );
@@ -83,11 +76,12 @@ export async function generatePage(
     mkdirSync(localPath, { recursive: true });
   }
 
-  const bundlesToInject = useBundle
-    ? ['browser', 'tracing'].map(sentryPackage =>
-        path.resolve(PACKAGE_PATH, sentryPackage, TEST_PATHS[sentryPackage][bundleKey]),
-      )
-    : [];
+  const bundlesToInject =
+    useBundle && bundleKey
+      ? ['browser', 'tracing'].map(sentryPackage =>
+          path.resolve(PACKAGE_PATH, sentryPackage, BUNDLE_PATHS[sentryPackage][bundleKey]),
+        )
+      : [];
 
   const initializationEntry = bundlesToInject.concat(initializationPath);
 
@@ -111,7 +105,8 @@ export async function generatePage(
               filename: 'index.html',
               template: templatePath,
               initialization: 'initialization.bundle.js',
-              subject: `subject.bundle.js`,
+              subject: 'subject.bundle.js',
+              inject: false,
             }),
           ],
         }),
