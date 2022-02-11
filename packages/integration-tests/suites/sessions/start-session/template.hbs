@@ -1,7 +1,8 @@
 <html>
   <head>
-    <meta charset='utf-8' />
-    <title></title>
+    {{#each htmlWebpackPlugin.options.sentry_bundles}}
+      <script src='{{this}}'></script>
+    {{/each}}
     <script src='{{htmlWebpackPlugin.options.initialization}}'></script>
   </head>
   <body>

@@ -1,5 +1,8 @@
 <html>
   <head>
+    {{#each htmlWebpackPlugin.options.sentry_bundles}}
+      <script src='{{this}}'></script>
+    {{/each}}
     <script src='{{htmlWebpackPlugin.options.initialization}}'></script>
   </head>
   <body>

@@ -1,12 +1,12 @@
-<!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title></title>
-    <script src="{{htmlWebpackPlugin.options.initialization}}"></script>
+    {{#each htmlWebpackPlugin.options.sentry_bundles}}
+      <script src='{{this}}'></script>
+    {{/each}}
+    <script src='{{htmlWebpackPlugin.options.initialization}}'></script>
   </head>
   <body>
-    <script src="{{htmlWebpackPlugin.options.subject}}"></script>
+    <script src='{{htmlWebpackPlugin.options.subject}}'></script>
     <span>Rendered</span>
   </body>
 </html>

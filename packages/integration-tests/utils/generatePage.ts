@@ -60,6 +60,11 @@ async function generateSentryAlias(): Promise<Record<string, string>> {
           return [packageJSON['name'], bundlePath];
         }
 
+        if (useBundle && bundleKey && BUNDLE_PATHS[d]?.[bundleKey]) {
+          // If we're injecting a bundle, ignore the webpack import.
+          return [packageJSON['name'], false];
+        }
+
         return [packageJSON['name'], modulePath];
       }),
     ),
@@ -81,15 +86,6 @@ export async function generatePage(
     mkdirSync(localPath, { recursive: true });
   }
 
-  const bundlesToInject =
-    useBundle && bundleKey
-      ? ['browser', 'tracing'].map(sentryPackage =>
-          path.resolve(PACKAGE_PATH, sentryPackage, BUNDLE_PATHS[sentryPackage][bundleKey]),
-        )
-      : [];
-
-  const initializationEntry = bundlesToInject.concat(initializationPath);
-
   if (!existsSync(bundlePath)) {
     await new Promise<void>((resolve, reject) => {
       const compiler = webpack(
@@ -98,9 +94,16 @@ export async function generatePage(
             alias,
           },
           entry: {
-            initialization: initializationEntry,
+            initialization: initializationPath,
             subject: subjectPath,
           },
+          externals: useBundle
+            ? {
+                '@sentry/browser': 'var Sentry',
+                '@sentry/tracing': 'var Sentry',
+                Integrations: 'var Sentry.Integrations',
+              }
+            : {},
           output: {
             path: localPath,
             filename: '[name].bundle.js',
@@ -109,11 +112,17 @@ export async function generatePage(
             new HtmlWebpackPlugin({
               filename: 'index.html',
               template: templatePath,
+              sentry_bundles:
+                useBundle && bundleKey
+                  ? ['browser', 'tracing'].map(sentryPackage =>
+                      path.resolve(PACKAGE_PATH, sentryPackage, BUNDLE_PATHS[sentryPackage][bundleKey]),
+                    )
+                  : [],
               initialization: 'initialization.bundle.js',
               subject: 'subject.bundle.js',
               inject: false,
             }),
-          ],
+          ].filter(Boolean),
         }),
       );
 
