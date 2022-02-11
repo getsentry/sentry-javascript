@@ -77,9 +77,6 @@ export function eventFromError(ex: Error): Event {
   };
 }
 
-// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
-const reactMinifiedRegexp = /Minified React error #\d+;/i;
-
 /** Parses stack frames from an error */
 export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?: string }): StackFrame[] {
   // Access and store the stacktrace property before doing ANYTHING
@@ -100,6 +97,9 @@ export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?
 
   return [];
 }
+
+// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
+const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
 function getPopSize(ex: Error & { framesToPop?: number }): number {
   if (ex) {
