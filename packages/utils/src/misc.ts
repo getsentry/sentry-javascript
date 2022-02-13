@@ -277,7 +277,7 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   try {
     // set it this way rather than by assignment so that it's not ennumerable and therefore isn't recorded by the
     // `ExtraErrorData` integration
-    addNonEnumerableProperty(exception, '__sentry_captured__', true);
+    addNonEnumerableProperty(exception as { [key: string]: unknown }, '__sentry_captured__', true);
   } catch (err) {
     // `exception` is a primitive, so we can't mark it seen
   }

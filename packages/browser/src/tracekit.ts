@@ -1,27 +1,11 @@
+import { StackFrame } from '@sentry/types';
+
 /**
  * This was originally forked from https://github.com/occ/TraceKit, but has since been
  * largely modified and is now maintained as part of Sentry JS SDK.
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, max-lines */
-
-/**
- * An object representing a single stack frame.
- * {Object} StackFrame
- * {string} url The JavaScript or HTML file URL.
- * {string} func The function name, or empty for anonymous functions (if guessing did not work).
- * {string[]?} args The arguments passed to the function, if known.
- * {number=} line The line number, if known.
- * {number=} column The column number, if known.
- * {string[]} context An array of source code lines; the middle element corresponds to the correct line#.
- */
-export interface StackFrame {
-  url: string;
-  func: string;
-  args: string[];
-  line: number | null;
-  column: number | null;
-}
 
 /**
  * An object representing a JavaScript stack trace.
@@ -33,9 +17,7 @@ export interface StackFrame {
 export interface StackTrace {
   name: string;
   message: string;
-  mechanism?: string;
   stack: StackFrame[];
-  failed?: boolean;
 }
 
 // global reference to slice
@@ -43,7 +25,7 @@ const UNKNOWN_FUNCTION = '?';
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
 const chrome =
-  /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|address|native|eval|webpack|<anonymous>|[-a-z]+:|.*bundle|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+  /^\s*at (?:(.*?) ?\((?:address at )?)?((?:file|https?|blob|chrome-extension|address|native|eval|webpack|<anonymous>|[-a-z]+:|.*bundle|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
 // We need this specific case for now because we want no other regex to match.
@@ -55,11 +37,13 @@ const geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 const chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 // Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
 const reactMinifiedRegexp = /Minified React error #\d+;/i;
+const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
+const opera11Regex =
+  / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
 
 /** JSDoc */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function computeStackTrace(ex: any): StackTrace {
-  let stack = null;
+export function computeStackTrace(ex: Error & { framesToPop?: number; stacktrace?: string }): StackTrace {
+  let frames: StackFrame[] = [];
   let popSize = 0;
 
   if (ex) {
@@ -71,51 +55,52 @@ export function computeStackTrace(ex: any): StackTrace {
   }
 
   try {
-    // This must be tried first because Opera 10 *destroys*
-    // its stacktrace property if you try to access the stack
-    // property first!!
-    stack = computeStackTraceFromStacktraceProp(ex);
-    if (stack) {
-      return popFrames(stack, popSize);
-    }
+    // Access and store the stacktrace property before doing ANYTHING
+    // else to it because Opera is not very good at providing it
+    // reliably in other circumstances.
+    const stacktrace = ex.stacktrace || ex.stack || '';
+
+    frames = parseFrames(stacktrace);
   } catch (e) {
     // no-empty
   }
 
-  try {
-    stack = computeStackTraceFromStackProp(ex);
-    if (stack) {
-      return popFrames(stack, popSize);
-    }
-  } catch (e) {
-    // no-empty
+  if (frames.length && popSize > 0) {
+    frames = frames.slice(popSize);
   }
 
   return {
     message: extractMessage(ex),
     name: ex && ex.name,
-    stack: [],
-    failed: true,
+    stack: frames,
   };
 }
 
 /** JSDoc */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, complexity
-function computeStackTraceFromStackProp(ex: any): StackTrace | null {
-  if (!ex || !ex.stack) {
-    return null;
-  }
-
-  const stack = [];
-  const lines = ex.stack.split('\n');
+// eslint-disable-next-line complexity
+function parseFrames(stackString: string): StackFrame[] {
+  const frames: StackFrame[] = [];
+  const lines = stackString.split('\n');
   let isEval;
   let submatch;
   let parts;
-  let element;
+  let element: StackFrame | undefined;
 
-  for (let i = 0; i < lines.length; ++i) {
-    if ((parts = chrome.exec(lines[i]))) {
-      const isNative = parts[2] && parts[2].indexOf('native') === 0; // start of line
+  for (const line of lines) {
+    if ((parts = opera10Regex.exec(line))) {
+      element = {
+        filename: parts[2],
+        function: parts[3] || UNKNOWN_FUNCTION,
+        lineno: +parts[1],
+      };
+    } else if ((parts = opera11Regex.exec(line))) {
+      element = {
+        filename: parts[5],
+        function: parts[3] || parts[4] || UNKNOWN_FUNCTION,
+        lineno: +parts[1],
+        colno: +parts[2],
+      };
+    } else if ((parts = chrome.exec(line))) {
       isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
       if (isEval && (submatch = chromeEval.exec(parts[2]))) {
         // throw out eval line/column and use top-most line/column number
@@ -124,30 +109,24 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
         parts[4] = submatch[3]; // column
       }
 
-      // Arpad: Working with the regexp above is super painful. it is quite a hack, but just stripping the `address at `
-      // prefix here seems like the quickest solution for now.
-      let url = parts[2] && parts[2].indexOf('address at ') === 0 ? parts[2].substr('address at '.length) : parts[2];
       // Kamil: One more hack won't hurt us right? Understanding and adding more rules on top of these regexps right now
       // would be way too time consuming. (TODO: Rewrite whole RegExp to be more readable)
-      let func = parts[1] || UNKNOWN_FUNCTION;
-      [func, url] = extractSafariExtensionDetails(func, url);
+      const [func, filename] = extractSafariExtensionDetails(parts[1] || UNKNOWN_FUNCTION, parts[2]);
 
       element = {
-        url,
-        func,
-        args: isNative ? [parts[2]] : [],
-        line: parts[3] ? +parts[3] : null,
-        column: parts[4] ? +parts[4] : null,
+        filename,
+        function: func,
+        lineno: parts[3] ? +parts[3] : undefined,
+        colno: parts[4] ? +parts[4] : undefined,
       };
-    } else if ((parts = winjs.exec(lines[i]))) {
+    } else if ((parts = winjs.exec(line))) {
       element = {
-        url: parts[2],
-        func: parts[1] || UNKNOWN_FUNCTION,
-        args: [],
-        line: +parts[3],
-        column: parts[4] ? +parts[4] : null,
+        filename: parts[2],
+        function: parts[1] || UNKNOWN_FUNCTION,
+        lineno: +parts[3],
+        colno: parts[4] ? +parts[4] : undefined,
       };
-    } else if ((parts = gecko.exec(lines[i]))) {
+    } else if ((parts = gecko.exec(line))) {
       isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
       if (isEval && (submatch = geckoEval.exec(parts[3]))) {
         // throw out eval line/column and use top-most line number
@@ -155,101 +134,26 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
         parts[3] = submatch[1];
         parts[4] = submatch[2];
         parts[5] = ''; // no column when eval
-      } else if (i === 0 && !parts[5] && ex.columnNumber !== void 0) {
-        // FireFox uses this awesome columnNumber property for its top frame
-        // Also note, Firefox's column number is 0-based and everything else expects 1-based,
-        // so adding 1
-        // NOTE: this hack doesn't work if top-most frame is eval
-        stack[0].column = (ex.columnNumber as number) + 1;
       }
 
-      let url = parts[3];
+      let filename = parts[3];
       let func = parts[1] || UNKNOWN_FUNCTION;
-      [func, url] = extractSafariExtensionDetails(func, url);
+      [func, filename] = extractSafariExtensionDetails(func, filename);
 
       element = {
-        url,
-        func,
-        args: parts[2] ? parts[2].split(',') : [],
-        line: parts[4] ? +parts[4] : null,
-        column: parts[5] ? +parts[5] : null,
+        filename,
+        function: func,
+        lineno: parts[4] ? +parts[4] : undefined,
+        colno: parts[5] ? +parts[5] : undefined,
       };
     } else {
       continue;
     }
 
-    if (!element.func && element.line) {
-      element.func = UNKNOWN_FUNCTION;
-    }
-
-    stack.push(element);
+    frames.push(element);
   }
 
-  if (!stack.length) {
-    return null;
-  }
-
-  return {
-    message: extractMessage(ex),
-    name: ex.name,
-    stack,
-  };
-}
-
-/** JSDoc */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
-  if (!ex || !ex.stacktrace) {
-    return null;
-  }
-  // Access and store the stacktrace property before doing ANYTHING
-  // else to it because Opera is not very good at providing it
-  // reliably in other circumstances.
-  const stacktrace = ex.stacktrace;
-  const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
-  const opera11Regex =
-    / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\((.*)\))? in (.*):\s*$/i;
-  const lines = stacktrace.split('\n');
-  const stack = [];
-  let parts;
-
-  for (let line = 0; line < lines.length; line += 2) {
-    let element = null;
-    if ((parts = opera10Regex.exec(lines[line]))) {
-      element = {
-        url: parts[2],
-        func: parts[3],
-        args: [],
-        line: +parts[1],
-        column: null,
-      };
-    } else if ((parts = opera11Regex.exec(lines[line]))) {
-      element = {
-        url: parts[6],
-        func: parts[3] || parts[4],
-        args: parts[5] ? parts[5].split(',') : [],
-        line: +parts[1],
-        column: +parts[2],
-      };
-    }
-
-    if (element) {
-      if (!element.func && element.line) {
-        element.func = UNKNOWN_FUNCTION;
-      }
-      stack.push(element);
-    }
-  }
-
-  if (!stack.length) {
-    return null;
-  }
-
-  return {
-    message: extractMessage(ex),
-    name: ex.name,
-    stack,
-  };
+  return frames;
 }
 
 /**
@@ -272,29 +176,17 @@ function computeStackTraceFromStacktraceProp(ex: any): StackTrace | null {
  * Unfortunatelly "just" changing RegExp is too complicated now and making it pass all tests
  * and fix this case seems like an impossible, or at least way too time-consuming task.
  */
-const extractSafariExtensionDetails = (func: string, url: string): [string, string] => {
+const extractSafariExtensionDetails = (func: string, filename: string): [string, string] => {
   const isSafariExtension = func.indexOf('safari-extension') !== -1;
   const isSafariWebExtension = func.indexOf('safari-web-extension') !== -1;
 
   return isSafariExtension || isSafariWebExtension
     ? [
         func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION,
-        isSafariExtension ? `safari-extension:${url}` : `safari-web-extension:${url}`,
+        isSafariExtension ? `safari-extension:${filename}` : `safari-web-extension:${filename}`,
       ]
-    : [func, url];
+    : [func, filename];
 };
-
-/** Remove N number of frames from the stack */
-function popFrames(stacktrace: StackTrace, popSize: number): StackTrace {
-  try {
-    return {
-      ...stacktrace,
-      stack: stacktrace.stack.slice(popSize),
-    };
-  } catch (e) {
-    return stacktrace;
-  }
-}
 
 /**
  * There are cases where stacktrace.message is an Event object
