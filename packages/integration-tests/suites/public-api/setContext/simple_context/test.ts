@@ -12,6 +12,7 @@ sentryTest('should set a simple context', async ({ getLocalTestPath, page }) => 
   expect(eventData.contexts).toMatchObject({
     foo: {
       bar: 'baz',
+      qux: '6789',
     },
   });
 });

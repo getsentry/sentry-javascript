@@ -12,4 +12,5 @@ sentryTest('should clear previously set properties of a scope', async ({ getLoca
   expect(eventData.user).toBeUndefined();
   expect(eventData.tags).toBeUndefined();
   expect(eventData.extra).toBeUndefined();
+  expect(eventData.contexts).toBeUndefined();
 });

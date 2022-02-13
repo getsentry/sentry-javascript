@@ -18,5 +18,9 @@ sentryTest('should record multiple contexts', async ({ getLocalTestPath, page })
     context_4: '[undefined]',
     context_5: '[NaN]',
     context_6: 3.141592653589793,
+    context_7: {
+      prop: 'abcd',
+      anotherProp: 42,
+    },
   });
 });

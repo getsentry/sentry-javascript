@@ -3,6 +3,8 @@ import {
   Breadcrumb,
   BreadcrumbHint,
   Client,
+  Context,
+  ContextSetterCallback,
   CustomSamplingContext,
   Event,
   EventHint,
@@ -335,7 +337,7 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setContext(name: string, context: { [key: string]: any } | null): void {
+  public setContext(name: string, context: Context | null | ContextSetterCallback): void {
     const scope = this.getScope();
     if (scope) scope.setContext(name, context);
   }

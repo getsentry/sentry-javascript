@@ -4,6 +4,7 @@ import {
   CaptureContext,
   Context,
   Contexts,
+  ContextSetterCallback,
   Event,
   EventHint,
   EventProcessor,
@@ -234,12 +235,20 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setContext(key: string, context: Context | null): this {
-    if (context === null) {
+  public setContext(key: string, context: Context | null | ContextSetterCallback): this {
+    let newContext;
+
+    if (typeof context === 'function') {
+      newContext = context(this._contexts[key] ?? null);
+    } else {
+      newContext = context;
+    }
+
+    if (newContext === null) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this._contexts[key];
     } else {
-      this._contexts = { ...this._contexts, [key]: context };
+      this._contexts = { ...this._contexts, [key]: newContext };
     }
 
     this._notifyScopeListeners();

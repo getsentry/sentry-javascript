@@ -1,6 +1,6 @@
 export { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export { Client } from './client';
-export { Context, Contexts } from './context';
+export { Context, Contexts, ContextSetterCallback } from './context';
 export { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
 export { ExtendedError } from './error';

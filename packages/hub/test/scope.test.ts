@@ -108,11 +108,66 @@ describe('Scope', () => {
       expect((scope as any)._contexts.os).toEqual({ id: '1' });
     });
 
+    test('setContext can set arrays as context', () => {
+      const scope = new Scope();
+      scope.setContext('os', [{ prop: 'abcd' }, 2]);
+      expect((scope as any)._contexts.os).toEqual([{ prop: 'abcd' }, 2]);
+    });
+
     test('setContext with null unsets it', () => {
       const scope = new Scope();
-      scope.setContext('os', { id: '1' });
+      scope.setContext('os', { prop: '1' });
       scope.setContext('os', null);
-      expect((scope as any)._user).toEqual({});
+      expect((scope as any)._contexts).toEqual({});
+    });
+
+    test('setContext with a callback should be able to create a context from scratch', () => {
+      const scope = new Scope();
+      scope.setContext('os', () => ({ prop: 1, anotherContextProp: 2 }));
+      expect((scope as any)._contexts.os).toEqual({
+        prop: 1,
+        anotherContextProp: 2,
+      });
+    });
+
+    test('setContext with a callback should be able to perform partial update without overwriting anything', () => {
+      const scope = new Scope();
+      scope.setContext('os', { prop: '1' });
+      scope.setContext('os', existingContext => ({ ...existingContext, anotherContextProp: 'value' }));
+      expect((scope as any)._contexts.os).toEqual({
+        prop: '1',
+        anotherContextProp: 'value',
+      });
+    });
+
+    test('setContext with a callback should be able to delete anything', () => {
+      const scope = new Scope();
+      scope.setContext('os', { prop: '1' });
+      scope.setContext('os', () => null);
+      expect((scope as any)._contexts).toEqual({});
+    });
+
+    test('setContext with a callback should be able to set a primitive', () => {
+      const scope = new Scope();
+      scope.setContext('os', () => Math.PI);
+      expect((scope as any)._contexts.os).toEqual(Math.PI);
+    });
+
+    test('setContext with a callback should be able delete and overwrite with mutation', () => {
+      const scope = new Scope();
+      scope.setContext('os', { prop: 2, anotherContextProp: ['a', 'b', 'c'] });
+      scope.setContext('os', existingContext => {
+        if (existingContext) {
+          existingContext.prop = 1;
+          delete existingContext.anotherContextProp;
+        }
+
+        return existingContext;
+      });
+
+      expect((scope as any)._contexts.os).toEqual({
+        prop: 1,
+      });
     });
 
     test('setSpan', () => {
