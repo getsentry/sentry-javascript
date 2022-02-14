@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, page }) => {
   // FP is not generated on webkit or firefox
@@ -10,7 +11,7 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, p
   }
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fp?.value).toBeDefined();
@@ -26,7 +27,7 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, p
 
 sentryTest('should capture FCP vital.', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fcp?.value).toBeDefined();

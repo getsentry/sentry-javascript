@@ -1,7 +1,8 @@
 import { expect, Route } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should capture a LCP vital with element details.', async ({ browserName, getLocalTestPath, page }) => {
   if (browserName !== 'chromium') {
@@ -17,7 +18,7 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
 
   // Force closure of LCP listener.
   page.click('body');
-  const eventData = await getSentryTransactionRequest(page);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.lcp?.value).toBeDefined();

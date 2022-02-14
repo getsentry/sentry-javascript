@@ -1,12 +1,13 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should add browser-related spans to pageload transaction', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getSentryTransactionRequest(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const browserSpans = eventData.spans?.filter(({ op }) => op === 'browser');
 
   // Spans `connect`, `cache` and `DNS` are not always inside `pageload` transaction.

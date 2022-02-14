@@ -1,7 +1,8 @@
 import { expect, JSHandle } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 async function getPropertyValue(handle: JSHandle, prop: string) {
   return (await handle.getProperty(prop))?.jsonValue();
@@ -10,7 +11,7 @@ async function getPropertyValue(handle: JSHandle, prop: string) {
 sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const pageloadTransaction = await getSentryTransactionRequest(page, url);
+  const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
   expect(pageloadTransaction).toBeDefined();
 
   await page.click('#start-transaction');
