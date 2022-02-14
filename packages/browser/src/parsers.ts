@@ -99,7 +99,9 @@ function getPopSize(ex: Error & { framesToPop?: number }): number {
   if (ex) {
     if (typeof ex.framesToPop === 'number') {
       return ex.framesToPop;
-    } else if (reactMinifiedRegexp.test(ex.message)) {
+    }
+
+    if (reactMinifiedRegexp.test(ex.message)) {
       return 1;
     }
   }
