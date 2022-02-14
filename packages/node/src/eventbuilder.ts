@@ -7,6 +7,7 @@ import {
   isError,
   isPlainObject,
   normalizeToSize,
+  SyncPromise,
 } from '@sentry/utils';
 
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
@@ -15,7 +16,7 @@ import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } 
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromException(exception: unknown, hint?: EventHint): Event {
+export function eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
   const providedMechanism: Mechanism | undefined =
@@ -46,14 +47,19 @@ export function eventFromException(exception: unknown, hint?: EventHint): Event 
     mechanism.synthetic = true;
   }
 
-  const event = parseError(ex as Error);
-  addExceptionTypeValue(event, undefined, undefined);
-  addExceptionMechanism(event, mechanism);
+  return new SyncPromise<Event>((resolve, reject) =>
+    parseError(ex as Error)
+      .then(event => {
+        addExceptionTypeValue(event, undefined, undefined);
+        addExceptionMechanism(event, mechanism);
 
-  return {
-    ...event,
-    event_id: hint && hint.event_id,
-  };
+        resolve({
+          ...event,
+          event_id: hint && hint.event_id,
+        });
+      })
+      .then(null, reject),
+  );
 }
 
 /**
@@ -65,21 +71,23 @@ export function eventFromMessage(
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
-): Event {
+): PromiseLike<Event> {
   const event: Event = {
     event_id: hint && hint.event_id,
     level,
     message,
   };
 
-  if (options.attachStacktrace && hint && hint.syntheticException) {
-    const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-    const frames = parseStack(stack);
-
-    event.stacktrace = {
-      frames: prepareFramesForEvent(frames),
-    };
-  }
-
-  return event;
+  return new SyncPromise<Event>(resolve => {
+    if (options.attachStacktrace && hint && hint.syntheticException) {
+      const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
+      const frames = parseStack(stack);
+      event.stacktrace = {
+        frames: prepareFramesForEvent(frames),
+      };
+      resolve(event);
+    } else {
+      resolve(event);
+    }
+  });
 }

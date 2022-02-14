@@ -81,9 +81,14 @@ export class LinkedErrors implements Integration {
       return resolvedSyncPromise(stack);
     }
     return new SyncPromise<Exception[]>((resolve, reject) => {
-      const exception = getExceptionFromError(error[key]);
-      void this._walkErrorTree(error[key], key, [exception, ...stack])
-        .then(resolve)
+      void getExceptionFromError(error[key])
+        .then((exception: Exception) => {
+          void this._walkErrorTree(error[key], key, [exception, ...stack])
+            .then(resolve)
+            .then(null, () => {
+              reject();
+            });
+        })
         .then(null, () => {
           reject();
         });

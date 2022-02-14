@@ -1,5 +1,5 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
-import { basename, dirname } from '@sentry/utils';
+import { basename, dirname, SyncPromise } from '@sentry/utils';
 
 import * as stacktrace from './stacktrace';
 
@@ -97,31 +97,35 @@ export function parseStack(stack: stacktrace.StackFrame[]): StackFrame[] {
 /**
  * @hidden
  */
-export function getExceptionFromError(error: Error): Exception {
+export function getExceptionFromError(error: Error): PromiseLike<Exception> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
-  const frames = parseStack(stack);
-
-  return {
-    stacktrace: {
-      frames: prepareFramesForEvent(frames),
-    },
-    type: name,
-    value: error.message,
-  };
+  return new SyncPromise<Exception>(resolve => {
+    const frames = parseStack(stack);
+    const result = {
+      stacktrace: {
+        frames: prepareFramesForEvent(frames),
+      },
+      type: name,
+      value: error.message,
+    };
+    resolve(result);
+  });
 }
 
 /**
  * @hidden
  */
-export function parseError(error: ExtendedError): Event {
-  const exception = getExceptionFromError(error);
-
-  return {
-    exception: {
-      values: [exception],
-    },
-  };
+export function parseError(error: ExtendedError): PromiseLike<Event> {
+  return new SyncPromise<Event>(resolve =>
+    getExceptionFromError(error).then((exception: Exception) => {
+      resolve({
+        exception: {
+          values: [exception],
+        },
+      });
+    }),
+  );
 }
 
 /**
