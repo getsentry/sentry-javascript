@@ -1,6 +1,8 @@
 import { Hub } from '@sentry/hub';
-import { EventProcessor, Integration, SpanContext } from '@sentry/types';
+import { EventProcessor, Integration, Span, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
+
+type Callback = (...args: unknown[]) => void;
 
 // This allows us to use the same array for both defaults options and the type itself.
 // (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... )
@@ -82,10 +84,95 @@ interface MongoCollection {
   };
 }
 
+export interface MongoCursor {
+  // count,
+  // explain,
+  // hasNext,
+  // next,
+  // tryNext,
+  // forEach,
+  // close,
+
+  toArray(): Promise<unknown[]>;
+  toArray(callback: Callback): void;
+}
+
 interface MongoOptions {
   operations?: Operation[];
   describeOperations?: boolean | Operation[];
   useMongoose?: boolean;
+}
+
+function measurePromiseOrCb(
+  orig: (...args: unknown[]) => void | Promise<unknown>,
+  args: unknown[],
+  span: Span | undefined,
+  cb: Callback | undefined,
+): unknown {
+  if (cb) {
+    return orig(...args.slice(0, -1), function (...cbArgs: unknown[]) {
+      span?.finish();
+      cb(...cbArgs);
+    });
+  }
+
+  const maybePromise = orig(...args) as Promise<unknown>;
+
+  if (isThenable(maybePromise)) {
+    return maybePromise.then((res: unknown) => {
+      span?.finish();
+      return res;
+    });
+  } else {
+    span?.finish();
+    return maybePromise;
+  }
+}
+
+function instrumentCursor(cursor: MongoCursor, parentSpan: Span | undefined): MongoCursor {
+  fill(cursor, 'toArray', (orig: () => void | Promise<unknown>) => {
+    return function (this: MongoCursor, ...args: unknown[]) {
+      const lastArg = args[args.length - 1];
+
+      const span = parentSpan?.startChild({
+        op: 'db',
+        description: 'Cursor.toArray',
+      });
+
+      return measurePromiseOrCb(
+        orig.bind(this),
+        args,
+        span,
+        typeof lastArg === 'function' ? (lastArg as Callback) : undefined,
+      );
+    };
+  });
+
+  return cursor;
+}
+
+const serializeArg = (arg: unknown): string => {
+  if (typeof arg === 'function') {
+    return arg.name || '<anonymous>';
+  }
+
+  if (typeof arg === 'string') {
+    return arg;
+  }
+
+  return JSON.stringify(arg);
+};
+
+function getOperationCallbackFromArgsOrUndefined(operation: string, args: unknown[]): Callback | undefined {
+  const lastArg = args[args.length - 1];
+
+  // Check if the operation was passed a callback. (mapReduce requires a different check, as
+  // its (non-callback) arguments can also be functions.)
+  if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
+    return undefined;
+  }
+
+  return lastArg as Callback;
 }
 
 /** Tracing integration for mongo package */
@@ -141,36 +228,27 @@ export class Mongo implements Integration {
   private _patchOperation(collection: MongoCollection, operation: Operation, getCurrentHub: () => Hub): void {
     if (!(operation in collection.prototype)) return;
 
-    const getSpanContext = this._getSpanContextFromOperationArguments.bind(this);
+    const getSpanContext: Mongo['_getSpanContextFromOperationArguments'] =
+      this._getSpanContextFromOperationArguments.bind(this);
 
     fill(collection.prototype, operation, function (orig: () => void | Promise<unknown>) {
-      return function (this: unknown, ...args: unknown[]) {
-        const lastArg = args[args.length - 1];
+      return function (this: MongoCollection, ...args: unknown[]) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
+        const spanContext = getSpanContext(this, operation, args);
 
-        // Check if the operation was passed a callback. (mapReduce requires a different check, as
-        // its (non-callback) arguments can also be functions.)
-        if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
-          const span = parentSpan?.startChild(getSpanContext(this, operation, args));
-          const maybePromise = orig.call(this, ...args) as Promise<unknown>;
-
-          if (isThenable(maybePromise)) {
-            return maybePromise.then((res: unknown) => {
-              span?.finish();
-              return res;
-            });
-          } else {
-            span?.finish();
-            return maybePromise;
-          }
+        // `find` returns a cursor, wrap cursor methods
+        if (operation === 'find') {
+          const cursor = orig.call(this, ...args); // => FindCursor
+          return instrumentCursor(cursor, parentSpan?.startChild(spanContext));
         }
 
-        const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
-        return orig.call(this, ...args.slice(0, -1), function (err: Error, result: unknown) {
-          span?.finish();
-          lastArg(err, result);
-        });
+        return measurePromiseOrCb(
+          orig.bind(this),
+          args,
+          parentSpan?.startChild(spanContext),
+          getOperationCallbackFromArgsOrUndefined(operation, args),
+        );
       };
     });
   }
@@ -206,15 +284,8 @@ export class Mongo implements Integration {
     }
 
     try {
-      // Special case for `mapReduce`, as the only one accepting functions as arguments.
-      if (operation === 'mapReduce') {
-        const [map, reduce] = args as { name?: string }[];
-        data[signature[0]] = typeof map === 'string' ? map : map.name || '<anonymous>';
-        data[signature[1]] = typeof reduce === 'string' ? reduce : reduce.name || '<anonymous>';
-      } else {
-        for (let i = 0; i < signature.length; i++) {
-          data[signature[i]] = JSON.stringify(args[i]);
-        }
+      for (let i = 0; i < signature.length; i++) {
+        data[signature[i]] = serializeArg(args[i]);
       }
     } catch (_oO) {
       // no-empty

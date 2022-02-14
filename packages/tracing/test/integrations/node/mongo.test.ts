@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/hub';
 
-import { Mongo } from '../../../src/integrations/node/mongo';
+import { Mongo, MongoCursor } from '../../../src/integrations/node/mongo';
 import { Span } from '../../../src/span';
 
 type MapReduceArg = () => void | string;
@@ -47,7 +47,13 @@ class Collection {
     }
   }
 
-
+  find(_query: any): MongoCursor {
+    return {
+      async toArray(): Promise<unknown[]> {
+        return [];
+      },
+    };
+  }
 }
 
 jest.mock('@sentry/utils', () => {
@@ -74,7 +80,7 @@ describe('patchOperation()', () => {
 
   beforeAll(() => {
     new Mongo({
-      operations: ['insertOne', 'mapReduce', 'initializeOrderedBulkOp'],
+      operations: ['insertOne', 'mapReduce', 'find', 'initializeOrderedBulkOp'],
     }).setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),
@@ -99,7 +105,9 @@ describe('patchOperation()', () => {
     collection.insertOne(doc, options, cb) as void;
     expect(spy.mock.instances[0]).toBe(collection);
     expect(spy).toBeCalledWith(doc, options, cb);
-  })
+
+    spy.mockRestore();
+  });
 
   it('should wrap method accepting callback as the last argument', done => {
     collection.insertOne(doc, {}, function () {
@@ -152,7 +160,7 @@ describe('patchOperation()', () => {
 
   describe('mapReduce operation', () => {
     describe('variable arguments', () => {
-      const expectToBeMeasured = () => {
+      const expectToBeTracked = () => {
         expect(scope.getSpan).toBeCalled();
         expect(parentSpan.startChild).toBeCalledWith({
           data: {
@@ -166,35 +174,54 @@ describe('patchOperation()', () => {
           description: 'mapReduce',
         });
         expect(childSpan.finish).toBeCalled();
-      }
+      };
 
-      it('should work when (map, reduce, cb)', (done) => {
-        collection.mapReduce(() => {}, () => {}, function()  {
-          expectToBeMeasured()
-          done();
-        });
+      it('should work when (map, reduce, cb)', done => {
+        collection.mapReduce(
+          () => {},
+          () => {},
+          function () {
+            expectToBeTracked();
+            done();
+          },
+        );
       });
 
-      it('should work when (map, reduce, options, cb)', (done) => {
-        collection.mapReduce(() => {}, () => {}, {},function()  {
-          expectToBeMeasured()
-          done();
-        });
+      it('should work when (map, reduce, options, cb)', done => {
+        collection.mapReduce(
+          () => {},
+          () => {},
+          {},
+          function () {
+            expectToBeTracked();
+            done();
+          },
+        );
       });
 
       it('should work when (map, reduce) => Promise', async () => {
-        await collection.mapReduce(() => {}, () => {});
-        expectToBeMeasured();
+        await collection.mapReduce(
+          () => {},
+          () => {},
+        );
+        expectToBeTracked();
       });
 
       it('should work when (map, reduce, options) => Promise', async () => {
-        await collection.mapReduce(() => {}, () => {}, {});
-        expectToBeMeasured();
+        await collection.mapReduce(
+          () => {},
+          () => {},
+          {},
+        );
+        expectToBeTracked();
       });
-    })
+    });
 
     it('Should store function names', async () => {
-      await collection.mapReduce(function TestMapFn() {}, function TestReduceFn() {});
+      await collection.mapReduce(
+        function TestMapFn() {},
+        function TestReduceFn() {},
+      );
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({
         data: {
@@ -208,6 +235,36 @@ describe('patchOperation()', () => {
         description: 'mapReduce',
       });
       expect(childSpan.finish).toBeCalled();
-    })
-  })
+    });
+  });
+
+  describe('Cursor', () => {
+    it('Should instrument cursor', async () => {
+      const cursorSpan = new Span();
+
+      jest.spyOn(cursorSpan, 'finish');
+      jest.spyOn(childSpan, 'startChild').mockReturnValueOnce(cursorSpan);
+
+      const cursor = collection.find({ _id: '1234567' });
+      await cursor.toArray();
+
+      expect(parentSpan.startChild).toBeCalledWith({
+        data: {
+          collectionName: 'mockedCollectionName',
+          dbName: 'mockedDbName',
+          namespace: 'mockedNamespace',
+          query: '{"_id":"1234567"}',
+        },
+        op: `db`,
+        description: 'find',
+      });
+
+      expect(childSpan.startChild).toBeCalledWith({
+        op: `db`,
+        description: 'Cursor.toArray',
+      });
+
+      expect(cursorSpan.finish).toBeCalled();
+    });
+  });
 });
