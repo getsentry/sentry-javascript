@@ -99,7 +99,7 @@ export async function generatePage(
           },
           externals: useBundle
             ? {
-                // To prevent import declarations to override browser bundles.
+                // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
                 '@sentry/browser': 'var Sentry',
                 '@sentry/tracing': 'var Sentry',
                 Integrations: 'var Sentry.Integrations',

@@ -56,7 +56,7 @@ To filter tests by their title:
 
 You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for other CLI options.
 
-You can set env variable `PW_BUNDLE` to set specific `browser` and `tracing` build or bundle to test against.
+You can set env variable `PW_BUNDLE` to set specific build or bundle to test against.
 Available options: `esm`, `dist`, `bundle`, `bundle_min`, `bundle_es6`, `bundle_es6_min`
 
 ### Troubleshooting
