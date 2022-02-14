@@ -4,6 +4,9 @@ import { Hub, Scope } from '@sentry/hub';
 import { Mongo } from '../../../src/integrations/node/mongo';
 import { Span } from '../../../src/span';
 
+type MapReduceArg = () => void | string;
+type Callback<T = any> = (error?: any, result?: T) => void;
+
 class Collection {
   public collectionName: string = 'mockedCollectionName';
   public dbName: string = 'mockedDbName';
@@ -17,10 +20,34 @@ class Collection {
     }
     return Promise.resolve();
   }
+
   // Method that has no callback as last argument, and doesnt return promise.
   public initializeOrderedBulkOp() {
     return {};
   }
+
+  mapReduce(map: MapReduceArg, reduce: MapReduceArg): Promise<unknown>;
+  mapReduce(map: MapReduceArg, reduce: MapReduceArg, callback: Callback<unknown>): void;
+  mapReduce(map: MapReduceArg, reduce: MapReduceArg, options: Record<string, any>, callback?: Callback<unknown>): void;
+
+  mapReduce(...args: any[]): Promise<unknown> | void {
+    const lastArg = args[args.length - 1];
+
+    // (map, reduce) => promise
+    // (map, reduce, options) => promise
+    if (args.length === 2 || (args.length === 3 && typeof lastArg !== 'function')) {
+      return Promise.resolve();
+    }
+
+    // (map, reduce, cb) => void
+    // (map, reduce, options, cb) => void
+    if (typeof lastArg === 'function') {
+      lastArg();
+      return;
+    }
+  }
+
+
 }
 
 jest.mock('@sentry/utils', () => {
@@ -47,7 +74,7 @@ describe('patchOperation()', () => {
 
   beforeAll(() => {
     new Mongo({
-      operations: ['insertOne', 'initializeOrderedBulkOp'],
+      operations: ['insertOne', 'mapReduce', 'initializeOrderedBulkOp'],
     }).setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),
@@ -62,6 +89,17 @@ describe('patchOperation()', () => {
     jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
     jest.spyOn(childSpan, 'finish');
   });
+
+  it('should call orig methods with origin context (this) and params', () => {
+    const spy = jest.spyOn(collection, 'insertOne');
+
+    const cb = function () {};
+    const options = {};
+
+    collection.insertOne(doc, options, cb) as void;
+    expect(spy.mock.instances[0]).toBe(collection);
+    expect(spy).toBeCalledWith(doc, options, cb);
+  })
 
   it('should wrap method accepting callback as the last argument', done => {
     collection.insertOne(doc, {}, function () {
@@ -111,4 +149,65 @@ describe('patchOperation()', () => {
     });
     expect(childSpan.finish).toBeCalled();
   });
+
+  describe('mapReduce operation', () => {
+    describe('variable arguments', () => {
+      const expectToBeMeasured = () => {
+        expect(scope.getSpan).toBeCalled();
+        expect(parentSpan.startChild).toBeCalledWith({
+          data: {
+            collectionName: 'mockedCollectionName',
+            dbName: 'mockedDbName',
+            namespace: 'mockedNamespace',
+            map: '<anonymous>',
+            reduce: '<anonymous>',
+          },
+          op: `db`,
+          description: 'mapReduce',
+        });
+        expect(childSpan.finish).toBeCalled();
+      }
+
+      it('should work when (map, reduce, cb)', (done) => {
+        collection.mapReduce(() => {}, () => {}, function()  {
+          expectToBeMeasured()
+          done();
+        });
+      });
+
+      it('should work when (map, reduce, options, cb)', (done) => {
+        collection.mapReduce(() => {}, () => {}, {},function()  {
+          expectToBeMeasured()
+          done();
+        });
+      });
+
+      it('should work when (map, reduce) => Promise', async () => {
+        await collection.mapReduce(() => {}, () => {});
+        expectToBeMeasured();
+      });
+
+      it('should work when (map, reduce, options) => Promise', async () => {
+        await collection.mapReduce(() => {}, () => {}, {});
+        expectToBeMeasured();
+      });
+    })
+
+    it('Should store function names', async () => {
+      await collection.mapReduce(function TestMapFn() {}, function TestReduceFn() {});
+      expect(scope.getSpan).toBeCalled();
+      expect(parentSpan.startChild).toBeCalledWith({
+        data: {
+          collectionName: 'mockedCollectionName',
+          dbName: 'mockedDbName',
+          namespace: 'mockedNamespace',
+          map: 'TestMapFn',
+          reduce: 'TestReduceFn',
+        },
+        op: `db`,
+        description: 'mapReduce',
+      });
+      expect(childSpan.finish).toBeCalled();
+    })
+  })
 });
