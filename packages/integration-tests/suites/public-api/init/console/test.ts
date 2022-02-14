@@ -4,8 +4,7 @@ import { ConsoleMessage, expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 
 // Regression test against https://github.com/getsentry/sentry-javascript/issues/4558
-// See PR which introduced problem https://github.com/getsentry/sentry-javascript/pull/4533
-sentryTest('should not overwrite console functionality', async ({ getLocalTestPath, page }) => {
+sentryTest('should not change console output', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   // https://playwright.dev/docs/api/class-page#page-event-console
