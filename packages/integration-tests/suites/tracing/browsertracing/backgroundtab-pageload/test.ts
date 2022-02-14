@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should finish pageload transaction when the page goes background', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
@@ -10,7 +11,7 @@ sentryTest('should finish pageload transaction when the page goes background', a
 
   page.click('#go-background');
 
-  const pageloadTransaction = await getSentryTransactionRequest(page);
+  const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page);
 
   expect(pageloadTransaction.contexts?.trace.op).toBe('pageload');
   expect(pageloadTransaction.contexts?.trace.status).toBe('cancelled');

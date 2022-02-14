@@ -1,14 +1,15 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'should create a pageload transaction based on `sentry-trace` <meta>',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const eventData = await getSentryTransactionRequest(page, url);
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     expect(eventData.contexts?.trace).toMatchObject({
       op: 'pageload',
@@ -25,8 +26,8 @@ sentryTest(
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadRequest = await getSentryTransactionRequest(page, url);
-    const navigationRequest = await getSentryTransactionRequest(page, `${url}#foo`);
+    const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
 
     expect(pageloadRequest.contexts?.trace).toMatchObject({
       op: 'pageload',

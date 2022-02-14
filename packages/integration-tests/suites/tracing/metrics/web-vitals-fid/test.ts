@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath, page }) => {
   // FID measurement is not generated on webkit
@@ -15,7 +16,7 @@ sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath
   // To trigger FID
   page.click('#fid-btn');
 
-  const eventData = await getSentryTransactionRequest(page);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fid?.value).toBeDefined();
