@@ -54,6 +54,7 @@ export class ContextLines implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     if (this._options.frameContextLines == undefined) {
       const initOptions = getCurrentHub().getClient<NodeClient>()?.getOptions();
+      // eslint-disable-next-line deprecation/deprecation
       this._options.frameContextLines = initOptions?.frameContextLines;
     }
 
