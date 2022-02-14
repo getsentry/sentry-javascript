@@ -1,7 +1,8 @@
 import { expect, Page } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest.beforeEach(({ browserName }) => {
   if (browserName !== 'chromium') {
@@ -23,7 +24,7 @@ async function createSessionWithLatency(page: Page, latency: number) {
 
 sentryTest('should capture a `connection.rtt` metric.', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.['connection.rtt']?.value).toBe(0);
@@ -35,7 +36,7 @@ sentryTest(
     const session = await createSessionWithLatency(page, 200);
 
     const url = await getLocalTestPath({ testDir: __dirname });
-    const eventData = await getSentryTransactionRequest(page, url);
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     await session.detach();
 
@@ -50,7 +51,7 @@ sentryTest(
     const session = await createSessionWithLatency(page, 100);
 
     const url = await getLocalTestPath({ testDir: __dirname });
-    const eventData = await getSentryTransactionRequest(page, url);
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     await session.detach();
 
@@ -65,7 +66,7 @@ sentryTest(
     const session = await createSessionWithLatency(page, 50);
 
     const url = await getLocalTestPath({ testDir: __dirname });
-    const eventData = await getSentryTransactionRequest(page, url);
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     await session.detach();
 

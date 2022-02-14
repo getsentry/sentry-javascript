@@ -1,4 +1,4 @@
-import { computeStackTrace } from '../../../src/tracekit';
+import { exceptionFromError } from '../../../src/parsers';
 
 describe('Tracekit - IE Tests', () => {
   it('should parse IE 10 error', () => {
@@ -14,17 +14,19 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823281,
     };
 
-    const stackFrames = computeStackTrace(IE_10);
+    const ex = exceptionFromError(IE_10);
 
     // TODO: func should be normalized
-    expect(stackFrames).toEqual({
-      message: "Unable to get property 'undef' of undefined or null reference",
-      name: 'foo',
-      stack: [
-        { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 48, colno: 13 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 46, colno: 9 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 82, colno: 1 },
-      ],
+    expect(ex).toEqual({
+      value: "Unable to get property 'undef' of undefined or null reference",
+      type: 'foo',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 82, colno: 1, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 46, colno: 9, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 48, colno: 13, in_app: true },
+        ],
+      },
     });
   });
 
@@ -41,17 +43,19 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823281,
     };
 
-    const stackFrames = computeStackTrace(IE_11);
+    const ex = exceptionFromError(IE_11);
 
     // TODO: func should be normalized
-    expect(stackFrames).toEqual({
-      message: "Unable to get property 'undef' of undefined or null reference",
-      name: 'TypeError',
-      stack: [
-        { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 47, colno: 21 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 45, colno: 13 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 1 },
-      ],
+    expect(ex).toEqual({
+      value: "Unable to get property 'undef' of undefined or null reference",
+      type: 'TypeError',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 1, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 45, colno: 13, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 47, colno: 21, in_app: true },
+        ],
+      },
     });
   });
 
@@ -68,16 +72,18 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823279,
     };
 
-    const stackFrames = computeStackTrace(IE_11_EVAL);
+    const ex = exceptionFromError(IE_11_EVAL);
 
-    expect(stackFrames).toEqual({
-      message: "'getExceptionProps' is undefined",
-      name: 'ReferenceError',
-      stack: [
-        { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1 },
-        { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 17 },
-        { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 1 },
-      ],
+    expect(ex).toEqual({
+      value: "'getExceptionProps' is undefined",
+      type: 'ReferenceError',
+      stacktrace: {
+        frames: [
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 1, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 17, in_app: true },
+          { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1, in_app: true },
+        ],
+      },
     });
   });
 });
