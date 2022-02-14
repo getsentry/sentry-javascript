@@ -11,7 +11,7 @@ const PACKAGE_PATH = '../../packages';
 const bundleKey = process.env.PW_BUNDLE;
 
 // `esm` and `cjs` builds are modules that can be imported / aliased by webpack
-const useCompiledModule = bundleKey && (bundleKey === 'esm' || bundleKey === 'cjs');
+const useCompiledModule = bundleKey === 'esm' || bundleKey === 'cjs';
 
 // bundles need to be injected into HTML before Sentry initialization.
 const useBundle = bundleKey && !useCompiledModule;
