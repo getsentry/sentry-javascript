@@ -72,7 +72,7 @@ export class CaptureConsole implements Integration {
 
         // this fails for some browsers. :(
         if (originalConsoleMethod) {
-          originalConsoleMethod.call(global.console, args);
+          originalConsoleMethod.apply(global.console, args);
         }
       });
     });
