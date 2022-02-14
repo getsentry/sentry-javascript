@@ -9,7 +9,7 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
     filename,
     function: func,
     // All browser frames are considered in_app
-    in_app = true,
+    in_app: true,
   };
 
   if (lineno !== undefined) {
