@@ -44,7 +44,6 @@ describe('stacktrace.ts', () => {
   test('evalWrapper', () => {
     const trace = stacktrace.parse(evalWrapper());
 
-    console.log(trace);
     expect(trace[0].functionName).toEqual('testBasic');
     expect(trace[1].functionName).toEqual('testWrapper');
     expect(trace[2].functionName).toEqual('eval');
