@@ -26,6 +26,11 @@ export function resetFileContentCache(): void {
 }
 
 interface ContextLinesOptions {
+  /**
+   * Sets the number of context lines for each frame when loading a file
+   *
+   * Set to 0 to disable loading and inclusion of source files.
+   * */
   frameContextLines?: number;
 }
 

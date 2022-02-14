@@ -20,7 +20,19 @@ export interface NodeOptions extends Options {
   /** HTTPS proxy certificates path */
   caCerts?: string;
 
-  /** Sets the number of context lines for each frame when loading a file. */
+  /**
+   * Sets the number of context lines for each frame when loading a file.
+   *
+   * @deprecated Context lines configuration has moved to the `ContextLines` integration.
+   *
+   * ```
+   * init({
+   *   dsn: '__DSN__',
+   *   integrations: [new ContextLines({ frameContextLines: 10 })]
+   * })
+   * ```
+   *
+   * */
   frameContextLines?: number;
 
   /** Callback that is executed when a fatal global error occurs. */
