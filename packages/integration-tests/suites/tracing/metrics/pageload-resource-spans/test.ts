@@ -1,7 +1,8 @@
 import { expect, Route } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestPath, page }) => {
   // Intercepting asset requests to avoid network-related flakiness and random retries (on Firefox).
@@ -11,7 +12,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getSentryTransactionRequest(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const resourceSpans = eventData.spans?.filter(({ op }) => op?.startsWith('resource'));
 
   expect(resourceSpans?.length).toBe(3);
