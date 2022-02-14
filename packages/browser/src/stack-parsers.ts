@@ -8,6 +8,8 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
   const frame: StackFrame = {
     filename,
     function: func,
+    // All browser frames are considered in_app
+    in_app = true,
   };
 
   if (lineno !== undefined) {
@@ -17,9 +19,6 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
   if (colno !== undefined) {
     frame.colno = colno;
   }
-
-  // All browser frames are considered in_app
-  frame.in_app = true;
 
   return frame;
 }
