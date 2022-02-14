@@ -20,7 +20,7 @@
     "test:bundle:min": "PW_BUNDLE=bundle_min yarn test",
     "test:bundle:es6": "PW_BUNDLE=bundle_es6 yarn test",
     "test:bundle:es6:min": "PW_BUNDLE=bundle_es6_min yarn test",
-    "test:dist": "PW_BUNDLE=dist yarn test",
+    "test:cjs": "PW_BUNDLE=cjs yarn test",
     "test:esm": "PW_BUNDLE=esm yarn test",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'"
   },

@@ -10,15 +10,15 @@ const PACKAGE_PATH = '../../packages';
 
 const bundleKey = process.env.PW_BUNDLE;
 
-// `esm` and `dist` builds are modules that can be imported / aliased by webpack
-const useCompiledModule = bundleKey && (bundleKey === 'esm' || bundleKey === 'dist');
+// `esm` and `cjs` builds are modules that can be imported / aliased by webpack
+const useCompiledModule = bundleKey && (bundleKey === 'esm' || bundleKey === 'cjs');
 
 // bundles need to be injected into HTML before Sentry initialization.
 const useBundle = bundleKey && !useCompiledModule;
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
-    dist: 'dist/index.js',
+    cjs: 'dist/index.js',
     esm: 'esm/index.js',
     bundle: 'build/bundle.js',
     bundle_min: 'build/bundle.min.js',
@@ -26,7 +26,7 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es6_min: 'build/bundle.es6.min.js',
   },
   tracing: {
-    dist: 'dist/index.js',
+    cjs: 'dist/index.js',
     esm: 'esm/index.js',
     bundle: 'build/bundle.tracing.js',
     bundle_min: 'build/bundle.tracing.min.js',

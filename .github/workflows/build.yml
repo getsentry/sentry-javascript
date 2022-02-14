@@ -283,7 +283,7 @@ jobs:
       matrix:
         bundle:
           - esm
-          - dist
+          - cjs
           - bundle
           - bundle_min
           - bundle_es6
