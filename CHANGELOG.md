@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.8
+
+- fix(build): Remove node code from CDN bundles ([#4548](https://github.com/getsentry/sentry-javascript/pull/4548))
+- fix(build): Prevent unused utils code in integration bundles ([#4547](https://github.com/getsentry/sentry-javascript/pull/4547))
+- fix(tracing): Export BrowserTracing directly in CDN bundle ([#4570](https://github.com/getsentry/sentry-javascript/pull/4570))
+- feat(types): Add Envelope types ([#4527](https://github.com/getsentry/sentry-javascript/pull/4527))
+- fix(utils): use apply in console instrumentation ([#4568](https://github.com/getsentry/sentry-javascript/pull/4568))
+
+Work in this release contributed by @mydea. Thank you for your contribution!
+
 ## 6.17.7
 
 - fix(utils): Make new non-enumerable properties mutable ([#4528](https://github.com/getsentry/sentry-javascript/pull/4528))
