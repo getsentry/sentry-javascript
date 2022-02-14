@@ -21,9 +21,9 @@ describe('Tracekit - IE Tests', () => {
       message: "Unable to get property 'undef' of undefined or null reference",
       name: 'foo',
       stack: [
-        { url: 'http://path/to/file.js', func: 'Anonymous function', line: 48, column: 13 },
-        { url: 'http://path/to/file.js', func: 'foo', line: 46, column: 9 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 82, column: 1 },
+        { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 48, colno: 13 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 46, colno: 9 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 82, colno: 1 },
       ],
     });
   });
@@ -48,9 +48,9 @@ describe('Tracekit - IE Tests', () => {
       message: "Unable to get property 'undef' of undefined or null reference",
       name: 'TypeError',
       stack: [
-        { url: 'http://path/to/file.js', func: 'Anonymous function', line: 47, column: 21 },
-        { url: 'http://path/to/file.js', func: 'foo', line: 45, column: 13 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 108, column: 1 },
+        { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 47, colno: 21 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 45, colno: 13 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 1 },
       ],
     });
   });
@@ -74,9 +74,9 @@ describe('Tracekit - IE Tests', () => {
       message: "'getExceptionProps' is undefined",
       name: 'ReferenceError',
       stack: [
-        { url: 'eval code', func: 'eval code', line: 1, column: 1 },
-        { url: 'http://path/to/file.js', func: 'foo', line: 58, column: 17 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 109, column: 1 },
+        { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 17 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 1 },
       ],
     });
   });

@@ -51,6 +51,7 @@
   ],
   "devDependencies": {
     "@google-cloud/storage": "^5.7.0",
+    "@rollup/plugin-replace": "^3.0.1",
     "@size-limit/preset-small-lib": "^4.5.5",
     "@strictsoftware/typedoc-plugin-monorepo": "^0.3.1",
     "@types/chai": "^4.1.3",

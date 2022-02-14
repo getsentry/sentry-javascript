@@ -24,13 +24,17 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'this.undef is not a function',
       name: 'TypeError',
       stack: [
-        { url: 'http://127.0.0.1:8000/js/stacktrace.js', func: '?', line: 44, column: null },
-        { url: 'http://127.0.0.1:8000/js/stacktrace.js', func: '?', line: 31, column: null },
-        { url: 'http://127.0.0.1:8000/js/stacktrace.js', func: 'printStackTrace', line: 18, column: null },
-        { url: 'http://127.0.0.1:8000/js/file.js', func: 'bar', line: 13, column: null },
-        { url: 'http://127.0.0.1:8000/js/file.js', func: 'bar', line: 16, column: null },
-        { url: 'http://127.0.0.1:8000/js/file.js', func: 'foo', line: 20, column: null },
-        { url: 'http://127.0.0.1:8000/js/file.js', func: '?', line: 24, column: null },
+        { filename: 'http://127.0.0.1:8000/js/stacktrace.js', function: '?', lineno: 44 },
+        { filename: 'http://127.0.0.1:8000/js/stacktrace.js', function: '?', lineno: 31 },
+        {
+          filename: 'http://127.0.0.1:8000/js/stacktrace.js',
+          function: 'printStackTrace',
+          lineno: 18,
+        },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'bar', lineno: 13 },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'bar', lineno: 16 },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: 'foo', lineno: 20 },
+        { filename: 'http://127.0.0.1:8000/js/file.js', function: '?', lineno: 24 },
       ],
     });
   });
@@ -58,13 +62,13 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'bar',
       name: 'foo',
       stack: [
-        { url: 'file:///G:/js/stacktrace.js', func: '?', line: 44, column: null },
-        { url: 'file:///G:/js/stacktrace.js', func: '?', line: 31, column: null },
-        { url: 'file:///G:/js/stacktrace.js', func: 'printStackTrace', line: 18, column: null },
-        { url: 'file:///G:/js/file.js', func: 'bar', line: 13, column: null },
-        { url: 'file:///G:/js/file.js', func: 'bar', line: 16, column: null },
-        { url: 'file:///G:/js/file.js', func: 'foo', line: 20, column: null },
-        { url: 'file:///G:/js/file.js', func: '?', line: 24, column: null },
+        { filename: 'file:///G:/js/stacktrace.js', function: '?', lineno: 44 },
+        { filename: 'file:///G:/js/stacktrace.js', function: '?', lineno: 31 },
+        { filename: 'file:///G:/js/stacktrace.js', function: 'printStackTrace', lineno: 18 },
+        { filename: 'file:///G:/js/file.js', function: 'bar', lineno: 13 },
+        { filename: 'file:///G:/js/file.js', function: 'bar', lineno: 16 },
+        { filename: 'file:///G:/js/file.js', function: 'foo', lineno: 20 },
+        { filename: 'file:///G:/js/file.js', function: '?', lineno: 24 },
       ],
     });
   });
@@ -88,9 +92,9 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'x is null',
       name: 'foo',
       stack: [
-        { url: 'http://path/to/file.js', func: '?', line: 48, column: null },
-        { url: 'http://path/to/file.js', func: 'dumpException3', line: 52, column: null },
-        { url: 'http://path/to/file.js', func: 'onclick', line: 1, column: null },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 48 },
+        { filename: 'http://path/to/file.js', function: 'dumpException3', lineno: 52 },
+        { filename: 'http://path/to/file.js', function: 'onclick', lineno: 1 },
       ],
     });
   });
@@ -115,9 +119,9 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'Default error',
       name: 'Error',
       stack: [
-        { url: 'http://path/to/file.js', func: 'foo', line: 41, column: 13 },
-        { url: 'http://path/to/file.js', func: 'bar', line: 1, column: 1 },
-        { url: 'http://path/to/file.js', func: '.plugin/e.fn[c]/<', line: 1, column: 1 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 41, colno: 13 },
+        { filename: 'http://path/to/file.js', function: 'bar', lineno: 1, colno: 1 },
+        { filename: 'http://path/to/file.js', function: '.plugin/e.fn[c]/<', lineno: 1, colno: 1 },
       ],
     });
   });
@@ -148,10 +152,10 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'No error message',
       name: 'NS_ERROR_FAILURE',
       stack: [
-        { url: 'http://path/to/file.js', func: '[2]</Bar.prototype._baz/</<', line: 703, column: 28 },
-        { url: 'file:///path/to/file.js', func: 'App.prototype.foo', line: 15, column: 2 },
-        { url: 'file:///path/to/file.js', func: 'bar', line: 20, column: 3 },
-        { url: 'file:///path/to/index.html', func: '?', line: 23, column: 1 },
+        { filename: 'http://path/to/file.js', function: '[2]</Bar.prototype._baz/</<', lineno: 703, colno: 28 },
+        { filename: 'file:///path/to/file.js', function: 'App.prototype.foo', lineno: 15, colno: 2 },
+        { filename: 'file:///path/to/file.js', function: 'bar', lineno: 20, colno: 3 },
+        { filename: 'file:///path/to/index.html', function: '?', lineno: 23, colno: 1 },
       ],
     });
   });
@@ -175,9 +179,14 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'this.props.raw[this.state.dataSource].rows is undefined',
       name: 'TypeError',
       stack: [
-        { url: 'resource://path/data/content/bundle.js', func: 'render', line: 5529, column: 16 },
-        { url: 'resource://path/data/content/vendor.bundle.js', func: 'dispatchEvent', line: 18, column: 23028 },
-        { url: 'resource://path/data/content/bundle.js', func: 'wrapped', line: 7270, column: 25 },
+        { filename: 'resource://path/data/content/bundle.js', function: 'render', lineno: 5529, colno: 16 },
+        {
+          filename: 'resource://path/data/content/vendor.bundle.js',
+          function: 'dispatchEvent',
+          lineno: 18,
+          colno: 23028,
+        },
+        { filename: 'resource://path/data/content/bundle.js', function: 'wrapped', lineno: 7270, colno: 25 },
       ],
     });
   });
@@ -203,11 +212,11 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'message string',
       name: 'foo',
       stack: [
-        { url: 'http://localhost:8080/file.js', func: 'baz', line: 26, column: null },
-        { url: 'http://localhost:8080/file.js', func: 'foo', line: 26, column: null },
-        { url: 'http://localhost:8080/file.js', func: 'eval', line: 26, column: null },
-        { url: 'http://localhost:8080/file.js', func: 'speak', line: 26, column: 17 },
-        { url: 'http://localhost:8080/file.js', func: '?', line: 33, column: 9 },
+        { filename: 'http://localhost:8080/file.js', function: 'baz', lineno: 26 },
+        { filename: 'http://localhost:8080/file.js', function: 'foo', lineno: 26 },
+        { filename: 'http://localhost:8080/file.js', function: 'eval', lineno: 26 },
+        { filename: 'http://localhost:8080/file.js', function: 'speak', lineno: 26, colno: 17 },
+        { filename: 'http://localhost:8080/file.js', function: '?', lineno: 33, colno: 9 },
       ],
     });
   });
@@ -227,9 +236,9 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'test',
       name: 'Error',
       stack: [
-        { url: 'http://localhost:5000/test', func: 'fooIterator', line: 20, column: 17 },
-        { url: 'http://localhost:5000/test', func: 'foo', line: 19, column: 19 },
-        { url: 'http://localhost:5000/test', func: '?', line: 24, column: 7 },
+        { filename: 'http://localhost:5000/test', function: 'fooIterator', lineno: 20, colno: 17 },
+        { filename: 'http://localhost:5000/test', function: 'foo', lineno: 19, colno: 19 },
+        { filename: 'http://localhost:5000/test', function: '?', lineno: 24, colno: 7 },
       ],
     });
   });
@@ -255,15 +264,15 @@ describe('Tracekit - Firefox Tests', () => {
       message: 'aha',
       name: 'Error',
       stack: [
-        { url: 'http://localhost:5000/', func: 'aha', line: 19, column: 13 },
-        { url: 'http://localhost:5000/', func: 'callAnotherThing', line: 20, column: 15 },
-        { url: 'http://localhost:5000/', func: 'callback', line: 25, column: 7 },
-        { url: 'http://localhost:5000/', func: 'test/<', line: 34, column: 7 },
-        { url: 'http://localhost:5000/', func: 'test', line: 33, column: 23 },
-        { url: 'http://localhost:5000/', func: 'eval', line: 39, column: null },
-        { url: 'http://localhost:5000/', func: 'aha', line: 39, column: 5 },
-        { url: 'http://localhost:5000/', func: 'testMethod', line: 44, column: 7 },
-        { url: 'http://localhost:5000/', func: '?', line: 50, column: 19 },
+        { filename: 'http://localhost:5000/', function: 'aha', lineno: 19, colno: 13 },
+        { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 15 },
+        { filename: 'http://localhost:5000/', function: 'callback', lineno: 25, colno: 7 },
+        { filename: 'http://localhost:5000/', function: 'test/<', lineno: 34, colno: 7 },
+        { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23 },
+        { filename: 'http://localhost:5000/', function: 'eval', lineno: 39 },
+        { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5 },
+        { filename: 'http://localhost:5000/', function: 'testMethod', lineno: 44, colno: 7 },
+        { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19 },
       ],
     });
   });

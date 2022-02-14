@@ -17,9 +17,9 @@ describe('Tracekit - Misc Tests', () => {
       message: 'bar',
       name: 'foo',
       stack: [
-        { url: 'file:///path/to/file.js', func: '?', line: 878, column: null },
-        { url: 'http://path/to/file.js', func: 'foo', line: 4283, column: null },
-        { url: 'http://path/to/file.js', func: '?', line: 4287, column: null },
+        { filename: 'file:///path/to/file.js', function: '?', lineno: 878 },
+        { filename: 'http://path/to/file.js', function: 'foo', lineno: 4283 },
+        { filename: 'http://path/to/file.js', function: '?', lineno: 4287 },
       ],
     });
   });
