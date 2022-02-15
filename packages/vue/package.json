@@ -28,8 +28,7 @@
     "vue-router": "3.x || 4.x"
   },
   "devDependencies": {
-    "jsdom": "^16.2.2",
-    "rollup-plugin-node-resolve": "^4.2.3"
+    "jsdom": "^16.2.2"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:bundle",

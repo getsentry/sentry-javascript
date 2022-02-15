@@ -26,8 +26,7 @@
     "cross-env": "^7.0.3",
     "express": "^4.17.1",
     "jest-puppeteer": "^4.4.0",
-    "puppeteer": "^5.5.0",
-    "rollup-plugin-node-resolve": "^4.2.3"
+    "puppeteer": "^5.5.0"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:bundle",

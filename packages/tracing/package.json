@@ -26,8 +26,7 @@
     "@sentry/browser": "6.17.8",
     "@types/express": "^4.17.1",
     "@types/jsdom": "^16.2.3",
-    "jsdom": "^16.2.2",
-    "rollup-plugin-node-resolve": "^4.2.3"
+    "jsdom": "^16.2.2"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:bundle",
