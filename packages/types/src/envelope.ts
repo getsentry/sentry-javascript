@@ -25,15 +25,14 @@ type BaseEnvelopeItem<ItemHeader extends { type: string }, Payload = unknown> = 
   Payload,
 ];
 
-type UnknownEnvelopeItem = BaseEnvelopeItem<{ type: '__unknown__' }>;
-
-type BaseEnvelope<
+/**
+ * 1st Item: Envelope headers
+ * 2nd Item: Envelope items {@see BaseEnvelopeItem}
+ */
+export type BaseEnvelope<
   EnvelopeHeaders extends Record<string, unknown>,
   EnvelopeItem extends BaseEnvelopeItem<{ type: string }>,
-> = {
-  headers: CommonEnvelopeHeaders & EnvelopeHeaders;
-  items: Array<EnvelopeItem | UnknownEnvelopeItem>;
-};
+> = [CommonEnvelopeHeaders & EnvelopeHeaders & Record<string, unknown>, EnvelopeItem[]];
 
 export type EventEnvelopeItem = BaseEnvelopeItem<{ type: 'event' | 'transaction' }, Event>;
 
