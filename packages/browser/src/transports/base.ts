@@ -7,6 +7,7 @@ import {
   sessionToSentryRequest,
 } from '@sentry/core';
 import {
+  ClientReportEnvelopeItemPayload,
   Event,
   Outcome,
   Response as SentryResponse,
@@ -17,7 +18,7 @@ import {
   TransportOptions,
 } from '@sentry/types';
 import {
-  dateTimestampInSeconds,
+  createClientReportEnvelope,
   dsnToString,
   eventStatusFromHttpCode,
   getGlobalObject,
@@ -26,6 +27,7 @@ import {
   makePromiseBuffer,
   parseRetryAfterHeader,
   PromiseBuffer,
+  serializeEnvelope,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
@@ -127,26 +129,20 @@ export abstract class BaseTransport implements Transport {
     logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
 
     const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
-    // Envelope header is required to be at least an empty object
-    const envelopeHeader = JSON.stringify({ ...(this._api.tunnel && { dsn: dsnToString(this._api.dsn) }) });
-    const itemHeaders = JSON.stringify({
-      type: 'client_report',
-    });
-    const item = JSON.stringify({
-      timestamp: dateTimestampInSeconds(),
-      discarded_events: Object.keys(outcomes).map(key => {
-        const [category, reason] = key.split(':');
-        return {
-          reason,
-          category,
-          quantity: outcomes[key],
-        };
-      }),
-    });
-    const envelope = `${envelopeHeader}\n${itemHeaders}\n${item}`;
+
+    const discardedEvents = Object.keys(outcomes).map(key => {
+      const [category, reason] = key.split(':');
+      return {
+        reason,
+        category,
+        quantity: outcomes[key],
+      };
+      // TODO: Improve types on discarded_events to get rid of cast
+    }) as ClientReportEnvelopeItemPayload['discarded_events'];
+    const envelope = createClientReportEnvelope(discardedEvents, this._api.tunnel && dsnToString(this._api.dsn));
 
     try {
-      sendReport(url, envelope);
+      sendReport(url, serializeEnvelope(envelope));
     } catch (e) {
       logger.error(e);
     }
