@@ -31,7 +31,8 @@
     "@sentry/webpack-plugin": "1.18.5"
   },
   "peerDependencies": {
-    "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0"
+    "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0",
+    "react": "15.x || 16.x || 17.x"
   },
   "devDependencies": {
     "@sentry/types": "6.17.8",
