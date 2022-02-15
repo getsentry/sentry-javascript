@@ -7,6 +7,7 @@ import { LRUMap } from 'lru_map';
 import { NodeClient } from '../client';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
+const DEFAULT_LINES_OF_CONTEXT = 7;
 
 function readTextFileAsync(path: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -63,7 +64,8 @@ export class ContextLines implements Integration {
 
   /** Processes an event and adds context lines */
   public async addToEvent(event: Event): Promise<Event> {
-    const contextLines = this._options.frameContextLines == undefined ? 7 : this._options.frameContextLines;
+    const contextLines =
+      this._options.frameContextLines !== undefined ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
     const frames = event.exception?.values?.[0].stacktrace?.frames;
 

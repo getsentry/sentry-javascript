@@ -45,7 +45,6 @@ export { NodeOptions } from './types';
 export { NodeBackend } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';
-export { eventFromException, eventFromMessage } from './eventbuilder';
 export { deepReadDirSync } from './utils';
 export { SDK_NAME } from './version';
 
