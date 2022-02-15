@@ -73,9 +73,10 @@ export function eventToSentryRequest(event: Event, api: APIDetails): SentryReque
   event.extra = event.extra || {};
 
   // In theory, all events should be marked as having gone through normalization and so
-  // we should never set this tag
+  // we should never set this tag/extra data
   if (!(event.sdkProcessingMetadata && event.sdkProcessingMetadata.baseClientNormalized)) {
     event.tags.skippedNormalization = true;
+    event.extra.normalizeDepth = event.sdkProcessingMetadata ? event.sdkProcessingMetadata.normalizeDepth : 'unset';
   }
 
   // prevent this data from being sent to sentry
