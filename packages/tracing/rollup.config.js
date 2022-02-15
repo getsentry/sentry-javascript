@@ -1,7 +1,6 @@
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
-import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 
 const commitHash = require('child_process')
@@ -55,9 +54,6 @@ const plugins = [
     values: {
       __SENTRY_BROWSER_BUNDLE__: true,
     },
-  }),
-  resolve({
-    mainFields: ['module'],
   }),
 ];
 

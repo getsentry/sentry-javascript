@@ -1,6 +1,5 @@
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
-import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 
 const terserInstance = terser({
@@ -45,9 +44,6 @@ const plugins = [
     values: {
       __SENTRY_BROWSER_BUNDLE__: true,
     },
-  }),
-  resolve({
-    mainFields: ['module'],
   }),
 ];
 
