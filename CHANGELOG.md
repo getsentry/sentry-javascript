@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.17.9
+
+- fix(gatsby): Add missing React peer dependency ([#4576](https://github.com/getsentry/sentry-javascript/pull/4576))
+- fix(types): Use Sentry event type instead of dom one ([#4584](https://github.com/getsentry/sentry-javascript/pull/4584))
+
 ## 6.17.8
 
 - feat(types): Add Envelope types ([#4527](https://github.com/getsentry/sentry-javascript/pull/4527))
