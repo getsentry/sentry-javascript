@@ -1,6 +1,9 @@
 <p align="center">
-  <a href="https://sentry.io" target="_blank" align="center">
+  <a href="https://sentry.io#gh-light-mode-only" target="_blank" align="center">
     <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
+  </a>
+  <a href="https://sentry.io#gh-dark-mode-only" target="_blank" align="center">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-white.png" width="280">
   </a>
   <br />
 </p>
@@ -52,7 +55,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node, including
   integrations for Express, Koa, Loopback, Sails and Connect
 - [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): browser SDK with Angular integration enabled
-- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): browser SDK with React integration enabled 
+- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): browser SDK with React integration enabled
 - [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): browser SDK with Ember integration enabled
 - [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): browser SDK with Vue integration enabled
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
