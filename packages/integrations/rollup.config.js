@@ -95,6 +95,7 @@ function loadAllIntegrations() {
           format: 'cjs',
           sourcemap: true,
           strict: false,
+          esModule: false,
         },
         plugins: build.plugins,
         treeshake: 'smallest',
