@@ -103,7 +103,7 @@ describe('Server init()', () => {
     transaction.finish();
 
     expect(sendEvent).not.toHaveBeenCalled();
-    expect(captureEvent.mock.results[0].value).toBeUndefined();
+    expect(captureEvent).toHaveBeenCalled();
     expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 
