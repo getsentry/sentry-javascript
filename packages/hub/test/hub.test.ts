@@ -226,8 +226,8 @@ describe('Hub', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const id = Math.random().toString();
-      hub.captureException('a', {event_id: id});
-      expect(testClient.captureException.mock.calls[0][1].event_id === id).toBeTruthy();
+      hub.captureException('a', { event_id: id });
+      expect(testClient.captureException.mock.calls[0][1].event_id).toBe(id);
     });
 
     test('should generate hint if not provided in the call', () => {
@@ -260,8 +260,8 @@ describe('Hub', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const id = Math.random().toString();
-      hub.captureMessage('a', undefined, {event_id: id});
-      expect(testClient.captureMessage.mock.calls[0][2].event_id === id).toBeTruthy();
+      hub.captureMessage('a', undefined, { event_id: id });
+      expect(testClient.captureMessage.mock.calls[0][2].event_id).toBe(id);
     });
 
     test('should generate hint if not provided in the call', () => {
@@ -302,8 +302,8 @@ describe('Hub', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const id = Math.random().toString();
-      hub.captureEvent(event, {event_id: id});
-      expect(testClient.captureEvent.mock.calls[0][1].event_id === id).toBeTruthy();
+      hub.captureEvent(event, { event_id: id });
+      expect(testClient.captureEvent.mock.calls[0][1].event_id).toBe(id);
     });
 
     test('sets lastEventId', () => {
