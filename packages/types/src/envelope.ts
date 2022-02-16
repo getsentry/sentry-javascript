@@ -34,7 +34,19 @@ export type BaseEnvelope<
   EnvelopeItem extends BaseEnvelopeItem<{ type: string }>,
 > = [CommonEnvelopeHeaders & EnvelopeHeaders & Record<string, unknown>, EnvelopeItem[]];
 
-export type EventEnvelopeItem = BaseEnvelopeItem<{ type: 'event' | 'transaction' }, Event>;
+export type EventEnvelopeItem = BaseEnvelopeItem<
+  {
+    type: 'event' | 'transaction';
+    sample_rates?: Array<{
+      id: any;
+      rate: any;
+    }>;
+  },
+  // TODO: This is here because we currently have logic around serializing an event before inserting it
+  // into the envelope as we support both the store and envelope endpoints. Once that is removed, we can change
+  // this to only take an event.
+  Event | string
+>;
 
 type AttachmentEnvelopeItem = BaseEnvelopeItem<{ type: 'attachment'; filename: 'string' }>;
 
@@ -53,9 +65,7 @@ export type EventEnvelope = BaseEnvelope<
   EventEnvelopeItem | AttachmentEnvelopeItem | UserFeedbackEnvelopeItem
 >;
 
-export type SessionEnvelopeItem =
-  | BaseEnvelopeItem<{ type: 'session' }, Session>
-  | BaseEnvelopeItem<{ type: 'sessions' }, SessionAggregates>;
+export type SessionEnvelopeItem = BaseEnvelopeItem<{ type: 'session' | 'sessions' }, Session | SessionAggregates>;
 
 export type SessionEnvelope = BaseEnvelope<{ sent_at: string }, SessionEnvelopeItem>;
 
