@@ -9,6 +9,8 @@
 - fix(gatsby): Add missing React peer dependency ([#4576](https://github.com/getsentry/sentry-javascript/pull/4576))
 - fix(types): Use Sentry event type instead of dom one ([#4584](https://github.com/getsentry/sentry-javascript/pull/4584))
 
+Work in this release contributed by @aaronadamsCA. Thank you for your contribution!
+
 ## 6.17.8
 
 - feat(types): Add Envelope types ([#4527](https://github.com/getsentry/sentry-javascript/pull/4527))
