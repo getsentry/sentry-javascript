@@ -1,6 +1,6 @@
-# Upgrading from 6.x to 6.17.0
+# Upgrading from 6.x to 6.17.x
 
-You only need to make changes when migrating to `6.17.0` if you are using our internal `Dsn` class. Our internal API class and typescript enums were deprecated, so we recommend you migrate them as well.
+You only need to make changes when migrating to `6.17.x` if you are using our internal `Dsn` class. Our internal API class and typescript enums were deprecated, so we recommend you migrate them as well.
 
 The internal `Dsn` class was removed in `6.17.0`. For additional details, you can look at the [PR where this change happened](https://github.com/getsentry/sentry-javascript/pull/4325). To migrate, see the following example.
 
@@ -44,7 +44,7 @@ const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
 
 ## Enum changes
 
-The enums `Status` and `SpanStatus` were deprecated, and we've detailed how to migrate away from them below. We also deprecated the `TransactionMethod`, `Outcome` and `RequestSessionStatus` enums, but those are internal-only APIs. If you are using them, we encourage you to take a look at the corresponding PRs to see how we've changed our code as a result.
+The enums `Status`, `SpanStatus`, and `Severity` were deprecated, and we've detailed how to migrate away from them below. We also deprecated the `TransactionMethod`, `Outcome` and `RequestSessionStatus` enums, but those are internal-only APIs. If you are using them, we encourage you to take a look at the corresponding PRs to see how we've changed our code as a result.
 
 - `TransactionMethod`: https://github.com/getsentry/sentry-javascript/pull/4314
 - `Outcome`: https://github.com/getsentry/sentry-javascript/pull/4315
@@ -80,6 +80,28 @@ const status = spanStatusfromHttpCode(403);
 import { SpanStatus } from '@sentry/tracing';
 
 const status = SpanStatus.fromHttpCode(403);
+```
+
+#### Severity, SeverityLevel, and SeverityLevels
+
+We deprecated the `Severity` enum in `@sentry/types` and it will be removed in the next major release. We recommend using string literals (typed as `SeverityLevel`) to save on bundle size.
+
+`SeverityLevel` and `SeverityLevels` will continue to exist in v7, but they will live in `@sentry/utils` rather than `@sentry/types`. Currently, they live in both, for ease of migration. (`SeverityLevels` isn't included in the examples below because it is only useful internally.)
+
+```js
+// New in 6.17.5:
+import { SeverityLevel } from '@sentry/utils';
+
+const levelA = "error" as SeverityLevel;
+
+const levelB: SeverityLevel = "error"
+
+// Before:
+import { Severity, SeverityLevel } from '@sentry/types';
+
+const levelA = Severity.error;
+
+const levelB: SeverityLevel = "error"
 ```
 
 # Upgrading from 4.x to 5.x/6.x

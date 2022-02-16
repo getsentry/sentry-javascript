@@ -3,6 +3,15 @@ export { Client } from './client';
 export { Context, Contexts } from './context';
 export { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
+export {
+  ClientReportEnvelope,
+  ClientReportEnvelopeItem,
+  Envelope,
+  EventEnvelope,
+  EventEnvelopeItem,
+  SessionEnvelope,
+  SessionEnvelopeItem,
+} from './envelope';
 export { ExtendedError } from './error';
 export { Event, EventHint } from './event';
 export { EventStatus } from './eventstatus';

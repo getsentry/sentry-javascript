@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
   if (browserName !== 'chromium') {
@@ -13,7 +14,7 @@ sentryTest.beforeEach(async ({ browserName, page }) => {
 
 sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, `${url}#0.05`);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.05`);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.cls?.value).toBeDefined();
@@ -23,7 +24,7 @@ sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ get
 
 sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, `${url}#0.21`);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.21`);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.cls?.value).toBeDefined();
@@ -33,7 +34,7 @@ sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getL
 
 sentryTest('should capture a "POOR" CLS vital with its source(s).', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
-  const eventData = await getSentryTransactionRequest(page, `${url}#0.35`);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.35`);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.cls?.value).toBeDefined();

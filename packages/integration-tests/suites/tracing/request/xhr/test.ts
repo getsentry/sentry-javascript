@@ -1,12 +1,13 @@
 import { expect, Request } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryTransactionRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should create spans for multiple XHR requests', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getSentryTransactionRequest(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
 
   expect(requestSpans).toHaveLength(3);

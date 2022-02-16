@@ -43,7 +43,7 @@ export class CaptureConsole implements Integration {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]): void => {
+      fill(global.console, level, (originalConsoleMethod: () => any) => (...args: any[]): void => {
         const hub = getCurrentHub();
 
         if (hub.getIntegration(CaptureConsole)) {
@@ -71,8 +71,8 @@ export class CaptureConsole implements Integration {
         }
 
         // this fails for some browsers. :(
-        if (originalConsoleLevel) {
-          Function.prototype.apply.call(originalConsoleLevel, global.console, args);
+        if (originalConsoleMethod) {
+          originalConsoleMethod.apply(global.console, args);
         }
       });
     });
