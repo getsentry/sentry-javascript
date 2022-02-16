@@ -10,16 +10,6 @@ export function createEnvelope<E extends Envelope>(headers: E[0], items: E[1]): 
 }
 
 /**
- * Add a set of key value pairs to the envelope header.
- * Make sure to always explicitly provide the generic to this function
- * so that the envelope types resolve correctly.
- */
-export function addHeaderToEnvelope<E extends Envelope>(envelope: E, newHeaders: E[0]): E {
-  const [headers, items] = envelope;
-  return [{ ...headers, ...newHeaders }, items] as E;
-}
-
-/**
  * Add an item to an envelope.
  * Make sure to always explicitly provide the generic to this function
  * so that the envelope types resolve correctly.

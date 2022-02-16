@@ -1,5 +1,6 @@
-import { createEnvelope, addHeaderToEnvelope, addItemToEnvelope, serializeEnvelope } from '../src/envelope';
 import { EventEnvelope } from '@sentry/types';
+
+import { addHeaderToEnvelope, addItemToEnvelope, createEnvelope, serializeEnvelope } from '../src/envelope';
 
 describe('envelope', () => {
   describe('createEnvelope()', () => {
