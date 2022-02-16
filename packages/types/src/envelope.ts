@@ -1,3 +1,4 @@
+import { Event } from './event';
 import { SentryRequestType } from './request';
 import { SdkInfo } from './sdkinfo';
 import { Session, SessionAggregates } from './session';

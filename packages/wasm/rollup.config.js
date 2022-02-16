@@ -1,7 +1,6 @@
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
-import resolve from 'rollup-plugin-node-resolve';
-import commonjs from 'rollup-plugin-commonjs';
+import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 
 const terserInstance = terser({
@@ -50,7 +49,6 @@ const plugins = [
   resolve({
     mainFields: ['module'],
   }),
-  commonjs(),
 ];
 
 function mergeIntoSentry() {
@@ -88,6 +86,7 @@ function loadAllIntegrations() {
         format: 'cjs',
         sourcemap: true,
         strict: false,
+        esModule: false,
       },
       plugins: build.plugins,
       treeshake: 'smallest',
