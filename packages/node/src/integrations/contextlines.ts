@@ -3,6 +3,7 @@ import { Event, EventProcessor, Integration } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
+import { promisify } from 'util';
 
 import { NodeClient } from '../client';
 
@@ -10,12 +11,7 @@ const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 
 function readTextFileAsync(path: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    readFile(path, 'utf8', (err, data) => {
-      if (err) reject(err);
-      else resolve(data);
-    });
-  });
+  return promisify(readFile)(path, { encoding: 'utf8' });
 }
 
 /**
@@ -28,10 +24,11 @@ export function resetFileContentCache(): void {
 
 interface ContextLinesOptions {
   /**
-   * Sets the number of context lines for each frame when loading a file
+   * Sets the number of context lines for each frame when loading a file.
+   * Defaults to 7.
    *
    * Set to 0 to disable loading and inclusion of source files.
-   * */
+   **/
   frameContextLines?: number;
 }
 
