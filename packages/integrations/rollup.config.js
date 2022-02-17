@@ -72,6 +72,7 @@ function loadAllIntegrations() {
   ].forEach(build => {
     builds.push(
       ...allIntegrations().map(file => ({
+        ...baseBundleConfig,
         input: `src/${file}`,
         output: {
           banner: '(function (__window) {',
@@ -83,7 +84,6 @@ function loadAllIntegrations() {
           format: 'cjs',
         },
         plugins: build.plugins,
-        treeshake: 'smallest',
       })),
     );
   });

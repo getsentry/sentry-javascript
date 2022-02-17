@@ -65,4 +65,5 @@ export const baseBundleConfig = {
     strict: false,
     esModule: false,
   },
+  treeshake: 'smallest',
 };

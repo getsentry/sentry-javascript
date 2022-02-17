@@ -26,6 +26,7 @@ const plugins = [
 ];
 
 const bundleConfig = {
+  ...baseBundleConfig,
   input: 'src/index.ts',
   output: {
     ...baseBundleConfig.output,
@@ -34,7 +35,6 @@ const bundleConfig = {
   },
   context: 'window',
   plugins: [...plugins, licensePlugin],
-  treeshake: 'smallest',
 };
 
 export default [

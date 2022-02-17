@@ -48,6 +48,7 @@ function loadAllIntegrations() {
     },
   ].forEach(build => {
     builds.push({
+      ...baseBundleConfig,
       input: `src/index.ts`,
       output: {
         banner: '(function (__window) {',
@@ -59,7 +60,6 @@ function loadAllIntegrations() {
         format: 'cjs',
       },
       plugins: build.plugins,
-      treeshake: 'smallest',
     });
   });
   return builds;
