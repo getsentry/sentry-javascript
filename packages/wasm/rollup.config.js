@@ -2,7 +2,7 @@ import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 
-import { terserPlugin } from '../../rollup.config';
+import { paths, terserPlugin } from '../../rollup.config';
 
 const plugins = [
   typescript({
@@ -11,13 +11,7 @@ const plugins = [
       compilerOptions: {
         declaration: false,
         declarationMap: false,
-        paths: {
-          '@sentry/utils': ['../utils/src'],
-          '@sentry/core': ['../core/src'],
-          '@sentry/hub': ['../hub/src'],
-          '@sentry/types': ['../types/src'],
-          '@sentry/minimal': ['../minimal/src'],
-        },
+        paths,
         baseUrl: '.',
       },
     },

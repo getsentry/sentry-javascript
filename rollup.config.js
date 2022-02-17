@@ -5,6 +5,14 @@
 import license from 'rollup-plugin-license';
 import { terser } from 'rollup-plugin-terser';
 
+export const paths = {
+  '@sentry/browser': ['../browser/src'],
+  '@sentry/core': ['../core/src'],
+  '@sentry/hub': ['../hub/src'],
+  '@sentry/minimal': ['../minimal/src'],
+  '@sentry/types': ['../types/src'],
+  '@sentry/utils': ['../utils/src'],
+};
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.

@@ -3,7 +3,7 @@ import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 
-import { makeLicensePlugin } from '../../rollup.config';
+import { makeLicensePlugin, paths } from '../../rollup.config';
 
 const licensePlugin = makeLicensePlugin();
 
@@ -35,14 +35,6 @@ const terserInstance = terser({
     comments: false,
   },
 });
-
-const paths = {
-  '@sentry/utils': ['../utils/src'],
-  '@sentry/core': ['../core/src'],
-  '@sentry/hub': ['../hub/src'],
-  '@sentry/types': ['../types/src'],
-  '@sentry/minimal': ['../minimal/src'],
-};
 
 const plugins = [
   typescript({

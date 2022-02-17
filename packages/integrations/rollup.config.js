@@ -6,6 +6,8 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
 
+import { paths } from '../../rollup.config';
+
 const terserInstance = terser({
   mangle: {
     // captureExceptions and captureMessage are public API methods and they don't need to be listed here
@@ -27,13 +29,7 @@ const plugins = [
       compilerOptions: {
         declaration: false,
         declarationMap: false,
-        paths: {
-          '@sentry/utils': ['../utils/src'],
-          '@sentry/core': ['../core/src'],
-          '@sentry/hub': ['../hub/src'],
-          '@sentry/types': ['../types/src'],
-          '@sentry/minimal': ['../minimal/src'],
-        },
+        paths,
         baseUrl: '.',
       },
     },
