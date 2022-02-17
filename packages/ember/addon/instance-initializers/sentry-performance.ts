@@ -29,10 +29,13 @@ export function initialize(appInstance: ApplicationInstance): void {
 }
 
 function getBackburner() {
+  if (_backburner) {
+    return _backburner;
+  }
+
   if (run.backburner) {
     return run.backburner;
   }
-  return _backburner;
 }
 
 function getTransitionInformation(transition: any, router: any) {
