@@ -127,6 +127,7 @@ function filterTransactions(event: Event): Event | null {
 }
 
 export { withSentryConfig } from './config';
+export { SentryWebpackPluginOptions } from './config/types';
 export { withSentry } from './utils/withSentry';
 
 // Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
