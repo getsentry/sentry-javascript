@@ -4,9 +4,7 @@ import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 
-const commitHash = require('child_process')
-  .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
-  .trim();
+const commitHash = require('child_process').execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
 const terserInstance = terser({
   mangle: {
@@ -100,9 +98,6 @@ export default [
       file: 'build/bundle.vue.min.js',
     },
     // Uglify has to be at the end of compilation, BUT before the license banner
-    plugins: bundleConfig.plugins
-      .slice(0, -1)
-      .concat(terserInstance)
-      .concat(bundleConfig.plugins.slice(-1)),
+    plugins: bundleConfig.plugins.slice(0, -1).concat(terserInstance).concat(bundleConfig.plugins.slice(-1)),
   },
 ];
