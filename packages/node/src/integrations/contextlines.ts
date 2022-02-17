@@ -53,28 +53,32 @@ export class ContextLines implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    if (this._options.frameContextLines == undefined) {
+    // This is only here to copy frameContextLines from init options if it hasn't
+    // been set via this integrations constructor.
+    //
+    // TODO: Remove on next major!
+    if (this._options.frameContextLines === undefined) {
       const initOptions = getCurrentHub().getClient<NodeClient>()?.getOptions();
       // eslint-disable-next-line deprecation/deprecation
       this._options.frameContextLines = initOptions?.frameContextLines;
     }
 
-    addGlobalEventProcessor(event => this.addToEvent(event));
-  }
-
-  /** Processes an event and adds context lines */
-  public async addToEvent(event: Event): Promise<Event> {
     const contextLines =
       this._options.frameContextLines !== undefined ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
+    addGlobalEventProcessor(event => this.addSourceContext(event, contextLines));
+  }
+
+  /** Processes an event and adds context lines */
+  public async addSourceContext(event: Event, contextLines: number): Promise<Event> {
     const frames = event.exception?.values?.[0].stacktrace?.frames;
 
     if (frames && contextLines > 0) {
-      const filenames: string[] = [];
+      const filenames: Set<string> = new Set();
 
       for (const frame of frames) {
-        if (frame.filename && !filenames.includes(frame.filename)) {
-          filenames.push(frame.filename);
+        if (frame.filename) {
+          filenames.add(frame.filename);
         }
       }
 
@@ -91,8 +95,6 @@ export class ContextLines implements Integration {
           }
         }
       }
-
-      return event;
     }
 
     return event;
@@ -104,25 +106,20 @@ export class ContextLines implements Integration {
  *
  * @param filenames Array of filepaths to read content from.
  */
-async function readSourceFiles(filenames: string[]): Promise<Record<string, string | null>> {
-  // we're relying on filenames being de-duped already
-  if (!filenames.length) {
-    return {};
-  }
-
+async function readSourceFiles(filenames: Set<string>): Promise<Record<string, string | null>> {
   const sourceFiles: Record<string, string | null> = {};
 
   for (const filename of filenames) {
-    const cache = FILE_CONTENT_CACHE.get(filename);
+    const cachedFile = FILE_CONTENT_CACHE.get(filename);
     // We have a cache hit
-    if (cache !== undefined) {
+    if (cachedFile !== undefined) {
       // If stored value is null, it means that we already tried, but couldn't read the content of the file. Skip.
-      if (cache === null) {
+      if (cachedFile === null) {
         continue;
       }
 
       // Otherwise content is there, so reuse cached value.
-      sourceFiles[filename] = cache;
+      sourceFiles[filename] = cachedFile;
       continue;
     }
 

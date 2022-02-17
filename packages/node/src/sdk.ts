@@ -12,6 +12,7 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new ContextLines(),
   // Native Wrappers
   new Console(),
   new Http(),
@@ -20,8 +21,6 @@ export const defaultIntegrations = [
   new OnUnhandledRejection(),
   // Misc
   new LinkedErrors(),
-  // Context Lines
-  new ContextLines(),
 ];
 
 /**

@@ -23,7 +23,7 @@ export interface NodeOptions extends Options {
   /**
    * Sets the number of context lines for each frame when loading a file.
    *
-   * @deprecated Context lines configuration has moved to the `ContextLines` integration.
+   * @deprecated Context lines configuration has moved to the `ContextLines` integration, and can be used like this:
    *
    * ```
    * init({

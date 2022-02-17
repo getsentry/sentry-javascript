@@ -8,15 +8,15 @@ import { getError } from './helper/error';
 
 describe('parsers.ts', () => {
   let frames: stacktrace.StackFrame[];
-  let spy: jest.SpyInstance;
+  let readFileSpy: jest.SpyInstance;
   let contextLines: ContextLines;
 
-  async function addContext(frames: StackFrame[]): Promise<void> {
-    await contextLines.addToEvent({ exception: { values: [{ stacktrace: { frames } }] } });
+  async function addContext(frames: StackFrame[], lines: number = 7): Promise<void> {
+    await contextLines.addSourceContext({ exception: { values: [{ stacktrace: { frames } }] } }, lines);
   }
 
   beforeEach(() => {
-    spy = jest.spyOn(fs, 'readFile');
+    readFileSpy = jest.spyOn(fs, 'readFile');
     frames = stacktrace.parse(new Error('test'));
     contextLines = new ContextLines();
     resetFileContentCache();
@@ -30,16 +30,16 @@ describe('parsers.ts', () => {
     test('parseStack with same file', async () => {
       expect.assertions(1);
 
-      let mockCalls = 0;
       let parsedFrames = Parsers.parseStack(frames);
       await addContext(parsedFrames);
 
-      mockCalls = spy.mock.calls.length;
+      const numCalls = readFileSpy.mock.calls.length;
       parsedFrames = Parsers.parseStack(frames);
       await addContext(parsedFrames);
 
-      // Calls to readFile shouldn't increase if there isn't a new error
-      expect(spy).toHaveBeenCalledTimes(mockCalls);
+      // Calls to `readFile` shouldn't increase if there isn't a new error to
+      // parse whose stacktrace contains a file we haven't yet seen
+      expect(readFileSpy).toHaveBeenCalledTimes(numCalls);
     });
 
     test('parseStack with ESM module names', async () => {
@@ -58,27 +58,20 @@ describe('parsers.ts', () => {
       ];
       const parsedFrames = Parsers.parseStack(framesWithFilePath);
       await addContext(parsedFrames);
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(readFileSpy).toHaveBeenCalledTimes(1);
     });
 
     test('parseStack with adding different file', async () => {
-      expect.assertions(2);
-      let mockCalls = 0;
-      let newErrorCalls = 0;
+      expect.assertions(1);
       let parsedFrames = Parsers.parseStack(frames);
       await addContext(parsedFrames);
 
-      mockCalls = spy.mock.calls.length;
+      const numCalls = readFileSpy.mock.calls.length;
       parsedFrames = Parsers.parseStack(stacktrace.parse(getError()));
       await addContext(parsedFrames);
 
-      newErrorCalls = spy.mock.calls.length;
-      expect(newErrorCalls).toBeGreaterThan(mockCalls);
-
-      parsedFrames = Parsers.parseStack(stacktrace.parse(getError()));
-      await addContext(parsedFrames);
-
-      expect(spy).toHaveBeenCalledTimes(newErrorCalls);
+      const newErrorCalls = readFileSpy.mock.calls.length;
+      expect(newErrorCalls).toBeGreaterThan(numCalls);
     });
 
     test('parseStack with duplicate files', async () => {
@@ -115,16 +108,14 @@ describe('parsers.ts', () => {
 
       const parsedFrames = Parsers.parseStack(framesWithDuplicateFiles);
       await addContext(parsedFrames);
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(readFileSpy).toHaveBeenCalledTimes(1);
     });
 
     test('parseStack with no context', async () => {
-      contextLines = new ContextLines({ frameContextLines: 0 });
-
       expect.assertions(1);
       const parsedFrames = Parsers.parseStack(frames);
-      await addContext(parsedFrames);
-      expect(spy).toHaveBeenCalledTimes(0);
+      await addContext(parsedFrames, 0);
+      expect(readFileSpy).toHaveBeenCalledTimes(0);
     });
   });
 });
