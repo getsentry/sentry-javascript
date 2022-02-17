@@ -1,7 +1,7 @@
 import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 
-import { baseBundleConfig, paths, markAsBrowserBuild, terserPlugin } from '../../rollup.config';
+import { addOnBundleConfig, baseBundleConfig, paths, markAsBrowserBuild, terserPlugin } from '../../rollup.config';
 
 const plugins = [
   typescript({
@@ -23,18 +23,6 @@ const plugins = [
   }),
 ];
 
-function mergeIntoSentry() {
-  return `
-  __window.Sentry = __window.Sentry || {};
-  __window.Sentry.Integrations = __window.Sentry.Integrations || {};
-  for (var key in exports) {
-    if (Object.prototype.hasOwnProperty.call(exports, key)) {
-      __window.Sentry.Integrations[key] = exports[key];
-    }
-  }
-  `;
-}
-
 function loadAllIntegrations() {
   const builds = [];
   [
@@ -51,13 +39,9 @@ function loadAllIntegrations() {
       ...baseBundleConfig,
       input: `src/index.ts`,
       output: {
-        banner: '(function (__window) {',
-        intro: 'var exports = {};',
-        outro: mergeIntoSentry(),
-        footer: '}(window));',
         ...baseBundleConfig.output,
+        ...addOnBundleConfig.output,
         file: `build/wasm${build.extension}`,
-        format: 'cjs',
       },
       plugins: build.plugins,
     });

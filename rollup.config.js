@@ -67,3 +67,34 @@ export const baseBundleConfig = {
   },
   treeshake: 'smallest',
 };
+
+export const addOnBundleConfig = {
+  // These output settings are designed to mimic an IIFE. We don't use Rollup's `iife` format because we don't want to
+  // attach this code to a new global variable, but rather inject it into the existing SDK's `Integrations` object.
+  output: {
+    format: 'cjs',
+
+    // code to add before the CJS wrapper
+    banner: '(function (__window) {',
+
+    // code to add just inside the CJS wrapper, before any of the wrapped code
+    intro: 'var exports = {};',
+
+    // code to add after all of the wrapped code, but still inside the CJS wrapper
+    outro: () =>
+      [
+        '',
+        "  // Add this module's exports to the global `Sentry.Integrations`",
+        '  __window.Sentry = __window.Sentry || {};',
+        '  __window.Sentry.Integrations = __window.Sentry.Integrations || {};',
+        '  for (var key in exports) {',
+        '    if (Object.prototype.hasOwnProperty.call(exports, key)) {',
+        '      __window.Sentry.Integrations[key] = exports[key];',
+        '    }',
+        '  }',
+      ].join('\n'),
+
+    // code to add after the CJS wrapper
+    footer: '}(window));',
+  },
+};
