@@ -30,7 +30,7 @@
   "devDependencies": {
     "@sentry/types": "6.17.9",
     "@types/webpack": "^4.41.31",
-    "next": "10.1.3"
+    "next": "12.1.0"
   },
   "peerDependencies": {
     "next": "^10.0.8 || ^11.0 || ^12.0",
