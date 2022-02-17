@@ -2,7 +2,7 @@ import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 
-import { makeLicensePlugin, markAsBrowserBuild, paths } from '../../rollup.config';
+import { baseBundleConfig, makeLicensePlugin, markAsBrowserBuild, paths } from '../../rollup.config';
 
 const licensePlugin = makeLicensePlugin();
 
@@ -58,11 +58,9 @@ const plugins = [
 const bundleConfig = {
   input: 'src/index.ts',
   output: {
+    ...baseBundleConfig.output,
     format: 'iife',
     name: 'Sentry',
-    sourcemap: true,
-    strict: false,
-    esModule: false,
   },
   context: 'window',
   plugins: [...plugins, licensePlugin],

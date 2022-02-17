@@ -1,7 +1,7 @@
 import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 
-import { paths, markAsBrowserBuild, terserPlugin } from '../../rollup.config';
+import { baseBundleConfig, paths, markAsBrowserBuild, terserPlugin } from '../../rollup.config';
 
 const plugins = [
   typescript({
@@ -54,11 +54,9 @@ function loadAllIntegrations() {
         intro: 'var exports = {};',
         outro: mergeIntoSentry(),
         footer: '}(window));',
+        ...baseBundleConfig.output,
         file: `build/wasm${build.extension}`,
         format: 'cjs',
-        sourcemap: true,
-        strict: false,
-        esModule: false,
       },
       plugins: build.plugins,
       treeshake: 'smallest',

@@ -58,3 +58,11 @@ export const markAsBrowserBuild = replace({
     __SENTRY_BROWSER_BUNDLE__: true,
   },
 });
+
+export const baseBundleConfig = {
+  output: {
+    sourcemap: true,
+    strict: false,
+    esModule: false,
+  },
+};

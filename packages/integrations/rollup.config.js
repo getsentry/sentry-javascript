@@ -5,7 +5,7 @@ import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 
-import { markAsBrowserBuild, paths } from '../../rollup.config';
+import { baseBundleConfig, markAsBrowserBuild, paths } from '../../rollup.config';
 
 const terserInstance = terser({
   mangle: {
@@ -78,11 +78,9 @@ function loadAllIntegrations() {
           intro: 'var exports = {};',
           outro: mergeIntoSentry(),
           footer: '}(window));',
+          ...baseBundleConfig.output,
           file: `build/${file.replace('.ts', build.extension)}`,
           format: 'cjs',
-          sourcemap: true,
-          strict: false,
-          esModule: false,
         },
         plugins: build.plugins,
         treeshake: 'smallest',
