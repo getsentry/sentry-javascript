@@ -2,7 +2,7 @@ import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
 import { isInstanceOf, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
 
-import { getExceptionFromError } from '../parsers';
+import { exceptionFromError } from '../eventbuilder';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
@@ -80,15 +80,12 @@ export class LinkedErrors implements Integration {
     if (!isInstanceOf(error[key], Error) || stack.length + 1 >= this._limit) {
       return resolvedSyncPromise(stack);
     }
+
+    const exception = exceptionFromError(error[key]);
+
     return new SyncPromise<Exception[]>((resolve, reject) => {
-      void getExceptionFromError(error[key])
-        .then((exception: Exception) => {
-          void this._walkErrorTree(error[key], key, [exception, ...stack])
-            .then(resolve)
-            .then(null, () => {
-              reject();
-            });
-        })
+      void this._walkErrorTree(error[key], key, [exception, ...stack])
+        .then(resolve)
         .then(null, () => {
           reject();
         });
