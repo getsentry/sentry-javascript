@@ -111,7 +111,7 @@ function instrumentConsole(): void {
     return;
   }
 
-  ['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function (level: string): void {
+  ['debug', 'info', 'warn', 'error', 'log', 'assert', 'trace'].forEach(function (level: string): void {
     if (!(level in global.console)) {
       return;
     }
