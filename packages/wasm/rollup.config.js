@@ -1,8 +1,7 @@
 import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
-import replace from '@rollup/plugin-replace';
 
-import { paths, terserPlugin } from '../../rollup.config';
+import { paths, markAsBrowserBuild, terserPlugin } from '../../rollup.config';
 
 const plugins = [
   typescript({
@@ -17,16 +16,8 @@ const plugins = [
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
   }),
-  replace({
-    // don't replace `__placeholder__` where it's followed immediately by a single `=` (to prevent ending up
-    // with something of the form `let "replacementValue" = "some assigned value"`, which would cause a
-    // syntax error)
-    preventAssignment: true,
-    // the replacements to make
-    values: {
-      __SENTRY_BROWSER_BUNDLE__: true,
-    },
-  }),
+  // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
+  markAsBrowserBuild,
   resolve({
     mainFields: ['module'],
   }),

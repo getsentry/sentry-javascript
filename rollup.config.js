@@ -3,6 +3,7 @@
  */
 
 import license from 'rollup-plugin-license';
+import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
 
 export const paths = {
@@ -44,5 +45,16 @@ export const terserPlugin = terser({
   },
   output: {
     comments: false,
+  },
+});
+
+export const markAsBrowserBuild = replace({
+  // don't replace `__placeholder__` where it's followed immediately by a single `=` (to prevent ending up
+  // with something of the form `let "replacementValue" = "some assigned value"`, which would cause a
+  // syntax error)
+  preventAssignment: true,
+  // the replacement to make
+  values: {
+    __SENTRY_BROWSER_BUNDLE__: true,
   },
 });
