@@ -1,11 +1,10 @@
 import typescript from 'rollup-plugin-typescript2';
-import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 
-import { terserPlugin } from '../../rollup.config';
+import { makeLicensePlugin, terserPlugin } from '../../rollup.config';
 
-const commitHash = require('child_process').execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+const licensePlugin = makeLicensePlugin('@sentry/tracing & @sentry/browser');
 
 const paths = {
   '@sentry/utils': ['../utils/src'],
@@ -54,13 +53,7 @@ const bundleConfig = {
     esModule: false,
   },
   context: 'window',
-  plugins: [
-    ...plugins,
-    license({
-      sourcemap: true,
-      banner: `/*! @sentry/tracing & @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
-    }),
-  ],
+  plugins: [...plugins, licensePlugin],
   treeshake: 'smallest',
 };
 
