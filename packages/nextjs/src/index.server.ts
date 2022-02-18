@@ -31,9 +31,9 @@ const domain = domainModule as typeof domainModule & { active: (domainModule.Dom
 // or
 //   `node /var/runtime/index.js`,
 // so we never drop into the `if` in the first place.
-let isBuild;
-if (process.argv.includes('build') || process.env.BUILD_PHASE) {
-  process.env.BUILD_PHASE = 'true';
+let isBuild = false;
+if (process.argv.includes('build') || process.env.SENTRY_BUILD_PHASE) {
+  process.env.SENTRY_BUILD_PHASE = 'true';
   isBuild = true;
 }
 
