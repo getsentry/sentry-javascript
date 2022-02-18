@@ -9,6 +9,7 @@ import { NodeClient } from '../client';
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 
+// TODO: Replace with promisify when minimum supported node >= v8
 function readTextFileAsync(path: string): Promise<string> {
   return new Promise((resolve, reject) => {
     readFile(path, 'utf8', (err, data) => {
