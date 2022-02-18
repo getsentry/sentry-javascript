@@ -3,7 +3,6 @@ import { Event, EventProcessor, Integration } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
-import { promisify } from 'util';
 
 import { NodeClient } from '../client';
 
@@ -11,7 +10,12 @@ const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 
 function readTextFileAsync(path: string): Promise<string> {
-  return promisify(readFile)(path, { encoding: 'utf8' });
+  return new Promise((resolve, reject) => {
+    readFile(path, 'utf8', (err, data) => {
+      if (err) reject(err);
+      else resolve(data);
+    });
+  });
 }
 
 /**
