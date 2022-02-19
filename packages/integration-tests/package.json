@@ -28,7 +28,6 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.17.0",
     "babel-loader": "^8.2.2",
-    "handlebars-loader": "^1.7.1",
     "html-webpack-plugin": "^5.5.0",
     "playwright": "^1.17.1",
     "typescript": "^4.5.2",

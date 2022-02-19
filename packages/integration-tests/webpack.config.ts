@@ -12,11 +12,6 @@ const config = function (userConfig: Record<string, unknown>): Configuration {
           loader: 'babel-loader',
           options: { presets: [['@babel/preset-typescript', { allowNamespaces: true }]] },
         },
-        {
-          test: /\.hbs$/,
-          exclude: /node_modules/,
-          loader: 'handlebars-loader',
-        },
       ],
     },
     stats: 'errors-only',
