@@ -40,24 +40,6 @@ describe('Stack parsing', () => {
     expect(frames[last - 2].function).toEqual('eval');
   });
 
-  test('parses with zero row/col', () => {
-    const err: { [key: string]: any } = {};
-    err.stack = 'Error: Foo\n' + '    at Timer.listOnTimeout [as ontimeout] (timers.js:0:0)\n';
-
-    const frames = extractStackFromError(err as Error);
-
-    expect(frames).toEqual([
-      {
-        filename: 'timers.js',
-        module: 'timers',
-        function: 'Timer.listOnTimeout [as ontimeout]',
-        lineno: 0,
-        colno: 0,
-        in_app: false,
-      },
-    ]);
-  });
-
   test('parses object in fn name', () => {
     const err: { [key: string]: any } = {};
     err.stack =

@@ -112,18 +112,12 @@ export const node: StackLineParser = (line: string) => {
   // see https://github.com/getsentry/raven-node/issues/176
   const in_app = !isInternal && filename !== undefined && !filename.includes('node_modules/');
 
-  /** Gets int from string or undefined if NaN */
-  function getInt(int: string): number | undefined {
-    const val = parseInt(int, 10);
-    return isNaN(val) ? undefined : val;
-  }
-
   return {
     filename: lineMatch[2],
     module: getModule(filename),
     function: fn,
-    lineno: getInt(lineMatch[3]),
-    colno: getInt(lineMatch[4]),
+    lineno: parseInt(lineMatch[3], 10) || undefined,
+    colno: parseInt(lineMatch[4], 10) || undefined,
     in_app,
   };
 };
