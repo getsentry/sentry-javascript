@@ -6,6 +6,7 @@ import { Compiler } from 'webpack';
 
 const PACKAGE_PATH = '../../packages';
 
+const tracingOnly = process.env.PW_TRACING_ONLY === 'true';
 const bundleKey = process.env.PW_BUNDLE;
 
 // `esm` and `cjs` builds are modules that can be imported / aliased by webpack
@@ -98,7 +99,7 @@ class SentryScenarioGenerationPlugin {
     compiler.hooks.compilation.tap(this._name, compilation => {
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(this._name, (data, cb) => {
         if (useBundle && bundleKey) {
-          const bundleName = this.requiresTracing ? 'tracing' : 'browser';
+          const bundleName = tracingOnly || this.requiresTracing ? 'tracing' : 'browser';
           const bundleObject = createHtmlTagObject('script', {
             src: path.resolve(PACKAGE_PATH, bundleName, BUNDLE_PATHS[bundleName][bundleKey]),
           });

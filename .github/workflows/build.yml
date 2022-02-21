@@ -276,7 +276,7 @@ jobs:
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   job_browser_playwright_tests:
-    name: Browser Playwright Tests (${{ matrix.bundle }})
+    name: Browser Playwright Tests (${{ matrix.bundle }} - tracing_only = ${{ matrix.tracing_only }})
     needs: job_build
     runs-on: ubuntu-latest
     strategy:
@@ -288,6 +288,14 @@ jobs:
           - bundle_min
           - bundle_es6
           - bundle_es6_min
+        tracing_only:
+          - true
+          - false
+        exclude:
+          - bundle: esm
+            tracing_only: true
+          - bundle: cjs
+            tracing_only: true
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -308,6 +316,7 @@ jobs:
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
+          PW_TRACING_ONLY: ${{ matrix.tracing_only }}
         run: |
           cd packages/integration-tests
           yarn run playwright install-deps webkit
