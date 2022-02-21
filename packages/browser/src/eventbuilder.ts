@@ -11,8 +11,7 @@ import {
   resolvedSyncPromise,
 } from '@sentry/utils';
 
-import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
-import { computeStackTrace } from './tracekit';
+import { eventFromError, eventFromPlainObject, parseStackFrames } from './parsers';
 
 /**
  * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
@@ -68,10 +67,7 @@ export function eventFromUnknownInput(
   if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
     // If it is an ErrorEvent with `error` property, extract it to get actual Error
     const errorEvent = exception as ErrorEvent;
-    // eslint-disable-next-line no-param-reassign
-    exception = errorEvent.error;
-    event = eventFromStacktrace(computeStackTrace(exception as Error));
-    return event;
+    return eventFromError(errorEvent.error as Error);
   }
 
   // If it is a `DOMError` (which is a legacy API, but still supported in some browsers) then we just extract the name
@@ -85,7 +81,7 @@ export function eventFromUnknownInput(
     const domException = exception as DOMException;
 
     if ('stack' in (exception as Error)) {
-      event = eventFromStacktrace(computeStackTrace(exception as Error));
+      event = eventFromError(exception as Error);
     } else {
       const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
       const message = domException.message ? `${name}: ${domException.message}` : name;
@@ -100,8 +96,7 @@ export function eventFromUnknownInput(
   }
   if (isError(exception as Error)) {
     // we have a real Error object, do nothing
-    event = eventFromStacktrace(computeStackTrace(exception as Error));
-    return event;
+    return eventFromError(exception as Error);
   }
   if (isPlainObject(exception) || isEvent(exception)) {
     // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
@@ -148,10 +143,8 @@ export function eventFromString(
   };
 
   if (options.attachStacktrace && syntheticException) {
-    const stacktrace = computeStackTrace(syntheticException);
-    const frames = prepareFramesForEvent(stacktrace.stack);
     event.stacktrace = {
-      frames,
+      frames: parseStackFrames(syntheticException),
     };
   }
 
