@@ -9,6 +9,7 @@ import { NodeClient } from '../client';
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 
+// TODO: Replace with promisify when minimum supported node >= v8
 function readTextFileAsync(path: string): Promise<string> {
   return new Promise((resolve, reject) => {
     readFile(path, 'utf8', (err, data) => {
@@ -28,10 +29,11 @@ export function resetFileContentCache(): void {
 
 interface ContextLinesOptions {
   /**
-   * Sets the number of context lines for each frame when loading a file
+   * Sets the number of context lines for each frame when loading a file.
+   * Defaults to 7.
    *
    * Set to 0 to disable loading and inclusion of source files.
-   * */
+   **/
   frameContextLines?: number;
 }
 
