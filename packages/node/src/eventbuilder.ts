@@ -97,9 +97,10 @@ export function eventFromMessage(
   };
 
   if (options.attachStacktrace && hint && hint.syntheticException) {
-    event.stacktrace = {
-      frames: hint.syntheticException ? extractStackFromError(hint.syntheticException) : [],
-    };
+    const frames = extractStackFromError(hint.syntheticException);
+    if (frames.length) {
+      event.stacktrace = { frames };
+    }
   }
 
   return event;
