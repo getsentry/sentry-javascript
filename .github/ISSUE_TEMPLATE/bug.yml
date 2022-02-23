@@ -9,7 +9,7 @@ body:
       options:
         - label: I have checked for existing issues https://github.com/getsentry/sentry-javascript/issues
           required: true
-        - label: I reviewed the documentation https://docs.sentry.io/
+        - label: I have reviewed the documentation https://docs.sentry.io/
           required: true
         - label: I am using the latest SDK release https://github.com/getsentry/sentry-javascript/releases
           required: true
