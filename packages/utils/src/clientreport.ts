@@ -1,4 +1,4 @@
-import { ClientReport, ClientReportEnvelope, ClientReportEnvelopeItem } from '@sentry/types';
+import { ClientReport, ClientReportEnvelope } from '@sentry/types';
 
 import { createEnvelope } from './envelope';
 import { dateTimestampInSeconds } from './time';
