@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isString, logger } from '@sentry/utils';
+import { isString, logger, SentryError } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -53,6 +53,7 @@ export interface WrapperOptions {
    * @default false
    */
   captureAllSettledReasons: boolean;
+  ignoreSentryErrors: boolean;
 }
 
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
@@ -224,6 +225,7 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
+    ignoreSentryErrors: false,
     ...wrapOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
@@ -314,7 +316,12 @@ export function wrapHandler<TEvent, TResult>(
       clearTimeout(timeoutWarningTimer);
       transaction.finish();
       hub.popScope();
-      await flush(options.flushTimeout);
+      await flush(options.flushTimeout).catch(e => {
+        if (options.ignoreSentryErrors && e instanceof SentryError) {
+          return;
+        }
+        throw e;
+      });
     }
     return rv;
   };
