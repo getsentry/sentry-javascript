@@ -16,7 +16,7 @@ import { node } from './stack-parser';
  * Extracts stack frames from the error.stack string
  */
 export function extractStackFromError(error: Error): StackFrame[] {
-  return createStackParser(node)(error.stack || '');
+  return createStackParser(node(require))(error.stack || '');
 }
 
 /**
