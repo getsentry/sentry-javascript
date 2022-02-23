@@ -1,4 +1,4 @@
-import { ClientReport, ClientReportEnvelope } from '@sentry/types';
+import { ClientReport, ClientReportEnvelope, ClientReportEnvelopeItem } from '@sentry/types';
 
 import { createEnvelope } from './envelope';
 import { dateTimestampInSeconds } from './time';
@@ -13,13 +13,13 @@ export function createClientReportEnvelope(
   dsn?: string,
   timestamp?: number,
 ): ClientReportEnvelope {
-  const header = dsn ? { dsn } : {};
-
-  const itemHeader = { type: 'client_report' };
-  const itemPayload = {
-    timestamp: timestamp || dateTimestampInSeconds(),
-    discarded_events,
-  };
-
-  return createEnvelope<ClientReportEnvelope>(header, [[itemHeader, itemPayload]]);
+  return createEnvelope<ClientReportEnvelope>(dsn ? { dsn } : {}, [
+    [
+      { type: 'client_report' },
+      {
+        timestamp: timestamp || dateTimestampInSeconds(),
+        discarded_events,
+      },
+    ],
+  ]);
 }

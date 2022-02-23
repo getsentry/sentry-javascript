@@ -22,4 +22,4 @@ export * from './syncpromise';
 export * from './time';
 export * from './env';
 export * from './envelope';
-export * from './clientreports';
+export * from './clientreport';
