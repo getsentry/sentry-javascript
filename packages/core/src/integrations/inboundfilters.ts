@@ -1,5 +1,4 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Event, Integration, StackFrame } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
@@ -7,7 +6,7 @@ import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@s
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
 
 /** JSDoc */
-interface InboundFiltersOptions {
+export interface InboundFiltersOptions {
   allowUrls: Array<string | RegExp>;
   denyUrls: Array<string | RegExp>;
   ignoreErrors: Array<string | RegExp>;
@@ -36,7 +35,7 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((event: Event) => {
       const hub = getCurrentHub();
       if (hub) {
@@ -55,7 +54,7 @@ export class InboundFilters implements Integration {
 
 /** JSDoc */
 export function _mergeOptions(
-  intOptions: Partial<InboundFiltersOptions>,
+  intOptions: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): Partial<InboundFiltersOptions> {
   return {

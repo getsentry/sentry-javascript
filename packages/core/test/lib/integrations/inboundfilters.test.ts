@@ -1,59 +1,39 @@
-import { InboundFilters } from '../../../src/integrations/inboundfilters';
+import { InboundFilters, InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
+import { EventProcessor } from '@sentry/types';
 
-let inboundFilters: any;
+/** JSDoc */
+function createInboundFilters(
+  options: Partial<InboundFiltersOptions> = {},
+  clientOptions: Partial<InboundFiltersOptions> = {},
+): EventProcessor {
+  const eventProcessors: EventProcessor[] = [];
+  const inboundFilters = new InboundFilters(options);
+
+  function addGlobalEventProcessor(callback: EventProcessor): void {
+    eventProcessors.push(callback);
+    expect(eventProcessors).toHaveLength(1);
+  }
+
+  function getCurrentHub(): any {
+    return {
+      getIntegration(_integration: any): any {
+        // pretend integration is enabled
+        return inboundFilters;
+      },
+      getClient(): any {
+        return {
+          getOptions: () => clientOptions,
+        };
+      },
+    };
+  }
+
+  inboundFilters.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+  return eventProcessors[0];
+}
 
 describe('InboundFilters', () => {
-  beforeEach(() => {
-    inboundFilters = new InboundFilters();
-  });
-
-  describe('shouldDropEvent', () => {
-    it('should drop when error is internal one', () => {
-      inboundFilters._isSentryError = () => true;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
-    });
-
-    it('should drop when error is ignored', () => {
-      inboundFilters._isIgnoredError = () => true;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
-    });
-
-    it('should drop when url is denied', () => {
-      inboundFilters._isDeniedUrl = () => true;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
-    });
-
-    it('should drop when url is not allowed', () => {
-      inboundFilters._isAllowedUrl = () => false;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
-    });
-
-    it('should drop when url is not denied, but also not allowed', () => {
-      inboundFilters._isDeniedUrl = () => false;
-      inboundFilters._isAllowedUrl = () => false;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
-    });
-
-    it('should drop when url is denied and allowed at the same time', () => {
-      inboundFilters._isDeniedUrl = () => true;
-      inboundFilters._isAllowedUrl = () => true;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
-    });
-
-    it('should not drop when url is not denied, but allowed', () => {
-      inboundFilters._isDeniedUrl = () => false;
-      inboundFilters._isAllowedUrl = () => true;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(false);
-    });
-
-    it('should not drop when any of checks dont match', () => {
-      inboundFilters._isIgnoredError = () => false;
-      inboundFilters._isDeniedUrl = () => false;
-      inboundFilters._isAllowedUrl = () => true;
-      expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(false);
-    });
-  });
-
   describe('isSentryError', () => {
     const messageEvent = {
       message: 'captureMessage',
@@ -80,24 +60,26 @@ describe('InboundFilters', () => {
     };
 
     it('should work as expected', () => {
-      expect(inboundFilters._isSentryError(messageEvent, inboundFilters._mergeOptions())).toBe(false);
-      expect(inboundFilters._isSentryError(exceptionEvent, inboundFilters._mergeOptions())).toBe(false);
-      expect(inboundFilters._isSentryError(sentryEvent, inboundFilters._mergeOptions())).toBe(true);
+      const eventProcessor = createInboundFilters();
+      expect(eventProcessor(messageEvent)).toBe(messageEvent);
+      expect(eventProcessor(exceptionEvent)).toBe(exceptionEvent);
+      expect(eventProcessor(sentryEvent)).toBe(null);
     });
 
     it('should be configurable', () => {
-      inboundFilters = new InboundFilters({
-        ignoreInternal: false,
-      });
-      expect(inboundFilters._isSentryError(messageEvent, inboundFilters._mergeOptions())).toBe(false);
-      expect(inboundFilters._isSentryError(exceptionEvent, inboundFilters._mergeOptions())).toBe(false);
-      expect(inboundFilters._isSentryError(sentryEvent, inboundFilters._mergeOptions())).toBe(false);
+      const eventProcessor = createInboundFilters({ ignoreInternal: false });
+      expect(eventProcessor(messageEvent)).toBe(messageEvent);
+      expect(eventProcessor(exceptionEvent)).toBe(exceptionEvent);
+      expect(eventProcessor(sentryEvent)).toBe(sentryEvent);
     });
   });
 
   describe('ignoreErrors', () => {
     const messageEvent = {
       message: 'captureMessage',
+    };
+    const captureMessageSomethingEvent = {
+      message: 'captureMessageSomething',
     };
     const exceptionEvent = {
       exception: {
@@ -111,142 +93,88 @@ describe('InboundFilters', () => {
     };
 
     it('string filter with partial match', () => {
-      expect(
-        inboundFilters._isIgnoredError(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            ignoreErrors: ['capture'],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        ignoreErrors: ['capture'],
+      });
+      expect(eventProcessor(messageEvent)).toBe(null);
     });
 
     it('string filter with exact match', () => {
-      expect(
-        inboundFilters._isIgnoredError(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            ignoreErrors: ['captureMessage'],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        ignoreErrors: ['captureMessage'],
+      });
+      expect(eventProcessor(messageEvent)).toBe(null);
     });
 
     it('regexp filter with partial match', () => {
-      expect(
-        inboundFilters._isIgnoredError(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            ignoreErrors: [/capture/],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        ignoreErrors: [/capture/],
+      });
+      expect(eventProcessor(messageEvent)).toBe(null);
     });
 
     it('regexp filter with exact match', () => {
-      expect(
-        inboundFilters._isIgnoredError(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            ignoreErrors: [/^captureMessage$/],
-          }),
-        ),
-      ).toBe(true);
-      expect(
-        inboundFilters._isIgnoredError(
-          {
-            message: 'captureMessageSomething',
-          },
-          inboundFilters._mergeOptions({
-            ignoreErrors: [/^captureMessage$/],
-          }),
-        ),
-      ).toBe(false);
+      const eventProcessor = createInboundFilters({
+        ignoreErrors: [/^captureMessage$/],
+      });
+      expect(eventProcessor(messageEvent)).toBe(null);
+      expect(eventProcessor(captureMessageSomethingEvent)).toBe(captureMessageSomethingEvent);
     });
 
     it('uses message when both, message and exception are available', () => {
-      expect(
-        inboundFilters._isIgnoredError(
-          {
-            ...exceptionEvent,
-            ...messageEvent,
-          },
-          inboundFilters._mergeOptions({
-            ignoreErrors: [/captureMessage/],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        ignoreErrors: [/captureMessage/],
+      });
+      const event = {
+        ...exceptionEvent,
+        ...messageEvent,
+      };
+      expect(eventProcessor(event)).toBe(null);
     });
 
     it('can use multiple filters', () => {
-      expect(
-        inboundFilters._isIgnoredError(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            ignoreErrors: ['captureMessage', /SyntaxError/],
-          }),
-        ),
-      ).toBe(true);
-      expect(
-        inboundFilters._isIgnoredError(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            ignoreErrors: ['captureMessage', /SyntaxError/],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        ignoreErrors: ['captureMessage', /SyntaxError/],
+      });
+      expect(eventProcessor(messageEvent)).toBe(null);
+      expect(eventProcessor(exceptionEvent)).toBe(null);
     });
 
     it('uses default filters', () => {
-      expect(
-        inboundFilters._isIgnoredError(
-          {
-            exception: {
-              values: [
-                {
-                  type: '[undefined]',
-                  value: 'Script error.',
-                },
-              ],
+      const eventProcessor = createInboundFilters();
+      const defaultEvent = {
+        exception: {
+          values: [
+            {
+              type: '[undefined]',
+              value: 'Script error.',
             },
-          },
-          inboundFilters._mergeOptions(),
-        ),
-      ).toBe(true);
+          ],
+        },
+      };
+      expect(eventProcessor(defaultEvent)).toBe(null);
     });
 
     describe('on exception', () => {
       it('uses exceptions data when message is unavailable', () => {
-        expect(
-          inboundFilters._isIgnoredError(
-            exceptionEvent,
-            inboundFilters._mergeOptions({
-              ignoreErrors: ['SyntaxError: unidentified ? at line 1337'],
-            }),
-          ),
-        ).toBe(true);
+        const eventProcessor = createInboundFilters({
+          ignoreErrors: ['SyntaxError: unidentified ? at line 1337'],
+        });
+        expect(eventProcessor(exceptionEvent)).toBe(null);
       });
 
       it('can match on exception value', () => {
-        expect(
-          inboundFilters._isIgnoredError(
-            exceptionEvent,
-            inboundFilters._mergeOptions({
-              ignoreErrors: [/unidentified \?/],
-            }),
-          ),
-        ).toBe(true);
+        const eventProcessor = createInboundFilters({
+          ignoreErrors: [/unidentified \?/],
+        });
+        expect(eventProcessor(exceptionEvent)).toBe(null);
       });
 
       it('can match on exception type', () => {
-        expect(
-          inboundFilters._isIgnoredError(
-            exceptionEvent,
-            inboundFilters._mergeOptions({
-              ignoreErrors: [/^SyntaxError/],
-            }),
-          ),
-        ).toBe(true);
+        const eventProcessor = createInboundFilters({
+          ignoreErrors: [/^SyntaxError/],
+        });
+        expect(eventProcessor(exceptionEvent)).toBe(null);
       });
     });
   });
@@ -283,178 +211,76 @@ describe('InboundFilters', () => {
     };
 
     it('should filter captured message based on its stack trace using string filter', () => {
-      expect(
-        inboundFilters._isDeniedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(true);
-      expect(
-        inboundFilters._isAllowedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessorBoth = createInboundFilters({
+        allowUrls: ['https://awesome-analytics.io'],
+        denyUrls: ['https://awesome-analytics.io'],
+      });
+      expect(eventProcessorBoth(messageEvent)).toBe(null);
+      const eventProcessorAllow = createInboundFilters({
+        allowUrls: ['https://awesome-analytics.io'],
+      });
+      expect(eventProcessorAllow(messageEvent)).toBe(messageEvent);
+      const eventProcessorDeny = createInboundFilters({
+        denyUrls: ['https://awesome-analytics.io'],
+      });
+      expect(eventProcessorDeny(messageEvent)).toBe(null);
     });
 
     it('should filter captured message based on its stack trace using regexp filter', () => {
-      expect(
-        inboundFilters._isDeniedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            denyUrls: [/awesome-analytics\.io/],
-          }),
-        ),
-      ).toBe(true);
-      expect(
-        inboundFilters._isAllowedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            denyUrls: [/awesome-analytics\.io/],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessorDeny = createInboundFilters({
+        denyUrls: [/awesome-analytics\.io/],
+      });
+      expect(eventProcessorDeny(messageEvent)).toBe(null);
     });
 
     it('should not filter captured messages with no stacktraces', () => {
-      expect(
-        inboundFilters._isDeniedUrl(
-          {
-            message: 'any',
-          },
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(false);
-      expect(
-        inboundFilters._isAllowedUrl(
-          {
-            message: 'any',
-          },
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(true);
+      const simpleMessage = {
+        message: 'any',
+      };
+      const eventProcessor = createInboundFilters({
+        denyUrls: ['https://awesome-analytics.io'],
+      });
+      expect(eventProcessor(simpleMessage)).toBe(simpleMessage);
     });
 
     it('should filter captured exception based on its stack trace using string filter', () => {
-      expect(
-        inboundFilters._isDeniedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(true);
-      expect(
-        inboundFilters._isAllowedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        denyUrls: ['https://awesome-analytics.io'],
+      });
+      expect(eventProcessor(exceptionEvent)).toBe(null);
     });
 
     it('should filter captured exceptions based on its stack trace using regexp filter', () => {
-      expect(
-        inboundFilters._isDeniedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: [/awesome-analytics\.io/],
-            denyUrls: [/awesome-analytics\.io/],
-          }),
-        ),
-      ).toBe(true);
-      expect(
-        inboundFilters._isAllowedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: [/awesome-analytics\.io/],
-            denyUrls: [/awesome-analytics\.io/],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        denyUrls: [/awesome-analytics\.io/],
+      });
+      expect(eventProcessor(exceptionEvent)).toBe(null);
     });
 
     it('should not filter events that doesnt pass the test', () => {
-      expect(
-        inboundFilters._isDeniedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['some-other-domain.com'],
-            denyUrls: ['some-other-domain.com'],
-          }),
-        ),
-      ).toBe(false);
-      expect(
-        inboundFilters._isAllowedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['some-other-domain.com'],
-            denyUrls: ['some-other-domain.com'],
-          }),
-        ),
-      ).toBe(false);
+      const eventProcessor = createInboundFilters({
+        denyUrls: ['some-other-domain.com'],
+      });
+      expect(eventProcessor(exceptionEvent)).toBe(exceptionEvent);
     });
 
     it('should be able to use multiple filters', () => {
-      expect(
-        inboundFilters._isDeniedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['some-other-domain.com', /awesome-analytics\.io/],
-            denyUrls: ['some-other-domain.com', /awesome-analytics\.io/],
-          }),
-        ),
-      ).toBe(true);
-      expect(
-        inboundFilters._isAllowedUrl(
-          exceptionEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['some-other-domain.com', /awesome-analytics\.io/],
-            denyUrls: ['some-other-domain.com', /awesome-analytics\.io/],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        denyUrls: ['some-other-domain.com', /awesome-analytics\.io/],
+      });
+      expect(eventProcessor(exceptionEvent)).toBe(null);
     });
 
-    it('should not fail with malformed event event and default to false for isdeniedUrl and true for isallowedUrl', () => {
+    it('should not fail with malformed event event', () => {
       const malformedEvent = {
         stacktrace: {
           frames: undefined,
         },
       };
-      expect(
-        inboundFilters._isDeniedUrl(
-          malformedEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(false);
-      expect(
-        inboundFilters._isAllowedUrl(
-          malformedEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io'],
-            denyUrls: ['https://awesome-analytics.io'],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        denyUrls: ['https://awesome-analytics.io'],
+      });
+      expect(eventProcessor(malformedEvent)).toBe(malformedEvent);
     });
 
     it('should search for script names when there is an anonymous callback at the last frame', () => {
@@ -469,23 +295,10 @@ describe('InboundFilters', () => {
         },
       };
 
-      expect(
-        inboundFilters._isAllowedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io/some/file.js'],
-          }),
-        ),
-      ).toBe(true);
-
-      expect(
-        inboundFilters._isDeniedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            denyUrls: ['https://awesome-analytics.io/some/file.js'],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        denyUrls: ['https://awesome-analytics.io/some/file.js'],
+      });
+      expect(eventProcessor(messageEvent)).toBe(null);
     });
 
     it('should search for script names when the last frame is from native code', () => {
@@ -500,23 +313,10 @@ describe('InboundFilters', () => {
         },
       };
 
-      expect(
-        inboundFilters._isAllowedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            allowUrls: ['https://awesome-analytics.io/some/file.js'],
-          }),
-        ),
-      ).toBe(true);
-
-      expect(
-        inboundFilters._isDeniedUrl(
-          messageEvent,
-          inboundFilters._mergeOptions({
-            denyUrls: ['https://awesome-analytics.io/some/file.js'],
-          }),
-        ),
-      ).toBe(true);
+      const eventProcessor = createInboundFilters({
+        denyUrls: ['https://awesome-analytics.io/some/file.js'],
+      });
+      expect(eventProcessor(messageEvent)).toBe(null);
     });
   });
 });
