@@ -30,7 +30,7 @@ export function exceptionFromError(error: Error): Exception {
 
   const frames = extractStackFromError(error);
   if (frames.length) {
-    exception.stacktrace = { frames: extractStackFromError(error) };
+    exception.stacktrace = { frames };
   }
 
   return exception;
