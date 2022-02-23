@@ -27,16 +27,16 @@ body:
     attributes:
       label: Which package are you using?
       options:
-        - sentry/angular
-        - sentry/browser
-        - sentry/ember
-        - sentry/gatsby
-        - sentry/nextjs
-        - sentry/node
-        - sentry/react
-        - sentry/serverless
-        - sentry/vue
-        - sentry/wasm
+        - "@sentry/angular"
+        - "@sentry/browser"
+        - "@sentry/ember"
+        - "@sentry/gatsby"
+        - "@sentry/nextjs"
+        - "@sentry/node"
+        - "@sentry/react"
+        - "@sentry/serverless"
+        - "@sentry/vue"
+        - "@sentry/wasm"
     validations:
       required: true
   - type: input
