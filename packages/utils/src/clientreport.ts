@@ -9,7 +9,7 @@ import { dateTimestampInSeconds } from './time';
  * @param dsn A DSN that can be set on the header. Optional.
  */
 export function createClientReportEnvelope(
-  discarded_events: ClientReport['discarded_events'],
+  discarded_events: Array<ClientReport['discarded_events']>,
   dsn?: string,
   timestamp?: number,
 ): ClientReportEnvelope {
