@@ -32,6 +32,11 @@ mv next.config.js next.config.js.bak
 
 for NEXTJS_VERSION in 10 11 12; do
 
+  # export this to the env so that we can behave differently depending on which version of next we're testing, without
+  # having to pass this value from function to function to function to the one spot, deep in some callstack, where we
+  # actually need it
+  export NEXTJS_VERSION=$NEXTJS_VERSION
+
   # Next 10 requires at least Node v10
   if [ "$NODE_MAJOR" -lt "10" ]; then
     echo "[nextjs] Next.js is not compatible with versions of Node older than v10. Current version $NODE_VERSION"
