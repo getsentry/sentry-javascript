@@ -2,7 +2,7 @@ import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
 import { makeDsn, resolvedSyncPromise } from '@sentry/utils';
 
-import { eventFromException, eventFromMessage } from './eventbuilder';
+import { eventFromError, eventFromMessage } from './eventbuilder';
 import { HTTPSTransport, HTTPTransport } from './transports';
 import { NodeOptions } from './types';
 
@@ -16,7 +16,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromException(exception, hint));
+    return resolvedSyncPromise(eventFromError(exception, hint));
   }
 
   /**

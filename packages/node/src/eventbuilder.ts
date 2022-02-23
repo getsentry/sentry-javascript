@@ -23,18 +23,24 @@ export function extractStackFromError(error: Error): StackFrame[] {
  * Extracts stack frames from the error and builds a Sentry Exception
  */
 export function exceptionFromError(error: Error): Exception {
-  return {
+  const exception: Exception = {
     type: error.name || error.constructor.name,
     value: error.message,
-    stacktrace: { frames: extractStackFromError(error) },
   };
+
+  const frames = extractStackFromError(error);
+  if (frames.length) {
+    exception.stacktrace = { frames: extractStackFromError(error) };
+  }
+
+  return exception;
 }
 
 /**
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromException(exception: unknown, hint?: EventHint): Event {
+export function eventFromError(exception: unknown, hint?: EventHint): Event {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
   const providedMechanism: Mechanism | undefined =
