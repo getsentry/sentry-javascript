@@ -72,7 +72,7 @@ We deprecated the `Status` enum in `@sentry/tracing` and it will be removed in t
 
 ```js
 // New in 6.17.0:
-import { spanStatusfromHttpCode } from '@sentry/utils';
+import { spanStatusfromHttpCode } from '@sentry/tracing';
 
 const status = spanStatusfromHttpCode(403);
 
