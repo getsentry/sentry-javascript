@@ -7,7 +7,7 @@ body:
       label: Is there an existing issue for this?
       description: Please search to see if an issue already exists for the bug you encountered.
       options:
-        - label: I checked for existing issues https://github.com/getsentry/sentry-javascript/issues
+        - label: I have checked for existing issues https://github.com/getsentry/sentry-javascript/issues
           required: true
         - label: I reviewed the documentation https://docs.sentry.io/
           required: true
