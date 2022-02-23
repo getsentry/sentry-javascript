@@ -11,3 +11,7 @@ export const testOnlyIfNodeVersionAtLeast = (minVersion: number): jest.It => {
 
   return it;
 };
+
+export function parseEnvelope(env: string): Array<Record<any, any>> {
+  return env.split('\n').map(e => JSON.parse(e));
+}

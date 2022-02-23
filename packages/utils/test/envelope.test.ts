@@ -1,6 +1,7 @@
 import { EventEnvelope } from '@sentry/types';
 
-import { addHeaderToEnvelope, addItemToEnvelope, createEnvelope, serializeEnvelope } from '../src/envelope';
+import { addItemToEnvelope, createEnvelope, serializeEnvelope } from '../src/envelope';
+import { parseEnvelope } from './testutils';
 
 describe('envelope', () => {
   describe('createEnvelope()', () => {
@@ -16,28 +17,31 @@ describe('envelope', () => {
     });
   });
 
-  describe('addHeaderToEnvelope()', () => {
-    it('adds a header to the envelope', () => {
-      const env = createEnvelope({}, []);
-      expect(serializeEnvelope(env)).toMatchInlineSnapshot(`"{}"`);
-      const newEnv = addHeaderToEnvelope(env, { dsn: 'https://public@example.com/' });
-      expect(serializeEnvelope(newEnv)).toMatchInlineSnapshot(`"{\\"dsn\\":\\"https://public@example.com/\\"}"`);
+  describe('serializeEnvelope()', () => {
+    it('serializes an envelope', () => {
+      const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
+      expect(serializeEnvelope(env)).toMatchInlineSnapshot(
+        `"{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}"`,
+      );
     });
   });
 
   describe('addItemToEnvelope()', () => {
-    const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-    expect(serializeEnvelope(env)).toMatchInlineSnapshot(
-      `"{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}"`,
-    );
-    const newEnv = addItemToEnvelope<EventEnvelope>(env, [
-      { type: 'event' },
-      { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' },
-    ]);
-    expect(serializeEnvelope(newEnv)).toMatchInlineSnapshot(`
-      "{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}
-      {\\"type\\":\\"event\\"}
-      {\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\"}"
-    `);
+    it('adds an item to an envelope', () => {
+      const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
+      const parsedEnvelope = parseEnvelope(serializeEnvelope(env));
+      expect(parsedEnvelope).toHaveLength(1);
+      expect(parsedEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+
+      const newEnv = addItemToEnvelope<EventEnvelope>(env, [
+        { type: 'event' },
+        { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' },
+      ]);
+      const parsedNewEnvelope = parseEnvelope(serializeEnvelope(newEnv));
+      expect(parsedNewEnvelope).toHaveLength(3);
+      expect(parsedNewEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      expect(parsedNewEnvelope[1]).toEqual({ type: 'event' });
+      expect(parsedNewEnvelope[2]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' });
+    });
   });
 });
