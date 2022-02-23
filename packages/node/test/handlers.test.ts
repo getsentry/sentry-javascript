@@ -281,6 +281,22 @@ describe('requestHandler', () => {
       done();
     });
   });
+
+  it('checks if local scope was correctly attached to req', done => {
+    client = new NodeClient({ autoSessionTracking: false, release: '1.2' });
+    const hub = new Hub(client);
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    sentryRequestMiddleware(req, res, next);
+    const scope = sentryCore.getCurrentHub().getScope();
+    res.emit('finish');
+
+    setImmediate(() => {
+      expect((req as ExpressRequest).sentryScope).toBeDefined();
+      expect((req as ExpressRequest).sentryScope).toEqual(scope);
+      done();
+    });
+  });
 });
 
 describe('tracingHandler', () => {

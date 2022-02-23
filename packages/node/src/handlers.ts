@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, Scope, Transaction } from '@sentry/types';
 import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
@@ -37,6 +37,7 @@ export interface ExpressRequest {
   user?: {
     [key: string]: any;
   };
+  sentryScope?: Scope;
 }
 
 /**
@@ -418,6 +419,8 @@ export function requestHandler(
       const currentHub = getCurrentHub();
 
       currentHub.configureScope(scope => {
+        // expose the domain scope to the local req, so that we can attach additional information to it
+        (req as ExpressRequest).sentryScope = scope;
         scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
