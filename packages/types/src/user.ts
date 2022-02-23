@@ -6,3 +6,10 @@ export interface User {
   email?: string;
   username?: string;
 }
+
+export interface UserFeedback {
+  event_id: string;
+  email: User['email'];
+  name: string;
+  comments: string;
+}

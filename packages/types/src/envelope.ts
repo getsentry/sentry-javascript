@@ -1,70 +1,51 @@
+import { ClientReport } from './clientreport';
 import { Event } from './event';
-import { SentryRequestType } from './request';
 import { SdkInfo } from './sdkinfo';
 import { Session, SessionAggregates } from './session';
-import { Outcome } from './transport';
-import { User } from './user';
+import { UserFeedback } from './user';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
-type CommonEnvelopeHeaders = {
+export type BaseEnvelopeHeaders = {
+  [key: string]: unknown;
   dsn?: string;
   sdk?: SdkInfo;
 };
 
-type CommonEnvelopeItemHeaders = {
+export type BaseEnvelopeItemHeaders = {
+  [key: string]: unknown;
+  type: string;
   length?: number;
 };
 
-/**
- * 1st Item: Item headers
- * 2nd Item: Item payload
- */
-type BaseEnvelopeItem<ItemHeader extends { type: string }, Payload = unknown> = [
-  CommonEnvelopeItemHeaders & ItemHeader,
-  Payload,
-];
+export type BaseEnvelopeItem<IH extends BaseEnvelopeItemHeaders, P extends unknown> = [IH, P]; // P is for payload
 
-type UnknownEnvelopeItem = BaseEnvelopeItem<{ type: '__unknown__' }>;
+export type BaseEnvelope<
+  EH extends BaseEnvelopeHeaders,
+  I extends BaseEnvelopeItem<BaseEnvelopeItemHeaders, unknown>,
+> = [EH, I[]];
 
-type BaseEnvelope<
-  EnvelopeHeaders extends Record<string, unknown>,
-  EnvelopeItem extends BaseEnvelopeItem<{ type: string }>,
-> = {
-  headers: CommonEnvelopeHeaders & EnvelopeHeaders;
-  items: Array<EnvelopeItem | UnknownEnvelopeItem>;
-};
+type EventItemHeaders = { type: 'event' | 'transaction' };
+type AttachmentItemHeaders = { type: 'attachment'; filename: string };
+type UserFeedbackItemHeaders = { type: 'user_report' };
+type SessionItemHeaders = { type: 'session' };
+type SessionAggregatesItemHeaders = { type: 'sessions' };
+type ClientReportItemHeaders = { type: 'client_report' };
 
-export type EventEnvelopeItem = BaseEnvelopeItem<{ type: 'event' | 'transaction' }, Event>;
+export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
+export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, unknown>;
+export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
+export type SessionItem =
+  | BaseEnvelopeItem<SessionItemHeaders, Session>
+  | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
+export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 
-type AttachmentEnvelopeItem = BaseEnvelopeItem<{ type: 'attachment'; filename: 'string' }>;
+type EventEnvelopeHeaders = { event_id: string; sent_at: string };
+type SessionEnvelopeHeaders = { sent_at: string };
+type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 
-type UserFeedbackEnvelopeItem = BaseEnvelopeItem<
-  { type: 'user_report' },
-  {
-    event_id: string;
-    email: User['email'];
-    name: string;
-    comments: string;
-  }
->;
-
-export type EventEnvelope = BaseEnvelope<
-  { event_id: string; sent_at: string },
-  EventEnvelopeItem | AttachmentEnvelopeItem | UserFeedbackEnvelopeItem
->;
-
-export type SessionEnvelopeItem =
-  | BaseEnvelopeItem<{ type: 'session' }, Session>
-  | BaseEnvelopeItem<{ type: 'sessions' }, SessionAggregates>;
-
-export type SessionEnvelope = BaseEnvelope<{ sent_at: string }, SessionEnvelopeItem>;
-
-export type ClientReportEnvelopeItem = BaseEnvelopeItem<
-  { type: 'client_report' },
-  { timestamp: number; discarded_events: { reason: Outcome; category: SentryRequestType; quantity: number } }
->;
-
-export type ClientReportEnvelope = BaseEnvelope<Record<string, unknown>, ClientReportEnvelopeItem>;
+export type EventEnvelope = BaseEnvelope<EventEnvelopeHeaders, EventItem | AttachmentItem | UserFeedbackItem>;
+export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
+export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
 
 export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope;
