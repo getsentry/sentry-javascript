@@ -318,6 +318,7 @@ export function wrapHandler<TEvent, TResult>(
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
         if (options.ignoreSentryErrors && e instanceof SentryError) {
+          logger.error(e);
           return;
         }
         throw e;

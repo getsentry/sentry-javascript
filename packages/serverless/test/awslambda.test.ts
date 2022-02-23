@@ -212,7 +212,7 @@ describe('AWSLambda', () => {
       await expect(wrappedHandlerWithoutIgnoringSentryErrors(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(
         sentryError,
       );
-      await expect(wrappedHandlerWithIgnoringSentryErrors(fakeEvent, fakeContext, fakeCallback)).resolves.not.toThrow(
+      await expect(wrappedHandlerWithIgnoringSentryErrors(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(
         criticalUnhandledError,
       );
     });
