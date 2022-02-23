@@ -54,9 +54,10 @@ export function eventFromPlainObject(
   };
 
   if (syntheticException) {
-    event.stacktrace = {
-      frames: parseStackFrames(syntheticException),
-    };
+    const frames = parseStackFrames(syntheticException);
+    if (frames.length) {
+      event.stacktrace = { frames };
+    }
   }
 
   return event;
