@@ -1,8 +1,8 @@
-import { createClientReportEnvelope } from '../src/clientreports';
+import { createClientReportEnvelope } from '../src/clientreport';
 import { serializeEnvelope } from '../src/envelope';
-import { ClientReportEnvelopeItemPayload } from '@sentry/types';
+import { ClientReport } from '@sentry/types';
 
-const DEFAULT_DISCARDED_EVENTS: ClientReportEnvelopeItemPayload['discarded_events'] = [
+const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
   {
     reason: 'before_send',
     category: 'event',
