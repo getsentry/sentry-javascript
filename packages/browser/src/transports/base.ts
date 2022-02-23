@@ -138,7 +138,7 @@ export abstract class BaseTransport implements Transport {
         quantity: outcomes[key],
       };
       // TODO: Improve types on discarded_events to get rid of cast
-    }) as Array<ClientReport['discarded_events']>;
+    }) as ClientReport['discarded_events'];
     const envelope = createClientReportEnvelope(discardedEvents, this._api.tunnel && dsnToString(this._api.dsn));
 
     try {

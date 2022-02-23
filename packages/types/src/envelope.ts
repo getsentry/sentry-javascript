@@ -38,7 +38,7 @@ export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFee
 export type SessionItem =
   | BaseEnvelopeItem<SessionItemHeaders, Session>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
-export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, Array<ClientReport>>;
+export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 
 type EventEnvelopeHeaders = { event_id: string; sent_at: string };
 type SessionEnvelopeHeaders = { sent_at: string };
