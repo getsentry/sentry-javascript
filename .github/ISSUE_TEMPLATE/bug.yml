@@ -40,13 +40,19 @@ body:
     validations:
       required: true
   - type: input
-    id: version
+    id: sdk-version
     attributes:
-      label: Version
-      description: Which SDK version?
+      label: SDK Version
+      description: What version of the SDK are you using?
       placeholder: ex. 1.5.2
     validations:
       required: true
+  - type: input
+    id: framework-version
+    attributes:
+      label: Framework Version
+      description: If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the framework are you using?
+      placeholder: ex. 1.5.2
   - type: input
     id: link-to-sentry
     attributes:
