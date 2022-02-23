@@ -35,15 +35,15 @@ export function exceptionFromError(ex: Error): Exception {
 export function eventFromPlainObject(
   exception: Record<string, unknown>,
   syntheticException?: Error,
-  rejection?: boolean,
+  isUnhandledRejection?: boolean,
 ): Event {
   const event: Event = {
     exception: {
       values: [
         {
-          type: isEvent(exception) ? exception.constructor.name : rejection ? 'UnhandledRejection' : 'Error',
+          type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
           value: `Non-Error ${
-            rejection ? 'promise rejection' : 'exception'
+            isUnhandledRejection ? 'promise rejection' : 'exception'
           } captured with keys: ${extractExceptionKeysForMessage(exception)}`,
         },
       ],

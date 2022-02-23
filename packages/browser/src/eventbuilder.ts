@@ -17,11 +17,13 @@ import { eventFromError, eventFromPlainObject, parseStackFrames } from './parser
  * Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`.
  * @hidden
  */
-export function eventFromException(options: Options, exception: unknown, hint?: EventHint): PromiseLike<Event> {
+export function eventFromException(
+  exception: unknown,
+  hint?: EventHint,
+  attachStacktrace?: Options['attachStacktrace'],
+): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
-  const event = eventFromUnknownInput(exception, syntheticException, {
-    attachStacktrace: options.attachStacktrace,
-  });
+  const event = eventFromUnknownInput(exception, syntheticException, attachStacktrace);
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
   event.level = Severity.Error;
   if (hint && hint.event_id) {
@@ -35,15 +37,13 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
  * @hidden
  */
 export function eventFromMessage(
-  options: Options,
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
+  attachStacktrace?: Options['attachStacktrace'],
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
-  const event = eventFromString(message, syntheticException, {
-    attachStacktrace: options.attachStacktrace,
-  });
+  const event = eventFromString(message, syntheticException, attachStacktrace);
   event.level = level;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
@@ -57,10 +57,8 @@ export function eventFromMessage(
 export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
-  options: {
-    isRejection?: boolean;
-    attachStacktrace?: boolean;
-  } = {},
+  attachStacktrace?: Options['attachStacktrace'],
+  isUnhandledRejection?: boolean,
 ): Event {
   let event: Event;
 
@@ -85,7 +83,7 @@ export function eventFromUnknownInput(
     } else {
       const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
       const message = domException.message ? `${name}: ${domException.message}` : name;
-      event = eventFromString(message, syntheticException, options);
+      event = eventFromString(message, syntheticException, attachStacktrace);
       addExceptionTypeValue(event, message);
     }
     if ('code' in domException) {
@@ -103,7 +101,7 @@ export function eventFromUnknownInput(
     // it manually. This will allow us to group events based on top-level keys which is much better than creating a new
     // group on any key/value change.
     const objectException = exception as Record<string, unknown>;
-    event = eventFromPlainObject(objectException, syntheticException, options.isRejection);
+    event = eventFromPlainObject(objectException, syntheticException, isUnhandledRejection);
     addExceptionMechanism(event, {
       synthetic: true,
     });
@@ -119,7 +117,7 @@ export function eventFromUnknownInput(
   // - a plain Object
   //
   // So bail out and capture it as a simple message:
-  event = eventFromString(exception as string, syntheticException, options);
+  event = eventFromString(exception as string, syntheticException, attachStacktrace);
   addExceptionTypeValue(event, `${exception}`, undefined);
   addExceptionMechanism(event, {
     synthetic: true,
@@ -134,15 +132,13 @@ export function eventFromUnknownInput(
 export function eventFromString(
   input: string,
   syntheticException?: Error,
-  options: {
-    attachStacktrace?: boolean;
-  } = {},
+  attachStacktrace?: Options['attachStacktrace'],
 ): Event {
   const event: Event = {
     message: input,
   };
 
-  if (options.attachStacktrace && syntheticException) {
+  if (attachStacktrace && syntheticException) {
     const frames = parseStackFrames(syntheticException);
     if (frames.length) {
       event.stacktrace = { frames };
