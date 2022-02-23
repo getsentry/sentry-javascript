@@ -5,15 +5,12 @@ const mainModule: string = `${
 }/`;
 
 /** Gets the module */
-function getModule(filename: string | undefined, base?: string): string | undefined {
+function getModule(filename: string | undefined): string | undefined {
   if (!filename) {
     return;
   }
 
-  if (!base) {
-    // eslint-disable-next-line no-param-reassign
-    base = mainModule;
-  }
+  const base = mainModule;
 
   // It's specifically a module
   const file = basename(filename, '.js');
@@ -113,7 +110,7 @@ export const node: StackLineParser = (line: string) => {
   const in_app = !isInternal && filename !== undefined && !filename.includes('node_modules/');
 
   return {
-    filename: lineMatch[2],
+    filename,
     module: getModule(filename),
     function: fn,
     lineno: parseInt(lineMatch[3], 10) || undefined,
