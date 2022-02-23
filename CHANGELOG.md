@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.18.0
+
+This patch deprecates the `frameContextLines` option for the Node SDK. The [migration documentation](./MIGRATION.md#upgrading-from-6.17.x-to-6.18.0) details how to migrate off the deprecated `frameContextLines` option.
+
+- fix(browser): Only set event.stacktrace if we have 1 or more frames ([#4614](https://github.com/getsentry/sentry-javascript/pull/4614))
+- fix(hub): keep hint event id if it's provided ([#4577](https://github.com/getsentry/sentry-javascript/pull/4577))
+- fix(nextjs): Use env variable for build detection ([#4608](https://github.com/getsentry/sentry-javascript/pull/4608))
+- ref(node): Refactor node source fetching into integration ([#3729](https://github.com/getsentry/sentry-javascript/pull/3729))
+- feat(serverless): Added `ignoreSentryErrors` option for AWS lambda ([#4620](https://github.com/getsentry/sentry-javascript/pull/4620))
+
 ## 6.17.9
 
 - fix(gatsby): Add missing React peer dependency ([#4576](https://github.com/getsentry/sentry-javascript/pull/4576))

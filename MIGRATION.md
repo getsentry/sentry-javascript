@@ -1,3 +1,21 @@
+# Upgrading from 6.17.x to 6.18.0
+
+This patch deprecates the `frameContextLines` option for the Node SDK. This option will be removed in an upcoming major version. To migrate off the option, pass in the option to the new `ContextLines` integration.
+
+```js
+// New in 6.18.0
+init({
+  dsn: '__DSN__',
+  integrations: [new ContextLines({ frameContextLines: 10 })]
+});
+
+// Before:
+init({
+  dsn: '__DSN__',
+  frameContextLines: 10,
+});
+```
+
 # Upgrading from 6.x to 6.17.x
 
 You only need to make changes when migrating to `6.17.x` if you are using our internal `Dsn` class. Our internal API class and typescript enums were deprecated, so we recommend you migrate them as well.
