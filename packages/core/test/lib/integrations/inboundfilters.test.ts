@@ -1,5 +1,6 @@
-import { InboundFilters, InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 import { EventProcessor } from '@sentry/types';
+
+import { InboundFilters, InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 
 /** JSDoc */
 function createInboundFiltersEventProcessor(
