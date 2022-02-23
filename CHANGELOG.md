@@ -14,6 +14,8 @@ This patch deprecates the `frameContextLines` option for the Node SDK. The [migr
 - ref(node): Refactor node source fetching into integration ([#3729](https://github.com/getsentry/sentry-javascript/pull/3729))
 - feat(serverless): Added `ignoreSentryErrors` option for AWS lambda ([#4620](https://github.com/getsentry/sentry-javascript/pull/4620))
 
+Work in this release contributed by @GoshaEgorian and @ichina. Thank you for your contributions!
+
 ## 6.17.9
 
 - fix(gatsby): Add missing React peer dependency ([#4576](https://github.com/getsentry/sentry-javascript/pull/4576))
