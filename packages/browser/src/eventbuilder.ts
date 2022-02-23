@@ -143,9 +143,10 @@ export function eventFromString(
   };
 
   if (options.attachStacktrace && syntheticException) {
-    event.stacktrace = {
-      frames: parseStackFrames(syntheticException),
-    };
+    const frames = parseStackFrames(syntheticException);
+    if (frames.length) {
+      event.stacktrace = { frames };
+    }
   }
 
   return event;

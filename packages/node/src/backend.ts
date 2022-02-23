@@ -16,7 +16,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(this._options, exception, hint);
+    return eventFromException(exception, hint);
   }
 
   /**

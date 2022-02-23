@@ -40,7 +40,10 @@ module.exports = async ({ url: urlBase, argv }) => {
     'tracingHttp',
   );
 
-  await getAsync(url);
+  // The `true` causes `getAsync` to rewrap `http.get` in next 12, since it will have been overwritten by the import of
+  // `nock` above. See https://github.com/getsentry/sentry-javascript/pull/4619.
+  // TODO: see note in `getAsync` about removing the boolean
+  await getAsync(url, true);
   await sleep(250);
 
   assert.ok(capturedRequest.isDone(), 'Did not intercept expected request');
