@@ -1,16 +1,23 @@
 export { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export { Client } from './client';
+export { ClientReport } from './clientreport';
 export { Context, Contexts } from './context';
 export { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
 export {
+  AttachmentItem,
+  BaseEnvelope,
+  BaseEnvelopeHeaders,
+  BaseEnvelopeItem,
+  BaseEnvelopeItemHeaders,
   ClientReportEnvelope,
-  ClientReportEnvelopeItem,
+  ClientReportItem,
   Envelope,
   EventEnvelope,
-  EventEnvelopeItem,
+  EventItem,
   SessionEnvelope,
-  SessionEnvelopeItem,
+  SessionItem,
+  UserFeedbackItem,
 } from './envelope';
 export { ExtendedError } from './error';
 export { Event, EventHint } from './event';
@@ -58,5 +65,5 @@ export {
 } from './transaction';
 export { Thread } from './thread';
 export { Outcome, Transport, TransportOptions, TransportClass } from './transport';
-export { User } from './user';
+export { User, UserFeedback } from './user';
 export { WrappedFunction } from './wrappedfunction';
