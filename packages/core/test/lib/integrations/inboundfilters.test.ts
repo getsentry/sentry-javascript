@@ -50,6 +50,108 @@ function createInboundFiltersEventProcessor(
   return eventProcessors[0];
 }
 
+// Fixtures
+
+const MESSAGE_EVENT = {
+  message: 'captureMessage',
+};
+
+const MESSAGE_EVENT_2 = {
+  message: 'captureMessageSomething',
+};
+
+const MESSAGE_EVENT_WITH_STACKTRACE = {
+  message: 'wat',
+  stacktrace: {
+    // Frames are always in the reverse order, as this is how Sentry expect them to come.
+    // Frame that crashed is the last one, the one from awesome-analytics
+    frames: [
+      { filename: 'https://our-side.com/js/bundle.js' },
+      { filename: 'https://our-side.com/js/bundle.js' },
+      { filename: 'https://awesome-analytics.io/some/file.js' },
+    ],
+  },
+};
+
+const MESSAGE_EVENT_WITH_ANON_LAST_FRAME = {
+  message: 'any',
+  stacktrace: {
+    frames: [
+      { filename: 'https://our-side.com/js/bundle.js' },
+      { filename: 'https://awesome-analytics.io/some/file.js' },
+      { filename: '<anonymous>' },
+    ],
+  },
+};
+
+const MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME = {
+  message: 'any',
+  stacktrace: {
+    frames: [
+      { filename: 'https://our-side.com/js/bundle.js' },
+      { filename: 'https://awesome-analytics.io/some/file.js' },
+      { filename: '[native code]' },
+    ],
+  },
+};
+
+const EXCEPTION_EVENT = {
+  exception: {
+    values: [
+      {
+        type: 'SyntaxError',
+        value: 'unidentified ? at line 1337',
+      },
+    ],
+  },
+};
+
+const EXCEPTION_EVENT_WITH_FRAMES = {
+  exception: {
+    values: [
+      {
+        stacktrace: {
+          // Frames are always in the reverse order, as this is how Sentry expect them to come.
+          // Frame that crashed is the last one, the one from awesome-analytics
+          frames: [
+            { filename: 'https://our-side.com/js/bundle.js' },
+            { filename: 'https://our-side.com/js/bundle.js' },
+            { filename: 'https://awesome-analytics.io/some/file.js' },
+          ],
+        },
+      },
+    ],
+  },
+};
+
+const SENTRY_EVENT = {
+  exception: {
+    values: [
+      {
+        type: 'SentryError',
+        value: 'something something server connection',
+      },
+    ],
+  },
+};
+
+const SCRIPT_ERROR_EVENT = {
+  exception: {
+    values: [
+      {
+        type: '[undefined]',
+        value: 'Script error.',
+      },
+    ],
+  },
+};
+
+const MALFORMED_EVENT = {
+  stacktrace: {
+    frames: undefined,
+  },
+};
+
 describe('InboundFilters', () => {
   describe('_isSentryError', () => {
     it('should work as expected', () => {
@@ -225,105 +327,3 @@ describe('InboundFilters', () => {
     });
   });
 });
-
-// Fixtures
-
-const MESSAGE_EVENT = {
-  message: 'captureMessage',
-};
-
-const MESSAGE_EVENT_2 = {
-  message: 'captureMessageSomething',
-};
-
-const MESSAGE_EVENT_WITH_STACKTRACE = {
-  message: 'wat',
-  stacktrace: {
-    // Frames are always in the reverse order, as this is how Sentry expect them to come.
-    // Frame that crashed is the last one, the one from awesome-analytics
-    frames: [
-      { filename: 'https://our-side.com/js/bundle.js' },
-      { filename: 'https://our-side.com/js/bundle.js' },
-      { filename: 'https://awesome-analytics.io/some/file.js' },
-    ],
-  },
-};
-
-const MESSAGE_EVENT_WITH_ANON_LAST_FRAME = {
-  message: 'any',
-  stacktrace: {
-    frames: [
-      { filename: 'https://our-side.com/js/bundle.js' },
-      { filename: 'https://awesome-analytics.io/some/file.js' },
-      { filename: '<anonymous>' },
-    ],
-  },
-};
-
-const MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME = {
-  message: 'any',
-  stacktrace: {
-    frames: [
-      { filename: 'https://our-side.com/js/bundle.js' },
-      { filename: 'https://awesome-analytics.io/some/file.js' },
-      { filename: '[native code]' },
-    ],
-  },
-};
-
-const EXCEPTION_EVENT = {
-  exception: {
-    values: [
-      {
-        type: 'SyntaxError',
-        value: 'unidentified ? at line 1337',
-      },
-    ],
-  },
-};
-
-const EXCEPTION_EVENT_WITH_FRAMES = {
-  exception: {
-    values: [
-      {
-        stacktrace: {
-          // Frames are always in the reverse order, as this is how Sentry expect them to come.
-          // Frame that crashed is the last one, the one from awesome-analytics
-          frames: [
-            { filename: 'https://our-side.com/js/bundle.js' },
-            { filename: 'https://our-side.com/js/bundle.js' },
-            { filename: 'https://awesome-analytics.io/some/file.js' },
-          ],
-        },
-      },
-    ],
-  },
-};
-
-const SENTRY_EVENT = {
-  exception: {
-    values: [
-      {
-        type: 'SentryError',
-        value: 'something something server connection',
-      },
-    ],
-  },
-};
-
-const SCRIPT_ERROR_EVENT = {
-  exception: {
-    values: [
-      {
-        type: '[undefined]',
-        value: 'Script error.',
-      },
-    ],
-  },
-};
-
-const MALFORMED_EVENT = {
-  stacktrace: {
-    frames: undefined,
-  },
-};
