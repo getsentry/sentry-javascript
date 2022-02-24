@@ -6,6 +6,7 @@ function getModule(filename: string | undefined): string | undefined {
     return;
   }
 
+  // We could use optional chaining here but webpack does like that mixed with require
   const base = `${
     (require && require.main && require.main.filename && dirname(require.main.filename)) || global.process.cwd()
   }/`;
