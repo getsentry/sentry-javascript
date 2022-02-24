@@ -24,7 +24,7 @@
     "@sentry/react": "6.18.0",
     "@sentry/tracing": "6.18.0",
     "@sentry/utils": "6.18.0",
-    "@sentry/webpack-plugin": "1.18.5",
+    "@sentry/webpack-plugin": "1.18.7",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
@@ -34,8 +34,7 @@
   },
   "peerDependencies": {
     "next": "^10.0.8 || ^11.0 || ^12.0",
-    "react": "15.x || 16.x || 17.x",
-    "webpack": ">= 4.0.0"
+    "react": "15.x || 16.x || 17.x"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm",

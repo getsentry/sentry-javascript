@@ -3157,6 +3157,13 @@
   dependencies:
     "@sentry/cli" "^1.72.0"
 
+"@sentry/webpack-plugin@1.18.7":
+  version "1.18.7"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.18.7.tgz#f48dbebb4989f3a357280f2c92a8d4b5b963f6ec"
+  integrity sha512-pOJLzC2unQdtrQarcicZ3aPs6hnQUjMvVmRN7s+/m7PEITvvf24hgIPdbLnn6PVQARvFA8mbbst0+eHMi44veA==
+  dependencies:
+    "@sentry/cli" "^1.72.0"
+
 "@simple-dom/interface@^1.4.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@simple-dom/interface/-/interface-1.4.0.tgz#e8feea579232017f89b0138e2726facda6fbb71f"
