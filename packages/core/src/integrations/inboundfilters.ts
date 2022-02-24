@@ -35,7 +35,7 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(addGlobalEventProcessor: (processor: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((event: Event) => {
       const hub = getCurrentHub();
       if (hub) {
@@ -54,28 +54,32 @@ export class InboundFilters implements Integration {
 
 /** JSDoc */
 export function _mergeOptions(
-  intOptions: Partial<InboundFiltersOptions> = {},
+  internalOptions: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): Partial<InboundFiltersOptions> {
   return {
     allowUrls: [
       // eslint-disable-next-line deprecation/deprecation
-      ...(intOptions.whitelistUrls || []),
-      ...(intOptions.allowUrls || []),
+      ...(internalOptions.whitelistUrls || []),
+      ...(internalOptions.allowUrls || []),
       // eslint-disable-next-line deprecation/deprecation
       ...(clientOptions.whitelistUrls || []),
       ...(clientOptions.allowUrls || []),
     ],
     denyUrls: [
       // eslint-disable-next-line deprecation/deprecation
-      ...(intOptions.blacklistUrls || []),
-      ...(intOptions.denyUrls || []),
+      ...(internalOptions.blacklistUrls || []),
+      ...(internalOptions.denyUrls || []),
       // eslint-disable-next-line deprecation/deprecation
       ...(clientOptions.blacklistUrls || []),
       ...(clientOptions.denyUrls || []),
     ],
-    ignoreErrors: [...(intOptions.ignoreErrors || []), ...(clientOptions.ignoreErrors || []), ...DEFAULT_IGNORE_ERRORS],
-    ignoreInternal: typeof intOptions.ignoreInternal !== 'undefined' ? intOptions.ignoreInternal : true,
+    ignoreErrors: [
+      ...(internalOptions.ignoreErrors || []),
+      ...(clientOptions.ignoreErrors || []),
+      ...DEFAULT_IGNORE_ERRORS,
+    ],
+    ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }
 

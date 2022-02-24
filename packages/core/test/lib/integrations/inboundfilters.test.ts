@@ -2,16 +2,33 @@ import { EventProcessor } from '@sentry/types';
 
 import { InboundFilters, InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 
-/** JSDoc */
+/**
+ * Creates an instance of the InboundFilters integration and returns
+ * the event processor that the InboundFilters integration creates.
+ *
+ * To test the InboundFilters integration, call this function and assert on
+ * how the event processor handles an event. For example, if you set up the
+ * InboundFilters to filter out an SOME_EXCEPTION_EVENT.
+ *
+ * ```
+ * // some options that cause SOME_EXCEPTION_EVENT to be filtered
+ * const eventProcessor = createInboundFiltersEventProcessor(options);
+ *
+ * expect(eventProcessor(SOME_EXCEPTION_EVENT)).toBe(null);
+ * ```
+ *
+ * @param options options passed into the InboundFilters integration
+ * @param clientOptions options passed into the mock Sentry client
+ */
 function createInboundFiltersEventProcessor(
   options: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): EventProcessor {
   const eventProcessors: EventProcessor[] = [];
-  const inboundFilters = new InboundFilters(options);
+  const inboundFiltersInstance = new InboundFilters(options);
 
-  function addGlobalEventProcessor(callback: EventProcessor): void {
-    eventProcessors.push(callback);
+  function addGlobalEventProcessor(processor: EventProcessor): void {
+    eventProcessors.push(processor);
     expect(eventProcessors).toHaveLength(1);
   }
 
@@ -19,7 +36,7 @@ function createInboundFiltersEventProcessor(
     return {
       getIntegration(_integration: any): any {
         // pretend integration is enabled
-        return inboundFilters;
+        return inboundFiltersInstance;
       },
       getClient(): any {
         return {
@@ -29,13 +46,12 @@ function createInboundFiltersEventProcessor(
     };
   }
 
-  inboundFilters.setupOnce(addGlobalEventProcessor, getCurrentHub);
-
+  inboundFiltersInstance.setupOnce(addGlobalEventProcessor, getCurrentHub);
   return eventProcessors[0];
 }
 
 describe('InboundFilters', () => {
-  describe('isSentryError', () => {
+  describe('_isSentryError', () => {
     it('should work as expected', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(MESSAGE_EVENT)).toBe(MESSAGE_EVENT);
@@ -81,7 +97,7 @@ describe('InboundFilters', () => {
       expect(eventProcessor(MESSAGE_EVENT_2)).toBe(MESSAGE_EVENT_2);
     });
 
-    it('uses message when both, message and exception are available', () => {
+    it('prefers message when both message and exception are available', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         ignoreErrors: [/captureMessage/],
       });
@@ -102,11 +118,11 @@ describe('InboundFilters', () => {
 
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
-      expect(eventProcessor(DEFAULT_EVENT)).toBe(null);
+      expect(eventProcessor(SCRIPT_ERROR_EVENT)).toBe(null);
     });
 
     describe('on exception', () => {
-      it('uses exceptions data when message is unavailable', () => {
+      it('uses exception data when message is unavailable', () => {
         const eventProcessor = createInboundFiltersEventProcessor({
           ignoreErrors: ['SyntaxError: unidentified ? at line 1337'],
         });
@@ -131,19 +147,18 @@ describe('InboundFilters', () => {
 
   describe('denyUrls/allowUrls', () => {
     it('should filter captured message based on its stack trace using string filter', () => {
+      const eventProcessorDeny = createInboundFiltersEventProcessor({
+        denyUrls: ['https://awesome-analytics.io'],
+      });
+      expect(eventProcessorDeny(MESSAGE_EVENT_WITH_STACKTRACE)).toBe(null);
+    });
+
+    it('should allow denyUrls to take precedence', () => {
       const eventProcessorBoth = createInboundFiltersEventProcessor({
         allowUrls: ['https://awesome-analytics.io'],
         denyUrls: ['https://awesome-analytics.io'],
       });
       expect(eventProcessorBoth(MESSAGE_EVENT_WITH_STACKTRACE)).toBe(null);
-      const eventProcessorAllow = createInboundFiltersEventProcessor({
-        allowUrls: ['https://awesome-analytics.io'],
-      });
-      expect(eventProcessorAllow(MESSAGE_EVENT_WITH_STACKTRACE)).toBe(MESSAGE_EVENT_WITH_STACKTRACE);
-      const eventProcessorDeny = createInboundFiltersEventProcessor({
-        denyUrls: ['https://awesome-analytics.io'],
-      });
-      expect(eventProcessorDeny(MESSAGE_EVENT_WITH_STACKTRACE)).toBe(null);
     });
 
     it('should filter captured message based on its stack trace using regexp filter', () => {
@@ -167,7 +182,7 @@ describe('InboundFilters', () => {
       expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES)).toBe(null);
     });
 
-    it('should filter captured exceptions based on its stack trace using regexp filter', () => {
+    it('should filter captured exception based on its stack trace using regexp filter', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: [/awesome-analytics\.io/],
       });
@@ -199,14 +214,14 @@ describe('InboundFilters', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io/some/file.js'],
       });
-      expect(eventProcessor(MESSAGE_EVENT_WITH_ANON_FRAME)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT_WITH_ANON_LAST_FRAME)).toBe(null);
     });
 
     it('should search for script names when the last frame is from native code', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io/some/file.js'],
       });
-      expect(eventProcessor(MESSAGE_EVENT_WITH_NATIVE_FRAME)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME)).toBe(null);
     });
   });
 });
@@ -234,7 +249,7 @@ const MESSAGE_EVENT_WITH_STACKTRACE = {
   },
 };
 
-const MESSAGE_EVENT_WITH_ANON_FRAME = {
+const MESSAGE_EVENT_WITH_ANON_LAST_FRAME = {
   message: 'any',
   stacktrace: {
     frames: [
@@ -245,7 +260,7 @@ const MESSAGE_EVENT_WITH_ANON_FRAME = {
   },
 };
 
-const MESSAGE_EVENT_WITH_NATIVE_FRAME = {
+const MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME = {
   message: 'any',
   stacktrace: {
     frames: [
@@ -296,7 +311,7 @@ const SENTRY_EVENT = {
   },
 };
 
-const DEFAULT_EVENT = {
+const SCRIPT_ERROR_EVENT = {
   exception: {
     values: [
       {
