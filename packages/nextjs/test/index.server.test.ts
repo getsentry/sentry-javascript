@@ -1,4 +1,3 @@
-import { BaseClient } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
@@ -17,7 +16,6 @@ const global = getGlobalObject();
 (global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
-const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
 const logError = jest.spyOn(logger, 'error');
 
 describe('Server init()', () => {
@@ -91,7 +89,7 @@ describe('Server init()', () => {
     expect(currentScope._tags.vercel).toBeUndefined();
   });
 
-  it('adds 404 transaction filter', () => {
+  it('adds 404 transaction filter', async () => {
     init({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
@@ -102,8 +100,10 @@ describe('Server init()', () => {
     const transaction = hub.startTransaction({ name: '/404' });
     transaction.finish();
 
+    // We need to flush because the event processor pipeline is async whereas transaction.finish() is sync.
+    await SentryNode.flush();
+
     expect(sendEvent).not.toHaveBeenCalled();
-    expect(captureEvent.mock.results[0].value).toBeUndefined();
     expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 

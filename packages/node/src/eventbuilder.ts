@@ -16,7 +16,7 @@ import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } 
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromException(options: Options, exception: unknown, hint?: EventHint): PromiseLike<Event> {
+export function eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
   const providedMechanism: Mechanism | undefined =
@@ -48,7 +48,7 @@ export function eventFromException(options: Options, exception: unknown, hint?: 
   }
 
   return new SyncPromise<Event>((resolve, reject) =>
-    parseError(ex as Error, options)
+    parseError(ex as Error)
       .then(event => {
         addExceptionTypeValue(event, undefined, undefined);
         addExceptionMechanism(event, mechanism);
@@ -81,16 +81,11 @@ export function eventFromMessage(
   return new SyncPromise<Event>(resolve => {
     if (options.attachStacktrace && hint && hint.syntheticException) {
       const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-      void parseStack(stack, options)
-        .then(frames => {
-          event.stacktrace = {
-            frames: prepareFramesForEvent(frames),
-          };
-          resolve(event);
-        })
-        .then(null, () => {
-          resolve(event);
-        });
+      const frames = parseStack(stack);
+      event.stacktrace = {
+        frames: prepareFramesForEvent(frames),
+      };
+      resolve(event);
     } else {
       resolve(event);
     }
