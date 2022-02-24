@@ -1,4 +1,4 @@
-import { Event, EventHint, Options, Severity } from '@sentry/types';
+import { Event, EventHint, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -20,7 +20,7 @@ import { eventFromError, eventFromPlainObject, parseStackFrames } from './parser
 export function eventFromException(
   exception: unknown,
   hint?: EventHint,
-  attachStacktrace?: Options['attachStacktrace'],
+  attachStacktrace?: boolean,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
   const event = eventFromUnknownInput(exception, syntheticException, attachStacktrace);
@@ -40,7 +40,7 @@ export function eventFromMessage(
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
-  attachStacktrace?: Options['attachStacktrace'],
+  attachStacktrace?: boolean,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
   const event = eventFromString(message, syntheticException, attachStacktrace);
@@ -57,7 +57,7 @@ export function eventFromMessage(
 export function eventFromUnknownInput(
   exception: unknown,
   syntheticException?: Error,
-  attachStacktrace?: Options['attachStacktrace'],
+  attachStacktrace?: boolean,
   isUnhandledRejection?: boolean,
 ): Event {
   let event: Event;
@@ -129,11 +129,7 @@ export function eventFromUnknownInput(
 /**
  * @hidden
  */
-export function eventFromString(
-  input: string,
-  syntheticException?: Error,
-  attachStacktrace?: Options['attachStacktrace'],
-): Event {
+export function eventFromString(input: string, syntheticException?: Error, attachStacktrace?: boolean): Event {
   const event: Event = {
     message: input,
   };
