@@ -291,7 +291,7 @@ describe('InboundFilters', () => {
       expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES)).toBe(null);
     });
 
-    it('should not filter events that doesnt pass the test', () => {
+    it("should not filter events that don't match the filtered values", () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['some-other-domain.com'],
       });
