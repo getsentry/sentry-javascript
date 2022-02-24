@@ -284,8 +284,8 @@ jobs:
         bundle:
           - esm
           - cjs
-          - bundle
-          - bundle_min
+          - bundle_es5
+          - bundle_es5_min
           - bundle_es6
           - bundle_es6_min
         tracing_only:

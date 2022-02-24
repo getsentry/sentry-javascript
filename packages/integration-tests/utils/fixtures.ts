@@ -11,10 +11,10 @@ const getAsset = (assetDir: string, asset: string): string => {
     return assetPath;
   }
 
-  const upperDirAssetPath = `${path.dirname(assetDir)}/${asset}`;
+  const parentDirAssetPath = `${path.dirname(assetDir)}/${asset}`;
 
-  if (fs.existsSync(upperDirAssetPath)) {
-    return upperDirAssetPath;
+  if (fs.existsSync(parentDirAssetPath)) {
+    return parentDirAssetPath;
   }
 
   return `utils/defaults/${asset}`;
