@@ -6,9 +6,7 @@ export { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
 export {
   AttachmentItem,
-  BaseEnvelope,
   BaseEnvelopeHeaders,
-  BaseEnvelopeItem,
   BaseEnvelopeItemHeaders,
   ClientReportEnvelope,
   ClientReportItem,
