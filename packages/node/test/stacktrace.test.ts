@@ -1,3 +1,15 @@
+/**
+ * stack-trace - Parses node.js stack traces
+ *
+ * These tests were originally forked to fix this issue:
+ * https://github.com/felixge/node-stack-trace/issues/31
+ *
+ * Mar 19,2019 - #4fd379e
+ *
+ * https://github.com/felixge/node-stack-trace/
+ * @license MIT
+ */
+
 import { extractStackFromError } from '../src/eventbuilder';
 
 function testBasic() {
