@@ -1,5 +1,4 @@
-import { rejectedSyncPromise, resolvedSyncPromise } from '../dist';
-import { SyncPromise } from '../src/syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from '../src/syncpromise';
 
 describe('SyncPromise', () => {
   test('simple', () => {
