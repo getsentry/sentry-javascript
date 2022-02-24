@@ -230,7 +230,7 @@ jobs:
 
   job_unit_test_windows:
     name: Test (Node ${{ matrix.node }} - Windows)
-    needs: job_build
+    needs: job_install_deps_windows
     continue-on-error: true
     timeout-minutes: 30
     runs-on: windows-latest
@@ -249,13 +249,8 @@ jobs:
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key_windows }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run tests
-        run: node ./scripts/test.js
+        run: cd packages/node && yarn test
 
   # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
   # separate job allows them to run in parallel with the other tests.
