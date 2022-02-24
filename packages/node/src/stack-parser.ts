@@ -87,16 +87,6 @@ export const node: StackLineParser = (line: string) => {
     functionName = undefined;
   }
 
-  let fn;
-  try {
-    fn = functionName || `${typeName}.${methodName || '<anonymous>'}`;
-  } catch (_) {
-    // This seems to happen sometimes when using 'use strict',
-    // stemming from `getTypeName`.
-    // [TypeError: Cannot read property 'constructor' of undefined]
-    fn = '<anonymous>';
-  }
-
   const filename = lineMatch[2];
   const isNative = lineMatch[5] === 'native';
   const isInternal =
@@ -110,7 +100,7 @@ export const node: StackLineParser = (line: string) => {
   return {
     filename,
     module: getModule(filename),
-    function: fn,
+    function: functionName || `${typeName}.${methodName || '<anonymous>'}`,
     lineno: parseInt(lineMatch[3], 10) || undefined,
     colno: parseInt(lineMatch[4], 10) || undefined,
     in_app,
