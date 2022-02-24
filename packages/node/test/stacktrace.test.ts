@@ -31,7 +31,7 @@ describe('Stack parsing', () => {
     const last = frames.length - 1;
     expect(frames[last].filename).toEqual(__filename);
     expect(frames[last].function).toEqual('testBasic');
-    expect(frames[last].lineno).toEqual(4);
+    expect(frames[last].lineno).toEqual(16);
     expect(frames[last].colno).toEqual(10);
   });
 
