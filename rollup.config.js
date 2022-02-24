@@ -3,6 +3,7 @@
  */
 
 import license from 'rollup-plugin-license';
+import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
@@ -71,6 +72,10 @@ export const typescriptPluginES5 = typescript({
     },
   },
   include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
+});
+
+export const nodeResolvePlugin = resolve({
+  mainFields: ['module'],
 });
 
 export const baseBundleConfig = {

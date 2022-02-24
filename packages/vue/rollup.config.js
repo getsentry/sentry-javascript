@@ -1,9 +1,8 @@
-import resolve from '@rollup/plugin-node-resolve';
-
 import {
   baseBundleConfig,
   makeLicensePlugin,
   markAsBrowserBuild,
+  nodeResolvePlugin,
   terserPlugin,
   typescriptPluginES5,
 } from '../../rollup.config';
@@ -14,9 +13,7 @@ const plugins = [
   typescriptPluginES5,
   // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
   markAsBrowserBuild,
-  resolve({
-    mainFields: ['module'],
-  }),
+  nodeResolvePlugin,
   licensePlugin,
 ];
 
