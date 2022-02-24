@@ -1,22 +1,46 @@
 import { getCurrentHub } from '@sentry/hub';
-import { Event, EventHint, Mechanism, Options, Severity } from '@sentry/types';
+import { Event, EventHint, Exception, Mechanism, Options, Severity, StackFrame } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
+  createStackParser,
   extractExceptionKeysForMessage,
   isError,
   isPlainObject,
   normalizeToSize,
-  SyncPromise,
 } from '@sentry/utils';
 
-import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
+import { nodeStackParser } from './stack-parser';
+
+/**
+ * Extracts stack frames from the error.stack string
+ */
+export function extractStackFromError(error: Error): StackFrame[] {
+  return createStackParser(nodeStackParser)(error.stack || '');
+}
+
+/**
+ * Extracts stack frames from the error and builds a Sentry Exception
+ */
+export function exceptionFromError(error: Error): Exception {
+  const exception: Exception = {
+    type: error.name || error.constructor.name,
+    value: error.message,
+  };
+
+  const frames = extractStackFromError(error);
+  if (frames.length) {
+    exception.stacktrace = { frames };
+  }
+
+  return exception;
+}
 
 /**
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
+export function eventFromError(exception: unknown, hint?: EventHint): Event {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: any = exception;
   const providedMechanism: Mechanism | undefined =
@@ -47,19 +71,19 @@ export function eventFromException(exception: unknown, hint?: EventHint): Promis
     mechanism.synthetic = true;
   }
 
-  return new SyncPromise<Event>((resolve, reject) =>
-    parseError(ex as Error)
-      .then(event => {
-        addExceptionTypeValue(event, undefined, undefined);
-        addExceptionMechanism(event, mechanism);
+  const event = {
+    exception: {
+      values: [exceptionFromError(ex as Error)],
+    },
+  };
 
-        resolve({
-          ...event,
-          event_id: hint && hint.event_id,
-        });
-      })
-      .then(null, reject),
-  );
+  addExceptionTypeValue(event, undefined, undefined);
+  addExceptionMechanism(event, mechanism);
+
+  return {
+    ...event,
+    event_id: hint && hint.event_id,
+  };
 }
 
 /**
@@ -71,23 +95,19 @@ export function eventFromMessage(
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
-): PromiseLike<Event> {
+): Event {
   const event: Event = {
     event_id: hint && hint.event_id,
     level,
     message,
   };
 
-  return new SyncPromise<Event>(resolve => {
-    if (options.attachStacktrace && hint && hint.syntheticException) {
-      const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-      const frames = parseStack(stack);
-      event.stacktrace = {
-        frames: prepareFramesForEvent(frames),
-      };
-      resolve(event);
-    } else {
-      resolve(event);
+  if (options.attachStacktrace && hint && hint.syntheticException) {
+    const frames = extractStackFromError(hint.syntheticException);
+    if (frames.length) {
+      event.stacktrace = { frames };
     }
-  });
+  }
+
+  return event;
 }
