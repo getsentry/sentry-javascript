@@ -43,8 +43,8 @@ jobs:
         uses: actions/cache@v2
         id: cache_dependencies
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.compute_lockfile_hash.outputs.hash }}-linux
       - name: Install dependencies
         if: steps.cache_dependencies.outputs.cache-hit == ''
         run: yarn install --ignore-engines
@@ -69,13 +69,11 @@ jobs:
         uses: actions/cache@v2
         id: cache_dependencies
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-windows
-          key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.compute_lockfile_hash.outputs.hash }}-windows
       - name: Install dependencies
         if: steps.cache_dependencies.outputs.cache-hit == ''
         run: yarn install --ignore-engines
-    outputs:
-      dependency_cache_key_windows: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
   job_build:
     name: Build
@@ -90,8 +88,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         id: cache_built_packages
@@ -117,7 +115,6 @@ jobs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
-      dependency_cache_key_windows: ${{  needs.job_install_deps_windows.outputs.dependency_cache_key_windows }}
 
   job_size_check:
     name: Size Check
@@ -134,8 +131,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -164,8 +161,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -187,8 +184,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -216,8 +213,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -247,8 +244,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-windows
-          key: ${{ needs.job_build.outputs.dependency_cache_key_windows }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key_windows }}-windows
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -285,8 +282,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -309,8 +306,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -343,8 +340,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -376,8 +373,8 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}-linux
       - name: Check build cache
         uses: actions/cache@v2
         with:
@@ -405,7 +402,7 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}-linux
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
