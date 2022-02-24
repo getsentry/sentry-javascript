@@ -17,6 +17,7 @@ const plugins = [
   resolve({
     mainFields: ['module'],
   }),
+  licensePlugin,
 ];
 
 const bundleConfig = {
@@ -28,7 +29,7 @@ const bundleConfig = {
     name: 'Sentry',
   },
   context: 'window',
-  plugins: [...plugins, licensePlugin],
+  plugins,
 };
 
 export default [
