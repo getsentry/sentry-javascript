@@ -6,7 +6,9 @@ function getModule(filename: string | undefined): string | undefined {
     return;
   }
 
-  const base = `${(require?.main?.filename && dirname(require.main.filename)) || global.process.cwd()}/`;
+  const base = `${
+    (require && require.main && require.main.filename && dirname(require.main.filename)) || global.process.cwd()
+  }/`;
 
   // It's specifically a module
   const file = basename(filename, '.js');
