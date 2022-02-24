@@ -38,7 +38,7 @@ function getModule(filename: string | undefined): string | undefined {
 const FILENAME_MATCH = /^\s*[-]{4,}$/;
 const FULL_MATCH = /at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/;
 
-export const node: StackLineParser = (line: string) => {
+export const nodeStackParser: StackLineParser = (line: string) => {
   if (line.match(FILENAME_MATCH)) {
     return {
       filename: line,

@@ -10,13 +10,13 @@ import {
   normalizeToSize,
 } from '@sentry/utils';
 
-import { node } from './stack-parser';
+import { nodeStackParser } from './stack-parser';
 
 /**
  * Extracts stack frames from the error.stack string
  */
 export function extractStackFromError(error: Error): StackFrame[] {
-  return createStackParser(node)(error.stack || '');
+  return createStackParser(nodeStackParser)(error.stack || '');
 }
 
 /**
