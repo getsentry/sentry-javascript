@@ -33,9 +33,7 @@ function getBackburner() {
     return _backburner;
   }
 
-  if (run.backburner) {
-    return run.backburner;
-  }
+  return run.backburner;
 }
 
 function getTransitionInformation(transition: any, router: any) {
