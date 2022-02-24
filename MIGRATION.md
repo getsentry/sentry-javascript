@@ -1,3 +1,21 @@
+# Upgrading from 6.17.x to 6.18.0
+
+Version 6.18.0 deprecates the `frameContextLines` top-level option for the Node SDK. This option will be removed in an upcoming major version. To migrate off of the top-level option, pass it instead to the new `ContextLines` integration.
+
+```js
+// New in 6.18.0
+init({
+  dsn: '__DSN__',
+  integrations: [new ContextLines({ frameContextLines: 10 })]
+});
+
+// Before:
+init({
+  dsn: '__DSN__',
+  frameContextLines: 10,
+});
+```
+
 # Upgrading from 6.x to 6.17.x
 
 You only need to make changes when migrating to `6.17.x` if you are using our internal `Dsn` class. Our internal API class and typescript enums were deprecated, so we recommend you migrate them as well.
@@ -72,7 +90,7 @@ We deprecated the `Status` enum in `@sentry/tracing` and it will be removed in t
 
 ```js
 // New in 6.17.0:
-import { spanStatusfromHttpCode } from '@sentry/utils';
+import { spanStatusfromHttpCode } from '@sentry/tracing';
 
 const status = spanStatusfromHttpCode(403);
 
