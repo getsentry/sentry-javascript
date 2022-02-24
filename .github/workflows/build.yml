@@ -91,7 +91,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}-linux
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         id: cache_built_packages
