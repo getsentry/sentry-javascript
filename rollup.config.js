@@ -5,6 +5,7 @@
 import license from 'rollup-plugin-license';
 import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
+import typescript from 'rollup-plugin-typescript2';
 
 export const paths = {
   '@sentry/browser': ['../browser/src'],
@@ -57,6 +58,19 @@ export const markAsBrowserBuild = replace({
   values: {
     __SENTRY_BROWSER_BUNDLE__: true,
   },
+});
+
+export const typescriptPluginES5 = typescript({
+  tsconfig: 'tsconfig.esm.json',
+  tsconfigOverride: {
+    compilerOptions: {
+      declaration: false,
+      declarationMap: false,
+      paths,
+      baseUrl: '.',
+    },
+  },
+  include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
 });
 
 export const baseBundleConfig = {

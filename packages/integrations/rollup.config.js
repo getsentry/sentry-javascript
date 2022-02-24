@@ -1,11 +1,10 @@
 import * as fs from 'fs';
 
 import { terser } from 'rollup-plugin-terser';
-import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 
-import { addOnBundleConfig, baseBundleConfig, markAsBrowserBuild, paths } from '../../rollup.config';
+import { addOnBundleConfig, baseBundleConfig, markAsBrowserBuild, typescriptPluginES5 } from '../../rollup.config';
 
 const terserInstance = terser({
   mangle: {
@@ -22,18 +21,7 @@ const terserInstance = terser({
 });
 
 const plugins = [
-  typescript({
-    tsconfig: 'tsconfig.esm.json',
-    tsconfigOverride: {
-      compilerOptions: {
-        declaration: false,
-        declarationMap: false,
-        paths,
-        baseUrl: '.',
-      },
-    },
-    include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-  }),
+  typescriptPluginES5,
   // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
   markAsBrowserBuild,
   resolve({

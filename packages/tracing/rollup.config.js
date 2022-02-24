@@ -1,23 +1,17 @@
-import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 
-import { baseBundleConfig, makeLicensePlugin, markAsBrowserBuild, paths, terserPlugin } from '../../rollup.config';
+import {
+  baseBundleConfig,
+  makeLicensePlugin,
+  markAsBrowserBuild,
+  terserPlugin,
+  typescriptPluginES5,
+} from '../../rollup.config';
 
 const licensePlugin = makeLicensePlugin('@sentry/tracing & @sentry/browser');
 
 const plugins = [
-  typescript({
-    tsconfig: 'tsconfig.esm.json',
-    tsconfigOverride: {
-      compilerOptions: {
-        declaration: false,
-        declarationMap: false,
-        paths,
-        baseUrl: '.',
-      },
-    },
-    include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-  }),
+  typescriptPluginES5,
   // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
   markAsBrowserBuild,
   resolve({
