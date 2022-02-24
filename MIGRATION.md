@@ -1,6 +1,6 @@
 # Upgrading from 6.17.x to 6.18.0
 
-This patch deprecates the `frameContextLines` option for the Node SDK. This option will be removed in an upcoming major version. To migrate off the option, pass in the option to the new `ContextLines` integration.
+Version 6.18.0 deprecates the `frameContextLines` top-level option for the Node SDK. This option will be removed in an upcoming major version. To migrate off of the top-level option, pass it instead to the new `ContextLines` integration.
 
 ```js
 // New in 6.18.0
