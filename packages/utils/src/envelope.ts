@@ -5,7 +5,7 @@ import { Envelope } from '@sentry/types';
  * Make sure to always explicitly provide the generic to this function
  * so that the envelope types resolve correctly.
  */
-export function createEnvelope<E extends Envelope>(headers: E[0], items: E[1]): E {
+export function createEnvelope<E extends Envelope>(headers: E[0], items: E[1] = []): E {
   return [headers, items] as E;
 }
 
