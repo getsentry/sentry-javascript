@@ -1,0 +1,18 @@
+{
+  "$schema": "../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../dist",
+  "lib": {
+    "entryFile": "src/index.ts",
+    "umdModuleIds": {
+      "@sentry/browser": "Sentry",
+      "@sentry/utils": "utils"
+    }
+  },
+  "whitelistedNonPeerDependencies": [
+    "@sentry/browser",
+    "@sentry/utils",
+    "@sentry/types",
+    "tslib"
+  ],
+  "assets": ["README.md"]
+}

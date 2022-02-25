@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ErrorHandler as AngularErrorHandler, Injectable } from '@angular/core';
+import { ErrorHandler as AngularErrorHandler, Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 
 import { runOutsideAngular } from './zone';
@@ -26,7 +26,7 @@ export interface ErrorHandlerOptions {
 class SentryErrorHandler implements AngularErrorHandler {
   protected readonly _options: ErrorHandlerOptions;
 
-  public constructor(options?: ErrorHandlerOptions) {
+  public constructor(@Inject('errorHandlerOptions') options?: ErrorHandlerOptions) {
     this._options = {
       logErrors: true,
       ...options,
