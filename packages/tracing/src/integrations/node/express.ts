@@ -106,7 +106,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
 
   switch (arity) {
     case 2: {
-      return function (this: NodeJS.Global, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
+      return function (this: typeof globalThis, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
         const transaction = res.__sentry_transaction;
         if (transaction) {
           const span = transaction.startChild({
@@ -122,7 +122,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
     }
     case 3: {
       return function (
-        this: NodeJS.Global,
+        this: typeof globalThis,
         req: unknown,
         res: ExpressResponse & SentryTracingResponse,
         next: () => void,
@@ -132,7 +132,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
           description: fn.name,
           op: `express.middleware.${method}`,
         });
-        fn.call(this, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
+        fn.call(this, req, res, function (this: typeof globalThis, ...args: unknown[]): void {
           span?.finish();
           next.call(this, ...args);
         });
@@ -140,7 +140,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
     }
     case 4: {
       return function (
-        this: NodeJS.Global,
+        this: typeof globalThis,
         err: Error,
         req: Request,
         res: Response & SentryTracingResponse,
@@ -151,7 +151,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
           description: fn.name,
           op: `express.middleware.${method}`,
         });
-        fn.call(this, err, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
+        fn.call(this, err, req, res, function (this: typeof globalThis, ...args: unknown[]): void {
           span?.finish();
           next.call(this, ...args);
         });

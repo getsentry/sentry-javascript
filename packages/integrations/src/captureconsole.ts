@@ -1,7 +1,7 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { fill, getGlobalObject, safeJoin, severityFromString } from '@sentry/utils';
 
-const global = getGlobalObject<Window | NodeJS.Global>();
+const global = getGlobalObject<Window | typeof globalThis>();
 
 /** Send Console API calls as Sentry Events */
 export class CaptureConsole implements Integration {

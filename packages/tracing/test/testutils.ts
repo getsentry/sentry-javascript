@@ -14,7 +14,7 @@ export function addDOMPropertiesToGlobal(properties: string[]): void {
   // we have to add things into the real global object (rather than mocking the return value of getGlobalObject)
   // because there are modules which call getGlobalObject as they load, which is too early for jest to intervene
   const { window } = new JSDOM('', { url: 'http://dogs.are.great/' });
-  const global = getGlobalObject<NodeJS.Global & Window>();
+  const global = getGlobalObject<typeof globalThis & Window>();
 
   properties.forEach(prop => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

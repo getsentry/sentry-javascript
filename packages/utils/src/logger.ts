@@ -4,7 +4,7 @@ import { WrappedFunction } from '@sentry/types';
 import { getGlobalObject } from './global';
 
 // TODO: Implement different loggers for different environments
-const global = getGlobalObject<Window | NodeJS.Global>();
+const global = getGlobalObject<Window | typeof globalThis>();
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
