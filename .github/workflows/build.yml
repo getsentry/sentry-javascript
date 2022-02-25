@@ -22,7 +22,7 @@ env:
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
-  BUILD_CACHE_KEY: ${{ github.sha }}
+  BUILD_CACHE_KEY: build-${{ github.sha }}
 
 jobs:
   job_install_deps:
@@ -230,6 +230,9 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+          restore-keys: |
+            build-
+
       - name: Run tests
         run: node ./scripts/test.js
       - name: Compute test coverage
