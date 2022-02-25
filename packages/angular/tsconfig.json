@@ -1,25 +1,11 @@
 {
-  "compileOnSave": false,
+  "extends": "../../tsconfig.json",
+
+  "include": ["lib/src/**/*"],
+
   "compilerOptions": {
-    "baseUrl": "./",
-    "outDir": "./dist/out-tsc",
-    "sourceMap": true,
-    "declaration": false,
-    "downlevelIteration": true,
+    // package-specific options
     "experimentalDecorators": true,
-    "moduleResolution": "node",
-    "importHelpers": true,
-    "target": "es2015",
-    "module": "es2020",
-    "lib": [
-      "es2018",
-      "dom"
-    ],
-    "paths": {
-      "sentry-angular": [
-        "dist/sentry-angular/sentry-angular",
-        "dist/sentry-angular"
-      ]
-    }
+    "baseUrl": "./",
   }
 }

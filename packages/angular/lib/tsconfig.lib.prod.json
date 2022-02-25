@@ -5,7 +5,11 @@
     "declarationMap": false
   },
   "angularCompilerOptions": {
+    // As per Angular 10, the recommendation from the library creation guide
+    // is to disable compilation for Ivy in production builds to ensure
+    // compatibility with Angular 10.
+    // For Angular 11-13 applications, ngcc and the Angular linker ensure that
+    // the library code is processed to match the specific Angular runtime version.
     "enableIvy": false,
-    // "compilationMode": "partial"
   }
 }
