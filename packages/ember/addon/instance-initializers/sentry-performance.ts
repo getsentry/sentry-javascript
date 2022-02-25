@@ -2,6 +2,7 @@ import ApplicationInstance from '@ember/application/instance';
 import Ember from 'ember';
 import { run, _backburner, scheduleOnce } from '@ember/runloop';
 import * as Sentry from '@sentry/browser';
+import { ExtendedBackburner } from "@sentry/ember/runloop";
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
@@ -28,12 +29,19 @@ export function initialize(appInstance: ApplicationInstance): void {
   }
 }
 
-function getBackburner() {
+function getBackburner(): Pick<ExtendedBackburner, "on" | "off"> {
   if (_backburner) {
     return _backburner;
   }
 
-  return run.backburner;
+  if (run.backburner) {
+    return run.backburner;
+  }
+
+  return {
+    on() {},
+    off() {}
+  }
 }
 
 function getTransitionInformation(transition: any, router: any) {
