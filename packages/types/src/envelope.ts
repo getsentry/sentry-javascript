@@ -18,12 +18,12 @@ export type BaseEnvelopeItemHeaders = {
   length?: number;
 };
 
-export type BaseEnvelopeItem<IH extends BaseEnvelopeItemHeaders, P extends unknown> = [IH, P]; // P is for payload
+type BaseEnvelopeItem<IH extends BaseEnvelopeItemHeaders, P extends unknown> = [IH, P]; // P is for payload
 
-export type BaseEnvelope<
-  EH extends BaseEnvelopeHeaders,
-  I extends BaseEnvelopeItem<BaseEnvelopeItemHeaders, unknown>,
-> = [EH, I[]];
+type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<BaseEnvelopeItemHeaders, unknown>> = [
+  EH,
+  I[],
+];
 
 type EventItemHeaders = { type: 'event' | 'transaction' };
 type AttachmentItemHeaders = { type: 'attachment'; filename: string };
