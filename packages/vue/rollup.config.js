@@ -1,53 +1,28 @@
-import {
-  baseBundleConfig,
-  makeLicensePlugin,
-  markAsBrowserBuild,
-  nodeResolvePlugin,
-  terserPlugin,
-  typescriptPluginES5,
-} from '../../rollup.config';
+import { makeBaseBundleConfig, makeLicensePlugin, terserPlugin } from '../../rollup.config';
 
 const licensePlugin = makeLicensePlugin();
 
-const plugins = [
-  typescriptPluginES5,
-  // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
-  markAsBrowserBuild,
-  nodeResolvePlugin,
-  licensePlugin,
-];
-
-const bundleConfig = {
-  ...baseBundleConfig,
-  input: 'src/index.ts',
-  output: {
-    ...baseBundleConfig.output,
-    format: 'iife',
-    name: 'Sentry',
-  },
-  context: 'window',
-  plugins,
-};
+const baseBundleConfig = makeBaseBundleConfig({
+  input: 'src/index.bundle.ts',
+  isAddOn: false,
+  outputFileBase: 'build/bundle.vue',
+});
 
 export default [
-  // ES5 Browser Tracing Bundle
   {
-    ...bundleConfig,
-    input: 'src/index.bundle.ts',
+    ...baseBundleConfig,
     output: {
-      ...bundleConfig.output,
-      file: 'build/bundle.vue.js',
+      ...baseBundleConfig.output,
+      file: `${baseBundleConfig.output.file}.js`,
     },
-    plugins: bundleConfig.plugins,
+    plugins: [...baseBundleConfig.plugins, licensePlugin],
   },
   {
-    ...bundleConfig,
-    input: 'src/index.bundle.ts',
+    ...baseBundleConfig,
     output: {
-      ...bundleConfig.output,
-      file: 'build/bundle.vue.min.js',
+      ...baseBundleConfig.output,
+      file: `${baseBundleConfig.output.file}.min.js`,
     },
-    // Uglify has to be at the end of compilation, BUT before the license banner
-    plugins: bundleConfig.plugins.slice(0, -1).concat(terserPlugin).concat(bundleConfig.plugins.slice(-1)),
+    plugins: [...baseBundleConfig.plugins, terserPlugin, licensePlugin],
   },
 ];
