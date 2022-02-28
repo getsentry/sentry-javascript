@@ -6,6 +6,5 @@
   "compilerOptions": {
     // package-specific options
     "experimentalDecorators": true,
-    "baseUrl": "./",
   }
 }
