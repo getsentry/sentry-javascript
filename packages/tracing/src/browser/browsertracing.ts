@@ -29,7 +29,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   idleTimeout: number;
 
   /**
-   * The max transaction duration for a transaction. If a transaction duration hits the `finalTimeout` value, it
+   * The max duration for a transaction. If a transaction duration hits the `finalTimeout` value, it
    * will be finished.
    *
    * Time is in ms.
