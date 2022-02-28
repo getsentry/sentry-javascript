@@ -2,6 +2,8 @@ module.exports = {
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
+  collectCoverage: true,
+  coverageDirectory: '../../coverage',
   moduleFileExtensions: ['js', 'ts'],
   testEnvironment: 'jsdom',
   testMatch: ['**/*.test.ts'],
