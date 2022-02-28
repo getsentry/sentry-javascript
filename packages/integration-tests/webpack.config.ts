@@ -1,6 +1,6 @@
 import { Configuration } from 'webpack';
 
-const config = function(userConfig: Record<string, unknown>): Configuration {
+const config = function (userConfig: Record<string, unknown>): Configuration {
   return {
     ...userConfig,
     mode: 'none',
@@ -11,11 +11,6 @@ const config = function(userConfig: Record<string, unknown>): Configuration {
           exclude: /node_modules/,
           loader: 'babel-loader',
           options: { presets: [['@babel/preset-typescript', { allowNamespaces: true }]] },
-        },
-        {
-          test: /\.hbs$/,
-          exclude: /node_modules/,
-          loader: 'handlebars-loader',
         },
       ],
     },

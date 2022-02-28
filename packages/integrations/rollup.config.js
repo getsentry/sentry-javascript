@@ -1,10 +1,15 @@
 import * as fs from 'fs';
 
 import { terser } from 'rollup-plugin-terser';
-import typescript from 'rollup-plugin-typescript2';
-import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-import replace from '@rollup/plugin-replace';
+
+import {
+  addOnBundleConfig,
+  baseBundleConfig,
+  markAsBrowserBuild,
+  nodeResolvePlugin,
+  typescriptPluginES5,
+} from '../../rollup.config';
 
 const terserInstance = terser({
   mangle: {
@@ -21,51 +26,12 @@ const terserInstance = terser({
 });
 
 const plugins = [
-  typescript({
-    tsconfig: 'tsconfig.esm.json',
-    tsconfigOverride: {
-      compilerOptions: {
-        declaration: false,
-        declarationMap: false,
-        paths: {
-          '@sentry/utils': ['../utils/src'],
-          '@sentry/core': ['../core/src'],
-          '@sentry/hub': ['../hub/src'],
-          '@sentry/types': ['../types/src'],
-          '@sentry/minimal': ['../minimal/src'],
-        },
-        baseUrl: '.',
-      },
-    },
-    include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-  }),
-  replace({
-    // don't replace `__placeholder__` where it's followed immediately by a single `=` (to prevent ending up
-    // with something of the form `let "replacementValue" = "some assigned value"`, which would cause a
-    // syntax error)
-    preventAssignment: true,
-    // the replacements to make
-    values: {
-      __SENTRY_BROWSER_BUNDLE__: true,
-    },
-  }),
-  resolve({
-    mainFields: ['module'],
-  }),
+  typescriptPluginES5,
+  // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
+  markAsBrowserBuild,
+  nodeResolvePlugin,
   commonjs(),
 ];
-
-function mergeIntoSentry() {
-  return `
-  __window.Sentry = __window.Sentry || {};
-  __window.Sentry.Integrations = __window.Sentry.Integrations || {};
-  for (var key in exports) {
-    if (Object.prototype.hasOwnProperty.call(exports, key)) {
-      __window.Sentry.Integrations[key] = exports[key];
-    }
-  }
-  `;
-}
 
 function allIntegrations() {
   return fs.readdirSync('./src').filter(file => file != 'index.ts');
@@ -85,20 +51,14 @@ function loadAllIntegrations() {
   ].forEach(build => {
     builds.push(
       ...allIntegrations().map(file => ({
+        ...baseBundleConfig,
         input: `src/${file}`,
         output: {
-          banner: '(function (__window) {',
-          intro: 'var exports = {};',
-          outro: mergeIntoSentry(),
-          footer: '}(window));',
+          ...baseBundleConfig.output,
+          ...addOnBundleConfig.output,
           file: `build/${file.replace('.ts', build.extension)}`,
-          format: 'cjs',
-          sourcemap: true,
-          strict: false,
-          esModule: false,
         },
         plugins: build.plugins,
-        treeshake: 'smallest',
       })),
     );
   });

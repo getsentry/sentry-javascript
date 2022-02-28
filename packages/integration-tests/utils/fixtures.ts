@@ -11,7 +11,13 @@ const getAsset = (assetDir: string, asset: string): string => {
     return assetPath;
   }
 
-  return `${path.dirname(assetDir)}/${asset}`;
+  const parentDirAssetPath = `${path.dirname(assetDir)}/${asset}`;
+
+  if (fs.existsSync(parentDirAssetPath)) {
+    return parentDirAssetPath;
+  }
+
+  return `utils/defaults/${asset}`;
 };
 
 export type TestOptions = {
@@ -33,7 +39,7 @@ const sentryTest = base.extend<TestFixtures>({
       if (!fs.existsSync(pagePath)) {
         const testDir = path.dirname(testInfo.file);
         const subject = getAsset(testDir, 'subject.js');
-        const template = getAsset(testDir, 'template.hbs');
+        const template = getAsset(testDir, 'template.html');
         const init = getAsset(testDir, 'init.js');
 
         await generatePage(init, subject, template, testDir);
