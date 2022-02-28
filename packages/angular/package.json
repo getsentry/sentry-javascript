@@ -52,15 +52,20 @@
     "zone.js": "~0.10.2"
   },
   "scripts": {
-    "build": "run-p build:esm #**not necessary** build:cjs",
+    "build": "run-p build:ngc",
+    "build:legacy": "run-p build:esm build:cjs",
+    "build:ngc": "ng build --prod",
 
-    "build:cjs": "#**not necessary** tsc -p tsconfig.cjs.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+
     "build:dev": "run-s build",
-    "build:es5": "#**not necessary**  yarn build:cjs # *** backwards compatibility - remove in v7 ***",
-    "build:esm": "ng build --prod",
-    "build:types": "#TODO not necessary or change??: tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:esm:watch #TODO not necessary? build:cjs:watch build:types:watch",
-    "build:cjs:watch": "#**not necessary** tsc -p tsconfig.cjs.json --watch",
+    "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "sc -p tsconfig.types.json",
+    "build:watch": "run-p build:ngc:watch",
+    "build:legacy:watch": "run-p build:esm:watch build:cjs:watch build:types:watch",
+    "build:ngc:watch": "ng build --prod --watch",
+    "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
     "build:dev:watch": "run-s build:watch",
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
