@@ -20,8 +20,6 @@
     "@angular/core": "10.x || 11.x || 12.x || 13.x",
     "@angular/router": "10.x || 11.x || 12.x || 13.x"
   },
-  "private": true,
-
   "dependencies": {
     "@angular/animations": "~10.2.5",
     "@angular/common": "~10.2.5",
@@ -39,9 +37,9 @@
   },
   "devDependencies": {
     "@angular/common": "~10.2.5",
-    "@angular/compiler": "~10.2.5",
     "@angular/core": "~10.2.5",
     "@angular/router": "~10.2.5",
+    "@angular/compiler": "~10.2.5",
     "@angular-devkit/build-angular": "~0.1002.4",
     "@angular/cli": "~10.2.4",
     "@angular/compiler-cli": "~10.2.5",
@@ -64,21 +62,12 @@
     "build:watch": "run-p build:esm:watch #TODO not necessary? build:cjs:watch build:types:watch",
     "build:cjs:watch": "#**not necessary** tsc -p tsconfig.cjs.json --watch",
     "build:dev:watch": "run-s build:watch",
-<<<<<<< HEAD
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf cjs esm build coverage",
-=======
-    "build:es5:watch": "#**not necessary** yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
-    "build:esm:watch": "ng build --prod --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch #TODO necessary?",
     "build:npm": "npm pack ./build",
     "circularDepCheck": "madge --circular projects/sentry-angular/src/index.ts #TODO change to final index path!!",
-    "clean": "rimraf dist esm build coverage",
->>>>>>> 39aec6c8a (build(angular): Use the Angular compiler to compile the @sentry/angular SDK (WEB-622))
+    "clean": "rimraf cjs esm build coverage",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
