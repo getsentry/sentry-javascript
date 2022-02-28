@@ -40,11 +40,12 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
  *
  * When using compiled versions of the tracing and browser packages, their aliases look for example like
  *     '@sentry/browser': 'path/to/sentry-javascript/packages/browser/esm/index.js'
- * When using bundled versions of the tracing and browser packages, their aliases look for example like
+ * and all other monorepo packages' aliases look for example like
+ *     '@sentry/hub': 'path/to/sentry-javascript/packages/hub'
+ *
+ * When using bundled versions of the tracing and browser packages, all aliases look for example like
  *     '@sentry/browser': false
  * so that the compiled versions aren't included
- * All other packages are aliased for example like
- *     '@sentry/serverless': 'path/to/sentry-javascript/packages/serverless'
  */
 function generateSentryAlias(): Record<string, string> {
   const packageNames = readdirSync(PACKAGES_DIR, { withFileTypes: true })
