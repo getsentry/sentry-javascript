@@ -34,10 +34,13 @@ export interface LargestContentfulPaint extends PerformanceEntry {
 
 const reportedMetricIDs: Record<string, boolean> = {};
 
-export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
+export const getLCP = (
+  onReport: ReportHandler,
+  reportAllChanges?: boolean,
+): ReturnType<typeof bindReporter> | undefined => {
   const visibilityWatcher = getVisibilityWatcher();
   const metric = initMetric('LCP');
-  let report: ReturnType<typeof bindReporter>;
+  let report: ReturnType<typeof bindReporter> | undefined;
 
   const entryHandler = (entry: PerformanceEntry): void => {
     // The startTime attribute returns the value of the renderTime if it is not 0,
@@ -66,7 +69,9 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): voi
         po.takeRecords().map(entryHandler as PerformanceEntryHandler);
         po.disconnect();
         reportedMetricIDs[metric.id] = true;
-        report(true);
+        if (report) {
+          report(true);
+        }
       }
     };
 
@@ -79,4 +84,6 @@ export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): voi
 
     onHidden(stopListening, true);
   }
+
+  return report;
 };
