@@ -5,13 +5,14 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
-import { Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
+import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { NodeOptions } from './types';
 
 export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new ContextLines(),
   // Native Wrappers
   new Console(),
   new Http(),

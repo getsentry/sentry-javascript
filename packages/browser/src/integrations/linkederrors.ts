@@ -2,8 +2,7 @@ import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
 import { isInstanceOf } from '@sentry/utils';
 
-import { exceptionFromStacktrace } from '../parsers';
-import { computeStackTrace } from '../tracekit';
+import { exceptionFromError } from '../parsers';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
@@ -73,7 +72,6 @@ export function _walkErrorTree(limit: number, error: ExtendedError, key: string,
   if (!isInstanceOf(error[key], Error) || stack.length + 1 >= limit) {
     return stack;
   }
-  const stacktrace = computeStackTrace(error[key]);
-  const exception = exceptionFromStacktrace(stacktrace);
+  const exception = exceptionFromError(error[key]);
   return _walkErrorTree(limit, error[key], key, [exception, ...stack]);
 }

@@ -1,21 +1,21 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, Exception, StackFrame } from '@sentry/types';
-import { extractExceptionKeysForMessage, isEvent, normalizeToSize } from '@sentry/utils';
+import { createStackParser, extractExceptionKeysForMessage, isEvent, normalizeToSize } from '@sentry/utils';
 
-import { computeStackTrace, StackTrace as TraceKitStackTrace } from './tracekit';
-
-const STACKTRACE_LIMIT = 50;
+import { chrome, gecko, opera10, opera11, winjs } from './stack-parsers';
 
 /**
  * This function creates an exception from an TraceKitStackTrace
  * @param stacktrace TraceKitStackTrace that will be converted to an exception
  * @hidden
  */
-export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): Exception {
-  const frames = prepareFramesForEvent(stacktrace.stack);
+export function exceptionFromError(ex: Error): Exception {
+  // Get the frames first since Opera can lose the stack if we touch anything else first
+  const frames = parseStackFrames(ex);
 
   const exception: Exception = {
-    type: stacktrace.name,
-    value: stacktrace.message,
+    type: ex && ex.name,
+    value: extractMessage(ex),
   };
 
   if (frames && frames.length) {
@@ -54,11 +54,10 @@ export function eventFromPlainObject(
   };
 
   if (syntheticException) {
-    const stacktrace = computeStackTrace(syntheticException);
-    const frames = prepareFramesForEvent(stacktrace.stack);
-    event.stacktrace = {
-      frames,
-    };
+    const frames = parseStackFrames(syntheticException);
+    if (frames.length) {
+      event.stacktrace = { frames };
+    }
   }
 
   return event;
@@ -67,48 +66,63 @@ export function eventFromPlainObject(
 /**
  * @hidden
  */
-export function eventFromStacktrace(stacktrace: TraceKitStackTrace): Event {
-  const exception = exceptionFromStacktrace(stacktrace);
-
+export function eventFromError(ex: Error): Event {
   return {
     exception: {
-      values: [exception],
+      values: [exceptionFromError(ex)],
     },
   };
 }
 
+/** Parses stack frames from an error */
+export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?: string }): StackFrame[] {
+  // Access and store the stacktrace property before doing ANYTHING
+  // else to it because Opera is not very good at providing it
+  // reliably in other circumstances.
+  const stacktrace = ex.stacktrace || ex.stack || '';
+
+  const popSize = getPopSize(ex);
+
+  try {
+    // The order of the parsers in important
+    return createStackParser(opera10, opera11, chrome, winjs, gecko)(stacktrace, popSize);
+  } catch (e) {
+    // no-empty
+  }
+
+  return [];
+}
+
+// Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
+const reactMinifiedRegexp = /Minified React error #\d+;/i;
+
+function getPopSize(ex: Error & { framesToPop?: number }): number {
+  if (ex) {
+    if (typeof ex.framesToPop === 'number') {
+      return ex.framesToPop;
+    }
+
+    if (reactMinifiedRegexp.test(ex.message)) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 /**
- * @hidden
+ * There are cases where stacktrace.message is an Event object
+ * https://github.com/getsentry/sentry-javascript/issues/1949
+ * In this specific case we try to extract stacktrace.message.error.message
  */
-export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
-  if (!stack.length) {
-    return [];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractMessage(ex: any): string {
+  const message = ex && ex.message;
+  if (!message) {
+    return 'No error message';
   }
-
-  let localStack = stack;
-
-  const firstFrameFunction = localStack[0].function || '';
-  const lastFrameFunction = localStack[localStack.length - 1].function || '';
-
-  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
-    localStack = localStack.slice(1);
+  if (message.error && typeof message.error.message === 'string') {
+    return message.error.message;
   }
-
-  // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (lastFrameFunction.indexOf('sentryWrapped') !== -1) {
-    localStack = localStack.slice(0, -1);
-  }
-
-  // The frame where the crash happened, should be the last entry in the array
-  return localStack
-    .slice(0, STACKTRACE_LIMIT)
-    .map(frame => ({
-      filename: frame.filename || localStack[0].filename,
-      function: frame.function || '?',
-      lineno: frame.lineno,
-      colno: frame.colno,
-      in_app: true,
-    }))
-    .reverse();
+  return message;
 }

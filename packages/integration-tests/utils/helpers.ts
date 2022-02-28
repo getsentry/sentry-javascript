@@ -36,18 +36,6 @@ async function getSentryRequest(page: Page, url?: string): Promise<Event> {
 }
 
 /**
- * Wait and get Sentry's request sending transaction at the given URL, or the current page
- *
- * @param {Page} page
- * @param {string} [url]
- * @return {*}  {Promise<Event>}
- */
-async function getSentryTransactionRequest(page: Page, url?: string): Promise<Event> {
-  // TODO: Remove this and update all usages in favour of `getFirstSentryEnvelopeRequest` and `getMultipleSentryEnvelopeRequests`
-  return (await getMultipleSentryEnvelopeRequests<Event>(page, 1, url))[0];
-}
-
-/**
  * Get Sentry events at the given URL, or the current page.
  *
  * @param {Page} page
@@ -185,7 +173,6 @@ export {
   getMultipleSentryEnvelopeRequests,
   getFirstSentryEnvelopeRequest,
   getSentryRequest,
-  getSentryTransactionRequest,
   getSentryEvents,
   injectScriptAndGetEvents,
 };

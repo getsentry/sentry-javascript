@@ -4,6 +4,45 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.18.1
+
+- fix(ember): use _backburner if it exists ([#4603](https://github.com/getsentry/sentry-javascript/pull/4603))
+- feat(gatsby): Upgrade Sentry Webpack Plugin to 1.18.8 ([#4636](https://github.com/getsentry/sentry-javascript/pull/4636))
+- feat(nextjs): Upgrade Sentry Webpack Plugin to 1.18.8 ([#4643](https://github.com/getsentry/sentry-javascript/pull/4643))
+- fix(nextjs): webpack as optional peer-dependency ([#4634](https://github.com/getsentry/sentry-javascript/pull/4634))
+
+Work in this release contributed by @belgattitude, @pbernery, and @kylemh. Thank you for your contributions!
+
+## 6.18.0
+
+This patch deprecates the `frameContextLines` option for the Node SDK. The [migration documentation](./MIGRATION.md#upgrading-from-6.17.x-to-6.18.0) details how to migrate off the deprecated `frameContextLines` option.
+
+- fix(browser): Only set event.stacktrace if we have 1 or more frames ([#4614](https://github.com/getsentry/sentry-javascript/pull/4614))
+- fix(hub): keep hint event id if it's provided ([#4577](https://github.com/getsentry/sentry-javascript/pull/4577))
+- fix(nextjs): Use env variable for build detection ([#4608](https://github.com/getsentry/sentry-javascript/pull/4608))
+- ref(node): Refactor node source fetching into integration ([#3729](https://github.com/getsentry/sentry-javascript/pull/3729))
+- feat(serverless): Added `ignoreSentryErrors` option for AWS lambda ([#4620](https://github.com/getsentry/sentry-javascript/pull/4620))
+
+Work in this release contributed by @GoshaEgorian and @ichina. Thank you for your contributions!
+
+## 6.17.9
+
+- fix(gatsby): Add missing React peer dependency ([#4576](https://github.com/getsentry/sentry-javascript/pull/4576))
+- fix(types): Use Sentry event type instead of dom one ([#4584](https://github.com/getsentry/sentry-javascript/pull/4584))
+
+Work in this release contributed by @aaronadamsCA. Thank you for your contribution!
+
+## 6.17.8
+
+- feat(types): Add Envelope types ([#4527](https://github.com/getsentry/sentry-javascript/pull/4527))
+- fix(build): Remove node code from CDN bundles ([#4548](https://github.com/getsentry/sentry-javascript/pull/4548))
+- fix(build): Prevent unused utils code in integration bundles ([#4547](https://github.com/getsentry/sentry-javascript/pull/4547))
+- fix(tracing): Export BrowserTracing directly in CDN bundle ([#4570](https://github.com/getsentry/sentry-javascript/pull/4570))
+- fix(utils): Use apply in console instrumentation ([#4568](https://github.com/getsentry/sentry-javascript/pull/4568))
+- ref(core): Log `normalizeDepth` when normalization is skipped([#4574](https://github.com/getsentry/sentry-javascript/pull/4574))
+
+Work in this release contributed by @mydea. Thank you for your contribution!
+
 ## 6.17.7
 
 - fix(utils): Make new non-enumerable properties mutable ([#4528](https://github.com/getsentry/sentry-javascript/pull/4528))

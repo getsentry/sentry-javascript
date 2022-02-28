@@ -10,7 +10,7 @@
  * @license MIT
  */
 
-import * as stacktrace from '../src/stacktrace';
+import { extractStackFromError } from '../src/eventbuilder';
 
 function testBasic() {
   return new Error('something went wrong');
@@ -20,42 +20,75 @@ function testWrapper() {
   return testBasic();
 }
 
-describe('stacktrace.ts', () => {
-  test('testObjectInMethodName', () => {
+function evalWrapper() {
+  return eval('testWrapper()');
+}
+
+describe('Stack parsing', () => {
+  test('test basic error', () => {
+    const frames = extractStackFromError(testBasic());
+
+    const last = frames.length - 1;
+    expect(frames[last].filename).toEqual(__filename);
+    expect(frames[last].function).toEqual('testBasic');
+    expect(frames[last].lineno).toEqual(16);
+    expect(frames[last].colno).toEqual(10);
+  });
+
+  test('test error with wrapper', () => {
+    const frames = extractStackFromError(testWrapper());
+
+    const last = frames.length - 1;
+    expect(frames[last].function).toEqual('testBasic');
+    expect(frames[last - 1].function).toEqual('testWrapper');
+  });
+
+  test('test error with eval wrapper', () => {
+    const frames = extractStackFromError(evalWrapper());
+
+    const last = frames.length - 1;
+    expect(frames[last].function).toEqual('testBasic');
+    expect(frames[last - 1].function).toEqual('testWrapper');
+    expect(frames[last - 2].function).toEqual('eval');
+  });
+
+  test('parses object in fn name', () => {
     const err: { [key: string]: any } = {};
     err.stack =
       'Error: Foo\n' +
       '    at [object Object].global.every [as _onTimeout] (/Users/hoitz/develop/test.coffee:36:3)\n' +
       '    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)\n';
 
-    const trace = stacktrace.parse(err as Error);
+    const frames = extractStackFromError(err as Error);
 
-    expect(trace[0].fileName).toEqual('/Users/hoitz/develop/test.coffee');
-    expect(trace[1].fileName).toEqual('timers.js');
+    expect(frames).toEqual([
+      {
+        filename: 'timers.js',
+        module: 'timers',
+        function: 'Timer.listOnTimeout [as ontimeout]',
+        lineno: 110,
+        colno: 15,
+        in_app: false,
+      },
+      {
+        filename: '/Users/hoitz/develop/test.coffee',
+        module: 'test.coffee',
+        function: '[object Object].global.every [as _onTimeout]',
+        lineno: 36,
+        colno: 3,
+        in_app: true,
+      },
+    ]);
   });
 
-  test('testBasic', () => {
-    const trace = stacktrace.parse(testBasic());
-
-    expect(trace[0].fileName).toEqual(__filename);
-    expect(trace[0].functionName).toEqual('testBasic');
-  });
-
-  test('testWrapper', () => {
-    const trace = stacktrace.parse(testWrapper());
-
-    expect(trace[0].functionName).toEqual('testBasic');
-    expect(trace[1].functionName).toEqual('testWrapper');
-  });
-
-  test('testNoStack', () => {
+  test('parses undefined stack', () => {
     const err = { stack: undefined };
-    const trace = stacktrace.parse(err as Error);
+    const trace = extractStackFromError(err as Error);
 
     expect(trace).toEqual([]);
   });
 
-  test('testCorruptStack', () => {
+  test('parses corrupt stack', () => {
     const err: { [key: string]: any } = {};
     err.stack =
       'AssertionError: true == false\n' +
@@ -64,26 +97,56 @@ describe('stacktrace.ts', () => {
       'oh no' +
       '    at TestCase.run (/Users/felix/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
 
-    const trace = stacktrace.parse(err as Error);
+    const frames = extractStackFromError(err as Error);
 
-    expect(trace.length).toEqual(2);
+    expect(frames).toEqual([
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
+        module: 'test_case',
+        function: 'TestCase.run',
+        lineno: 61,
+        colno: 8,
+        in_app: true,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test.js',
+        module: 'test',
+        function: 'Test.run',
+        lineno: 45,
+        colno: 10,
+        in_app: true,
+      },
+    ]);
   });
 
-  test('testTraceWitoutColumnNumbers', () => {
+  test('parses with missing column numbers', () => {
     const err: { [key: string]: any } = {};
     err.stack =
       'AssertionError: true == false\n' +
       '    at Test.fn (/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js:6)\n' +
       '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/test.js:45)';
 
-    const trace = stacktrace.parse(err as Error);
+    const frames = extractStackFromError(err as Error);
 
-    expect(trace[0].fileName).toEqual('/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js');
-    expect(trace[0].lineNumber).toEqual(6);
-    expect(trace[0].columnNumber).toEqual(null);
+    expect(frames).toEqual([
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test.js',
+        module: 'test',
+        function: 'Test.run',
+        lineno: 45,
+        in_app: true,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js',
+        module: 'test-example',
+        function: 'Test.fn',
+        lineno: 6,
+        in_app: true,
+      },
+    ]);
   });
 
-  test('testStackWithNativeCall', () => {
+  test('parses with native methods', () => {
     const err: { [key: string]: any } = {};
     err.stack =
       'AssertionError: true == false\n' +
@@ -94,74 +157,141 @@ describe('stacktrace.ts', () => {
       '    at Array.0 (native)\n' +
       '    at EventEmitter._tickCallback (node.js:126:26)';
 
-    const trace = stacktrace.parse(err as Error);
-    const nativeCallSite = trace[4];
+    const frames = extractStackFromError(err as Error);
 
-    expect(nativeCallSite.fileName).toEqual(null);
-    expect(nativeCallSite.functionName).toEqual('Array.0');
-    expect(nativeCallSite.typeName).toEqual('Array');
-    expect(nativeCallSite.methodName).toEqual('0');
-    expect(nativeCallSite.lineNumber).toEqual(null);
-    expect(nativeCallSite.columnNumber).toEqual(null);
-    expect(nativeCallSite.native).toEqual(true);
+    expect(frames).toEqual([
+      {
+        filename: 'node.js',
+        module: 'node',
+        function: 'EventEmitter._tickCallback',
+        lineno: 126,
+        colno: 26,
+        in_app: false,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js',
+        function: 'Array.0',
+        in_app: false,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
+        module: 'test_case',
+        function: 'TestCase.run',
+        lineno: 61,
+        colno: 8,
+        in_app: true,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
+        module: 'test_case',
+        function: 'TestCase.runNext',
+        lineno: 73,
+        colno: 8,
+        in_app: true,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test.js',
+        module: 'test',
+        function: 'Test.run',
+        lineno: 45,
+        colno: 10,
+        in_app: true,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js',
+        module: 'test-example',
+        function: 'Test.fn',
+        lineno: 6,
+        colno: 10,
+        in_app: true,
+      },
+    ]);
   });
 
-  test('testStackWithFileOnly', () => {
+  test('parses with file only', () => {
     const err: { [key: string]: any } = {};
     err.stack = 'AssertionError: true == false\n' + '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
-    const trace = stacktrace.parse(err as Error);
-    const callSite = trace[0];
+    const frames = extractStackFromError(err as Error);
 
-    expect(callSite.fileName).toEqual('/Users/felix/code/node-fast-or-slow/lib/test_case.js');
-    expect(callSite.functionName).toEqual(null);
-    expect(callSite.typeName).toEqual(null);
-    expect(callSite.methodName).toEqual(null);
-    expect(callSite.lineNumber).toEqual(80);
-    expect(callSite.columnNumber).toEqual(10);
-    expect(callSite.native).toEqual(false);
+    expect(frames).toEqual([
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
+        module: 'test_case',
+        function: 'undefined.<anonymous>',
+        lineno: 80,
+        colno: 10,
+        in_app: true,
+      },
+    ]);
   });
 
-  test('testStackWithMultilineMessage', () => {
+  test('parses with multi line message', () => {
     const err: { [key: string]: any } = {};
     err.stack =
       'AssertionError: true == false\nAnd some more shit\n' +
       '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
-    const trace = stacktrace.parse(err as Error);
-    const callSite = trace[0];
+    const frames = extractStackFromError(err as Error);
 
-    expect(callSite.fileName).toEqual('/Users/felix/code/node-fast-or-slow/lib/test_case.js');
+    expect(frames).toEqual([
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
+        module: 'test_case',
+        function: 'undefined.<anonymous>',
+        lineno: 80,
+        colno: 10,
+        in_app: true,
+      },
+    ]);
   });
 
-  test('testStackWithAnonymousFunctionCall', () => {
+  test('parses with anonymous fn call', () => {
     const err: { [key: string]: any } = {};
     err.stack =
       'AssertionError: expected [] to be arguments\n' +
       '    at Assertion.prop.(anonymous function) (/Users/den/Projects/should.js/lib/should.js:60:14)\n';
 
-    const trace = stacktrace.parse(err as Error);
-    const callSite0 = trace[0];
+    const frames = extractStackFromError(err as Error);
 
-    expect(callSite0.fileName).toEqual('/Users/den/Projects/should.js/lib/should.js');
-    expect(callSite0.functionName).toEqual('Assertion.prop.(anonymous function)');
-    expect(callSite0.typeName).toEqual('Assertion.prop');
-    expect(callSite0.methodName).toEqual('(anonymous function)');
-    expect(callSite0.lineNumber).toEqual(60);
-    expect(callSite0.columnNumber).toEqual(14);
-    expect(callSite0.native).toEqual(false);
+    expect(frames).toEqual([
+      {
+        filename: '/Users/den/Projects/should.js/lib/should.js',
+        module: 'should',
+        function: 'Assertion.prop.(anonymous function)',
+        lineno: 60,
+        colno: 14,
+        in_app: true,
+      },
+    ]);
   });
 
-  test('testTraceBracesInPath', () => {
+  test('parses with braces in paths', () => {
     const err: { [key: string]: any } = {};
     err.stack =
       'AssertionError: true == false\n' +
       '    at Test.run (/Users/felix (something)/code/node-fast-or-slow/lib/test.js:45:10)\n' +
       '    at TestCase.run (/Users/felix (something)/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
 
-    const trace = stacktrace.parse(err as Error);
+    const frames = extractStackFromError(err as Error);
 
-    expect(trace.length).toEqual(2);
-    expect(trace[0].fileName).toEqual('/Users/felix (something)/code/node-fast-or-slow/lib/test.js');
+    expect(frames).toEqual([
+      {
+        filename: '/Users/felix (something)/code/node-fast-or-slow/lib/test_case.js',
+        module: 'test_case',
+        function: 'TestCase.run',
+        lineno: 61,
+        colno: 8,
+        in_app: true,
+      },
+      {
+        filename: '/Users/felix (something)/code/node-fast-or-slow/lib/test.js',
+        module: 'test',
+        function: 'Test.run',
+        lineno: 45,
+        colno: 10,
+        in_app: true,
+      },
+    ]);
   });
 });

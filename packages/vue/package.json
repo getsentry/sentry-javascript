@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vue",
-  "version": "6.17.7",
+  "version": "6.18.1",
   "description": "Official Sentry SDK for Vue.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vue",
@@ -16,11 +16,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "6.17.7",
-    "@sentry/core": "6.17.7",
-    "@sentry/minimal": "6.17.7",
-    "@sentry/types": "6.17.7",
-    "@sentry/utils": "6.17.7",
+    "@sentry/browser": "6.18.1",
+    "@sentry/core": "6.18.1",
+    "@sentry/minimal": "6.18.1",
+    "@sentry/types": "6.18.1",
+    "@sentry/utils": "6.18.1",
     "tslib": "^1.9.3"
   },
   "peerDependencies": {
@@ -28,10 +28,7 @@
     "vue-router": "3.x || 4.x"
   },
   "devDependencies": {
-    "jsdom": "^16.2.2",
-    "rollup": "^1.10.1",
-    "rollup-plugin-commonjs": "^9.3.4",
-    "rollup-plugin-node-resolve": "^4.2.3"
+    "jsdom": "^16.2.2"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:bundle",

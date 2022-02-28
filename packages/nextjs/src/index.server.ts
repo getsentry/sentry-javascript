@@ -23,12 +23,20 @@ const domain = domainModule as typeof domainModule & { active: (domainModule.Dom
 // During build, the main process is invoked by
 //   `node next build`
 // and child processes are invoked as
-//   `node <path>/node_modules/jest-worker/build/workers/processChild.js`,
-// whereas at runtime the process is invoked as
+//   `node <path>/node_modules/.../jest-worker/processChild.js`.
+// The former is (obviously) easy to recognize, but the latter could happen at runtime as well. Fortunately, the main
+// process hits this file before any of the child processes do, so we're able to set an env variable which the child
+// processes can then check. During runtime, the main process is invoked as
 //   `node next start`
 // or
-//   `node /var/runtime/index.js`.
-const isBuild = new RegExp('build').test(process.argv.toString());
+//   `node /var/runtime/index.js`,
+// so we never drop into the `if` in the first place.
+let isBuild = false;
+if (process.argv.includes('build') || process.env.SENTRY_BUILD_PHASE) {
+  process.env.SENTRY_BUILD_PHASE = 'true';
+  isBuild = true;
+}
+
 const isVercel = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
@@ -127,6 +135,7 @@ function filterTransactions(event: Event): Event | null {
 }
 
 export { withSentryConfig } from './config';
+export { SentryWebpackPluginOptions } from './config/types';
 export { withSentry } from './utils/withSentry';
 
 // Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
