@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["lib/src/**/*"],
+  "include": ["src/**/*"],
 
   "compilerOptions": {
     // package-specific options

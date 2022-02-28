@@ -5,23 +5,24 @@
   "projects": {
     "sentry-angular": {
       "projectType": "library",
-      "root": "lib",
-      "sourceRoot": "lib/src",
+      "root": ".",
+      "sourceRoot": "src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "tsConfig": "lib/tsconfig.lib.json",
+            "tsConfig": "tsconfig.ngc.json",
             "project": "ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "lib/tsconfig.lib.prod.json"
+              "tsConfig": "tsconfig.ngc.json"
             }
           }
         }
       }
-    }},
+    }
+  },
   "defaultProject": "sentry-angular"
 }

@@ -1,15 +1,25 @@
 /* To learn more about this file see: https://angular.io/config/tsconfig. */
+// This tsconfig is used when building @sentry/angular with the Angular
+// compiler and `ng-packagr`. It configures a production build conforming
+// to the Angular Package Format (APF).
 {
-  "extends": "./tsconfig.lib.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "declarationMap": false
+    "target": "es2015",
+    "lib": [
+      "dom",
+      "es2018"
+    ],
   },
   "angularCompilerOptions": {
+    "skipTemplateCodegen": true,
+    "strictMetadataEmit": true,
+    "enableResourceInlining": true,
     // As per Angular 10, the recommendation from the library creation guide
     // is to disable compilation for Ivy in production builds to ensure
     // compatibility with Angular 10.
     // For Angular 11-13 applications, ngcc and the Angular linker ensure that
     // the library code is processed to match the specific Angular runtime version.
-    "enableIvy": false,
+    "enableIvy": false
   }
 }
