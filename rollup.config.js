@@ -74,9 +74,7 @@ export const typescriptPluginES5 = typescript({
   include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
 });
 
-export const nodeResolvePlugin = resolve({
-  mainFields: ['module'],
-});
+export const nodeResolvePlugin = resolve();
 
 export const baseBundleConfig = {
   output: {
