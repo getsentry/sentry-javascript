@@ -6,10 +6,10 @@
 
 ## 6.18.1
 
-- fix(ember): use _backburner if it exists (#4603)
-- feat(gatsby): Upgrade Sentry Webpack Plugin to 1.18.8 (#4636)
-- feat(nextjs): Upgrade Sentry Webpack Plugin to 1.18.8 (#4643)
-- fix(nextjs): webpack as optional peer-dependency (#4634)
+- fix(ember): use _backburner if it exists ([#4603](https://github.com/getsentry/sentry-javascript/pull/4603))
+- feat(gatsby): Upgrade Sentry Webpack Plugin to 1.18.8 ([#4636](https://github.com/getsentry/sentry-javascript/pull/4636))
+- feat(nextjs): Upgrade Sentry Webpack Plugin to 1.18.8 ([#4643](https://github.com/getsentry/sentry-javascript/pull/4643))
+- fix(nextjs): webpack as optional peer-dependency ([#4634](https://github.com/getsentry/sentry-javascript/pull/4634))
 
 Work in this release contributed by @belgattitude, @pbernery, and @kylemh. Thank you for your contributions!
 
