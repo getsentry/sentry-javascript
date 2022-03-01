@@ -1,17 +1,13 @@
-/* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
+import { logger, timestampWithMs } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants';
 import { Span, SpanRecorder } from './span';
 import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
-export const DEFAULT_FINAL_TIMEOUT = 30000;
 export const HEARTBEAT_INTERVAL = 5000;
-
-const global = getGlobalObject<Window>();
 
 /**
  * @inheritDoc
@@ -60,14 +56,6 @@ export class IdleTransaction extends Transaction {
   // Activities store a list of active spans
   public activities: Record<string, boolean> = {};
 
-  /**
-   *
-   * Defaults to `externalFinish`, which means transaction.finish() was called outside of the idle transaction (for example,
-   * by a navigation transaction ending the previous pageload/navigation in some routing instrumentation).
-   * @default 'externalFinish'
-   */
-  public finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
-
   // Track state of activities in previous heartbeat
   private _prevHeartbeatString: string | undefined;
 
@@ -83,7 +71,7 @@ export class IdleTransaction extends Transaction {
    * If a transaction is created and no activities are added, we want to make sure that
    * it times out properly. This is cleared and not used when activities are added.
    */
-  private _idleTimeoutID: ReturnType<typeof global.setTimeout> | undefined;
+  private _initTimeout: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
@@ -91,21 +79,10 @@ export class IdleTransaction extends Transaction {
     /**
      * The time to wait in ms until the idle transaction will be finished.
      * @default 1000
-     *
-     * TODO: Make _idleTimeout and _finalTimeout required to reduce duplication when setting the options
-     * in `BrowserTracing`. This is considered a breaking change to the IdleTransaction API,
-     * so we need to make sure we communicate it with react native.
      */
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
     // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
-    /**
-     * The final value that a transaction cannot exceed
-     * @default 30000
-     * @experimental
-     * @internal
-     */
-    private readonly _finalTimeout: number = DEFAULT_FINAL_TIMEOUT,
   ) {
     super(transactionContext, _idleHub);
 
@@ -119,21 +96,17 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this._startIdleTimeout();
-    global.setTimeout(() => {
+    this._initTimeout = setTimeout(() => {
       if (!this._finished) {
-        this.finishReason = IDLE_TRANSACTION_FINISH_REASONS[3]; /* 'finalTimeout' */
         this.finish();
       }
-    }, this._finalTimeout);
+    }, this._idleTimeout);
   }
 
   /** {@inheritDoc} */
   public finish(endTimestamp: number = timestampWithMs()): string | undefined {
     this._finished = true;
     this.activities = {};
-
-    this.setTag(FINISH_REASON_TAG, this.finishReason);
 
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
@@ -217,34 +190,14 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
-   * Cancels the existing idletimeout, if there is one
-   */
-  private _cancelIdleTimeout(): void {
-    if (this._idleTimeoutID) {
-      global.clearTimeout(this._idleTimeoutID);
-      this._idleTimeoutID = undefined;
-    }
-  }
-
-  /**
-   * Creates an idletimeout
-   */
-  private _startIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
-    this._cancelIdleTimeout();
-    this._idleTimeoutID = global.setTimeout(() => {
-      if (!this._finished && Object.keys(this.activities).length === 0) {
-        this.finishReason = IDLE_TRANSACTION_FINISH_REASONS[1]; /* 'idleTimeout' */
-        this.finish(endTimestamp);
-      }
-    }, this._idleTimeout);
-  }
-
-  /**
    * Start tracking a specific activity.
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    this._cancelIdleTimeout();
+    if (this._initTimeout) {
+      clearTimeout(this._initTimeout);
+      this._initTimeout = undefined;
+    }
     logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
     logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
@@ -266,8 +219,14 @@ export class IdleTransaction extends Transaction {
       const timeout = this._idleTimeout;
       // We need to add the timeout here to have the real endtimestamp of the transaction
       // Remember timestampWithMs is in seconds, timeout is in ms
-      const endTimestamp = timestampWithMs() + timeout / 1000;
-      this._startIdleTimeout(endTimestamp);
+      const end = timestampWithMs() + timeout / 1000;
+
+      setTimeout(() => {
+        if (!this._finished) {
+          this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[1]);
+          this.finish(end);
+        }
+      }, timeout);
     }
   }
 
@@ -294,7 +253,7 @@ export class IdleTransaction extends Transaction {
     if (this._heartbeatCounter >= 3) {
       logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
       this.setStatus('deadline_exceeded');
-      this.finishReason = IDLE_TRANSACTION_FINISH_REASONS[0]; /* 'heartbeatFailed' */
+      this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[0]);
       this.finish();
     } else {
       this._pingHeartbeat();
@@ -306,7 +265,7 @@ export class IdleTransaction extends Transaction {
    */
   private _pingHeartbeat(): void {
     logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
-    global.setTimeout(() => {
+    setTimeout(() => {
       this._beat();
     }, HEARTBEAT_INTERVAL);
   }
