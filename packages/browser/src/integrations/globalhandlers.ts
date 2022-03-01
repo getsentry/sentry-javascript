@@ -92,10 +92,7 @@ function _installGlobalOnErrorHandler(): void {
         error === undefined && isString(msg)
           ? _eventFromIncompleteOnError(msg, url, line, column)
           : _enhanceEventWithInitialFrame(
-              eventFromUnknownInput(error || msg, undefined, {
-                attachStacktrace,
-                isRejection: false,
-              }),
+              eventFromUnknownInput(error || msg, undefined, attachStacktrace, false),
               url,
               line,
               column,
@@ -145,10 +142,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
 
       const event = isPrimitive(error)
         ? _eventFromRejectionWithPrimitive(error)
-        : eventFromUnknownInput(error, undefined, {
-            attachStacktrace,
-            isRejection: true,
-          });
+        : eventFromUnknownInput(error, undefined, attachStacktrace, true);
 
       event.level = Severity.Error;
 

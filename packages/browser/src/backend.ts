@@ -40,13 +40,13 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(this._options, exception, hint);
+    return eventFromException(exception, hint, this._options.attachStacktrace);
   }
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return eventFromMessage(this._options, message, level, hint);
+    return eventFromMessage(message, level, hint, this._options.attachStacktrace);
   }
 
   /**
