@@ -21,7 +21,6 @@ export class MetricsInstrumentation {
   private _performanceCursor: number = 0;
   private _lcpEntry: LargestContentfulPaint | undefined;
   private _clsEntry: LayoutShift | undefined;
-  private _reportLCP: ReturnType<typeof getLCP>;
 
   public constructor(private _reportAllChanges: boolean = false) {
     if (!isNodeEnv() && global && global.performance && global.document) {
@@ -43,12 +42,6 @@ export class MetricsInstrumentation {
     }
 
     logger.log('[Tracing] Adding & adjusting spans using Performance API');
-
-    // `addPerformanceEntries` should be called on transaction.finish
-    // If we are finishing a transaction, we should force report the LCP.
-    if (this._reportLCP) {
-      this._reportLCP(true);
-    }
 
     const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
@@ -230,7 +223,7 @@ export class MetricsInstrumentation {
 
   /** Starts tracking the Largest Contentful Paint on the current page. */
   private _trackLCP(): void {
-    this._reportLCP = getLCP(metric => {
+    getLCP(metric => {
       const entry = metric.entries.pop();
       if (!entry) {
         return;
