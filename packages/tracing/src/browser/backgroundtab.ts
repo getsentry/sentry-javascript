@@ -1,6 +1,6 @@
 import { getGlobalObject, logger } from '@sentry/utils';
 
-import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from '../constants';
+import { IDLE_TRANSACTION_FINISH_REASONS } from '../constants';
 import { IdleTransaction } from '../idletransaction';
 import { SpanStatusType } from '../span';
 import { getActiveTransaction } from '../utils';
@@ -27,7 +27,7 @@ export function registerBackgroundTabDetection(): void {
           activeTransaction.setStatus(statusType);
         }
         activeTransaction.setTag('visibilitychange', 'document.hidden');
-        activeTransaction.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[2]);
+        activeTransaction.finishReason = IDLE_TRANSACTION_FINISH_REASONS[2]; /* 'documentHidden' */
         activeTransaction.finish();
       }
     });

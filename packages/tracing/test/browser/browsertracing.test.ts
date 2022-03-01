@@ -14,7 +14,7 @@ import { MetricsInstrumentation } from '../../src/browser/metrics';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
+import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 import { getActiveTransaction, secToMs } from '../../src/utils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
@@ -83,6 +83,7 @@ describe('BrowserTracing', () => {
 
     expect(browserTracing.options).toEqual({
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
+      finalTimeout: DEFAULT_FINAL_TIMEOUT,
       markBackgroundTransactions: true,
       maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
       routingInstrumentation: instrumentRoutingWithDefaults,
@@ -235,9 +236,8 @@ describe('BrowserTracing', () => {
     describe('idleTimeout', () => {
       it('is created by default', () => {
         createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
-        const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish = mockFinish;
+        const mockFinish = jest.spyOn(transaction, 'finish');
 
         const span = transaction.startChild(); // activities = 1
         span.finish(); // activities = 0
@@ -251,9 +251,8 @@ describe('BrowserTracing', () => {
 
       it('can be a custom value', () => {
         createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customInstrumentRouting });
-        const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish = mockFinish;
+        const mockFinish = jest.spyOn(transaction, 'finish');
 
         const span = transaction.startChild(); // activities = 1
         span.finish(); // activities = 0
