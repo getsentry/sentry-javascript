@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.18.1-beta.0
+
+This patch builds on top of the https://github.com/getsentry/sentry-javascript/releases/tag/6.17.8-beta.0 beta.
+It adds an additional finish reason that covers the case where a transaction was getting externally finished.
+
+- feat(tracing): Reset IdleTimeout based on activities count ([#4531](https://github.com/getsentry/sentry-javascript/pull/4531))
+
 ## 6.18.1
 
 - fix(ember): use _backburner if it exists ([#4603](https://github.com/getsentry/sentry-javascript/pull/4603))
