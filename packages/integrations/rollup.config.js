@@ -15,6 +15,7 @@ function loadAllIntegrations() {
     const baseBundleConfig = makeBaseBundleConfig({
       input: `src/${file}`,
       isAddOn: true,
+      jsVersion: 'es5',
       outputFileBase: `build/${file.replace('.ts', '')}`,
     });
 

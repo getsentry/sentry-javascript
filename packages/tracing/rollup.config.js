@@ -5,6 +5,7 @@ const licensePlugin = makeLicensePlugin('@sentry/tracing & @sentry/browser');
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.bundle.ts',
   isAddOn: false,
+  jsVersion: 'es5',
   outputFileBase: 'build/bundle.tracing',
 });
 
