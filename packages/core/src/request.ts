@@ -49,7 +49,7 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
   // I know this is hacky but we don't want to add `sessions` to request type since it's never rate limited
   const type = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
 
-  // Have to cast type because envelope items do not accept a `SentryRequestType`
+  // TODO (v7) Have to cast type because envelope items do not accept a `SentryRequestType`
   const envelopeItem = [{ type } as { type: 'session' | 'sessions' }, session] as SessionItem;
   const envelope = createEnvelope<SessionEnvelope>(envelopeHeaders, [envelopeItem]);
   return {
