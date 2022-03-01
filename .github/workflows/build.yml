@@ -216,7 +216,7 @@ jobs:
           name: build-output
           path: ${{ github.workspace }}/packages
       - name: Install dependencies
-        run: yarn install --ignore-engines --force
+        run: yarn install
       - name: Run tests
         run: node ./scripts/test.js
 

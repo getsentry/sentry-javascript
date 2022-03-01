@@ -4,6 +4,7 @@ const { join } = require('path');
 const nodeVersion = parseInt(process.version.split('.')[0].replace('v', ''), 10);
 
 function run(cmd) {
+  console.log(cmd);
   const result = spawnSync(cmd, { shell: true, stdio: 'inherit', cwd: join(__dirname, '..') });
 
   if (result.status !== 0) {
