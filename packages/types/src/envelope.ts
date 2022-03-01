@@ -3,6 +3,7 @@ import { Event } from './event';
 import { SdkInfo } from './sdkinfo';
 import { Session, SessionAggregates } from './session';
 import { UserFeedback } from './user';
+import { TransactionSamplingMethod } from './transaction';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
@@ -25,7 +26,10 @@ type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<Bas
   I[],
 ];
 
-type EventItemHeaders = { type: 'event' | 'transaction'; sample_rates: [{ id: unknown; rate: unknown }] };
+type EventItemHeaders = {
+  type: 'event' | 'transaction';
+  sample_rates: [{ id?: TransactionSamplingMethod; rate?: number }];
+};
 type AttachmentItemHeaders = { type: 'attachment'; filename: string };
 type UserFeedbackItemHeaders = { type: 'user_report' };
 type SessionItemHeaders = { type: 'session' };
