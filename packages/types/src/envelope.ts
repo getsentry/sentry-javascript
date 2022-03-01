@@ -2,8 +2,8 @@ import { ClientReport } from './clientreport';
 import { Event } from './event';
 import { SdkInfo } from './sdkinfo';
 import { Session, SessionAggregates } from './session';
-import { UserFeedback } from './user';
 import { TransactionSamplingMethod } from './transaction';
+import { UserFeedback } from './user';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
