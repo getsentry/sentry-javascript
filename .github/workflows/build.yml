@@ -21,6 +21,7 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+    !**/node_modules/**
 
 jobs:
   job_install_deps:
@@ -103,6 +104,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v3
         # Only run size check on master or pull requests
@@ -131,6 +133,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run linter
         run: yarn lint
 
@@ -152,6 +155,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -179,6 +183,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run tests
         run: node ./scripts/test.js
       - name: Compute test coverage
@@ -209,6 +214,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Install dependencies
         run: yarn install --ignore-engines --force
       - name: Run tests
@@ -238,6 +244,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -278,6 +285,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run Ember tests
         run: yarn test --scope=@sentry/ember
       - name: Compute test coverage
@@ -300,6 +308,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Pack
         run: yarn pack:changed
       - name: Archive artifacts
@@ -349,6 +358,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
@@ -383,6 +393,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
@@ -410,6 +421,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build-output
+          path: ${{ github.workspace }}/packages
       - name: Run build tests
         run: |
           cd packages/browser
