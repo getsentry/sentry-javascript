@@ -236,9 +236,8 @@ describe('BrowserTracing', () => {
     describe('idleTimeout', () => {
       it('is created by default', () => {
         createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
-        const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish = mockFinish;
+        const mockFinish = jest.spyOn(transaction, 'finish');
 
         const span = transaction.startChild(); // activities = 1
         span.finish(); // activities = 0
@@ -252,9 +251,8 @@ describe('BrowserTracing', () => {
 
       it('can be a custom value', () => {
         createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customInstrumentRouting });
-        const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish = mockFinish;
+        const mockFinish = jest.spyOn(transaction, 'finish');
 
         const span = transaction.startChild(); // activities = 1
         span.finish(); // activities = 0
