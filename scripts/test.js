@@ -34,7 +34,11 @@ if (nodeVersion <= 6) {
     'yarn test --ignore="@sentry/ember" --ignore="@sentry-internal/eslint-plugin-sdk" --ignore="@sentry/react" --ignore="@sentry/wasm" --ignore="@sentry/gatsby" --ignore="@sentry/serverless" --ignore="@sentry/nextjs"'
   );
 } else {
-  run('yarn test --ignore="@sentry/ember"');
+  if (process.platform === 'win32') {
+    run('yarn test --ignore="@sentry/ember" --ignore="@sentry/nextjs"');
+  } else {
+    run('yarn test --ignore="@sentry/ember"');
+  }
 }
 
 process.exit(0);
