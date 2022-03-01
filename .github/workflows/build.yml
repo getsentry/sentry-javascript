@@ -140,7 +140,7 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Build packages
-        run: yarn build
+        run: yarn && yarn build
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
