@@ -1,7 +1,14 @@
 /**
- * Shared config used by individual packages' Rollup configs
+ * Shared config used by individual packages' Rollup configs. Items here come in three flavors:
+ *   - stand-alone: used by `@sentry/browser`, `@sentry/tracing`, and `@sentry/vue` (bundles which are a full SDK in
+ *     and of themselves)
+ *   - add-on: used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone
+ *     SDK bundle)
+ *   - shared: used by both types of bundles
+ *
  */
 
+import deepMerge from 'deepmerge';
 import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
@@ -61,7 +68,7 @@ export const markAsBrowserBuild = replace({
   },
 });
 
-export const typescriptPluginES5 = typescript({
+const baseTSPluginOptions = {
   tsconfig: 'tsconfig.esm.json',
   tsconfigOverride: {
     compilerOptions: {
@@ -72,7 +79,27 @@ export const typescriptPluginES5 = typescript({
     },
   },
   include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-});
+};
+
+export const typescriptPluginES5 = typescript(
+  deepMerge(baseTSPluginOptions, {
+    tsconfigOverride: {
+      compilerOptions: {
+        target: 'es5',
+      },
+    },
+  }),
+);
+
+export const typescriptPluginES6 = typescript(
+  deepMerge(baseTSPluginOptions, {
+    tsconfigOverride: {
+      compilerOptions: {
+        target: 'es6',
+      },
+    },
+  }),
+);
 
 export const nodeResolvePlugin = resolve();
 
@@ -115,3 +142,61 @@ export const addOnBundleConfig = {
     footer: '}(window));',
   },
 };
+
+export function makeBaseBundleConfig(options) {
+  const { input, isAddOn, jsVersion, outputFileBase } = options;
+
+  const standAloneBundleConfig = {
+    output: {
+      format: 'iife',
+      name: 'Sentry',
+    },
+    context: 'window',
+  };
+
+  const addOnBundleConfig = {
+    // These output settings are designed to mimic an IIFE. We don't use Rollup's `iife` format because we don't want to
+    // attach this code to a new global variable, but rather inject it into the existing SDK's `Integrations` object.
+    output: {
+      format: 'cjs',
+
+      // code to add before the CJS wrapper
+      banner: '(function (__window) {',
+
+      // code to add just inside the CJS wrapper, before any of the wrapped code
+      intro: 'var exports = {};',
+
+      // code to add after all of the wrapped code, but still inside the CJS wrapper
+      outro: () =>
+        [
+          '',
+          "  // Add this module's exports to the global `Sentry.Integrations`",
+          '  __window.Sentry = __window.Sentry || {};',
+          '  __window.Sentry.Integrations = __window.Sentry.Integrations || {};',
+          '  for (var key in exports) {',
+          '    if (Object.prototype.hasOwnProperty.call(exports, key)) {',
+          '      __window.Sentry.Integrations[key] = exports[key];',
+          '    }',
+          '  }',
+        ].join('\n'),
+
+      // code to add after the CJS wrapper
+      footer: '}(window));',
+    },
+  };
+
+  const sharedBundleConfig = {
+    input,
+    output: {
+      // a file extension will be added to this base value when we specify either a minified or non-minified build
+      file: outputFileBase,
+      sourcemap: true,
+      strict: false,
+      esModule: false,
+    },
+    plugins: [jsVersion === 'es5' ? typescriptPluginES5 : typescriptPluginES6, markAsBrowserBuild, nodeResolvePlugin],
+    treeshake: 'smallest',
+  };
+
+  return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig);
+}

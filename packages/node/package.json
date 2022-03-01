@@ -18,7 +18,6 @@
   "dependencies": {
     "@sentry/core": "6.18.1",
     "@sentry/hub": "6.18.1",
-    "@sentry/tracing": "6.18.1",
     "@sentry/types": "6.18.1",
     "@sentry/utils": "6.18.1",
     "cookie": "^0.4.1",
