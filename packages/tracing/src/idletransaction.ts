@@ -60,6 +60,14 @@ export class IdleTransaction extends Transaction {
   // Activities store a list of active spans
   public activities: Record<string, boolean> = {};
 
+  /**
+   *
+   * Defaults to `externalFinish`, which means transaction.finish() was called outside of the idle transaction (for example,
+   * by a navigation transaction ending the previous pageload/navigation in some routing instrumentation).
+   * @default 'externalFinish'
+   */
+  public finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
+
   // Track state of activities in previous heartbeat
   private _prevHeartbeatString: string | undefined;
 
@@ -76,14 +84,6 @@ export class IdleTransaction extends Transaction {
    * it times out properly. This is cleared and not used when activities are added.
    */
   private _idleTimeoutID: ReturnType<typeof global.setTimeout> | undefined;
-
-  /**
-   *
-   * Defaults to `externalFinish`, which means transaction.finish() was called outside of the idle transaction (for example,
-   * by a navigation transaction ending the previous pageload/navigation in some routing instrumentation).
-   * @default 'externalFinish'
-   */
-  private _finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
 
   public constructor(
     transactionContext: TransactionContext,
@@ -122,7 +122,7 @@ export class IdleTransaction extends Transaction {
     this._startIdleTimeout();
     global.setTimeout(() => {
       if (!this._finished) {
-        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[3]; /* 'finalTimeout' */
+        this.finishReason = IDLE_TRANSACTION_FINISH_REASONS[3]; /* 'finalTimeout' */
         this.finish();
       }
     }, this._finalTimeout);
@@ -133,7 +133,7 @@ export class IdleTransaction extends Transaction {
     this._finished = true;
     this.activities = {};
 
-    this.setTag(FINISH_REASON_TAG, this._finishReason);
+    this.setTag(FINISH_REASON_TAG, this.finishReason);
 
     if (this.spanRecorder) {
       logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
@@ -233,7 +233,7 @@ export class IdleTransaction extends Transaction {
     this._cancelIdleTimeout();
     this._idleTimeoutID = global.setTimeout(() => {
       if (!this._finished && Object.keys(this.activities).length === 0) {
-        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[1]; /* 'idleTimeout' */
+        this.finishReason = IDLE_TRANSACTION_FINISH_REASONS[1]; /* 'idleTimeout' */
         this.finish(endTimestamp);
       }
     }, this._idleTimeout);
@@ -294,7 +294,7 @@ export class IdleTransaction extends Transaction {
     if (this._heartbeatCounter >= 3) {
       logger.log(`[Tracing] Transaction finished because of no change for 3 heart beats`);
       this.setStatus('deadline_exceeded');
-      this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[0]; /* 'heartbeatFailed' */
+      this.finishReason = IDLE_TRANSACTION_FINISH_REASONS[0]; /* 'heartbeatFailed' */
       this.finish();
     } else {
       this._pingHeartbeat();
