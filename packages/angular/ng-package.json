@@ -1,11 +1,11 @@
 {
   "$schema": "node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "dist",
+  "dest": "build",
   "lib": {
     "entryFile": "src/index.ts",
     "umdModuleIds": {
       "@sentry/browser": "Sentry",
-      "@sentry/utils": "utils"
+      "@sentry/utils": "Sentry.util"
     }
   },
   "whitelistedNonPeerDependencies": [
@@ -15,6 +15,6 @@
     "tslib",
     "rxjs"
   ],
-  "assets": ["README.md"],
+  "assets": ["README.md", "LICENSE"],
   "keepLifecycleScripts": true
 }

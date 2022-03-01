@@ -52,7 +52,7 @@
     "zone.js": "~0.10.2"
   },
   "scripts": {
-    "build": "run-p build:ngc",
+    "build": "yarn build:ngc",
     "build:legacy": "run-p build:esm build:cjs",
     "build:ngc": "ng build --prod",
 
