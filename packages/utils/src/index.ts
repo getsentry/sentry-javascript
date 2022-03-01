@@ -20,6 +20,7 @@ export * from './string';
 export * from './supports';
 export * from './syncpromise';
 export * from './time';
+export * from './tracing';
 export * from './env';
 export * from './envelope';
 export * from './clientreport';
