@@ -1,6 +1,6 @@
-import { resolvedSyncPromise } from '../dist';
 import { isDOMError, isDOMException, isError, isErrorEvent, isInstanceOf, isPrimitive, isThenable } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
+import { resolvedSyncPromise } from '../src/syncpromise';
 
 class SentryError extends Error {
   public name: string;

@@ -1,9 +1,15 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { extractTraceparentData, Span } from '@sentry/tracing';
-import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
-import { isPlainObject, isString, logger, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
+import { Event, ExtractedNodeRequestData, Span, Transaction } from '@sentry/types';
+import {
+  extractTraceparentData,
+  isPlainObject,
+  isString,
+  logger,
+  normalize,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';

@@ -1,13 +1,19 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Options, TraceparentData, Transaction } from '@sentry/types';
+import { Options, Transaction } from '@sentry/types';
 
-export const TRACEPARENT_REGEXP = new RegExp(
-  '^[ \\t]*' + // whitespace
-    '([0-9a-f]{32})?' + // trace_id
-    '-?([0-9a-f]{16})?' + // span_id
-    '-?([01])?' + // sampled
-    '[ \\t]*$', // whitespace
-);
+/**
+ * The `extractTraceparentData` function and `TRACEPARENT_REGEXP` constant used
+ * to be declared in this file. It was later moved into `@sentry/utils` as part of a
+ * move to remove `@sentry/tracing` dependencies from `@sentry/node` (`extractTraceparentData`
+ * is the only tracing function used by `@sentry/node`).
+ *
+ * These exports are kept here for backwards compatability's sake.
+ *
+ * TODO(v7): Reorganize these exports
+ *
+ * See https://github.com/getsentry/sentry-javascript/issues/4642 for more details.
+ */
+export { TRACEPARENT_REGEXP, extractTraceparentData } from '@sentry/utils';
 
 /**
  * Determines if tracing is currently enabled.
@@ -18,31 +24,6 @@ export function hasTracingEnabled(maybeOptions?: Options | undefined): boolean {
   const client = getCurrentHub().getClient();
   const options = maybeOptions || (client && client.getOptions());
   return !!options && ('tracesSampleRate' in options || 'tracesSampler' in options);
-}
-
-/**
- * Extract transaction context data from a `sentry-trace` header.
- *
- * @param traceparent Traceparent string
- *
- * @returns Object containing data from the header, or undefined if traceparent string is malformed
- */
-export function extractTraceparentData(traceparent: string): TraceparentData | undefined {
-  const matches = traceparent.match(TRACEPARENT_REGEXP);
-  if (matches) {
-    let parentSampled: boolean | undefined;
-    if (matches[3] === '1') {
-      parentSampled = true;
-    } else if (matches[3] === '0') {
-      parentSampled = false;
-    }
-    return {
-      traceId: matches[1],
-      parentSampled,
-      parentSpanId: matches[2],
-    };
-  }
-  return undefined;
 }
 
 /** Grabs active transaction off scope, if any */
