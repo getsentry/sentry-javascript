@@ -1,38 +1,28 @@
-import {
-  addOnBundleConfig,
-  baseBundleConfig,
-  markAsBrowserBuild,
-  nodeResolvePlugin,
-  terserPlugin,
-  typescriptPluginES5,
-} from '../../rollup.config';
+import { makeBaseBundleConfig, terserPlugin } from '../../rollup.config';
 
-const plugins = [
-  typescriptPluginES5,
-  // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
-  markAsBrowserBuild,
-  nodeResolvePlugin,
-];
+const baseBundleConfig = makeBaseBundleConfig({
+  input: 'src/index.ts',
+  isAddOn: true,
+  outputFileBase: 'build/wasm',
+});
 
 function loadAllIntegrations() {
   const builds = [];
   [
     {
       extension: '.js',
-      plugins,
+      plugins: baseBundleConfig.plugins,
     },
     {
       extension: '.min.js',
-      plugins: [...plugins, terserPlugin],
+      plugins: [...baseBundleConfig.plugins, terserPlugin],
     },
   ].forEach(build => {
     builds.push({
       ...baseBundleConfig,
-      input: `src/index.ts`,
       output: {
         ...baseBundleConfig.output,
-        ...addOnBundleConfig.output,
-        file: `build/wasm${build.extension}`,
+        file: `${baseBundleConfig.output.file}${build.extension}`,
       },
       plugins: build.plugins,
     });
