@@ -22,11 +22,9 @@ env:
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
-  BUILD_CACHE_KEY: build-${{ github.sha }}
-
 jobs:
   job_install_deps:
-    name: Install Dependencies - Linux
+    name: Install Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -66,10 +64,6 @@ jobs:
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
-      - uses: actions/upload-artifact@v2
-        with:
-          name: build-output
-          path: ${{ env.CACHED_BUILD_PATHS }}
       - name: Build packages
         run: yarn build
         # We are performing a `prepublishOnly` step manually because build workflow is not responsible for publishing
@@ -77,6 +71,10 @@ jobs:
         # Because of that, any `prepublishOnly` script is skipped and files it produces are not included in the tarball.
         # We also cannot use `prepare` script which would be more suited, because it's run only before `pack` is called,
         # and it's done from a `release` workflow and not here.
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build-output
+          path: ${{ env.CACHED_BUILD_PATHS }}
       - name: Run prepublishOnly script
         if: startsWith(github.ref, 'refs/heads/release/')
         run: yarn prepublishOnly
