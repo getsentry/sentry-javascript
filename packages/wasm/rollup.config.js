@@ -3,6 +3,7 @@ import { makeBaseBundleConfig, terserPlugin } from '../../rollup.config';
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.ts',
   isAddOn: true,
+  jsVersion: 'es5',
   outputFileBase: 'build/wasm',
 });
 

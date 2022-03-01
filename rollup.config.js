@@ -68,7 +68,7 @@ export const markAsBrowserBuild = replace({
   },
 });
 
-export const typescriptPluginES5 = typescript({
+const baseTSPluginOptions = {
   tsconfig: 'tsconfig.esm.json',
   tsconfigOverride: {
     compilerOptions: {
@@ -79,7 +79,27 @@ export const typescriptPluginES5 = typescript({
     },
   },
   include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-});
+};
+
+export const typescriptPluginES5 = typescript(
+  deepMerge(baseTSPluginOptions, {
+    tsconfigOverride: {
+      compilerOptions: {
+        target: 'es5',
+      },
+    },
+  }),
+);
+
+export const typescriptPluginES6 = typescript(
+  deepMerge(baseTSPluginOptions, {
+    tsconfigOverride: {
+      compilerOptions: {
+        target: 'es6',
+      },
+    },
+  }),
+);
 
 export const nodeResolvePlugin = resolve();
 
@@ -124,7 +144,7 @@ export const addOnBundleConfig = {
 };
 
 export function makeBaseBundleConfig(options) {
-  const { input, isAddOn, outputFileBase } = options;
+  const { input, isAddOn, jsVersion, outputFileBase } = options;
 
   const standAloneBundleConfig = {
     output: {
@@ -174,7 +194,7 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [typescriptPluginES5, markAsBrowserBuild, nodeResolvePlugin],
+    plugins: [jsVersion === 'es5' ? typescriptPluginES5 : typescriptPluginES6, markAsBrowserBuild, nodeResolvePlugin],
     treeshake: 'smallest',
   };
 
