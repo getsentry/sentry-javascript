@@ -1,12 +1,12 @@
 import {
   Event,
-  EventEnvelope,
-  EventItem,
   SdkInfo,
   SentryRequest,
   SentryRequestType,
   Session,
   SessionAggregates,
+  SessionEnvelope,
+  SessionItem,
 } from '@sentry/types';
 import { createEnvelope, dsnToString, normalize, serializeEnvelope } from '@sentry/utils';
 
@@ -40,19 +40,20 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 /** Creates a SentryRequest from a Session. */
 export function sessionToSentryRequest(session: Session | SessionAggregates, api: APIDetails): SentryRequest {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
-  const envelopeHeaders = JSON.stringify({
+  const envelopeHeaders = {
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!api.tunnel && { dsn: dsnToString(api.dsn) }),
-  });
-  // I know this is hacky but we don't want to add `session` to request type since it's never rate limited
-  const type: SentryRequestType = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
-  const itemHeaders = JSON.stringify({
-    type,
-  });
+  };
 
+  // I know this is hacky but we don't want to add `sessions` to request type since it's never rate limited
+  const type = 'aggregates' in session ? ('sessions' as SentryRequestType) : 'session';
+
+  // Have to cast type because envelope items do not accept a `SentryRequestType`
+  const envelopeItem = [{ type } as { type: 'session' | 'sessions' }, session] as SessionItem;
+  const envelope = createEnvelope<SessionEnvelope>(envelopeHeaders, [envelopeItem]);
   return {
-    body: `${envelopeHeaders}\n${itemHeaders}\n${JSON.stringify(session)}`,
+    body: serializeEnvelope(envelope),
     type,
     url: getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel),
   };
