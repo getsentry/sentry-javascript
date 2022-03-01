@@ -18,7 +18,9 @@ const terserInstance = terser({
     // We need those full names to correctly detect our internal frames for stripping.
     // I listed all of them here just for the clarity sake, as they are all used in the frames manipulation process.
     reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
-    properties: false,
+    properties: {
+      regex: /^_[^_]/,
+    },
   },
   output: {
     comments: false,
