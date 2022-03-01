@@ -7,7 +7,7 @@ import { Options, Transaction } from '@sentry/types';
  * move to remove `@sentry/tracing` dependencies from `@sentry/node` (`extractTraceparentData`
  * is the only tracing function used by `@sentry/node`).
  *
- * These exports are kept here for backwards compatability's sack.
+ * These exports are kept here for backwards compatability's sake.
  *
  * TODO(v7): Reorganize these exports
  *
