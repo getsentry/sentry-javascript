@@ -33,6 +33,8 @@ export function serializeEnvelope(envelope: Envelope): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (items as any[]).reduce((acc, item: typeof items[number]) => {
     const [itemHeaders, payload] = item;
-    return `${acc}\n${JSON.stringify(itemHeaders)}\n${JSON.stringify(payload)}`;
+    // We do not serialize payloads that are strings
+    const serializedPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    return `${acc}\n${JSON.stringify(itemHeaders)}\n${serializedPayload}`;
   }, serializedHeaders);
 }

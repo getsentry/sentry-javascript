@@ -25,14 +25,17 @@ type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<Bas
   I[],
 ];
 
-type EventItemHeaders = { type: 'event' | 'transaction' };
+type EventItemHeaders = { type: 'event' | 'transaction'; sample_rates: [{ id: unknown; rate: unknown }] };
 type AttachmentItemHeaders = { type: 'attachment'; filename: string };
 type UserFeedbackItemHeaders = { type: 'user_report' };
 type SessionItemHeaders = { type: 'session' };
 type SessionAggregatesItemHeaders = { type: 'sessions' };
 type ClientReportItemHeaders = { type: 'client_report' };
 
-export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
+// TODO(v7): Remove the string union from `Event | string`
+// We have to allow this hack for now as we pre-serialize events because we support
+// both store and envelope endpoints.
+export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event | string>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, unknown>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =
