@@ -9,16 +9,7 @@ import {
 } from '../src/idletransaction';
 import { Span } from '../src/span';
 
-type TransportSendRequest = Transports.BaseTransport['_sendRequest'];
-
-export class SimpleTransport extends Transports.BaseTransport {
-  protected _sendRequest(
-    _req: Parameters<TransportSendRequest>[0],
-    _payload: Parameters<TransportSendRequest>[1],
-  ): ReturnType<TransportSendRequest> {
-    throw new Error('Method not implemented.');
-  }
-}
+export class SimpleTransport extends Transports.BaseTransport {}
 
 const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
@@ -112,7 +103,7 @@ describe('IdleTransaction', () => {
 
     expect(transaction.activities).toMatchObject({ [span.spanId]: true, [childSpan.spanId]: true });
     span.finish();
-    jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT + 1);
+    jest.runOnlyPendingTimers();
 
     expect(mockFinish).toHaveBeenCalledTimes(0);
     expect(transaction.activities).toMatchObject({ [childSpan.spanId]: true });
@@ -238,20 +229,20 @@ describe('IdleTransaction', () => {
       transaction.startChild({});
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(1);
     });
 
     it('resets after new activities are added', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT, false, 50000);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
       const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
@@ -259,42 +250,42 @@ describe('IdleTransaction', () => {
       transaction.startChild({});
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       const span = transaction.startChild(); // push activity
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       transaction.startChild(); // push activity
       transaction.startChild(); // push activity
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       span.finish(); // pop activity
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.runOnlyPendingTimers();
       expect(mockFinish).toHaveBeenCalledTimes(1);
 
       // Heartbeat does not keep going after finish has been called
