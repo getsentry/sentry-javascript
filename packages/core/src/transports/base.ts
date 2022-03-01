@@ -1,7 +1,16 @@
-import { EventStatus, SentryRequestType, TransportOptions, DsnLike } from '@sentry/types';
+import { Envelope, EventStatus, SentryRequestType } from '@sentry/types';
+import {
+  eventStatusFromHttpCode,
+  makePromiseBuffer,
+  PromiseBuffer,
+  rejectedSyncPromise,
+  resolvedSyncPromise,
+  serializeEnvelope,
+  SentryError,
+} from '@sentry/utils';
 
-export type TransportRequest<T> = {
-  body: T;
+export type TransportRequest = {
+  body: string;
   type: SentryRequestType;
 };
 
@@ -17,53 +26,89 @@ export type TransportResponse = {
   reason?: string;
 };
 
+export interface BaseTransportOptions {
+  // url to send the event
+  // transport does not care about dsn specific - client should take care of
+  // parsing and figuring that out
+  url: string;
+  headers?: Record<string, string>;
+  bufferSize?: number; // make transport buffer size configurable
+}
+
+export interface BrowserTransportOptions extends BaseTransportOptions {
+  // options to pass into fetch request
+  fetchParams: Record<string, string>;
+  sendClientReports?: boolean;
+}
+
+export interface NodeTransportOptions extends BaseTransportOptions {
+  // Set a HTTP proxy that should be used for outbound requests.
+  httpProxy?: string;
+  // Set a HTTPS proxy that should be used for outbound requests.
+  httpsProxy?: string;
+  // HTTPS proxy certificates path
+  caCerts?: string;
+}
+
 interface INewTransport {
-  sendRequest<T = string>(request: TransportRequest<T>): PromiseLike<TransportResponse>;
+  send(request: Envelope, type: SentryRequestType): PromiseLike<TransportResponse>;
   flush(timeout: number): PromiseLike<boolean>;
 }
 
-export type TransportOptions = {
-  dsn: string;
-  /** Set a HTTP proxy that should be used for outbound requests. */
-  proxy?: string;
-  /** HTTPS proxy certificates path */
-  caCerts?: string;
-  /** Fetch API init parameters */
-  credentials?: string;
-  headers?: Record<string, string>;
-  bufferSize?: number;
-};
-
-/** JSDoc */
-export interface BaseTransportOptions {
-  /** Sentry DSN */
-  dsn: DsnLike;
-  /** Define custom headers */
-  headers?: { [key: string]: string };
-  /** Set a HTTP proxy that should be used for outbound requests. */
-  httpProxy?: string; // ONLY USED BY NODE SDK
-  /** Set a HTTPS proxy that should be used for outbound requests. */
-  httpsProxy?: string; // ONLY USED BY NODE SDK
-  /** HTTPS proxy certificates path */
-  caCerts?: string; // ONLY USED BY NODE SDK
-  /** Fetch API init parameters */
-  fetchParameters?: { [key: string]: string }; // ONLY USED BY BROWSER SDK
-  /** The envelope tunnel to use. */
-  tunnel?: string;
-  /** Send SDK Client Reports. Enabled by default. */
-  sendClientReports?: boolean; // ONLY USED BY BROWSER SDK ATM
-  /**
-   * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
-   * and provide additional data about every request.
-   * */
-  _metadata?: SdkMetadata;
-}
-
 /**
- *
+ * Heavily based on Kamil's work in
+ * https://github.com/getsentry/sentry-javascript/blob/v7-dev/packages/transport-base/src/transport.ts
  */
 export abstract class BaseTransport implements INewTransport {
-  public constructor(protected readonly _options: TransportOptions) {}
+  protected readonly _buffer: PromiseBuffer<TransportResponse>;
+  private readonly _rateLimits: Record<string, number> = {};
 
-  protected abstract _makeRequest<T = string>(request: TransportRequest<T>): PromiseLike<TransportMakeRequestResponse>;
+  public constructor(protected readonly _options: BaseTransportOptions) {
+    this._buffer = makePromiseBuffer(this._options.bufferSize || 30);
+  }
+
+  /**  */
+  public send(envelope: Envelope, type: SentryRequestType): PromiseLike<TransportResponse> {
+    const request: TransportRequest = {
+      // I'm undecided if the type API should work like this
+      // though we are a little stuck with this because of how
+      // minimal the envelopes implementation is
+      // perhaps there is a way we can expand it?
+      type,
+      body: serializeEnvelope(envelope),
+    };
+
+    if (isRateLimited(this._rateLimits, type)) {
+      return rejectedSyncPromise(
+        new SentryError(`oh no, disabled until: ${rateLimitDisableUntil(this._rateLimits, type)}`),
+      );
+    }
+
+    const requestTask = (): PromiseLike<TransportResponse> =>
+      this._makeRequest(request).then(({ body, headers, reason, statusCode }): PromiseLike<TransportResponse> => {
+        if (headers) {
+          updateRateLimits(this._rateLimits, headers);
+        }
+
+        // TODO: This is the happy path!
+        const status = eventStatusFromHttpCode(statusCode);
+        if (status === 'success') {
+          return resolvedSyncPromise({ status });
+        }
+
+        return rejectedSyncPromise(new SentryError(body || reason || 'Unknown transport error'));
+      });
+
+    return this._buffer.add(requestTask);
+  }
+
+  /** */
+  public flush(timeout?: number): PromiseLike<boolean> {
+    return this._buffer.drain(timeout);
+  }
+
+  // Each is up to each transport implementation to determine how to make a request -> return an according response
+  // `TransportMakeRequestResponse` is different than `TransportResponse` because the client doesn't care about
+  // these extra details
+  protected abstract _makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse>;
 }
