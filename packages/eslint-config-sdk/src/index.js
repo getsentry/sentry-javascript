@@ -254,5 +254,7 @@ module.exports = {
     // `.filter` and `.reduce`. If we are not, we should be using
     // `.forEach()` or an explicit for loop.
     'array-callback-return': ['error', { allowImplicit: true }],
+
+    quotes: ['error', 'single', { avoidEscape: true }],
   },
 };
