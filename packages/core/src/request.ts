@@ -1,5 +1,7 @@
 import {
   Event,
+  EventEnvelope,
+  EventItem,
   SdkInfo,
   SentryRequest,
   SentryRequestType,
