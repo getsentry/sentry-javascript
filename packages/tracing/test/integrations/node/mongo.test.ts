@@ -73,7 +73,7 @@ describe('patchOperation()', () => {
           doc: JSON.stringify(doc),
           namespace: 'mockedNamespace',
         },
-        op: `db`,
+        op: 'db',
         description: 'insertOne',
       });
       expect(childSpan.finish).toBeCalled();
@@ -91,7 +91,7 @@ describe('patchOperation()', () => {
         doc: JSON.stringify(doc),
         namespace: 'mockedNamespace',
       },
-      op: `db`,
+      op: 'db',
       description: 'insertOne',
     });
     expect(childSpan.finish).toBeCalled();
@@ -106,7 +106,7 @@ describe('patchOperation()', () => {
         dbName: 'mockedDbName',
         namespace: 'mockedNamespace',
       },
-      op: `db`,
+      op: 'db',
       description: 'initializeOrderedBulkOp',
     });
     expect(childSpan.finish).toBeCalled();

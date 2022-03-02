@@ -372,7 +372,7 @@ describe('BrowserTracing', () => {
       });
 
       it("doesn't return meta tags other than the one specified", () => {
-        document.head.innerHTML = `<meta name="cat-cafe">`;
+        document.head.innerHTML = '<meta name="cat-cafe">';
 
         const metaTagValue = getMetaContent('dogpark');
         expect(metaTagValue).toBe(null);
@@ -382,7 +382,7 @@ describe('BrowserTracing', () => {
         const name = 'sentry-trace';
         const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
         const sentryTraceMeta = `<meta name="${name}" content="${content}">`;
-        const otherMeta = `<meta name="cat-cafe">`;
+        const otherMeta = '<meta name="cat-cafe">';
         document.head.innerHTML = `${sentryTraceMeta} ${otherMeta}`;
 
         const metaTagValue = getMetaContent(name);
@@ -392,7 +392,8 @@ describe('BrowserTracing', () => {
 
     describe('getHeaderContext', () => {
       it('correctly parses a valid sentry-trace meta header', () => {
-        document.head.innerHTML = `<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">`;
+        document.head.innerHTML =
+          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">';
 
         const headerContext = getHeaderContext();
 
@@ -403,7 +404,7 @@ describe('BrowserTracing', () => {
       });
 
       it('returns undefined if the header is malformed', () => {
-        document.head.innerHTML = `<meta name="sentry-trace" content="12312012-112120121-0">`;
+        document.head.innerHTML = '<meta name="sentry-trace" content="12312012-112120121-0">';
 
         const headerContext = getHeaderContext();
 
@@ -411,7 +412,7 @@ describe('BrowserTracing', () => {
       });
 
       it("returns undefined if the header isn't there", () => {
-        document.head.innerHTML = `<meta name="dogs" content="12312012123120121231201212312012-1121201211212012-0">`;
+        document.head.innerHTML = '<meta name="dogs" content="12312012123120121231201212312012-1121201211212012-0">';
 
         const headerContext = getHeaderContext();
 
@@ -422,7 +423,8 @@ describe('BrowserTracing', () => {
     describe('using the data', () => {
       it('uses the data for pageload transactions', () => {
         // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
-        document.head.innerHTML = `<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">`;
+        document.head.innerHTML =
+          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">';
 
         // pageload transactions are created as part of the BrowserTracing integration's initialization
         createBrowserTracing(true);
@@ -437,7 +439,8 @@ describe('BrowserTracing', () => {
 
       it('ignores the data for navigation transactions', () => {
         mockChangeHistory = () => undefined;
-        document.head.innerHTML = `<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">`;
+        document.head.innerHTML =
+          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">';
 
         createBrowserTracing(true);
 

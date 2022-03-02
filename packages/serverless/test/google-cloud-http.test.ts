@@ -55,7 +55,7 @@ describe('GoogleCloudHttp tracing', () => {
           200,
           '{"kind":"bigquery#getQueryResultsResponse","etag":"0+ToZZTzCJ4lyhNI3v4rGg==","schema":{"fields":[{"name":"foo","type":"BOOLEAN","mode":"NULLABLE"}]},"jobReference":{"projectId":"project-id","jobId":"8874c5d5-9cfe-4daa-8390-b0504b97b429","location":"US"},"totalRows":"1","rows":[{"f":[{"v":"true"}]}],"totalBytesProcessed":"0","jobComplete":true,"cacheHit":false}',
         );
-      const resp = await bigquery.query(`SELECT true AS foo`);
+      const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
