@@ -79,7 +79,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.log(`${PREFIX}[Log]: ${args.join(' ')}`);
+      global.console.log(`${PREFIX}[Log]:`, ...args);
     });
   }
 
@@ -89,7 +89,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.warn(`${PREFIX}[Warn]: ${args.join(' ')}`);
+      global.console.warn(`${PREFIX}[Warn]:`, ...args);
     });
   }
 
@@ -99,7 +99,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.error(`${PREFIX}[Error]: ${args.join(' ')}`);
+      global.console.error(`${PREFIX}[Error]:`, ...args);
     });
   }
 }
