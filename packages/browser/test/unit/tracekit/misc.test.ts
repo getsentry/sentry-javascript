@@ -1,4 +1,4 @@
-import { exceptionFromError } from '../../../src/parsers';
+import { exceptionFromError } from '../../../src/eventbuilder';
 
 describe('Tracekit - Misc Tests', () => {
   it('should parse PhantomJS 1.19 error', () => {

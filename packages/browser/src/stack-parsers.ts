@@ -1,5 +1,5 @@
 import { StackFrame } from '@sentry/types';
-import { StackLineParser } from '@sentry/utils';
+import { StackLineParser, StackLineParserFn } from '@sentry/utils';
 
 // global reference to slice
 const UNKNOWN_FUNCTION = '?';
@@ -28,7 +28,7 @@ const chromeRegex =
   /^\s*at (?:(.*?) ?\((?:address at )?)?((?:file|https?|blob|chrome-extension|address|native|eval|webpack|<anonymous>|[-a-z]+:|.*bundle|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
-export const chrome: StackLineParser = line => {
+const chrome: StackLineParserFn = line => {
   const parts = chromeRegex.exec(line);
 
   if (parts) {
@@ -55,6 +55,8 @@ export const chrome: StackLineParser = line => {
   return;
 };
 
+export const chromeStackParser: StackLineParser = [30, chrome];
+
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
 // We need this specific case for now because we want no other regex to match.
@@ -62,7 +64,7 @@ const geckoREgex =
   /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:file|https?|blob|chrome|webpack|resource|moz-extension|capacitor).*?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
 const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 
-export const gecko: StackLineParser = line => {
+const gecko: StackLineParserFn = line => {
   const parts = geckoREgex.exec(line);
 
   if (parts) {
@@ -89,10 +91,12 @@ export const gecko: StackLineParser = line => {
   return;
 };
 
+export const geckoStackParser: StackLineParser = [50, gecko];
+
 const winjsRegex =
   /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 
-export const winjs: StackLineParser = line => {
+const winjs: StackLineParserFn = line => {
   const parts = winjsRegex.exec(line);
 
   return parts
@@ -100,20 +104,26 @@ export const winjs: StackLineParser = line => {
     : undefined;
 };
 
+export const winjsStackParser: StackLineParser = [40, winjs];
+
 const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 
-export const opera10: StackLineParser = line => {
+const opera10: StackLineParserFn = line => {
   const parts = opera10Regex.exec(line);
   return parts ? createFrame(parts[2], parts[3] || UNKNOWN_FUNCTION, +parts[1]) : undefined;
 };
 
+export const opera10StackParser: StackLineParser = [10, opera10];
+
 const opera11Regex =
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
 
-export const opera11: StackLineParser = line => {
+const opera11: StackLineParserFn = line => {
   const parts = opera11Regex.exec(line);
   return parts ? createFrame(parts[5], parts[3] || parts[4] || UNKNOWN_FUNCTION, +parts[1], +parts[2]) : undefined;
 };
+
+export const opera11StackParser: StackLineParser = [20, opera11];
 
 /**
  * Safari web extensions, starting version unknown, can produce "frames-only" stacktraces.
