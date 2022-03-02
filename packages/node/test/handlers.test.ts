@@ -3,6 +3,7 @@ import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
 import { Runtime } from '@sentry/types';
+import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 import * as net from 'net';
 
@@ -16,6 +17,7 @@ import {
   requestHandler,
   tracingHandler,
 } from '../src/handlers';
+import * as SDK from '../src/sdk';
 
 describe('parseRequest', () => {
   let mockReq: { [key: string]: any };
@@ -279,6 +281,31 @@ describe('requestHandler', () => {
       expect(scope?.getRequestSession()).toBeUndefined();
       expect(captureRequestSession).not.toHaveBeenCalled();
       done();
+    });
+  });
+
+  it('patches `res.end` when `flushTimeout` is specified', () => {
+    const flush = jest.spyOn(SDK, 'flush').mockResolvedValue(true);
+
+    const handler = requestHandler({ flushTimeout: 1337 });
+    handler(req, res, next);
+    res.end('ok');
+
+    setImmediate(() => {
+      expect(flush).toBeCalledWith(1337);
+      expect(res.finished).toBe(true);
+    });
+  });
+
+  it('prevents errors thrown during `flush` from breaking the response', async () => {
+    jest.spyOn(SDK, 'flush').mockRejectedValue(new SentryError('HTTP Error (429)'));
+
+    const handler = requestHandler({ flushTimeout: 1337 });
+    handler(req, res, next);
+    res.end('ok');
+
+    setImmediate(() => {
+      expect(res.finished).toBe(true);
     });
   });
 });

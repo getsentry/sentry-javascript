@@ -410,8 +410,9 @@ export function requestHandler(
           .then(() => {
             _end.call(this, chunk, encoding, cb);
           })
-          .then(null, e => {
+          .catch(e => {
             logger.error(e);
+            _end.call(this, chunk, encoding, cb);
           });
       };
     }
