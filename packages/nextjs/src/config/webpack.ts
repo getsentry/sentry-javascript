@@ -221,7 +221,7 @@ function addFilesToExistingEntryPoint(
     console.error(
       'Sentry Logger [Error]:',
       `Could not inject SDK initialization code into entry point ${entryPointName}, as its current value is not in a recognized format.\n`,
-      `Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n`,
+      'Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n',
       `Got: ${currentEntryPoint}`,
     );
   }

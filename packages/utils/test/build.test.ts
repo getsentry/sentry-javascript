@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const testStrings = [`/// <reference types="node" />`];
+const testStrings = ['/// <reference types="node" />'];
 
 describe('build', () => {
   test('not contains types', () => {

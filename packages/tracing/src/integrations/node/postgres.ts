@@ -42,7 +42,7 @@ export class Postgres implements Integration {
     }
 
     if (this._usePgNative && !pkg.native?.Client) {
-      logger.error(`Postgres Integration was unable to access 'pg-native' bindings.`);
+      logger.error("Postgres Integration was unable to access 'pg-native' bindings.");
       return;
     }
 
@@ -61,7 +61,7 @@ export class Postgres implements Integration {
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,
-          op: `db`,
+          op: 'db',
         });
 
         if (typeof callback === 'function') {

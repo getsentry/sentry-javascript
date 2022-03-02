@@ -139,7 +139,7 @@ function extractExpressTransactionName(
     info += method;
   }
   if (options.method && options.path) {
-    info += ` `;
+    info += ' ';
   }
   if (options.path && path) {
     info += path;

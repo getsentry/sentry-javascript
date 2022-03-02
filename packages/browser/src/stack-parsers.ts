@@ -72,7 +72,7 @@ export const gecko: StackLineParser = line => {
 
       if (subMatch) {
         // throw out eval line/column and use top-most line number
-        parts[1] = parts[1] || `eval`;
+        parts[1] = parts[1] || 'eval';
         parts[3] = subMatch[1];
         parts[4] = subMatch[2];
         parts[5] = ''; // no column when eval

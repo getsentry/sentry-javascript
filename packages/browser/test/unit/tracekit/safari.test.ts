@@ -149,8 +149,8 @@ describe('Tracekit - Safari Tests', () => {
 
     it('should parse exceptions for safari-extension with frames-only stack', () => {
       const SAFARI_EXTENSION_EXCEPTION = {
-        message: `undefined is not an object (evaluating 'e.groups.includes')`,
-        name: `TypeError`,
+        message: "undefined is not an object (evaluating 'e.groups.includes')",
+        name: 'TypeError',
         stack: `isClaimed@safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:929865
         safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:1588410
         promiseReactionJob@[native code]`,
@@ -219,8 +219,8 @@ describe('Tracekit - Safari Tests', () => {
 
     it('should parse exceptions for safari-web-extension with frames-only stack', () => {
       const SAFARI_EXTENSION_EXCEPTION = {
-        message: `undefined is not an object (evaluating 'e.groups.includes')`,
-        name: `TypeError`,
+        message: "undefined is not an object (evaluating 'e.groups.includes')",
+        name: 'TypeError',
         stack: `p_@safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:33314
       safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:56027
       promiseReactionJob@[native code]`,

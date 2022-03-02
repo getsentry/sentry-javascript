@@ -86,7 +86,7 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
   if (!isValidSampleRate(sampleRate)) {
-    logger.warn(`[Tracing] Discarding transaction because of invalid sample rate.`);
+    logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
     transaction.sampled = false;
     return transaction;
   }
