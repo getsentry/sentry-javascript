@@ -112,3 +112,48 @@ export abstract class BaseTransport implements INewTransport {
   // these extra details
   protected abstract _makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse>;
 }
+
+/** */
+function createTransport<O extends BaseTransportOptions>(
+  options: O,
+  makeRequest: (request: TransportRequest) => PromiseLike<TransportMakeRequestResponse>,
+): INewTransport {
+  const buffer = makePromiseBuffer(options.bufferSize || 30);
+  const rateLimits: Record<string, number> = {};
+
+  const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
+
+  function send(envelope: Envelope, type: SentryRequestType): PromiseLike<TransportResponse> {
+    const request: TransportRequest = {
+      // I'm undecided if the type API should work like this
+      // though we are a little stuck with this because of how
+      // minimal the envelopes implementation is
+      // perhaps there is a way we can expand it?
+      type,
+      body: serializeEnvelope(envelope),
+    };
+
+    if (isRateLimited(rateLimits, type)) {
+      return rejectedSyncPromise(new SentryError(`oh no, disabled until: ${rateLimitDisableUntil(rateLimits, type)}`));
+    }
+
+    const requestTask = (): PromiseLike<TransportResponse> =>
+      makeRequest(request).then(({ body, headers, reason, statusCode }): PromiseLike<TransportResponse> => {
+        if (headers) {
+          updateRateLimits(rateLimits, headers);
+        }
+
+        // TODO: This is the happy path!
+        const status = eventStatusFromHttpCode(statusCode);
+        if (status === 'success') {
+          return resolvedSyncPromise({ status });
+        }
+
+        return rejectedSyncPromise(new SentryError(body || reason || 'Unknown transport error'));
+      });
+
+    return buffer.add(requestTask);
+  }
+
+  return { send, flush };
+}
