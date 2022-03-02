@@ -188,6 +188,6 @@ async function finishSentryProcessing(res: AugmentedNextApiResponse): Promise<vo
     await flush(2000);
     logger.log('Done flushing events');
   } catch (e) {
-    logger.log(`Error while flushing events:\n${e}`);
+    logger.log(`Error while flushing events:\n`, e);
   }
 }
