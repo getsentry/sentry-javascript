@@ -4,6 +4,12 @@ import { StackLineParser, StackLineParserFn } from '@sentry/utils';
 // global reference to slice
 const UNKNOWN_FUNCTION = '?';
 
+const OPERA10_PRIORITY = 10;
+const OPERA11_PRIORITY = 20;
+const CHROME_PRIORITY = 30;
+const WINJS_PRIORITY = 40;
+const GECKO_PRIORITY = 50;
+
 function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
   const frame: StackFrame = {
     filename,
@@ -55,7 +61,7 @@ const chrome: StackLineParserFn = line => {
   return;
 };
 
-export const chromeStackParser: StackLineParser = [30, chrome];
+export const chromeStackParser: StackLineParser = [CHROME_PRIORITY, chrome];
 
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
@@ -91,7 +97,7 @@ const gecko: StackLineParserFn = line => {
   return;
 };
 
-export const geckoStackParser: StackLineParser = [50, gecko];
+export const geckoStackParser: StackLineParser = [GECKO_PRIORITY, gecko];
 
 const winjsRegex =
   /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
@@ -104,7 +110,7 @@ const winjs: StackLineParserFn = line => {
     : undefined;
 };
 
-export const winjsStackParser: StackLineParser = [40, winjs];
+export const winjsStackParser: StackLineParser = [WINJS_PRIORITY, winjs];
 
 const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 
@@ -113,7 +119,7 @@ const opera10: StackLineParserFn = line => {
   return parts ? createFrame(parts[2], parts[3] || UNKNOWN_FUNCTION, +parts[1]) : undefined;
 };
 
-export const opera10StackParser: StackLineParser = [10, opera10];
+export const opera10StackParser: StackLineParser = [OPERA10_PRIORITY, opera10];
 
 const opera11Regex =
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
@@ -123,7 +129,7 @@ const opera11: StackLineParserFn = line => {
   return parts ? createFrame(parts[5], parts[3] || parts[4] || UNKNOWN_FUNCTION, +parts[1], +parts[2]) : undefined;
 };
 
-export const opera11StackParser: StackLineParser = [20, opera11];
+export const opera11StackParser: StackLineParser = [OPERA11_PRIORITY, opera11];
 
 /**
  * Safari web extensions, starting version unknown, can produce "frames-only" stacktraces.

@@ -2,6 +2,7 @@ import { StackFrame } from '@sentry/types';
 
 const STACKTRACE_LIMIT = 50;
 
+export type StackParser = (stack: string, skipFirst?: number) => StackFrame[];
 export type StackLineParserFn = (line: string) => StackFrame | undefined;
 export type StackLineParser = [number, StackLineParserFn];
 
@@ -12,7 +13,7 @@ export type StackLineParser = [number, StackLineParserFn];
  * frames and with Sentry SDK internal frames removed from the top and bottom
  *
  */
-export function createStackParser(...parsers: StackLineParser[]): (stack: string, skipFirst?: number) => StackFrame[] {
+export function createStackParser(...parsers: StackLineParser[]): StackParser {
   const sortedParsers = parsers.sort((a, b) => a[0] - b[0]).map(p => p[1]);
 
   return (stack: string, skipFirst: number = 0): StackFrame[] => {

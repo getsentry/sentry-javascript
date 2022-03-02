@@ -102,7 +102,6 @@ export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?
   const popSize = getPopSize(ex);
 
   try {
-    // The order of the parsers in important
     return createStackParser(
       opera10StackParser,
       opera11StackParser,
