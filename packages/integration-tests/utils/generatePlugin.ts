@@ -29,9 +29,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     esm: 'esm/index.js',
     bundle_es5: 'build/bundle.tracing.js',
     bundle_es5_min: 'build/bundle.tracing.min.js',
-    // `tracing` doesn't have an es6 build yet
-    bundle_es6: 'build/bundle.tracing.js',
-    bundle_es6_min: 'build/bundle.tracing.min.js',
+    bundle_es6: 'build/bundle.tracing.es6.js',
+    bundle_es6_min: 'build/bundle.tracing.es6.min.js',
   },
 };
 
