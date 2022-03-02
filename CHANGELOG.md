@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.18.2
+
+If you are using `@sentry-internal/eslint-config-sdk`, please note that this release turns on the [quotes rule](https://eslint.org/docs/rules/quotes) to enforce usage of single quotes.
+
+This release also removes `@sentry/tracing` as a dependency of `@sentry/node`. Please explicitly install and import `@sentry/tracing` if you want to use performance monitoring capabilities. For more details, [see our docs on setting up Node Performance Monitoring](https://docs.sentry.io/platforms/node/performance/).
+
+- ref(node): Remove dependency on @sentry/tracing ([#4647](https://github.com/getsentry/sentry-javascript/pull/4647))
+- fix(tracing): Make method required in transactionSampling type ([#4657](https://github.com/getsentry/sentry-javascript/pull/4657))
+- chore(eslint): Turn on quotes rules ([#4671](https://github.com/getsentry/sentry-javascript/pull/4671))
+
 ## 6.18.1
 
 - fix(ember): use _backburner if it exists ([#4603](https://github.com/getsentry/sentry-javascript/pull/4603))
