@@ -87,7 +87,7 @@ export interface Options {
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
 
-  /** Maxium number of chars a single value can have before it will be truncated. */
+  /** Maximum number of chars a single value can have before it will be truncated. */
   maxValueLength?: number;
 
   /**
