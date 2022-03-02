@@ -15,6 +15,5 @@
     "tslib",
     "rxjs"
   ],
-  "assets": ["README.md", "LICENSE"],
-  "keepLifecycleScripts": true
+  "assets": ["README.md", "LICENSE"]
 }
