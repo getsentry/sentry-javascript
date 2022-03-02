@@ -57,4 +57,10 @@ module.exports = [
     gzip: true,
     limit: '100 KB',
   },
+  {
+    name: '@sentry/browser + @sentry/tracing - ES6 CDN Bundle (gzipped + minified)',
+    path: 'packages/tracing/build/bundle.tracing.es6.min.js',
+    gzip: true,
+    limit: '100 KB',
+  },
 ];
