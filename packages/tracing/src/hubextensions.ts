@@ -118,7 +118,8 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
     return transaction;
   }
 
-  logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
+  const op = transaction.op ? `${transaction.op} ` : '';
+  logger.log(`[Tracing] Starting ${op}transaction: ${transaction.name}`);
   return transaction;
 }
 

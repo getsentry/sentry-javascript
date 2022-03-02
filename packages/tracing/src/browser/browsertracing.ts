@@ -195,8 +195,10 @@ export class BrowserTracing implements Integration {
 
   /** Create routing idle transaction. */
   private _createRouteTransaction(context: TransactionContext): Transaction | undefined {
+    const op = context.op ? `${context.op} ` : '';
+
     if (!this._getCurrentHub) {
-      logger.warn(`[Tracing] Did not create ${context.op} transaction because _getCurrentHub is invalid.`);
+      logger.warn(`[Tracing] Did not create ${op}transaction because _getCurrentHub is invalid.`);
       return undefined;
     }
 
@@ -217,10 +219,10 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     if (finalContext.sampled === false) {
-      logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
+      logger.log(`[Tracing] Will not send ${op}transaction because of beforeNavigate.`);
     }
 
-    logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
+    logger.log(`[Tracing] Starting ${op}transaction on scope`);
 
     const hub = this._getCurrentHub();
     const { location } = getGlobalObject() as WindowOrWorkerGlobalScope & { location: Location };
