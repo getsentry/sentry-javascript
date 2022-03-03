@@ -21,12 +21,12 @@ import typescript from 'rollup-plugin-typescript2';
  * @param title The title to use for the SDK, if not the package name
  * @returns An instance of the `rollup-plugin-license` plugin
  */
-export function makeLicensePlugin(title) {
+function makeLicensePlugin(title) {
   const commitHash = require('child_process').execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
   return license({
     banner: {
-      content: `/*! <%= data.title || pkg.name %> <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
+      content: `/*! <%= data.title %> <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
       data: { title },
     },
   });
@@ -56,7 +56,7 @@ export const terserPlugin = terser({
 });
 
 export function makeBaseBundleConfig(options) {
-  const { input, isAddOn, jsVersion, outputFileBase } = options;
+  const { input, isAddOn, jsVersion, licenseTitle, outputFileBase } = options;
 
   const baseTSPluginOptions = {
     tsconfig: 'tsconfig.esm.json',
@@ -111,6 +111,8 @@ export function makeBaseBundleConfig(options) {
     },
   });
 
+  const licensePlugin = makeLicensePlugin(licenseTitle);
+
   const standAloneBundleConfig = {
     output: {
       format: 'iife',
@@ -159,7 +161,12 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [jsVersion === 'es5' ? typescriptPluginES5 : typescriptPluginES6, markAsBrowserBuild, nodeResolvePlugin],
+    plugins: [
+      jsVersion === 'es5' ? typescriptPluginES5 : typescriptPluginES6,
+      markAsBrowserBuild,
+      nodeResolvePlugin,
+      licensePlugin,
+    ],
     treeshake: 'smallest',
   };
 

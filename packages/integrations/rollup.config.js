@@ -16,6 +16,7 @@ function loadAllIntegrations() {
       input: `src/${file}`,
       isAddOn: true,
       jsVersion: 'es5',
+      licenseTitle: '@sentry/integrations',
       outputFileBase: `build/${file.replace('.ts', '')}`,
     });
 
