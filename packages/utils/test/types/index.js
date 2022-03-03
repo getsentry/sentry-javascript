@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const testStrings = [`/// <reference types="node" />`];
+const testStrings = ['/// <reference types="node" />'];
 
 const paths = [path.join('./dist'), path.join('./esm')];
 
