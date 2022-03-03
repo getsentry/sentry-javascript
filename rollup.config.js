@@ -16,6 +16,24 @@ import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 
 /**
+ * Helper functions to compensate for the fact that JS can't handle negative array indices very well
+ *
+ * TODO `insertAt` is only exported so the integrations config can inject the `commonjs` plugin, for localforage (used
+ * in the offline plugin). Once that's fixed to no longer be necessary, this can stop being exported.
+ */
+const getLastElement = array => {
+  return array[array.length - 1];
+};
+export const insertAt = (arr, index, insertee) => {
+  const newArr = [...arr];
+  // Add 1 to the array length so that the inserted element ends up in the right spot with respect to the length of the
+  // new array (which will be one element longer), rather than that of the current array
+  const destinationIndex = index >= 0 ? index : arr.length + 1 + index;
+  newArr.splice(destinationIndex, 0, insertee);
+  return newArr;
+};
+
+/**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
  *
  * @param title The title to use for the SDK, if not the package name
