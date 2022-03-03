@@ -1,4 +1,4 @@
-import { basename, dirname, StackLineParser } from '@sentry/utils';
+import { basename, dirname, StackLineParser, StackLineParserFn } from '@sentry/utils';
 
 /** Gets the module */
 function getModule(filename: string | undefined): string | undefined {
@@ -38,7 +38,7 @@ function getModule(filename: string | undefined): string | undefined {
 const FILENAME_MATCH = /^\s*[-]{4,}$/;
 const FULL_MATCH = /at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/;
 
-export const nodeStackParser: StackLineParser = (line: string) => {
+const node: StackLineParserFn = (line: string) => {
   if (line.match(FILENAME_MATCH)) {
     return {
       filename: line,
@@ -106,3 +106,5 @@ export const nodeStackParser: StackLineParser = (line: string) => {
     in_app,
   };
 };
+
+export const nodeStackParser: StackLineParser = [90, node];

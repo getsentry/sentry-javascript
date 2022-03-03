@@ -1,4 +1,4 @@
-import { exceptionFromError } from '../../../src/parsers';
+import { exceptionFromError } from '../../../src/eventbuilder';
 
 describe('Tracekit - Chrome Tests', () => {
   it('should parse Chrome error with no location', () => {

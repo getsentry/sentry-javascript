@@ -21,7 +21,7 @@ describe('envelope', () => {
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
       expect(serializeEnvelope(env)).toMatchInlineSnapshot(
-        `"{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}"`,
+        '"{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}"',
       );
     });
   });

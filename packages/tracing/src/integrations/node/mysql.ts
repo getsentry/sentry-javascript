@@ -39,7 +39,7 @@ export class Mysql implements Integration {
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,
-          op: `db`,
+          op: 'db',
         });
 
         if (typeof callback === 'function') {

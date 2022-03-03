@@ -1,11 +1,11 @@
 import { StackFrame } from '@sentry/types';
 import * as fs from 'fs';
 
-import { extractStackFromError } from '../src/eventbuilder';
+import { parseStackFrames } from '../src/eventbuilder';
 import { ContextLines, resetFileContentCache } from '../src/integrations/contextlines';
 import { getError } from './helper/error';
 
-describe('parsers.ts', () => {
+describe('ContextLines', () => {
   let readFileSpy: jest.SpyInstance;
   let contextLines: ContextLines;
 
@@ -27,7 +27,7 @@ describe('parsers.ts', () => {
     test('parseStack with same file', async () => {
       expect.assertions(1);
 
-      const frames = extractStackFromError(new Error('test'));
+      const frames = parseStackFrames(new Error('test'));
 
       await addContext(Array.from(frames));
 
@@ -57,12 +57,12 @@ describe('parsers.ts', () => {
 
     test('parseStack with adding different file', async () => {
       expect.assertions(1);
-      const frames = extractStackFromError(new Error('test'));
+      const frames = parseStackFrames(new Error('test'));
 
       await addContext(frames);
 
       const numCalls = readFileSpy.mock.calls.length;
-      const parsedFrames = extractStackFromError(getError());
+      const parsedFrames = parseStackFrames(getError());
       await addContext(parsedFrames);
 
       const newErrorCalls = readFileSpy.mock.calls.length;
@@ -98,7 +98,7 @@ describe('parsers.ts', () => {
 
     test('parseStack with no context', async () => {
       expect.assertions(1);
-      const frames = extractStackFromError(new Error('test'));
+      const frames = parseStackFrames(new Error('test'));
 
       await addContext(frames, 0);
       expect(readFileSpy).toHaveBeenCalledTimes(0);

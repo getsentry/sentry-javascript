@@ -1,4 +1,4 @@
-import { exceptionFromError } from '../../../src/parsers';
+import { exceptionFromError } from '../../../src/eventbuilder';
 
 describe('Tracekit - Firefox Tests', () => {
   it('should parse Firefox 3 error', () => {

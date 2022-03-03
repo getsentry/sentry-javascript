@@ -225,7 +225,7 @@ describe('HTTPTransport', () => {
     const retryAfterSeconds = 60;
     mockReturnCode = 429;
     mockHeaders = {
-      'x-sentry-rate-limits': `sgthrthewhertht`,
+      'x-sentry-rate-limits': 'sgthrthewhertht',
     };
     const transport = createTransport({ dsn });
     const now = Date.now();

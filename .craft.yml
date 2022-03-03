@@ -3,7 +3,7 @@ changelogPolicy: simple
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   - name: aws-lambda-layer
-    includeNames: /^sentry-node-serverless-\d+(\.\d+)*\.zip$/
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha)\.\d+)?\.zip$/
     layerName: SentryNodeServerlessSDK
     compatibleRuntimes:
       - name: node

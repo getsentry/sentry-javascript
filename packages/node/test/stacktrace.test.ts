@@ -10,7 +10,7 @@
  * @license MIT
  */
 
-import { extractStackFromError } from '../src/eventbuilder';
+import { parseStackFrames } from '../src/eventbuilder';
 
 function testBasic() {
   return new Error('something went wrong');
@@ -26,7 +26,7 @@ function evalWrapper() {
 
 describe('Stack parsing', () => {
   test('test basic error', () => {
-    const frames = extractStackFromError(testBasic());
+    const frames = parseStackFrames(testBasic());
 
     const last = frames.length - 1;
     expect(frames[last].filename).toEqual(__filename);
@@ -36,7 +36,7 @@ describe('Stack parsing', () => {
   });
 
   test('test error with wrapper', () => {
-    const frames = extractStackFromError(testWrapper());
+    const frames = parseStackFrames(testWrapper());
 
     const last = frames.length - 1;
     expect(frames[last].function).toEqual('testBasic');
@@ -44,7 +44,7 @@ describe('Stack parsing', () => {
   });
 
   test('test error with eval wrapper', () => {
-    const frames = extractStackFromError(evalWrapper());
+    const frames = parseStackFrames(evalWrapper());
 
     const last = frames.length - 1;
     expect(frames[last].function).toEqual('testBasic');
@@ -59,7 +59,7 @@ describe('Stack parsing', () => {
       '    at [object Object].global.every [as _onTimeout] (/Users/hoitz/develop/test.coffee:36:3)\n' +
       '    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)\n';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {
@@ -83,7 +83,7 @@ describe('Stack parsing', () => {
 
   test('parses undefined stack', () => {
     const err = { stack: undefined };
-    const trace = extractStackFromError(err as Error);
+    const trace = parseStackFrames(err as Error);
 
     expect(trace).toEqual([]);
   });
@@ -97,7 +97,7 @@ describe('Stack parsing', () => {
       'oh no' +
       '    at TestCase.run (/Users/felix/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {
@@ -126,7 +126,7 @@ describe('Stack parsing', () => {
       '    at Test.fn (/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js:6)\n' +
       '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/test.js:45)';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {
@@ -157,7 +157,7 @@ describe('Stack parsing', () => {
       '    at Array.0 (native)\n' +
       '    at EventEmitter._tickCallback (node.js:126:26)';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {
@@ -212,7 +212,7 @@ describe('Stack parsing', () => {
     const err: { [key: string]: any } = {};
     err.stack = 'AssertionError: true == false\n' + '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {
@@ -232,7 +232,7 @@ describe('Stack parsing', () => {
       'AssertionError: true == false\nAnd some more shit\n' +
       '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {
@@ -252,7 +252,7 @@ describe('Stack parsing', () => {
       'AssertionError: expected [] to be arguments\n' +
       '    at Assertion.prop.(anonymous function) (/Users/den/Projects/should.js/lib/should.js:60:14)\n';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {
@@ -273,7 +273,7 @@ describe('Stack parsing', () => {
       '    at Test.run (/Users/felix (something)/code/node-fast-or-slow/lib/test.js:45:10)\n' +
       '    at TestCase.run (/Users/felix (something)/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
 
-    const frames = extractStackFromError(err as Error);
+    const frames = parseStackFrames(err as Error);
 
     expect(frames).toEqual([
       {

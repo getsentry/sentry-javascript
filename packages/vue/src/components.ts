@@ -42,7 +42,7 @@ export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): stri
   }
 
   return (
-    (name ? `<${classify(name)}>` : ANONYMOUS_COMPONENT_NAME) + (file && includeFile !== false ? ` at ${file}` : ``)
+    (name ? `<${classify(name)}>` : ANONYMOUS_COMPONENT_NAME) + (file && includeFile !== false ? ` at ${file}` : '')
   );
 };
 

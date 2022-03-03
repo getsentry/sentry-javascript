@@ -2,6 +2,7 @@ import { ClientReport } from './clientreport';
 import { Event } from './event';
 import { SdkInfo } from './sdkinfo';
 import { Session, SessionAggregates } from './session';
+import { TransactionSamplingMethod } from './transaction';
 import { UserFeedback } from './user';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
@@ -25,14 +26,20 @@ type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<Bas
   I[],
 ];
 
-type EventItemHeaders = { type: 'event' | 'transaction' };
+type EventItemHeaders = {
+  type: 'event' | 'transaction';
+  sample_rates: [{ id?: TransactionSamplingMethod; rate?: number }];
+};
 type AttachmentItemHeaders = { type: 'attachment'; filename: string };
 type UserFeedbackItemHeaders = { type: 'user_report' };
 type SessionItemHeaders = { type: 'session' };
 type SessionAggregatesItemHeaders = { type: 'sessions' };
 type ClientReportItemHeaders = { type: 'client_report' };
 
-export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
+// TODO(v7): Remove the string union from `Event | string`
+// We have to allow this hack for now as we pre-serialize events because we support
+// both store and envelope endpoints.
+export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event | string>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, unknown>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =

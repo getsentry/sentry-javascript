@@ -1,4 +1,4 @@
-import { exceptionFromError } from '../../../src/parsers';
+import { exceptionFromError } from '../../../src/eventbuilder';
 
 describe('Tracekit - IE Tests', () => {
   it('should parse IE 10 error', () => {

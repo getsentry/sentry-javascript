@@ -2,7 +2,7 @@ import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
 import { makeDsn, resolvedSyncPromise } from '@sentry/utils';
 
-import { eventFromError, eventFromMessage } from './eventbuilder';
+import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { HTTPSTransport, HTTPTransport } from './transports';
 import { NodeOptions } from './types';
 
@@ -16,14 +16,14 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromError(exception, hint));
+    return resolvedSyncPromise(eventFromUnknownInput(exception, hint));
   }
 
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromMessage(this._options, message, level, hint));
+    return resolvedSyncPromise(eventFromMessage(message, level, hint, this._options.attachStacktrace));
   }
 
   /**

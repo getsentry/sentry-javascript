@@ -14,8 +14,8 @@ const api = initAPIDetails(ingestDsn, {
   sdk: {
     integrations: ['AWSLambda'],
     name: 'sentry.javascript.browser',
-    version: `12.31.12`,
-    packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
+    version: '12.31.12',
+    packages: [{ name: 'npm:@sentry/browser', version: '12.31.12' }],
   },
 });
 
@@ -77,8 +77,8 @@ describe('eventToSentryRequest', () => {
         sdk: {
           integrations: ['AWSLambda'],
           name: 'sentry.javascript.browser',
-          version: `12.31.12`,
-          packages: [{ name: 'npm:@sentry/browser', version: `12.31.12` }],
+          version: '12.31.12',
+          packages: [{ name: 'npm:@sentry/browser', version: '12.31.12' }],
         },
       }),
     );
@@ -88,7 +88,7 @@ describe('eventToSentryRequest', () => {
     event.sdk = {
       integrations: ['Clojure'],
       name: 'foo',
-      packages: [{ name: 'npm:@sentry/clj', version: `12.31.12` }],
+      packages: [{ name: 'npm:@sentry/clj', version: '12.31.12' }],
       version: '1337',
     };
 
@@ -101,8 +101,8 @@ describe('eventToSentryRequest', () => {
           integrations: ['Clojure', 'AWSLambda'],
           name: 'foo',
           packages: [
-            { name: 'npm:@sentry/clj', version: `12.31.12` },
-            { name: 'npm:@sentry/browser', version: `12.31.12` },
+            { name: 'npm:@sentry/clj', version: '12.31.12' },
+            { name: 'npm:@sentry/browser', version: '12.31.12' },
           ],
           version: '1337',
         },

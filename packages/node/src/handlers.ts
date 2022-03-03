@@ -139,7 +139,7 @@ function extractExpressTransactionName(
     info += method;
   }
   if (options.method && options.path) {
-    info += ` `;
+    info += ' ';
   }
   if (options.path && path) {
     info += path;
@@ -412,6 +412,7 @@ export function requestHandler(
           })
           .then(null, e => {
             logger.error(e);
+            _end.call(this, chunk, encoding, cb);
           });
       };
     }

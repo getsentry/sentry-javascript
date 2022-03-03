@@ -58,7 +58,7 @@ export function getNativeFetchImplementation(): FetchImpl {
   const document = global.document;
   let fetchImpl = global.fetch;
   // eslint-disable-next-line deprecation/deprecation
-  if (document && typeof document.createElement === `function`) {
+  if (document && typeof document.createElement === 'function') {
     try {
       const sandbox = document.createElement('iframe');
       sandbox.hidden = true;
