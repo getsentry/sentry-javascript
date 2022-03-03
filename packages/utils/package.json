@@ -46,7 +46,7 @@
     "pack": "npm pack",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:package": "node test/package/build.js"
+    "test:package": "node test/types/index.js"
   },
   "volta": {
     "extends": "../../package.json"
