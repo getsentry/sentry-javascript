@@ -283,18 +283,6 @@ describe('requestHandler', () => {
       done();
     });
   });
-
-  it('patches `res.end`', () => {
-    const flush = jest.spyOn(SDK, 'flush').mockResolvedValue(true);
-
-    sentryRequestMiddleware(req, res, next);
-    res.end('ok');
-
-    setImmediate(() => {
-      expect(flush).toHaveBeenCalled();
-      expect(res.finished).toBe(true);
-    });
-  });
   
   it('patches `res.end` when `flushTimeout` is specified', () => {
     const flush = jest.spyOn(SDK, 'flush').mockResolvedValue(true);
@@ -312,6 +300,7 @@ describe('requestHandler', () => {
   it('prevents errors thrown during `flush` from breaking the response', async () => {
     jest.spyOn(SDK, 'flush').mockRejectedValue(new SentryError('HTTP Error (429)'));
 
+    const sentryRequestMiddleware = requestHandler({ flushTimeout: 1337 });
     sentryRequestMiddleware(req, res, next);
     res.end('ok');
 
