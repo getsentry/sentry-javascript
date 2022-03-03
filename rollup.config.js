@@ -1,11 +1,5 @@
 /**
- * Shared config used by individual packages' Rollup configs. Items here come in three flavors:
- *   - stand-alone: used by `@sentry/browser`, `@sentry/tracing`, and `@sentry/vue` (bundles which are a full SDK in
- *     and of themselves)
- *   - add-on: used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone
- *     SDK bundle)
- *   - shared: used by both types of bundles
- *
+ * Code for generating config used by individual packages' Rollup configs
  */
 
 import assert from 'assert';
@@ -133,6 +127,7 @@ export function makeBaseBundleConfig(options) {
 
   const licensePlugin = makeLicensePlugin(licenseTitle);
 
+  // used by `@sentry/browser`, `@sentry/tracing`, and `@sentry/vue` (bundles which are a full SDK in and of themselves)
   const standAloneBundleConfig = {
     output: {
       format: 'iife',
@@ -141,6 +136,7 @@ export function makeBaseBundleConfig(options) {
     context: 'window',
   };
 
+  // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
   const addOnBundleConfig = {
     // These output settings are designed to mimic an IIFE. We don't use Rollup's `iife` format because we don't want to
     // attach this code to a new global variable, but rather inject it into the existing SDK's `Integrations` object.
@@ -172,6 +168,7 @@ export function makeBaseBundleConfig(options) {
     },
   };
 
+  // used by all bundles
   const sharedBundleConfig = {
     input,
     output: {
