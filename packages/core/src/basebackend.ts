@@ -93,7 +93,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   public sendEvent(event: Event): void {
     void this._transport.sendEvent(event).then(null, reason => {
       if (isDebugBuild()) {
-        logger.error(`Error while sending event:`, reason);
+        logger.error('Error while sending event:', reason);
       }
     });
   }
@@ -111,7 +111,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
 
     void this._transport.sendSession(session).then(null, reason => {
       if (isDebugBuild()) {
-        logger.error(`Error while sending session:`, reason);
+        logger.error('Error while sending session:', reason);
       }
     });
   }

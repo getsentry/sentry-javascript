@@ -39,7 +39,7 @@ export class SessionFlusher implements SessionFlusherLike {
       return;
     }
     void this._transport.sendSession(sessionAggregates).then(null, reason => {
-      logger.error(`Error while sending session:`, reason);
+      logger.error('Error while sending session:', reason);
     });
   }
 
