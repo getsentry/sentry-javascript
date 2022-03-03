@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export type MemoFunc = [(obj: any) => boolean, (obj: any) => void];
+export type MemoFunc = [
+  // memoize
+  (obj: any) => boolean,
+  // unmemoize
+  (obj: any) => void,
+];
 
 /**
  * Helper to decycle json objects

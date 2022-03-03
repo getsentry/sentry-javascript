@@ -231,20 +231,20 @@ function serializeValue(value: any): any {
     return '[Array]';
   }
 
-  const normalized = normalizeValue(value);
-  return isPrimitive(normalized) ? normalized : type;
+  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+  // pass-through.
+  const serializable = makeSerializable(value);
+  return isPrimitive(serializable) ? serializable : type;
 }
 
 /**
- * normalizeValue()
+ * makeSerializable()
  *
- * Takes unserializable input and make it serializable friendly
+ * Takes unserializable input and make it serializer-friendly.
  *
- * - translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
- * - serializes Error objects
- * - filter global objects
+ * Handles globals, functions, `undefined`, `NaN`, and other non-serializable values.
  */
-function normalizeValue<T>(value: T, key?: any): T | string {
+function makeSerializable<T>(value: T, key?: any): T | string {
   if (key === 'domain' && value && typeof value === 'object' && (value as unknown as { _events: any })._events) {
     return '[Domain]';
   }
@@ -310,6 +310,8 @@ function normalizeValue<T>(value: T, key?: any): T | string {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function walk(key: string, value: any, depth: number = +Infinity, memo: MemoFunc = memoBuilder()): any {
+  const [memoize, unmemoize] = memo;
+
   // If we reach the maximum depth, serialize whatever is left
   if (depth === 0) {
     return serializeValue(value);
@@ -322,10 +324,12 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   }
   /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
-  // If normalized value is a primitive, there are no branches left to walk, so bail out
-  const normalized = normalizeValue(value, key);
-  if (isPrimitive(normalized)) {
-    return normalized;
+  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+  // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
+  // all along), we're done.
+  const serializable = makeSerializable(value, key);
+  if (isPrimitive(serializable)) {
+    return serializable;
   }
 
   // Create source that we will use for the next iteration. It will either be an objectified error object (`Error` type
@@ -333,10 +337,10 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   const source = getWalkSource(value);
 
   // Create an accumulator that will act as a parent for all future itterations of that branch
-  const acc = Array.isArray(value) ? [] : {};
+  const acc: { [key: string]: any } = Array.isArray(value) ? [] : {};
 
   // If we already walked that branch, bail out, as it's circular reference
-  if (memo[0](value)) {
+  if (memoize(value)) {
     return '[Circular ~]';
   }
 
@@ -347,11 +351,12 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
       continue;
     }
     // Recursively walk through all the child nodes
-    (acc as { [key: string]: any })[innerKey] = walk(innerKey, source[innerKey], depth - 1, memo);
+    const innerValue: any = source[innerKey];
+    acc[innerKey] = walk(innerKey, innerValue, depth - 1, memo);
   }
 
   // Once walked through all the branches, remove the parent from memo storage
-  memo[1](value);
+  unmemoize(value);
 
   // Return accumulated values
   return acc;
@@ -372,7 +377,8 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function normalize(input: any, depth?: number): any {
   try {
-    return JSON.parse(JSON.stringify(input, (key: string, value: any) => walk(key, value, depth)));
+    // since we're at the outermost level, there is no key
+    return walk('', input, depth);
   } catch (_oO) {
     return '**non-serializable**';
   }
