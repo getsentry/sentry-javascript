@@ -18,6 +18,30 @@
     }
   ],
   "configurations": [
+    // Run rollup using the config file which is in the currently active tab.
+    {
+      "name": "Debug rollup (config from open file)",
+      "type": "pwa-node",
+      "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "rollup",
+        "-c",
+        "${file}"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/**/*.js",
+        "!**/node_modules/**"
+      ],
+      "sourceMaps": true,
+      "smartStep": true,
+      "internalConsoleOptions": "openOnSessionStart",
+      "outputCapture": "std"
+    },
     // Run a specific test file in watch mode (must have file in currently active tab when hitting the play button).
     // NOTE: If you try to run this and VSCode complains that the command `shellCommand.execute` can't be found, go
     // install the recommended extension Tasks Shell Input.
