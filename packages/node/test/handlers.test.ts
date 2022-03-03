@@ -283,6 +283,7 @@ describe('requestHandler', () => {
       done();
     });
   });
+
   it('patches `res.end` when `flushTimeout` is specified', () => {
     const flush = jest.spyOn(SDK, 'flush').mockResolvedValue(true);
 
