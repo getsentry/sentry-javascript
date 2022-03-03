@@ -114,7 +114,7 @@ export function makeBaseBundleConfig(options) {
 
   const nodeResolvePlugin = resolve();
 
-  const markAsBrowserBuild = replace({
+  const markAsBrowserBuildPlugin = replace({
     // don't replace `__placeholder__` where it's followed immediately by a single `=` (to prevent ending up
     // with something of the form `let "replacementValue" = "some assigned value"`, which would cause a
     // syntax error)
@@ -180,7 +180,7 @@ export function makeBaseBundleConfig(options) {
     },
     plugins: [
       jsVersion === 'es5' ? typescriptPluginES5 : typescriptPluginES6,
-      markAsBrowserBuild,
+      markAsBrowserBuildPlugin,
       nodeResolvePlugin,
       licensePlugin,
     ],
