@@ -8,6 +8,8 @@
  *
  */
 
+import assert from 'assert';
+
 import deepMerge from 'deepmerge';
 import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';
@@ -189,4 +191,47 @@ export function makeBaseBundleConfig(options) {
   };
 
   return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig);
+}
+
+export function makeMinificationVariants(existingConfigs) {
+  const newConfigs = [];
+
+  // ensure we've got an array of configs rather than a single config
+  existingConfigs = Array.isArray(existingConfigs) ? existingConfigs : [existingConfigs];
+
+  existingConfigs.forEach(existingConfig => {
+    const { plugins } = existingConfig;
+
+    // The license plugin has to be last, so it ends up after terser. Otherwise, terser will remove the license banner.
+    assert(
+      getLastElement(plugins).name === 'rollup-plugin-license',
+      `Last plugin in given options should be \`rollup-plugin-license\`. Found ${getLastElement(plugins).name}`,
+    );
+
+    const bundleVariants = [
+      {
+        output: {
+          file: `${existingConfig.output.file}.js`,
+        },
+        plugins,
+      },
+      {
+        output: {
+          file: `${existingConfig.output.file}.min.js`,
+        },
+        plugins: insertAt(plugins, -2, terserPlugin),
+      },
+    ];
+
+    bundleVariants.forEach(variant => {
+      const mergedConfig = deepMerge(existingConfig, variant, {
+        // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
+        // just overwritten by the second value
+        arrayMerge: (first, second) => second,
+      });
+      newConfigs.push(mergedConfig);
+    });
+  });
+
+  return newConfigs;
 }
