@@ -1,5 +1,5 @@
 *.js.map
 *.d.ts
 *.js
-!test/package/build.js
+!test/types/*
 !.eslintrc.js
