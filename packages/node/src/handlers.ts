@@ -412,6 +412,7 @@ export function requestHandler(
           })
           .then(null, e => {
             logger.error(e);
+            _end.call(this, chunk, encoding, cb);
           });
       };
     }
