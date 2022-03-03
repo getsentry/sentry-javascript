@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, terserPlugin } from '../../rollup.config';
+import { makeBaseBundleConfig, makeMinificationVariants } from '../../rollup.config';
 
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.bundle.ts',
@@ -8,21 +8,4 @@ const baseBundleConfig = makeBaseBundleConfig({
   outputFileBase: 'build/bundle.vue',
 });
 
-export default [
-  {
-    ...baseBundleConfig,
-    output: {
-      ...baseBundleConfig.output,
-      file: `${baseBundleConfig.output.file}.js`,
-    },
-    plugins: baseBundleConfig.plugins,
-  },
-  {
-    ...baseBundleConfig,
-    output: {
-      ...baseBundleConfig.output,
-      file: `${baseBundleConfig.output.file}.min.js`,
-    },
-    plugins: [...baseBundleConfig.plugins, terserPlugin],
-  },
-];
+export default makeMinificationVariants(baseBundleConfig);

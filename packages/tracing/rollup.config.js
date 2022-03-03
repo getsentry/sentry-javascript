@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, terserPlugin } from '../../rollup.config';
+import { makeBaseBundleConfig, makeMinificationVariants } from '../../rollup.config';
 
 const builds = [];
 
@@ -11,26 +11,7 @@ const builds = [];
     outputFileBase: `build/bundle.tracing${jsVersion === 'es6' ? '.es6' : ''}`,
   });
 
-  builds.push(
-    ...[
-      {
-        ...baseBundleConfig,
-        output: {
-          ...baseBundleConfig.output,
-          file: `${baseBundleConfig.output.file}.js`,
-        },
-        plugins: baseBundleConfig.plugins,
-      },
-      {
-        ...baseBundleConfig,
-        output: {
-          ...baseBundleConfig.output,
-          file: `${baseBundleConfig.output.file}.min.js`,
-        },
-        plugins: [...baseBundleConfig.plugins, terserPlugin],
-      },
-    ],
-  );
+  builds.push(...makeMinificationVariants(baseBundleConfig));
 });
 
 export default builds;
