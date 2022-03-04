@@ -7,8 +7,6 @@ export const DEFAULT_RETRY_AFTER = 60 * 1000; // 60 seconds
  * @param header string representation of 'Retry-After' header
  * @param now current unix timestamp
  *
- * TODO: Export this function after we remove `parseRetryAfterHeader` from
- * utils/src/misc.ts
  */
 export function parseRetryAfterHeader(header: string, now: number = Date.now()): number {
   const headerDelay = parseInt(`${header}`, 10);
