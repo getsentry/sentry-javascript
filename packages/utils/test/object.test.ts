@@ -533,6 +533,72 @@ describe('normalize()', () => {
     });
   });
 
+  describe('can limit number of edge nodes', () => {
+    test('array', () => {
+      const obj = {
+        foo: new Array(100).fill(1, 0, 100),
+      };
+
+      expect(normalize(obj, 10, 10)).toEqual({
+        foo: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '[Max Edges Reached...]'],
+      });
+    });
+
+    test('object', () => {
+      const obj = {
+        foo1: 1,
+        foo2: 1,
+        foo3: 1,
+        foo4: 1,
+        foo5: 1,
+        foo6: 1,
+        foo7: 1,
+        foo8: 1,
+        foo9: 1,
+        foo10: 1,
+        foo11: 1,
+        foo12: 1,
+      };
+
+      expect(normalize(obj, 10, 10)).toEqual({
+        foo1: 1,
+        foo2: 1,
+        foo3: 1,
+        foo4: 1,
+        foo5: 1,
+        foo6: 1,
+        foo7: 1,
+        foo8: 1,
+        foo9: 1,
+        foo10: 1,
+        foo11: '[Max Edges Reached...]',
+      });
+    });
+
+    test('objects and arrays', () => {
+      const obj = {
+        foo1: 1,
+        foo2: 1,
+        foo3: 1,
+        foo4: 1,
+        foo5: 1,
+        foo6: [1, 1, 1, 1, 1, 1],
+        foo7: [1, 1, 1, 1, 1, 1],
+        foo8: [1, 1, 1, 1, 1, 1],
+      };
+
+      expect(normalize(obj, 10, 10)).toEqual({
+        foo1: 1,
+        foo2: 1,
+        foo3: 1,
+        foo4: 1,
+        foo5: 1,
+        foo6: [1, 1, 1, 1, 1, '[Max Edges Reached...]'],
+        foo7: '[Max Edges Reached...]',
+      });
+    });
+  });
+
   test('normalizes value on every iteration of decycle and takes care of things like Reacts SyntheticEvents', () => {
     const obj = {
       foo: {
