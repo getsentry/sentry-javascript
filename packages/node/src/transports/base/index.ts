@@ -181,7 +181,7 @@ export abstract class BaseTransport implements Transport {
       }
       return true;
     } else if (raHeader) {
-      this._rateLimits.all = new Date(now + parseRetryAfterHeader(now, raHeader));
+      this._rateLimits.all = new Date(now + parseRetryAfterHeader(raHeader, now));
       return true;
     }
     return false;
