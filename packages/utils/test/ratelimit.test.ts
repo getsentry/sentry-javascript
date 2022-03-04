@@ -1,8 +1,8 @@
 import {
-  parseRetryAfterHeader,
   DEFAULT_RETRY_AFTER,
   disabledUntil,
   isRateLimited,
+  parseRetryAfterHeader,
   RateLimits,
   updateRateLimits,
 } from '../src/ratelimit';
