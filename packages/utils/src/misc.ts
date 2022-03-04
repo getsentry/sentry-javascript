@@ -188,31 +188,6 @@ export function parseSemver(input: string): SemVer {
   };
 }
 
-const defaultRetryAfter = 60 * 1000; // 60 seconds
-
-/**
- * Extracts Retry-After value from the request header or returns default value
- * @param now current unix timestamp
- * @param header string representation of 'Retry-After' header
- */
-export function parseRetryAfterHeader(now: number, header?: string | number | null): number {
-  if (!header) {
-    return defaultRetryAfter;
-  }
-
-  const headerDelay = parseInt(`${header}`, 10);
-  if (!isNaN(headerDelay)) {
-    return headerDelay * 1000;
-  }
-
-  const headerDate = Date.parse(`${header}`);
-  if (!isNaN(headerDate)) {
-    return headerDate - now;
-  }
-
-  return defaultRetryAfter;
-}
-
 /**
  * This function adds context (pre/post/line) lines to the provided frame
  *
