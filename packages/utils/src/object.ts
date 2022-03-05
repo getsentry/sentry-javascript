@@ -99,7 +99,7 @@ export function urlEncode(object: { [key: string]: any }): string {
  *
  * @param value Initial source that we have to transform in order for it to be usable by the serializer
  */
-function getWalkSource(value: any): {
+function getWalkSource(value: unknown): {
   [key: string]: any;
 } {
   if (isError(value)) {
@@ -244,7 +244,7 @@ function serializeValue(value: any): any {
  *
  * Handles globals, functions, `undefined`, `NaN`, and other non-serializable values.
  */
-function makeSerializable<T>(value: T, key?: any): T | string {
+function makeSerializable<T>(value: T, key?: unknown): T | string {
   if (key === 'domain' && value && typeof value === 'object' && (value as unknown as { _events: any })._events) {
     return '[Domain]';
   }
@@ -253,7 +253,7 @@ function makeSerializable<T>(value: T, key?: any): T | string {
     return '[DomainEmitter]';
   }
 
-  if (typeof (global as any) !== 'undefined' && (value as unknown) === global) {
+  if (typeof global !== 'undefined' && (value as unknown) === global) {
     return '[Global]';
   }
 
@@ -261,12 +261,12 @@ function makeSerializable<T>(value: T, key?: any): T | string {
   // which won't throw if they are not present.
 
   // eslint-disable-next-line no-restricted-globals
-  if (typeof (window as any) !== 'undefined' && (value as unknown) === window) {
+  if (typeof window !== 'undefined' && (value as unknown) === window) {
     return '[Window]';
   }
 
   // eslint-disable-next-line no-restricted-globals
-  if (typeof (document as any) !== 'undefined' && (value as unknown) === document) {
+  if (typeof document !== 'undefined' && (value as unknown) === document) {
     return '[Document]';
   }
 
@@ -312,25 +312,22 @@ function makeSerializable<T>(value: T, key?: any): T | string {
  * - Takes care of Error objects serialization
  * - Optionally limit depth of final output
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function normalize(input: any, maxDepth: number = +Infinity, maxEdges: number = 10_000): any {
+export function normalize(input: unknown, maxDepth: number = +Infinity, maxEdges: number = 10_000): any {
   const [memoize, unmemoize] = memoBuilder();
   let edges = 0;
 
-  function walker(key: string, value: any, depth: number): any {
+  function walk(key: string, value: unknown & { toJSON?: () => string }, depth: number): any {
     // If we reach the maximum depth, serialize whatever is left
     if (depth === 0) {
       edges += 1;
       return serializeValue(value);
     }
 
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     // If value implements `toJSON` method, call it and return early
-    if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
+    if (typeof value?.toJSON === 'function') {
       edges += 1;
       return value.toJSON();
     }
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
     // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
@@ -368,7 +365,7 @@ export function normalize(input: any, maxDepth: number = +Infinity, maxEdges: nu
 
       // Recursively walk through all the child nodes
       const innerValue: any = source[innerKey];
-      acc[innerKey] = walker(innerKey, innerValue, depth - 1);
+      acc[innerKey] = walk(innerKey, innerValue, depth - 1);
     }
 
     // Once walked through all the branches, remove the parent from memo storage
@@ -380,7 +377,7 @@ export function normalize(input: any, maxDepth: number = +Infinity, maxEdges: nu
 
   try {
     // since we're at the outermost level, there is no key
-    return walker('', input, maxDepth);
+    return walk('', input as unknown & { toJSON?: () => string }, maxDepth);
   } catch (_oO) {
     return '**non-serializable**';
   }
@@ -392,7 +389,7 @@ export function normalize(input: any, maxDepth: number = +Infinity, maxEdges: nu
  * eg. `Non-error exception captured with keys: foo, bar, baz`
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function extractExceptionKeysForMessage(exception: any, maxLength: number = 40): string {
+export function extractExceptionKeysForMessage(exception: unknown, maxLength: number = 40): string {
   const keys = Object.keys(getWalkSource(exception));
   keys.sort();
 
@@ -424,14 +421,14 @@ export function extractExceptionKeysForMessage(exception: any, maxLength: number
  */
 export function dropUndefinedKeys<T>(val: T): T {
   if (isPlainObject(val)) {
-    const obj = val as { [key: string]: any };
-    const rv: { [key: string]: any } = {};
+    const obj = val as { [key: string]: unknown };
+    const rv: { [key: string]: unknown } = {};
     for (const key of Object.keys(obj)) {
       if (typeof obj[key] !== 'undefined') {
         rv[key] = dropUndefinedKeys(obj[key]);
       }
     }
-    return rv as T;
+    return rv as unknown as T;
   }
 
   if (Array.isArray(val)) {
