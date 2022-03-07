@@ -133,7 +133,7 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.all).toEqual(60 * 1000);
   });
 
-  test('should preserve previous limits', () => {
+  test('should preserve limits for categories not in header', () => {
     const rateLimits: RateLimits = {
       error: 1337,
     };
