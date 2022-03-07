@@ -221,6 +221,7 @@ describe('FetchTransport', () => {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
+          console.log(res);
           expect((res as Response).status).toBe(429);
           expect((res as Response).reason).toBe(
             `Transport for event requests locked till ${new Date(afterLimit)} due to too many requests.`,
@@ -293,7 +294,7 @@ describe('FetchTransport', () => {
         expect(fetch).toHaveBeenCalledTimes(3);
       });
 
-      it('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
+      it.only('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
         const retryAfterSeconds = 10;
         const beforeLimit = Date.now();
         const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;

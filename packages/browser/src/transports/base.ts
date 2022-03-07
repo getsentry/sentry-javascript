@@ -170,7 +170,8 @@ export abstract class BaseTransport implements Transport {
     const status = eventStatusFromHttpCode(response.status);
 
     this._rateLimits = updateRateLimits(this._rateLimits, headers);
-    if (isRateLimited(this._rateLimits, requestType) && isDebugBuild()) {
+    const category = requestTypeToCategory(requestType);
+    if (isRateLimited(this._rateLimits, category) && isDebugBuild()) {
       logger.warn(
         `Too many ${requestType} requests, backing off until: ${disabledUntil(this._rateLimits, requestType)}`,
       );
@@ -189,9 +190,9 @@ export abstract class BaseTransport implements Transport {
    *
    * @deprecated Please use `disabledUntil` from @sentry/utils
    */
-  protected _disabledUntil(requestType: SentryRequestType): number {
+  protected _disabledUntil(requestType: SentryRequestType): Date {
     const category = requestTypeToCategory(requestType);
-    return disabledUntil(this._rateLimits, category);
+    return new Date(disabledUntil(this._rateLimits, category));
   }
 
   /**
@@ -200,7 +201,8 @@ export abstract class BaseTransport implements Transport {
    * @deprecated Please use `isRateLimited` from @sentry/utils
    */
   protected _isRateLimited(requestType: SentryRequestType): boolean {
-    return isRateLimited(this._rateLimits, requestType);
+    const category = requestTypeToCategory(requestType);
+    return isRateLimited(this._rateLimits, category);
   }
 
   protected abstract _sendRequest(
