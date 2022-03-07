@@ -346,7 +346,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A new event with more information.
    */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    const { normalizeDepth = 3 } = this.getOptions();
+    const { normalizeDepth = 3, normalizeMaxProperties = 1_000 } = this.getOptions();
     const prepared: Event = {
       ...event,
       event_id: event.event_id || (hint && hint.event_id ? hint.event_id : uuid4()),
@@ -380,7 +380,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         evt.sdkProcessingMetadata = { ...evt.sdkProcessingMetadata, normalizeDepth: normalize(normalizeDepth) };
       }
       if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
-        return this._normalizeEvent(evt, normalizeDepth);
+        return this._normalizeEvent(evt, normalizeDepth, normalizeMaxProperties);
       }
       return evt;
     });
@@ -396,7 +396,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param event Event
    * @returns Normalized event
    */
-  protected _normalizeEvent(event: Event | null, depth: number): Event | null {
+  protected _normalizeEvent(event: Event | null, depth: number, maxProperties: number): Event | null {
     if (!event) {
       return null;
     }
@@ -407,18 +407,18 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         breadcrumbs: event.breadcrumbs.map(b => ({
           ...b,
           ...(b.data && {
-            data: normalize(b.data, depth),
+            data: normalize(b.data, depth, maxProperties),
           }),
         })),
       }),
       ...(event.user && {
-        user: normalize(event.user, depth),
+        user: normalize(event.user, depth, maxProperties),
       }),
       ...(event.contexts && {
-        contexts: normalize(event.contexts, depth),
+        contexts: normalize(event.contexts, depth, maxProperties),
       }),
       ...(event.extra && {
-        extra: normalize(event.extra, depth),
+        extra: normalize(event.extra, depth, maxProperties),
       }),
     };
     // event.contexts.trace stores information about a Transaction. Similarly,

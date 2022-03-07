@@ -102,6 +102,17 @@ export interface Options {
   normalizeDepth?: number;
 
   /**
+   * Maximum number of properties or elements that the normalization algorithm will output.
+   * Used when normalizing an event before sending, on all of the listed attributes:
+   * - `breadcrumbs.data`
+   * - `user`
+   * - `contexts`
+   * - `extra`
+   * Defaults to `1000`
+   */
+  normalizeMaxProperties?: number;
+
+  /**
    * Controls how many milliseconds to wait before shutting down. The default is
    * SDK-specific but typically around 2 seconds. Setting this too low can cause
    * problems for sending events from command line applications. Setting it too

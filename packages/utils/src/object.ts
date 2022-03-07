@@ -4,7 +4,7 @@ import { ExtendedError, WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive, isSyntheticEvent } from './is';
-import { memoBuilder, MemoFunc } from './memo';
+import { memoBuilder } from './memo';
 import { getFunctionName } from './stacktrace';
 import { truncate } from './string';
 
@@ -300,85 +300,85 @@ function makeSerializable<T>(value: T, key?: any): T | string {
   return value;
 }
 
-/**
- * Walks an object to perform a normalization on it
- *
- * @param key of object that's walked in current iteration
- * @param value object to be walked
- * @param depth Optional number indicating how deep should walking be performed
- * @param memo Optional Memo class handling decycling
- */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function walk(key: string, value: any, depth: number = +Infinity, memo: MemoFunc = memoBuilder()): any {
-  const [memoize, unmemoize] = memo;
-
-  // If we reach the maximum depth, serialize whatever is left
-  if (depth === 0) {
-    return serializeValue(value);
-  }
-
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-  // If value implements `toJSON` method, call it and return early
-  if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
-    return value.toJSON();
-  }
-  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-
-  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
-  // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
-  // all along), we're done.
-  const serializable = makeSerializable(value, key);
-  if (isPrimitive(serializable)) {
-    return serializable;
-  }
-
-  // Create source that we will use for the next iteration. It will either be an objectified error object (`Error` type
-  // with extracted key:value pairs) or the input itself.
-  const source = getWalkSource(value);
-
-  // Create an accumulator that will act as a parent for all future itterations of that branch
-  const acc: { [key: string]: any } = Array.isArray(value) ? [] : {};
-
-  // If we already walked that branch, bail out, as it's circular reference
-  if (memoize(value)) {
-    return '[Circular ~]';
-  }
-
-  // Walk all keys of the source
-  for (const innerKey in source) {
-    // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
-    if (!Object.prototype.hasOwnProperty.call(source, innerKey)) {
-      continue;
-    }
-    // Recursively walk through all the child nodes
-    const innerValue: any = source[innerKey];
-    acc[innerKey] = walk(innerKey, innerValue, depth - 1, memo);
-  }
-
-  // Once walked through all the branches, remove the parent from memo storage
-  unmemoize(value);
-
-  // Return accumulated values
-  return acc;
-}
+type UnknownMaybeToJson = unknown & { toJSON?: () => string };
 
 /**
  * normalize()
  *
  * - Creates a copy to prevent original input mutation
- * - Skip non-enumerablers
+ * - Skip non-enumerable
  * - Calls `toJSON` if implemented
  * - Removes circular references
- * - Translates non-serializeable values (undefined/NaN/Functions) to serializable format
+ * - Translates non-serializable values (undefined/NaN/Functions) to serializable format
  * - Translates known global objects/Classes to a string representations
  * - Takes care of Error objects serialization
  * - Optionally limit depth of final output
+ * - Optionally limit max number of properties/elements for each object/array
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function normalize(input: any, depth?: number): any {
+export function normalize(input: unknown, depth: number = +Infinity, maxProperties: number = +Infinity): any {
+  const [memoize, unmemoize] = memoBuilder();
+
+  function walk(key: string, value: UnknownMaybeToJson, depth: number = +Infinity): unknown {
+    // If we reach the maximum depth, serialize whatever is left
+    if (depth === 0) {
+      return serializeValue(value);
+    }
+
+    // If value implements `toJSON` method, call it and return early
+    if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
+      return value.toJSON();
+    }
+
+    // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+    // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
+    // all along), we're done.
+    const serializable = makeSerializable(value, key);
+    if (isPrimitive(serializable)) {
+      return serializable;
+    }
+
+    // Create source that we will use for the next iteration. It will either be an objectified error object (`Error` type
+    // with extracted key:value pairs) or the input itself.
+    const source = getWalkSource(value);
+
+    // Create an accumulator that will act as a parent for all future itterations of that branch
+    const acc: { [key: string]: any } = Array.isArray(value) ? [] : {};
+
+    // If we already walked that branch, bail out, as it's circular reference
+    if (memoize(value)) {
+      return '[Circular ~]';
+    }
+
+    let propertyCount = 0;
+    // Walk all keys of the source
+    for (const innerKey in source) {
+      // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
+      if (!Object.prototype.hasOwnProperty.call(source, innerKey)) {
+        continue;
+      }
+
+      if (propertyCount >= maxProperties) {
+        acc[innerKey] = '[MaxProperties ~]';
+        break;
+      }
+
+      propertyCount += 1;
+
+      // Recursively walk through all the child nodes
+      const innerValue: UnknownMaybeToJson = source[innerKey];
+      acc[innerKey] = walk(innerKey, innerValue, depth - 1);
+    }
+
+    // Once walked through all the branches, remove the parent from memo storage
+    unmemoize(value);
+
+    // Return accumulated values
+    return acc;
+  }
+
   try {
     // since we're at the outermost level, there is no key
-    return walk('', input, depth);
+    return walk('', input as UnknownMaybeToJson, depth);
   } catch (_oO) {
     return '**non-serializable**';
   }

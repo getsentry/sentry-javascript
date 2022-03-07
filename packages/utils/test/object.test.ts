@@ -533,6 +533,51 @@ describe('normalize()', () => {
     });
   });
 
+  describe('can limit max properties', () => {
+    test('object', () => {
+      const obj = {
+        nope: 'here',
+        foo: {
+          one: 1,
+          two: 2,
+          three: 3,
+          four: 4,
+          five: 5,
+          six: 6,
+          seven: 7,
+        },
+        after: 'more',
+      };
+
+      expect(normalize(obj, 10, 5)).toEqual({
+        nope: 'here',
+        foo: {
+          one: 1,
+          two: 2,
+          three: 3,
+          four: 4,
+          five: 5,
+          six: '[MaxProperties ~]',
+        },
+        after: 'more',
+      });
+    });
+
+    test('array', () => {
+      const obj = {
+        nope: 'here',
+        foo: new Array(100).fill('s'),
+        after: 'more',
+      };
+
+      expect(normalize(obj, 10, 5)).toEqual({
+        nope: 'here',
+        foo: ['s', 's', 's', 's', 's', '[MaxProperties ~]'],
+        after: 'more',
+      });
+    });
+  });
+
   test('normalizes value on every iteration of decycle and takes care of things like Reacts SyntheticEvents', () => {
     const obj = {
       foo: {
