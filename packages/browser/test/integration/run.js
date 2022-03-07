@@ -81,7 +81,7 @@ function build() {
   writeFile('artifacts/sdk.js', readFile('../../build/bundle.js').replace('//# sourceMappingURL=bundle.js.map', ''));
   writeFile(
     'artifacts/loader.js',
-    readFile('../../src/loader.js').replace('../../build/bundle.js', '/base/artifacts/sdk.js')
+    readFile('../../src/loader.js').replace('../../build/bundles/bundle.js', '/base/artifacts/sdk.js')
   );
 
   writeFile(
