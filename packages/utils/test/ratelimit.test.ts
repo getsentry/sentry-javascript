@@ -85,7 +85,7 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.error).toEqual(13 * 1000);
   });
 
-  test('should update a multiple categories based on `x-sentry-rate-limits` header', () => {
+  test('should update multiple categories based on `x-sentry-rate-limits` header', () => {
     const rateLimits: RateLimits = {};
     const headers = {
       'x-sentry-rate-limits': '13:error;transaction',
