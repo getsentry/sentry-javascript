@@ -10,7 +10,7 @@ If you are using `@sentry-internal/eslint-config-sdk`, please note that this rel
 
 This release also removes `@sentry/tracing` as a dependency of `@sentry/node`. Please explicitly install and import `@sentry/tracing` if you want to use performance monitoring capabilities. For more details, [see our docs on setting up Node Performance Monitoring](https://docs.sentry.io/platforms/node/performance/).
 
-We also now produce an ES6 version of our CDN tracing bundle, which can be accessed with `bundle.tracing.es6.min.js`.
+We also now produce an ES6 version of our [CDN tracing bundle](https://docs.sentry.io/platforms/javascript/install/cdn/#performance-bundle), which can be accessed with `bundle.tracing.es6.min.js`.
 
 - chore(eslint): Turn on quotes rules ([#4671](https://github.com/getsentry/sentry-javascript/pull/4671))
 - fix(node): prevent errors thrown on flush from breaking response ([#4667](https://github.com/getsentry/sentry-javascript/pull/4667))
