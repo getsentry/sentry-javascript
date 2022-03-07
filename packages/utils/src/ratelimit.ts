@@ -52,10 +52,10 @@ export function updateRateLimits(
 
   // "The name is case-insensitive."
   // https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-  const rlHeader = headers['x-sentry-rate-limits'];
-  const raHeader = headers['retry-after'];
+  const rateLimitHeader = headers['x-sentry-rate-limits'];
+  const retryAfterHeader = headers['retry-after'];
 
-  if (rlHeader) {
+  if (rateLimitHeader) {
     /**
      * rate limit headers are of the form
      *     <header>,<header>,..
@@ -68,7 +68,7 @@ export function updateRateLimits(
      *     <scope> is what's being limited (org, project, or key) - ignored by SDK
      *     <reason_code> is an arbitrary string like "org_quota" - ignored by SDK
      */
-    for (const limit of rlHeader.trim().split(',')) {
+    for (const limit of rateLimitHeader.trim().split(',')) {
       const parameters = limit.split(':', 2);
       const headerDelay = parseInt(parameters[0], 10);
       const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
@@ -80,8 +80,8 @@ export function updateRateLimits(
         }
       }
     }
-  } else if (raHeader) {
-    updatedRateLimits.all = now + parseRetryAfterHeader(raHeader, now);
+  } else if (retryAfterHeader) {
+    updatedRateLimits.all = now + parseRetryAfterHeader(retryAfterHeader, now);
   }
 
   return updatedRateLimits;

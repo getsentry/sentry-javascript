@@ -64,7 +64,7 @@ describe('updateRateLimits()', () => {
     };
     const headers = {};
     const updatedRateLimits = updateRateLimits(rateLimits, headers);
-    expect(rateLimits).toStrictEqual(updatedRateLimits);
+    expect(updatedRateLimits).toEqual(rateLimits);
   });
 
   test('should update the `all` category based on `retry-after` header ', () => {
@@ -85,7 +85,7 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.error).toEqual(13 * 1000);
   });
 
-  test('should update a multiple categories based on `x-sentry-rate-limits` header', () => {
+  test('should update multiple categories based on `x-sentry-rate-limits` header', () => {
     const rateLimits: RateLimits = {};
     const headers = {
       'x-sentry-rate-limits': '13:error;transaction',
@@ -95,7 +95,7 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.transaction).toEqual(13 * 1000);
   });
 
-  test('should update limits based on multi `x-sentry-rate-limits` header', () => {
+  test('should update multiple categories with different values based on multi `x-sentry-rate-limits` header', () => {
     const rateLimits: RateLimits = {};
     const headers = {
       'x-sentry-rate-limits': '13:error,15:transaction',
@@ -133,7 +133,7 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.all).toEqual(60 * 1000);
   });
 
-  test('should preserve previous limits', () => {
+  test('should preserve limits for categories not in header', () => {
     const rateLimits: RateLimits = {
       error: 1337,
     };
