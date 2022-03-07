@@ -300,20 +300,26 @@ function makeSerializable<T>(value: T, key?: any): T | string {
   return value;
 }
 
-type UnknownMaybeToJson = unknown & { toJSON?: () => string };
+type UnknownMaybeWithToJson = unknown & { toJSON?: () => string };
 
 /**
- * normalize()
+ * Recursively normalizes the given object.
  *
  * - Creates a copy to prevent original input mutation
- * - Skip non-enumerable
- * - Calls `toJSON` if implemented
+ * - Skips non-enumerable properties
+ * - When stringifying, calls `toJSON` if implemented
  * - Removes circular references
- * - Translates non-serializable values (undefined/NaN/Functions) to serializable format
- * - Translates known global objects/Classes to a string representations
- * - Takes care of Error objects serialization
- * - Optionally limit depth of final output
- * - Optionally limit max number of properties/elements for each object/array
+ * - Translates non-serializable values (`undefined`/`NaN`/functions) to serializable format
+ * - Translates known global objects/classes to a string representations
+ * - Takes care of `Error` object serialization
+ * - Optionally limits depth of final output
+ * - Optionally limits number of properties/elements included in any single object/array
+ *
+ * @param input The object to be normalized.
+ * @param depth The max depth to which to normalize the object. (Anything deeper stringified whole.)
+ * @param maxProperties The max number of elements or properties to be included in any single array or 
+ * object in the normallized output..
+ * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normaliztion.
  */
 export function normalize(input: unknown, depth: number = +Infinity, maxProperties: number = +Infinity): any {
   const [memoize, unmemoize] = memoBuilder();

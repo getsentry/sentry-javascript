@@ -102,7 +102,7 @@ export interface Options {
   normalizeDepth?: number;
 
   /**
-   * Maximum number of properties or elements that the normalization algorithm will output.
+   * Maximum number of properties or elements that the normalization algorithm will output in any single array or object included in the normalized event.
    * Used when normalizing an event before sending, on all of the listed attributes:
    * - `breadcrumbs.data`
    * - `user`
