@@ -64,7 +64,7 @@ describe('updateRateLimits()', () => {
     };
     const headers = {};
     const updatedRateLimits = updateRateLimits(rateLimits, headers);
-    expect(rateLimits).toStrictEqual(updatedRateLimits);
+    expect(updatedRateLimits).toEqual(rateLimits);
   });
 
   test('should update the `all` category based on `retry-after` header ', () => {
