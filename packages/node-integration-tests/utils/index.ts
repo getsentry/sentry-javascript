@@ -9,7 +9,6 @@ const keysToReplace = {
   timestamp: expect.any(Number),
   event_id: expect.any(String),
   filename: expect.any(String),
-  release: expect.any(String),
 };
 
 const deepReplace = (obj: Record<string, any>, keyName: string, replacer: (from: any) => string): void => {
