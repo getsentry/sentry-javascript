@@ -1,4 +1,4 @@
-import SentryRRWeb from "../src/";
+import { SentryReplay } from "@";
 
 jest.mock("rrweb");
 
@@ -10,7 +10,7 @@ describe("config", () => {
   });
 
   it("has default options", () => {
-    const integration = new SentryRRWeb();
+    const integration = new SentryReplay();
 
     expect(rrwebMock.record).toMatchInlineSnapshot(`
       [MockFunction] {
@@ -34,7 +34,7 @@ describe("config", () => {
   });
 
   it("supports other options", () => {
-    const integration = new SentryRRWeb({
+    const integration = new SentryReplay({
       ignoreClass: "test",
       maskAllInputs: false,
     });

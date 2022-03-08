@@ -2,11 +2,18 @@
   "compilerOptions": {
     "declaration": true,
     "declarationDir": "./dist",
-    "module": "es6",
+    "module": "esnext",
+    "moduleResolution": "node",
     "noImplicitAny": true,
+    "noEmitOnError": true,
     "esModuleInterop": true,
+    "baseUrl": ".",
     "outDir": "./dist",
     "target": "es5",
+    "paths": {
+      "@": ["src"],
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

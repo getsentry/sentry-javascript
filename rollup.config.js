@@ -1,5 +1,4 @@
-import babel from 'rollup-plugin-babel';
-import typescript from 'rollup-plugin-typescript2';
+import typescript from '@rollup/plugin-typescript';
 
 import pkg from './package.json';
 
@@ -22,12 +21,7 @@ export default [
       ...Object.keys(pkg.peerDependencies || {})
     ],
     plugins: [
-      typescript({
-        typescript: require('typescript')
-      }),
-      babel({
-        exclude: ['node_modules/**']
-      })
+      typescript(),
     ]
   }
 ];

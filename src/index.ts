@@ -1,6 +1,6 @@
 import { record, EventType } from 'rrweb';
 import * as Sentry from '@sentry/browser';
-import { Dsn, Event } from '@sentry/types';
+import { DsnComponents, Event } from '@sentry/types';
 
 type RRWebEvent = {
   type: EventType;
@@ -11,9 +11,9 @@ type RRWebEvent = {
 
 type RRWebOptions = Parameters<typeof record>[0];
 
-export default class SentryRRWeb {
-  public readonly name: string = SentryRRWeb.id;
-  public static id: string = 'SentryRRWeb';
+export class SentryReplay {
+  public readonly name: string = SentryReplay.id;
+  public static id: string = 'SentryReplay';
 
   public events: Array<RRWebEvent> = [];
 
@@ -44,7 +44,7 @@ export default class SentryRRWeb {
     });
   }
 
-  public attachmentUrlFromDsn(dsn: Dsn, eventId: string) {
+  public attachmentUrlFromDsn(dsn: DsnComponents, eventId: string) {
     const { host, path, projectId, port, protocol, user } = dsn;
     return `${protocol}://${host}${port !== '' ? `:${port}` : ''}${
       path !== '' ? `/${path}` : ''
@@ -53,7 +53,7 @@ export default class SentryRRWeb {
 
   public setupOnce() {
     Sentry.addGlobalEventProcessor((event: Event) => {
-      const self = Sentry.getCurrentHub().getIntegration(SentryRRWeb);
+      const self = Sentry.getCurrentHub().getIntegration(SentryReplay);
       if (!self) return;
       try {
         // short circuit if theres no events to replay
