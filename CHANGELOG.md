@@ -18,6 +18,8 @@ We also now produce an ES6 version of our [CDN tracing bundle](https://docs.sent
 - fix(tracing): Make method required in transactionSampling type ([#4657](https://github.com/getsentry/sentry-javascript/pull/4657))
 - feat(tracing): Add ES6 tracing bundle ([#4674](https://github.com/getsentry/sentry-javascript/pull/4674))
 
+Work in this release contributed by @Ignigena. Thank you for your contribution!
+
 ## 6.18.1
 
 - fix(ember): use _backburner if it exists ([#4603](https://github.com/getsentry/sentry-javascript/pull/4603))
