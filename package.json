@@ -43,6 +43,7 @@
     "packages/minimal",
     "packages/nextjs",
     "packages/node",
+    "packages/node-integration-tests",
     "packages/react",
     "packages/serverless",
     "packages/tracing",

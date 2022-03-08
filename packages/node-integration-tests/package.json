@@ -1,0 +1,29 @@
+{
+  "name": "@sentry-internal/node-integration-tests",
+  "version": "6.17.9",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
+    "type-check": "tsc",
+    "test": "jest --detectOpenHandles --runInBand --forceExit",
+    "test:esm": "SENTRY_NODE_BUILD=esm yarn test",
+    "test:cjs": "SENTRY_NODE_BUILD=cjs yarn test"
+  },
+  "dependencies": {
+    "@babel/core": "^7.17.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.16.8",
+    "babel-jest": "^27.5.1",
+    "express": "^4.17.3",
+    "jest": "^27.5.1",
+    "nock": "^13.1.0",
+    "portfinder": "^1.0.28",
+    "ts-jest": "^27.1.3"
+  }
+}

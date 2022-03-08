@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`should send captureMessage 1`] = `
+Object {
+  "environment": "production",
+  "event_id": Any<String>,
+  "extra": Object {
+    "normalizeDepth": 3,
+  },
+  "level": "info",
+  "message": "Message",
+  "platform": "node",
+  "sdk": Object {
+    "integrations": Array [
+      "InboundFilters",
+      "FunctionToString",
+      "ContextLines",
+      "Console",
+      "Http",
+      "OnUncaughtException",
+      "OnUnhandledRejection",
+      "LinkedErrors",
+    ],
+    "name": "sentry.javascript.node",
+    "packages": Array [
+      Object {
+        "name": "npm:@sentry/node",
+        "version": "6.18.1",
+      },
+    ],
+    "version": "6.18.1",
+  },
+  "tags": Object {
+    "skippedNormalization": true,
+  },
+  "timestamp": Any<Number>,
+}
+`;
