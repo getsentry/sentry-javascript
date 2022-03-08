@@ -18,7 +18,7 @@ Object {
               "colno": 75,
               "context_line": "            step((generator = generator.apply(thisArg, _arguments || [])).next());
 ",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/node_modules/tslib/tslib.js",
+              "filename": Any<String>,
               "function": "undefined.<anonymous>",
               "in_app": false,
               "lineno": 115,
@@ -59,7 +59,7 @@ Object {
               "colno": 57,
               "context_line": "        function verb(n) { return function (v) { return step([n, v]); }; }
 ",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/node_modules/tslib/tslib.js",
+              "filename": Any<String>,
               "function": "Object.next",
               "in_app": false,
               "lineno": 122,
@@ -99,7 +99,7 @@ Object {
               "colno": 27,
               "context_line": "                op = body.call(thisArg, _);
 ",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/node_modules/tslib/tslib.js",
+              "filename": Any<String>,
               "function": "step",
               "in_app": false,
               "lineno": 141,
@@ -140,10 +140,10 @@ Object {
             Object {
               "colno": 7,
               "context_line": "      require(\`\${testDir}/subject\`);",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/packages/node-integration-tests/utils/index.ts",
+              "filename": Any<String>,
               "function": "Object.<anonymous>",
               "in_app": true,
-              "lineno": 79,
+              "lineno": 81,
               "module": "index.ts",
               "post_context": Array [
                 "",
@@ -167,7 +167,7 @@ Object {
             Object {
               "colno": 21,
               "context_line": "        return this.requireModule(from, moduleName);",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/node_modules/jest-runtime/build/index.js",
+              "filename": Any<String>,
               "function": "Runtime.requireModuleOrMock",
               "in_app": false,
               "lineno": 598,
@@ -194,7 +194,7 @@ Object {
             Object {
               "colno": 10,
               "context_line": "    this._loadModule(",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/node_modules/jest-runtime/build/index.js",
+              "filename": Any<String>,
               "function": "Runtime.requireModule",
               "in_app": false,
               "lineno": 433,
@@ -221,7 +221,7 @@ Object {
             Object {
               "colno": 12,
               "context_line": "      this._execModule(localModule, options, moduleRegistry, fromPath);",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/node_modules/jest-runtime/build/index.js",
+              "filename": Any<String>,
               "function": "Runtime._loadModule",
               "in_app": false,
               "lineno": 577,
@@ -248,7 +248,7 @@ Object {
             Object {
               "colno": 68,
               "context_line": "    runScript[_transform().ScriptTransformer.EVAL_RESULT_VARIABLE].call(",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/node_modules/jest-runtime/build/index.js",
+              "filename": Any<String>,
               "function": "Runtime._execModule",
               "in_app": false,
               "lineno": 867,
@@ -275,7 +275,7 @@ Object {
             Object {
               "colno": 8,
               "context_line": "Sentry.captureException('Error');",
-              "filename": "/Users/onurtemizkan/Projects/sentry-javascript/packages/node-integration-tests/suites/send-event/capture-exception/subject.ts",
+              "filename": Any<String>,
               "function": "Object.<anonymous>",
               "in_app": true,
               "lineno": 3,
