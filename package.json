@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/rrweb",
-  "version": "0.3.1",
-  "description": "Integration between sentry and rrweb.",
+  "name": "@sentry/replay",
+  "version": "0.0.1",
+  "description": "User/session replays for Sentry",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
   "scripts": {
@@ -15,14 +15,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/getsentry/sentry-rrweb.git"
+    "url": "git+https://github.com/getsentry/sentry-replay.git"
   },
   "author": "David Cramer",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/getsentry/sentry-rrweb/issues"
+    "url": "https://github.com/getsentry/sentry-replay/issues"
   },
-  "homepage": "https://github.com/getsentry/sentry-rrweb#readme",
+  "homepage": "https://github.com/getsentry/sentry-replay#readme",
   "peerDependencies": {
     "rrweb": ">=0.7.0",
     "@sentry/browser": ">=4.0.0"

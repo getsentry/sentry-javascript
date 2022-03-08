@@ -1,10 +1,10 @@
-# sentry-rrweb
+# sentry-replay
 
 This integration is a WIP.
 
 ## Pre-Requisites
 
-For the sentry-rrweb integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser) and the [rrweb package](https://www.npmjs.com/package/rrweb) installed.
+For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser) and the [rrweb package](https://www.npmjs.com/package/rrweb) installed.
 
 ## Installation
 

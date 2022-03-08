@@ -1,7 +1,7 @@
 minVersion: '0.20.0'
 github:
   owner: getsentry
-  repo: sentry-rrweb
+  repo: sentry-replay
 changelogPolicy: none
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
