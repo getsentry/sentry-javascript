@@ -22,6 +22,7 @@
     "babel-jest": "^27.5.1",
     "express": "^4.17.3",
     "jest": "^27.5.1",
+    "jest-environment-node": "^27.5.1",
     "nock": "^13.1.0",
     "portfinder": "^1.0.28",
     "ts-jest": "^27.1.3"
