@@ -21,7 +21,7 @@ Object {
               "filename": Any<String>,
               "function": "undefined.<anonymous>",
               "in_app": false,
-              "lineno": 115,
+              "lineno": Any<Number>,
               "module": "tslib:tslib",
               "post_context": Array [
                 "        });
@@ -62,7 +62,7 @@ Object {
               "filename": Any<String>,
               "function": "Object.next",
               "in_app": false,
-              "lineno": 122,
+              "lineno": Any<Number>,
               "module": "tslib:tslib",
               "post_context": Array [
                 "        function step(op) {
@@ -102,7 +102,7 @@ Object {
               "filename": Any<String>,
               "function": "step",
               "in_app": false,
-              "lineno": 141,
+              "lineno": Any<Number>,
               "module": "tslib:tslib",
               "post_context": Array [
                 "            } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
@@ -143,7 +143,7 @@ Object {
               "filename": Any<String>,
               "function": "Object.<anonymous>",
               "in_app": true,
-              "lineno": 81,
+              "lineno": Any<Number>,
               "module": "index.ts",
               "post_context": Array [
                 "",
@@ -170,7 +170,7 @@ Object {
               "filename": Any<String>,
               "function": "Runtime.requireModuleOrMock",
               "in_app": false,
-              "lineno": 598,
+              "lineno": Any<Number>,
               "module": "jest-runtime.build:index",
               "post_context": Array [
                 "      }",
@@ -197,7 +197,7 @@ Object {
               "filename": Any<String>,
               "function": "Runtime.requireModule",
               "in_app": false,
-              "lineno": 433,
+              "lineno": Any<Number>,
               "module": "jest-runtime.build:index",
               "post_context": Array [
                 "      localModule,",
@@ -224,7 +224,7 @@ Object {
               "filename": Any<String>,
               "function": "Runtime._loadModule",
               "in_app": false,
-              "lineno": 577,
+              "lineno": Any<Number>,
               "module": "jest-runtime.build:index",
               "post_context": Array [
                 "    }",
@@ -251,7 +251,7 @@ Object {
               "filename": Any<String>,
               "function": "Runtime._execModule",
               "in_app": false,
-              "lineno": 867,
+              "lineno": Any<Number>,
               "module": "jest-runtime.build:index",
               "post_context": Array [
                 "      localModule.exports,",
@@ -278,7 +278,7 @@ Object {
               "filename": Any<String>,
               "function": "Object.<anonymous>",
               "in_app": true,
-              "lineno": 3,
+              "lineno": Any<Number>,
               "module": "subject.ts",
               "post_context": Array [
                 "",
@@ -314,10 +314,10 @@ Object {
     "packages": Array [
       Object {
         "name": "npm:@sentry/node",
-        "version": "6.18.1",
+        "version": Any<String>,
       },
     ],
-    "version": "6.18.1",
+    "version": Any<String>,
   },
   "tags": Object {
     "skippedNormalization": true,

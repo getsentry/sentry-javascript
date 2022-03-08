@@ -25,10 +25,10 @@ Object {
     "packages": Array [
       Object {
         "name": "npm:@sentry/node",
-        "version": "6.18.1",
+        "version": Any<String>,
       },
     ],
-    "version": "6.18.1",
+    "version": Any<String>,
   },
   "tags": Object {
     "skippedNormalization": true,
