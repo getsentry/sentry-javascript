@@ -299,6 +299,7 @@ Object {
     "normalizeDepth": 3,
   },
   "platform": "node",
+  "release": "1.0",
   "sdk": Object {
     "integrations": Array [
       "InboundFilters",
