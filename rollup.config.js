@@ -190,8 +190,14 @@ export function makeBaseBundleConfig(options) {
   return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig);
 }
 
-export function makeMinificationVariants(baseConfig) {
-  const newConfigs = [];
+/**
+ * Takes the CDN rollup config for a given package and produces configs for both minified and unminified bundles.
+ *
+ * @param baseConfig The rollup config shared by the entire package
+ * @returns An array of versions of that config
+ */
+export function makeConfigVariants(baseConfig) {
+  const configVariants = [];
 
   const { plugins } = baseConfig;
 
@@ -201,7 +207,8 @@ export function makeMinificationVariants(baseConfig) {
     `Last plugin in given options should be \`rollup-plugin-license\`. Found ${getLastElement(plugins).name}`,
   );
 
-  const bundleVariants = [
+  // The additional options to use for each variant we're going to create #namingishard
+  const variantSpecificOptionsVariants = [
     {
       output: {
         file: `${baseConfig.output.file}.js`,
@@ -216,14 +223,14 @@ export function makeMinificationVariants(baseConfig) {
     },
   ];
 
-  bundleVariants.forEach(variant => {
+  variantSpecificOptionsVariants.forEach(variant => {
     const mergedConfig = deepMerge(baseConfig, variant, {
       // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
       // just overwritten by the second value
       arrayMerge: (first, second) => second,
     });
-    newConfigs.push(mergedConfig);
+    configVariants.push(mergedConfig);
   });
 
-  return newConfigs;
+  return configVariants;
 }
