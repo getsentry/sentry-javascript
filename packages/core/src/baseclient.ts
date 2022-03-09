@@ -108,7 +108,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
-      logger.log(ALREADY_SEEN_ERROR);
+      isDebugBuild() && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -153,7 +153,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-      logger.log(ALREADY_SEEN_ERROR);
+      isDebugBuild() && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -244,7 +244,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     try {
       return (this._integrations[integration.id] as T) || null;
     } catch (_oO) {
-      logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      isDebugBuild() && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
       return null;
     }
   }
@@ -503,7 +503,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         return finalEvent.event_id;
       },
       reason => {
-        logger.error(reason);
+        isDebugBuild() && logger.error(reason);
         return undefined;
       },
     );

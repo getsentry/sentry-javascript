@@ -69,7 +69,8 @@ function instrument(type: InstrumentHandlerType): void {
       instrumentUnhandledRejection();
       break;
     default:
-      logger.warn('unknown instrumentation type:', type);
+      isDebugBuild() && logger.warn('unknown instrumentation type:', type);
+      return;
   }
 }
 

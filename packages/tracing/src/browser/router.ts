@@ -1,5 +1,5 @@
 import { Transaction, TransactionContext } from '@sentry/types';
-import { addInstrumentationHandler, getGlobalObject, logger } from '@sentry/utils';
+import { addInstrumentationHandler, getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 
@@ -12,7 +12,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
   startTransactionOnLocationChange: boolean = true,
 ): void {
   if (!global || !global.location) {
-    logger.warn('Could not initialize routing instrumentation due to invalid location');
+    isDebugBuild() && logger.warn('Could not initialize routing instrumentation due to invalid location');
     return;
   }
 
@@ -42,7 +42,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
       if (from !== to) {
         startingUrl = undefined;
         if (activeTransaction) {
-          logger.log(`[Tracing] Finishing current transaction with op: ${activeTransaction.op}`);
+          isDebugBuild() && logger.log(`[Tracing] Finishing current transaction with op: ${activeTransaction.op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeTransaction.finish();
         }

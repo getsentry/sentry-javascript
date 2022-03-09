@@ -2,7 +2,7 @@ import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnIni
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
+import { getGlobalObject, isDebugBuild, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
 import { Observable, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
@@ -63,7 +63,8 @@ export class TraceService implements OnDestroy {
     filter(event => event instanceof NavigationStart),
     tap(event => {
       if (!instrumentationInitialized) {
-        logger.error('Angular integration has tracing enabled, but Tracing integration is not configured');
+        isDebugBuild() &&
+          logger.error('Angular integration has tracing enabled, but Tracing integration is not configured');
         return;
       }
 

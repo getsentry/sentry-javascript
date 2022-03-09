@@ -67,7 +67,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   public constructor(options: O) {
     this._options = options;
     if (!this._options.dsn) {
-      logger.warn('No DSN provided, backend will not do anything.');
+      isDebugBuild() && logger.warn('No DSN provided, backend will not do anything.');
     }
     this._transport = this._setupTransport();
   }

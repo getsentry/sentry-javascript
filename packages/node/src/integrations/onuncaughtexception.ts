@@ -1,6 +1,6 @@
 import { getCurrentHub, Scope } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { isDebugBuild, logger } from '@sentry/utils';
 
 import { NodeClient } from '../client';
 import { logAndExitProcess } from './utils/errorhandling';
@@ -95,7 +95,8 @@ export class OnUncaughtException implements Integration {
         }
       } else if (calledFatalError) {
         // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
-        logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
+        isDebugBuild() &&
+          logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
         logAndExitProcess(error);
       } else if (!caughtSecondError) {
         // two cases for how we can hit this branch:
