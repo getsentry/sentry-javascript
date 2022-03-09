@@ -173,16 +173,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureSession(session: Session): void {
     if (!this._isEnabled()) {
-      if (isDebugBuild()) {
-        logger.warn('SDK not enabled, will not capture session.');
-      }
+      isDebugBuild() && logger.warn('SDK not enabled, will not capture session.');
       return;
     }
 
     if (!(typeof session.release === 'string')) {
-      if (isDebugBuild()) {
-        logger.warn('Discarded session because of missing or non-string release');
-      }
+      isDebugBuild() && logger.warn('Discarded session because of missing or non-string release');
     } else {
       this._sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence

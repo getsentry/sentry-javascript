@@ -94,12 +94,11 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
     try {
       handler(data);
     } catch (e) {
-      if (isDebugBuild()) {
+      isDebugBuild() &&
         logger.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,
         );
-      }
     }
   }
 }

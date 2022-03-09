@@ -92,9 +92,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendEvent(event: Event): void {
     void this._transport.sendEvent(event).then(null, reason => {
-      if (isDebugBuild()) {
-        logger.error('Error while sending event:', reason);
-      }
+      isDebugBuild() && logger.error('Error while sending event:', reason);
     });
   }
 
@@ -103,16 +101,12 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendSession(session: Session): void {
     if (!this._transport.sendSession) {
-      if (isDebugBuild()) {
-        logger.warn("Dropping session because custom transport doesn't implement sendSession");
-      }
+      isDebugBuild() && logger.warn("Dropping session because custom transport doesn't implement sendSession");
       return;
     }
 
     void this._transport.sendSession(session).then(null, reason => {
-      if (isDebugBuild()) {
-        logger.error('Error while sending session:', reason);
-      }
+      isDebugBuild() && logger.error('Error while sending session:', reason);
     });
   }
 
