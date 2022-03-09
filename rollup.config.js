@@ -195,7 +195,10 @@ export function makeBaseBundleConfig(options) {
 }
 
 /**
- * Takes the CDN rollup config for a given package and produces configs for both minified and unminified bundles.
+ * Takes the CDN rollup config for a given package and produces three versions of it:
+ *   - non-minified, including debug logging,
+ *   - minified, including debug logging,
+ *   - minified, with debug logging stripped
  *
  * @param baseConfig The rollup config shared by the entire package
  * @returns An array of versions of that config
@@ -204,6 +207,8 @@ export function makeConfigVariants(baseConfig) {
   const configVariants = [];
 
   const { plugins } = baseConfig;
+  const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
+  const noDebuggingPlugin = makeIsDebugBuildPlugin(false);
 
   // The license plugin has to be last, so it ends up after terser. Otherwise, terser will remove the license banner.
   assert(
@@ -217,13 +222,27 @@ export function makeConfigVariants(baseConfig) {
       output: {
         file: `${baseConfig.output.file}.js`,
       },
-      plugins,
+      plugins: insertAt(plugins, -2, includeDebuggingPlugin),
     },
+    // This variant isn't particularly helpful for an SDK user, as it strips logging while making no other minification
+    // changes, so by default we don't create it. It is however very useful when debugging rollup's treeshaking, so it's
+    // left here for that purpose.
+    // {
+    //   output: { file: `${baseConfig.output.file}.no-debug.js`,
+    //   },
+    //   plugins: insertAt(plugins, -2, noDebuggingPlugin),
+    // },
     {
       output: {
         file: `${baseConfig.output.file}.min.js`,
       },
-      plugins: insertAt(plugins, -2, terserPlugin),
+      plugins: insertAt(plugins, -2, noDebuggingPlugin, terserPlugin),
+    },
+    {
+      output: {
+        file: `${baseConfig.output.file}.debug.min.js`,
+      },
+      plugins: insertAt(plugins, -2, includeDebuggingPlugin, terserPlugin),
     },
   ];
 
