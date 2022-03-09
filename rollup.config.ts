@@ -1,9 +1,9 @@
+import { RollupOptions } from "rollup";
 import typescript from '@rollup/plugin-typescript';
 
 import pkg from './package.json';
 
-export default [
-  {
+const config: RollupOptions = {
     input: 'src/index.ts',
     output: [
       {
@@ -23,5 +23,6 @@ export default [
     plugins: [
       typescript(),
     ]
-  }
-];
+  };
+
+export default config;

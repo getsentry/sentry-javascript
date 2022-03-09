@@ -7,6 +7,7 @@
     "noImplicitAny": true,
     "noEmitOnError": true,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "outDir": "./dist",
     "target": "es5",
@@ -15,6 +16,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "rollup.config.ts", "jest.config.ts"],
   "exclude": ["node_modules"]
 }
