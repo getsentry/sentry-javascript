@@ -1,16 +1,16 @@
-import { SentryReplay } from "@";
+import { SentryReplay } from '@';
 
-jest.mock("rrweb");
+jest.mock('rrweb');
 
-const rrwebMock = require("rrweb");
+const rrwebMock = require('rrweb');
 
-describe("config", () => {
+describe('config', () => {
   beforeEach(() => {
     rrwebMock.record.mockClear();
   });
 
-  it("has default options", () => {
-    const integration = new SentryReplay();
+  it('has default options', () => {
+    new SentryReplay();
 
     expect(rrwebMock.record).toMatchInlineSnapshot(`
       [MockFunction] {
@@ -33,9 +33,9 @@ describe("config", () => {
     `);
   });
 
-  it("supports other options", () => {
-    const integration = new SentryReplay({
-      ignoreClass: "test",
+  it('supports other options', () => {
+    new SentryReplay({
+      ignoreClass: 'test',
       maskAllInputs: false,
     });
 

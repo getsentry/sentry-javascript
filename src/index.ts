@@ -4,7 +4,7 @@ import { DsnComponents, Event } from '@sentry/types';
 
 type RRWebEvent = {
   type: EventType;
-  data: {};
+  data: Record<string, unknown>;
   timestamp: number;
   delay?: number;
 };
@@ -13,7 +13,7 @@ type RRWebOptions = Parameters<typeof record>[0];
 
 export class SentryReplay {
   public readonly name: string = SentryReplay.id;
-  public static id: string = 'SentryReplay';
+  public static id = 'SentryReplay';
 
   public events: Array<RRWebEvent> = [];
 
@@ -29,7 +29,7 @@ export class SentryReplay {
       checkoutEveryNms,
       maskAllInputs,
       ...recordOptions,
-    }
+    };
     this.events = [];
 
     record({
