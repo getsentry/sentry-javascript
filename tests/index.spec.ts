@@ -1,8 +1,8 @@
-import rrwebMock from 'rrweb';
-
 import { SentryReplay } from '@';
 
 jest.mock('rrweb');
+
+const rrwebMock = require('rrweb');
 
 describe('config', () => {
   beforeEach(() => {
