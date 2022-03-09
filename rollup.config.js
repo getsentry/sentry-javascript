@@ -46,6 +46,17 @@ function makeLicensePlugin(title) {
   });
 }
 
+function makeIsDebugBuildPlugin(includeDebugging) {
+  return replace({
+    // don't turn `const __SENTRY_DEBUG__ = false` into `const false = false`
+    preventAssignment: true,
+    // everywhere else, replace it with the value of `includeDebugging`
+    values: {
+      __SENTRY_DEBUG__: includeDebugging,
+    },
+  });
+}
+
 export const terserPlugin = terser({
   mangle: {
     // captureExceptions and captureMessage are public API methods and they don't need to be listed here
