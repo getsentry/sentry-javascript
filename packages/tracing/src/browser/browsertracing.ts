@@ -139,7 +139,7 @@ export class BrowserTracing implements Integration {
       if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins) && _options.tracingOrigins.length !== 0) {
         tracingOrigins = _options.tracingOrigins;
       } else {
-        this._emitOptionsWarning = true;
+        isDebugBuild() && (this._emitOptionsWarning = true);
       }
     }
 
