@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
@@ -160,12 +160,14 @@ export class BrowserTracing implements Integration {
     this._getCurrentHub = getCurrentHub;
 
     if (this._emitOptionsWarning) {
-      logger.warn(
-        '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
-      );
-      logger.warn(
-        `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentationOptions.tracingOrigins}`,
-      );
+      isDebugBuild() &&
+        logger.warn(
+          '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
+        );
+      isDebugBuild() &&
+        logger.warn(
+          `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentationOptions.tracingOrigins}`,
+        );
     }
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -196,7 +198,8 @@ export class BrowserTracing implements Integration {
   /** Create routing idle transaction. */
   private _createRouteTransaction(context: TransactionContext): Transaction | undefined {
     if (!this._getCurrentHub) {
-      logger.warn(`[Tracing] Did not create ${context.op} transaction because _getCurrentHub is invalid.`);
+      isDebugBuild() &&
+        logger.warn(`[Tracing] Did not create ${context.op} transaction because _getCurrentHub is invalid.`);
       return undefined;
     }
 
@@ -217,10 +220,10 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     if (finalContext.sampled === false) {
-      logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
+      isDebugBuild() && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
 
-    logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
+    isDebugBuild() && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
 
     const hub = this._getCurrentHub();
     const { location } = getGlobalObject() as WindowOrWorkerGlobalScope & { location: Location };

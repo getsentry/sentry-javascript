@@ -4,6 +4,7 @@ import { captureException, getCurrentHub, startTransaction, withScope } from '@s
 import { Event, ExtractedNodeRequestData, Span, Transaction } from '@sentry/types';
 import {
   extractTraceparentData,
+  isDebugBuild,
   isPlainObject,
   isString,
   logger,
@@ -411,7 +412,7 @@ export function requestHandler(
             _end.call(this, chunk, encoding, cb);
           })
           .then(null, e => {
-            logger.error(e);
+            isDebugBuild() && logger.error(e);
             _end.call(this, chunk, encoding, cb);
           });
       };

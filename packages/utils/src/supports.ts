@@ -113,9 +113,8 @@ export function supportsNativeFetch(): boolean {
       }
       doc.head.removeChild(sandbox);
     } catch (err) {
-      if (isDebugBuild()) {
+      isDebugBuild() &&
         logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
-      }
     }
   }
 

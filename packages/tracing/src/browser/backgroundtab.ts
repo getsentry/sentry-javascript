@@ -1,4 +1,4 @@
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
 
 import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from '../constants';
 import { IdleTransaction } from '../idletransaction';
@@ -18,9 +18,10 @@ export function registerBackgroundTabDetection(): void {
       if (global.document.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';
 
-        logger.log(
-          `[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${activeTransaction.op}`,
-        );
+        isDebugBuild() &&
+          logger.log(
+            `[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${activeTransaction.op}`,
+          );
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
         if (!activeTransaction.status) {
@@ -32,6 +33,6 @@ export function registerBackgroundTabDetection(): void {
       }
     });
   } else {
-    logger.warn('[Tracing] Could not set up background tab detection due to lack of global document');
+    isDebugBuild() && logger.warn('[Tracing] Could not set up background tab detection due to lack of global document');
   }
 }

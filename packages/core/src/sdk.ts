@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/hub';
 import { Client, Options } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { isDebugBuild, logger } from '@sentry/utils';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends Options> = new (options: O) => F;
@@ -14,7 +14,13 @@ export type ClientClass<F extends Client, O extends Options> = new (options: O) 
  */
 export function initAndBind<F extends Client, O extends Options>(clientClass: ClientClass<F, O>, options: O): void {
   if (options.debug === true) {
-    logger.enable();
+    if (isDebugBuild()) {
+      logger.enable();
+    } else {
+      // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
+      // eslint-disable-next-line no-console
+      console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
+    }
   }
   const hub = getCurrentHub();
   const scope = hub.getScope();
