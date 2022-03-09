@@ -20,12 +20,12 @@ import typescript from 'rollup-plugin-typescript2';
 const getLastElement = array => {
   return array[array.length - 1];
 };
-export const insertAt = (arr, index, insertee) => {
+export const insertAt = (arr, index, ...insertees) => {
   const newArr = [...arr];
   // Add 1 to the array length so that the inserted element ends up in the right spot with respect to the length of the
   // new array (which will be one element longer), rather than that of the current array
   const destinationIndex = index >= 0 ? index : arr.length + 1 + index;
-  newArr.splice(destinationIndex, 0, insertee);
+  newArr.splice(destinationIndex, 0, ...insertees);
   return newArr;
 };
 
