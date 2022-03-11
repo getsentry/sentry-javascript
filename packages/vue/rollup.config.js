@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, makeMinificationVariants } from '../../rollup.config';
+import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
 
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.bundle.ts',
@@ -8,4 +8,4 @@ const baseBundleConfig = makeBaseBundleConfig({
   outputFileBase: 'build/bundle.vue',
 });
 
-export default makeMinificationVariants(baseBundleConfig);
+export default makeConfigVariants(baseBundleConfig);

@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, makeMinificationVariants } from '../../rollup.config';
+import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
 
 const builds = [];
 
@@ -11,7 +11,7 @@ const builds = [];
     outputFileBase: `build/bundle${jsVersion === 'es6' ? '.es6' : ''}`,
   });
 
-  builds.push(...makeMinificationVariants(baseBundleConfig));
+  builds.push(...makeConfigVariants(baseBundleConfig));
 });
 
 export default builds;

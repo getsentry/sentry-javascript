@@ -20,12 +20,12 @@ import typescript from 'rollup-plugin-typescript2';
 const getLastElement = array => {
   return array[array.length - 1];
 };
-export const insertAt = (arr, index, insertee) => {
+export const insertAt = (arr, index, ...insertees) => {
   const newArr = [...arr];
   // Add 1 to the array length so that the inserted element ends up in the right spot with respect to the length of the
   // new array (which will be one element longer), rather than that of the current array
   const destinationIndex = index >= 0 ? index : arr.length + 1 + index;
-  newArr.splice(destinationIndex, 0, insertee);
+  newArr.splice(destinationIndex, 0, ...insertees);
   return newArr;
 };
 
@@ -46,14 +46,18 @@ function makeLicensePlugin(title) {
   });
 }
 
-export const terserPlugin = terser({
-  compress: {
-    // Tell env.ts that we're building a browser bundle and that we do not
-    // want to have unnecessary debug functionality.
-    global_defs: {
-      __SENTRY_NO_DEBUG__: false,
+function makeIsDebugBuildPlugin(includeDebugging) {
+  return replace({
+    // don't turn `const __SENTRY_DEBUG__ = false` into `const false = false`
+    preventAssignment: true,
+    // everywhere else, replace it with the value of `includeDebugging`
+    values: {
+      __SENTRY_DEBUG__: includeDebugging,
     },
-  },
+  });
+}
+
+export const terserPlugin = terser({
   mangle: {
     // captureExceptions and captureMessage are public API methods and they don't need to be listed here
     // as mangler doesn't touch user-facing thing, however sentryWrapped is not, and it would be mangled into a minified version.
@@ -190,45 +194,66 @@ export function makeBaseBundleConfig(options) {
   return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig);
 }
 
-export function makeMinificationVariants(existingConfigs) {
-  const newConfigs = [];
+/**
+ * Takes the CDN rollup config for a given package and produces three versions of it:
+ *   - non-minified, including debug logging,
+ *   - minified, including debug logging,
+ *   - minified, with debug logging stripped
+ *
+ * @param baseConfig The rollup config shared by the entire package
+ * @returns An array of versions of that config
+ */
+export function makeConfigVariants(baseConfig) {
+  const configVariants = [];
 
-  // ensure we've got an array of configs rather than a single config
-  existingConfigs = Array.isArray(existingConfigs) ? existingConfigs : [existingConfigs];
+  const { plugins } = baseConfig;
+  const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
+  const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
 
-  existingConfigs.forEach(existingConfig => {
-    const { plugins } = existingConfig;
+  // The license plugin has to be last, so it ends up after terser. Otherwise, terser will remove the license banner.
+  assert(
+    getLastElement(plugins).name === 'rollup-plugin-license',
+    `Last plugin in given options should be \`rollup-plugin-license\`. Found ${getLastElement(plugins).name}`,
+  );
 
-    // The license plugin has to be last, so it ends up after terser. Otherwise, terser will remove the license banner.
-    assert(
-      getLastElement(plugins).name === 'rollup-plugin-license',
-      `Last plugin in given options should be \`rollup-plugin-license\`. Found ${getLastElement(plugins).name}`,
-    );
-
-    const bundleVariants = [
-      {
-        output: {
-          file: `${existingConfig.output.file}.js`,
-        },
-        plugins,
+  // The additional options to use for each variant we're going to create
+  const variantSpecificConfigs = [
+    {
+      output: {
+        file: `${baseConfig.output.file}.js`,
       },
-      {
-        output: {
-          file: `${existingConfig.output.file}.min.js`,
-        },
-        plugins: insertAt(plugins, -2, terserPlugin),
+      plugins: insertAt(plugins, -2, includeDebuggingPlugin),
+    },
+    // This variant isn't particularly helpful for an SDK user, as it strips logging while making no other minification
+    // changes, so by default we don't create it. It is however very useful when debugging rollup's treeshaking, so it's
+    // left here for that purpose.
+    // {
+    //   output: { file: `${baseConfig.output.file}.no-debug.js`,
+    //   },
+    //   plugins: insertAt(plugins, -2, stripDebuggingPlugin),
+    // },
+    {
+      output: {
+        file: `${baseConfig.output.file}.min.js`,
       },
-    ];
+      plugins: insertAt(plugins, -2, stripDebuggingPlugin, terserPlugin),
+    },
+    {
+      output: {
+        file: `${baseConfig.output.file}.debug.min.js`,
+      },
+      plugins: insertAt(plugins, -2, includeDebuggingPlugin, terserPlugin),
+    },
+  ];
 
-    bundleVariants.forEach(variant => {
-      const mergedConfig = deepMerge(existingConfig, variant, {
-        // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
-        // just overwritten by the second value
-        arrayMerge: (first, second) => second,
-      });
-      newConfigs.push(mergedConfig);
+  variantSpecificConfigs.forEach(variant => {
+    const mergedConfig = deepMerge(baseConfig, variant, {
+      // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
+      // just overwritten by the second value
+      arrayMerge: (first, second) => second,
     });
+    configVariants.push(mergedConfig);
   });
 
-  return newConfigs;
+  return configVariants;
 }

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 
 import commonjs from '@rollup/plugin-commonjs';
 
-import { insertAt, makeBaseBundleConfig, makeMinificationVariants } from '../../rollup.config';
+import { insertAt, makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
 
 const builds = [];
 
@@ -20,7 +20,7 @@ integrationSourceFiles.forEach(file => {
   // TODO We only need `commonjs` for localforage (used in the offline plugin). Once that's fixed, this can come out.
   baseBundleConfig.plugins = insertAt(baseBundleConfig.plugins, -2, commonjs());
 
-  builds.push(...makeMinificationVariants(baseBundleConfig));
+  builds.push(...makeConfigVariants(baseBundleConfig));
 });
 
 export default builds;
