@@ -8,7 +8,7 @@ const builds = [];
     isAddOn: false,
     jsVersion,
     licenseTitle: '@sentry/tracing & @sentry/browser',
-    outputFileBase: `build/bundle.tracing${jsVersion === 'es6' ? '.es6' : ''}`,
+    outputFileBase: `bundle.tracing${jsVersion === 'es6' ? '.es6' : ''}`,
   });
 
   builds.push(...makeConfigVariants(baseBundleConfig));
