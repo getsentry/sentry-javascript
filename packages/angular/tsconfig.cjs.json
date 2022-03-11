@@ -3,10 +3,6 @@
 
   "compilerOptions": {
     "module": "commonjs",
-<<<<<<< HEAD
     "outDir": "cjs"
-=======
-    "outDir": "dist"
->>>>>>> 8d33927ad (ref(angular): re-introduce tsc compile option for "legacy" package)
   }
 }
