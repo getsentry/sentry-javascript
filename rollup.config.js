@@ -208,7 +208,7 @@ export function makeConfigVariants(baseConfig) {
 
   const { plugins } = baseConfig;
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
-  const noDebuggingPlugin = makeIsDebugBuildPlugin(false);
+  const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
 
   // The license plugin has to be last, so it ends up after terser. Otherwise, terser will remove the license banner.
   assert(
@@ -216,8 +216,8 @@ export function makeConfigVariants(baseConfig) {
     `Last plugin in given options should be \`rollup-plugin-license\`. Found ${getLastElement(plugins).name}`,
   );
 
-  // The additional options to use for each variant we're going to create #namingishard
-  const variantSpecificOptionsVariants = [
+  // The additional options to use for each variant we're going to create
+  const variantSpecificConfigs = [
     {
       output: {
         file: `${baseConfig.output.file}.js`,
@@ -230,13 +230,13 @@ export function makeConfigVariants(baseConfig) {
     // {
     //   output: { file: `${baseConfig.output.file}.no-debug.js`,
     //   },
-    //   plugins: insertAt(plugins, -2, noDebuggingPlugin),
+    //   plugins: insertAt(plugins, -2, stripDebuggingPlugin),
     // },
     {
       output: {
         file: `${baseConfig.output.file}.min.js`,
       },
-      plugins: insertAt(plugins, -2, noDebuggingPlugin, terserPlugin),
+      plugins: insertAt(plugins, -2, stripDebuggingPlugin, terserPlugin),
     },
     {
       output: {
@@ -246,7 +246,7 @@ export function makeConfigVariants(baseConfig) {
     },
   ];
 
-  variantSpecificOptionsVariants.forEach(variant => {
+  variantSpecificConfigs.forEach(variant => {
     const mergedConfig = deepMerge(baseConfig, variant, {
       // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
       // just overwritten by the second value
