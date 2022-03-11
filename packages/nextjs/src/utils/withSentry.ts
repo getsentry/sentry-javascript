@@ -86,10 +86,12 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       try {
         const handlerResult = await origHandler(req, res);
 
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === 'development' && !process.env.SENTRY_IGNORE_API_RESOLUTION_ERROR) {
           // eslint-disable-next-line no-console
           console.warn(
-            '[sentry] If Next.js logs a warning "API resolved without sending a response", it\'s a false positive, which we\'re working to rectify.',
+            `[sentry] If Next.js logs a warning "API resolved without sending a response", it's a false positive, which we're working to rectify.
+            In the meantime, to suppress this warning, set \`SENTRY_IGNORE_API_RESOLUTION_ERROR\` to 1 in your env.
+            To suppress the nextjs warning, use the \`externalResolver\` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).`,
           );
         }
 
