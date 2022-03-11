@@ -598,6 +598,24 @@ describe('Sentry webpack plugin config', () => {
       ]);
     });
 
+    it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
+      const userNextConfigWithWidening = { ...userNextConfig, sentry: { widenClientFileUpload: true } };
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig: userNextConfigWithWidening,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithWidening),
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        { paths: ['.next/static/chunks'], urlPrefix: '~/_next/static/chunks' },
+      ]);
+    });
+
     it('has the correct value when building serverless server bundles', async () => {
       const userNextConfigServerless = { ...userNextConfig };
       userNextConfigServerless.target = 'experimental-serverless-trace';
@@ -653,6 +671,45 @@ describe('Sentry webpack plugin config', () => {
       expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
         { paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' },
+      ]);
+    });
+  });
+
+  describe('Sentry webpack plugin `ignore` option', () => {
+    it('has the correct value when building client bundles', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.ignore).toEqual([]);
+    });
+
+    it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
+      const userNextConfigWithWidening = { ...userNextConfig, sentry: { widenClientFileUpload: true } };
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig: userNextConfigWithWidening,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithWidening),
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.ignore).toEqual([
+        'framework-*',
+        'framework.*',
+        'main-*',
+        'polyfills-*',
+        'webpack-*',
       ]);
     });
   });
