@@ -126,7 +126,7 @@ export class BrowserTracing implements Integration {
 
   private readonly _metrics: MetricsInstrumentation;
 
-  private readonly _emitOptionsWarning: boolean = false;
+  private readonly _emitOptionsWarning?: boolean;
 
   /** Store configured idle timeout so that it can be added as a tag to transactions */
   private _configuredIdleTimeout: BrowserTracingOptions['idleTimeout'] | undefined = undefined;
