@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction } from '@sentry/types';
-import { logger, timestampInSeconds } from '@sentry/utils';
+import { isDebugBuild, logger, timestampInSeconds } from '@sentry/utils';
 
 import { formatComponentName } from './components';
 import { DEFAULT_HOOKS } from './constants';
@@ -60,7 +60,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
     // eg. mount => ['beforeMount', 'mounted']
     const internalHooks = HOOKS[operation];
     if (!internalHooks) {
-      logger.warn(`Unknown hook: ${operation}`);
+      isDebugBuild() && logger.warn(`Unknown hook: ${operation}`);
       continue;
     }
 

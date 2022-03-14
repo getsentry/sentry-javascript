@@ -108,7 +108,7 @@ export abstract class BaseTransport implements Transport {
     // A correct type for map-based implementation if we want to go that route
     // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
     const key = `${requestTypeToCategory(category)}:${reason}`;
-    logger.log(`Adding outcome: ${key}`);
+    isDebugBuild() && logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
 
@@ -125,11 +125,11 @@ export abstract class BaseTransport implements Transport {
 
     // Nothing to send
     if (!Object.keys(outcomes).length) {
-      logger.log('No outcomes to flush');
+      isDebugBuild() && logger.log('No outcomes to flush');
       return;
     }
 
-    logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+    isDebugBuild() && logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
 
     const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
 
@@ -147,7 +147,7 @@ export abstract class BaseTransport implements Transport {
     try {
       sendReport(url, serializeEnvelope(envelope));
     } catch (e) {
-      logger.error(e);
+      isDebugBuild() && logger.error(e);
     }
   }
 
@@ -172,9 +172,10 @@ export abstract class BaseTransport implements Transport {
     this._rateLimits = updateRateLimits(this._rateLimits, headers);
     const category = requestTypeToCategory(requestType);
     if (isRateLimited(this._rateLimits, category) && isDebugBuild()) {
-      logger.warn(
-        `Too many ${requestType} requests, backing off until: ${disabledUntil(this._rateLimits, requestType)}`,
-      );
+      isDebugBuild() &&
+        logger.warn(
+          `Too many ${requestType} requests, backing off until: ${disabledUntil(this._rateLimits, requestType)}`,
+        );
     }
 
     if (status === 'success') {

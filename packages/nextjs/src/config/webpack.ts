@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, isDebugBuild, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -244,11 +244,12 @@ function checkWebpackPluginOverrides(
   // warn if any of the default options for the webpack plugin are getting overridden
   const sentryWebpackPluginOptionOverrides = Object.keys(defaultOptions).filter(key => key in userOptions);
   if (sentryWebpackPluginOptionOverrides.length > 0) {
-    logger.warn(
-      '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
-        `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +
-        "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
-    );
+    isDebugBuild() &&
+      logger.warn(
+        '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
+          `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +
+          "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
+      );
   }
 }
 

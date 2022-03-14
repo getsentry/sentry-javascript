@@ -162,9 +162,7 @@ export function flush(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  if (isDebugBuild()) {
-    logger.warn('Cannot flush events. No client defined.');
-  }
+  isDebugBuild() && logger.warn('Cannot flush events. No client defined.');
   return resolvedSyncPromise(false);
 }
 
@@ -181,9 +179,7 @@ export function close(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  if (isDebugBuild()) {
-    logger.warn('Cannot flush events and disable SDK. No client defined.');
-  }
+  isDebugBuild() && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return resolvedSyncPromise(false);
 }
 
@@ -212,9 +208,7 @@ function startSessionTracking(): void {
   const document = window.document;
 
   if (typeof document === 'undefined') {
-    if (isDebugBuild()) {
-      logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
-    }
+    isDebugBuild() && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
     return;
   }
 

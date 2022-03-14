@@ -6,7 +6,7 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
+import { dropUndefinedKeys, isDebugBuild, isInstanceOf, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -92,7 +92,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
 
     if (!this.name) {
-      logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      isDebugBuild() && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
       this.name = '<unlabeled transaction>';
     }
 
@@ -101,7 +101,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
+      isDebugBuild() && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
       const client = this._hub.getClient();
       const transport = client && client.getTransport && client.getTransport();
@@ -138,11 +138,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const hasMeasurements = Object.keys(this._measurements).length > 0;
 
     if (hasMeasurements) {
-      logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(this._measurements, undefined, 2));
+      isDebugBuild() &&
+        logger.log(
+          '[Measurements] Adding measurements to transaction',
+          JSON.stringify(this._measurements, undefined, 2),
+        );
       transaction.measurements = this._measurements;
     }
 
-    logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+    isDebugBuild() && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
     return this._hub.captureEvent(transaction);
   }

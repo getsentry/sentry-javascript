@@ -69,9 +69,8 @@ export function getNativeFetchImplementation(): FetchImpl {
       }
       document.head.removeChild(sandbox);
     } catch (e) {
-      if (isDebugBuild()) {
+      isDebugBuild() &&
         logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', e);
-      }
     }
   }
 

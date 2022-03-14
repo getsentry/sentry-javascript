@@ -8,7 +8,7 @@ import {
   startTransaction,
 } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { addExceptionMechanism, fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { addExceptionMechanism, fill, isDebugBuild, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
@@ -247,7 +247,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           let traceparentData;
           if (nextReq.headers && isString(nextReq.headers['sentry-trace'])) {
             traceparentData = extractTraceparentData(nextReq.headers['sentry-trace'] as string);
-            logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+            isDebugBuild() && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
           // pull off query string, if any
