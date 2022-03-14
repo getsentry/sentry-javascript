@@ -294,11 +294,19 @@ export function getWebpackPluginOptions(
         isWebpack5 ? [{ paths: [`${distDir}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
-  const clientInclude = [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
+  const clientInclude = userNextConfig.sentry?.widenClientFileUpload
+    ? [{ paths: [`${distDir}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
+    : [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
-    ignore: [],
+    ignore:
+      isServer || !userNextConfig.sentry?.widenClientFileUpload
+        ? []
+        : // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
+          // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know
+          // will be there.
+          ['framework-*', 'framework.*', 'main-*', 'polyfills-*', 'webpack-*'],
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
