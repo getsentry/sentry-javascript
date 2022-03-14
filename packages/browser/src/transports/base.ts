@@ -170,12 +170,11 @@ export abstract class BaseTransport implements Transport {
     const status = eventStatusFromHttpCode(response.status);
 
     this._rateLimits = updateRateLimits(this._rateLimits, headers);
-    const category = requestTypeToCategory(requestType);
-    if (isRateLimited(this._rateLimits, category) && isDebugBuild()) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (this._isRateLimited(requestType) && isDebugBuild()) {
       isDebugBuild() &&
-        logger.warn(
-          `Too many ${requestType} requests, backing off until: ${disabledUntil(this._rateLimits, requestType)}`,
-        );
+        // eslint-disable-next-line deprecation/deprecation
+        logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
     }
 
     if (status === 'success') {

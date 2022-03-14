@@ -193,7 +193,9 @@ describe('FetchTransport', () => {
 
         jest
           .spyOn(Date, 'now')
-          // 1st event - _isRateLimited - false
+          // 1st event - updateRateLimits - false
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
@@ -247,6 +249,10 @@ describe('FetchTransport', () => {
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _isRateLimited
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _handleRateLimit
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - false (different category)
           .mockImplementationOnce(() => withinLimit)
           // 2nd event - _handleRateLimit
@@ -293,7 +299,7 @@ describe('FetchTransport', () => {
         expect(fetch).toHaveBeenCalledTimes(3);
       });
 
-      it.only('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
+      it('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
         const retryAfterSeconds = 10;
         const beforeLimit = Date.now();
         const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
@@ -303,7 +309,9 @@ describe('FetchTransport', () => {
           .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
           .mockImplementationOnce(() => beforeLimit)
-          // 1st event - _handleRateLimit
+          // 1st event - updateRateLimits
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _isRateLimited
           .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true (event category)
           .mockImplementationOnce(() => withinLimit)
@@ -376,6 +384,8 @@ describe('FetchTransport', () => {
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _isRateLimited
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true (event category)
           .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - true (transaction category)
@@ -446,6 +456,8 @@ describe('FetchTransport', () => {
           // 1st event - _isRateLimited - false
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _isRateLimited
           .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true
           .mockImplementationOnce(() => withinLimit)
