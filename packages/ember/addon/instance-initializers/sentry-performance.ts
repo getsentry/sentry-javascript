@@ -14,6 +14,11 @@ function getSentryConfig() {
   const _global = getGlobalObject<GlobalConfig>();
   _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
+  if (!environmentConfig.sentry) {
+    environmentConfig.sentry = {
+      browserTracingOptions: {},
+    };
+  }
   Object.assign(environmentConfig.sentry, _global.__sentryEmberConfig);
   return environmentConfig;
 }
