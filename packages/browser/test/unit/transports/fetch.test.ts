@@ -221,7 +221,6 @@ describe('FetchTransport', () => {
           await transport.sendEvent(eventPayload);
           throw new Error('unreachable!');
         } catch (res) {
-          console.log(res);
           expect((res as Response).status).toBe(429);
           expect((res as Response).reason).toBe(
             `Transport for event requests locked till ${new Date(afterLimit)} due to too many requests.`,
