@@ -54,7 +54,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "package": "npm pack"
+    "createTarball": "npm pack"
   },
   "volta": {
     "extends": "../../package.json"

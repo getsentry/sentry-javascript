@@ -35,7 +35,7 @@
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "package": "npm pack"
+    "createTarball": "npm pack"
   },
   "volta": {
     "extends": "../../package.json"

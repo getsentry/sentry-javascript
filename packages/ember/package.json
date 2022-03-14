@@ -22,7 +22,7 @@
     "lint": "npm-run-all --aggregate-output --continue-on-error --parallel lint:*",
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint . --cache --cache-location '../../eslintcache/'",
-    "package": "run-s prepack && npm pack && run-s postpack",
+    "createTarball": "run-s prepack && npm pack && run-s postpack",
     "prepack": "ember ts:precompile",
     "postpack": "ember ts:clean",
     "start": "ember serve",

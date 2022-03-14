@@ -20,7 +20,7 @@
   },
   "scripts": {
     "link:yarn": "yarn link",
-    "package": "npm pack"
+    "createTarball": "npm pack"
   },
   "volta": {
     "extends": "../../package.json"
