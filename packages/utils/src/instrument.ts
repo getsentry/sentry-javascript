@@ -6,7 +6,7 @@ import { WrappedFunction } from '@sentry/types';
 import { isDebugBuild } from './env';
 import { getGlobalObject } from './global';
 import { isInstanceOf, isString } from './is';
-import { logger } from './logger';
+import { CONSOLE_LEVELS, logger } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
@@ -110,7 +110,7 @@ function instrumentConsole(): void {
     return;
   }
 
-  ['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function (level: string): void {
+  CONSOLE_LEVELS.forEach(function (level: string): void {
     if (!(level in global.console)) {
       return;
     }
