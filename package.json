@@ -62,6 +62,6 @@
     "yarn": "1.22.17"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": "yarn lint --cache --fix"
+    "*.{js,jsx,ts,tsx}": "yarn eslint --cache --fix"
   }
 }

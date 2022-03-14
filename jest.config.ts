@@ -10,7 +10,7 @@ export default async (): Promise<Config.InitialOptions> => {
     moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
       prefix: '<rootDir>/',
     }),
-    testEnvironment: 'node',
+    testEnvironment: 'jsdom',
     testMatch: ['<rootDir>/tests/**/*(*.)@(spec|test).ts'],
   };
 };
