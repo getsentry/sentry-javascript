@@ -55,7 +55,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "pack": "npm pack",
+    "package": "npm pack",
     "test": "run-s test:jest test:express test:webpack test:release-health",
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:jest": "jest",

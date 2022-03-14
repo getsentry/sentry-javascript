@@ -54,7 +54,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "pack": "npm pack",
+    "package": "npm pack",
     "test": "jest",
     "test:watch": "jest --watch"
   },

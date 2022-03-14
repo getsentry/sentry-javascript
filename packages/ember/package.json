@@ -22,6 +22,7 @@
     "lint": "npm-run-all --aggregate-output --continue-on-error --parallel lint:*",
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint . --cache --cache-location '../../eslintcache/'",
+    "package": "pack",
     "pack": "npm pack",
     "prepack": "ember ts:precompile",
     "postpack": "ember ts:clean",
