@@ -5,7 +5,7 @@ const baseBundleConfig = makeBaseBundleConfig({
   isAddOn: false,
   jsVersion: 'es5',
   licenseTitle: '@sentry/vue',
-  outputFileBase: 'build/bundle.vue',
+  outputFileBase: 'bundle.vue',
 });
 
 export default makeConfigVariants(baseBundleConfig);

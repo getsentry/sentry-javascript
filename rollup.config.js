@@ -177,7 +177,7 @@ export function makeBaseBundleConfig(options) {
     input,
     output: {
       // a file extension will be added to this base value when we specify either a minified or non-minified build
-      file: outputFileBase,
+      file: `build/${outputFileBase}`,
       sourcemap: true,
       strict: false,
       esModule: false,
