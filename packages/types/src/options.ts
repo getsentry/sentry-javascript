@@ -110,7 +110,7 @@ export interface Options {
    * - `extra`
    * Defaults to `1000`
    */
-  normalizeMaxProperties?: number;
+  normalizeMaxBreadth?: number;
 
   /**
    * Controls how many milliseconds to wait before shutting down. The default is
