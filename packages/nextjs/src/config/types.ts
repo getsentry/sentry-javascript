@@ -21,6 +21,13 @@ export type NextConfigObject = {
     disableServerWebpackPlugin?: boolean;
     disableClientWebpackPlugin?: boolean;
     hideSourceMaps?: boolean;
+
+    // Upload files from `<distDir>/static/chunks` rather than `<distDir>/static/chunks/pages`. Usually files outside of
+    // `pages/` only contain third-party code, but in cases where they contain user code, restricting the webpack
+    // plugin's upload breaks sourcemaps for those user-code-containing files, because it keeps them from being
+    // uploaded. At the same time, we don't want to widen the scope if we don't have to, because we're guaranteed to end
+    // up uploading too many files, which is why this defaults to `false`.
+    widenClientFileUpload?: boolean;
   };
 } & {
   // other `next.config.js` options

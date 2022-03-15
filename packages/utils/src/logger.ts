@@ -10,6 +10,8 @@ const global = getGlobalObject<Window | NodeJS.Global>();
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
 
+export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
+
 /** JSDoc */
 interface ExtensibleConsole extends Console {
   [key: string]: any;
@@ -24,7 +26,6 @@ interface ExtensibleConsole extends Console {
  */
 export function consoleSandbox(callback: () => any): any {
   const global = getGlobalObject<Window>();
-  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
 
   if (!('console' in global)) {
     return callback();
@@ -35,7 +36,7 @@ export function consoleSandbox(callback: () => any): any {
   const wrappedLevels: { [key: string]: any } = {};
 
   // Restore all wrapped console methods
-  levels.forEach(level => {
+  CONSOLE_LEVELS.forEach(level => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
       wrappedLevels[level] = originalConsole[level] as WrappedFunction;
