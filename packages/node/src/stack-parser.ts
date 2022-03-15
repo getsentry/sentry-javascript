@@ -89,7 +89,8 @@ const node: StackLineParserFn = (line: string) => {
   }
 
   if (functionName === undefined) {
-    functionName = typeName ? `${typeName}.${methodName || '<anonymous>'}` : methodName || '<anonymous>';
+    methodName = methodName || '<anonymous>';
+    functionName = typeName ? `${typeName}.${methodName}` : methodName;
   }
 
   const filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].substr(7) : lineMatch[2];
