@@ -218,7 +218,7 @@ describe('Stack parsing', () => {
       {
         filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
         module: 'test_case',
-        function: 'undefined.<anonymous>',
+        function: '<anonymous>',
         lineno: 80,
         colno: 10,
         in_app: true,
@@ -238,7 +238,7 @@ describe('Stack parsing', () => {
       {
         filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
         module: 'test_case',
-        function: 'undefined.<anonymous>',
+        function: '<anonymous>',
         lineno: 80,
         colno: 10,
         in_app: true,
@@ -291,6 +291,90 @@ describe('Stack parsing', () => {
         lineno: 45,
         colno: 10,
         in_app: true,
+      },
+    ]);
+  });
+
+  test('parses with async frames', () => {
+    // https://github.com/getsentry/sentry-javascript/issues/4692#issuecomment-1063835795
+    const err: { [key: string]: any } = {};
+    err.stack =
+      'Error: Client request error\n' +
+      '    at Object.httpRequestError (file:///code/node_modules/@waroncancer/gaia/lib/error/error-factory.js:17:73)\n' +
+      '    at Object.run (file:///code/node_modules/@waroncancer/gaia/lib/http-client/http-client.js:81:36)\n' +
+      '    at processTicksAndRejections (node:internal/process/task_queues:96:5)\n' +
+      '    at async Object.send (file:///code/lib/post-created/send-post-created-notification-module.js:17:27)\n' +
+      '    at async each (file:///code/lib/process-post-events-module.js:14:21)\n' +
+      '    at async Runner.processEachMessage (/code/node_modules/kafkajs/src/consumer/runner.js:151:9)\n' +
+      '    at async onBatch (/code/node_modules/kafkajs/src/consumer/runner.js:326:9)\n' +
+      '    at async /code/node_modules/kafkajs/src/consumer/runner.js:376:15\n';
+
+    const frames = parseStackFrames(err as Error);
+
+    expect(frames).toEqual([
+      {
+        filename: '/code/node_modules/kafkajs/src/consumer/runner.js',
+        module: 'kafkajs.src.consumer:runner',
+        function: '<anonymous>',
+        lineno: 376,
+        colno: 15,
+        in_app: false,
+      },
+      {
+        filename: '/code/node_modules/kafkajs/src/consumer/runner.js',
+        module: 'kafkajs.src.consumer:runner',
+        function: 'onBatch',
+        lineno: 326,
+        colno: 9,
+        in_app: false,
+      },
+      {
+        filename: '/code/node_modules/kafkajs/src/consumer/runner.js',
+        module: 'kafkajs.src.consumer:runner',
+        function: 'Runner.processEachMessage',
+        lineno: 151,
+        colno: 9,
+        in_app: false,
+      },
+      {
+        filename: '/code/lib/process-post-events-module.js',
+        module: 'process-post-events-module',
+        function: 'each',
+        lineno: 14,
+        colno: 21,
+        in_app: true,
+      },
+      {
+        filename: '/code/lib/post-created/send-post-created-notification-module.js',
+        module: 'send-post-created-notification-module',
+        function: 'Object.send',
+        lineno: 17,
+        colno: 27,
+        in_app: true,
+      },
+      {
+        filename: 'node:internal/process/task_queues',
+        module: 'task_queues',
+        function: 'processTicksAndRejections',
+        lineno: 96,
+        colno: 5,
+        in_app: false,
+      },
+      {
+        filename: '/code/node_modules/@waroncancer/gaia/lib/http-client/http-client.js',
+        module: '@waroncancer.gaia.lib.http-client:http-client',
+        function: 'Object.run',
+        lineno: 81,
+        colno: 36,
+        in_app: false,
+      },
+      {
+        filename: '/code/node_modules/@waroncancer/gaia/lib/error/error-factory.js',
+        module: '@waroncancer.gaia.lib.error:error-factory',
+        function: 'Object.httpRequestError',
+        lineno: 17,
+        colno: 73,
+        in_app: false,
       },
     ]);
   });
