@@ -126,6 +126,8 @@ describe('XHRTransport', () => {
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _handleRateLimit
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true
           .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - false
@@ -172,6 +174,10 @@ describe('XHRTransport', () => {
         jest
           .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _handleRateLimit
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _isRateLimited
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
@@ -235,6 +241,8 @@ describe('XHRTransport', () => {
           // 1st event - _isRateLimited - false
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _isRateLimited
           .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true (event category)
           .mockImplementationOnce(() => withinLimit)
@@ -307,6 +315,8 @@ describe('XHRTransport', () => {
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _isRateLimited
+          .mockImplementationOnce(() => beforeLimit)
           // 2nd event - _isRateLimited - true (event category)
           .mockImplementationOnce(() => withinLimit)
           // 3rd event - _isRateLimited - true (transaction category)
@@ -374,6 +384,8 @@ describe('XHRTransport', () => {
         jest
           .spyOn(Date, 'now')
           // 1st event - _isRateLimited - false
+          .mockImplementationOnce(() => beforeLimit)
+          // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)
           // 1st event - _handleRateLimit
           .mockImplementationOnce(() => beforeLimit)

@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { fill, getGlobalObject, safeJoin, severityFromString } from '@sentry/utils';
+import { CONSOLE_LEVELS, fill, getGlobalObject, safeJoin, severityFromString } from '@sentry/utils';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 
@@ -18,7 +18,7 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly _levels: string[] = ['log', 'info', 'warn', 'error', 'debug', 'assert'];
+  private readonly _levels: string[] = CONSOLE_LEVELS;
 
   /**
    * @inheritDoc

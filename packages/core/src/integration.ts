@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
-import { addNonEnumerableProperty, logger } from '@sentry/utils';
+import { addNonEnumerableProperty, isDebugBuild, logger } from '@sentry/utils';
 
 export const installedIntegrations: string[] = [];
 
@@ -59,7 +59,7 @@ export function setupIntegration(integration: Integration): void {
   }
   integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
   installedIntegrations.push(integration.name);
-  logger.log(`Integration installed: ${integration.name}`);
+  isDebugBuild() && logger.log(`Integration installed: ${integration.name}`);
 }
 
 /**

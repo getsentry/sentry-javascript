@@ -3,7 +3,7 @@ import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Event } from '@sentry/types';
-import { escapeStringForRegex, logger } from '@sentry/utils';
+import { escapeStringForRegex, isDebugBuild, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
@@ -45,10 +45,10 @@ export function init(options: NextjsOptions): void {
     logger.enable();
   }
 
-  logger.log('Initializing SDK...');
+  isDebugBuild() && logger.log('Initializing SDK...');
 
   if (sdkAlreadyInitialized()) {
-    logger.log('SDK already initialized');
+    isDebugBuild() && logger.log('SDK already initialized');
     return;
   }
 
@@ -93,7 +93,7 @@ export function init(options: NextjsOptions): void {
     domain.active = activeDomain;
   }
 
-  logger.log('SDK successfully initialized');
+  isDebugBuild() && logger.log('SDK successfully initialized');
 }
 
 function sdkAlreadyInitialized(): boolean {
@@ -150,6 +150,6 @@ if (!isVercel && !isBuild) {
     const { instrumentServer } = require('./utils/instrumentServer.js');
     instrumentServer();
   } catch (err) {
-    logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
+    isDebugBuild() && logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
   }
 }

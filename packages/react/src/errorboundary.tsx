@@ -1,5 +1,5 @@
 import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
-import { logger } from '@sentry/utils';
+import { isDebugBuild, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -141,7 +141,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       if (fallback) {
-        logger.warn('fallback did not produce a valid ReactElement');
+        isDebugBuild() && logger.warn('fallback did not produce a valid ReactElement');
       }
 
       // Fail gracefully if no fallback provided or is not valid

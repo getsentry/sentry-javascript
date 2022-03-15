@@ -1,6 +1,6 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
-import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { isDebugBuild, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
@@ -94,7 +94,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
           _end.call(this, chunk, encoding, cb);
         })
         .then(null, e => {
-          logger.error(e);
+          isDebugBuild() && logger.error(e);
         });
     };
 

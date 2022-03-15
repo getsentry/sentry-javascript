@@ -1,4 +1,4 @@
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import { addInstrumentationHandler, isDebugBuild, logger } from '@sentry/utils';
 
 import { SpanStatusType } from './span';
 import { getActiveTransaction } from './utils';
@@ -18,7 +18,7 @@ function errorCallback(): void {
   const activeTransaction = getActiveTransaction();
   if (activeTransaction) {
     const status: SpanStatusType = 'internal_error';
-    logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
+    isDebugBuild() && logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
     activeTransaction.setStatus(status);
   }
 }

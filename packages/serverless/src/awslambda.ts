@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isString, logger, SentryError } from '@sentry/utils';
+import { isDebugBuild, isString, logger, SentryError } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -124,7 +124,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   const handlerDesc = basename(handlerPath);
   const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
   if (!match) {
-    logger.error(`Bad handler ${handlerDesc}`);
+    isDebugBuild() && logger.error(`Bad handler ${handlerDesc}`);
     return;
   }
 
@@ -135,7 +135,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
     obj = tryRequire(taskRoot, handlerDir, handlerMod);
   } catch (e) {
-    logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
+    isDebugBuild() && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
     return;
   }
 
@@ -147,11 +147,11 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     functionName = name;
   });
   if (!obj) {
-    logger.error(`${handlerPath} is undefined or not exported`);
+    isDebugBuild() && logger.error(`${handlerPath} is undefined or not exported`);
     return;
   }
   if (typeof obj !== 'function') {
-    logger.error(`${handlerPath} is not a function`);
+    isDebugBuild() && logger.error(`${handlerPath} is not a function`);
     return;
   }
 
@@ -318,7 +318,7 @@ export function wrapHandler<TEvent, TResult>(
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
         if (options.ignoreSentryErrors && e instanceof SentryError) {
-          logger.error(e);
+          isDebugBuild() && logger.error(e);
           return;
         }
         throw e;

@@ -19,15 +19,18 @@ import {
 } from '@sentry/types';
 import {
   createClientReportEnvelope,
+  disabledUntil,
   dsnToString,
   eventStatusFromHttpCode,
   getGlobalObject,
   isDebugBuild,
+  isRateLimited,
   logger,
   makePromiseBuffer,
-  parseRetryAfterHeader,
   PromiseBuffer,
+  RateLimits,
   serializeEnvelope,
+  updateRateLimits,
 } from '@sentry/utils';
 
 import { sendReport } from './utils';
@@ -53,7 +56,7 @@ export abstract class BaseTransport implements Transport {
   protected readonly _buffer: PromiseBuffer<SentryResponse> = makePromiseBuffer(30);
 
   /** Locks transport after receiving rate limits in a response */
-  protected readonly _rateLimits: Record<string, Date> = {};
+  protected _rateLimits: RateLimits = {};
 
   protected _outcomes: { [key: string]: number } = {};
 
@@ -105,7 +108,7 @@ export abstract class BaseTransport implements Transport {
     // A correct type for map-based implementation if we want to go that route
     // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
     const key = `${requestTypeToCategory(category)}:${reason}`;
-    logger.log(`Adding outcome: ${key}`);
+    isDebugBuild() && logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
 
@@ -122,11 +125,11 @@ export abstract class BaseTransport implements Transport {
 
     // Nothing to send
     if (!Object.keys(outcomes).length) {
-      logger.log('No outcomes to flush');
+      isDebugBuild() && logger.log('No outcomes to flush');
       return;
     }
 
-    logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+    isDebugBuild() && logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
 
     const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
 
@@ -144,7 +147,7 @@ export abstract class BaseTransport implements Transport {
     try {
       sendReport(url, serializeEnvelope(envelope));
     } catch (e) {
-      logger.error(e);
+      isDebugBuild() && logger.error(e);
     }
   }
 
@@ -165,13 +168,13 @@ export abstract class BaseTransport implements Transport {
     reject: (reason?: unknown) => void;
   }): void {
     const status = eventStatusFromHttpCode(response.status);
-    /**
-     * "The name is case-insensitive."
-     * https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-     */
-    const limited = this._handleRateLimit(headers);
-    if (limited && isDebugBuild()) {
-      logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
+
+    this._rateLimits = updateRateLimits(this._rateLimits, headers);
+    // eslint-disable-next-line deprecation/deprecation
+    if (this._isRateLimited(requestType) && isDebugBuild()) {
+      isDebugBuild() &&
+        // eslint-disable-next-line deprecation/deprecation
+        logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
     }
 
     if (status === 'success') {
@@ -184,52 +187,22 @@ export abstract class BaseTransport implements Transport {
 
   /**
    * Gets the time that given category is disabled until for rate limiting
+   *
+   * @deprecated Please use `disabledUntil` from @sentry/utils
    */
   protected _disabledUntil(requestType: SentryRequestType): Date {
     const category = requestTypeToCategory(requestType);
-    return this._rateLimits[category] || this._rateLimits.all;
+    return new Date(disabledUntil(this._rateLimits, category));
   }
 
   /**
    * Checks if a category is rate limited
+   *
+   * @deprecated Please use `isRateLimited` from @sentry/utils
    */
   protected _isRateLimited(requestType: SentryRequestType): boolean {
-    return this._disabledUntil(requestType) > new Date(Date.now());
-  }
-
-  /**
-   * Sets internal _rateLimits from incoming headers. Returns true if headers contains a non-empty rate limiting header.
-   */
-  protected _handleRateLimit(headers: Record<string, string | null>): boolean {
-    const now = Date.now();
-    const rlHeader = headers['x-sentry-rate-limits'];
-    const raHeader = headers['retry-after'];
-
-    if (rlHeader) {
-      // rate limit headers are of the form
-      //     <header>,<header>,..
-      // where each <header> is of the form
-      //     <retry_after>: <categories>: <scope>: <reason_code>
-      // where
-      //     <retry_after> is a delay in ms
-      //     <categories> is the event type(s) (error, transaction, etc) being rate limited and is of the form
-      //         <category>;<category>;...
-      //     <scope> is what's being limited (org, project, or key) - ignored by SDK
-      //     <reason_code> is an arbitrary string like "org_quota" - ignored by SDK
-      for (const limit of rlHeader.trim().split(',')) {
-        const parameters = limit.split(':', 2);
-        const headerDelay = parseInt(parameters[0], 10);
-        const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
-        for (const category of parameters[1].split(';')) {
-          this._rateLimits[category || 'all'] = new Date(now + delay);
-        }
-      }
-      return true;
-    } else if (raHeader) {
-      this._rateLimits.all = new Date(now + parseRetryAfterHeader(raHeader, now));
-      return true;
-    }
-    return false;
+    const category = requestTypeToCategory(requestType);
+    return isRateLimited(this._rateLimits, category);
   }
 
   protected abstract _sendRequest(

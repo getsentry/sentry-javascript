@@ -1,46 +1,24 @@
-import * as fs from 'fs';
-
 import commonjs from '@rollup/plugin-commonjs';
 
-import { makeBaseBundleConfig, terserPlugin } from '../../rollup.config';
+import { insertAt, makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
 
-function allIntegrations() {
-  return fs.readdirSync('./src').filter(file => file != 'index.ts');
-}
+const builds = [];
 
-function loadAllIntegrations() {
-  const builds = [];
+const file = process.env.INTEGRATION_FILE;
 
-  allIntegrations().forEach(file => {
-    const baseBundleConfig = makeBaseBundleConfig({
-      input: `src/${file}`,
-      isAddOn: true,
-      jsVersion: 'es5',
-      outputFileBase: `build/${file.replace('.ts', '')}`,
-    });
+const baseBundleConfig = makeBaseBundleConfig({
+  input: `src/${file}`,
+  isAddOn: true,
+  jsVersion: 'es5',
+  licenseTitle: '@sentry/integrations',
+  // TODO this doesn't currently need to be a template string, but soon will need to be, so leaving it in that form
+  // for now
+  outputFileBase: `${file.replace('.ts', '')}`,
+});
 
-    [
-      {
-        extension: '.js',
-        plugins: [...baseBundleConfig.plugins, commonjs()],
-      },
-      {
-        extension: '.min.js',
-        plugins: [...baseBundleConfig.plugins, commonjs(), terserPlugin],
-      },
-    ].forEach(build => {
-      builds.push({
-        ...baseBundleConfig,
-        output: {
-          ...baseBundleConfig.output,
-          file: `${baseBundleConfig.output.file}${build.extension}`,
-        },
-        plugins: build.plugins,
-      });
-    });
-  });
+// TODO We only need `commonjs` for localforage (used in the offline plugin). Once that's fixed, this can come out.
+baseBundleConfig.plugins = insertAt(baseBundleConfig.plugins, -2, commonjs());
 
-  return builds;
-}
+builds.push(...makeConfigVariants(baseBundleConfig));
 
-export default loadAllIntegrations();
+export default builds;
