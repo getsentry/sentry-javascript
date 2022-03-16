@@ -16,13 +16,13 @@
     "access": "public"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm",
+    "build": "run-p build:cjs build:esm build:types",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-s build",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:cjs:watch build:esm:watch",
+    "build:watch": "run-p build:cjs:watch build:esm:watch build:types:watch",
     "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
     "build:dev:watch": "run-s build:watch",
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
