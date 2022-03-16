@@ -34,11 +34,11 @@ function assertSentryCall(assert, callNumber, options) {
   });
 }
 
-module('Acceptance | Sentry Errors', function(hooks) {
+module('Acceptance | Sentry Errors', function (hooks) {
   setupApplicationTest(hooks);
   setupSentryTest(hooks);
 
-  test('Check "Throw Generic Javascript Error"', async function(assert) {
+  test('Check "Throw Generic Javascript Error"', async function (assert) {
     await visit('/');
     const button = find('[data-test-button="Throw Generic Javascript Error"]');
 
@@ -48,7 +48,7 @@ module('Acceptance | Sentry Errors', function(hooks) {
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "Throw EmberError"', async function(assert) {
+  test('Check "Throw EmberError"', async function (assert) {
     await visit('/');
     const button = find('[data-test-button="Throw EmberError"]');
 
@@ -58,7 +58,7 @@ module('Acceptance | Sentry Errors', function(hooks) {
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "Caught Thrown EmberError"', async function(assert) {
+  test('Check "Caught Thrown EmberError"', async function (assert) {
     await visit('/');
     const button = find('[data-test-button="Caught Thrown EmberError"]');
 
@@ -67,7 +67,7 @@ module('Acceptance | Sentry Errors', function(hooks) {
     assertSentryErrorCount(assert, 0);
   });
 
-  test('Check "Error From Fetch"', async function(assert) {
+  test('Check "Error From Fetch"', async function (assert) {
     this.fetchStub.onFirstCall().callsFake((...args) => {
       return this.fetchStub.callsThrough(args);
     });
@@ -85,7 +85,7 @@ module('Acceptance | Sentry Errors', function(hooks) {
     });
   });
 
-  test('Check "Error in AfterRender"', async function(assert) {
+  test('Check "Error in AfterRender"', async function (assert) {
     await visit('/');
     const button = find('[data-test-button="Error in AfterRender"]');
 
@@ -96,7 +96,7 @@ module('Acceptance | Sentry Errors', function(hooks) {
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "RSVP Rejection"', async function(assert) {
+  test('Check "RSVP Rejection"', async function (assert) {
     await visit('/');
     const button = find('[data-test-button="RSVP Rejection"]');
 
@@ -107,7 +107,7 @@ module('Acceptance | Sentry Errors', function(hooks) {
     assertSentryCall(assert, 0, { errorBodyContains: [this.qunitOnUnhandledRejection.getCall(0).args[0]] });
   });
 
-  test('Check "Error inside RSVP"', async function(assert) {
+  test('Check "Error inside RSVP"', async function (assert) {
     await visit('/');
     const button = find('[data-test-button="Error inside RSVP"]');
 
