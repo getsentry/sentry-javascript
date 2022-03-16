@@ -27,7 +27,7 @@ module.exports = async function() {
   if (process.env.GITHUB_ACTIONS) {
     scenarios = scenarios.concat([
       {
-        name: 'ember-lts-3.20',
+        name: 'ember-lts-3.24',
         npm: {
           devDependencies: {
             'ember-source': '~3.24.0',
