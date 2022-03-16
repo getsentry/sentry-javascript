@@ -8,14 +8,11 @@ const nock = require('nock');
 
 // have to call this for each request :/ ref https://github.com/node-nock/nock#read-this---about-interceptors
 function nockRequest() {
-  nock('https://app.getsentry.com')
-    .filteringRequestBody(/.*/, '*')
-    .post(/.*/, '*')
-    .reply(200, 'OK');
+  nock('https://app.getsentry.com').filteringRequestBody(/.*/, '*').post(/.*/, '*').reply(200, 'OK');
 }
 
 const memwatch = require('memwatch-next');
-memwatch.on('stats', function(stats) {
+memwatch.on('stats', function (stats) {
   process._rawDebug(
     util.format(
       'gc #%d: min %d, max %d, est base %d, curr base %d',
@@ -71,12 +68,10 @@ app.get('/breadcrumbs/auto/console', (req, res, next) => {
 });
 
 app.get('/breadcrumbs/auto/http', (req, res, next) => {
-  const scope = nock('http://www.example.com')
-    .get('/hello')
-    .reply(200, 'hello world');
+  const scope = nock('http://www.example.com').get('/hello').reply(200, 'hello world');
 
   http
-    .get('http://www.example.com/hello', function(nockRes) {
+    .get('http://www.example.com/hello', function (nockRes) {
       scope.done();
       res.textToSend = 'hello there! we got hello world from example.com';
       next();
@@ -96,8 +91,8 @@ app.get('/gc', (req, res, next) => {
 });
 
 app.get('/shutdown', (req, res, next) => {
-  setTimeout(function() {
-    server.close(function() {
+  setTimeout(function () {
+    server.close(function () {
       process.exit();
     });
   }, 100);
