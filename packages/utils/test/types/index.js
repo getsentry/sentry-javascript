@@ -15,7 +15,7 @@ paths.forEach(dir => {
   files.forEach(file => {
     if (file.includes('.d.ts')) {
       testStrings.forEach(testString => {
-        const filePath = path.join(dir, file)
+        const filePath = path.join(dir, file);
         if (fs.readFileSync(filePath, 'utf8').includes(testString)) {
           // eslint-disable-next-line no-console
           console.error(`${filePath} contains types`);
