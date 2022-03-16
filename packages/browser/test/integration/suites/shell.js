@@ -1,21 +1,21 @@
-var variants = ["frame", "loader", "loader-lazy-no"];
+var variants = ['frame', 'loader', 'loader-lazy-no'];
 
 function runVariant(variant) {
   var IS_LOADER = !!variant.match(/^loader/);
   var IS_ASYNC_LOADER = !!variant.match(/^loader$/);
   var IS_SYNC_LOADER = !!variant.match(/^loader-lazy-no$/);
 
-  describe(variant, function() {
+  describe(variant, function () {
     this.timeout(60000);
     this.retries(3);
 
     var sandbox;
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       sandbox = createSandbox(done, variant);
     });
 
-    afterEach(function() {
+    afterEach(function () {
       document.body.removeChild(sandbox);
     });
 
@@ -33,7 +33,7 @@ function runVariant(variant) {
 }
 
 for (var idx in variants) {
-  (function() {
+  (function () {
     runVariant(variants[idx]);
   })();
 }

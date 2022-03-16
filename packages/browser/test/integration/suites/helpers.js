@@ -2,15 +2,11 @@ function evaluateInSandbox(sandbox, code) {
   // use setTimeout so stack trace doesn't go all the way back to mocha test runner
   sandbox &&
     sandbox.contentWindow &&
-    sandbox.contentWindow.eval(
-      "window.originalBuiltIns.setTimeout.call(window, " +
-        code.toString() +
-        ");"
-    );
+    sandbox.contentWindow.eval('window.originalBuiltIns.setTimeout.call(window, ' + code.toString() + ');');
 }
 
 function runInSandbox(sandbox, options, code) {
-  if (typeof options === "function") {
+  if (typeof options === 'function') {
     // eslint-disable-next-line no-param-reassign
     code = options;
     // eslint-disable-next-line no-param-reassign
@@ -18,18 +14,18 @@ function runInSandbox(sandbox, options, code) {
   }
 
   var resolveTest;
-  var donePromise = new Promise(function(resolve) {
+  var donePromise = new Promise(function (resolve) {
     resolveTest = resolve;
   });
-  sandbox.contentWindow.resolveTest = function(summary) {
+  sandbox.contentWindow.resolveTest = function (summary) {
     clearTimeout(lastResort);
     resolveTest(summary);
   };
 
   // If by some unexplainable way we reach the timeout limit, try to finalize the test and pray for the best
   // NOTE: 5000 so it's easier to grep for all timeout instances (shell.js, loader-specific.js and here)
-  var lastResort = setTimeout(function() {
-    var force = function() {
+  var lastResort = setTimeout(function () {
+    var force = function () {
       window.resolveTest({
         events: events,
         breadcrumbs: breadcrumbs,
@@ -41,7 +37,7 @@ function runInSandbox(sandbox, options, code) {
     }
   }, 5000 - 500);
 
-  var finalize = function() {
+  var finalize = function () {
     var summary = {
       events: events,
       eventHints: eventHints,
@@ -50,20 +46,20 @@ function runInSandbox(sandbox, options, code) {
       window: window,
     };
 
-    Sentry.onLoad(function() {
-      setTimeout(function() {
+    Sentry.onLoad(function () {
+      setTimeout(function () {
         Sentry.flush()
-          .then(function() {
+          .then(function () {
             window.resolveTest(summary);
           })
-          .catch(function() {
+          .catch(function () {
             window.resolveTest(summary);
           });
       });
     });
   };
 
-  sandbox.contentWindow.finalizeManualTest = function() {
+  sandbox.contentWindow.finalizeManualTest = function () {
     evaluateInSandbox(sandbox, finalize.toString());
   };
 
@@ -77,10 +73,10 @@ function runInSandbox(sandbox, options, code) {
 }
 
 function createSandbox(done, file) {
-  var sandbox = document.createElement("iframe");
-  sandbox.style.display = "none";
-  sandbox.src = "/base/variants/" + file + ".html";
-  sandbox.onload = function() {
+  var sandbox = document.createElement('iframe');
+  sandbox.style.display = 'none';
+  sandbox.src = '/base/variants/' + file + '.html';
+  sandbox.onload = function () {
     done();
   };
   document.body.appendChild(sandbox);
@@ -88,5 +84,5 @@ function createSandbox(done, file) {
 }
 
 function optional(title, condition) {
-  return condition ? "⚠ SKIPPED: " + title : title;
+  return condition ? '⚠ SKIPPED: ' + title : title;
 }
