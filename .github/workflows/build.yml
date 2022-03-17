@@ -316,7 +316,7 @@ jobs:
         uses: codecov/codecov-action@v1
 
   job_browser_playwright_tests:
-    name: Browser Playwright Tests (${{ matrix.bundle }} - tracing_only = ${{ matrix.tracing_only }})
+    name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
     needs: job_build
     runs-on: ubuntu-latest
     strategy:
