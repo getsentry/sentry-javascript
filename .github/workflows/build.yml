@@ -123,8 +123,8 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v4
-        # Only run size check on master or pull requests
-        if: github.ref == 'refs/heads/master' || github.event_name == 'pull_request'
+        # Don't run size check on release branches - at that point, we're already committed
+        if: ${{ !startsWith(github.ref, 'release') }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
