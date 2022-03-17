@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 const Sentry = require('@sentry/gatsby');
 
-exports.onClientEntry = function(_, pluginParams) {
+exports.onClientEntry = function (_, pluginParams) {
   const isIntialized = isSentryInitialized();
   const areOptionsDefined = areSentryOptionsDefined(pluginParams);
 

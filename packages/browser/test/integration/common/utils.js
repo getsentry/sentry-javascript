@@ -1,13 +1,13 @@
 // All the functions below can be called within the iframe under the test
 
 function supportsFetch() {
-  if (!("fetch" in window)) {
+  if (!('fetch' in window)) {
     return false;
   }
 
   try {
     new Headers();
-    new Request("");
+    new Request('');
     new Response();
     return true;
   } catch (e) {
@@ -21,12 +21,12 @@ function supportsNativeFetch() {
   }
 
   function isNativeFunc(func) {
-    return func.toString().indexOf("native") !== -1;
+    return func.toString().indexOf('native') !== -1;
   }
 
   var result = null;
   if (window.document) {
-    var sandbox = window.document.createElement("iframe");
+    var sandbox = window.document.createElement('iframe');
     sandbox.hidden = true;
     try {
       window.document.head.appendChild(sandbox);
@@ -46,7 +46,7 @@ function supportsNativeFetch() {
 }
 
 function supportsOnunhandledRejection() {
-  return typeof PromiseRejectionEvent !== "undefined";
+  return typeof PromiseRejectionEvent !== 'undefined';
 }
 
 function isBelowIE11() {
@@ -58,7 +58,7 @@ function isBelowIE11() {
 // (╯°□°）╯︵ ┻━┻
 function canReadFunctionName() {
   function foo() {}
-  if (foo.name === "foo") return true;
+  if (foo.name === 'foo') return true;
   return false;
 }
 
@@ -67,7 +67,7 @@ function waitForXHR(xhr, cb) {
     return cb();
   }
 
-  setTimeout(function() {
+  setTimeout(function () {
     waitForXHR(xhr, cb);
   }, 1000 / 60);
 }

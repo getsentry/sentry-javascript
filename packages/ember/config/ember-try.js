@@ -9,7 +9,7 @@ const { embroiderSafe } = require('@embroider/test-setup');
  *
  * @returns The versions which should be tested, along with their respective config
  */
-module.exports = async function() {
+module.exports = async function () {
   // whenever and wherever we test, we want to at least test against the latest version of ember
   let scenarios = [
     {
