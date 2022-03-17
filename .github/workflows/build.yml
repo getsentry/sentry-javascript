@@ -365,7 +365,7 @@ jobs:
           yarn test:ci
 
   job_browser_integration_tests:
-    name: Browser Integration Tests (${{ matrix.browser }})
+    name: Old Browser Integration Tests (${{ matrix.browser }})
     needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 10
