@@ -332,10 +332,12 @@ jobs:
           - true
           - false
         exclude:
+          # `tracing_only` only makes a difference for bundles - tests of the esm and cjs builds always include the
+          # tracing tests
           - bundle: esm
-            tracing_only: true
+            tracing_only: false
           - bundle: cjs
-            tracing_only: true
+            tracing_only: false
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
