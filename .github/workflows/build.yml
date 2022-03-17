@@ -5,6 +5,7 @@ on:
       - master
       - release/**
   pull_request:
+  workflow_dispatch:
 
 env:
   CACHED_DEPENDENCY_PATHS: |
