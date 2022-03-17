@@ -42,6 +42,7 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:npm": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm coverage *.js.map *.d.ts",
     "fix": "run-s fix:eslint fix:prettier",
@@ -51,7 +52,6 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "createTarball": "npm pack",
     "test": "node test/scripts/ensure-browser-bundle.js && cross-env PORT=1337 jest",
     "test:watch": "jest --watch"
   },

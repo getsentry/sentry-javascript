@@ -12,6 +12,7 @@
     "build:watch": "lerna run --parallel build:watch",
     "build:dev:watch": "lerna run --parallel build:dev:watch",
     "build:types:watch": "ts-node scripts/build-types-watch.ts",
+    "build:npm:changed": "lerna run build:npm --since",
     "circularDepCheck": "lerna run --parallel circularDepCheck",
     "clean": "lerna run --parallel clean && lerna clean --yes",
     "codecov": "codecov",
@@ -19,7 +20,6 @@
     "link:yarn": "lerna run --stream --concurrency 1 link:yarn",
     "lint": "lerna run --parallel lint",
     "lint:eslint": "lerna run --parallel lint:eslint",
-    "createTarball:changed": "lerna run createTarball --since",
     "prepublishOnly": "lerna run --stream --concurrency 1 prepublishOnly",
     "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore @sentry-internal/browser-integration-tests --stream --concurrency 1 --sort test"

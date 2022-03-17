@@ -39,7 +39,7 @@
     "link:yarn": "yarn link",
     "lint": "prettier --check \"**/*.js\"",
     "fix": "prettier --write \"**/*.js\"",
-    "createTarball": "npm pack",
+    "build:npm": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
   },
   "volta": {
