@@ -120,7 +120,7 @@ export type Measurements = Record<string, { value: number }>;
 export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'client_rate' | 'inheritance';
 
 export interface TransactionMetadata {
-  transactionSampling?: { rate?: number; method?: TransactionSamplingMethod };
+  transactionSampling?: { rate?: number; method: TransactionSamplingMethod };
 
   /** The two halves (sentry and third-party) of a transaction's tracestate header, used for dynamic sampling */
   tracestate?: {

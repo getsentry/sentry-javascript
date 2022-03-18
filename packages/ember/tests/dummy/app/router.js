@@ -6,9 +6,9 @@ export default class Router extends EmberRouter {
   rootURL = config.rootURL;
 }
 
-Router.map(function() {
+Router.map(function () {
   this.route('tracing');
-  this.route('slow-loading-route', function() {
+  this.route('slow-loading-route', function () {
     this.route('index', { path: '/' });
   });
 });

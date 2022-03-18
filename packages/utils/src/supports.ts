@@ -102,7 +102,7 @@ export function supportsNativeFetch(): boolean {
   let result = false;
   const doc = global.document;
   // eslint-disable-next-line deprecation/deprecation
-  if (doc && typeof (doc.createElement as unknown) === `function`) {
+  if (doc && typeof (doc.createElement as unknown) === 'function') {
     try {
       const sandbox = doc.createElement('iframe');
       sandbox.hidden = true;
@@ -113,9 +113,8 @@ export function supportsNativeFetch(): boolean {
       }
       doc.head.removeChild(sandbox);
     } catch (err) {
-      if (isDebugBuild()) {
+      isDebugBuild() &&
         logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
-      }
     }
   }
 

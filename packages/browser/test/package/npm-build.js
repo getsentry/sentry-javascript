@@ -41,7 +41,7 @@ webpack(
 
 function runTests() {
   const bundlePath = path.join(__dirname, 'tmp.js');
-  const { window } = new JSDOM(``, { runScripts: 'dangerously' });
+  const { window } = new JSDOM('', { runScripts: 'dangerously' });
 
   window.onerror = function () {
     console.error('ERROR thrown in manual test:');

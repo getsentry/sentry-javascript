@@ -7,7 +7,7 @@ import {
   SamplingContext,
   TransactionContext,
 } from '@sentry/types';
-import { dynamicRequire, isNodeEnv, loadModule, logger } from '@sentry/utils';
+import { dynamicRequire, isDebugBuild, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
@@ -86,20 +86,21 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
   if (!isValidSampleRate(sampleRate)) {
-    logger.warn(`[Tracing] Discarding transaction because of invalid sample rate.`);
+    isDebugBuild() && logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
     transaction.sampled = false;
     return transaction;
   }
 
   // if the function returned 0 (or false), or if `tracesSampleRate` is 0, it's a sign the transaction should be dropped
   if (!sampleRate) {
-    logger.log(
-      `[Tracing] Discarding transaction because ${
-        typeof options.tracesSampler === 'function'
-          ? 'tracesSampler returned 0 or false'
-          : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
-      }`,
-    );
+    isDebugBuild() &&
+      logger.log(
+        `[Tracing] Discarding transaction because ${
+          typeof options.tracesSampler === 'function'
+            ? 'tracesSampler returned 0 or false'
+            : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
+        }`,
+      );
     transaction.sampled = false;
     return transaction;
   }
@@ -110,15 +111,16 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
 
   // if we're not going to keep it, we're done
   if (!transaction.sampled) {
-    logger.log(
-      `[Tracing] Discarding transaction because it's not included in the random sample (sampling rate = ${Number(
-        sampleRate,
-      )})`,
-    );
+    isDebugBuild() &&
+      logger.log(
+        `[Tracing] Discarding transaction because it's not included in the random sample (sampling rate = ${Number(
+          sampleRate,
+        )})`,
+      );
     return transaction;
   }
 
-  logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
+  isDebugBuild() && logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
   return transaction;
 }
 
@@ -129,17 +131,19 @@ function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (isNaN(rate as any) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
-    logger.warn(
-      `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
-        rate,
-      )} of type ${JSON.stringify(typeof rate)}.`,
-    );
+    isDebugBuild() &&
+      logger.warn(
+        `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
+          rate,
+        )} of type ${JSON.stringify(typeof rate)}.`,
+      );
     return false;
   }
 
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
-    logger.warn(`[Tracing] Given sample rate is invalid. Sample rate must be between 0 and 1. Got ${rate}.`);
+    isDebugBuild() &&
+      logger.warn(`[Tracing] Given sample rate is invalid. Sample rate must be between 0 and 1. Got ${rate}.`);
     return false;
   }
   return true;

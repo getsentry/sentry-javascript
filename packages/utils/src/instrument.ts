@@ -6,7 +6,7 @@ import { WrappedFunction } from '@sentry/types';
 import { isDebugBuild } from './env';
 import { getGlobalObject } from './global';
 import { isInstanceOf, isString } from './is';
-import { logger } from './logger';
+import { CONSOLE_LEVELS, logger } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
@@ -69,7 +69,8 @@ function instrument(type: InstrumentHandlerType): void {
       instrumentUnhandledRejection();
       break;
     default:
-      logger.warn('unknown instrumentation type:', type);
+      isDebugBuild() && logger.warn('unknown instrumentation type:', type);
+      return;
   }
 }
 
@@ -94,13 +95,11 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
     try {
       handler(data);
     } catch (e) {
-      if (isDebugBuild()) {
+      isDebugBuild() &&
         logger.error(
-          `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(
-            handler,
-          )}\nError: ${e}`,
+          `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
+          e,
         );
-      }
     }
   }
 }
@@ -111,7 +110,7 @@ function instrumentConsole(): void {
     return;
   }
 
-  ['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function (level: string): void {
+  CONSOLE_LEVELS.forEach(function (level: string): void {
     if (!(level in global.console)) {
       return;
     }

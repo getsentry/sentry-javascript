@@ -1,7 +1,7 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
@@ -153,7 +153,7 @@ export async function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  logger.warn('Cannot flush events. No client defined.');
+  isDebugBuild() && logger.warn('Cannot flush events. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -170,7 +170,7 @@ export async function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  logger.warn('Cannot flush events and disable SDK. No client defined.');
+  isDebugBuild() && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
 }
 

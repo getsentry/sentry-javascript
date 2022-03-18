@@ -1,4 +1,4 @@
-import { basename, dirname, StackLineParser } from '@sentry/utils';
+import { basename, dirname, StackLineParser, StackLineParserFn } from '@sentry/utils';
 
 /** Gets the module */
 function getModule(filename: string | undefined): string | undefined {
@@ -36,9 +36,10 @@ function getModule(filename: string | undefined): string | undefined {
 }
 
 const FILENAME_MATCH = /^\s*[-]{4,}$/;
-const FULL_MATCH = /at (?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/;
+const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/;
 
-export const nodeStackParser: StackLineParser = (line: string) => {
+// eslint-disable-next-line complexity
+const node: StackLineParserFn = (line: string) => {
   if (line.match(FILENAME_MATCH)) {
     return {
       filename: line,
@@ -87,7 +88,12 @@ export const nodeStackParser: StackLineParser = (line: string) => {
     functionName = undefined;
   }
 
-  const filename = lineMatch[2];
+  if (functionName === undefined) {
+    methodName = methodName || '<anonymous>';
+    functionName = typeName ? `${typeName}.${methodName}` : methodName;
+  }
+
+  const filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].substr(7) : lineMatch[2];
   const isNative = lineMatch[5] === 'native';
   const isInternal =
     isNative || (filename && !filename.startsWith('/') && !filename.startsWith('.') && filename.indexOf(':\\') !== 1);
@@ -100,9 +106,11 @@ export const nodeStackParser: StackLineParser = (line: string) => {
   return {
     filename,
     module: getModule(filename),
-    function: functionName || `${typeName}.${methodName || '<anonymous>'}`,
+    function: functionName,
     lineno: parseInt(lineMatch[3], 10) || undefined,
     colno: parseInt(lineMatch[4], 10) || undefined,
     in_app,
   };
 };
+
+export const nodeStackParser: StackLineParser = [90, node];

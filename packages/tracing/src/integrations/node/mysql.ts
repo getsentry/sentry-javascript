@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { fill, loadModule, logger } from '@sentry/utils';
+import { fill, isDebugBuild, loadModule, logger } from '@sentry/utils';
 
 interface MysqlConnection {
   createQuery: () => void;
@@ -25,7 +25,7 @@ export class Mysql implements Integration {
     const pkg = loadModule<MysqlConnection>('mysql/lib/Connection.js');
 
     if (!pkg) {
-      logger.error('Mysql Integration was unable to require `mysql` package.');
+      isDebugBuild() && logger.error('Mysql Integration was unable to require `mysql` package.');
       return;
     }
 
@@ -39,7 +39,7 @@ export class Mysql implements Integration {
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,
-          op: `db`,
+          op: 'db',
         });
 
         if (typeof callback === 'function') {

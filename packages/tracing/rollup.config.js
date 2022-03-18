@@ -1,29 +1,17 @@
-import { makeBaseBundleConfig, makeLicensePlugin, terserPlugin } from '../../rollup.config';
+import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
 
-const licensePlugin = makeLicensePlugin('@sentry/tracing & @sentry/browser');
+const builds = [];
 
-const baseBundleConfig = makeBaseBundleConfig({
-  input: 'src/index.bundle.ts',
-  isAddOn: false,
-  outputFileBase: 'build/bundle.tracing',
+['es5', 'es6'].forEach(jsVersion => {
+  const baseBundleConfig = makeBaseBundleConfig({
+    input: 'src/index.bundle.ts',
+    isAddOn: false,
+    jsVersion,
+    licenseTitle: '@sentry/tracing & @sentry/browser',
+    outputFileBase: `bundle.tracing${jsVersion === 'es6' ? '.es6' : ''}`,
+  });
+
+  builds.push(...makeConfigVariants(baseBundleConfig));
 });
 
-export default [
-  // ES5 Browser Tracing Bundle
-  {
-    ...baseBundleConfig,
-    output: {
-      ...baseBundleConfig.output,
-      file: `${baseBundleConfig.output.file}.js`,
-    },
-    plugins: [...baseBundleConfig.plugins, licensePlugin],
-  },
-  {
-    ...baseBundleConfig,
-    output: {
-      ...baseBundleConfig.output,
-      file: `${baseBundleConfig.output.file}.min.js`,
-    },
-    plugins: [...baseBundleConfig.plugins, terserPlugin, licensePlugin],
-  },
-];
+export default builds;

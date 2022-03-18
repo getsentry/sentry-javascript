@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, isDebugBuild, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -221,7 +221,7 @@ function addFilesToExistingEntryPoint(
     console.error(
       'Sentry Logger [Error]:',
       `Could not inject SDK initialization code into entry point ${entryPointName}, as its current value is not in a recognized format.\n`,
-      `Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n`,
+      'Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n',
       `Got: ${currentEntryPoint}`,
     );
   }
@@ -244,11 +244,12 @@ function checkWebpackPluginOverrides(
   // warn if any of the default options for the webpack plugin are getting overridden
   const sentryWebpackPluginOptionOverrides = Object.keys(defaultOptions).filter(key => key in userOptions);
   if (sentryWebpackPluginOptionOverrides.length > 0) {
-    logger.warn(
-      '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
-        `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +
-        "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
-    );
+    isDebugBuild() &&
+      logger.warn(
+        '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
+          `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +
+          "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
+      );
   }
 }
 
@@ -293,11 +294,19 @@ export function getWebpackPluginOptions(
         isWebpack5 ? [{ paths: [`${distDir}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
-  const clientInclude = [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
+  const clientInclude = userNextConfig.sentry?.widenClientFileUpload
+    ? [{ paths: [`${distDir}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
+    : [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
-    ignore: [],
+    ignore:
+      isServer || !userNextConfig.sentry?.widenClientFileUpload
+        ? []
+        : // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
+          // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know
+          // will be there.
+          ['framework-*', 'framework.*', 'main-*', 'polyfills-*', 'webpack-*'],
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,

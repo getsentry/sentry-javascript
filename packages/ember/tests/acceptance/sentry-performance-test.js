@@ -50,11 +50,11 @@ function assertSentryCall(assert, callNumber, options) {
   }
 }
 
-module('Acceptance | Sentry Transactions', function(hooks) {
+module('Acceptance | Sentry Transactions', function (hooks) {
   setupApplicationTest(hooks);
   setupSentryTest(hooks);
 
-  test('Test transaction', async function(assert) {
+  test('Test transaction', async function (assert) {
     await visit('/tracing');
 
     assertSentryTransactionCount(assert, 1);
@@ -78,7 +78,7 @@ module('Acceptance | Sentry Transactions', function(hooks) {
     });
   });
 
-  test('Test navigating to slow route', async function(assert) {
+  test('Test navigating to slow route', async function (assert) {
     await visit('/tracing');
     const button = find('[data-test-button="Transition to slow loading route"]');
 

@@ -86,37 +86,33 @@ export function _mergeOptions(
 /** JSDoc */
 export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
   if (_isSentryError(event, options.ignoreInternal)) {
-    if (isDebugBuild()) {
+    isDebugBuild() &&
       logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
-    }
     return true;
   }
   if (_isIgnoredError(event, options.ignoreErrors)) {
-    if (isDebugBuild()) {
+    isDebugBuild() &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
       );
-    }
     return true;
   }
   if (_isDeniedUrl(event, options.denyUrls)) {
-    if (isDebugBuild()) {
+    isDebugBuild() &&
       logger.warn(
         `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
           event,
         )}.\nUrl: ${_getEventFilterUrl(event)}`,
       );
-    }
     return true;
   }
   if (!_isAllowedUrl(event, options.allowUrls)) {
-    if (isDebugBuild()) {
+    isDebugBuild() &&
       logger.warn(
         `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
           event,
         )}.\nUrl: ${_getEventFilterUrl(event)}`,
       );
-    }
     return true;
   }
   return false;
@@ -163,9 +159,7 @@ function _getPossibleEventMessages(event: Event): string[] {
       const { type = '', value = '' } = (event.exception.values && event.exception.values[0]) || {};
       return [`${value}`, `${type}: ${value}`];
     } catch (oO) {
-      if (isDebugBuild()) {
-        logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
-      }
+      isDebugBuild() && logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
       return [];
     }
   }
@@ -214,9 +208,7 @@ function _getEventFilterUrl(event: Event): string | null {
     }
     return frames ? _getLastValidUrl(frames) : null;
   } catch (oO) {
-    if (isDebugBuild()) {
-      logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
-    }
+    isDebugBuild() && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }
 }

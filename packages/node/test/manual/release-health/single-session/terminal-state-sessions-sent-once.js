@@ -41,14 +41,14 @@ Sentry.init({
  * However we want to ensure that once a crashed terminal state is achieved, no more session updates are sent regardless
  * of whether more crashes happen or not
  */
-new Promise(function(resolve, reject) {
+new Promise(function (resolve, reject) {
   reject();
-}).then(function() {
+}).then(function () {
   console.log('Promise Resolved');
 });
 
-new Promise(function(resolve, reject) {
+new Promise(function (resolve, reject) {
   reject();
-}).then(function() {
+}).then(function () {
   console.log('Promise Resolved');
 });

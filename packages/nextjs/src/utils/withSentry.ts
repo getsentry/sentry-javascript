@@ -1,7 +1,14 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { addExceptionMechanism, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  isDebugBuild,
+  isString,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
@@ -43,7 +50,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {
             traceparentData = extractTraceparentData(req.headers['sentry-trace'] as string);
-            logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+            isDebugBuild() && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
           const url = `${req.url}`;
@@ -79,10 +86,12 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       try {
         const handlerResult = await origHandler(req, res);
 
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === 'development' && !process.env.SENTRY_IGNORE_API_RESOLUTION_ERROR) {
           // eslint-disable-next-line no-console
           console.warn(
-            '[sentry] If Next.js logs a warning "API resolved without sending a response", it\'s a false positive, which we\'re working to rectify.',
+            `[sentry] If Next.js logs a warning "API resolved without sending a response", it's a false positive, which we're working to rectify.
+            In the meantime, to suppress this warning, set \`SENTRY_IGNORE_API_RESOLUTION_ERROR\` to 1 in your env.
+            To suppress the nextjs warning, use the \`externalResolver\` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).`,
           );
         }
 
@@ -184,10 +193,10 @@ async function finishSentryProcessing(res: AugmentedNextApiResponse): Promise<vo
   // Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
   // ends. If there was an error, rethrow it so that the normal exception-handling mechanisms can apply.
   try {
-    logger.log('Flushing events...');
+    isDebugBuild() && logger.log('Flushing events...');
     await flush(2000);
-    logger.log('Done flushing events');
+    isDebugBuild() && logger.log('Done flushing events');
   } catch (e) {
-    logger.log(`Error while flushing events:\n${e}`);
+    isDebugBuild() && logger.log('Error while flushing events:\n', e);
   }
 }

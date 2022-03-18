@@ -87,7 +87,7 @@ export interface Options {
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
 
-  /** Maxium number of chars a single value can have before it will be truncated. */
+  /** Maximum number of chars a single value can have before it will be truncated. */
   maxValueLength?: number;
 
   /**
@@ -100,6 +100,17 @@ export interface Options {
    * Defaults to `3`. Set to `0` to disable.
    */
   normalizeDepth?: number;
+
+  /**
+   * Maximum number of properties or elements that the normalization algorithm will output in any single array or object included in the normalized event.
+   * Used when normalizing an event before sending, on all of the listed attributes:
+   * - `breadcrumbs.data`
+   * - `user`
+   * - `contexts`
+   * - `extra`
+   * Defaults to `1000`
+   */
+  normalizeMaxBreadth?: number;
 
   /**
    * Controls how many milliseconds to wait before shutting down. The default is

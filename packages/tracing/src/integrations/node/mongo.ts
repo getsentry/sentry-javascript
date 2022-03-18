@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
-import { fill, isThenable, loadModule, logger } from '@sentry/utils';
+import { fill, isDebugBuild, isThenable, loadModule, logger } from '@sentry/utils';
 
 // This allows us to use the same array for both defaults options and the type itself.
 // (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... )
@@ -121,7 +121,7 @@ export class Mongo implements Integration {
     const pkg = loadModule<{ Collection: MongoCollection }>(moduleName);
 
     if (!pkg) {
-      logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
+      isDebugBuild() && logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
       return;
     }
 
@@ -189,7 +189,7 @@ export class Mongo implements Integration {
       namespace: collection.namespace,
     };
     const spanContext: SpanContext = {
-      op: `db`,
+      op: 'db',
       description: operation,
       data,
     };

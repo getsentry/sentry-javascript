@@ -1,70 +1,24 @@
-import * as fs from 'fs';
-
-import { terser } from 'rollup-plugin-terser';
 import commonjs from '@rollup/plugin-commonjs';
 
-import {
-  addOnBundleConfig,
-  baseBundleConfig,
-  markAsBrowserBuild,
-  nodeResolvePlugin,
-  typescriptPluginES5,
-} from '../../rollup.config';
+import { insertAt, makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
 
-const terserInstance = terser({
-  mangle: {
-    // captureExceptions and captureMessage are public API methods and they don't need to be listed here
-    // as mangler doesn't touch user-facing thing, however sentryWrapped is not, and it would be mangled into a minified version.
-    // We need those full names to correctly detect our internal frames for stripping.
-    // I listed all of them here just for the clarity sake, as they are all used in the frames manipulation process.
-    reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
-    properties: {
-      regex: /^_[^_]/,
-    },
-  },
-  output: {
-    comments: false,
-  },
+const builds = [];
+
+const file = process.env.INTEGRATION_FILE;
+const jsVersion = process.env.JS_VERSION;
+
+const baseBundleConfig = makeBaseBundleConfig({
+  input: `src/${file}`,
+  isAddOn: true,
+  jsVersion,
+  licenseTitle: '@sentry/integrations',
+  outputFileBase: `${file.replace('.ts', '')}${jsVersion === 'ES6' ? '.es6' : ''}`,
 });
 
-const plugins = [
-  typescriptPluginES5,
-  // replace `__SENTRY_BROWSER_BUNDLE__` with `true` to enable treeshaking of non-browser code
-  markAsBrowserBuild,
-  nodeResolvePlugin,
-  commonjs(),
-];
+// TODO We only need `commonjs` for localforage (used in the offline plugin). Once that's fixed, this can come out.
+baseBundleConfig.plugins = insertAt(baseBundleConfig.plugins, -2, commonjs());
 
-function allIntegrations() {
-  return fs.readdirSync('./src').filter(file => file != 'index.ts');
-}
+// this makes non-minified, minified, and minified-with-debug-logging versions of each bundle
+builds.push(...makeConfigVariants(baseBundleConfig));
 
-function loadAllIntegrations() {
-  const builds = [];
-  [
-    {
-      extension: '.js',
-      plugins,
-    },
-    {
-      extension: '.min.js',
-      plugins: [...plugins, terserInstance],
-    },
-  ].forEach(build => {
-    builds.push(
-      ...allIntegrations().map(file => ({
-        ...baseBundleConfig,
-        input: `src/${file}`,
-        output: {
-          ...baseBundleConfig.output,
-          ...addOnBundleConfig.output,
-          file: `build/${file.replace('.ts', build.extension)}`,
-        },
-        plugins: build.plugins,
-      })),
-    );
-  });
-  return builds;
-}
-
-export default loadAllIntegrations();
+export default builds;

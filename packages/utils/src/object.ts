@@ -231,20 +231,20 @@ function serializeValue(value: any): any {
     return '[Array]';
   }
 
-  const normalized = normalizeValue(value);
-  return isPrimitive(normalized) ? normalized : type;
+  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+  // pass-through.
+  const serializable = makeSerializable(value);
+  return isPrimitive(serializable) ? serializable : type;
 }
 
 /**
- * normalizeValue()
+ * makeSerializable()
  *
- * Takes unserializable input and make it serializable friendly
+ * Takes unserializable input and make it serializer-friendly.
  *
- * - translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
- * - serializes Error objects
- * - filter global objects
+ * Handles globals, functions, `undefined`, `NaN`, and other non-serializable values.
  */
-function normalizeValue<T>(value: T, key?: any): T | string {
+function makeSerializable<T>(value: T, key?: any): T | string {
   if (key === 'domain' && value && typeof value === 'object' && (value as unknown as { _events: any })._events) {
     return '[Domain]';
   }
@@ -300,32 +300,42 @@ function normalizeValue<T>(value: T, key?: any): T | string {
   return value;
 }
 
+type UnknownMaybeWithToJson = unknown & { toJSON?: () => string };
+
 /**
  * Walks an object to perform a normalization on it
  *
  * @param key of object that's walked in current iteration
  * @param value object to be walked
  * @param depth Optional number indicating how deep should walking be performed
+ * @param maxProperties Optional maximum  number of properties/elements included in any single object/array
  * @param memo Optional Memo class handling decycling
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function walk(key: string, value: any, depth: number = +Infinity, memo: MemoFunc = memoBuilder()): any {
+export function walk(
+  key: string,
+  value: UnknownMaybeWithToJson,
+  depth: number = +Infinity,
+  maxProperties: number = +Infinity,
+  memo: MemoFunc = memoBuilder(),
+): unknown {
+  const [memoize, unmemoize] = memo;
+
   // If we reach the maximum depth, serialize whatever is left
   if (depth === 0) {
     return serializeValue(value);
   }
 
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   // If value implements `toJSON` method, call it and return early
   if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
     return value.toJSON();
   }
-  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
-  // If normalized value is a primitive, there are no branches left to walk, so bail out
-  const normalized = normalizeValue(value, key);
-  if (isPrimitive(normalized)) {
-    return normalized;
+  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+  // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
+  // all along), we're done.
+  const serializable = makeSerializable(value, key);
+  if (isPrimitive(serializable)) {
+    return serializable;
   }
 
   // Create source that we will use for the next iteration. It will either be an objectified error object (`Error` type
@@ -333,46 +343,63 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   const source = getWalkSource(value);
 
   // Create an accumulator that will act as a parent for all future itterations of that branch
-  const acc = Array.isArray(value) ? [] : {};
+  const acc: { [key: string]: any } = Array.isArray(value) ? [] : {};
 
   // If we already walked that branch, bail out, as it's circular reference
-  if (memo[0](value)) {
+  if (memoize(value)) {
     return '[Circular ~]';
   }
 
+  let propertyCount = 0;
   // Walk all keys of the source
   for (const innerKey in source) {
     // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
     if (!Object.prototype.hasOwnProperty.call(source, innerKey)) {
       continue;
     }
+
+    if (propertyCount >= maxProperties) {
+      acc[innerKey] = '[MaxProperties ~]';
+      break;
+    }
+
+    propertyCount += 1;
+
     // Recursively walk through all the child nodes
-    (acc as { [key: string]: any })[innerKey] = walk(innerKey, source[innerKey], depth - 1, memo);
+    const innerValue: UnknownMaybeWithToJson = source[innerKey];
+    acc[innerKey] = walk(innerKey, innerValue, depth - 1, maxProperties, memo);
   }
 
   // Once walked through all the branches, remove the parent from memo storage
-  memo[1](value);
+  unmemoize(value);
 
   // Return accumulated values
   return acc;
 }
 
 /**
- * normalize()
+ * Recursively normalizes the given object.
  *
  * - Creates a copy to prevent original input mutation
- * - Skip non-enumerablers
- * - Calls `toJSON` if implemented
+ * - Skips non-enumerable properties
+ * - When stringifying, calls `toJSON` if implemented
  * - Removes circular references
- * - Translates non-serializeable values (undefined/NaN/Functions) to serializable format
- * - Translates known global objects/Classes to a string representations
- * - Takes care of Error objects serialization
- * - Optionally limit depth of final output
+ * - Translates non-serializable values (`undefined`/`NaN`/functions) to serializable format
+ * - Translates known global objects/classes to a string representations
+ * - Takes care of `Error` object serialization
+ * - Optionally limits depth of final output
+ * - Optionally limits number of properties/elements included in any single object/array
+ *
+ * @param input The object to be normalized.
+ * @param depth The max depth to which to normalize the object. (Anything deeper stringified whole.)
+ * @param maxProperties The max number of elements or properties to be included in any single array or
+ * object in the normallized output..
+ * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normalization.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function normalize(input: any, depth?: number): any {
+export function normalize(input: unknown, depth: number = +Infinity, maxProperties: number = +Infinity): any {
   try {
-    return JSON.parse(JSON.stringify(input, (key: string, value: any) => walk(key, value, depth)));
+    // since we're at the outermost level, there is no key
+    return walk('', input as UnknownMaybeWithToJson, depth, maxProperties);
   } catch (_oO) {
     return '**non-serializable**';
   }

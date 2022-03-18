@@ -2,6 +2,10 @@
   "extends": "./packages/typescript/tsconfig.json",
 
   "compilerOptions": {
+    // TODO: turn these on once we switch to only generating types once, using `tsconfig.types.json`
+    // "declaration": false,
+    // "declarationMap": false,
+
     "allowSyntheticDefaultImports": true,
     "types": ["node"],
     "noErrorTruncation": true // move me up to @sentry/typescript

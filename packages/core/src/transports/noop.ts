@@ -8,7 +8,7 @@ export class NoopTransport implements Transport {
    */
   public sendEvent(_: Event): PromiseLike<Response> {
     return resolvedSyncPromise({
-      reason: `NoopTransport: Event has been skipped because no Dsn is configured.`,
+      reason: 'NoopTransport: Event has been skipped because no Dsn is configured.',
       status: 'skipped',
     });
   }

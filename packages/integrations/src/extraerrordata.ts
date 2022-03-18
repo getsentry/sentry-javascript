@@ -1,5 +1,5 @@
 import { Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
-import { isError, isPlainObject, logger, normalize } from '@sentry/utils';
+import { isDebugBuild, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 /** JSDoc */
 interface ExtraErrorDataOptions {
@@ -120,7 +120,7 @@ export class ExtraErrorData implements Integration {
 
       return extraErrorInfo;
     } catch (oO) {
-      logger.error('Unable to extract extra data from the Error object:', oO);
+      isDebugBuild() && logger.error('Unable to extract extra data from the Error object:', oO);
     }
 
     return null;

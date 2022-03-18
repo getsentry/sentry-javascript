@@ -17,5 +17,8 @@
     "editor.formatOnType": false,
     "editor.formatOnPaste": false,
     "editor.formatOnSave": false
-  }
+  },
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/**.yml"
+  },
 }

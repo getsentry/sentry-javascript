@@ -2,7 +2,7 @@ import ApplicationInstance from '@ember/application/instance';
 import Ember from 'ember';
 import { run, _backburner, scheduleOnce } from '@ember/runloop';
 import * as Sentry from '@sentry/browser';
-import { ExtendedBackburner } from "@sentry/ember/runloop";
+import { ExtendedBackburner } from '@sentry/ember/runloop';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
@@ -14,6 +14,11 @@ function getSentryConfig() {
   const _global = getGlobalObject<GlobalConfig>();
   _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
+  if (!environmentConfig.sentry) {
+    environmentConfig.sentry = {
+      browserTracingOptions: {},
+    };
+  }
   Object.assign(environmentConfig.sentry, _global.__sentryEmberConfig);
   return environmentConfig;
 }
@@ -29,7 +34,7 @@ export function initialize(appInstance: ApplicationInstance): void {
   }
 }
 
-function getBackburner(): Pick<ExtendedBackburner, "on" | "off"> {
+function getBackburner(): Pick<ExtendedBackburner, 'on' | 'off'> {
   if (_backburner) {
     return _backburner;
   }
@@ -40,8 +45,8 @@ function getBackburner(): Pick<ExtendedBackburner, "on" | "off"> {
 
   return {
     on() {},
-    off() {}
-  }
+    off() {},
+  };
 }
 
 function getTransitionInformation(transition: any, router: any) {

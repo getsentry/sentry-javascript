@@ -1,33 +1,11 @@
-import { makeBaseBundleConfig, terserPlugin } from '../../rollup.config';
+import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
 
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.ts',
   isAddOn: true,
-  outputFileBase: 'build/wasm',
+  jsVersion: 'es5',
+  licenseTitle: '@sentry/wasm',
+  outputFileBase: 'wasm',
 });
 
-function loadAllIntegrations() {
-  const builds = [];
-  [
-    {
-      extension: '.js',
-      plugins: baseBundleConfig.plugins,
-    },
-    {
-      extension: '.min.js',
-      plugins: [...baseBundleConfig.plugins, terserPlugin],
-    },
-  ].forEach(build => {
-    builds.push({
-      ...baseBundleConfig,
-      output: {
-        ...baseBundleConfig.output,
-        file: `${baseBundleConfig.output.file}${build.extension}`,
-      },
-      plugins: build.plugins,
-    });
-  });
-  return builds;
-}
-
-export default loadAllIntegrations();
+export default makeConfigVariants(baseBundleConfig);

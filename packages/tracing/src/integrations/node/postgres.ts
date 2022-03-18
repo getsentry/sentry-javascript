@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { fill, isThenable, loadModule, logger } from '@sentry/utils';
+import { fill, isDebugBuild, isThenable, loadModule, logger } from '@sentry/utils';
 
 interface PgClient {
   prototype: {
@@ -37,12 +37,12 @@ export class Postgres implements Integration {
     const pkg = loadModule<{ Client: PgClient; native: { Client: PgClient } }>('pg');
 
     if (!pkg) {
-      logger.error('Postgres Integration was unable to require `pg` package.');
+      isDebugBuild() && logger.error('Postgres Integration was unable to require `pg` package.');
       return;
     }
 
     if (this._usePgNative && !pkg.native?.Client) {
-      logger.error(`Postgres Integration was unable to access 'pg-native' bindings.`);
+      isDebugBuild() && logger.error("Postgres Integration was unable to access 'pg-native' bindings.");
       return;
     }
 
@@ -61,7 +61,7 @@ export class Postgres implements Integration {
         const parentSpan = scope?.getSpan();
         const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,
-          op: `db`,
+          op: 'db',
         });
 
         if (typeof callback === 'function') {

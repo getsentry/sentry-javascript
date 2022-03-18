@@ -128,8 +128,7 @@ function _wrapRAF(original: any): (callback: () => void) => any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (this: any, callback: () => void): () => void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return original.call(
-      this,
+    return original.apply(this, [
       wrap(callback, {
         mechanism: {
           data: {
@@ -140,7 +139,7 @@ function _wrapRAF(original: any): (callback: () => void) => any {
           type: 'instrument',
         },
       }),
-    );
+    ]);
   };
 }
 
@@ -225,8 +224,7 @@ function _wrapEventTarget(target: string): void {
         // can sometimes get 'Permission denied to access property "handle Event'
       }
 
-      return original.call(
-        this,
+      return original.apply(this, [
         eventName,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         wrap(fn as any as WrappedFunction, {
@@ -241,7 +239,7 @@ function _wrapEventTarget(target: string): void {
           },
         }),
         options,
-      );
+      ]);
     };
   });
 

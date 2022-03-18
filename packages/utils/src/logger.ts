@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { WrappedFunction } from '@sentry/types';
 
+import { isDebugBuild } from './env';
 import { getGlobalObject } from './global';
 
 // TODO: Implement different loggers for different environments
@@ -8,6 +9,8 @@ const global = getGlobalObject<Window | NodeJS.Global>();
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
+
+export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
 
 /** JSDoc */
 interface ExtensibleConsole extends Console {
@@ -23,7 +26,6 @@ interface ExtensibleConsole extends Console {
  */
 export function consoleSandbox(callback: () => any): any {
   const global = getGlobalObject<Window>();
-  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
 
   if (!('console' in global)) {
     return callback();
@@ -34,7 +36,7 @@ export function consoleSandbox(callback: () => any): any {
   const wrappedLevels: { [key: string]: any } = {};
 
   // Restore all wrapped console methods
-  levels.forEach(level => {
+  CONSOLE_LEVELS.forEach(level => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
       wrappedLevels[level] = originalConsole[level] as WrappedFunction;
@@ -79,7 +81,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.log(`${PREFIX}[Log]: ${args.join(' ')}`);
+      global.console.log(`${PREFIX}[Log]:`, ...args);
     });
   }
 
@@ -89,7 +91,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.warn(`${PREFIX}[Warn]: ${args.join(' ')}`);
+      global.console.warn(`${PREFIX}[Warn]:`, ...args);
     });
   }
 
@@ -99,13 +101,18 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.error(`${PREFIX}[Error]: ${args.join(' ')}`);
+      global.console.error(`${PREFIX}[Error]:`, ...args);
     });
   }
 }
 
-// Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
-global.__SENTRY__ = global.__SENTRY__ || {};
-const logger = (global.__SENTRY__.logger as Logger) || (global.__SENTRY__.logger = new Logger());
+const sentryGlobal = global.__SENTRY__ || {};
+const logger = (sentryGlobal.logger as Logger) || new Logger();
+
+if (isDebugBuild()) {
+  // Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
+  sentryGlobal.logger = logger;
+  global.__SENTRY__ = sentryGlobal;
+}
 
 export { logger };

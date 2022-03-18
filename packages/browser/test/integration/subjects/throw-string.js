@@ -1,5 +1,5 @@
 function throwStringError() {
-  throw "stringError";
+  throw 'stringError';
 }
 
 throwStringError();

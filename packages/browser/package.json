@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "6.18.1",
+  "version": "6.18.2",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -11,14 +11,14 @@
   },
   "main": "dist/index.js",
   "module": "esm/index.js",
-  "types": "dist/index.d.ts",
+  "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "6.18.1",
-    "@sentry/types": "6.18.1",
-    "@sentry/utils": "6.18.1",
+    "@sentry/core": "6.18.2",
+    "@sentry/types": "6.18.2",
+    "@sentry/utils": "6.18.2",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
@@ -27,7 +27,7 @@
     "chai": "^4.1.2",
     "chokidar": "^3.0.2",
     "jsdom": "^15.0.0",
-    "karma": "^4.1.0",
+    "karma": "^6.3.16",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-firefox-launcher": "^2.1.2",
@@ -44,18 +44,20 @@
     "webpack": "^4.30.0"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:bundle",
+    "build": "run-p build:cjs build:esm build:bundle build:types",
     "build:bundle": "rollup --config",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:dev": "run-p build:cjs build:esm",
+    "build:dev": "run-p build:cjs build:esm build:types",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:cjs:watch build:esm:watch build:bundle:watch",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:cjs:watch build:esm:watch build:bundle:watch build:types:watch",
     "build:bundle:watch": "rollup --config --watch",
     "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
-    "build:dev:watch": "run-p build:cjs:watch build:esm:watch",
+    "build:dev:watch": "run-p build:cjs:watch build:esm:watch build:types:watch",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm build coverage .rpt2_cache",
     "fix": "run-s fix:eslint fix:prettier",

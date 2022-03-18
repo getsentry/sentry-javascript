@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject, isInstanceOf, logger } from '@sentry/utils';
+import { getGlobalObject, isDebugBuild, isInstanceOf, logger } from '@sentry/utils';
 
 /** JSDoc */
 export class Ember implements Integration {
@@ -33,7 +33,7 @@ export class Ember implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._Ember) {
-      logger.error('EmberIntegration is missing an Ember instance');
+      isDebugBuild() && logger.error('EmberIntegration is missing an Ember instance');
       return;
     }
 

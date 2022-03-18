@@ -280,6 +280,8 @@ jobs:
     name: Upload Artifacts
     needs: job_build
     runs-on: ubuntu-latest
+    # Build artifacts are only needed for releasing workflow. 
+    if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -411,7 +413,11 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run build tests
+      - name: Run browser build tests
         run: |
           cd packages/browser
+          yarn test:package
+      - name: Run utils build tests
+        run: |
+          cd packages/utils
           yarn test:package

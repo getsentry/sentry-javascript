@@ -12,6 +12,7 @@ import {
 } from '@sentry/types';
 import {
   eventStatusFromHttpCode,
+  isDebugBuild,
   logger,
   makePromiseBuffer,
   parseRetryAfterHeader,
@@ -181,7 +182,7 @@ export abstract class BaseTransport implements Transport {
       }
       return true;
     } else if (raHeader) {
-      this._rateLimits.all = new Date(now + parseRetryAfterHeader(now, raHeader));
+      this._rateLimits.all = new Date(now + parseRetryAfterHeader(raHeader, now));
       return true;
     }
     return false;
@@ -236,11 +237,12 @@ export abstract class BaseTransport implements Transport {
 
             const limited = this._handleRateLimit(headers);
             if (limited)
-              logger.warn(
-                `Too many ${sentryRequest.type} requests, backing off until: ${this._disabledUntil(
-                  sentryRequest.type,
-                )}`,
-              );
+              isDebugBuild() &&
+                logger.warn(
+                  `Too many ${sentryRequest.type} requests, backing off until: ${this._disabledUntil(
+                    sentryRequest.type,
+                  )}`,
+                );
 
             if (status === 'success') {
               resolve({ status });
