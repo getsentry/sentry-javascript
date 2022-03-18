@@ -119,7 +119,7 @@ export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOp
 }
 
 /** JSDoc */
-function _isIgnoredError(event: Event, ignoreErrors: Partial<InboundFiltersOptions>['ignoreErrors']): boolean {
+function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): boolean {
   if (!ignoreErrors || !ignoreErrors.length) {
     return false;
   }
@@ -130,7 +130,7 @@ function _isIgnoredError(event: Event, ignoreErrors: Partial<InboundFiltersOptio
 }
 
 /** JSDoc */
-function _isDeniedUrl(event: Event, denyUrls: Partial<InboundFiltersOptions>['denyUrls']): boolean {
+function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
   // TODO: Use Glob instead?
   if (!denyUrls || !denyUrls.length) {
     return false;
@@ -140,7 +140,7 @@ function _isDeniedUrl(event: Event, denyUrls: Partial<InboundFiltersOptions>['de
 }
 
 /** JSDoc */
-function _isAllowedUrl(event: Event, allowUrls: Partial<InboundFiltersOptions>['allowUrls']): boolean {
+function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
   // TODO: Use Glob instead?
   if (!allowUrls || !allowUrls.length) {
     return true;
@@ -167,7 +167,7 @@ function _getPossibleEventMessages(event: Event): string[] {
 }
 
 /** JSDoc */
-function _isSentryError(event: Event, ignoreInternal: Partial<InboundFiltersOptions>['ignoreInternal']): boolean {
+function _isSentryError(event: Event, ignoreInternal?: boolean): boolean {
   if (ignoreInternal) {
     try {
       // @ts-ignore can't be a sentry error if undefined
