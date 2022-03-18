@@ -423,7 +423,7 @@ jobs:
           yarn test:package
 
   job_node_integration_tests:
-    name: Node SDK Integration Tests (${{ matrix.node }} - ${{ matrix.build }})
+    name: Node SDK Integration Tests (${{ matrix.node }})
     needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -431,7 +431,6 @@ jobs:
     strategy:
       matrix:
         node: [10, 12, 14, 16]
-        build: ['cjs', 'esm']
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -451,7 +450,6 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run integration tests
         env:
-          SENTRY_NODE_BUILD: ${{ matrix.build }}
           NODE_VERSION: ${{ matrix.node }}
         run: |
           cd packages/node-integration-tests

@@ -11,14 +11,9 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
-    "test": "jest --detectOpenHandles --runInBand --forceExit",
-    "test:esm": "SENTRY_NODE_BUILD=esm yarn test",
-    "test:cjs": "SENTRY_NODE_BUILD=cjs yarn test"
+    "test": "jest --detectOpenHandles --runInBand --forceExit"
   },
   "dependencies": {
-    "@babel/core": "^7.17.5",
-    "@babel/plugin-transform-modules-commonjs": "^7.16.8",
-    "babel-jest": "^24.9.0",
     "express": "^4.17.3",
     "nock": "^13.1.0",
     "portfinder": "^1.0.28"
