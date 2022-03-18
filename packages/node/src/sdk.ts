@@ -12,7 +12,6 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
-  new ContextLines(),
   // Native Wrappers
   new Console(),
   new Http(),
@@ -21,6 +20,8 @@ export const defaultIntegrations = [
   new OnUnhandledRejection(),
   // Misc
   new LinkedErrors(),
+  // ContextLines must come after LinkedErrors so that context is added to linked errors
+  new ContextLines(),
 ];
 
 /**
