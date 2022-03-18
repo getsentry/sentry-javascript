@@ -1,20 +1,14 @@
+import { EventEnvelope, EventItem } from '@sentry/types';
+import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
+
 import {
   createTransport,
-  MakeTransportRequest,
-  TransportResponse,
-  TransportMakeRequestResponse,
   ERROR_TRANSPORT_CATEGORY,
+  MakeTransportRequest,
   TRANSACTION_TRANSPORT_CATEGORY,
+  TransportMakeRequestResponse,
+  TransportResponse,
 } from '../../../src/transports/base';
-import { resolvedSyncPromise, PromiseBuffer, createEnvelope, serializeEnvelope } from '@sentry/utils';
-import { EventEnvelope, EventItem } from '@sentry/types';
-
-// eslint-disable-next-line no-var
-declare var window: any;
-
-const ENVELOPE_URL = 'https://sentry.io/api/42/envelope/?sentry_key=123&sentry_version=7';
-
-const DEFAULT_TRANSPORT_OPTIONS = { url: ENVELOPE_URL };
 
 const SUCCESS_REQUEST: MakeTransportRequest = _ => resolvedSyncPromise({ statusCode: 200 });
 
@@ -29,26 +23,26 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
 
 describe('createTransport', () => {
   it('has $ property', () => {
-    const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, SUCCESS_REQUEST);
+    const transport = createTransport({}, SUCCESS_REQUEST);
     expect(transport.$).toBeDefined();
   });
 
-  it('flushes the buffer', () => {
+  it('flushes the buffer', async () => {
     const mockBuffer: PromiseBuffer<TransportResponse> = {
       $: [],
       add: jest.fn(),
       drain: jest.fn(),
     };
-    const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, SUCCESS_REQUEST, mockBuffer);
+    const transport = createTransport({}, SUCCESS_REQUEST, mockBuffer);
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
-    transport.flush(1000);
+    await transport.flush(1000);
     expect(mockBuffer.drain).toHaveBeenCalledTimes(1);
     expect(mockBuffer.drain).toHaveBeenLastCalledWith(1000);
   });
 
   describe('send', () => {
     it('constructs a request to send to Sentry', () => {
-      const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, req => {
+      const transport = createTransport({}, req => {
         expect(req.category).toEqual(ERROR_TRANSPORT_CATEGORY);
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         return resolvedSyncPromise({ statusCode: 200 });
@@ -75,13 +69,14 @@ describe('createTransport', () => {
           .mockImplementationOnce(() => afterLimit)
           // 3rd event - updateRateLimits
           .mockImplementationOnce(() => afterLimit);
+
         let transportResponse: TransportMakeRequestResponse = {
           headers: {
             'retry-after': `${retryAfterSeconds}`,
           },
           statusCode: 429,
         };
-        const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, _ => {
+        const transport = createTransport({}, _ => {
           return resolvedSyncPromise(transportResponse);
         });
 
@@ -133,7 +128,7 @@ describe('createTransport', () => {
           },
           statusCode: 429,
         };
-        const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, _ => {
+        const transport = createTransport({}, _ => {
           return resolvedSyncPromise(transportResponse);
         });
 
@@ -194,7 +189,7 @@ describe('createTransport', () => {
           statusCode: 429,
         };
 
-        const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, _ => {
+        const transport = createTransport({}, _ => {
           return resolvedSyncPromise(transportResponse);
         });
 
@@ -262,7 +257,7 @@ describe('createTransport', () => {
           statusCode: 429,
         };
 
-        const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, _ => {
+        const transport = createTransport({}, _ => {
           return resolvedSyncPromise(transportResponse);
         });
 
@@ -317,14 +312,14 @@ describe('createTransport', () => {
           // 3rd event - updateRateLimits
           .mockImplementationOnce(() => afterLimit);
 
-        let transportResponse: TransportMakeRequestResponse = {
+        const transportResponse: TransportMakeRequestResponse = {
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
           },
           statusCode: 200,
         };
 
-        const transport = createTransport(DEFAULT_TRANSPORT_OPTIONS, _ => {
+        const transport = createTransport({}, _ => {
           return resolvedSyncPromise(transportResponse);
         });
 

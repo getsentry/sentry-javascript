@@ -43,12 +43,15 @@ export type TransportResponse = {
   reason?: string;
 };
 
-export interface BaseTransportOptions {
+interface InternalBaseTransportOptions {
+  bufferSize?: number;
+}
+
+export interface BaseTransportOptions extends InternalBaseTransportOptions {
   // url to send the event
   // transport does not care about dsn specific - client should take care of
   // parsing and figuring that out
   url: string;
-  bufferSize?: number;
 }
 
 // TODO: Move into Browser Transport
@@ -88,8 +91,8 @@ export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
  * @param options
  * @param makeRequest
  */
-export function createTransport<O extends BaseTransportOptions>(
-  options: O,
+export function createTransport(
+  options: InternalBaseTransportOptions,
   makeRequest: MakeTransportRequest,
   buffer: PromiseBuffer<TransportResponse> = makePromiseBuffer(options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE),
 ): NewTransport {
