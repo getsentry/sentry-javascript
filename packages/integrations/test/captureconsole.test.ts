@@ -160,6 +160,7 @@ describe('CaptureConsole setup', () => {
     global.console.assert(1 + 1 === 3);
 
     expect(mockScope.setExtra).toHaveBeenLastCalledWith('arguments', []);
+    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
     expect(mockHub.captureMessage).toHaveBeenCalledWith('Assertion failed: console.assert');
   });
 
@@ -173,6 +174,7 @@ describe('CaptureConsole setup', () => {
     global.console.assert(1 + 1 === 3, 'expression is false');
 
     expect(mockScope.setExtra).toHaveBeenLastCalledWith('arguments', ['expression is false']);
+    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
     expect(mockHub.captureMessage).toHaveBeenCalledWith('Assertion failed: expression is false');
   });
 
@@ -196,6 +198,7 @@ describe('CaptureConsole setup', () => {
     const someError = new Error('some error');
     global.console.error(someError);
 
+    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
     expect(mockHub.captureException).toHaveBeenCalledWith(someError);
   });
 
@@ -209,6 +212,7 @@ describe('CaptureConsole setup', () => {
     const someError = new Error('some error');
     global.console.error(someError);
 
+    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
     expect(mockHub.captureException).toHaveBeenCalledWith(someError);
   });
 
@@ -221,6 +225,7 @@ describe('CaptureConsole setup', () => {
 
     global.console.error('some message');
 
+    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
     expect(mockHub.captureMessage).toHaveBeenCalledWith('some message');
   });
 
@@ -233,6 +238,7 @@ describe('CaptureConsole setup', () => {
 
     global.console.error('some non-error message');
 
+    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
     expect(mockHub.captureMessage).toHaveBeenCalledWith('some non-error message');
     expect(mockHub.captureException).not.toHaveBeenCalled();
   });
@@ -246,6 +252,7 @@ describe('CaptureConsole setup', () => {
 
     global.console.info('some message');
 
+    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
     expect(mockHub.captureMessage).toHaveBeenCalledWith('some message');
   });
 
@@ -263,6 +270,7 @@ describe('CaptureConsole setup', () => {
 
     global.console.log('some message 1', 'some message 2');
 
+    expect(mockConsoleLog).toHaveBeenCalledTimes(1);
     expect(mockConsoleLog).toHaveBeenCalledWith('some message 1', 'some message 2');
 
     // Reset console log
