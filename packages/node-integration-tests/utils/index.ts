@@ -3,6 +3,7 @@
 import { Express } from 'express';
 import * as http from 'http';
 import nock from 'nock';
+import * as path from 'path';
 import { getPortPromise } from 'portfinder';
 
 const keysToReplace = {
@@ -69,17 +70,17 @@ const getEnvelopeRequest = async (url: string): Promise<Record<string, any>> => 
   });
 };
 
-async function runServer(testDir: string): Promise<string> {
+async function runServer(testDir: string, serverPath?: string, scenarioPath?: string): Promise<string> {
   const port = await getPortPromise();
   const url = `http://localhost:${port}/test`;
+  const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
   await new Promise(resolve => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const app = require(`${testDir}/server`).default as Express;
+    const app = require(serverPath || defaultServerPath).default as Express;
 
     app.get('/test', async () => {
-      require(`${testDir}/init`);
-      require(`${testDir}/subject`);
+      require(scenarioPath || `${testDir}/scenario`);
 
       setTimeout(() => server.close(), 500);
     });
