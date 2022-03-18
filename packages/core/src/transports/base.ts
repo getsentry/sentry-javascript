@@ -78,7 +78,7 @@ interface NewTransport {
   // old and new transports.
   $: boolean;
   send(request: Envelope, category: TransportCategory): PromiseLike<TransportResponse>;
-  flush(timeout: number): PromiseLike<boolean>;
+  flush(timeout?: number): PromiseLike<boolean>;
 }
 
 type MakeTransportRequest = (request: TransportRequest) => PromiseLike<TransportMakeRequestResponse>;
