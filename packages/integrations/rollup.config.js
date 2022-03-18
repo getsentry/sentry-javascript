@@ -5,20 +5,20 @@ import { insertAt, makeBaseBundleConfig, makeConfigVariants } from '../../rollup
 const builds = [];
 
 const file = process.env.INTEGRATION_FILE;
+const jsVersion = process.env.JS_VERSION;
 
 const baseBundleConfig = makeBaseBundleConfig({
   input: `src/${file}`,
   isAddOn: true,
-  jsVersion: 'es5',
+  jsVersion,
   licenseTitle: '@sentry/integrations',
-  // TODO this doesn't currently need to be a template string, but soon will need to be, so leaving it in that form
-  // for now
-  outputFileBase: `${file.replace('.ts', '')}`,
+  outputFileBase: `${file.replace('.ts', '')}${jsVersion === 'ES6' ? '.es6' : ''}`,
 });
 
 // TODO We only need `commonjs` for localforage (used in the offline plugin). Once that's fixed, this can come out.
 baseBundleConfig.plugins = insertAt(baseBundleConfig.plugins, -2, commonjs());
 
+// this makes non-minified, minified, and minified-with-debug-logging versions of each bundle
 builds.push(...makeConfigVariants(baseBundleConfig));
 
 export default builds;

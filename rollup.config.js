@@ -94,6 +94,13 @@ export function makeBaseBundleConfig(options) {
       },
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
+    // the typescript plugin doesn't handle concurrency very well, so clean the cache between builds
+    // (see https://github.com/ezolenko/rollup-plugin-typescript2/issues/15)
+    clean: true,
+    // TODO: For the moment, the above issue seems to have stopped spamming the build with (non-blocking) errors, as it
+    // was originally. If it starts again, this will suppress that output. If we get to the end of the bundle revamp and
+    // it still seems okay, we can take this out entirely.
+    // verbosity: 0,
   };
 
   const typescriptPluginES5 = typescript(

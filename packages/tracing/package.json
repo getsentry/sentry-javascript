@@ -11,7 +11,7 @@
   },
   "main": "dist/index.js",
   "module": "esm/index.js",
-  "types": "dist/index.d.ts",
+  "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -29,18 +29,20 @@
     "jsdom": "^16.2.2"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:bundle",
+    "build": "run-p build:cjs build:esm build:types build:bundle",
     "build:bundle": "rollup --config",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:dev": "run-s build:cjs build:esm",
+    "build:dev": "run-s build:cjs build:esm build:types",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:cjs:watch build:esm:watch build:bundle:watch",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:cjs:watch build:esm:watch build:bundle:watch build:types:watch",
     "build:bundle:watch": "rollup --config --watch",
     "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
     "build:dev:watch": "run-s build:watch",
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "clean": "rimraf dist esm build coverage",
     "circularDepCheck": "madge --circular src/index.ts",
     "fix": "run-s fix:eslint fix:prettier",

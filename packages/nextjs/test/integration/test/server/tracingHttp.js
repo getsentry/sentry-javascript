@@ -9,9 +9,7 @@ module.exports = async ({ url: urlBase, argv }) => {
   const url = `${urlBase}/api/http`;
 
   // this intercepts the outgoing request made by the route handler (which it makes in order to test span creation)
-  nock('http://example.com')
-    .get('/')
-    .reply(200, 'ok');
+  nock('http://example.com').get('/').reply(200, 'ok');
 
   const capturedRequest = interceptTracingRequest(
     {

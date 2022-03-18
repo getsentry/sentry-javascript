@@ -6,30 +6,30 @@
  * @version   v4.2.8+1e68dce6
  */
 
-(function(global, factory) {
-  typeof exports === "object" && typeof module !== "undefined"
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined'
     ? (module.exports = factory())
-    : typeof define === "function" && define.amd
+    : typeof define === 'function' && define.amd
     ? define(factory)
     : (global.ES6Promise = factory());
-})(this, function() {
-  "use strict";
+})(this, function () {
+  'use strict';
 
   function objectOrFunction(x) {
     var type = typeof x;
-    return x !== null && (type === "object" || type === "function");
+    return x !== null && (type === 'object' || type === 'function');
   }
 
   function isFunction(x) {
-    return typeof x === "function";
+    return typeof x === 'function';
   }
 
   var _isArray = void 0;
   if (Array.isArray) {
     _isArray = Array.isArray;
   } else {
-    _isArray = function(x) {
-      return Object.prototype.toString.call(x) === "[object Array]";
+    _isArray = function (x) {
+      return Object.prototype.toString.call(x) === '[object Array]';
     };
   }
 
@@ -63,34 +63,31 @@
     asap = asapFn;
   }
 
-  var browserWindow = typeof window !== "undefined" ? window : undefined;
+  var browserWindow = typeof window !== 'undefined' ? window : undefined;
   var browserGlobal = browserWindow || {};
-  var BrowserMutationObserver =
-    browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
+  var BrowserMutationObserver = browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
   var isNode =
-    typeof self === "undefined" &&
-    typeof process !== "undefined" &&
-    {}.toString.call(process) === "[object process]";
+    typeof self === 'undefined' && typeof process !== 'undefined' && {}.toString.call(process) === '[object process]';
 
   // test for web worker but not in IE10
   var isWorker =
-    typeof Uint8ClampedArray !== "undefined" &&
-    typeof importScripts !== "undefined" &&
-    typeof MessageChannel !== "undefined";
+    typeof Uint8ClampedArray !== 'undefined' &&
+    typeof importScripts !== 'undefined' &&
+    typeof MessageChannel !== 'undefined';
 
   // node
   function useNextTick() {
     // node version 0.10.x displays a deprecation warning when nextTick is used recursively
     // see https://github.com/cujojs/when/issues/410 for details
-    return function() {
+    return function () {
       return process.nextTick(flush);
     };
   }
 
   // vertx
   function useVertxTimer() {
-    if (typeof vertxNext !== "undefined") {
-      return function() {
+    if (typeof vertxNext !== 'undefined') {
+      return function () {
         vertxNext(flush);
       };
     }
@@ -101,10 +98,10 @@
   function useMutationObserver() {
     var iterations = 0;
     var observer = new BrowserMutationObserver(flush);
-    var node = document.createTextNode("");
+    var node = document.createTextNode('');
     observer.observe(node, { characterData: true });
 
-    return function() {
+    return function () {
       // eslint-disable-next-line no-plusplus
       node.data = iterations = ++iterations % 2;
     };
@@ -114,7 +111,7 @@
   function useMessageChannel() {
     var channel = new MessageChannel();
     channel.port1.onmessage = flush;
-    return function() {
+    return function () {
       return channel.port2.postMessage(0);
     };
   }
@@ -123,7 +120,7 @@
     // Store setTimeout reference so es6-promise will be unaffected by
     // other code modifying setTimeout (like sinon.useFakeTimers())
     var globalSetTimeout = setTimeout;
-    return function() {
+    return function () {
       return globalSetTimeout(flush, 1);
     };
   }
@@ -145,7 +142,7 @@
 
   function attemptVertx() {
     try {
-      var vertx = Function("return this")().require("vertx");
+      var vertx = Function('return this')().require('vertx');
       vertxNext = vertx.runOnLoop || vertx.runOnContext;
       return useVertxTimer();
     } catch (e) {
@@ -161,7 +158,7 @@
     scheduleFlush = useMutationObserver();
   } else if (isWorker) {
     scheduleFlush = useMessageChannel();
-  } else if (browserWindow === undefined && typeof require === "function") {
+  } else if (browserWindow === undefined && typeof require === 'function') {
     scheduleFlush = attemptVertx();
   } else {
     scheduleFlush = useSetTimeout();
@@ -180,7 +177,7 @@
 
     if (_state) {
       var callback = arguments[_state - 1];
-      asap(function() {
+      asap(function () {
         return invokeCallback(_state, child, callback, parent._result);
       });
     } else {
@@ -225,11 +222,7 @@
     /* jshint validthis:true */
     var Constructor = this;
 
-    if (
-      object &&
-      typeof object === "object" &&
-      object.constructor === Constructor
-    ) {
+    if (object && typeof object === 'object' && object.constructor === Constructor) {
       return object;
     }
 
@@ -238,9 +231,7 @@
     return promise;
   }
 
-  var PROMISE_ID = Math.random()
-    .toString(36)
-    .substring(2);
+  var PROMISE_ID = Math.random().toString(36).substring(2);
 
   function noop() {}
 
@@ -249,13 +240,11 @@
   var REJECTED = 2;
 
   function selfFulfillment() {
-    return new TypeError("You cannot resolve a promise with itself");
+    return new TypeError('You cannot resolve a promise with itself');
   }
 
   function cannotReturnOwn() {
-    return new TypeError(
-      "A promises callback cannot return that same promise."
-    );
+    return new TypeError('A promises callback cannot return that same promise.');
   }
 
   function tryThen(then$$1, value, fulfillmentHandler, rejectionHandler) {
@@ -267,12 +256,12 @@
   }
 
   function handleForeignThenable(promise, thenable, then$$1) {
-    asap(function(promise) {
+    asap(function (promise) {
       var sealed = false;
       var error = tryThen(
         then$$1,
         thenable,
-        function(value) {
+        function (value) {
           if (sealed) {
             return;
           }
@@ -283,7 +272,7 @@
             fulfill(promise, value);
           }
         },
-        function(reason) {
+        function (reason) {
           if (sealed) {
             return;
           }
@@ -291,7 +280,7 @@
 
           reject(promise, reason);
         },
-        "Settle: " + (promise._label || " unknown promise")
+        'Settle: ' + (promise._label || ' unknown promise')
       );
 
       if (!sealed && error) {
@@ -310,10 +299,10 @@
       subscribe(
         thenable,
         undefined,
-        function(value) {
+        function (value) {
           return resolve(promise, value);
         },
-        function(reason) {
+        function (reason) {
           return reject(promise, reason);
         }
       );
@@ -490,10 +479,10 @@
   }
 
   function validationError() {
-    return new Error("Array Methods must be provided an Array");
+    return new Error('Array Methods must be provided an Array');
   }
 
-  var Enumerator = (function() {
+  var Enumerator = (function () {
     function Enumerator(Constructor, input) {
       this._instanceConstructor = Constructor;
       this.promise = new Constructor(noop);
@@ -545,7 +534,7 @@
 
         if (_then === then && entry._state !== PENDING) {
           this._settledAt(entry._state, i, entry._result);
-        } else if (typeof _then !== "function") {
+        } else if (typeof _then !== 'function') {
           this._remaining -= 1;
           this._result[i] = entry;
         } else if (c === Promise$2) {
@@ -558,7 +547,7 @@
           this._willSettleAt(promise, i);
         } else {
           this._willSettleAt(
-            new c(function(resolve$$1) {
+            new c(function (resolve$$1) {
               return resolve$$1(entry);
             }),
             i
@@ -593,10 +582,10 @@
       subscribe(
         promise,
         undefined,
-        function(value) {
+        function (value) {
           return enumerator._settledAt(FULFILLED, i, value);
         },
-        function(reason) {
+        function (reason) {
           return enumerator._settledAt(REJECTED, i, reason);
         }
       );
@@ -726,11 +715,11 @@
     var Constructor = this;
 
     if (!isArray(entries)) {
-      return new Constructor(function(_, reject) {
-        return reject(new TypeError("You must pass an array to race."));
+      return new Constructor(function (_, reject) {
+        return reject(new TypeError('You must pass an array to race.'));
       });
     } else {
-      return new Constructor(function(resolve, reject) {
+      return new Constructor(function (resolve, reject) {
         var length = entries.length;
         for (var i = 0; i < length; i++) {
           Constructor.resolve(entries[i]).then(resolve, reject);
@@ -782,9 +771,7 @@
   }
 
   function needsResolver() {
-    throw new TypeError(
-      "You must pass a resolver function as the first argument to the promise constructor"
-    );
+    throw new TypeError('You must pass a resolver function as the first argument to the promise constructor');
   }
 
   function needsNew() {
@@ -897,17 +884,15 @@
   @constructor
 */
 
-  var Promise$2 = (function() {
+  var Promise$2 = (function () {
     function Promise(resolver) {
       this[PROMISE_ID] = nextId();
       this._result = this._state = undefined;
       this._subscribers = [];
 
       if (noop !== resolver) {
-        typeof resolver !== "function" && needsResolver();
-        this instanceof Promise
-          ? initializePromise(this, resolver)
-          : needsNew();
+        typeof resolver !== 'function' && needsResolver();
+        this instanceof Promise ? initializePromise(this, resolver) : needsNew();
       }
     }
 
@@ -1145,13 +1130,13 @@
 
       if (isFunction(callback)) {
         return promise.then(
-          function(value) {
-            return constructor.resolve(callback()).then(function() {
+          function (value) {
+            return constructor.resolve(callback()).then(function () {
               return value;
             });
           },
-          function(reason) {
-            return constructor.resolve(callback()).then(function() {
+          function (reason) {
+            return constructor.resolve(callback()).then(function () {
               throw reason;
             });
           }
@@ -1176,17 +1161,15 @@
   function polyfill() {
     var local = void 0;
 
-    if (typeof global !== "undefined") {
+    if (typeof global !== 'undefined') {
       local = global;
-    } else if (typeof self !== "undefined") {
+    } else if (typeof self !== 'undefined') {
       local = self;
     } else {
       try {
-        local = Function("return this")();
+        local = Function('return this')();
       } catch (e) {
-        throw new Error(
-          "polyfill failed because global object is unavailable in this environment"
-        );
+        throw new Error('polyfill failed because global object is unavailable in this environment');
       }
     }
 
@@ -1200,7 +1183,7 @@
         // silently ignored
       }
 
-      if (promiseToString === "[object Promise]" && !P.cast) {
+      if (promiseToString === '[object Promise]' && !P.cast) {
         return;
       }
     }

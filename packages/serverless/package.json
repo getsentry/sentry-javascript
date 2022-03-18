@@ -11,7 +11,7 @@
   },
   "main": "dist/index.js",
   "module": "esm/index.js",
-  "types": "dist/index.d.ts",
+  "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -39,17 +39,19 @@
     "read-pkg": "^5.2.0"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm && yarn build:awslambda-layer",
+    "build": "run-p build:cjs build:esm build:types && yarn build:awslambda-layer",
     "build:awslambda-layer": "node scripts/build-awslambda-layer.js",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:dev": "run-s build:cjs build:esm",
+    "build:dev": "run-s build:cjs build:esm build:types",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "run-p build:cjs:watch build:esm:watch",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:cjs:watch build:esm:watch build:types:watch",
     "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
     "build:dev:watch": "run-s build:watch",
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm build dist-awslambda-layer coverage",
     "fix": "run-s fix:eslint fix:prettier",

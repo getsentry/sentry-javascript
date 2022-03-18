@@ -35,7 +35,7 @@
     "@sentry/tracing": "6.18.2",
     "@sentry/types": "6.18.2",
     "@sentry/utils": "6.18.2",
-    "ember-auto-import": "^1.12.0 || ^2.2.0",
+    "ember-auto-import": "~1.12.1 || ~2.2.0",
     "ember-cli-babel": "~7.26.6",
     "ember-cli-htmlbars": "^6.0.1",
     "ember-cli-typescript": "^4.2.1"

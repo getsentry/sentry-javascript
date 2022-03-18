@@ -7,7 +7,7 @@ import { _instrumentEmberRouter } from '@sentry/ember/instance-initializers/sent
 let _routerStartTransaction;
 
 export function setupSentryTest(hooks) {
-  hooks.beforeEach(async function() {
+  hooks.beforeEach(async function () {
     await window._sentryPerformanceLoad;
     window._sentryTestEvents = [];
     const errorMessages = [];
@@ -36,12 +36,12 @@ export function setupSentryTest(hooks) {
       QUnit.onUncaughtException ? 'onUncaughtException' : 'onUnhandledRejection',
     );
 
-    QUnit.onError = function({ message }) {
+    QUnit.onError = function ({ message }) {
       errorMessages.push(message.split('Error: ')[1]);
       return true;
     };
 
-    Ember.onerror = function(...args) {
+    Ember.onerror = function (...args) {
       const [error] = args;
       errorMessages.push(error.message);
       throw error;
@@ -52,7 +52,7 @@ export function setupSentryTest(hooks) {
     /**
      * Will collect errors when run via testem in cli
      */
-    window.onerror = function(error, ...args) {
+    window.onerror = function (error, ...args) {
       errorMessages.push(error.split('Error: ')[1]);
       if (this._windowOnError) {
         return this._windowOnError(error, ...args);
@@ -60,7 +60,7 @@ export function setupSentryTest(hooks) {
     };
   });
 
-  hooks.afterEach(function() {
+  hooks.afterEach(function () {
     this.fetchStub.restore();
     this.qunitOnUnhandledRejection.restore();
     window.onerror = this._windowOnError;

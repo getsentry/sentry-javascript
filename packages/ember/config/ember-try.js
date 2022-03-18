@@ -9,7 +9,7 @@ const { embroiderSafe } = require('@embroider/test-setup');
  *
  * @returns The versions which should be tested, along with their respective config
  */
-module.exports = async function() {
+module.exports = async function () {
   // whenever and wherever we test, we want to at least test against the latest version of ember
   let scenarios = [
     {
@@ -27,7 +27,7 @@ module.exports = async function() {
   if (process.env.GITHUB_ACTIONS) {
     scenarios = scenarios.concat([
       {
-        name: 'ember-lts-3.20',
+        name: 'ember-lts-3.24',
         npm: {
           devDependencies: {
             'ember-source': '~3.24.0',
