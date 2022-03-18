@@ -1482,8 +1482,8 @@
     "@sentry/types" "6.18.2"
     tslib "^1.9.3"
 
-"@sentry/replay@file:..":
-  version "0.0.1"
+"@sentry/replay@file:../dist":
+  version "0.0.0"
 
 "@sentry/types@6.18.2":
   version "6.18.2"
