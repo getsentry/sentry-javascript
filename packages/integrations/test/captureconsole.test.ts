@@ -32,7 +32,7 @@ describe('CaptureConsole setup', () => {
     Object.assign(global.console, originalConsole);
   });
 
-  it('should respect user-provided console levels', () => {
+  it('should patch user-configured console levels', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'warn'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
