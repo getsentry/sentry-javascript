@@ -179,6 +179,31 @@ describe('CaptureConsole setup', () => {
     expect(mockHub.captureException).toHaveBeenCalledWith(someError);
   });
 
+  it('should capture exception on `console.error` when no levels are provided in constructor', () => {
+    const captureConsoleIntegration = new CaptureConsole();
+    captureConsoleIntegration.setupOnce(
+      () => undefined,
+      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+    );
+
+    const someError = new Error('some error');
+    global.console.error(someError);
+
+    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+  });
+
+  it('should capture message on `console.log` when no levels are provided in constructor', () => {
+    const captureConsoleIntegration = new CaptureConsole();
+    captureConsoleIntegration.setupOnce(
+      () => undefined,
+      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+    );
+
+    global.console.error('some message');
+
+    expect(mockHub.captureMessage).toHaveBeenCalledWith('some message');
+  });
+
   it('should capture message when console logs a non-error object with level set to "error"', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
     captureConsoleIntegration.setupOnce(
