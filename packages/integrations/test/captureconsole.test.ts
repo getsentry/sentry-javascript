@@ -239,21 +239,6 @@ describe('CaptureConsole setup', () => {
     expect(global.console.error).not.toBe(originalConsole.error);
   });
 
-  it('should not wrap any levels that are not members of console', () => {
-    const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'someNonExistingLevel', 'error'] });
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
-    );
-
-    // The provided level should not be created
-    expect(global.console['someNonExistingLevel']).toBeUndefined();
-
-    // Ohter levels should be wrapped as expected
-    expect(global.console.log).not.toBe(originalConsole.log);
-    expect(global.console.error).not.toBe(originalConsole.error);
-  });
-
   it('should wrap the console when the client does not have a registered captureconsole integration, but not capture any messages', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'error'] });
     captureConsoleIntegration.setupOnce(
