@@ -75,7 +75,9 @@ export class ContextLines implements Integration {
   public async addSourceContext(event: Event, contextLines: number): Promise<Event> {
     if (contextLines > 0 && event.exception?.values) {
       for (const exception of event.exception.values) {
-        await this._addSourceContextToFrames(exception.stacktrace?.frames, contextLines);
+        if (exception.stacktrace?.frames) {
+          await this._addSourceContextToFrames(exception.stacktrace.frames, contextLines);
+        }
       }
     }
 
@@ -83,20 +85,18 @@ export class ContextLines implements Integration {
   }
 
   /** Adds context lines to frames */
-  public async _addSourceContextToFrames(frames: StackFrame[] | undefined, contextLines: number): Promise<void> {
-    if (frames) {
-      for (const frame of frames) {
-        if (frame.filename) {
-          const sourceFile = await _readSourceFile(frame.filename);
+  public async _addSourceContextToFrames(frames: StackFrame[], contextLines: number): Promise<void> {
+    for (const frame of frames) {
+      if (frame.filename) {
+        const sourceFile = await _readSourceFile(frame.filename);
 
-          if (sourceFile) {
-            try {
-              const lines = sourceFile.split('\n');
-              addContextToFrame(lines, frame, contextLines);
-            } catch (e) {
-              // anomaly, being defensive in case
-              // unlikely to ever happen in practice but can definitely happen in theory
-            }
+        if (sourceFile) {
+          try {
+            const lines = sourceFile.split('\n');
+            addContextToFrame(lines, frame, contextLines);
+          } catch (e) {
+            // anomaly, being defensive in case
+            // unlikely to ever happen in practice but can definitely happen in theory
           }
         }
       }
