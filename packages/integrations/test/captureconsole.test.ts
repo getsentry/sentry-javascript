@@ -64,6 +64,26 @@ describe('CaptureConsole setup', () => {
     expect(global.console.table).toBe(originalConsole.table);
   });
 
+  it('should not wrap any functions with an empty levels option', () => {
+    const captureConsoleIntegration = new CaptureConsole({ levels: [] });
+    captureConsoleIntegration.setupOnce(
+      () => undefined,
+      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+    );
+
+    // expect the default set of console levels not to have been monkey patched
+    expect(global.console.debug).toBe(originalConsole.debug);
+    expect(global.console.info).toBe(originalConsole.info);
+    expect(global.console.warn).toBe(originalConsole.warn);
+    expect(global.console.error).toBe(originalConsole.error);
+    expect(global.console.log).toBe(originalConsole.log);
+    expect(global.console.assert).toBe(originalConsole.assert);
+
+    // expect no message to be captured with console.log
+    global.console.log('some message');
+    expect(mockHub.captureMessage).not.toHaveBeenCalled();
+  });
+
   it('setup should fail gracefully when console is not available', () => {
     const consoleRef = global.console;
     // remove console
