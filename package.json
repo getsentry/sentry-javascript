@@ -12,7 +12,7 @@
     "build:watch": "lerna run --parallel build:watch",
     "build:dev:watch": "lerna run --parallel build:dev:watch",
     "build:types:watch": "ts-node scripts/build-types-watch.ts",
-    "build:npm:changed": "lerna run build:npm --since",
+    "build:npm": "lerna run --parallel build:npm",
     "circularDepCheck": "lerna run --parallel circularDepCheck",
     "clean": "lerna run --parallel clean && lerna clean --yes",
     "codecov": "codecov",
