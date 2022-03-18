@@ -34,20 +34,22 @@ describe('createTransport', () => {
       drain: jest.fn(),
     };
     const transport = createTransport({}, SUCCESS_REQUEST, mockBuffer);
+    /* eslint-disable @typescript-eslint/unbound-method */
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
     await transport.flush(1000);
     expect(mockBuffer.drain).toHaveBeenCalledTimes(1);
     expect(mockBuffer.drain).toHaveBeenLastCalledWith(1000);
+    /* eslint-enable @typescript-eslint/unbound-method */
   });
 
   describe('send', () => {
-    it('constructs a request to send to Sentry', () => {
+    it('constructs a request to send to Sentry', async () => {
       const transport = createTransport({}, req => {
         expect(req.category).toEqual(ERROR_TRANSPORT_CATEGORY);
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         return resolvedSyncPromise({ statusCode: 200 });
       });
-      transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+      await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
     });
 
     describe('Rate-limiting', () => {
