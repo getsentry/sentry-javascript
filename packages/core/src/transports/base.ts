@@ -123,7 +123,7 @@ export function createTransport<O extends BaseTransportOptions>(
         return rejectedSyncPromise({
           status,
           reason:
-            body || reason || status === 'rate_limit'
+            reason || body || status === 'rate_limit'
               ? getRateLimitReason(rateLimits, category)
               : 'Unknown transport error',
         });
