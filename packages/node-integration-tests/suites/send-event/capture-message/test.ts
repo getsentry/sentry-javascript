@@ -1,8 +1,11 @@
-import { getEventRequest, runServer, updateForSnapshot } from '../../../utils';
+import { assertSentryEvent, getEventRequest, runServer } from '../../../utils';
 
 test('should send captureMessage', async () => {
   const url = await runServer(__dirname);
   const requestBody = await getEventRequest(url);
 
-  expect(updateForSnapshot(requestBody)).toMatchSnapshot();
+  assertSentryEvent(requestBody, {
+    message: 'Message',
+    level: 'info',
+  });
 });

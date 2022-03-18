@@ -1,40 +1,30 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Express } from 'express';
 import * as http from 'http';
 import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
 
-const keysToReplace = {
-  timestamp: expect.any(Number),
-  event_id: expect.any(String),
-  filename: expect.any(String),
-  version: expect.any(String),
-  lineno: expect.any(Number),
-};
-
-const deepReplace = (obj: Record<string, any>, keyName: string, replacer: (from: any) => string): void => {
-  for (const key in obj) {
-    if (key === keyName) {
-      obj[key] = replacer(obj[key]);
-    } else if (Array.isArray(obj[key])) {
-      (obj[key] as any[]).forEach(member => deepReplace(member, keyName, replacer));
-    } else if (typeof obj[key] === 'object') {
-      deepReplace(obj[key], keyName, replacer);
-    }
-  }
-};
-
-const updateForSnapshot = (obj: Record<string, any>): Record<string, any> => {
-  Object.entries(keysToReplace).forEach(([key, value]) => {
-    deepReplace(obj, key, () => value);
+const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
+  expect(actual).toMatchObject({
+    event_id: expect.any(String),
+    timestamp: expect.any(Number),
+    ...expected,
   });
-
-  return obj;
 };
 
-const parseEnvelope = (body: string): Record<string, unknown> => {
+const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
+  expect(actual).toMatchObject({
+    event_id: expect.any(String),
+    timestamp: expect.any(Number),
+    start_timestamp: expect.any(Number),
+    spans: expect.any(Array),
+    type: 'transaction',
+    ...expected,
+  });
+};
+
+const parseEnvelope = (body: string): Record<string, Record<string, unknown>> => {
   const [envelopeHeaderString, itemHeaderString, itemString] = body.split('\n');
 
   return {
@@ -57,11 +47,12 @@ const getEventRequest = async (url: string): Promise<Record<string, any>> => {
   });
 };
 
-const getEnvelopeRequest = async (url: string): Promise<Record<string, any>> => {
+const getEnvelopeRequest = async (url: string): Promise<Record<string, unknown>> => {
   return new Promise(resolve => {
-    nock(/ingest\.sentry\.io/)
-      .post(/api\/1337\/envelope/, body => {
-        resolve(body);
+    nock('https://dsn.ingest.sentry.io')
+      .post('/api/1337/envelope/', body => {
+        const { item } = parseEnvelope(body);
+        resolve(item);
         return true;
       })
       .reply(200);
@@ -76,7 +67,7 @@ async function runServer(testDir: string, serverPath?: string, scenarioPath?: st
   const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
   await new Promise(resolve => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
     const app = require(serverPath || defaultServerPath).default as Express;
 
     app.get('/test', async () => {
@@ -93,4 +84,4 @@ async function runServer(testDir: string, serverPath?: string, scenarioPath?: st
   return url;
 }
 
-export { parseEnvelope, getEventRequest, getEnvelopeRequest, updateForSnapshot, runServer };
+export { assertSentryEvent, assertSentryTransaction, parseEnvelope, getEventRequest, getEnvelopeRequest, runServer };

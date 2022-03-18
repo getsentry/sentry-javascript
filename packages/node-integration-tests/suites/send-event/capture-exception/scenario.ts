@@ -5,4 +5,4 @@ Sentry.init({
   release: '1.0',
 });
 
-Sentry.captureException('Error');
+Sentry.captureException('Captured Error');
