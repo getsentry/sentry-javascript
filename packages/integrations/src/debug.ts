@@ -1,13 +1,17 @@
 import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
-/** JSDoc */
 interface DebugOptions {
+  /** Controls whether console output created by this integration should be stringified. Default: `false` */
   stringify?: boolean;
+  /** Controls whether a debugger should be launched before an event is sent. Default: `false` */
   debugger?: boolean;
 }
 
-/** JSDoc */
+/**
+ * Integration to debug sent Sentry events.
+ * This integration should not be used in production
+ */
 export class Debug implements Integration {
   /**
    * @inheritDoc
@@ -19,12 +23,8 @@ export class Debug implements Integration {
    */
   public name: string = Debug.id;
 
-  /** JSDoc */
   private readonly _options: DebugOptions;
 
-  /**
-   * @inheritDoc
-   */
   public constructor(options?: DebugOptions) {
     this._options = {
       debugger: false,
