@@ -22,7 +22,8 @@
     "pack:changed": "lerna run pack --since",
     "prepublishOnly": "lerna run --stream --concurrency 1 prepublishOnly",
     "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish",
-    "test": "lerna run --ignore @sentry-internal/browser-integration-tests --stream --concurrency 1 --sort test"
+    "test": "lerna run --ignore @sentry-internal/browser-integration-tests --stream --concurrency 1 --sort test",
+    "test-ci": "ts-node ./scripts/test.ts"
   },
   "volta": {
     "node": "14.17.0",
@@ -84,7 +85,7 @@
     "sinon": "^7.3.2",
     "size-limit": "^4.5.5",
     "ts-jest": "^24.3.0",
-    "ts-node": "^10.7.0",
+    "ts-node": "^8.10.2",
     "tslib": "^2.3.1",
     "typedoc": "^0.18.0",
     "typescript": "3.7.5"
