@@ -24,17 +24,11 @@ const assertSentryTransaction = (actual: Record<string, unknown>, expected: Reco
   });
 };
 
-const parseEnvelope = (body: string): Record<string, Record<string, unknown>> => {
-  const [envelopeHeaderString, itemHeaderString, itemString] = body.split('\n');
-
-  return {
-    envelopeHeader: JSON.parse(envelopeHeaderString),
-    itemHeader: JSON.parse(itemHeaderString),
-    item: JSON.parse(itemString),
-  };
+const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
+  return body.split('\n').map(e => JSON.parse(e));
 };
 
-const getEventRequest = async (url: string): Promise<Record<string, any>> => {
+const getEventRequest = async (url: string): Promise<Record<string, unknown>> => {
   return new Promise(resolve => {
     nock('https://dsn.ingest.sentry.io')
       .post('/api/1337/store/', body => {
@@ -47,12 +41,12 @@ const getEventRequest = async (url: string): Promise<Record<string, any>> => {
   });
 };
 
-const getEnvelopeRequest = async (url: string): Promise<Record<string, unknown>> => {
+const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unknown>>> => {
   return new Promise(resolve => {
     nock('https://dsn.ingest.sentry.io')
       .post('/api/1337/envelope/', body => {
-        const { item } = parseEnvelope(body);
-        resolve(item);
+        const envelope = parseEnvelope(body);
+        resolve(envelope);
         return true;
       })
       .reply(200);
