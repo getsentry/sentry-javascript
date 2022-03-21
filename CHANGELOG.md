@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.19.1
+
+This release fixes a bug from 6.19.0 causing type import errors in most JS SDKs.
+
+fix(types): Point to type definitions in dist folder [#4745](https://github.com/getsentry/sentry-javascript/pull/4745)
+
 ## 6.19.0
 
 This release makes a change to the data normalization process, limiting the number of entries or properties which will be included in any given array or object to 1000. Previously there was no limit, so in rare cases you may notice a change in your context data. If this is a problem, you can increase the limit with the new `maxNormalizationBreadth` setting. See [#4689](https://github.com/getsentry/sentry-javascript/pull/4689) for details.
