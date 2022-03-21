@@ -15,7 +15,7 @@
   },
   "main": "dist/index.js",
   "module": "esm/index.js",
-  "types": "build/types/index.d.ts",
+  "types": "dist/index.d.ts",
   "files": [
     "/dist",
     "/esm",

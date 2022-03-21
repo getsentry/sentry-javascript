@@ -14,7 +14,7 @@
   },
   "main": "dist/index.js",
   "module": "esm/index.js",
-  "types": "build/types/index.d.ts",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@sentry/types": "6.19.0",
     "@sentry/utils": "6.19.0",
