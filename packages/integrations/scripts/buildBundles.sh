@@ -9,17 +9,10 @@ for filepath in ./src/*; do
       continue
     fi
 
-    # run the build for each integration, pushing each build process into the background once it starts (that's what the
-    # trailing `&` does) so that we can start another one
-    echo -e "Building $js_version bundles for \`$file\`..."
-    INTEGRATION_FILE=$file JS_VERSION=$js_version \
-      yarn --silent rollup -c rollup.config.js &&
-      echo -e "Finished building $js_version bundles for \`$file\`." &
+    # run the build for each integration
+    INTEGRATION_FILE=$file JS_VERSION=$js_version yarn --silent rollup -c rollup.config.js
 
   done
 done
-
-# keep the process running until all backgrounded tasks have finished
-wait
 
 echo -e "\nIntegration bundles built successfully"
