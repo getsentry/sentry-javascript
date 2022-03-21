@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Event, EventProcessor, Integration } from '@sentry/types';
+import { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
@@ -73,23 +73,26 @@ export class ContextLines implements Integration {
 
   /** Processes an event and adds context lines */
   public async addSourceContext(event: Event, contextLines: number): Promise<Event> {
-    const frames = event.exception?.values?.[0].stacktrace?.frames;
-
-    if (frames && contextLines > 0) {
-      const filenames: Set<string> = new Set();
-
-      for (const frame of frames) {
-        if (frame.filename) {
-          filenames.add(frame.filename);
+    if (contextLines > 0 && event.exception?.values) {
+      for (const exception of event.exception.values) {
+        if (exception.stacktrace?.frames) {
+          await this._addSourceContextToFrames(exception.stacktrace.frames, contextLines);
         }
       }
+    }
 
-      const sourceFiles = await readSourceFiles(filenames);
+    return event;
+  }
 
-      for (const frame of frames) {
-        if (frame.filename && sourceFiles[frame.filename]) {
+  /** Adds context lines to frames */
+  public async _addSourceContextToFrames(frames: StackFrame[], contextLines: number): Promise<void> {
+    for (const frame of frames) {
+      if (frame.filename) {
+        const sourceFile = await _readSourceFile(frame.filename);
+
+        if (sourceFile) {
           try {
-            const lines = (sourceFiles[frame.filename] as string).split('\n');
+            const lines = sourceFile.split('\n');
             addContextToFrame(lines, frame, contextLines);
           } catch (e) {
             // anomaly, being defensive in case
@@ -98,43 +101,28 @@ export class ContextLines implements Integration {
         }
       }
     }
-
-    return event;
   }
 }
 
 /**
- * This function reads file contents and caches them in a global LRU cache.
+ * Reads file contents and caches them in a global LRU cache.
  *
- * @param filenames Array of filepaths to read content from.
+ * @param filename filepath to read content from.
  */
-async function readSourceFiles(filenames: Set<string>): Promise<Record<string, string | null>> {
-  const sourceFiles: Record<string, string | null> = {};
-
-  for (const filename of filenames) {
-    const cachedFile = FILE_CONTENT_CACHE.get(filename);
-    // We have a cache hit
-    if (cachedFile !== undefined) {
-      // If stored value is null, it means that we already tried, but couldn't read the content of the file. Skip.
-      if (cachedFile === null) {
-        continue;
-      }
-
-      // Otherwise content is there, so reuse cached value.
-      sourceFiles[filename] = cachedFile;
-      continue;
-    }
-
-    let content: string | null = null;
-    try {
-      content = await readTextFileAsync(filename);
-    } catch (_) {
-      //
-    }
-
-    FILE_CONTENT_CACHE.set(filename, content);
-    sourceFiles[filename] = content;
+async function _readSourceFile(filename: string): Promise<string | null> {
+  const cachedFile = FILE_CONTENT_CACHE.get(filename);
+  // We have a cache hit
+  if (cachedFile !== undefined) {
+    return cachedFile;
   }
 
-  return sourceFiles;
+  let content: string | null = null;
+  try {
+    content = await readTextFileAsync(filename);
+  } catch (_) {
+    //
+  }
+
+  FILE_CONTENT_CACHE.set(filename, content);
+  return content;
 }

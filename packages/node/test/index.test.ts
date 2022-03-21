@@ -16,6 +16,7 @@ import {
   Scope,
 } from '../src';
 import { NodeBackend } from '../src/backend';
+import { LinkedErrors } from '../src/integrations';
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
@@ -195,6 +196,46 @@ describe('SentryNode', () => {
         throw new Error('test');
       } catch (e) {
         captureException(e);
+      }
+    });
+
+    test.only('capture a linked exception with pre/post context', done => {
+      expect.assertions(15);
+      getCurrentHub().bindClient(
+        new NodeClient({
+          integrations: i => [new LinkedErrors(), ...i],
+          beforeSend: (event: Event) => {
+            expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![1]).not.toBeUndefined();
+            expect(event.exception!.values![1].stacktrace!).not.toBeUndefined();
+            expect(event.exception!.values![1].stacktrace!.frames![1]).not.toBeUndefined();
+            expect(event.exception!.values![1].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+            expect(event.exception!.values![1].stacktrace!.frames![1].post_context).not.toBeUndefined();
+            expect(event.exception!.values![1].type).toBe('Error');
+            expect(event.exception!.values![1].value).toBe('test');
+
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
+            expect(event.exception!.values![0].type).toBe('Error');
+            expect(event.exception!.values![0].value).toBe('cause');
+            done();
+            return null;
+          },
+          dsn,
+        }),
+      );
+      try {
+        throw new Error('test');
+      } catch (e) {
+        try {
+          throw new Error('cause');
+        } catch (c) {
+          e.cause = c;
+          captureException(e);
+        }
       }
     });
 
