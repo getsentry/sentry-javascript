@@ -33,7 +33,11 @@ export type TransportRequest = {
 
 export type TransportMakeRequestResponse = {
   body?: string;
-  headers?: Record<string, string | null>;
+  headers?: {
+    [key: string]: string | null;
+    'x-sentry-rate-limits': string | null;
+    'retry-after': string | null;
+  };
   reason?: string;
   statusCode: number;
 };

@@ -128,6 +128,7 @@ describe('createTransport', () => {
 
         const [transport, setTransportResponse] = createTestTransport({
           headers: {
+            'x-sentry-rate-limits': null,
             'retry-after': `${retryAfterSeconds}`,
           },
           statusCode: 429,
@@ -174,6 +175,7 @@ describe('createTransport', () => {
         const [transport, setTransportResponse] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error:scope`,
+            'retry-after': null,
           },
           statusCode: 429,
         });
@@ -226,6 +228,7 @@ describe('createTransport', () => {
         const [transport, setTransportResponse] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
+            'retry-after': null,
           },
           statusCode: 429,
         });
@@ -287,6 +290,7 @@ describe('createTransport', () => {
         const [transport, setTransportResponse] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}::scope`,
+            'retry-after': null,
           },
           statusCode: 429,
         });
@@ -342,6 +346,7 @@ describe('createTransport', () => {
         const [transport] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
+            'retry-after': null,
           },
           statusCode: 200,
         });
