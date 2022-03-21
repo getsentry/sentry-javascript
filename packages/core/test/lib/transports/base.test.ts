@@ -4,13 +4,11 @@ import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope }
 import {
   createTransport,
   ERROR_TRANSPORT_CATEGORY,
-  MakeTransportRequest,
+  NewTransport,
   TRANSACTION_TRANSPORT_CATEGORY,
   TransportMakeRequestResponse,
   TransportResponse,
 } from '../../../src/transports/base';
-
-const SUCCESS_REQUEST: MakeTransportRequest = _ => resolvedSyncPromise({ statusCode: 200 });
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
@@ -23,7 +21,7 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
 
 describe('createTransport', () => {
   it('has $ property', () => {
-    const transport = createTransport({}, SUCCESS_REQUEST);
+    const transport = createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 }));
     expect(transport.$).toBeDefined();
   });
 
@@ -33,7 +31,7 @@ describe('createTransport', () => {
       add: jest.fn(),
       drain: jest.fn(),
     };
-    const transport = createTransport({}, SUCCESS_REQUEST, mockBuffer);
+    const transport = createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 }), mockBuffer);
     /* eslint-disable @typescript-eslint/unbound-method */
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
     await transport.flush(1000);
@@ -47,17 +45,73 @@ describe('createTransport', () => {
       const transport = createTransport({}, req => {
         expect(req.category).toEqual(ERROR_TRANSPORT_CATEGORY);
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
-        return resolvedSyncPromise({ statusCode: 200 });
+        return resolvedSyncPromise({ statusCode: 200, reason: 'OK' });
       });
-      await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+      const res = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+      expect(res.status).toBe('success');
+      expect(res.reason).toBe('OK');
+    });
+
+    it('returns an error if request failed', async () => {
+      const transport = createTransport({}, req => {
+        expect(req.category).toEqual(ERROR_TRANSPORT_CATEGORY);
+        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
+        return resolvedSyncPromise({ statusCode: 400, reason: 'Bad Request' });
+      });
+      try {
+        await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+      } catch (res) {
+        expect(res.status).toBe('invalid');
+        expect(res.reason).toBe('Bad Request');
+      }
+    });
+
+    it('returns a default reason if reason not provided and request failed', async () => {
+      const transport = createTransport({}, req => {
+        expect(req.category).toEqual(TRANSACTION_TRANSPORT_CATEGORY);
+        expect(req.body).toEqual(serializeEnvelope(TRANSACTION_ENVELOPE));
+        return resolvedSyncPromise({ statusCode: 500 });
+      });
+      try {
+        await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+      } catch (res) {
+        expect(res.status).toBe('failed');
+        expect(res.reason).toBe('Unknown transport error');
+      }
     });
 
     describe('Rate-limiting', () => {
-      it('back-off using Retry-After header', async () => {
+      function setRateLimitTimes(): {
+        retryAfterSeconds: number;
+        beforeLimit: number;
+        withinLimit: number;
+        afterLimit: number;
+      } {
         const retryAfterSeconds = 10;
         const beforeLimit = Date.now();
         const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
         const afterLimit = beforeLimit + retryAfterSeconds * 1000;
+        return { retryAfterSeconds, beforeLimit, withinLimit, afterLimit };
+      }
+
+      function createTestTransport(
+        initialTransportResponse: TransportMakeRequestResponse,
+      ): [NewTransport, (res: TransportMakeRequestResponse) => void] {
+        let transportResponse: TransportMakeRequestResponse = initialTransportResponse;
+
+        function setTransportResponse(res: TransportMakeRequestResponse) {
+          transportResponse = res;
+        }
+
+        const transport = createTransport({}, _ => {
+          return resolvedSyncPromise(transportResponse);
+        });
+
+        return [transport, setTransportResponse];
+      }
+
+      it('back-off using Retry-After header', async () => {
+        const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
 
         jest
           .spyOn(Date, 'now')
@@ -72,32 +126,27 @@ describe('createTransport', () => {
           // 3rd event - updateRateLimits
           .mockImplementationOnce(() => afterLimit);
 
-        let transportResponse: TransportMakeRequestResponse = {
+        const [transport, setTransportResponse] = createTestTransport({
           headers: {
             'retry-after': `${retryAfterSeconds}`,
           },
           statusCode: 429,
-        };
-        const transport = createTransport({}, _ => {
-          return resolvedSyncPromise(transportResponse);
         });
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        // clear rate-limit headers and statusCode
-        transportResponse = {
-          statusCode: 200,
-        };
+        setTransportResponse({ statusCode: 200 });
+
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         const res = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
@@ -105,10 +154,7 @@ describe('createTransport', () => {
       });
 
       it('back-off using X-Sentry-Rate-Limits with single category', async () => {
-        const retryAfterSeconds = 10;
-        const beforeLimit = Date.now();
-        const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
-        const afterLimit = beforeLimit + retryAfterSeconds * 1000;
+        const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
 
         jest
           .spyOn(Date, 'now')
@@ -124,39 +170,35 @@ describe('createTransport', () => {
           .mockImplementationOnce(() => afterLimit)
           // 4th event - updateRateLimits
           .mockImplementationOnce(() => afterLimit);
-        let transportResponse: TransportMakeRequestResponse = {
+
+        const [transport, setTransportResponse] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error:scope`,
           },
           statusCode: 429,
-        };
-        const transport = createTransport({}, _ => {
-          return resolvedSyncPromise(transportResponse);
         });
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        transportResponse = {
-          statusCode: 200,
-        };
+        setTransportResponse({ statusCode: 200 });
 
         try {
           await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         const res = await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
@@ -164,10 +206,7 @@ describe('createTransport', () => {
       });
 
       it('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
-        const retryAfterSeconds = 10;
-        const beforeLimit = Date.now();
-        const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
-        const afterLimit = beforeLimit + retryAfterSeconds * 1000;
+        const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
 
         jest
           .spyOn(Date, 'now')
@@ -184,41 +223,37 @@ describe('createTransport', () => {
           // 4th event - updateRateLimits
           .mockImplementationOnce(() => afterLimit);
 
-        let transportResponse: TransportMakeRequestResponse = {
+        const [transport, setTransportResponse] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
           },
           statusCode: 429,
-        };
-
-        const transport = createTransport({}, _ => {
-          return resolvedSyncPromise(transportResponse);
         });
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
           await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many transaction requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(
+            `Too many transaction requests, backing off until: ${new Date(afterLimit).toISOString()}`,
+          );
         }
 
-        transportResponse = {
-          statusCode: 200,
-        };
+        setTransportResponse({ statusCode: 200 });
 
         const eventRes = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         expect(eventRes.status).toBe('success');
@@ -228,10 +263,7 @@ describe('createTransport', () => {
       });
 
       it('back-off using X-Sentry-Rate-Limits with missing categories should lock them all', async () => {
-        const retryAfterSeconds = 10;
-        const beforeLimit = Date.now();
-        const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
-        const afterLimit = beforeLimit + retryAfterSeconds * 1000;
+        const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
 
         jest
           .spyOn(Date, 'now')
@@ -252,41 +284,37 @@ describe('createTransport', () => {
           // 5th event - updateRateLimits
           .mockImplementationOnce(() => afterLimit);
 
-        let transportResponse: TransportMakeRequestResponse = {
+        const [transport, setTransportResponse] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}::scope`,
           },
           statusCode: 429,
-        };
-
-        const transport = createTransport({}, _ => {
-          return resolvedSyncPromise(transportResponse);
         });
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
           await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many transaction requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(
+            `Too many transaction requests, backing off until: ${new Date(afterLimit).toISOString()}`,
+          );
         }
 
-        transportResponse = {
-          statusCode: 200,
-        };
+        setTransportResponse({ statusCode: 200 });
 
         const eventRes = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         expect(eventRes.status).toBe('success');
@@ -296,10 +324,7 @@ describe('createTransport', () => {
       });
 
       it('back-off using X-Sentry-Rate-Limits should also trigger for 200 responses', async () => {
-        const retryAfterSeconds = 10;
-        const beforeLimit = Date.now();
-        const withinLimit = beforeLimit + (retryAfterSeconds / 2) * 1000;
-        const afterLimit = beforeLimit + retryAfterSeconds * 1000;
+        const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
 
         jest
           .spyOn(Date, 'now')
@@ -314,29 +339,27 @@ describe('createTransport', () => {
           // 3rd event - updateRateLimits
           .mockImplementationOnce(() => afterLimit);
 
-        const transportResponse: TransportMakeRequestResponse = {
+        const [transport] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
           },
           statusCode: 200,
-        };
-
-        const transport = createTransport({}, _ => {
-          return resolvedSyncPromise(transportResponse);
         });
 
         try {
           await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
           await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many transaction requests, backing off until: ${new Date(afterLimit)}`);
+          expect(res.reason).toBe(
+            `Too many transaction requests, backing off until: ${new Date(afterLimit).toISOString()}`,
+          );
         }
       });
     });

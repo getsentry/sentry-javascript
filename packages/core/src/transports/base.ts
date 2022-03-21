@@ -72,7 +72,7 @@ export interface NodeTransportOptions extends BaseTransportOptions {
   caCerts?: string;
 }
 
-interface NewTransport {
+export interface NewTransport {
   // If `$` is set, we know that this is a new transport.
   // TODO(v7): Remove this as we will no longer have split between
   // old and new transports.
@@ -81,7 +81,7 @@ interface NewTransport {
   flush(timeout?: number): PromiseLike<boolean>;
 }
 
-type MakeTransportRequest = (request: TransportRequest) => PromiseLike<TransportMakeRequestResponse>;
+export type TransportRequestExecutor = (request: TransportRequest) => PromiseLike<TransportMakeRequestResponse>;
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 
@@ -93,7 +93,7 @@ export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
  */
 export function createTransport(
   options: InternalBaseTransportOptions,
-  makeRequest: MakeTransportRequest,
+  makeRequest: TransportRequestExecutor,
   buffer: PromiseBuffer<TransportResponse> = makePromiseBuffer(options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE),
 ): NewTransport {
   let rateLimits: RateLimits = {};
@@ -126,9 +126,9 @@ export function createTransport(
         return rejectedSyncPromise({
           status,
           reason:
-            reason || body || status === 'rate_limit'
-              ? getRateLimitReason(rateLimits, category)
-              : 'Unknown transport error',
+            reason ||
+            body ||
+            (status === 'rate_limit' ? getRateLimitReason(rateLimits, category) : 'Unknown transport error'),
         });
       });
 
@@ -143,5 +143,7 @@ export function createTransport(
 }
 
 function getRateLimitReason(rateLimits: RateLimits, category: TransportCategory): string {
-  return `Too many ${category} requests, backing off until: ${new Date(disabledUntil(rateLimits, category))}`;
+  return `Too many ${category} requests, backing off until: ${new Date(
+    disabledUntil(rateLimits, category),
+  ).toISOString()}`;
 }
