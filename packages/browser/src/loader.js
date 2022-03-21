@@ -212,6 +212,6 @@
       injectSdk(onLoadCallbacks);
     });
   }
-})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', 'loader.js', '../../build/bundle.js', {
+})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', 'loader.js', '../../build/bundles/bundle.js', {
   dsn: 'https://public@example.com/1'
 });

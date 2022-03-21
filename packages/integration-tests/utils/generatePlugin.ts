@@ -17,12 +17,12 @@ const useBundle = bundleKey && !useCompiledModule;
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
-    cjs: 'dist/index.js',
-    esm: 'esm/index.js',
-    bundle_es5: 'build/bundle.js',
-    bundle_es5_min: 'build/bundle.min.js',
-    bundle_es6: 'build/bundle.es6.js',
-    bundle_es6_min: 'build/bundle.es6.min.js',
+    cjs: 'build/dist/index.js',
+    esm: 'build/esm/index.js',
+    bundle_es5: 'build/bundles/bundle.js',
+    bundle_es5_min: 'build/bundles/bundle.min.js',
+    bundle_es6: 'build/bundles/bundle.es6.js',
+    bundle_es6_min: 'build/bundles/bundle.es6.min.js',
   },
   tracing: {
     cjs: 'dist/index.js',
