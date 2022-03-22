@@ -22,7 +22,7 @@
     "lint:eslint": "lerna run --parallel lint:eslint",
     "prepublishOnly": "lerna run --stream --concurrency 1 prepublishOnly",
     "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish",
-    "test": "lerna run --ignore @sentry-internal/browser-integration-tests --stream --concurrency 1 --sort test",
+    "test": "lerna run --ignore @sentry-internal/browser-integration-tests @sentry-internal/node-integration-tests --stream --concurrency 1 --sort test",
     "test-ci": "ts-node ./scripts/test.ts"
   },
   "volta": {
@@ -43,6 +43,7 @@
     "packages/minimal",
     "packages/nextjs",
     "packages/node",
+    "packages/node-integration-tests",
     "packages/react",
     "packages/serverless",
     "packages/tracing",

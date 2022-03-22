@@ -1,0 +1,21 @@
+{
+  "name": "@sentry-internal/node-integration-tests",
+  "version": "6.18.2",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
+    "type-check": "tsc",
+    "test": "jest --detectOpenHandles --runInBand --forceExit"
+  },
+  "dependencies": {
+    "express": "^4.17.3",
+    "nock": "^13.1.0",
+    "portfinder": "^1.0.28"
+  }
+}
