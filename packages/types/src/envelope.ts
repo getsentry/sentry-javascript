@@ -28,7 +28,7 @@ type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<Bas
 
 type EventItemHeaders = {
   type: 'event' | 'transaction';
-  sample_rates: [{ id?: TransactionSamplingMethod; rate?: number }];
+  sample_rates?: [{ id?: TransactionSamplingMethod; rate?: number }];
 };
 type AttachmentItemHeaders = { type: 'attachment'; filename: string };
 type UserFeedbackItemHeaders = { type: 'user_report' };

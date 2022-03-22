@@ -2,6 +2,7 @@ import { Envelope, EventStatus } from '@sentry/types';
 import {
   disabledUntil,
   eventStatusFromHttpCode,
+  getEnvelopeType,
   isRateLimited,
   makePromiseBuffer,
   PromiseBuffer,
@@ -68,6 +69,7 @@ export interface BrowserTransportOptions extends BaseTransportOptions {
 
 // TODO: Move into Node transport
 export interface NodeTransportOptions extends BaseTransportOptions {
+  headers?: Record<string, string>;
   // Set a HTTP proxy that should be used for outbound requests.
   httpProxy?: string;
   // Set a HTTPS proxy that should be used for outbound requests.
@@ -81,7 +83,7 @@ export interface NewTransport {
   // TODO(v7): Remove this as we will no longer have split between
   // old and new transports.
   $: boolean;
-  send(request: Envelope, category: TransportCategory): PromiseLike<TransportResponse>;
+  send(request: Envelope): PromiseLike<TransportResponse>;
   flush(timeout?: number): PromiseLike<boolean>;
 }
 
@@ -104,7 +106,8 @@ export function createTransport(
 
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
-  function send(envelope: Envelope, category: TransportCategory): PromiseLike<TransportResponse> {
+  function send(envelope: Envelope): PromiseLike<TransportResponse> {
+    const category = getEnvelopeType(envelope);
     const request: TransportRequest = {
       category,
       body: serializeEnvelope(envelope),

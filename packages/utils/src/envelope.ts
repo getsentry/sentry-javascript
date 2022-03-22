@@ -22,6 +22,14 @@ export function addItemToEnvelope<E extends Envelope>(envelope: E, newItem: E[1]
 }
 
 /**
+ * Get the type of the envelope. Grabs the type from the first envelope item.
+ */
+export function getEnvelopeType<E extends Envelope>(envelope: E): string {
+  const [, [[firstItemHeader]]] = envelope;
+  return firstItemHeader.type;
+}
+
+/**
  * Serializes an envelope into a string.
  */
 export function serializeEnvelope(envelope: Envelope): string {
