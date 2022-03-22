@@ -162,7 +162,7 @@ function getCurrentHub(): Hub {
     },
     getIntegration<T extends Integration>(_integration: IntegrationClass<T>): T | null {
       // pretend integration is enabled
-      return true;
+      return {} as T;
     },
   } as Hub;
 }
