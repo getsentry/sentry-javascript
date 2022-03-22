@@ -1,38 +1,29 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
 
-/** JSDoc */
 interface Report {
-  [key: string]: any;
+  [key: string]: unknown;
   type: ReportTypes;
   url: string;
   body?: ReportBody;
 }
 
-/** JSDoc */
 const enum ReportTypes {
-  /** JSDoc */
   Crash = 'crash',
-  /** JSDoc */
   Deprecation = 'deprecation',
-  /** JSDoc */
   Intervention = 'intervention',
 }
 
-/** JSDoc */
 type ReportBody = CrashReportBody | DeprecationReportBody | InterventionReportBody;
 
-/** JSDoc */
 interface CrashReportBody {
-  [key: string]: any;
+  [key: string]: unknown;
   crashId: string;
   reason?: string;
 }
 
-/** JSDoc */
 interface DeprecationReportBody {
-  [key: string]: any;
+  [key: string]: unknown;
   id: string;
   anticipatedRemoval?: Date;
   message: string;
@@ -41,9 +32,8 @@ interface DeprecationReportBody {
   columnNumber?: number;
 }
 
-/** JSDoc */
 interface InterventionReportBody {
-  [key: string]: any;
+  [key: string]: unknown;
   id: string;
   message: string;
   sourceFile?: string;
@@ -89,7 +79,7 @@ export class ReportingObserver implements Integration {
 
     this._getCurrentHub = getCurrentHub;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const observer = new (getGlobalObject<any>().ReportingObserver)(this.handler.bind(this), {
       buffered: true,
       types: this._options.types,
@@ -117,7 +107,7 @@ export class ReportingObserver implements Integration {
         if (report.body) {
           // Object.keys doesn't work on ReportBody, as all properties are inheirted
           const plainBody: {
-            [key: string]: any;
+            [key: string]: unknown;
           } = {};
 
           // eslint-disable-next-line guard-for-in
