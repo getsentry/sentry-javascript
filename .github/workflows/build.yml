@@ -199,7 +199,7 @@ jobs:
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-        run: ./scripts/test.sh
+        run: yarn test-ci
       - name: Compute test coverage
         uses: codecov/codecov-action@v1
 
