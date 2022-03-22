@@ -107,7 +107,8 @@ export function createTransport(
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
   function send(envelope: Envelope): PromiseLike<TransportResponse> {
-    const category = getEnvelopeType(envelope) as TransportCategory;
+    const envCategory = getEnvelopeType(envelope);
+    const category = envCategory === 'event' ? 'error' : (envCategory as TransportCategory);
     const request: TransportRequest = {
       category,
       body: serializeEnvelope(envelope),
