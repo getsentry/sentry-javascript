@@ -14,6 +14,8 @@ type LocalForage = {
   length(): Promise<number>;
 };
 
+export type Item = { key: string; value: Event };
+
 /**
  * cache offline errors and send when connected
  */

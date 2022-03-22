@@ -1,15 +1,15 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
-import { Offline } from '../src/offline';
+import { Item, Offline } from '../src/offline';
 
 // mock localforage methods
 jest.mock('localforage', () => ({
   createInstance(_options: { name: string }): any {
-    let items: { key: string; value: Event }[] = [];
+    let items: Item[] = [];
 
     return {
-      async getItem(key: string): Event {
+      async getItem(key: string): Promise<Item | void> {
         return items.find(item => item.key === key);
       },
       async iterate(callback: () => void): void {
