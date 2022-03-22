@@ -166,14 +166,17 @@ function initIntegration(options: { maxStoredEvents?: number } = {}): void {
   eventProcessors = [];
   events = [];
 
-  utils.getGlobalObject = jest.fn(() => ({
-    addEventListener: (_windowEvent, callback) => {
-      eventListeners.push(callback);
-    },
-    navigator: {
-      onLine: online,
-    },
-  }));
+  jest.spyOn(utils, 'getGlobalObject').mockImplementation(
+    () =>
+      ({
+        addEventListener: (_windowEvent, callback) => {
+          eventListeners.push(callback);
+        },
+        navigator: {
+          onLine: online,
+        },
+      } as any),
+  );
 
   integration = new Offline(options);
 }
