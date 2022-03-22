@@ -1,6 +1,6 @@
 import { EventEnvelope } from '@sentry/types';
 
-import { addItemToEnvelope, createEnvelope, serializeEnvelope, getEnvelopeType } from '../src/envelope';
+import { addItemToEnvelope, createEnvelope, getEnvelopeType, serializeEnvelope } from '../src/envelope';
 import { parseEnvelope } from './testutils';
 
 describe('envelope', () => {
