@@ -1,6 +1,6 @@
 import { Integration } from '@sentry/types';
 
-import { ReportingObserver, ReportTypes } from '../src/reportingobserver';
+import { ReportingObserver } from '../src/reportingobserver';
 
 const mockScope = {
   setExtra: jest.fn(),
@@ -72,7 +72,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use user-provided report types', () => {
-      const reportingObserverIntegration = new ReportingObserver({ types: [ReportTypes.Crash] });
+      const reportingObserverIntegration = new ReportingObserver({ types: ['crash'] });
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => getMockHubWithIntegration(reportingObserverIntegration) as any,
@@ -119,7 +119,7 @@ describe('ReportingObserver', () => {
       );
 
       expect(() => {
-        reportingObserverIntegration.handler([{ type: ReportTypes.Crash, url: 'some url' }]);
+        reportingObserverIntegration.handler([{ type: 'crash', url: 'some url' }]);
       }).not.toThrow();
 
       expect(mockHub.captureMessage).not.toHaveBeenCalled();
@@ -133,8 +133,8 @@ describe('ReportingObserver', () => {
       );
 
       reportingObserverIntegration.handler([
-        { type: ReportTypes.Crash, url: 'some url' },
-        { type: ReportTypes.Deprecation, url: 'some url' },
+        { type: 'crash', url: 'some url' },
+        { type: 'deprecation', url: 'some url' },
       ]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledTimes(2);
@@ -148,8 +148,8 @@ describe('ReportingObserver', () => {
       );
 
       reportingObserverIntegration.handler([
-        { type: ReportTypes.Crash, url: 'some url 1' },
-        { type: ReportTypes.Deprecation, url: 'some url 2' },
+        { type: 'crash', url: 'some url 1' },
+        { type: 'deprecation', url: 'some url 2' },
       ]);
 
       expect(mockScope.setExtra).toHaveBeenCalledWith('url', 'some url 1');
@@ -163,8 +163,8 @@ describe('ReportingObserver', () => {
         () => getMockHubWithIntegration(reportingObserverIntegration) as any,
       );
 
-      const report1 = { type: ReportTypes.Crash, url: 'some url 1', body: { crashId: 'id1' } };
-      const report2 = { type: ReportTypes.Deprecation, url: 'some url 2', body: { id: 'id2', message: 'message' } };
+      const report1 = { type: 'crash', url: 'some url 1', body: { crashId: 'id1' } } as const;
+      const report2 = { type: 'deprecation', url: 'some url 2', body: { id: 'id2', message: 'message' } } as const;
 
       reportingObserverIntegration.handler([report1, report2]);
 
@@ -179,7 +179,7 @@ describe('ReportingObserver', () => {
         () => getMockHubWithIntegration(reportingObserverIntegration) as any,
       );
 
-      reportingObserverIntegration.handler([{ type: ReportTypes.Crash, url: 'some url' }]);
+      reportingObserverIntegration.handler([{ type: 'crash', url: 'some url' }]);
 
       expect(mockScope.setExtra).not.toHaveBeenCalledWith('body', expect.anything());
     });
@@ -192,10 +192,10 @@ describe('ReportingObserver', () => {
       );
 
       const report = {
-        type: ReportTypes.Crash,
+        type: 'crash',
         url: 'some url',
         body: { crashId: 'some id', reason: 'some reason' },
-      };
+      } as const;
       reportingObserverIntegration.handler([report]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
@@ -211,10 +211,10 @@ describe('ReportingObserver', () => {
       );
 
       const report = {
-        type: ReportTypes.Deprecation,
+        type: 'deprecation',
         url: 'some url',
         body: { id: 'some id', message: 'some message' },
-      };
+      } as const;
       reportingObserverIntegration.handler([report]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
@@ -229,10 +229,10 @@ describe('ReportingObserver', () => {
       );
 
       const report = {
-        type: ReportTypes.Intervention,
+        type: 'intervention',
         url: 'some url',
         body: { id: 'some id', message: 'some message' },
-      };
+      } as const;
       reportingObserverIntegration.handler([report]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
@@ -247,9 +247,9 @@ describe('ReportingObserver', () => {
       );
 
       const report = {
-        type: ReportTypes.Intervention,
+        type: 'intervention',
         url: 'some url',
-      };
+      } as const;
       reportingObserverIntegration.handler([report]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
@@ -263,7 +263,7 @@ describe('ReportingObserver', () => {
         () => getMockHubWithIntegration(reportingObserverIntegration) as any,
       );
 
-      const report = { type: ReportTypes.Crash, url: 'some url', body: { crashId: '', reason: '' } };
+      const report = { type: 'crash', url: 'some url', body: { crashId: '', reason: '' } } as const;
       reportingObserverIntegration.handler([report]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
@@ -278,10 +278,10 @@ describe('ReportingObserver', () => {
       );
 
       const report = {
-        type: ReportTypes.Deprecation,
+        type: 'deprecation',
         url: 'some url',
         body: { id: 'some id', message: '' },
-      };
+      } as const;
       reportingObserverIntegration.handler([report]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
@@ -296,10 +296,10 @@ describe('ReportingObserver', () => {
       );
 
       const report = {
-        type: ReportTypes.Intervention,
+        type: 'intervention',
         url: 'some url',
         body: { id: 'some id', message: '' },
-      };
+      } as const;
       reportingObserverIntegration.handler([report]);
 
       expect(mockHub.captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
