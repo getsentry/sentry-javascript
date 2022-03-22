@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import { Item, Offline } from '../src/offline';
@@ -12,18 +12,18 @@ jest.mock('localforage', () => ({
       async getItem(key: string): Promise<Item | void> {
         return items.find(item => item.key === key);
       },
-      async iterate(callback: () => void): void {
+      async iterate(callback: (event: Event, key: string, index: number) => void): Promise<void> {
         items.forEach((item, index) => {
           callback(item.value, item.key, index);
         });
       },
-      async length(): number {
+      async length(): Promise<number> {
         return items.length;
       },
-      async removeItem(key: string): void {
+      async removeItem(key: string): Promise<void> {
         items = items.filter(item => item.key !== key);
       },
-      async setItem(key: string, value: Event): void {
+      async setItem(key: string, value: Event): Promise<void> {
         items.push({
           key,
           value,
@@ -33,7 +33,7 @@ jest.mock('localforage', () => ({
   },
 }));
 
-let integration: Integration;
+let integration: Offline;
 let online: boolean;
 
 describe('Offline', () => {
@@ -150,7 +150,7 @@ let eventProcessors: EventProcessor[];
 let events: Event[];
 
 /** JSDoc */
-function addGlobalEventProcessor(callback: () => void): void {
+function addGlobalEventProcessor(callback: EventProcessor): void {
   eventProcessors.push(callback);
 }
 
@@ -160,11 +160,11 @@ function getCurrentHub(): Hub {
     captureEvent(_event: Event): string {
       return 'an-event-id';
     },
-    getIntegration(_integration: Integration): any {
+    getIntegration<T extends Integration>(_integration: IntegrationClass<T>): T | null {
       // pretend integration is enabled
       return true;
     },
-  };
+  } as Hub;
 }
 
 /** JSDoc */
