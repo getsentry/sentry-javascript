@@ -52,15 +52,10 @@ describe('Offline', () => {
     });
 
     describe('when there are already events in the cache from a previous offline session', () => {
-      beforeEach(done => {
+      beforeEach(async () => {
         const event = { message: 'previous event' };
 
-        integration.offlineEventStore
-          .setItem('previous', event)
-          .then(() => {
-            done();
-          })
-          .catch(error => error);
+        await integration.offlineEventStore.setItem('previous', event);
       });
 
       it('sends stored events', async () => {
@@ -130,7 +125,7 @@ describe('Offline', () => {
     });
 
     describe('when connectivity is restored', () => {
-      it('sends stored events', async done => {
+      it('sends stored events', async () => {
         initIntegration();
         setupOnce();
         prepopulateEvents(1);
@@ -138,8 +133,6 @@ describe('Offline', () => {
         processEventListeners();
 
         expect(await integration.offlineEventStore.length()).toEqual(0);
-
-        setImmediate(done);
       });
     });
   });
