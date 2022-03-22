@@ -8,11 +8,7 @@ interface Report {
   body?: ReportBody;
 }
 
-const enum ReportTypes {
-  Crash = 'crash',
-  Deprecation = 'deprecation',
-  Intervention = 'intervention',
-}
+type ReportTypes = 'crash' | 'deprecation' | 'intervention';
 
 type ReportBody = CrashReportBody | DeprecationReportBody | InterventionReportBody;
 
@@ -65,7 +61,7 @@ export class ReportingObserver implements Integration {
     private readonly _options: {
       types?: ReportTypes[];
     } = {
-      types: [ReportTypes.Crash, ReportTypes.Deprecation, ReportTypes.Intervention],
+      types: ['crash', 'deprecation', 'intervention'],
     },
   ) {}
 
@@ -117,7 +113,7 @@ export class ReportingObserver implements Integration {
 
           scope.setExtra('body', plainBody);
 
-          if (report.type === ReportTypes.Crash) {
+          if (report.type === 'crash') {
             const body = report.body as CrashReportBody;
             // A fancy way to create a message out of crashId OR reason OR both OR fallback
             details = [body.crashId || '', body.reason || ''].join(' ').trim() || details;
