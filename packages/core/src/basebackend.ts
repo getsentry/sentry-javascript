@@ -1,6 +1,9 @@
 import { Event, EventHint, Options, Session, Severity, Transport } from '@sentry/types';
 import { isDebugBuild, logger, SentryError } from '@sentry/utils';
 
+import { initAPIDetails } from './api';
+import { createEventEnvelope, createSessionEnvelope } from './request';
+import { NewTransport } from './transports/base';
 import { NoopTransport } from './transports/noop';
 
 /**
@@ -63,6 +66,9 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /** Cached transport used internally. */
   protected _transport: Transport;
 
+  /** New v7 Transport that is initialized alongside the old one */
+  protected _newTransport?: NewTransport;
+
   /** Creates a new backend instance. */
   public constructor(options: O) {
     this._options = options;
@@ -91,9 +97,23 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public sendEvent(event: Event): void {
-    void this._transport.sendEvent(event).then(null, reason => {
-      isDebugBuild() && logger.error('Error while sending event:', reason);
-    });
+    // TODO(v7): Remove the if-else
+    if (
+      this._newTransport &&
+      this._options.dsn &&
+      this._options._experiments &&
+      this._options._experiments.newTransport
+    ) {
+      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
+      const env = createEventEnvelope(event, api);
+      void this._newTransport.send(env).then(null, reason => {
+        isDebugBuild() && logger.error('Error while sending event:', reason);
+      });
+    } else {
+      void this._transport.sendEvent(event).then(null, reason => {
+        isDebugBuild() && logger.error('Error while sending event:', reason);
+      });
+    }
   }
 
   /**
@@ -105,9 +125,23 @@ export abstract class BaseBackend<O extends Options> implements Backend {
       return;
     }
 
-    void this._transport.sendSession(session).then(null, reason => {
-      isDebugBuild() && logger.error('Error while sending session:', reason);
-    });
+    // TODO(v7): Remove the if-else
+    if (
+      this._newTransport &&
+      this._options.dsn &&
+      this._options._experiments &&
+      this._options._experiments.newTransport
+    ) {
+      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
+      const [env] = createSessionEnvelope(session, api);
+      void this._newTransport.send(env).then(null, reason => {
+        isDebugBuild() && logger.error('Error while sending session:', reason);
+      });
+    } else {
+      void this._transport.sendSession(session).then(null, reason => {
+        isDebugBuild() && logger.error('Error while sending session:', reason);
+      });
+    }
   }
 
   /**
@@ -123,4 +157,6 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   protected _setupTransport(): Transport {
     return new NoopTransport();
   }
+
+  protected abstract _setupNewTransport(): NewTransport;
 }
