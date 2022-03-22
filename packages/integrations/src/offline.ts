@@ -11,6 +11,7 @@ type LocalForage = {
     callback?: (err: any, result: U) => void,
   ): Promise<U>;
   removeItem(key: string, callback?: (err: any) => void): Promise<void>;
+  length(): Promise<number>;
 };
 
 /**
