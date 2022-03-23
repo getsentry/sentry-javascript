@@ -156,7 +156,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  (mod as HandlerModule)[functionName!] = wrapHandler(obj as Handler);
+  (mod as HandlerModule)[functionName!] = wrapHandler(obj);
 }
 
 /**
