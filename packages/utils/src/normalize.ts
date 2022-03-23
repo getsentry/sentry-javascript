@@ -4,6 +4,7 @@ import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
 
 type UnknownMaybeWithToJson = unknown & { toJSON?: () => string };
+type Prototype = { constructor: (...args: unknown[]) => unknown };
 
 /**
  * Recursively normalizes the given object.
@@ -70,7 +71,7 @@ export function walk(
 
   // If we reach the maximum depth, serialize whatever is left
   if (depth === 0) {
-    return serializeValue(value);
+    return stringifyValue(key, value);
   }
 
   // If value implements `toJSON` method, call it and return early
@@ -81,7 +82,7 @@ export function walk(
   // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
   // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
   // all along), we're done.
-  const serializable = makeSerializable(value, key);
+  const serializable = stringifyValue(key, value);
   if (isPrimitive(serializable)) {
     return serializable;
   }
@@ -126,95 +127,81 @@ export function walk(
 }
 
 /**
- * Transform any non-primitive, BigInt, or Symbol-type value into a string. Acts as a no-op on strings, numbers,
- * booleans, null, and undefined.
+ * Stringify the given value. Handles various known special values and types.
+ *
+ * Not meant to be used on simple primitives which already have a string representation, as it will, for example, turn
+ * the number 1231 into "[Object Number]", nor on `null`, as it will throw.
  *
  * @param value The value to stringify
- * @returns For non-primitive, BigInt, and Symbol-type values, a string denoting the value's type, type and value, or
- *  type and `description` property, respectively. For non-BigInt, non-Symbol primitives, returns the original value,
- *  unchanged.
+ * @returns A stringified representation of the given value
  */
-function serializeValue(value: any): any {
-  // Node.js REPL notation
-  if (typeof value === 'string') {
-    return value;
+function stringifyValue(
+  key: unknown,
+  // this type is a tiny bit of a cheat, since this function does handle NaN (which is technically a number), but for
+  // our internal use, it'll do
+  value: Exclude<unknown, string | number | boolean | null>,
+): string {
+  try {
+    if (key === 'domain' && value && typeof value === 'object' && (value as { _events: unknown })._events) {
+      return '[Domain]';
+    }
+
+    if (key === 'domainEmitter') {
+      return '[DomainEmitter]';
+    }
+
+    // It's safe to use `global`, `window`, and `document` here in this manner, as we are asserting using `typeof` first
+    // which won't throw if they are not present.
+
+    if (typeof global !== 'undefined' && value === global) {
+      return '[Global]';
+    }
+
+    // eslint-disable-next-line no-restricted-globals
+    if (typeof window !== 'undefined' && value === window) {
+      return '[Window]';
+    }
+
+    // eslint-disable-next-line no-restricted-globals
+    if (typeof document !== 'undefined' && value === document) {
+      return '[Document]';
+    }
+
+    // React's SyntheticEvent thingy
+    if (isSyntheticEvent(value)) {
+      return '[SyntheticEvent]';
+    }
+
+    if (typeof value === 'number' && value !== value) {
+      return '[NaN]';
+    }
+
+    // this catches `undefined` (but not `null`, which is a primitive and can be serialized on its own)
+    if (value === void 0) {
+      return '[undefined]';
+    }
+
+    if (typeof value === 'function') {
+      return `[Function: ${getFunctionName(value)}]`;
+    }
+
+    if (typeof value === 'symbol') {
+      return `[${String(value)}]`;
+    }
+
+    // stringified BigInts are indistinguishable from regular numbers, so we need to label them to avoid confusion
+    if (typeof value === 'bigint') {
+      return `[BigInt: ${String(value)}]`;
+    }
+
+    // Now that we've knocked out all the special cases and the primitives, all we have left are objects. Simply casting
+    // them to strings means that instances of classes which haven't defined their `toStringTag` will just come out as
+    // `"[object Object]"`. If we instead look at the constructor's name (which is the same as the name of the class),
+    // we can make sure that only plain objects come out that way.
+    return `[object ${(Object.getPrototypeOf(value) as Prototype).constructor.name}]`;
+  } catch (err) {
+    return `**non-serializable** (${err})`;
   }
-
-  const type = Object.prototype.toString.call(value);
-  if (type === '[object Object]') {
-    return '[Object]';
-  }
-  if (type === '[object Array]') {
-    return '[Array]';
-  }
-
-  // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
-  // pass-through.
-  const serializable = makeSerializable(value);
-  return isPrimitive(serializable) ? serializable : type;
-}
-
-/**
- * makeSerializable()
- *
- * Takes unserializable input and make it serializer-friendly.
- *
- * Handles globals, functions, `undefined`, `NaN`, and other non-serializable values.
- */
-function makeSerializable<T>(value: T, key?: any): T | string {
-  if (key === 'domain' && value && typeof value === 'object' && (value as unknown as { _events: any })._events) {
-    return '[Domain]';
-  }
-
-  if (key === 'domainEmitter') {
-    return '[DomainEmitter]';
-  }
-
-  if (typeof (global as any) !== 'undefined' && (value as unknown) === global) {
-    return '[Global]';
-  }
-
-  // It's safe to use `window` and `document` here in this manner, as we are asserting using `typeof` first
-  // which won't throw if they are not present.
-
-  // eslint-disable-next-line no-restricted-globals
-  if (typeof (window as any) !== 'undefined' && (value as unknown) === window) {
-    return '[Window]';
-  }
-
-  // eslint-disable-next-line no-restricted-globals
-  if (typeof (document as any) !== 'undefined' && (value as unknown) === document) {
-    return '[Document]';
-  }
-
-  // React's SyntheticEvent thingy
-  if (isSyntheticEvent(value)) {
-    return '[SyntheticEvent]';
-  }
-
-  if (typeof value === 'number' && value !== value) {
-    return '[NaN]';
-  }
-
-  if (value === void 0) {
-    return '[undefined]';
-  }
-
-  if (typeof value === 'function') {
-    return `[Function: ${getFunctionName(value)}]`;
-  }
-
-  // symbols and bigints are considered primitives by TS, but aren't natively JSON-serilaizable
-
-  if (typeof value === 'symbol') {
-    return `[${String(value)}]`;
-  }
-
-  if (typeof value === 'bigint') {
-    return `[BigInt: ${String(value)}]`;
-  }
-
-  return value;
 }
 
 /** Calculates bytes size of input string */
