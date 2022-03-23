@@ -3,6 +3,7 @@ import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry
 import { isInstanceOf, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
 
 import { exceptionFromError } from '../eventbuilder';
+import { ContextLines } from './contextlines';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
@@ -76,14 +77,21 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  private _walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): PromiseLike<Exception[]> {
+  private async _walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): Promise<Exception[]> {
     if (!isInstanceOf(error[key], Error) || stack.length + 1 >= this._limit) {
-      return resolvedSyncPromise(stack);
+      return Promise.resolve(stack);
     }
 
     const exception = exceptionFromError(error[key]);
 
-    return new SyncPromise<Exception[]>((resolve, reject) => {
+    // If the ContextLines integration is enabled, we add source code context to linked errors
+    // because we can't guarantee the order that integrations are run.
+    const contextLines = getCurrentHub().getIntegration(ContextLines);
+    if (contextLines && exception.stacktrace?.frames) {
+      await contextLines.addSourceContextToFrames(exception.stacktrace.frames);
+    }
+
+    return new Promise<Exception[]>((resolve, reject) => {
       void this._walkErrorTree(error[key], key, [exception, ...stack])
         .then(resolve)
         .then(null, () => {

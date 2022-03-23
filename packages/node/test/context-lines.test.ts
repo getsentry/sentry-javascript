@@ -9,8 +9,8 @@ describe('ContextLines', () => {
   let readFileSpy: jest.SpyInstance;
   let contextLines: ContextLines;
 
-  async function addContext(frames: StackFrame[], lines: number = 7): Promise<void> {
-    await contextLines.addSourceContext({ exception: { values: [{ stacktrace: { frames } }] } }, lines);
+  async function addContext(frames: StackFrame[]): Promise<void> {
+    await contextLines.addSourceContext({ exception: { values: [{ stacktrace: { frames } }] } });
   }
 
   beforeEach(() => {
@@ -97,10 +97,12 @@ describe('ContextLines', () => {
     });
 
     test('parseStack with no context', async () => {
+      contextLines = new ContextLines({ frameContextLines: 0 });
+
       expect.assertions(1);
       const frames = parseStackFrames(new Error('test'));
 
-      await addContext(frames, 0);
+      await addContext(frames);
       expect(readFileSpy).toHaveBeenCalledTimes(0);
     });
   });
