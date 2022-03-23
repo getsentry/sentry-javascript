@@ -4,6 +4,7 @@
 
 import * as isModule from '../src/is';
 import { normalize } from '../src/normalize';
+import * as stacktraceModule from '../src/stacktrace';
 import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('normalize()', () => {
@@ -468,6 +469,19 @@ describe('normalize()', () => {
         nope: 'here',
         foo: ['s', 's', 's', 's', 's', '[MaxProperties ~]'],
         after: 'more',
+      });
+    });
+  });
+
+  describe('handles serialization errors', () => {
+    test('restricts effect of error to problematic node', () => {
+      jest.spyOn(stacktraceModule, 'getFunctionName').mockImplementationOnce(() => {
+        throw new Error('Nope');
+      });
+
+      expect(normalize({ dogs: 'are great!', someFunc: () => {} })).toEqual({
+        dogs: 'are great!',
+        someFunc: '**non-serializable** (Error: Nope)',
       });
     });
   });
