@@ -20,11 +20,6 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
 );
 
 describe('createTransport', () => {
-  it('has $ property', () => {
-    const transport = createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 }));
-    expect(transport.$).toBeDefined();
-  });
-
   it('flushes the buffer', async () => {
     const mockBuffer: PromiseBuffer<TransportResponse> = {
       $: [],

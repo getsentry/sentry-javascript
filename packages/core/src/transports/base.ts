@@ -79,10 +79,6 @@ export interface NodeTransportOptions extends BaseTransportOptions {
 }
 
 export interface NewTransport {
-  // If `$` is set, we know that this is a new transport.
-  // TODO(v7): Remove this as we will no longer have split between
-  // old and new transports.
-  $: boolean;
   send(request: Envelope): PromiseLike<TransportResponse>;
   flush(timeout?: number): PromiseLike<boolean>;
 }
@@ -144,7 +140,6 @@ export function createTransport(
   }
 
   return {
-    $: true,
     send,
     flush,
   };
