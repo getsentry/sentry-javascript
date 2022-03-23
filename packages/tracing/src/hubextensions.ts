@@ -7,7 +7,7 @@ import {
   SamplingContext,
   TransactionContext,
 } from '@sentry/types';
-import { dynamicRequire, isDebugBuild, isNodeEnv, loadModule, logger } from '@sentry/utils';
+import { dynamicRequire, isDebugBuild, isNaN, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
@@ -130,7 +130,7 @@ function sample<T extends Transaction>(transaction: T, options: Options, samplin
 function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (isNaN(rate as any) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
+  if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
     isDebugBuild() &&
       logger.warn(
         `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
