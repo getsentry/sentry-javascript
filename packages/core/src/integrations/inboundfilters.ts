@@ -5,7 +5,7 @@ import { getEventDescription, isDebugBuild, isMatchingPattern, logger } from '@s
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
 
-/** JSDoc */
+/** Options for the InboundFilters integration */
 export interface InboundFiltersOptions {
   allowUrls: Array<string | RegExp>;
   denyUrls: Array<string | RegExp>;
@@ -85,7 +85,7 @@ export function _mergeOptions(
 
 /** JSDoc */
 export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
-  if (_isSentryError(event, options.ignoreInternal)) {
+  if (options.ignoreInternal && _isSentryError(event)) {
     isDebugBuild() &&
       logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
     return true;
@@ -118,7 +118,6 @@ export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOp
   return false;
 }
 
-/** JSDoc */
 function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): boolean {
   if (!ignoreErrors || !ignoreErrors.length) {
     return false;
@@ -129,7 +128,6 @@ function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): b
   );
 }
 
-/** JSDoc */
 function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
   // TODO: Use Glob instead?
   if (!denyUrls || !denyUrls.length) {
@@ -139,7 +137,6 @@ function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean 
   return !url ? false : denyUrls.some(pattern => isMatchingPattern(url, pattern));
 }
 
-/** JSDoc */
 function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
   // TODO: Use Glob instead?
   if (!allowUrls || !allowUrls.length) {
@@ -149,7 +146,6 @@ function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolea
   return !url ? true : allowUrls.some(pattern => isMatchingPattern(url, pattern));
 }
 
-/** JSDoc */
 function _getPossibleEventMessages(event: Event): string[] {
   if (event.message) {
     return [event.message];
@@ -166,21 +162,17 @@ function _getPossibleEventMessages(event: Event): string[] {
   return [];
 }
 
-/** JSDoc */
-function _isSentryError(event: Event, ignoreInternal?: boolean): boolean {
-  if (ignoreInternal) {
-    try {
-      // @ts-ignore can't be a sentry error if undefined
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return event.exception.values[0].type === 'SentryError';
-    } catch (e) {
-      // ignore
-    }
+function _isSentryError(event: Event): boolean {
+  try {
+    // @ts-ignore can't be a sentry error if undefined
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return event.exception.values[0].type === 'SentryError';
+  } catch (e) {
+    // ignore
   }
   return false;
 }
 
-/** JSDoc */
 function _getLastValidUrl(frames: StackFrame[] = []): string | null {
   for (let i = frames.length - 1; i >= 0; i--) {
     const frame = frames[i];
@@ -193,7 +185,6 @@ function _getLastValidUrl(frames: StackFrame[] = []): string | null {
   return null;
 }
 
-/** JSDoc */
 function _getEventFilterUrl(event: Event): string | null {
   try {
     if (event.stacktrace) {
