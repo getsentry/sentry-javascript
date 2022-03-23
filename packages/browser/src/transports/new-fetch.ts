@@ -6,7 +6,7 @@ import {
   TransportRequest,
 } from '@sentry/core';
 
-import { getNativeFetchImplementation } from './utils';
+import { FetchImpl, getNativeFetchImplementation } from './utils';
 
 export interface FetchTransportOptions extends BaseTransportOptions {
   requestOptions?: RequestInit;
@@ -15,9 +15,10 @@ export interface FetchTransportOptions extends BaseTransportOptions {
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
-export function makeNewFetchTransport(options: FetchTransportOptions): NewTransport {
-  const nativeFetch = getNativeFetchImplementation();
-
+export function makeNewFetchTransport(
+  options: FetchTransportOptions,
+  nativeFetch: FetchImpl = getNativeFetchImplementation(),
+): NewTransport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
       body: request.body,
