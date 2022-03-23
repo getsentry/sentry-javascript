@@ -1,6 +1,6 @@
 import { isPrimitive, isSyntheticEvent } from './is';
 import { memoBuilder, MemoFunc } from './memo';
-import { getWalkSource } from './object';
+import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
 
 type UnknownMaybeWithToJson = unknown & { toJSON?: () => string };
@@ -88,7 +88,7 @@ export function walk(
 
   // Create source that we will use for the next iteration. It will either be an objectified error object (`Error` type
   // with extracted key:value pairs) or the input itself.
-  const source = getWalkSource(value);
+  const source = convertToPlainObject(value);
 
   // Create an accumulator that will act as a parent for all future itterations of that branch
   const acc: { [key: string]: any } = Array.isArray(value) ? [] : {};
@@ -114,7 +114,7 @@ export function walk(
     propertyCount += 1;
 
     // Recursively walk through all the child nodes
-    const innerValue: UnknownMaybeWithToJson = source[innerKey];
+    const innerValue = source[innerKey] as UnknownMaybeWithToJson;
     acc[innerKey] = walk(innerKey, innerValue, depth - 1, maxProperties, memo);
   }
 

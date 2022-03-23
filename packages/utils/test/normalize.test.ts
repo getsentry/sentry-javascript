@@ -21,7 +21,7 @@ describe('normalize()', () => {
     });
   });
 
-  describe('getWalkSource()', () => {
+  describe('convertToPlainObject()', () => {
     test('extracts extra properties from error objects', () => {
       const obj = new Error('Wubba Lubba Dub Dub') as any;
       obj.reason = new TypeError("I'm pickle Riiick!");
