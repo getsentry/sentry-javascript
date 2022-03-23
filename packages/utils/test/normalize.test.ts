@@ -290,6 +290,11 @@ describe('normalize()', () => {
     test('primitive values', () => {
       expect(normalize(undefined)).toEqual('[undefined]');
       expect(normalize(NaN)).toEqual('[NaN]');
+      expect(normalize(Symbol('dogs'))).toEqual('[Symbol(dogs)]');
+      // `BigInt` doesn't exist in Node 8
+      if (Number(process.versions.node.split('.')[0]) >= 10) {
+        expect(normalize(BigInt(1121201212312012))).toEqual('[BigInt: 1121201212312012]');
+      }
     });
 
     test('functions', () => {
