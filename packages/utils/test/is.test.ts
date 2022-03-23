@@ -1,4 +1,13 @@
-import { isDOMError, isDOMException, isError, isErrorEvent, isInstanceOf, isPrimitive, isThenable } from '../src/is';
+import {
+  isDOMError,
+  isDOMException,
+  isError,
+  isErrorEvent,
+  isInstanceOf,
+  isNaN,
+  isPrimitive,
+  isThenable,
+} from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
 import { resolvedSyncPromise } from '../src/syncpromise';
 
@@ -108,5 +117,20 @@ describe('isInstanceOf()', () => {
     expect(isInstanceOf(new Error('wat'), 'wat')).toEqual(false);
     expect(isInstanceOf(new Error('wat'), null)).toEqual(false);
     expect(isInstanceOf(new Error('wat'), undefined)).toEqual(false);
+  });
+});
+
+describe('isNaN()', () => {
+  test('should work as advertised', () => {
+    expect(isNaN(NaN)).toEqual(true);
+
+    expect(isNaN(null)).toEqual(false);
+    expect(isNaN(true)).toEqual(false);
+    expect(isNaN('foo')).toEqual(false);
+    expect(isNaN(42)).toEqual(false);
+    expect(isNaN({})).toEqual(false);
+    expect(isNaN([])).toEqual(false);
+    expect(isNaN(new Error('foo'))).toEqual(false);
+    expect(isNaN(new Date())).toEqual(false);
   });
 });
