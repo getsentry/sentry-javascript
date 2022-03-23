@@ -47,7 +47,7 @@ describe('createTransport', () => {
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         return resolvedSyncPromise({ statusCode: 200, reason: 'OK' });
       });
-      const res = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+      const res = await transport.send(ERROR_ENVELOPE);
       expect(res.status).toBe('success');
       expect(res.reason).toBe('OK');
     });
@@ -59,7 +59,7 @@ describe('createTransport', () => {
         return resolvedSyncPromise({ statusCode: 400, reason: 'Bad Request' });
       });
       try {
-        await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+        await transport.send(ERROR_ENVELOPE);
       } catch (res) {
         expect(res.status).toBe('invalid');
         expect(res.reason).toBe('Bad Request');
@@ -73,7 +73,7 @@ describe('createTransport', () => {
         return resolvedSyncPromise({ statusCode: 500 });
       });
       try {
-        await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+        await transport.send(TRANSACTION_ENVELOPE);
       } catch (res) {
         expect(res.status).toBe('failed');
         expect(res.reason).toBe('Unknown transport error');
@@ -135,7 +135,7 @@ describe('createTransport', () => {
         });
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
@@ -144,13 +144,13 @@ describe('createTransport', () => {
         setTransportResponse({ statusCode: 200 });
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        const res = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+        const res = await transport.send(ERROR_ENVELOPE);
         expect(res.status).toBe('success');
       });
 
@@ -181,7 +181,7 @@ describe('createTransport', () => {
         });
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
@@ -190,20 +190,20 @@ describe('createTransport', () => {
         setTransportResponse({ statusCode: 200 });
 
         try {
-          await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+          await transport.send(TRANSACTION_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        const res = await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+        const res = await transport.send(TRANSACTION_ENVELOPE);
         expect(res.status).toBe('success');
       });
 
@@ -234,21 +234,21 @@ describe('createTransport', () => {
         });
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
-          await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+          await transport.send(TRANSACTION_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(
@@ -258,10 +258,10 @@ describe('createTransport', () => {
 
         setTransportResponse({ statusCode: 200 });
 
-        const eventRes = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+        const eventRes = await transport.send(ERROR_ENVELOPE);
         expect(eventRes.status).toBe('success');
 
-        const transactionRes = await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+        const transactionRes = await transport.send(TRANSACTION_ENVELOPE);
         expect(transactionRes.status).toBe('success');
       });
 
@@ -296,21 +296,21 @@ describe('createTransport', () => {
         });
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
-          await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+          await transport.send(TRANSACTION_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(
@@ -320,10 +320,10 @@ describe('createTransport', () => {
 
         setTransportResponse({ statusCode: 200 });
 
-        const eventRes = await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+        const eventRes = await transport.send(ERROR_ENVELOPE);
         expect(eventRes.status).toBe('success');
 
-        const transactionRes = await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+        const transactionRes = await transport.send(TRANSACTION_ENVELOPE);
         expect(transactionRes.status).toBe('success');
       });
 
@@ -352,14 +352,14 @@ describe('createTransport', () => {
         });
 
         try {
-          await transport.send(ERROR_ENVELOPE, ERROR_TRANSPORT_CATEGORY);
+          await transport.send(ERROR_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
         try {
-          await transport.send(TRANSACTION_ENVELOPE, TRANSACTION_TRANSPORT_CATEGORY);
+          await transport.send(TRANSACTION_ENVELOPE);
         } catch (res) {
           expect(res.status).toBe('rate_limit');
           expect(res.reason).toBe(

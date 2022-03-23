@@ -1,6 +1,6 @@
 import { EventEnvelope } from '@sentry/types';
 
-import { addItemToEnvelope, createEnvelope, serializeEnvelope } from '../src/envelope';
+import { addItemToEnvelope, createEnvelope, getEnvelopeType, serializeEnvelope } from '../src/envelope';
 import { parseEnvelope } from './testutils';
 
 describe('envelope', () => {
@@ -42,6 +42,16 @@ describe('envelope', () => {
       expect(parsedNewEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
       expect(parsedNewEnvelope[1]).toEqual({ type: 'event' });
       expect(parsedNewEnvelope[2]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' });
+    });
+  });
+
+  describe('getEnvelopeType', () => {
+    it('returns the type of the envelope', () => {
+      const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+        [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
+        [{ type: 'attachment', filename: 'me.txt' }, '123456'],
+      ]);
+      expect(getEnvelopeType(env)).toEqual('event');
     });
   });
 });
