@@ -105,7 +105,7 @@ export class ExtraErrorData implements Integration {
           continue;
         }
         const value = error[key];
-        extraErrorInfo[key] = isError(value) ? (value as Error).toString() : value;
+        extraErrorInfo[key] = isError(value) ? value.toString() : value;
       }
 
       // Check if someone attached `toJSON` method to grab even more properties (eg. axios is doing that)
@@ -114,7 +114,7 @@ export class ExtraErrorData implements Integration {
 
         for (const key of Object.keys(serializedError)) {
           const value = serializedError[key];
-          extraErrorInfo[key] = isError(value) ? (value as Error).toString() : value;
+          extraErrorInfo[key] = isError(value) ? value.toString() : value;
         }
       }
 

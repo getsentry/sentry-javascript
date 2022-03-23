@@ -228,9 +228,9 @@ export function eventFromUnknownInput(
 
     return event;
   }
-  if (isError(exception as Error)) {
+  if (isError(exception)) {
     // we have a real Error object, do nothing
-    return eventFromError(exception as Error);
+    return eventFromError(exception);
   }
   if (isPlainObject(exception) || isEvent(exception)) {
     // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
