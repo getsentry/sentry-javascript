@@ -13,7 +13,7 @@ const objectToString = Object.prototype.toString;
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isError(wat: unknown): boolean {
+export function isError(wat: unknown): wat is Error {
   switch (objectToString.call(wat)) {
     case '[object Error]':
     case '[object Exception]':
@@ -68,7 +68,7 @@ export function isDOMException(wat: unknown): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isString(wat: unknown): boolean {
+export function isString(wat: unknown): wat is string {
   return isBuiltin(wat, 'String');
 }
 
