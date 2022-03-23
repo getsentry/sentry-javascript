@@ -11,7 +11,10 @@ type LocalForage = {
     callback?: (err: any, result: U) => void,
   ): Promise<U>;
   removeItem(key: string, callback?: (err: any) => void): Promise<void>;
+  length(): Promise<number>;
 };
+
+export type Item = { key: string; value: Event };
 
 /**
  * cache offline errors and send when connected

@@ -1,29 +1,29 @@
-import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
-import { Offline } from '../src/offline';
+import { Item, Offline } from '../src/offline';
 
 // mock localforage methods
 jest.mock('localforage', () => ({
   createInstance(_options: { name: string }): any {
-    let items: { key: string; value: Event }[] = [];
+    let items: Item[] = [];
 
     return {
-      async getItem(key: string): Event {
+      async getItem(key: string): Promise<Item | void> {
         return items.find(item => item.key === key);
       },
-      async iterate(callback: () => void): void {
+      async iterate(callback: (event: Event, key: string, index: number) => void): Promise<void> {
         items.forEach((item, index) => {
           callback(item.value, item.key, index);
         });
       },
-      async length(): number {
+      async length(): Promise<number> {
         return items.length;
       },
-      async removeItem(key: string): void {
+      async removeItem(key: string): Promise<void> {
         items = items.filter(item => item.key !== key);
       },
-      async setItem(key: string, value: Event): void {
+      async setItem(key: string, value: Event): Promise<void> {
         items.push({
           key,
           value,
@@ -33,7 +33,7 @@ jest.mock('localforage', () => ({
   },
 }));
 
-let integration: Integration;
+let integration: Offline;
 let online: boolean;
 
 describe('Offline', () => {
@@ -52,15 +52,10 @@ describe('Offline', () => {
     });
 
     describe('when there are already events in the cache from a previous offline session', () => {
-      beforeEach(done => {
+      beforeEach(async () => {
         const event = { message: 'previous event' };
 
-        integration.offlineEventStore
-          .setItem('previous', event)
-          .then(() => {
-            done();
-          })
-          .catch(error => error);
+        await integration.offlineEventStore.setItem('previous', event);
       });
 
       it('sends stored events', async () => {
@@ -130,7 +125,7 @@ describe('Offline', () => {
     });
 
     describe('when connectivity is restored', () => {
-      it('sends stored events', async done => {
+      it('sends stored events', async () => {
         initIntegration();
         setupOnce();
         prepopulateEvents(1);
@@ -138,8 +133,6 @@ describe('Offline', () => {
         processEventListeners();
 
         expect(await integration.offlineEventStore.length()).toEqual(0);
-
-        setImmediate(done);
       });
     });
   });
@@ -150,7 +143,7 @@ let eventProcessors: EventProcessor[];
 let events: Event[];
 
 /** JSDoc */
-function addGlobalEventProcessor(callback: () => void): void {
+function addGlobalEventProcessor(callback: EventProcessor): void {
   eventProcessors.push(callback);
 }
 
@@ -160,11 +153,11 @@ function getCurrentHub(): Hub {
     captureEvent(_event: Event): string {
       return 'an-event-id';
     },
-    getIntegration(_integration: Integration): any {
+    getIntegration<T extends Integration>(_integration: IntegrationClass<T>): T | null {
       // pretend integration is enabled
-      return true;
+      return {} as T;
     },
-  };
+  } as Hub;
 }
 
 /** JSDoc */
@@ -173,14 +166,17 @@ function initIntegration(options: { maxStoredEvents?: number } = {}): void {
   eventProcessors = [];
   events = [];
 
-  utils.getGlobalObject = jest.fn(() => ({
-    addEventListener: (_windowEvent, callback) => {
-      eventListeners.push(callback);
-    },
-    navigator: {
-      onLine: online,
-    },
-  }));
+  jest.spyOn(utils, 'getGlobalObject').mockImplementation(
+    () =>
+      ({
+        addEventListener: (_windowEvent, callback) => {
+          eventListeners.push(callback);
+        },
+        navigator: {
+          onLine: online,
+        },
+      } as any),
+  );
 
   integration = new Offline(options);
 }
