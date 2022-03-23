@@ -157,6 +157,4 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   protected _setupTransport(): Transport {
     return new NoopTransport();
   }
-
-  protected abstract _setupNewTransport(): NewTransport;
 }
