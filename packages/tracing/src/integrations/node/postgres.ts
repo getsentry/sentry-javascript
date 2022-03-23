@@ -81,7 +81,7 @@ export class Postgres implements Integration {
         const rv = typeof values !== 'undefined' ? orig.call(this, config, values) : orig.call(this, config);
 
         if (isThenable(rv)) {
-          return (rv as Promise<unknown>).then((res: unknown) => {
+          return rv.then((res: unknown) => {
             span?.finish();
             return res;
           });
