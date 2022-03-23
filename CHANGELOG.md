@@ -8,26 +8,26 @@
 
 This release fixes a bug from 6.19.0 causing type import errors in most JS SDKs.
 
-fix(types): Point to type definitions in dist folder [#4745](https://github.com/getsentry/sentry-javascript/pull/4745)
+- fix(types): Point to type definitions in dist folder [#4745](https://github.com/getsentry/sentry-javascript/pull/4745)
 
 ## 6.19.0
 
 This release makes a change to the data normalization process, limiting the number of entries or properties which will be included in any given array or object to 1000. Previously there was no limit, so in rare cases you may notice a change in your context data. If this is a problem, you can increase the limit with the new `maxNormalizationBreadth` setting. See [#4689](https://github.com/getsentry/sentry-javascript/pull/4689) for details.
 
-feat(build): Create debug versions of minified bundles ([#4699](https://github.com/getsentry/sentry-javascript/pull/4699))
-feat(integrations): Make ES6 integration bundles ([#4718](https://github.com/getsentry/sentry-javascript/pull/4718))
-feat(utils): Limit `normalize` maximum properties/elements ([#4689](https://github.com/getsentry/sentry-javascript/pull/4689))
-feat(various): Apply debug guard to logger everywhere ([#4698](https://github.com/getsentry/sentry-javascript/pull/4698))
-fix(browser): Use `apply` rather than `call` in `try-catch` integration ([#4695](https://github.com/getsentry/sentry-javascript/pull/4695))
-fix(ember): Fix merging env config ([#4714](https://github.com/getsentry/sentry-javascript/pull/4714))
-fix(nextjs): Add env var to suppress API non-response meta-warning ([#4706](https://github.com/getsentry/sentry-javascript/pull/4706))
-fix(nextjs): Widen scope for client file upload ([#4705](https://github.com/getsentry/sentry-javascript/pull/4705))
-fix(node): Fix async stack parsing ([#4721](https://github.com/getsentry/sentry-javascript/pull/4721))
-ref(browser): Use ratelimit utils in base transport ([#4686](https://github.com/getsentry/sentry-javascript/pull/4686))
-ref(build): Introduce root build directory in `@sentry/browser` ([#4688](https://github.com/getsentry/sentry-javascript/pull/4688))
-ref(minimal): Simplify `syntheticException` creation ([#4691](https://github.com/getsentry/sentry-javascript/pull/4691))
-ref(tracing): Remove `BrowserTracing` logging flag default value ([#4708](https://github.com/getsentry/sentry-javascript/pull/4708))
-ref(utils): Simplify `isDebugBuild` logging guard ([#4696](https://github.com/getsentry/sentry-javascript/pull/4696))
+- feat(build): Create debug versions of minified bundles ([#4699](https://github.com/getsentry/sentry-javascript/pull/4699))
+- feat(integrations): Make ES6 integration bundles ([#4718](https://github.com/getsentry/sentry-javascript/pull/4718))
+- feat(utils): Limit `normalize` maximum properties/elements ([#4689](https://github.com/getsentry/sentry-javascript/pull/4689))
+- feat(various): Apply debug guard to logger everywhere ([#4698](https://github.com/getsentry/sentry-javascript/pull/4698))
+- fix(browser): Use `apply` rather than `call` in `try-catch` integration ([#4695](https://github.com/getsentry/sentry-javascript/pull/4695))
+- fix(ember): Fix merging env config ([#4714](https://github.com/getsentry/sentry-javascript/pull/4714))
+- fix(nextjs): Add env var to suppress API non-response meta-warning ([#4706](https://github.com/getsentry/sentry-javascript/pull/4706))
+- fix(nextjs): Widen scope for client file upload ([#4705](https://github.com/getsentry/sentry-javascript/pull/4705))
+- fix(node): Fix async stack parsing ([#4721](https://github.com/getsentry/sentry-javascript/pull/4721))
+- ref(browser): Use ratelimit utils in base transport ([#4686](https://github.com/getsentry/sentry-javascript/pull/4686))
+- ref(build): Introduce root build directory in `@sentry/browser` ([#4688](https://github.com/getsentry/sentry-javascript/pull/4688))
+- ref(minimal): Simplify `syntheticException` creation ([#4691](https://github.com/getsentry/sentry-javascript/pull/4691))
+- ref(tracing): Remove `BrowserTracing` logging flag default value ([#4708](https://github.com/getsentry/sentry-javascript/pull/4708))
+- ref(utils): Simplify `isDebugBuild` logging guard ([#4696](https://github.com/getsentry/sentry-javascript/pull/4696))
 
 Work in this release contributed by @Turbo87. Thank you for your contribution!
 

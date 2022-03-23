@@ -16,7 +16,7 @@ import {
   Scope,
 } from '../src';
 import { NodeBackend } from '../src/backend';
-import { LinkedErrors } from '../src/integrations';
+import { ContextLines, LinkedErrors } from '../src/integrations';
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
@@ -199,11 +199,11 @@ describe('SentryNode', () => {
       }
     });
 
-    test.only('capture a linked exception with pre/post context', done => {
+    test('capture a linked exception with pre/post context', done => {
       expect.assertions(15);
       getCurrentHub().bindClient(
         new NodeClient({
-          integrations: i => [new LinkedErrors(), ...i],
+          integrations: [new ContextLines(), new LinkedErrors()],
           beforeSend: (event: Event) => {
             expect(event.exception).not.toBeUndefined();
             expect(event.exception!.values![1]).not.toBeUndefined();

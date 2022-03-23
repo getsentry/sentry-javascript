@@ -51,10 +51,8 @@ export class ContextLines implements Integration {
 
   public constructor(private readonly _options: ContextLinesOptions = {}) {}
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+  /** Get's the number of context lines to add */
+  private get _contextLines(): number {
     // This is only here to copy frameContextLines from init options if it hasn't
     // been set via this integrations constructor.
     //
@@ -65,18 +63,22 @@ export class ContextLines implements Integration {
       this._options.frameContextLines = initOptions?.frameContextLines;
     }
 
-    const contextLines =
-      this._options.frameContextLines !== undefined ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+    return this._options.frameContextLines !== undefined ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+  }
 
-    addGlobalEventProcessor(event => this.addSourceContext(event, contextLines));
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    addGlobalEventProcessor(event => this.addSourceContext(event));
   }
 
   /** Processes an event and adds context lines */
-  public async addSourceContext(event: Event, contextLines: number): Promise<Event> {
-    if (contextLines > 0 && event.exception?.values) {
+  public async addSourceContext(event: Event): Promise<Event> {
+    if (this._contextLines > 0 && event.exception?.values) {
       for (const exception of event.exception.values) {
         if (exception.stacktrace?.frames) {
-          await this._addSourceContextToFrames(exception.stacktrace.frames, contextLines);
+          await this.addSourceContextToFrames(exception.stacktrace.frames);
         }
       }
     }
@@ -85,9 +87,12 @@ export class ContextLines implements Integration {
   }
 
   /** Adds context lines to frames */
-  public async _addSourceContextToFrames(frames: StackFrame[], contextLines: number): Promise<void> {
+  public async addSourceContextToFrames(frames: StackFrame[]): Promise<void> {
+    const contextLines = this._contextLines;
+
     for (const frame of frames) {
-      if (frame.filename) {
+      // Only add context if we have a filename and it hasn't already been added
+      if (frame.filename && frame.context_line === undefined) {
         const sourceFile = await _readSourceFile(frame.filename);
 
         if (sourceFile) {
