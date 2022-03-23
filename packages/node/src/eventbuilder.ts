@@ -57,7 +57,7 @@ export function eventFromUnknownInput(exception: unknown, hint?: EventHint): Eve
       const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
       getCurrentHub().configureScope(scope => {
-        scope.setExtra('__serialized__', normalizeToSize(exception as Record<string, unknown>));
+        scope.setExtra('__serialized__', normalizeToSize(exception));
       });
 
       ex = (hint && hint.syntheticException) || new Error(message);
