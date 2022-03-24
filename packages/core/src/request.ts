@@ -82,6 +82,35 @@ export function createEventEnvelope(event: Event, api: APIDetails): EventEnvelop
   const { transactionSampling } = event.sdkProcessingMetadata || {};
   const { method: samplingMethod, rate: sampleRate } = transactionSampling || {};
 
+  // TODO: Below is a temporary hack in order to debug a serialization error - see
+  // https://github.com/getsentry/sentry-javascript/issues/2809,
+  // https://github.com/getsentry/sentry-javascript/pull/4425, and
+  // https://github.com/getsentry/sentry-javascript/pull/4574.
+  //
+  // TL; DR: even though we normalize all events (which should prevent this), something is causing `JSON.stringify` to
+  // throw a circular reference error.
+  //
+  // When it's time to remove it:
+  // 1. Delete everything between here and where the request object `req` is created, EXCEPT the line deleting
+  //    `sdkProcessingMetadata`
+  // 2. Restore the original version of the request body, which is commented out
+  // 3. Search for either of the PR URLs above and pull out the companion hacks in the browser playwright tests and the
+  //    baseClient tests in this package
+  enhanceEventWithSdkInfo(event, api.metadata.sdk);
+  event.tags = event.tags || {};
+  event.extra = event.extra || {};
+
+  // In theory, all events should be marked as having gone through normalization and so
+  // we should never set this tag/extra data
+  if (!(event.sdkProcessingMetadata && event.sdkProcessingMetadata.baseClientNormalized)) {
+    event.tags.skippedNormalization = true;
+    event.extra.normalizeDepth = event.sdkProcessingMetadata ? event.sdkProcessingMetadata.normalizeDepth : 'unset';
+  }
+
+  // prevent this data from being sent to sentry
+  // TODO: This is NOT part of the hack - DO NOT DELETE
+  delete event.sdkProcessingMetadata;
+
   const envelopeHeaders = {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
