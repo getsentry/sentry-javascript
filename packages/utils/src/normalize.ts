@@ -41,13 +41,13 @@ export function normalizeToSize<T>(
   // 100kB, as 200kB is max payload size, so half sounds reasonable
   maxSize: number = 100 * 1024,
 ): T {
-  const serialized = normalize(object, depth);
+  const normalized = normalize(object, depth);
 
-  if (jsonSize(serialized) > maxSize) {
+  if (jsonSize(normalized) > maxSize) {
     return normalizeToSize(object, depth - 1, maxSize);
   }
 
-  return serialized as T;
+  return normalized as T;
 }
 
 /**
