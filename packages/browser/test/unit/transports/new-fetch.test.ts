@@ -1,4 +1,3 @@
-import { NewTransport } from '@sentry/core';
 import { makeNewFetchTransport, FetchTransportOptions } from '../../../src/transports/new-fetch';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import { EventEnvelope, EventItem } from '@sentry/types';
@@ -66,5 +65,33 @@ describe('NewFetchTransport', () => {
     expect(headers.get).toHaveBeenCalledTimes(2);
     expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
     expect(headers.get).toHaveBeenCalledWith('Retry-After');
+  });
+
+  it('allows for custom options to be passed in', async () => {
+    const mockFetch = jest.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        status: 200,
+        text: () => Promise.resolve({}),
+      }),
+    ) as unknown as FetchImpl;
+
+    const REQUEST_OPTIONS: RequestInit = {
+      referrerPolicy: 'strict-origin',
+      keepalive: true,
+      referrer: 'http://example.org',
+    };
+
+    const transport = makeNewFetchTransport(
+      { ...DEFAULT_FETCH_TRANSPORT_OPTIONS, requestOptions: REQUEST_OPTIONS },
+      mockFetch,
+    );
+
+    await transport.send(ERROR_ENVELOPE);
+    expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_FETCH_TRANSPORT_OPTIONS.url, {
+      body: serializeEnvelope(ERROR_ENVELOPE),
+      method: 'POST',
+      ...REQUEST_OPTIONS,
+    });
   });
 });

@@ -1,9 +1,9 @@
-import { BaseBackend } from '@sentry/core';
-import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
+import { BaseBackend, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails } from '@sentry/core';
+import { Event, EventHint, Options, Severity, Transport, TransportOptions } from '@sentry/types';
 import { supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
-import { FetchTransport, XHRTransport } from './transports';
+import { FetchTransport, makeNewFetchTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -58,7 +58,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       return super._setupTransport();
     }
 
-    const transportOptions = {
+    const transportOptions: TransportOptions = {
       ...this._options.transportOptions,
       dsn: this._options.dsn,
       tunnel: this._options.tunnel,
@@ -66,10 +66,15 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       _metadata: this._options._metadata,
     };
 
+    const api = initAPIDetails(transportOptions.dsn, transportOptions._metadata, transportOptions.tunnel);
+    const url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
+
     if (this._options.transport) {
       return new this._options.transport(transportOptions);
     }
     if (supportsFetch()) {
+      const requestOptions: RequestInit = { ...transportOptions.fetchParameters };
+      this._newTransport = makeNewFetchTransport({ requestOptions, url });
       return new FetchTransport(transportOptions);
     }
     return new XHRTransport(transportOptions);
