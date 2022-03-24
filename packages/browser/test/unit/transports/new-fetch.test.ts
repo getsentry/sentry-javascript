@@ -1,6 +1,7 @@
-import { makeNewFetchTransport, FetchTransportOptions } from '../../../src/transports/new-fetch';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import { EventEnvelope, EventItem } from '@sentry/types';
+import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+
+import { FetchTransportOptions, makeNewFetchTransport } from '../../../src/transports/new-fetch';
 import { FetchImpl } from '../../../src/transports/utils';
 
 const DEFAULT_FETCH_TRANSPORT_OPTIONS: FetchTransportOptions = {
