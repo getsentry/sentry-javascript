@@ -13,7 +13,7 @@ const objectToString = Object.prototype.toString;
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isError(wat: unknown): boolean {
+export function isError(wat: unknown): wat is Error {
   switch (objectToString.call(wat)) {
     case '[object Error]':
     case '[object Exception]':
@@ -68,7 +68,7 @@ export function isDOMException(wat: unknown): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isString(wat: unknown): boolean {
+export function isString(wat: unknown): wat is string {
   return isBuiltin(wat, 'String');
 }
 
@@ -146,6 +146,18 @@ export function isThenable(wat: any): wat is PromiseLike<any> {
 export function isSyntheticEvent(wat: unknown): boolean {
   return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
 }
+
+/**
+ * Checks whether given value is NaN
+ * {@link isNaN}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isNaN(wat: unknown): boolean {
+  return typeof wat === 'number' && wat !== wat;
+}
+
 /**
  * Checks whether given value's type is an instance of provided constructor.
  * {@link isInstanceOf}.

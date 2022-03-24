@@ -10,6 +10,7 @@ export * from './logger';
 export * from './memo';
 export * from './misc';
 export * from './node';
+export * from './normalize';
 export * from './object';
 export * from './path';
 export * from './promisebuffer';

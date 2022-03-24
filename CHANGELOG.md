@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.19.2
+
+- feat(core): Add new transports to base backend ([#4752](https://github.com/getsentry/sentry-javascript/pull/4752))
+- feat(utils): Add `isNaN` function ([#4759](https://github.com/getsentry/sentry-javascript/pull/4759))
+- fix(integrations): Emit ES5 code in ES5 bundles ([#4769](https://github.com/getsentry/sentry-javascript/pull/4769))
+- fix(vue): Drop vue-router peerDep ([#4764](https://github.com/getsentry/sentry-javascript/pull/4764))
+- ref(core): Reduce inboundfilters bundle size ([#4625](https://github.com/getsentry/sentry-javascript/pull/4625))
+- ref(integrations): Make ReportTypes a union type
+- ref(node): Add source code context when using LinkedErrors ([#4753](https://github.com/getsentry/sentry-javascript/pull/4753))
+- ref(utils): Introduce getEnvelopeType helper ([#4751](https://github.com/getsentry/sentry-javascript/pull/4751))
+- ref(utils): Split normalization code into separate module ([#4760](https://github.com/getsentry/sentry-javascript/pull/4760))
+
 ## 6.19.1
 
 This release fixes a bug from 6.19.0 causing type import errors in most JS SDKs.

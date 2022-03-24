@@ -190,7 +190,7 @@ export function makeBaseBundleConfig(options) {
       esModule: false,
     },
     plugins: [
-      jsVersion === 'es5' ? typescriptPluginES5 : typescriptPluginES6,
+      jsVersion.toLowerCase() === 'es5' ? typescriptPluginES5 : typescriptPluginES6,
       markAsBrowserBuildPlugin,
       nodeResolvePlugin,
       licensePlugin,
