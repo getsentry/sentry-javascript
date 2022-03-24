@@ -115,14 +115,12 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
-        uses: getsentry/size-limit-action@v3
+        uses: getsentry/size-limit-action@v4
         # Only run size check on master or pull requests
         if: github.ref == 'refs/heads/master' || github.event_name == 'pull_request'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # see https://github.com/getsentry/size-limit-action#usage
           skip_step: build
-          workflow_name: 'build'
 
   job_lint:
     name: Lint
