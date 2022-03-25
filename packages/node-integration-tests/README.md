@@ -35,7 +35,7 @@ A custom server configuration can be used, supplying a script that exports a val
 
 ## Running Tests Locally
 
-Tests can be run locally using the latest version of Chromium with:
+Tests can be run locally with:
 
 `yarn test`
 
