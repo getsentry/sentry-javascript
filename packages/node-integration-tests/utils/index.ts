@@ -5,7 +5,7 @@ import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
 
-const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
+export const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
     timestamp: expect.any(Number),
@@ -13,7 +13,7 @@ const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<str
   });
 };
 
-const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
+export const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
     timestamp: expect.any(Number),
@@ -24,24 +24,34 @@ const assertSentryTransaction = (actual: Record<string, unknown>, expected: Reco
   });
 };
 
-const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
+export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
 };
 
-const getEventRequest = async (url: string): Promise<Record<string, unknown>> => {
+export const getMultipleEventRequests = async (url: string, count: number): Promise<Array<Record<string, unknown>>> => {
+  const events: Record<string, unknown>[] = [];
+
   return new Promise(resolve => {
     nock('https://dsn.ingest.sentry.io')
       .post('/api/1337/store/', body => {
-        resolve(body);
+        events.push(body);
+
+        if (events.length === count) {
+          resolve(events);
+        }
         return true;
       })
+      .times(7)
       .reply(200);
-
     http.get(url);
   });
 };
 
-const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unknown>>> => {
+export const getEventRequest = async (url: string): Promise<Record<string, unknown>> => {
+  return (await getMultipleEventRequests(url, 1))[0];
+};
+
+export const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unknown>>> => {
   return new Promise(resolve => {
     nock('https://dsn.ingest.sentry.io')
       .post('/api/1337/envelope/', body => {
@@ -55,7 +65,7 @@ const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unk
   });
 };
 
-async function runServer(testDir: string, serverPath?: string, scenarioPath?: string): Promise<string> {
+export async function runServer(testDir: string, serverPath?: string, scenarioPath?: string): Promise<string> {
   const port = await getPortPromise();
   const url = `http://localhost:${port}/test`;
   const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
@@ -77,5 +87,3 @@ async function runServer(testDir: string, serverPath?: string, scenarioPath?: st
 
   return url;
 }
-
-export { assertSentryEvent, assertSentryTransaction, parseEnvelope, getEventRequest, getEnvelopeRequest, runServer };
