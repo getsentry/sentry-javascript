@@ -1,6 +1,6 @@
-import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../utils';
+import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
 
-test.skip('should send a manually started transaction when @sentry/tracing is imported using namespace import.', async () => {
+test('should send a manually started transaction when @sentry/tracing is imported using unnamed import.', async () => {
   const url = await runServer(__dirname);
   const envelope = await getEnvelopeRequest(url);
 
