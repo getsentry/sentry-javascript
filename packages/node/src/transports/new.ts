@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 
-import { HTTPModule, HTTPModuleClientRequest } from './base/http-module';
+import { HTTPModule } from './base/http-module';
 
 interface HttpTransportOptions extends BaseTransportOptions {
   // Todo: doc
