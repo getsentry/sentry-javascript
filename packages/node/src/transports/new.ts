@@ -126,13 +126,12 @@ function createRequestExecutor(
          * https://nodejs.org/api/http.html#http_message_headers
          */
         const retryAfterHeader = res.headers['retry-after'] ?? null;
-        let rateLimitsHeader = res.headers['x-sentry-rate-limits'] ?? null;
-        rateLimitsHeader = Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader;
+        const rateLimitsHeader = res.headers['x-sentry-rate-limits'] ?? null;
 
         callback({
           headers: {
-            'x-sentry-rate-limits': rateLimitsHeader,
             'retry-after': retryAfterHeader,
+            'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader,
           },
           reason: status,
           statusCode: statusCode,
