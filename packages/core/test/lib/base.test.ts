@@ -879,6 +879,13 @@ describe('BaseClient', () => {
           delete capturedEvent.sdkProcessingMetadata.normalizeDepth;
         }
       }
+      if (capturedEvent.sdkProcessingMetadata?.baseClientNormalized) {
+        if (Object.keys(capturedEvent.sdkProcessingMetadata).length === 1) {
+          delete capturedEvent.sdkProcessingMetadata;
+        } else {
+          delete capturedEvent.sdkProcessingMetadata.baseClientNormalized;
+        }
+      }
 
       expect(capturedEvent).toEqual(normalizedTransaction);
       // expect(TestBackend.instance!.event!).toEqual(normalizedTransaction);
