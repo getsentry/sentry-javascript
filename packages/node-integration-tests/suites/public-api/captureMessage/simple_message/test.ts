@@ -1,6 +1,6 @@
-import { assertSentryEvent, getEventRequest, runServer } from '../../../utils';
+import { assertSentryEvent, getEventRequest, runServer } from '../../../../utils';
 
-test('should send captureMessage', async () => {
+test('should capture a simple message string', async () => {
   const url = await runServer(__dirname);
   const requestBody = await getEventRequest(url);
 

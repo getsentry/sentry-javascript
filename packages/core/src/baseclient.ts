@@ -429,7 +429,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       normalized.contexts.trace = event.contexts.trace;
     }
 
-    event.sdkProcessingMetadata = { ...event.sdkProcessingMetadata, baseClientNormalized: true };
+    normalized.sdkProcessingMetadata = { ...normalized.sdkProcessingMetadata, baseClientNormalized: true };
 
     return normalized;
   }

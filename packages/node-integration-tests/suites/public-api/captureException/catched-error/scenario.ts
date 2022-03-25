@@ -5,4 +5,8 @@ Sentry.init({
   release: '1.0',
 });
 
-Sentry.captureException(new Error('Captured Error'));
+try {
+  throw new Error('catched_error');
+} catch (err) {
+  Sentry.captureException(err);
+}

@@ -82,7 +82,10 @@ async function getMultipleRequests(
           // removed. See https://github.com/getsentry/sentry-javascript/pull/4425.
           const parsedRequest = requestParser(request);
           if (parsedRequest.tags) {
-            if (parsedRequest.tags.skippedNormalization && Object.keys(parsedRequest.tags).length === 1) {
+            if (
+              Object.keys(parsedRequest.tags).length === 0 ||
+              (Object.keys(parsedRequest.tags).length === 1 && 'skippedNormalization' in parsedRequest.tags)
+            ) {
               delete parsedRequest.tags;
             } else {
               delete parsedRequest.tags.skippedNormalization;
