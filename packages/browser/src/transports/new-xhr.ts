@@ -9,8 +9,8 @@ import { SyncPromise } from '@sentry/utils';
 
 export interface XHRTransportOptions extends BaseTransportOptions {
   // TODO choose whatever is preferred here (I like record more for easier readability)
-  headers?: { [key: string]: string };
-  // headers?: Record<string, string>;
+  //headers?: { [key: string]: string };
+  headers?: Record<string, string>;
 }
 
 /**
@@ -22,6 +22,7 @@ export function makeNewXHRTransport(options: XHRTransportOptions): NewTransport 
       const xhr = new XMLHttpRequest();
 
       xhr.onreadystatechange = (): void => {
+        // TODO make 4 a constant
         if (xhr.readyState === 4) {
           const response = {
             body: xhr.response,
@@ -33,7 +34,6 @@ export function makeNewXHRTransport(options: XHRTransportOptions): NewTransport 
             statusCode: xhr.status,
           };
 
-          // TODO when to reject? is it necessary at all, given that createTransport handles rejections?
           resolve(response);
         }
       };
