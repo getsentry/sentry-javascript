@@ -97,32 +97,21 @@ export function urlEncode(object: { [key: string]: any }): string {
  *
  * @param value Initial source that we have to transform in order for it to be usable by the serializer
  */
-export function getWalkSource(value: any): {
-  [key: string]: any;
+export function convertToPlainObject(value: unknown): {
+  [key: string]: unknown;
 } {
+  let newObj = value as {
+    [key: string]: unknown;
+  };
+
   if (isError(value)) {
-    const error = value as ExtendedError;
-    const err: {
-      [key: string]: any;
-      stack: string | undefined;
-      message: string;
-      name: string;
-    } = {
-      message: error.message,
-      name: error.name,
-      stack: error.stack,
+    newObj = {
+      message: value.message,
+      name: value.name,
+      stack: value.stack,
+      ...getOwnProperties(value as ExtendedError),
     };
-
-    for (const i in error) {
-      if (Object.prototype.hasOwnProperty.call(error, i)) {
-        err[i] = error[i];
-      }
-    }
-
-    return err;
-  }
-
-  if (isEvent(value)) {
+  } else if (isEvent(value)) {
     /**
      * Event-like interface that's usable in browser and node
      */
@@ -133,49 +122,40 @@ export function getWalkSource(value: any): {
       currentTarget?: unknown;
     }
 
-    const event = value as unknown as SimpleEvent;
+    const event = value as SimpleEvent;
 
-    const source: {
-      [key: string]: any;
-    } = {};
-
-    // Accessing event attributes can throw (see https://github.com/getsentry/sentry-javascript/issues/768 and
-    // https://github.com/getsentry/sentry-javascript/issues/838), but accessing `type` hasn't been wrapped in a
-    // try-catch in at least two years and no one's complained, so that's likely not an issue anymore
-    source.type = event.type;
-
-    try {
-      source.target = isElement(event.target)
-        ? htmlTreeAsString(event.target)
-        : Object.prototype.toString.call(event.target);
-    } catch (_oO) {
-      source.target = '<unknown>';
-    }
-
-    try {
-      source.currentTarget = isElement(event.currentTarget)
-        ? htmlTreeAsString(event.currentTarget)
-        : Object.prototype.toString.call(event.currentTarget);
-    } catch (_oO) {
-      source.currentTarget = '<unknown>';
-    }
+    newObj = {
+      type: event.type,
+      target: serializeEventTarget(event.target),
+      currentTarget: serializeEventTarget(event.currentTarget),
+      ...getOwnProperties(event),
+    };
 
     if (typeof CustomEvent !== 'undefined' && isInstanceOf(value, CustomEvent)) {
-      source.detail = event.detail;
+      newObj.detail = event.detail;
     }
-
-    for (const attr in event) {
-      if (Object.prototype.hasOwnProperty.call(event, attr)) {
-        source[attr] = event[attr];
-      }
-    }
-
-    return source;
   }
+  return newObj;
+}
 
-  return value as {
-    [key: string]: any;
-  };
+/** Creates a string representation of the target of an `Event` object */
+function serializeEventTarget(target: unknown): string {
+  try {
+    return isElement(target) ? htmlTreeAsString(target) : Object.prototype.toString.call(target);
+  } catch (_oO) {
+    return '<unknown>';
+  }
+}
+
+/** Filters out all but an object's own properties */
+function getOwnProperties(obj: { [key: string]: unknown }): { [key: string]: unknown } {
+  const extractedProps: { [key: string]: unknown } = {};
+  for (const property in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, property)) {
+      extractedProps[property] = obj[property];
+    }
+  }
+  return extractedProps;
 }
 
 /**
@@ -185,7 +165,7 @@ export function getWalkSource(value: any): {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function extractExceptionKeysForMessage(exception: any, maxLength: number = 40): string {
-  const keys = Object.keys(getWalkSource(exception));
+  const keys = Object.keys(convertToPlainObject(exception));
   keys.sort();
 
   if (!keys.length) {

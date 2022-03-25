@@ -4,6 +4,7 @@
 
 import * as isModule from '../src/is';
 import { normalize } from '../src/normalize';
+import * as stacktraceModule from '../src/stacktrace';
 import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('normalize()', () => {
@@ -21,7 +22,7 @@ describe('normalize()', () => {
     });
   });
 
-  describe('getWalkSource()', () => {
+  describe('convertToPlainObject()', () => {
     test('extracts extra properties from error objects', () => {
       const obj = new Error('Wubba Lubba Dub Dub') as any;
       obj.reason = new TypeError("I'm pickle Riiick!");
@@ -290,6 +291,11 @@ describe('normalize()', () => {
     test('primitive values', () => {
       expect(normalize(undefined)).toEqual('[undefined]');
       expect(normalize(NaN)).toEqual('[NaN]');
+      expect(normalize(Symbol('dogs'))).toEqual('[Symbol(dogs)]');
+      // `BigInt` doesn't exist in Node 8
+      if (Number(process.versions.node.split('.')[0]) >= 10) {
+        expect(normalize(BigInt(1121201212312012))).toEqual('[BigInt: 1121201212312012]');
+      }
     });
 
     test('functions', () => {
@@ -463,6 +469,19 @@ describe('normalize()', () => {
         nope: 'here',
         foo: ['s', 's', 's', 's', 's', '[MaxProperties ~]'],
         after: 'more',
+      });
+    });
+  });
+
+  describe('handles serialization errors', () => {
+    test('restricts effect of error to problematic node', () => {
+      jest.spyOn(stacktraceModule, 'getFunctionName').mockImplementationOnce(() => {
+        throw new Error('Nope');
+      });
+
+      expect(normalize({ dogs: 'are great!', someFunc: () => {} })).toEqual({
+        dogs: 'are great!',
+        someFunc: '**non-serializable** (Error: Nope)',
       });
     });
   });
