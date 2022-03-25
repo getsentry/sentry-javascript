@@ -28,6 +28,8 @@ interface HttpTransportOptions extends BaseTransportOptions {
 // - Rename this file "transports.ts"
 // - Move this file one folder upwards
 // - Delete "transports" folder
+// OR
+// - Split this file up and leave it in the transports folder
 
 /**
  * TODO Doc
