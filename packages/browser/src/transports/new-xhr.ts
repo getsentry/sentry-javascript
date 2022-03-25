@@ -8,7 +8,9 @@ import {
 import { SyncPromise } from '@sentry/utils';
 
 export interface XHRTransportOptions extends BaseTransportOptions {
+  // TODO choose whatever is preferred here (I like record more for easier readability)
   headers?: { [key: string]: string };
+  // headers?: Record<string, string>;
 }
 
 /**
@@ -21,17 +23,17 @@ export function makeNewXHRTransport(options: XHRTransportOptions): NewTransport 
 
       xhr.onreadystatechange = (): void => {
         if (xhr.readyState === 4) {
-          const headers = {
-            'x-sentry-rate-limits': xhr.getResponseHeader('X-Sentry-Rate-Limits'),
-            'retry-after': xhr.getResponseHeader('Retry-After'),
-          };
           const response = {
             body: xhr.response,
-            headers,
+            headers: {
+              'x-sentry-rate-limits': xhr.getResponseHeader('X-Sentry-Rate-Limits'),
+              'retry-after': xhr.getResponseHeader('Retry-After'),
+            },
             reason: xhr.statusText,
             statusCode: xhr.status,
           };
 
+          // TODO when to reject? is it necessary at all, given that createTransport handles rejections?
           resolve(response);
         }
       };
