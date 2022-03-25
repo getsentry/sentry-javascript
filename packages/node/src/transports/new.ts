@@ -94,57 +94,49 @@ function createRequestExecutor(
 ): TransportRequestExecutor {
   const { hostname, pathname, port, protocol } = new URL(options.url);
 
-  // This function is extracted because we want to keep the actual `makeRequest` function as light-weight as possible
-  function performHttpRequest(
-    callback: (transportMakeRequestResponse: TransportMakeRequestResponse) => void,
-  ): HTTPModuleClientRequest {
-    return httpModule.request(
-      {
-        method: 'POST',
-        agent,
-        headers: options.headers,
-        hostname,
-        pathname,
-        port,
-        protocol,
-        ca: options.caCerts ? fs.readFileSync(options.caCerts) : undefined,
-      },
-      res => {
-        res.on('data', () => {
-          // Drain socket
-        });
-
-        res.on('end', () => {
-          // Drain socket
-        });
-
-        const statusCode = res.statusCode ?? 500;
-        const status = eventStatusFromHttpCode(statusCode);
-
-        res.setEncoding('utf8');
-
-        /**
-         * "Key-value pairs of header names and values. Header names are lower-cased."
-         * https://nodejs.org/api/http.html#http_message_headers
-         */
-        const retryAfterHeader = res.headers['retry-after'] ?? null;
-        const rateLimitsHeader = res.headers['x-sentry-rate-limits'] ?? null;
-
-        callback({
-          headers: {
-            'retry-after': retryAfterHeader,
-            'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader,
-          },
-          reason: status,
-          statusCode: statusCode,
-        });
-      },
-    );
-  }
-
   return function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     return new Promise((resolve, reject) => {
-      const req = performHttpRequest(resolve);
+      const req = httpModule.request(
+        {
+          method: 'POST',
+          agent,
+          headers: options.headers,
+          hostname,
+          pathname,
+          port,
+          protocol,
+          ca: options.caCerts ? fs.readFileSync(options.caCerts) : undefined,
+        },
+        res => {
+          res.on('data', () => {
+            // Drain socket
+          });
+
+          res.on('end', () => {
+            // Drain socket
+          });
+
+          const statusCode = res.statusCode ?? 500;
+          const status = eventStatusFromHttpCode(statusCode);
+
+          res.setEncoding('utf8');
+
+          // "Key-value pairs of header names and values. Header names are lower-cased."
+          // https://nodejs.org/api/http.html#http_message_headers
+          const retryAfterHeader = res.headers['retry-after'] ?? null;
+          const rateLimitsHeader = res.headers['x-sentry-rate-limits'] ?? null;
+
+          resolve({
+            headers: {
+              'retry-after': retryAfterHeader,
+              'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader,
+            },
+            reason: status,
+            statusCode: statusCode,
+          });
+        },
+      );
+
       req.on('error', reject);
       req.end(request.body);
     });
