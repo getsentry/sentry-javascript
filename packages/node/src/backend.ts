@@ -1,9 +1,15 @@
-import { BaseBackend } from '@sentry/core';
+import { BaseBackend, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails } from '@sentry/core';
 import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
 import { makeDsn, resolvedSyncPromise } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
-import { HTTPSTransport, HTTPTransport } from './transports';
+import {
+  HTTPSTransport,
+  HTTPTransport,
+  makeNewHttpsTransport,
+  makeNewHttpTransport,
+  NodeTransportOptions,
+} from './transports';
 import { NodeOptions } from './types';
 
 /**
@@ -50,9 +56,22 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     if (this._options.transport) {
       return new this._options.transport(transportOptions);
     }
+
+    const api = initAPIDetails(transportOptions.dsn, transportOptions._metadata, transportOptions.tunnel);
+    const url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
+
+    const newTransportOptions: NodeTransportOptions = {
+      url,
+      headers: transportOptions.headers,
+      proxy: transportOptions.httpProxy,
+      caCerts: transportOptions.caCerts,
+    };
+
     if (dsn.protocol === 'http') {
+      this._newTransport = makeNewHttpTransport(newTransportOptions);
       return new HTTPTransport(transportOptions);
     }
+    this._newTransport = makeNewHttpsTransport(newTransportOptions);
     return new HTTPSTransport(transportOptions);
   }
 }
