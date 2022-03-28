@@ -28,7 +28,7 @@ beforeAll(() => {
   });
 });
 
-test.only('should auto-instrument `pg` package.', async () => {
+test('should auto-instrument `pg` package.', async () => {
   const url = await runServer(__dirname);
   const envelope = await getEnvelopeRequest(url);
 
