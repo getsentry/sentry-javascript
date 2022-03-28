@@ -57,6 +57,8 @@ function makeIsDebugBuildPlugin(includeDebugging) {
   });
 }
 
+// `terser` options reference: https://github.com/terser/terser#api-reference
+// `rollup-plugin-terser` options reference: https://github.com/TrySound/rollup-plugin-terser#options
 export const terserPlugin = terser({
   mangle: {
     // captureExceptions and captureMessage are public API methods and they don't need to be listed here
@@ -66,6 +68,7 @@ export const terserPlugin = terser({
     reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
     properties: {
       regex: /^_[^_]/,
+      reserved: ['_experiments'],
     },
   },
   output: {

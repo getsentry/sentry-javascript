@@ -11,11 +11,16 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
-    "test": "jest --detectOpenHandles --runInBand --forceExit"
+    "test": "jest --detectOpenHandles --runInBand --forceExit",
+    "test:watch": "yarn test --watch"
   },
   "dependencies": {
+    "@types/mysql": "^2.15.21",
+    "@types/pg": "^8.6.5",
     "express": "^4.17.3",
+    "mysql": "^2.18.1",
     "nock": "^13.1.0",
+    "pg": "^8.7.3",
     "portfinder": "^1.0.28"
   }
 }
