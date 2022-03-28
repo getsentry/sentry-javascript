@@ -2,6 +2,9 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
 
+// mongodb-memory-server may download a MongoDB binary in different Node versions
+jest.setTimeout(15000);
+
 test('should auto-instrument `mongodb` package.', async () => {
   const mongoServer = await MongoMemoryServer.create();
   process.env.MONGO_URL = mongoServer.getUri();
