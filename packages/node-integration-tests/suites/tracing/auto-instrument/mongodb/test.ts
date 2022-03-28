@@ -16,7 +16,7 @@ afterAll(async () => {
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
-// Skipping on Node versions below 12 as `mongo-memory-server`
+// Skipping on Node versions below 12 as `mongo-memory-server` supports >= 12
 const conditionalTest = NODE_VERSION.major && NODE_VERSION.major < 12 ? test.skip : test;
 
 conditionalTest('should auto-instrument `mongodb` package.', async () => {
