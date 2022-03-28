@@ -98,7 +98,7 @@ function createRequestExecutor(
   httpModule: HTTPModule,
   agent: http.Agent,
 ): TransportRequestExecutor {
-  const { hostname, pathname, port, protocol } = new URL(options.url);
+  const { hostname, pathname, port, protocol, search } = new URL(options.url);
 
   return function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     return new Promise((resolve, reject) => {
@@ -108,7 +108,7 @@ function createRequestExecutor(
           agent,
           headers: options.headers,
           hostname,
-          path: `${pathname}`,
+          path: `${pathname}${search}`,
           port,
           protocol,
           ca: options.caCerts,
