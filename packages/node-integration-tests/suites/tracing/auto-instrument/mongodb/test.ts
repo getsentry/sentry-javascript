@@ -1,14 +1,25 @@
+import { parseSemver } from '@sentry/utils';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
 
-// mongodb-memory-server may download a MongoDB binary in different Node versions
-jest.setTimeout(15000);
+let mongoServer: MongoMemoryServer;
 
-test('should auto-instrument `mongodb` package.', async () => {
-  const mongoServer = await MongoMemoryServer.create();
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
   process.env.MONGO_URL = mongoServer.getUri();
+}, 30000);
 
+afterAll(async () => {
+  await mongoServer.stop();
+});
+
+const NODE_VERSION = parseSemver(process.versions.node);
+
+// Skipping on Node versions below 12 as `mongo-memory-server`
+const conditionalTest = NODE_VERSION.major && NODE_VERSION.major < 12 ? test.skip : test;
+
+conditionalTest('should auto-instrument `mongodb` package.', async () => {
   const url = await runServer(__dirname);
 
   const envelope = await getEnvelopeRequest(url);

@@ -1,21 +1,7 @@
-/* eslint-disable @typescript-eslint/no-namespace */
 import '@sentry/tracing';
 
 import * as Sentry from '@sentry/node';
 import { MongoClient } from 'mongodb';
-import { TextDecoder, TextEncoder } from 'util';
-
-declare global {
-  namespace NodeJS {
-    interface Global {
-      TextEncoder: any;
-      TextDecoder: any;
-    }
-  }
-}
-
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
