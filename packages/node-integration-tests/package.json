@@ -15,8 +15,10 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
+    "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
     "express": "^4.17.3",
+    "mysql": "^2.18.1",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
     "portfinder": "^1.0.28"
