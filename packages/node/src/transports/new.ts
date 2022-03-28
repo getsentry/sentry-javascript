@@ -14,7 +14,7 @@ import { URL } from 'url';
 import { HTTPModule } from './base/http-module';
 
 // TODO(v7):
-// - Rename this file "transports.ts"
+// - Rename this file "transport.ts"
 // - Move this file one folder upwards
 // - Delete "transports" folder
 // OR
@@ -27,41 +27,30 @@ export interface NodeTransportOptions extends BaseTransportOptions {
   proxy?: string;
   /** HTTPS proxy CA certificates */
   caCerts?: string | Buffer | Array<string | Buffer>;
-  /** Custom HTTP module */
+  /** Custom HTTP module. Defaults to the native 'http' and 'https' modules. */
   httpModule?: HTTPModule;
 }
 
 /**
- * Creates a Transport that uses http to send events to Sentry.
+ * Creates a Transport that uses native the native 'http' and 'https' modules to send events to Sentry.
  */
-export function makeNewHttpTransport(options: NodeTransportOptions): NewTransport {
-  // Proxy prioritization: http  => `options.proxy` | `process.env.http_proxy`
-  const proxy = applyNoProxyOption(options.url, options.proxy || process.env.http_proxy);
+export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
+  const urlSegments = new URL(options.url);
+  const isHttps = urlSegments.protocol === 'https:';
 
-  const httpModule = options.httpModule ?? http;
+  // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
+  const proxy = applyNoProxyOption(
+    urlSegments,
+    options.proxy || (isHttps ? process.env.https_proxy : undefined) || process.env.http_proxy,
+  );
+
+  const nativeHttpModule = isHttps ? https : http;
 
   const agent = proxy
     ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
-    : new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
+    : new nativeHttpModule.Agent({ keepAlive: true, maxSockets: 30, timeout: 2000 });
 
-  const requestExecutor = createRequestExecutor(options, httpModule, agent);
-  return createTransport({ bufferSize: options.bufferSize }, requestExecutor);
-}
-
-/**
- * Creates a Transport that uses https to send events to Sentry.
- */
-export function makeNewHttpsTransport(options: NodeTransportOptions): NewTransport {
-  // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
-  const proxy = applyNoProxyOption(options.url, options.proxy || process.env.https_proxy || process.env.http_proxy);
-
-  const httpsModule = options.httpModule ?? https;
-
-  const agent = proxy
-    ? (new (require('https-proxy-agent'))(proxy) as https.Agent)
-    : new https.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
-
-  const requestExecutor = createRequestExecutor(options, httpsModule, agent);
+  const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport({ bufferSize: options.bufferSize }, requestExecutor);
 }
 
@@ -72,16 +61,16 @@ export function makeNewHttpsTransport(options: NodeTransportOptions): NewTranspo
  * @param proxy The client configured proxy.
  * @returns A proxy the transport should use.
  */
-function applyNoProxyOption(transportUrl: string, proxy: string | undefined): string | undefined {
+function applyNoProxyOption(transportUrlSegments: URL, proxy: string | undefined): string | undefined {
   const { no_proxy } = process.env;
-
-  const { host: transportUrlHost, hostname: transportUrlHostname } = new URL(transportUrl);
 
   const urlIsExemptFromProxy =
     no_proxy &&
     no_proxy
       .split(',')
-      .some(exemption => transportUrlHost.endsWith(exemption) || transportUrlHostname.endsWith(exemption));
+      .some(
+        exemption => transportUrlSegments.host.endsWith(exemption) || transportUrlSegments.hostname.endsWith(exemption),
+      );
 
   if (urlIsExemptFromProxy) {
     return undefined;

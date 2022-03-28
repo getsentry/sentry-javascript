@@ -3,13 +3,7 @@ import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry
 import { makeDsn, resolvedSyncPromise } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
-import {
-  HTTPSTransport,
-  HTTPTransport,
-  makeNewHttpsTransport,
-  makeNewHttpTransport,
-  NodeTransportOptions,
-} from './transports';
+import { HTTPSTransport, HTTPTransport, makeNodeTransport, NodeTransportOptions } from './transports';
 import { NodeOptions } from './types';
 
 /**
@@ -67,11 +61,11 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       caCerts: transportOptions.caCerts,
     };
 
+    this._newTransport = makeNodeTransport(newTransportOptions);
+
     if (dsn.protocol === 'http') {
-      this._newTransport = makeNewHttpTransport(newTransportOptions);
       return new HTTPTransport(transportOptions);
     }
-    this._newTransport = makeNewHttpsTransport(newTransportOptions);
     return new HTTPSTransport(transportOptions);
   }
 }
