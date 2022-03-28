@@ -48,12 +48,12 @@ export function init(options: NextjsOptions): void {
   });
 }
 
-const defaultBrowserTracingIntegration = new BrowserTracing({
-  tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
-  routingInstrumentation: nextRouterInstrumentation,
-});
-
 function createClientIntegrations(integrations?: UserIntegrations): UserIntegrations {
+  const defaultBrowserTracingIntegration = new BrowserTracing({
+    tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+    routingInstrumentation: nextRouterInstrumentation,
+  });
+
   if (integrations) {
     return addIntegration(defaultBrowserTracingIntegration, integrations, {
       BrowserTracing: { keyPath: 'options.routingInstrumentation', value: nextRouterInstrumentation },
