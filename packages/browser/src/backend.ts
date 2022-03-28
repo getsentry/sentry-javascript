@@ -3,7 +3,7 @@ import { Event, EventHint, Options, Severity, Transport, TransportOptions } from
 import { supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
-import { FetchTransport, makeNewFetchTransport, XHRTransport } from './transports';
+import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -77,6 +77,11 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       this._newTransport = makeNewFetchTransport({ requestOptions, url });
       return new FetchTransport(transportOptions);
     }
+
+    this._newTransport = makeNewXHRTransport({
+      url,
+      headers: transportOptions.headers,
+    });
     return new XHRTransport(transportOptions);
   }
 }

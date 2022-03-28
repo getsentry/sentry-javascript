@@ -18,7 +18,7 @@ import { SyncPromise } from '@sentry/utils';
 const XHR_READYSTATE_DONE = 4;
 
 export interface XHRTransportOptions extends BaseTransportOptions {
-  headers?: Record<string, string>;
+  headers?: { [key: string]: string };
 }
 
 /**
