@@ -4,8 +4,8 @@ import {
   NewTransport,
   TransportMakeRequestResponse,
   TransportRequest,
+  TransportRequestExecutor,
 } from '@sentry/core';
-import { TransportRequestExecutor } from '@sentry/core/dist/transports/base';
 import { eventStatusFromHttpCode } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';

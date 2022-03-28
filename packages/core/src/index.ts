@@ -35,6 +35,7 @@ export {
   NewTransport,
   TransportMakeRequestResponse,
   TransportRequest,
+  TransportRequestExecutor,
 } from './transports/base';
 export { SDK_VERSION } from './version';
 
