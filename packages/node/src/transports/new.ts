@@ -36,7 +36,7 @@ interface HttpTransportOptions extends BaseTransportOptions {
  */
 export function makeNewHttpTransport(options: HttpTransportOptions): NewTransport {
   // Proxy prioritization: http  => `options.proxy` | `process.env.http_proxy`
-  const proxy = filterNoProxy(options.url, options.proxy || process.env.http_proxy);
+  const proxy = applyNoProxyOption(options.url, options.proxy || process.env.http_proxy);
 
   const httpModule = options.httpModule ?? http;
 
@@ -53,7 +53,7 @@ export function makeNewHttpTransport(options: HttpTransportOptions): NewTranspor
  */
 export function makeNewHttpsTransport(options: HttpTransportOptions): NewTransport {
   // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
-  const proxy = filterNoProxy(options.url, options.proxy || process.env.https_proxy || process.env.http_proxy);
+  const proxy = applyNoProxyOption(options.url, options.proxy || process.env.https_proxy || process.env.http_proxy);
 
   const httpsModule = options.httpModule ?? https;
 
@@ -72,10 +72,16 @@ export function makeNewHttpsTransport(options: HttpTransportOptions): NewTranspo
  * @param proxy The client configured proxy.
  * @returns A proxy the transport should use.
  */
-function filterNoProxy(transportUrl: string, proxy: string | undefined): string | undefined {
+function applyNoProxyOption(transportUrl: string, proxy: string | undefined): string | undefined {
   const { no_proxy } = process.env;
 
-  const urlIsExemptFromProxy = no_proxy && no_proxy.split(',').some(exemption => transportUrl.endsWith(exemption));
+  const { host: transportUrlHost, hostname: transportUrlHostname } = new URL(transportUrl);
+
+  const urlIsExemptFromProxy =
+    no_proxy &&
+    no_proxy
+      .split(',')
+      .some(exemption => transportUrlHost.endsWith(exemption) || transportUrlHostname.endsWith(exemption));
 
   if (urlIsExemptFromProxy) {
     return undefined;
