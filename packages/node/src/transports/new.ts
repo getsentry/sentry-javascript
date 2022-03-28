@@ -20,7 +20,7 @@ import { HTTPModule } from './base/http-module';
 // OR
 // - Split this file up and leave it in the transports folder
 
-export interface HttpTransportOptions extends BaseTransportOptions {
+export interface NodeTransportOptions extends BaseTransportOptions {
   /** Define custom headers */
   headers?: Record<string, string>;
   /** Set a proxy that should be used for outbound requests. */
@@ -34,7 +34,7 @@ export interface HttpTransportOptions extends BaseTransportOptions {
 /**
  * Creates a Transport that uses http to send events to Sentry.
  */
-export function makeNewHttpTransport(options: HttpTransportOptions): NewTransport {
+export function makeNewHttpTransport(options: NodeTransportOptions): NewTransport {
   // Proxy prioritization: http  => `options.proxy` | `process.env.http_proxy`
   const proxy = applyNoProxyOption(options.url, options.proxy || process.env.http_proxy);
 
@@ -51,7 +51,7 @@ export function makeNewHttpTransport(options: HttpTransportOptions): NewTranspor
 /**
  * Creates a Transport that uses https to send events to Sentry.
  */
-export function makeNewHttpsTransport(options: HttpTransportOptions): NewTransport {
+export function makeNewHttpsTransport(options: NodeTransportOptions): NewTransport {
   // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
   const proxy = applyNoProxyOption(options.url, options.proxy || process.env.https_proxy || process.env.http_proxy);
 
@@ -94,7 +94,7 @@ function applyNoProxyOption(transportUrl: string, proxy: string | undefined): st
  * Creates a RequestExecutor to be used with `createTransport`.
  */
 function createRequestExecutor(
-  options: HttpTransportOptions,
+  options: NodeTransportOptions,
   httpModule: HTTPModule,
   agent: http.Agent,
 ): TransportRequestExecutor {
