@@ -4,11 +4,7 @@ import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
-import {
-  HTTPModule,
-  HTTPModuleRequestIncomingMessage,
-  HTTPModuleRequestOptions,
-} from '../../../src/transports/base/http-module';
+import { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../../src/transports/base/http-module';
 import { makeNewHttpsTransport } from '../../../src/transports/new';
 import testServerCerts from './test-server-certs';
 
@@ -75,11 +71,9 @@ const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE);
 const unsafeHttpsModule: HTTPModule = {
   request: jest
     .fn()
-    .mockImplementation(
-      (options: HTTPModuleRequestOptions, callback?: (res: HTTPModuleRequestIncomingMessage) => void) => {
-        return https.request({ ...options, rejectUnauthorized: false }, callback);
-      },
-    ),
+    .mockImplementation((options: https.RequestOptions, callback?: (res: HTTPModuleRequestIncomingMessage) => void) => {
+      return https.request({ ...options, rejectUnauthorized: false }, callback);
+    }),
 };
 
 describe('makeNewHttpsTransport()', () => {
@@ -173,6 +167,26 @@ describe('makeNewHttpsTransport()', () => {
       const transportResponse = await transport.send(EVENT_ENVELOPE);
 
       expect(transportResponse).toEqual(expect.objectContaining({ status: 'success' }));
+    });
+
+    it('should use `caCerts` option', async () => {
+      await setupTestServer({ statusCode: SUCCESS });
+
+      const transport = makeNewHttpsTransport({
+        httpModule: unsafeHttpsModule,
+        url: TEST_SERVER_URL,
+        caCerts: 'some cert',
+      });
+
+      await transport.send(EVENT_ENVELOPE);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(unsafeHttpsModule.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ca: 'some cert',
+        }),
+        expect.anything(),
+      );
     });
   });
 

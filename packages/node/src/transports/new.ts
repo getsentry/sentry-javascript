@@ -7,22 +7,10 @@ import {
 } from '@sentry/core';
 import { TransportRequestExecutor } from '@sentry/core/dist/transports/base';
 import { eventStatusFromHttpCode } from '@sentry/utils';
-import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 
 import { HTTPModule } from './base/http-module';
-
-interface HttpTransportOptions extends BaseTransportOptions {
-  // Todo: doc
-  headers?: Record<string, string>;
-  // TODO: doc Set a HTTP proxy that should be used for outbound requests.
-  proxy?: string;
-  // TODO: doc HTTPS proxy certificates path
-  caCerts?: string;
-  // Todo: doc
-  httpModule?: HTTPModule;
-}
 
 // TODO(v7):
 // - Rename this file "transports.ts"
@@ -31,8 +19,19 @@ interface HttpTransportOptions extends BaseTransportOptions {
 // OR
 // - Split this file up and leave it in the transports folder
 
+export interface HttpTransportOptions extends BaseTransportOptions {
+  /** Define custom headers */
+  headers?: Record<string, string>;
+  /** Set a proxy that should be used for outbound requests. */
+  proxy?: string;
+  /** HTTPS proxy CA certificates */
+  caCerts?: string | Buffer | Array<string | Buffer>;
+  /** Custom HTTP module */
+  httpModule?: HTTPModule;
+}
+
 /**
- * TODO Doc
+ * Creates a Transport that uses http to send events to Sentry.
  */
 export function makeNewHttpTransport(options: HttpTransportOptions): NewTransport {
   // Proxy prioritization: http  => `options.proxy` | `process.env.http_proxy`
@@ -49,7 +48,7 @@ export function makeNewHttpTransport(options: HttpTransportOptions): NewTranspor
 }
 
 /**
- * TODO Doc
+ * Creates a Transport that uses https to send events to Sentry.
  */
 export function makeNewHttpsTransport(options: HttpTransportOptions): NewTransport {
   // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
@@ -91,7 +90,7 @@ function applyNoProxyOption(transportUrl: string, proxy: string | undefined): st
 }
 
 /**
- * TODO Doc
+ * Creates a RequestExecutor to be used with `createTransport`.
  */
 function createRequestExecutor(
   options: HttpTransportOptions,
@@ -111,7 +110,7 @@ function createRequestExecutor(
           pathname,
           port,
           protocol,
-          ca: options.caCerts ? fs.readFileSync(options.caCerts) : undefined,
+          ca: options.caCerts,
         },
         res => {
           res.on('data', () => {
