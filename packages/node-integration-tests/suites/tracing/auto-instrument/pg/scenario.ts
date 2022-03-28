@@ -19,4 +19,8 @@ Sentry.configureScope(scope => {
 });
 
 const client = new pg.Client();
-client.query('test_query', ['a', 'b'], () => transaction.finish());
+client.query('SELECT * FROM foo where bar ilike "baz%"', ['a', 'b'], () =>
+  client.query('SELECT * FROM bazz', () => {
+    client.query('SELECT NOW()', () => transaction.finish());
+  }),
+);

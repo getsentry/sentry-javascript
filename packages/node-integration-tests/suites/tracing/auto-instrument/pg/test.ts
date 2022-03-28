@@ -1,4 +1,4 @@
-import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../utils';
+import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
 
 class PgClient {
   // https://node-postgres.com/api/client#clientquery
@@ -28,7 +28,7 @@ beforeAll(() => {
   });
 });
 
-test('should auto-instrument `pg` package.', async () => {
+test.only('should auto-instrument `pg` package.', async () => {
   const url = await runServer(__dirname);
   const envelope = await getEnvelopeRequest(url);
 
@@ -38,7 +38,15 @@ test('should auto-instrument `pg` package.', async () => {
     transaction: 'Test Transaction',
     spans: [
       {
-        description: 'test_query',
+        description: 'SELECT * FROM foo where bar ilike "baz%"',
+        op: 'db',
+      },
+      {
+        description: 'SELECT * FROM bazz',
+        op: 'db',
+      },
+      {
+        description: 'SELECT NOW()',
         op: 'db',
       },
     ],
