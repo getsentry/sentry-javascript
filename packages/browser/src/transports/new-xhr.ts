@@ -7,9 +7,17 @@ import {
 } from '@sentry/core';
 import { SyncPromise } from '@sentry/utils';
 
+/**
+ * The DONE ready state for XmlHttpRequest
+ *
+ * Defining it here as a constant b/c XMLHttpRequest.DONE is not always defined
+ * (e.g. during testing, it is `undefined`)
+ *
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/readyState}
+ */
+const XHR_READYSTATE_DONE = 4;
+
 export interface XHRTransportOptions extends BaseTransportOptions {
-  // TODO choose whatever is preferred here (I like record more for easier readability)
-  //headers?: { [key: string]: string };
   headers?: Record<string, string>;
 }
 
@@ -22,8 +30,7 @@ export function makeNewXHRTransport(options: XHRTransportOptions): NewTransport 
       const xhr = new XMLHttpRequest();
 
       xhr.onreadystatechange = (): void => {
-        // TODO make 4 a constant
-        if (xhr.readyState === 4) {
+        if (xhr.readyState === XHR_READYSTATE_DONE) {
           const response = {
             body: xhr.response,
             headers: {
@@ -33,17 +40,18 @@ export function makeNewXHRTransport(options: XHRTransportOptions): NewTransport 
             reason: xhr.statusText,
             statusCode: xhr.status,
           };
-
           resolve(response);
         }
       };
 
       xhr.open('POST', options.url);
+
       for (const header in options.headers) {
         if (Object.prototype.hasOwnProperty.call(options.headers, header)) {
           xhr.setRequestHeader(header, options.headers[header]);
         }
       }
+
       xhr.send(request.body);
     });
   }

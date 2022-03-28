@@ -21,7 +21,7 @@ function createXHRMock() {
     status: 200,
     response: 'Hello World!',
     onreadystatechange: () => {},
-    getResponseHeader: (header: string) => {
+    getResponseHeader: jest.fn((header: string) => {
       switch (header) {
         case 'Retry-After':
           return '10';
@@ -30,7 +30,7 @@ function createXHRMock() {
         default:
           return `${retryAfterSeconds}:error:scope`;
       }
-    },
+    }),
   };
 
   // casting `window` as `any` because XMLHttpRequest is missing in Window (TS-only)
@@ -56,16 +56,53 @@ describe('NewXHRTransport', () => {
     expect(xhrMock.setRequestHeader).toHaveBeenCalledTimes(0);
     expect(xhrMock.send).toHaveBeenCalledTimes(0);
 
+    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange(null)]);
+
+    expect(xhrMock.open).toHaveBeenCalledTimes(1);
+    expect(xhrMock.open).toHaveBeenCalledWith('POST', DEFAULT_XHR_TRANSPORT_OPTIONS.url);
+    expect(xhrMock.send).toHaveBeenCalledTimes(1);
+    expect(xhrMock.send).toHaveBeenCalledWith(serializeEnvelope(ERROR_ENVELOPE));
+  });
+
+  it('returns the correct response', async () => {
+    const transport = makeNewXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
+
     const [res] = await Promise.all([
       transport.send(ERROR_ENVELOPE),
       (xhrMock as XMLHttpRequest).onreadystatechange(null),
     ]);
 
-    expect(xhrMock.open).toHaveBeenCalledTimes(1);
-    expect(xhrMock.open).toHaveBeenCalledWith('POST', DEFAULT_XHR_TRANSPORT_OPTIONS.url);
-    expect(xhrMock.send).toBeCalledWith(serializeEnvelope(ERROR_ENVELOPE));
-
     expect(res).toBeDefined();
     expect(res.status).toEqual('success');
+  });
+
+  it('sets rate limit response headers', async () => {
+    const transport = makeNewXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
+
+    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange(null)]);
+
+    expect(xhrMock.getResponseHeader).toHaveBeenCalledTimes(2);
+    expect(xhrMock.getResponseHeader).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
+    expect(xhrMock.getResponseHeader).toHaveBeenCalledWith('Retry-After');
+  });
+
+  it('sets custom request headers', async () => {
+    const headers = {
+      referrerPolicy: 'strict-origin',
+      keepalive: 'true',
+      referrer: 'http://example.org',
+    };
+    const options: XHRTransportOptions = {
+      ...DEFAULT_XHR_TRANSPORT_OPTIONS,
+      headers,
+    };
+
+    const transport = makeNewXHRTransport(options);
+    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange(null)]);
+
+    expect(xhrMock.setRequestHeader).toHaveBeenCalledTimes(3);
+    expect(xhrMock.setRequestHeader).toHaveBeenCalledWith('referrerPolicy', headers.referrerPolicy);
+    expect(xhrMock.setRequestHeader).toHaveBeenCalledWith('keepalive', headers.keepalive);
+    expect(xhrMock.setRequestHeader).toHaveBeenCalledWith('referrer', headers.referrer);
   });
 });
