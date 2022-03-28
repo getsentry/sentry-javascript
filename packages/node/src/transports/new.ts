@@ -9,6 +9,7 @@ import {
 import { eventStatusFromHttpCode } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
+import { URL } from 'url';
 
 import { HTTPModule } from './base/http-module';
 
@@ -107,7 +108,7 @@ function createRequestExecutor(
           agent,
           headers: options.headers,
           hostname,
-          pathname,
+          path: `${pathname}`,
           port,
           protocol,
           ca: options.caCerts,
