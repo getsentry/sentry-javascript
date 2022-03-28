@@ -33,8 +33,8 @@ function createXHRMock() {
     },
   };
 
-  //@ts-ignore because TS thinks window doesn't have XMLHttpRequest
-  jest.spyOn(window, 'XMLHttpRequest').mockImplementation(() => xhrMock as XMLHttpRequest);
+  // casting `window` as `any` because XMLHttpRequest is missing in Window (TS-only)
+  jest.spyOn(window as any, 'XMLHttpRequest').mockImplementation(() => xhrMock as XMLHttpRequest);
 
   return xhrMock;
 }
@@ -50,23 +50,22 @@ describe('NewXHRTransport', () => {
     jest.restoreAllMocks();
   });
 
-  it('makes an XHR request to the given URL', done => {
+  it('makes an XHR request to the given URL', async () => {
     const transport = makeNewXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
     expect(xhrMock.open).toHaveBeenCalledTimes(0);
     expect(xhrMock.setRequestHeader).toHaveBeenCalledTimes(0);
     expect(xhrMock.send).toHaveBeenCalledTimes(0);
 
-    Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange(null)]).then(
-      ([res]) => {
-        expect(xhrMock.open).toHaveBeenCalledTimes(1);
-        expect(xhrMock.open).toHaveBeenCalledWith('POST', DEFAULT_XHR_TRANSPORT_OPTIONS.url);
-        expect(xhrMock.send).toBeCalledWith(serializeEnvelope(ERROR_ENVELOPE));
+    const [res] = await Promise.all([
+      transport.send(ERROR_ENVELOPE),
+      (xhrMock as XMLHttpRequest).onreadystatechange(null),
+    ]);
 
-        expect(res).toBeDefined();
-        expect(res.status).toEqual('success');
+    expect(xhrMock.open).toHaveBeenCalledTimes(1);
+    expect(xhrMock.open).toHaveBeenCalledWith('POST', DEFAULT_XHR_TRANSPORT_OPTIONS.url);
+    expect(xhrMock.send).toBeCalledWith(serializeEnvelope(ERROR_ENVELOPE));
 
-        done();
-      },
-    );
+    expect(res).toBeDefined();
+    expect(res.status).toEqual('success');
   });
 });
