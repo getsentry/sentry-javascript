@@ -1,9 +1,27 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { parseSemver } from '@sentry/utils';
 import { Express } from 'express';
 import * as http from 'http';
 import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
+
+/**
+ * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
+ *
+ * @param {{ min?: number; max?: number }} allowedVersion
+ * @return {*}  {jest.Describe}
+ */
+export const conditionalTest = (allowedVersion: { min?: number; max?: number }): jest.Describe => {
+  const NODE_VERSION = parseSemver(process.versions.node).major;
+  if (!NODE_VERSION) {
+    return describe.skip;
+  }
+
+  return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
+    ? describe.skip
+    : describe;
+};
 
 /**
  * Asserts against a Sentry Event ignoring non-deterministic properties

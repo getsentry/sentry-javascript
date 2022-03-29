@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import '@sentry/tracing';
 
 import * as Sentry from '@sentry/node';
