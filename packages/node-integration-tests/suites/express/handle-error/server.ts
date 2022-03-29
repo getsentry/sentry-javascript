@@ -10,7 +10,7 @@ Sentry.init({
 
 app.use(Sentry.Handlers.requestHandler());
 
-app.get('/test/express', async () => {
+app.get('/test/express', () => {
   throw new Error('test_error');
 });
 
