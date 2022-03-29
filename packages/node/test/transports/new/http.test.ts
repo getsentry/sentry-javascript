@@ -3,6 +3,7 @@ import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 
+// TODO(v7): We're renaming the imported file so this needs to be changed as well
 import { makeNodeTransport } from '../../../src/transports/new';
 
 jest.mock('@sentry/core', () => {

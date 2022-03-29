@@ -5,6 +5,7 @@ import * as http from 'http';
 import * as https from 'https';
 
 import { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../../src/transports/base/http-module';
+// TODO(v7): We're renaming the imported file so this needs to be changed as well
 import { makeNodeTransport } from '../../../src/transports/new';
 import testServerCerts from './test-server-certs';
 
