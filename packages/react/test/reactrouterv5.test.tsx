@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
 import { matchPath, Route, Router, Switch } from 'react-router-5';
@@ -125,7 +125,7 @@ describe('React Router v5', () => {
 
   it('does not normalize transaction name ', () => {
     const [mockStartTransaction, history] = createInstrumentation();
-    const { container } = render(
+    const { getByText } = render(
       <Router history={history}>
         <Switch>
           <Route path="/users/:userid" component={() => <div>UserId</div>} />
@@ -135,8 +135,10 @@ describe('React Router v5', () => {
       </Router>,
     );
 
-    history.push('/users/123');
-    expect(container.innerHTML).toContain('UserId');
+    act(() => {
+      history.push('/users/123');
+    });
+    getByText('UserId');
 
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
@@ -149,7 +151,8 @@ describe('React Router v5', () => {
   it('normalizes transaction name with custom Route', () => {
     const [mockStartTransaction, history, { mockSetName }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
-    const { container } = render(
+
+    const { getByText } = render(
       <Router history={history}>
         <Switch>
           <SentryRoute path="/users/:userid" component={() => <div>UserId</div>} />
@@ -158,9 +161,10 @@ describe('React Router v5', () => {
         </Switch>
       </Router>,
     );
-
-    history.push('/users/123');
-    expect(container.innerHTML).toContain('UserId');
+    act(() => {
+      history.push('/users/123');
+    });
+    getByText('UserId');
 
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
@@ -175,7 +179,8 @@ describe('React Router v5', () => {
   it('normalizes nested transaction names with custom Route', () => {
     const [mockStartTransaction, history, { mockSetName }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
-    const { container } = render(
+
+    const { getByText } = render(
       <Router history={history}>
         <Switch>
           <SentryRoute path="/organizations/:orgid/v1/:teamid" component={() => <div>Team</div>} />
@@ -185,8 +190,10 @@ describe('React Router v5', () => {
       </Router>,
     );
 
-    history.push('/organizations/1234/v1/758');
-    expect(container.innerHTML).toContain('Team');
+    act(() => {
+      history.push('/organizations/1234/v1/758');
+    });
+    getByText('Team');
 
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
@@ -197,8 +204,10 @@ describe('React Router v5', () => {
     expect(mockSetName).toHaveBeenCalledTimes(2);
     expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid/v1/:teamid');
 
-    history.push('/organizations/543');
-    expect(container.innerHTML).toContain('OrgId');
+    act(() => {
+      history.push('/organizations/543');
+    });
+    getByText('OrgId');
 
     expect(mockStartTransaction).toHaveBeenCalledTimes(3);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
