@@ -21,7 +21,7 @@
     "express": "^4.17.3",
     "mysql": "^2.18.1",
     "mongodb": "^3.7.3",
-    "mongodb-memory-server": "^8.4.1",
+    "mongodb-memory-server": "^7.6.3",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
     "portfinder": "^1.0.28"
