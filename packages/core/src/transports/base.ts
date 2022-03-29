@@ -67,17 +67,6 @@ export interface BrowserTransportOptions extends BaseTransportOptions {
   sendClientReports?: boolean;
 }
 
-// TODO: Move into Node transport
-export interface NodeTransportOptions extends BaseTransportOptions {
-  headers?: Record<string, string>;
-  // Set a HTTP proxy that should be used for outbound requests.
-  httpProxy?: string;
-  // Set a HTTPS proxy that should be used for outbound requests.
-  httpsProxy?: string;
-  // HTTPS proxy certificates path
-  caCerts?: string;
-}
-
 export interface NewTransport {
   send(request: Envelope): PromiseLike<TransportResponse>;
   flush(timeout?: number): PromiseLike<boolean>;
