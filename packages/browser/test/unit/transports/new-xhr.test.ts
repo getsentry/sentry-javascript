@@ -1,5 +1,6 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+
 import { makeNewXHRTransport, XHRTransportOptions } from '../../../src/transports/new-xhr';
 
 const DEFAULT_XHR_TRANSPORT_OPTIONS: XHRTransportOptions = {
