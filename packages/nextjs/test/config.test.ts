@@ -332,8 +332,7 @@ describe('webpack config', () => {
         incomingWebpackBuildContext: serverBuildContext,
       });
 
-      const tempDir = mkdtempSyncSpy.mock.results[0].value;
-      const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
+      const rewriteFramesHelper = path.join(os.tmpdir(), 'sentry-javascript', 'rewriteFramesHelper.js');
 
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
@@ -515,8 +514,7 @@ describe('webpack config', () => {
           incomingWebpackBuildContext: getBuildContext('server', userNextConfigDistDir),
         });
 
-        const tempDir = mkdtempSyncSpy.mock.results[0].value;
-        const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
+        const rewriteFramesHelper = path.join(os.tmpdir(), 'sentry-javascript', 'rewriteFramesHelper.js');
 
         expect(fs.existsSync(rewriteFramesHelper)).toBe(true);
 
