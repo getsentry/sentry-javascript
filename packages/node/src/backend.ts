@@ -3,7 +3,7 @@ import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry
 import { makeDsn, resolvedSyncPromise } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
-import { HTTPSTransport, HTTPTransport, makeNodeTransport, NodeTransportOptions } from './transports';
+import { HTTPSTransport, HTTPTransport, makeNodeTransport } from './transports';
 import { NodeOptions } from './types';
 
 /**
@@ -54,14 +54,12 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     const api = initAPIDetails(transportOptions.dsn, transportOptions._metadata, transportOptions.tunnel);
     const url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
 
-    const newTransportOptions: NodeTransportOptions = {
+    this._newTransport = makeNodeTransport({
       url,
       headers: transportOptions.headers,
       proxy: transportOptions.httpProxy,
       caCerts: transportOptions.caCerts,
-    };
-
-    this._newTransport = makeNodeTransport(newTransportOptions);
+    });
 
     if (dsn.protocol === 'http') {
       return new HTTPTransport(transportOptions);
