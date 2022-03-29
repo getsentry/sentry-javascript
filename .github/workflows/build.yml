@@ -5,8 +5,15 @@ on:
       - master
       - release/**
   pull_request:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: If the commit you want to test isn't the head of a branch, provide its SHA here
+        required: false
 
 env:
+  HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/**/node_modules
@@ -22,7 +29,7 @@ env:
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
-  BUILD_CACHE_KEY: ${{ github.sha }}
+  BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
 jobs:
   job_install_deps:
@@ -30,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -57,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -98,7 +105,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -116,8 +123,8 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v4
-        # Only run size check on master or pull requests
-        if: github.ref == 'refs/heads/master' || github.event_name == 'pull_request'
+        # Don't run size check on release branches - at that point, we're already committed
+        if: ${{ !startsWith(github.ref, 'release') }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
@@ -128,7 +135,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -151,7 +158,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -168,6 +175,40 @@ jobs:
       - name: Run madge
         run: yarn circularDepCheck
 
+  job_artifacts:
+    name: Upload Artifacts
+    needs: job_build
+    runs-on: ubuntu-latest
+    # Build artifacts are only needed for releasing workflow.
+    if: startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - name: Check out current commit (${{ github.sha }})
+        uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v1
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Pack
+        run: yarn build:npm
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/packages/browser/build/bundles/**
+            ${{ github.workspace }}/packages/integrations/build/**
+            ${{ github.workspace }}/packages/tracing/build/**
+            ${{ github.workspace }}/packages/**/*.tgz
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+
   job_unit_test:
     name: Test (Node ${{ matrix.node }})
     needs: job_build
@@ -178,7 +219,7 @@ jobs:
       matrix:
         node: [6, 8, 10, 12, 14, 16]
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -211,7 +252,7 @@ jobs:
       matrix:
         node: [10, 12, 14, 16]
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -243,7 +284,7 @@ jobs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
         # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
         # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
@@ -274,42 +315,8 @@ jobs:
       - name: Compute test coverage
         uses: codecov/codecov-action@v1
 
-  job_artifacts:
-    name: Upload Artifacts
-    needs: job_build
-    runs-on: ubuntu-latest
-    # Build artifacts are only needed for releasing workflow. 
-    if: startsWith(github.ref, 'refs/heads/release/')
-    steps:
-      - name: Check out current commit (${{ github.sha }})
-        uses: actions/checkout@v2
-      - name: Set up Node
-        uses: actions/setup-node@v1
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Pack
-        run: yarn build:npm
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ github.sha }}
-          path: |
-            ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/integrations/build/**
-            ${{ github.workspace }}/packages/tracing/build/**
-            ${{ github.workspace }}/packages/**/*.tgz
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-
   job_browser_playwright_tests:
-    name: Browser Playwright Tests (${{ matrix.bundle }} - tracing_only = ${{ matrix.tracing_only }})
+    name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
     needs: job_build
     runs-on: ubuntu-latest
     strategy:
@@ -325,12 +332,14 @@ jobs:
           - true
           - false
         exclude:
+          # `tracing_only` only makes a difference for bundles - tests of the esm and cjs builds always include the
+          # tracing tests
           - bundle: esm
-            tracing_only: true
+            tracing_only: false
           - bundle: cjs
-            tracing_only: true
+            tracing_only: false
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -356,7 +365,7 @@ jobs:
           yarn test:ci
 
   job_browser_integration_tests:
-    name: Browser Integration Tests (${{ matrix.browser }})
+    name: Old Browser Integration Tests (${{ matrix.browser }})
     needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -368,7 +377,7 @@ jobs:
           - FirefoxHeadless
           - WebkitHeadless
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -397,7 +406,7 @@ jobs:
     timeout-minutes: 5
     continue-on-error: true
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
