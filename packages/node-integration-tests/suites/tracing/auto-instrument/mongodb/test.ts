@@ -1,14 +1,8 @@
-import { parseSemver } from '@sentry/utils';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryTransaction, conditionalTest, getEnvelopeRequest, runServer } from '../../../../utils';
 
-const NODE_VERSION = parseSemver(process.versions.node);
-
-// Skipping on Node versions below 12 as `mongo-memory-server` supports >= 12
-const conditionalTest = NODE_VERSION.major && NODE_VERSION.major < 12 ? describe.skip : describe;
-
-conditionalTest('MongoDB Test', () => {
+conditionalTest({ min: 12 })('MongoDB Test', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
