@@ -38,6 +38,7 @@ export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
   const urlSegments = new URL(options.url);
   const isHttps = urlSegments.protocol === 'https:';
 
+  // Proxy prioritization: http => `options.proxy` | `process.env.http_proxy`
   // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
   const proxy = applyNoProxyOption(
     urlSegments,
