@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { parseSemver } from '@sentry/utils';
 import { Express } from 'express';
 import * as http from 'http';
@@ -101,23 +100,44 @@ export const getEventRequest = async (url: string): Promise<Record<string, unkno
 };
 
 /**
- * Intercepts and extracts a request containing a Sentry Envelope
+ * Intercepts and extracts up to a number of requests containing Sentry envelopes.
  *
- * @param {string} url
- * @return {*}  {Promise<Array<Record<string, unknown>>>}
+ * @param url The url the intercepted requests will be directed to.
+ * @param count The expected amount of requests to the envelope endpoint. If
+ * the amount of sentrequests is lower than`count`, this function will not resolve.
+ * @returns The intercepted envelopes.
  */
-export const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unknown>>> => {
+export const getMultipleEnvelopeRequest = async (url: string, count: number): Promise<Record<string, unknown>[][]> => {
+  const envelopes: Record<string, unknown>[][] = [];
+
   return new Promise(resolve => {
     nock('https://dsn.ingest.sentry.io')
       .post('/api/1337/envelope/', body => {
         const envelope = parseEnvelope(body);
-        resolve(envelope);
+        envelopes.push(envelope);
+
+        if (count === envelopes.length) {
+          resolve(envelopes);
+        }
+
         return true;
       })
+      .times(count)
+      .query(true) // accept any query params - used for sentry_key param
       .reply(200);
 
     http.get(url);
   });
+};
+
+/**
+ * Intercepts and extracts a single request containing a Sentry envelope
+ *
+ * @param url The url the intercepted request will be directed to.
+ * @returns The extracted envelope.
+ */
+export const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unknown>>> => {
+  return (await getMultipleEnvelopeRequest(url, 1))[0];
 };
 
 /**
