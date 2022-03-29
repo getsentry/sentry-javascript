@@ -137,10 +137,10 @@ async function addSentryToEntryProperty(
   // because it somehow tricks the file watcher into thinking that compilation itself is a file change, triggering an
   // infinite recompiling loop. (This should be fine because we don't upload sourcemaps in dev in any case.)
   if (isServer && !isDev) {
-    const rewriteFramesHelper = path.resolve(
-      fs.mkdtempSync(path.resolve(os.tmpdir(), 'sentry-')),
-      'rewriteFramesHelper.js',
-    );
+    const rewriteFramesHelper = path.resolve(os.tmpdir(), 'sentry-javascript', 'rewriteFramesHelper.js');
+    if (!fs.existsSync(path.dirname(rewriteFramesHelper))) {
+      fs.mkdirSync(path.dirname(rewriteFramesHelper));
+    }
     fs.writeFileSync(rewriteFramesHelper, `global.__rewriteFramesDistDir__ = '${userNextConfig.distDir}';\n`);
     // stick our helper file ahead of the user's config file so the value is in the global namespace *before*
     // `Sentry.init()` is called
