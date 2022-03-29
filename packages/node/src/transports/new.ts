@@ -48,7 +48,8 @@ export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
 
   const agent = proxy
     ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
-    : new nativeHttpModule.Agent({ keepAlive: true, maxSockets: 30, timeout: 2000 });
+    : // TODO(v7): Set keepAlive to true. Older versions of node had memory leaks when using it: #2555
+      new nativeHttpModule.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport({ bufferSize: options.bufferSize }, requestExecutor);
