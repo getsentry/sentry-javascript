@@ -46,10 +46,11 @@ export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
 
   const nativeHttpModule = isHttps ? https : http;
 
+  // TODO(v7): Evaluate if we can set keepAlive to true. This would involve testing for memory leaks in older node
+  // versions(>= 8) as they had memory leaks when using it: #2555
   const agent = proxy
     ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
-    : // TODO(v7): Set keepAlive to true. Older versions of node had memory leaks when using it: #2555
-      new nativeHttpModule.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
+    : new nativeHttpModule.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport({ bufferSize: options.bufferSize }, requestExecutor);
