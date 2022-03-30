@@ -1,4 +1,4 @@
-import { render, act } from '@testing-library/react';
+import { act,render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
 import { matchPath, Route, Router, Switch } from 'react-router-5';
