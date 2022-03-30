@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "6.19.2",
+  "version": "6.19.3",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -19,9 +19,9 @@
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
     "express": "^4.17.3",
-    "mysql": "^2.18.1",
     "mongodb": "^3.7.3",
     "mongodb-memory-server": "^7.6.3",
+    "mysql": "^2.18.1",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
     "portfinder": "^1.0.28"
