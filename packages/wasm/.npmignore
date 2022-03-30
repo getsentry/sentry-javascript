@@ -1,6 +1,5 @@
 *
-!*.js.map
-!*.d.ts
-!*.js
+!/dist/**/*
 !/esm/**/*
+!/build/types/**/*
 jest.config.js
