@@ -171,7 +171,7 @@ export abstract class BaseTransport implements Transport {
 
     this._rateLimits = updateRateLimits(this._rateLimits, headers);
     // eslint-disable-next-line deprecation/deprecation
-    if (this._isRateLimited(requestType) && isDebugBuild()) {
+    if (this._isRateLimited(requestType)) {
       isDebugBuild() &&
         // eslint-disable-next-line deprecation/deprecation
         logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
