@@ -196,11 +196,10 @@ export function extractExceptionKeysForMessage(exception: any, maxLength: number
  */
 export function dropUndefinedKeys<T>(val: T): T {
   if (isPlainObject(val)) {
-    const obj = val as { [key: string]: any };
     const rv: { [key: string]: any } = {};
-    for (const key of Object.keys(obj)) {
-      if (typeof obj[key] !== 'undefined') {
-        rv[key] = dropUndefinedKeys(obj[key]);
+    for (const key of Object.keys(val)) {
+      if (typeof val[key] !== 'undefined') {
+        rv[key] = dropUndefinedKeys(val[key]);
       }
     }
     return rv as T;

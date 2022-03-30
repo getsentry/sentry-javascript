@@ -94,7 +94,7 @@ export function isMatchingPattern(value: string, pattern: RegExp | string): bool
   }
 
   if (isRegExp(pattern)) {
-    return (pattern as RegExp).test(value);
+    return pattern.test(value);
   }
   if (typeof pattern === 'string') {
     return value.indexOf(pattern) !== -1;

@@ -156,7 +156,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  (mod as HandlerModule)[functionName!] = wrapHandler(obj as Handler);
+  (mod as HandlerModule)[functionName!] = wrapHandler(obj);
 }
 
 /**
@@ -285,7 +285,7 @@ export function wrapHandler<TEvent, TResult>(
     let traceparentData;
     const eventWithHeaders = event as { headers?: { [key: string]: string } };
     if (eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace'] as string);
+      traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace']);
     }
     const transaction = startTransaction({
       name: context.functionName,
