@@ -12,7 +12,7 @@
   "main": "./dist/index.server.js",
   "module": "./esm/index.server.js",
   "browser": "./esm/index.client.js",
-  "types": "./esm/index.server.d.ts",
+  "types": "./build/types/index.server.d.ts",
   "publishConfig": {
     "access": "public"
   },
