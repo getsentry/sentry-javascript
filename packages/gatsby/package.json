@@ -15,13 +15,7 @@
   },
   "main": "dist/index.js",
   "module": "esm/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "/dist",
-    "/esm",
-    "gatsby-browser.js",
-    "gatsby-node.js"
-  ],
+  "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },

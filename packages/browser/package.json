@@ -11,7 +11,7 @@
   },
   "main": "build/dist/index.js",
   "module": "build/esm/index.js",
-  "types": "build/dist/index.d.ts",
+  "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },

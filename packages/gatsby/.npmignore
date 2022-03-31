@@ -2,3 +2,5 @@
 !/dist/**/*
 !/esm/**/*
 !/build/types/**/*
+!gatsby-browser.js
+!gatsby-node.js
