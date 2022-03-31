@@ -12,9 +12,9 @@
   "publishConfig": {
     "access": "public"
   },
-  "main": "dist/index.js",
-  "module": "esm/index.js",
-  "types": "build/types/index.d.ts",
+  "main": "build/npm/dist/index.js",
+  "module": "build/npm/esm/index.js",
+  "types": "build/npm/types/index.d.ts",
   "dependencies": {
     "@sentry/types": "6.19.4",
     "@sentry/utils": "6.19.4",
@@ -25,7 +25,7 @@
     "chai": "^4.1.2"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:types build:bundle",
+    "build": "run-p build:cjs build:esm build:types build:bundle && ts-node ../../scripts/postbuild.ts",
     "build:bundle": "bash scripts/buildBundles.sh",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
@@ -38,7 +38,7 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "npm pack",
+    "build:npm": "npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist esm build coverage .rpt2_cache",
     "fix": "run-s fix:eslint fix:prettier",

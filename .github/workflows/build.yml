@@ -204,7 +204,7 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/integrations/build/**
+            ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/tracing/build/**
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
