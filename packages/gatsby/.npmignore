@@ -4,4 +4,3 @@
 !/build/types/**/*
 !gatsby-browser.js
 !gatsby-node.js
-*.tsbuildinfo

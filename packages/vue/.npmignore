@@ -2,4 +2,3 @@
 !/dist/**/*
 !/esm/**/*
 !/build/**/*
-*.tsbuildinfo
