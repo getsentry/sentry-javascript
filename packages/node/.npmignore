@@ -1,4 +1,4 @@
 *
 !/dist/**/*
 !/esm/**/*
-*.tsbuildinfo
+!build/types/**/*

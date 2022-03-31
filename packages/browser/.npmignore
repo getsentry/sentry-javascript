@@ -1,5 +1,12 @@
+# Info: the paths in this file are adjusted to match once this
+# file is copied to `./build`. This is done by a postbuild script
+# located in sentry-javascript/scripts/postbuild.sh
+
 *
+
+# TODO remove bundles in v7
+!/bundles/**/*
+
 !/dist/**/*
-!/build/**/*
+!/types/**/*
 !/esm/**/*
-*.tsbuildinfo

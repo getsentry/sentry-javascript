@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.19.3
+
+- feat(browser): Add new v7 Fetch Transport ([#4765](https://github.com/getsentry/sentry-javascript/pull/4765))
+- feat(browser): Add new v7 XHR Transport ([#4803](https://github.com/getsentry/sentry-javascript/pull/4803))
+- fix(core): Use correct version of event when tagging normalization ([#4780](https://github.com/getsentry/sentry-javascript/pull/4780))
+- fix(core): Stop mangling _experiments ([#4807](https://github.com/getsentry/sentry-javascript/pull/4807))
+- feat(node): Add new v7 http/s Transports ([#4781](https://github.com/getsentry/sentry-javascript/pull/4781))
+
 ## 6.19.2
 
 - feat(core): Add new transports to base backend ([#4752](https://github.com/getsentry/sentry-javascript/pull/4752))

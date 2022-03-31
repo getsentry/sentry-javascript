@@ -9,7 +9,8 @@ BUILD_DIR=build
 
 ASSETS="README.md
 LICENSE
-package.json"
+package.json
+.npmignore"
 
 # check if build dir exists
 if [ ! -d $BUILD_DIR ]; then

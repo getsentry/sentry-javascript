@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryHistory, createRoutes, IndexRoute, match, Route, Router } from 'react-router-3';
 
@@ -108,7 +108,9 @@ describe('React Router V3', () => {
     instrumentation(mockStartTransaction);
     const { container } = render(<Router history={history}>{routes}</Router>);
 
-    history.push('/users/123');
+    act(() => {
+      history.push('/users/123');
+    });
     expect(container.innerHTML).toContain('123');
 
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
@@ -124,7 +126,9 @@ describe('React Router V3', () => {
     instrumentation(mockStartTransaction);
     const { container } = render(<Router history={history}>{routes}</Router>);
 
-    history.push('/organizations/1234/v1/758');
+    act(() => {
+      history.push('/organizations/1234/v1/758');
+    });
     expect(container.innerHTML).toContain('Team');
 
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
@@ -134,7 +138,9 @@ describe('React Router V3', () => {
       tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
     });
 
-    history.push('/organizations/543');
+    act(() => {
+      history.push('/organizations/543');
+    });
     expect(container.innerHTML).toContain('OrgId');
 
     expect(mockStartTransaction).toHaveBeenCalledTimes(3);
