@@ -194,12 +194,13 @@ export async function runServer(testDir: string, serverPath?: string, scenarioPa
 
     app.get('/test', async () => {
       require(scenarioPath || `${testDir}/scenario`);
-
-      setTimeout(() => server.close(), 500);
     });
 
     const server = app.listen(port, () => {
       resolve();
+      setTimeout(() => {
+        server.close();
+      }, 4000);
     });
   });
 
