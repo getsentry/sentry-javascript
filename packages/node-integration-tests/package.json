@@ -18,6 +18,7 @@
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
+    "cors": "^2.8.5",
     "express": "^4.17.3",
     "mongodb": "^3.7.3",
     "mongodb-memory-server": "^7.6.3",

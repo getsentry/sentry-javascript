@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { parseSemver } from '@sentry/utils';
 import { Express } from 'express';
 import * as http from 'http';
+import { RequestOptions } from 'https';
 import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
@@ -127,6 +129,39 @@ export const getMultipleEnvelopeRequest = async (url: string, count: number): Pr
       .reply(200);
 
     http.get(url);
+  });
+};
+
+/**
+ * Sends a get request to given URL, with optional headers
+ *
+ * @param {URL} url
+ * @param {Record<string, string>} [headers]
+ * @return {*}  {Promise<any>}
+ */
+export const getAPIResponse = async (url: URL, headers?: Record<string, string>): Promise<any> => {
+  return await new Promise(resolve => {
+    http.get(
+      headers
+        ? ({
+            protocol: url.protocol,
+            host: url.hostname,
+            path: url.pathname,
+            port: url.port,
+            headers,
+          } as RequestOptions)
+        : url,
+      response => {
+        let body = '';
+
+        response.on('data', function (chunk: string) {
+          body += chunk;
+        });
+        response.on('end', function () {
+          resolve(JSON.parse(body));
+        });
+      },
+    );
   });
 };
 
