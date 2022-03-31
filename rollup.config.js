@@ -11,6 +11,8 @@ import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 
+Error.stackTraceLimit = Infinity;
+
 /**
  * Helper functions to compensate for the fact that JS can't handle negative array indices very well
  *
