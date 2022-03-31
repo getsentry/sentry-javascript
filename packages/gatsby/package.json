@@ -26,12 +26,12 @@
   },
   "peerDependencies": {
     "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0",
-    "react": "15.x || 16.x || 17.x"
+    "react": "15.x || 16.x || 17.x || 18.x"
   },
   "devDependencies": {
     "@sentry/types": "6.19.3",
-    "@testing-library/react": "^10.4.9",
-    "react": "^17.0.0"
+    "@testing-library/react": "^13.0.0",
+    "react": "^18.0.0"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:types",
