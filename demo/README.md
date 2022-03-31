@@ -1,3 +1,18 @@
+## Running
+
+In the repo root, run:
+
+```sh
+yarn bootstrap && yarn start:demo
+```
+
+
+## Developing...
+
+TODO
+
+
+## Create React App
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

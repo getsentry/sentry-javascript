@@ -2,9 +2,22 @@ import React from 'react';
 import './App.css';
 
 function App() {
+  const [state, setState] = React.useState(0);
+  React.useEffect(() => {
+    const id = window.setInterval(async () => {
+      try {
+      await fetch('/');
+      setState(state + 1);
+      } catch {}
+    }, 5000 + Math.random()*10000);
+
+    return () => clearInterval(id);
+  }, [state])
+
   return (
     <div className='App'>
       <header className='App-header'>
+        <img src={ `/logo${state}.png` } />
         <h1>Our cool React app</h1>
       </header>
 

@@ -5,12 +5,21 @@ import App from './App';
 import * as serviceWorker from './serviceWorker';
 import * as Sentry from '@sentry/browser';
 import { SentryReplay } from '@sentry/replay';
+import { BrowserTracing, } from "@sentry/tracing";
 
 Sentry.init({
+  debug: true,
+  // org/project: sentry-emerging-tech/replays
   dsn:
-    'https://375821616abb4d8c94f43726ed08e27f@o19635.ingest.sentry.io/2273529',
+    'https://8616b02314c14ca1b499b098e1991eb5@o1176005.ingest.sentry.io/6273278',
   environment: 'demo',
-  integrations: [new SentryReplay()],
+  tracesSampleRate: 1.0,
+  integrations: [
+    new SentryReplay({idleTimeout: 10000}),
+    new BrowserTracing({
+      tracingOrigins: ["localhost:3000", "localhost", /^\//],
+    }),
+  ],
 });
 
 ReactDOM.render(<App />, document.getElementById('root'));
