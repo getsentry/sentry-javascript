@@ -9,9 +9,9 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "build/dist/index.js",
-  "module": "build/esm/index.js",
-  "types": "build/types/index.d.ts",
+  "main": "build/npm/dist/index.js",
+  "module": "build/npm/esm/index.js",
+  "types": "build/npm/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -58,7 +58,7 @@
     "build:dev:watch": "run-p build:cjs:watch build:esm:watch build:types:watch",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "npm pack ./build",
+    "build:npm": "npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache",
     "fix": "run-s fix:eslint fix:prettier",

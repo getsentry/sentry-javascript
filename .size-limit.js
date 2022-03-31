@@ -25,14 +25,14 @@ module.exports = [
   },
   {
     name: '@sentry/browser - Webpack (gzipped + minified)',
-    path: 'packages/browser/build/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init }',
     gzip: true,
     limit: '100 KB',
   },
   {
     name: '@sentry/browser - Webpack (minified)',
-    path: 'packages/browser/build/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init }',
     gzip: false,
     limit: '100 KB',
