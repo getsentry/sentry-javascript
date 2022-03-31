@@ -1,8 +1,10 @@
+/* eslint-disable no-console */
 // Script which checks all browsers in test/integration/browser.js against supported BrowserStack browsers
 // Meant to be run manually, by running `yarn test:integration:checkbrowsers` from the command line
 
 const btoa = require('btoa');
 const fetch = require('node-fetch');
+
 const localConfigs = require('../test/integration/browsers.js');
 
 const browserstackUsername = process.env.BROWSERSTACK_USERNAME;
@@ -78,6 +80,7 @@ const checkLocalConfigsVsBrowserStack = (localConfigs, bsConfigs) => {
   const realMobileUpdates = [];
 
   // check each local config against the entire collection of BS configs
+  // eslint-disable-next-line guard-for-in
   for (const configName in localConfigs) {
     const localConfig = localConfigs[configName];
 

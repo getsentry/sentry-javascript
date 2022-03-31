@@ -11,7 +11,7 @@ const readPkg = require('read-pkg');
 const serverlessPackage = require('../package.json');
 
 if (!process.env.GITHUB_ACTIONS) {
-  console.log(`Skipping build-awslambda-layer script in local environment.`);
+  console.log('Skipping build-awslambda-layer script in local environment.');
   process.exit(0);
 }
 
