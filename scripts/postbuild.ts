@@ -45,4 +45,4 @@ delete pkg.volta;
 // write modified package.json to file
 fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2));
 
-console.log('Successfully finishied postbuild commands');
+console.log('Successfully finished postbuild commands');
