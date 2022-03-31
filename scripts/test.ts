@@ -1,11 +1,11 @@
-const { spawnSync } = require('child_process');
-const { join } = require('path');
+import { spawnSync } from 'child_process';
+import { join } from 'path';
 
-function run(cmd: string, cwd = '') {
+function run(cmd: string, cwd: string = '') {
   const result = spawnSync(cmd, { shell: true, stdio: 'inherit', cwd: join(__dirname, '..', cwd || '') });
 
   if (result.status !== 0) {
-    process.exit(result.status);
+    process.exit(result.status || undefined);
   }
 }
 
