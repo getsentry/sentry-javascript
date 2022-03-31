@@ -7,6 +7,8 @@
 
 import * as fs from 'fs';
 
+import * as path from 'path';
+
 const BUILD_DIR = 'build';
 const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
 const ENTRY_POINTS = ['main', 'module', 'types'];
@@ -24,11 +26,11 @@ ASSETS.forEach(asset => {
     console.error(`Asset ${asset} does not exist.`);
     process.exit(1);
   }
-  fs.copyFileSync(asset, `${BUILD_DIR}/${asset}`);
+  fs.copyFileSync(asset, path.join(BUILD_DIR, asset));
 });
 
 // package.json modifications
-const packageJsonPath = `${process.cwd()}/${BUILD_DIR}/package.json`;
+const packageJsonPath = path.join(process.cwd(), BUILD_DIR, 'package.json');
 const pkg: { [key: string]: string } = require(packageJsonPath);
 
 // modify entry points to point to correct paths (i.e. delete the build directory)
