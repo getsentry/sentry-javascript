@@ -9,9 +9,9 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/index.js",
-  "module": "esm/index.js",
-  "types": "build/types/index.d.ts",
+  "main": "build/npm/dist/index.js",
+  "module": "build/npm/esm/index.js",
+  "types": "build/npm/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -29,7 +29,7 @@
     "jsdom": "^16.2.2"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:types build:bundle",
+    "build": "run-p build:cjs build:esm build:types build:bundle && ts-node ../../scripts/postbuild.ts",
     "build:bundle": "rollup --config",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
@@ -43,7 +43,7 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "npm pack",
+    "build:npm": "npm pack ./build/npm",
     "clean": "rimraf dist esm build coverage",
     "circularDepCheck": "madge --circular src/index.ts",
     "fix": "run-s fix:eslint fix:prettier",
