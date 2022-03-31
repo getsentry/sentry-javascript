@@ -13,13 +13,13 @@ To install the stable version:
 with npm:
 
 ```shell
-npm install --save @sentry/replay rrweb
+npm install --save @sentry/browser @sentry/replay @sentry/tracing rrweb
 ```
 
 with yarn:
 
 ```shell
-yarn add @sentry/replay rrweb
+yarn add @sentry/replay @sentry/browser @sentry/replay @sentry/tracing rrweb
 ```
 
 ## Setup
@@ -29,6 +29,7 @@ To set up the integration add the following to your Sentry initialization:
 ```javascript
 import * as Sentry from '@sentry/browser';
 import { SentryReplay } from '@sentry/replay';
+import '@sentry/tracing';
 
 Sentry.init({
   dsn: '__DSN__',
@@ -46,15 +47,12 @@ Several options are supported and passable via the integration constructor:
 ```javascript
 import * as Sentry from '@sentry/browser';
 import { SentryReplay } from '@sentry/replay';
+import '@sentry/tracing';
 
 Sentry.init({
   dsn: '__DSN__',
   integrations: [
     new SentryReplay({
-      // default is empty
-      checkoutEveryNth: 100,
-      // default is 5 minutes
-      checkoutEveryNms: 15 * 60 * 1000,
       // on by default
       maskAllInputs: false,
     }),
