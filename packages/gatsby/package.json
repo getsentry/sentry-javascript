@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@sentry/types": "6.19.3",
-    "@testing-library/react": "^13.0.0-alpha.6",
+    "@testing-library/react": "^13.0.0",
     "react": "^18.0.0"
   },
   "scripts": {

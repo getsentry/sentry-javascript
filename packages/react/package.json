@@ -27,7 +27,7 @@
     "react": "15.x || 16.x || 17.x || 18.x"
   },
   "devDependencies": {
-    "@testing-library/react": "^13.0.0-alpha.6",
+    "@testing-library/react": "^13.0.0",
     "@testing-library/react-hooks": "^7.0.2",
     "@types/history-4": "npm:@types/history@4.7.8",
     "@types/history-5": "npm:@types/history@4.7.8",
