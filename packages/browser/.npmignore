@@ -1,6 +1,6 @@
-# Info: the paths in this file are adjusted to match once this
-# file is copied to `./build`. This is done by a postbuild script
-# located in sentry-javascript/scripts/postbuild.ts
+# Info: the paths in this file are specified so that they align with the file
+# structure in `./build` where this file is copied to. This is done by the
+# postbuild script `sentry-javascript/scripts/postbuild.ts`.
 
 *
 

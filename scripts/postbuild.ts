@@ -31,18 +31,18 @@ ASSETS.forEach(asset => {
 
 // package.json modifications
 const packageJsonPath = path.join(process.cwd(), BUILD_DIR, 'package.json');
-const pkg: { [key: string]: string } = require(packageJsonPath);
+const pkgJson: { [key: string]: string } = require(packageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
-ENTRY_POINTS.filter(entryPoint => !!pkg[entryPoint]).forEach(entryPoint => {
-  pkg[entryPoint] = pkg[entryPoint].replace(`${BUILD_DIR}/`, '');
+ENTRY_POINTS.filter(entryPoint => pkgJson[entryPoint]).forEach(entryPoint => {
+  pkgJson[entryPoint] = pkgJson[entryPoint].replace(`${BUILD_DIR}/`, '');
 });
 
 // TODO decide if we want this:
-delete pkg.scripts;
-delete pkg.volta;
+delete pkgJson.scripts;
+delete pkgJson.volta;
 
-// write modified package.json to file
-fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2));
+// write modified package.json to file (pretty-printed with 2 spaces)
+fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
 
-console.log(`\nSuccessfully finished postbuild commands for ${pkg.name}`);
+console.log(`\nSuccessfully finished postbuild commands for ${pkgJson.name}`);
