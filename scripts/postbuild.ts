@@ -14,7 +14,7 @@ const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
 const ENTRY_POINTS = ['main', 'module', 'types'];
 
 // check if build dir exists
-if (!fs.existsSync(BUILD_DIR)) {
+if (!fs.existsSync(path.resolve(BUILD_DIR))) {
   console.error(`Directory ${BUILD_DIR} DOES NOT exist`);
   console.error("This script should only be executed after you've run `yarn build`.");
   process.exit(1);
@@ -22,15 +22,16 @@ if (!fs.existsSync(BUILD_DIR)) {
 
 // copy non-code assets to build dir
 ASSETS.forEach(asset => {
-  if (!fs.existsSync(asset)) {
+  const assetPath = path.resolve(asset);
+  if (!fs.existsSync(assetPath)) {
     console.error(`Asset ${asset} does not exist.`);
     process.exit(1);
   }
-  fs.copyFileSync(asset, path.join(BUILD_DIR, asset));
+  fs.copyFileSync(assetPath, path.resolve(BUILD_DIR, asset));
 });
 
 // package.json modifications
-const packageJsonPath = path.join(process.cwd(), BUILD_DIR, 'package.json');
+const packageJsonPath = path.resolve(BUILD_DIR, 'package.json');
 const pkgJson: { [key: string]: string } = require(packageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
