@@ -43,18 +43,20 @@ ASSETS.forEach(asset => {
 // TODO remove in v7! Until then:
 // copy CDN bundles into npm dir to temporarily keep bundles in npm tarball
 // inside the tarball, they are located in `build/`
-const npmTmpBundlesPath = path.resolve(NPM_BUILD_DIR, 'build');
-const cdnBundlesPaht = path.resolve('build', 'bundles');
-try {
-  if (!fs.existsSync(npmTmpBundlesPath)) {
-    fs.mkdirSync(npmTmpBundlesPath);
+// for now, copy it by default, unless explicitly forbidden via an command line arg
+const tmpCopyBundles = !process.argv.includes('-skipBundleCopy');
+if (tmpCopyBundles) {
+  const npmTmpBundlesPath = path.resolve(NPM_BUILD_DIR, 'build');
+  const cdnBundlesPaht = path.resolve('build', 'bundles');
+  try {
+    if (!fs.existsSync(npmTmpBundlesPath)) {
+      fs.mkdirSync(npmTmpBundlesPath);
+    }
+    fse.copy(cdnBundlesPaht, npmTmpBundlesPath);
+  } catch (error) {
+    console.error(`Error while tmp copying CDN bundles to ${NPM_BUILD_DIR}`);
   }
-  fse.copy(cdnBundlesPaht, npmTmpBundlesPath);
-} catch (error) {
-  console.error(`Error while tmp copying CDN bundles to ${NPM_BUILD_DIR}`);
 }
-// end remove
-
 // package.json modifications
 const packageJsonPath = path.resolve(NPM_BUILD_DIR, 'package.json');
 const pkgJson: { [key: string]: unknown } = require(packageJsonPath);

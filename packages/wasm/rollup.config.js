@@ -5,7 +5,7 @@ const baseBundleConfig = makeBaseBundleConfig({
   isAddOn: true,
   jsVersion: 'es5',
   licenseTitle: '@sentry/wasm',
-  outputFileBase: 'wasm',
+  outputFileBase: 'bundles/wasm',
 });
 
 export default makeConfigVariants(baseBundleConfig);
