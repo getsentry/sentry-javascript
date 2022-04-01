@@ -8,6 +8,7 @@
     "build:dev:filter": "lerna run --stream --concurrency 1 --sort build:dev --include-filtered-dependencies --include-filtered-dependents --scope",
     "build:es5": "yarn lerna run --stream --concurrency 1 --sort build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "lerna run --stream --concurrency 1 --sort build:esm",
+    "build:rollup": "lerna run --stream --concurrency 1 --sort build:rollup",
     "build:types": "lerna run --stream --concurrency 1 --sort build:types",
     "build:watch": "lerna run --parallel build:watch",
     "build:dev:watch": "lerna run --parallel build:dev:watch",
