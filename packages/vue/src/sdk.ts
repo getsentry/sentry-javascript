@@ -1,8 +1,9 @@
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
-import { getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
+import { IS_DEBUG_BUILD } from './flags';
 import { createTracingMixins } from './tracing';
 import { Options, TracingOptions, Vue } from './types';
 
@@ -41,7 +42,7 @@ export function init(
   browserInit(options);
 
   if (!options.Vue && !options.app) {
-    isDebugBuild() &&
+    IS_DEBUG_BUILD &&
       logger.warn(
         'Misconfigured SDK. Vue specific errors will not be captured.\n' +
           'Update your `Sentry.init` call with an appropriate config option:\n' +

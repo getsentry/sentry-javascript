@@ -3,10 +3,11 @@ import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Event } from '@sentry/types';
-import { escapeStringForRegex, isDebugBuild, logger } from '@sentry/utils';
+import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
+import { IS_DEBUG_BUILD } from './flags';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
@@ -45,10 +46,10 @@ export function init(options: NextjsOptions): void {
     logger.enable();
   }
 
-  isDebugBuild() && logger.log('Initializing SDK...');
+  IS_DEBUG_BUILD && logger.log('Initializing SDK...');
 
   if (sdkAlreadyInitialized()) {
-    isDebugBuild() && logger.log('SDK already initialized');
+    IS_DEBUG_BUILD && logger.log('SDK already initialized');
     return;
   }
 
@@ -93,7 +94,7 @@ export function init(options: NextjsOptions): void {
     domain.active = activeDomain;
   }
 
-  isDebugBuild() && logger.log('SDK successfully initialized');
+  IS_DEBUG_BUILD && logger.log('SDK successfully initialized');
 }
 
 function sdkAlreadyInitialized(): boolean {
@@ -150,6 +151,6 @@ if (!isVercel && !isBuild) {
     const { instrumentServer } = require('./utils/instrumentServer.js');
     instrumentServer();
   } catch (err) {
-    isDebugBuild() && logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
+    IS_DEBUG_BUILD && logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
   }
 }

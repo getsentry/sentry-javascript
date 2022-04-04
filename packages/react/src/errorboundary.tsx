@@ -1,7 +1,9 @@
 import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
-import { isDebugBuild, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
+
+import { IS_DEBUG_BUILD } from './flags';
 
 export function isAtLeastReact17(version: string): boolean {
   const major = version.match(/^([^.]+)/);
@@ -141,7 +143,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       if (fallback) {
-        isDebugBuild() && logger.warn('fallback did not produce a valid ReactElement');
+        IS_DEBUG_BUILD && logger.warn('fallback did not produce a valid ReactElement');
       }
 
       // Fail gracefully if no fallback provided or is not valid

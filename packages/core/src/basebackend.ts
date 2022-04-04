@@ -1,7 +1,8 @@
 import { Event, EventHint, Options, Session, Severity, Transport } from '@sentry/types';
-import { isDebugBuild, logger, SentryError } from '@sentry/utils';
+import { logger, SentryError } from '@sentry/utils';
 
 import { initAPIDetails } from './api';
+import { IS_DEBUG_BUILD } from './flags';
 import { createEventEnvelope, createSessionEnvelope } from './request';
 import { NewTransport } from './transports/base';
 import { NoopTransport } from './transports/noop';
@@ -73,7 +74,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   public constructor(options: O) {
     this._options = options;
     if (!this._options.dsn) {
-      isDebugBuild() && logger.warn('No DSN provided, backend will not do anything.');
+      IS_DEBUG_BUILD && logger.warn('No DSN provided, backend will not do anything.');
     }
     this._transport = this._setupTransport();
   }
@@ -107,11 +108,11 @@ export abstract class BaseBackend<O extends Options> implements Backend {
       const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
       const env = createEventEnvelope(event, api);
       void this._newTransport.send(env).then(null, reason => {
-        isDebugBuild() && logger.error('Error while sending event:', reason);
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
       });
     } else {
       void this._transport.sendEvent(event).then(null, reason => {
-        isDebugBuild() && logger.error('Error while sending event:', reason);
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
       });
     }
   }
@@ -121,7 +122,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public sendSession(session: Session): void {
     if (!this._transport.sendSession) {
-      isDebugBuild() && logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      IS_DEBUG_BUILD && logger.warn("Dropping session because custom transport doesn't implement sendSession");
       return;
     }
 
@@ -135,11 +136,11 @@ export abstract class BaseBackend<O extends Options> implements Backend {
       const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
       const [env] = createSessionEnvelope(session, api);
       void this._newTransport.send(env).then(null, reason => {
-        isDebugBuild() && logger.error('Error while sending session:', reason);
+        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
       });
     } else {
       void this._transport.sendSession(session).then(null, reason => {
-        isDebugBuild() && logger.error('Error while sending session:', reason);
+        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
       });
     }
   }

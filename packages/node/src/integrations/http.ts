@@ -1,9 +1,10 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span } from '@sentry/types';
-import { fill, isDebugBuild, logger, parseSemver } from '@sentry/utils';
+import { fill, logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
+import { IS_DEBUG_BUILD } from '../flags';
 import {
   cleanSpanDescription,
   extractUrl,
@@ -118,7 +119,7 @@ function _createWrappedRequestMethodFactory(
           });
 
           const sentryTraceHeader = span.toTraceparent();
-          isDebugBuild() &&
+          IS_DEBUG_BUILD &&
             logger.log(
               `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
             );

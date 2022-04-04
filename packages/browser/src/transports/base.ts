@@ -23,7 +23,6 @@ import {
   dsnToString,
   eventStatusFromHttpCode,
   getGlobalObject,
-  isDebugBuild,
   isRateLimited,
   logger,
   makePromiseBuffer,
@@ -33,6 +32,7 @@ import {
   updateRateLimits,
 } from '@sentry/utils';
 
+import { IS_DEBUG_BUILD } from '../flags';
 import { sendReport } from './utils';
 
 function requestTypeToCategory(ty: SentryRequestType): string {
@@ -108,7 +108,7 @@ export abstract class BaseTransport implements Transport {
     // A correct type for map-based implementation if we want to go that route
     // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
     const key = `${requestTypeToCategory(category)}:${reason}`;
-    isDebugBuild() && logger.log(`Adding outcome: ${key}`);
+    IS_DEBUG_BUILD && logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = (this._outcomes[key] ?? 0) + 1;
   }
 
@@ -125,11 +125,11 @@ export abstract class BaseTransport implements Transport {
 
     // Nothing to send
     if (!Object.keys(outcomes).length) {
-      isDebugBuild() && logger.log('No outcomes to flush');
+      IS_DEBUG_BUILD && logger.log('No outcomes to flush');
       return;
     }
 
-    isDebugBuild() && logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+    IS_DEBUG_BUILD && logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
 
     const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
 
@@ -147,7 +147,7 @@ export abstract class BaseTransport implements Transport {
     try {
       sendReport(url, serializeEnvelope(envelope));
     } catch (e) {
-      isDebugBuild() && logger.error(e);
+      IS_DEBUG_BUILD && logger.error(e);
     }
   }
 
@@ -172,7 +172,7 @@ export abstract class BaseTransport implements Transport {
     this._rateLimits = updateRateLimits(this._rateLimits, headers);
     // eslint-disable-next-line deprecation/deprecation
     if (this._isRateLimited(requestType)) {
-      isDebugBuild() &&
+      IS_DEBUG_BUILD &&
         // eslint-disable-next-line deprecation/deprecation
         logger.warn(`Too many ${requestType} requests, backing off until: ${this._disabledUntil(requestType)}`);
     }

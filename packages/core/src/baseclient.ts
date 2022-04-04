@@ -14,7 +14,6 @@ import {
 import {
   checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
-  isDebugBuild,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -30,6 +29,7 @@ import {
 } from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
+import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -108,7 +108,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
-      isDebugBuild() && logger.log(ALREADY_SEEN_ERROR);
+      IS_DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -153,7 +153,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-      isDebugBuild() && logger.log(ALREADY_SEEN_ERROR);
+      IS_DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -173,12 +173,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureSession(session: Session): void {
     if (!this._isEnabled()) {
-      isDebugBuild() && logger.warn('SDK not enabled, will not capture session.');
+      IS_DEBUG_BUILD && logger.warn('SDK not enabled, will not capture session.');
       return;
     }
 
     if (!(typeof session.release === 'string')) {
-      isDebugBuild() && logger.warn('Discarded session because of missing or non-string release');
+      IS_DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
     } else {
       this._sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
@@ -244,7 +244,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     try {
       return (this._integrations[integration.id] as T) || null;
     } catch (_oO) {
-      isDebugBuild() && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      IS_DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
       return null;
     }
   }
@@ -503,7 +503,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         return finalEvent.event_id;
       },
       reason => {
-        isDebugBuild() && logger.error(reason);
+        IS_DEBUG_BUILD && logger.error(reason);
         return undefined;
       },
     );

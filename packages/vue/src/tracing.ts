@@ -1,9 +1,10 @@
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction } from '@sentry/types';
-import { isDebugBuild, logger, timestampInSeconds } from '@sentry/utils';
+import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { formatComponentName } from './components';
 import { DEFAULT_HOOKS } from './constants';
+import { IS_DEBUG_BUILD } from './flags';
 import { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 
 const VUE_OP = 'ui.vue';
@@ -60,7 +61,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
     // eg. mount => ['beforeMount', 'mounted']
     const internalHooks = HOOKS[operation];
     if (!internalHooks) {
-      isDebugBuild() && logger.warn(`Unknown hook: ${operation}`);
+      IS_DEBUG_BUILD && logger.warn(`Unknown hook: ${operation}`);
       continue;
     }
 

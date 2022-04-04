@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isDebugBuild, isString, logger, SentryError } from '@sentry/utils';
+import { isString, logger, SentryError } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -22,6 +22,7 @@ import { performance } from 'perf_hooks';
 import { types } from 'util';
 
 import { AWSServices } from './awsservices';
+import { IS_DEBUG_BUILD } from './flags';
 import { serverlessEventProcessor } from './utils';
 
 export * from '@sentry/node';
@@ -124,7 +125,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   const handlerDesc = basename(handlerPath);
   const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
   if (!match) {
-    isDebugBuild() && logger.error(`Bad handler ${handlerDesc}`);
+    IS_DEBUG_BUILD && logger.error(`Bad handler ${handlerDesc}`);
     return;
   }
 
@@ -135,7 +136,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
     obj = tryRequire(taskRoot, handlerDir, handlerMod);
   } catch (e) {
-    isDebugBuild() && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
+    IS_DEBUG_BUILD && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
     return;
   }
 
@@ -147,11 +148,11 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     functionName = name;
   });
   if (!obj) {
-    isDebugBuild() && logger.error(`${handlerPath} is undefined or not exported`);
+    IS_DEBUG_BUILD && logger.error(`${handlerPath} is undefined or not exported`);
     return;
   }
   if (typeof obj !== 'function') {
-    isDebugBuild() && logger.error(`${handlerPath} is not a function`);
+    IS_DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
     return;
   }
 
@@ -318,7 +319,7 @@ export function wrapHandler<TEvent, TResult>(
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
         if (options.ignoreSentryErrors && e instanceof SentryError) {
-          isDebugBuild() && logger.error(e);
+          IS_DEBUG_BUILD && logger.error(e);
           return;
         }
         throw e;

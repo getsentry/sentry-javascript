@@ -1,11 +1,12 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { dropUndefinedKeys, isDebugBuild, logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+import { IS_DEBUG_BUILD } from '../flags';
 import {
   BuildContext,
   EntryPropertyObject,
@@ -244,7 +245,7 @@ function checkWebpackPluginOverrides(
   // warn if any of the default options for the webpack plugin are getting overridden
   const sentryWebpackPluginOptionOverrides = Object.keys(defaultOptions).filter(key => key in userOptions);
   if (sentryWebpackPluginOptionOverrides.length > 0) {
-    isDebugBuild() &&
+    IS_DEBUG_BUILD &&
       logger.warn(
         '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
           `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +

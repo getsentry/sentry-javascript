@@ -1,5 +1,7 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
+
+import { IS_DEBUG_BUILD } from './flags';
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 const angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
@@ -47,13 +49,13 @@ export class Angular implements Integration {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(options: { angular?: any } = {}) {
-    isDebugBuild() && logger.log('You are still using the Angular integration, consider moving to @sentry/angular');
+    IS_DEBUG_BUILD && logger.log('You are still using the Angular integration, consider moving to @sentry/angular');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     this._angular = options.angular || getGlobalObject<any>().angular;
 
     if (!this._angular) {
-      isDebugBuild() && logger.error('AngularIntegration is missing an Angular instance');
+      IS_DEBUG_BUILD && logger.error('AngularIntegration is missing an Angular instance');
       return;
     }
 
