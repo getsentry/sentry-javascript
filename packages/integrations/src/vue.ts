@@ -4,15 +4,6 @@ import { EventProcessor, Hub, Integration, IntegrationClass, Scope, Span, Transa
 import { basename, getGlobalObject, isDebugBuild, logger, timestampWithMs } from '@sentry/utils';
 
 /**
- * Used to extract Tracing integration from the current client,
- * without the need to import `Tracing` itself from the @sentry/apm package.
- * @deprecated as @sentry/tracing should be used over @sentry/apm.
- */
-const TRACING_GETTER = {
-  id: 'Tracing',
-} as any as IntegrationClass<Integration>;
-
-/**
  * Used to extract BrowserTracing integration from @sentry/tracing
  */
 const BROWSER_TRACING_GETTER = {
@@ -148,7 +139,6 @@ export class Vue implements Integration {
   private readonly _componentsCache: { [key: string]: string } = {};
   private _rootSpan?: Span;
   private _rootSpanTimer?: ReturnType<typeof setTimeout>;
-  private _tracingActivity?: number;
 
   /**
    * @inheritDoc
@@ -258,30 +248,12 @@ export class Vue implements Integration {
         vm.$once(`hook:${hook}`, () => {
           // Create an activity on the first event call. There'll be no second call, as rootSpan will be in place,
           // thus new event handler won't be attached.
-
-          // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
-          // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
-          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-          // eslint-disable-next-line deprecation/deprecation
-          const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
-          if (tracingIntegration) {
-            this._tracingActivity = (tracingIntegration as any).constructor.pushActivity('Vue Application Render');
-            const transaction = (tracingIntegration as any).constructor.getTransaction();
-            if (transaction) {
-              this._rootSpan = transaction.startChild({
-                description: 'Application Render',
-                op: VUE_OP,
-              });
-            }
-            // Use functionality from @sentry/tracing
-          } else {
-            const activeTransaction = getActiveTransaction(getCurrentHub());
-            if (activeTransaction) {
-              this._rootSpan = activeTransaction.startChild({
-                description: 'Application Render',
-                op: VUE_OP,
-              });
-            }
+          const activeTransaction = getActiveTransaction(getCurrentHub());
+          if (activeTransaction) {
+            this._rootSpan = activeTransaction.startChild({
+              description: 'Application Render',
+              op: VUE_OP,
+            });
           }
           /* eslint-enable @typescript-eslint/no-unsafe-member-access */
         });
@@ -347,24 +319,13 @@ export class Vue implements Integration {
   };
 
   /** Finish top-level span and activity with a debounce configured using `timeout` option */
-  private _finishRootSpan(timestamp: number, getCurrentHub: () => Hub): void {
+  private _finishRootSpan(timestamp: number, _getCurrentHub: () => Hub): void {
     if (this._rootSpanTimer) {
       clearTimeout(this._rootSpanTimer);
     }
 
     this._rootSpanTimer = setTimeout(() => {
-      if (this._tracingActivity) {
-        // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
-        // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
-        // eslint-disable-next-line deprecation/deprecation
-        const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
-        if (tracingIntegration) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
-        }
-      }
-
-      // We should always finish the span, only should pop activity if using @sentry/apm
+      // We should always finish the span
       if (this._rootSpan) {
         this._rootSpan.finish(timestamp);
       }
@@ -377,8 +338,7 @@ export class Vue implements Integration {
 
     this._options.Vue.mixin({
       beforeCreate(this: ViewModel): void {
-        // eslint-disable-next-line deprecation/deprecation
-        if (getCurrentHub().getIntegration(TRACING_GETTER) || getCurrentHub().getIntegration(BROWSER_TRACING_GETTER)) {
+        if (getCurrentHub().getIntegration(BROWSER_TRACING_GETTER)) {
           // `this` points to currently rendered component
           applyTracingHooks(this, getCurrentHub);
         } else {
