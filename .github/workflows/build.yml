@@ -124,7 +124,7 @@ jobs:
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v4
         # Don't run size check on release branches - at that point, we're already committed
-        if: ${{ !startsWith(github.ref, 'release') }}
+        if: ${{ !startsWith(github.ref, 'refs/heads/release/') != true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
