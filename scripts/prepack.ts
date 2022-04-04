@@ -81,4 +81,4 @@ try {
   process.exit(1);
 }
 
-console.log(`\nSuccessfully finished postbuild commands for ${pkgJson.name}`);
+console.log(`\nSuccessfully finished prepack commands for ${pkgJson.name}\n`);
