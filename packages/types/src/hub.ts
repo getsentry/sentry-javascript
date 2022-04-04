@@ -181,11 +181,6 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /**
-   * @deprecated No longer does anything. Use use {@link Transaction.startChild} instead.
-   */
-  startSpan(context: SpanContext): Span;
-
-  /**
    * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
    *
    * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a
