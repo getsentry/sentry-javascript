@@ -105,6 +105,5 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 4. Paste in the logs you copied earlier.
 5. Delete any which aren't user-facing changes.
 6. Alphabetize the rest.
-7. Run a regex find and replace, searching for `\(#(\d+)\)` and replacing it with `([#$1](https://github.com/getsentry/sentry-javascript/pull/$1))`. (This will linkify all of the PR references.)
-8. If any of the PRs are from external contributors, include underneath the commits `Work in this release contributed by <list of external contributors' GitHub usernames>. Thank you for your contributions!`. If there's only one external PR, don't forget to remove the final `s`. If there are three or more, use an Oxford comma. (It's in the Sentry styleguide!)
-9. Commit, push, and open a PR with the title `meta: Update changelog for <fill in relevant version here>`.
+7. If any of the PRs are from external contributors, include underneath the commits `Work in this release contributed by <list of external contributors' GitHub usernames>. Thank you for your contributions!`. If there's only one external PR, don't forget to remove the final `s`. If there are three or more, use an Oxford comma. (It's in the Sentry styleguide!)
+8. Commit, push, and open a PR with the title `meta: Update changelog for <fill in relevant version here>`.
