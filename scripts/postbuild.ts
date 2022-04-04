@@ -55,6 +55,7 @@ if (tmpCopyBundles) {
     fse.copy(cdnBundlesPaht, npmTmpBundlesPath);
   } catch (error) {
     console.error(`Error while tmp copying CDN bundles to ${NPM_BUILD_DIR}`);
+    process.exit(1);
   }
 }
 // package.json modifications
