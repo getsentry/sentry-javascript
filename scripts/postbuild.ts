@@ -22,6 +22,7 @@ try {
   }
 } catch (error) {
   console.error(`Error while looking up directory ${BUILD_DIR}`);
+  process.exit(1);
 }
 
 // copy non-code assets to build dir
@@ -35,19 +36,19 @@ ASSETS.forEach(asset => {
     fs.copyFileSync(assetPath, path.resolve(BUILD_DIR, asset));
   } catch (error) {
     console.error(`Error while copying ${asset} to ${BUILD_DIR}`);
+    process.exit(1);
   }
 });
 
 // package.json modifications
 const packageJsonPath = path.resolve(BUILD_DIR, 'package.json');
-const pkgJson: { [key: string]: string } = require(packageJsonPath);
+const pkgJson: { [key: string]: unknown } = require(packageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
 ENTRY_POINTS.filter(entryPoint => pkgJson[entryPoint]).forEach(entryPoint => {
-  pkgJson[entryPoint] = pkgJson[entryPoint].replace(`${BUILD_DIR}/`, '');
+  pkgJson[entryPoint] = (pkgJson[entryPoint] as string).replace(`${BUILD_DIR}/`, '');
 });
 
-// TODO decide if we want this:
 delete pkgJson.scripts;
 delete pkgJson.volta;
 
@@ -56,6 +57,7 @@ try {
   fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
 } catch (error) {
   console.error(`Error while writing package.json to disk`);
+  process.exit(1);
 }
 
 console.log(`\nSuccessfully finished postbuild commands for ${pkgJson.name}`);
