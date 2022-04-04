@@ -1,27 +1,38 @@
 /* eslint-disable deprecation/deprecation */
 import { makeDsn } from '@sentry/utils';
 
-import { API, getReportDialogEndpoint, getRequestHeaders } from '../../src/api';
+import {
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getReportDialogEndpoint,
+  getRequestHeaders,
+  getStoreEndpoint,
+  getStoreEndpointWithUrlEncodedAuth,
+  initAPIDetails,
+} from '../../src/api';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const legacyDsn = 'https://abc:123@sentry.io:1234/subpath/123';
 const tunnel = 'https://hello.com/world';
 
+const ingestDsnAPI = initAPIDetails(ingestDsn);
+const dsnPublicAPI = initAPIDetails(dsnPublic);
+
 describe('API', () => {
   test('getStoreEndpoint', () => {
-    expect(new API(dsnPublic).getStoreEndpointWithUrlEncodedAuth()).toEqual(
+    expect(getStoreEndpointWithUrlEncodedAuth(dsnPublicAPI.dsn)).toEqual(
       'https://sentry.io:1234/subpath/api/123/store/?sentry_key=abc&sentry_version=7',
     );
-    expect(new API(dsnPublic).getStoreEndpoint()).toEqual('https://sentry.io:1234/subpath/api/123/store/');
-    expect(new API(ingestDsn).getStoreEndpoint()).toEqual('https://xxxx.ingest.sentry.io:1234/subpath/api/123/store/');
+    expect(getStoreEndpoint(dsnPublicAPI.dsn)).toEqual('https://sentry.io:1234/subpath/api/123/store/');
+    expect(getStoreEndpoint(ingestDsnAPI.dsn)).toEqual('https://xxxx.ingest.sentry.io:1234/subpath/api/123/store/');
   });
 
   test('getEnvelopeEndpoint', () => {
-    expect(new API(dsnPublic).getEnvelopeEndpointWithUrlEncodedAuth()).toEqual(
+    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicAPI.dsn)).toEqual(
       'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
     );
-    expect(new API(dsnPublic, {}, tunnel).getEnvelopeEndpointWithUrlEncodedAuth()).toEqual(tunnel);
+    const dsnPublicAPIWithTunnel = initAPIDetails(dsnPublic, {}, tunnel);
+    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicAPIWithTunnel.dsn, tunnel)).toEqual(tunnel);
   });
 
   test('getRequestHeaders', () => {
@@ -119,12 +130,12 @@ describe('API', () => {
   });
 
   test('getDsn', () => {
-    expect(new API(dsnPublic).getDsn().host).toEqual(makeDsn(dsnPublic).host);
-    expect(new API(dsnPublic).getDsn().path).toEqual(makeDsn(dsnPublic).path);
-    expect(new API(dsnPublic).getDsn().pass).toEqual(makeDsn(dsnPublic).pass);
-    expect(new API(dsnPublic).getDsn().port).toEqual(makeDsn(dsnPublic).port);
-    expect(new API(dsnPublic).getDsn().protocol).toEqual(makeDsn(dsnPublic).protocol);
-    expect(new API(dsnPublic).getDsn().projectId).toEqual(makeDsn(dsnPublic).projectId);
-    expect(new API(dsnPublic).getDsn().publicKey).toEqual(makeDsn(dsnPublic).publicKey);
+    expect(dsnPublicAPI.dsn.host).toEqual(makeDsn(dsnPublic).host);
+    expect(dsnPublicAPI.dsn.path).toEqual(makeDsn(dsnPublic).path);
+    expect(dsnPublicAPI.dsn.pass).toEqual(makeDsn(dsnPublic).pass);
+    expect(dsnPublicAPI.dsn.port).toEqual(makeDsn(dsnPublic).port);
+    expect(dsnPublicAPI.dsn.protocol).toEqual(makeDsn(dsnPublic).protocol);
+    expect(dsnPublicAPI.dsn.projectId).toEqual(makeDsn(dsnPublic).projectId);
+    expect(dsnPublicAPI.dsn.publicKey).toEqual(makeDsn(dsnPublic).publicKey);
   });
 });
