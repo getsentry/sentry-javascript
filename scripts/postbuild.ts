@@ -14,20 +14,28 @@ const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
 const ENTRY_POINTS = ['main', 'module', 'types'];
 
 // check if build dir exists
-if (!fs.existsSync(path.resolve(BUILD_DIR))) {
-  console.error(`Directory ${BUILD_DIR} DOES NOT exist`);
-  console.error("This script should only be executed after you've run `yarn build`.");
-  process.exit(1);
+try {
+  if (!fs.existsSync(path.resolve(BUILD_DIR))) {
+    console.error(`Directory ${BUILD_DIR} DOES NOT exist`);
+    console.error("This script should only be executed after you've run `yarn build`.");
+    process.exit(1);
+  }
+} catch (error) {
+  console.error(`Error while looking up directory ${BUILD_DIR}`);
 }
 
 // copy non-code assets to build dir
 ASSETS.forEach(asset => {
   const assetPath = path.resolve(asset);
-  if (!fs.existsSync(assetPath)) {
-    console.error(`Asset ${asset} does not exist.`);
-    process.exit(1);
+  try {
+    if (!fs.existsSync(assetPath)) {
+      console.error(`Asset ${asset} does not exist.`);
+      process.exit(1);
+    }
+    fs.copyFileSync(assetPath, path.resolve(BUILD_DIR, asset));
+  } catch (error) {
+    console.error(`Error while copying ${asset} to ${BUILD_DIR}`);
   }
-  fs.copyFileSync(assetPath, path.resolve(BUILD_DIR, asset));
 });
 
 // package.json modifications
@@ -44,6 +52,10 @@ delete pkgJson.scripts;
 delete pkgJson.volta;
 
 // write modified package.json to file (pretty-printed with 2 spaces)
-fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
+try {
+  fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
+} catch (error) {
+  console.error(`Error while writing package.json to disk`);
+}
 
 console.log(`\nSuccessfully finished postbuild commands for ${pkgJson.name}`);
