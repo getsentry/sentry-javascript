@@ -7,7 +7,6 @@ import { Primitive } from './misc';
 import { Scope } from './scope';
 import { Session, SessionContext } from './session';
 import { Severity } from './severity';
-import { Span, SpanContext } from './span';
 import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import { User } from './user';
 

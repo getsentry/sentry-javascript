@@ -14,8 +14,6 @@ import {
   Primitive,
   SessionContext,
   Severity,
-  Span,
-  SpanContext,
   Transaction,
   TransactionContext,
   User,
