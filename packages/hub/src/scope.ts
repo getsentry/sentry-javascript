@@ -224,14 +224,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Can be removed in major version.
-   * @deprecated in favor of {@link this.setTransactionName}
-   */
-  public setTransaction(name?: string): this {
-    return this.setTransactionName(name);
-  }
-
-  /**
    * @inheritDoc
    */
   public setContext(key: string, context: Context | null): this {
