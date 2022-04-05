@@ -21,7 +21,7 @@
     "tslib": "^1.9.3"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:types",
+    "build": "run-p build:rollup build:types",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-s build",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
