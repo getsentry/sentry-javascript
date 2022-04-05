@@ -9,8 +9,8 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/index.js",
-  "module": "esm/index.js",
+  "main": "build/dist/index.js",
+  "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
@@ -28,7 +28,8 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "npm pack",
+    "build:npm": "ts-node ../../scripts/prepack.ts -noBundles && npm pack ./build",
+    "clean": "rimraf dist esm build",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
