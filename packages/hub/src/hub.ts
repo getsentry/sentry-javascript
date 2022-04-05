@@ -20,7 +20,15 @@ import {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
+import {
+  consoleSandbox,
+  dateTimestampInSeconds,
+  getGlobalObject,
+  getGlobalSingleton,
+  isNodeEnv,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
 import { Scope } from './scope';
@@ -617,10 +625,7 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) return carrier.__SENTRY__.hub;
-  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-  carrier.__SENTRY__.hub = new Hub();
-  return carrier.__SENTRY__.hub;
+  return getGlobalSingleton<Hub>('hub', () => new Hub(), carrier);
 }
 
 /**
@@ -631,7 +636,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
-  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
-  carrier.__SENTRY__.hub = hub;
+  const sentry = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
+  sentry.hub = hub;
   return true;
 }

@@ -44,3 +44,16 @@ export function getGlobalObject<T>(): T & SentryGlobal {
       : fallbackGlobalObject
   ) as T & SentryGlobal;
 }
+
+/**
+ * Returns a global singleton contained on the global `__SENTRY__` object.
+ *
+ * @param name name of the global singleton on __SENTRY__
+ * @param creator creation function
+ * @returns the singleton
+ */
+export function getGlobalSingleton<T>(name: keyof SentryGlobal['__SENTRY__'], creator: () => T, obj?: unknown): T {
+  const global = (obj || getGlobalObject()) as SentryGlobal;
+  const sentry = (global.__SENTRY__ = global.__SENTRY__ || {});
+  return sentry[name] || (sentry[name] = creator());
+}
