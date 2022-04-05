@@ -6,7 +6,7 @@ const app = express();
 // Wasm Integration Tests Artifacts
 app.use(express.static(path.resolve(__dirname, 'public')));
 // Wasm Integration Bundle
-app.use(express.static(path.resolve(__dirname, '../build')));
+app.use(express.static(path.resolve(__dirname, '../build/bundles')));
 // Browser SDK Bundle
 app.use(express.static(path.resolve(__dirname, '../../browser/build/bundles')));
 app.listen(process.env.PORT);

@@ -1,4 +1,12 @@
+# Info: the paths in this file are specified so that they align with the file
+# structure in `./build` where this file is copied to. This is done by the
+# prepack script `sentry-javascript/scripts/prepack.ts`.
+
 *
-!/dist/**/*
+
+# TODO remove bundles (which in the tarball are inside `build`) in v7
 !/build/**/*
+
+!/dist/**/*
 !/esm/**/*
+!/types/**/*

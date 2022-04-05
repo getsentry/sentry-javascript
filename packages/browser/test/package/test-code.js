@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-const Sentry = require('../../build/dist/index.js');
-const Integrations = require('../../../integrations/dist/dedupe.js');
+const Sentry = require('../../build/npm/dist/index.js');
+const Integrations = require('../../../integrations/build/npm/dist/dedupe.js');
 
 // Init
 Sentry.init({

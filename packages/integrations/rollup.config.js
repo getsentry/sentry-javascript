@@ -12,7 +12,7 @@ const baseBundleConfig = makeBaseBundleConfig({
   isAddOn: true,
   jsVersion,
   licenseTitle: '@sentry/integrations',
-  outputFileBase: `${file.replace('.ts', '')}${jsVersion === 'ES6' ? '.es6' : ''}`,
+  outputFileBase: `bundles/${file.replace('.ts', '')}${jsVersion === 'ES6' ? '.es6' : ''}`,
 });
 
 // TODO We only need `commonjs` for localforage (used in the offline plugin). Once that's fixed, this can come out.
