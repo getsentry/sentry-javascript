@@ -44,7 +44,7 @@
     "webpack": "^4.30.0"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:bundle build:types && bash ../../scripts/postbuild.sh",
+    "build": "run-p build:cjs build:esm build:bundle build:types && ts-node ../../scripts/postbuild.ts",
     "build:bundle": "rollup --config",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
