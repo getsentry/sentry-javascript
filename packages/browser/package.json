@@ -55,7 +55,7 @@
     "build:bundle:watch": "rollup --config --watch",
     "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
-    "build:dev:watch": "run-p build:cjs:watch build:esm:watch build:types:watch",
+    "build:dev:watch": "run-p build:rollup:watch build:types:watch",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
