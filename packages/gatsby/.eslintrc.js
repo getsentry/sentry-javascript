@@ -6,5 +6,6 @@ module.exports = {
   parserOptions: {
     jsx: true,
   },
+  ignorePatterns: ['scripts/prepack.ts'],
   extends: ['../../.eslintrc.js'],
 };
