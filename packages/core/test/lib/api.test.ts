@@ -129,7 +129,7 @@ describe('API', () => {
     );
   });
 
-  test('getDsn', () => {
+  test('initAPIDetails dsn', () => {
     expect(dsnPublicAPI.dsn.host).toEqual(makeDsn(dsnPublic).host);
     expect(dsnPublicAPI.dsn.path).toEqual(makeDsn(dsnPublic).path);
     expect(dsnPublicAPI.dsn.pass).toEqual(makeDsn(dsnPublic).pass);
