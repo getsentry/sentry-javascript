@@ -41,7 +41,7 @@
     "build": "run-p build:rollup build:types && yarn build:awslambda-layer",
     "build:awslambda-layer": "node scripts/build-awslambda-layer.js",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:dev": "run-p build:cjs build:esm build:types",
+    "build:dev": "run-p build:rollup build:types",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:rollup": "rollup -c rollup.npm.config.js",
