@@ -636,7 +636,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
-  const sentry = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
-  sentry.hub = hub;
+  const __SENTRY__ = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
+  __SENTRY__.hub = hub;
   return true;
 }
