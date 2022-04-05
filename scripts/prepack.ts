@@ -11,18 +11,23 @@ import * as fse from 'fs-extra';
 import * as path from 'path';
 
 const NPM_BUILD_DIR = 'build/npm';
+const BUILD_DIR = 'build';
+
 const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
 const ENTRY_POINTS = ['main', 'module', 'types'];
 
+const packageWithBundles = !process.argv.includes('-noBundles');
+const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
+
 // check if build dir exists
 try {
-  if (!fs.existsSync(path.resolve(NPM_BUILD_DIR))) {
-    console.error(`Directory ${NPM_BUILD_DIR} DOES NOT exist`);
+  if (!fs.existsSync(path.resolve(buildDir))) {
+    console.error(`Directory ${buildDir} DOES NOT exist`);
     console.error("This script should only be executed after you've run `yarn build`.");
     process.exit(1);
   }
 } catch (error) {
-  console.error(`Error while looking up directory ${NPM_BUILD_DIR}`);
+  console.error(`Error while looking up directory ${buildDir}`);
   process.exit(1);
 }
 
@@ -34,9 +39,9 @@ ASSETS.forEach(asset => {
       console.error(`Asset ${asset} does not exist.`);
       process.exit(1);
     }
-    fs.copyFileSync(assetPath, path.resolve(NPM_BUILD_DIR, asset));
+    fs.copyFileSync(assetPath, path.resolve(buildDir, asset));
   } catch (error) {
-    console.error(`Error while copying ${asset} to ${NPM_BUILD_DIR}`);
+    console.error(`Error while copying ${asset} to ${buildDir}`);
     process.exit(1);
   }
 });
@@ -45,9 +50,9 @@ ASSETS.forEach(asset => {
 // copy CDN bundles into npm dir to temporarily keep bundles in npm tarball
 // inside the tarball, they are located in `build/`
 // for now, copy it by default, unless explicitly forbidden via an command line arg
-const tmpCopyBundles = !process.argv.includes('-skipBundleCopy');
+const tmpCopyBundles = packageWithBundles && !process.argv.includes('-skipBundleCopy');
 if (tmpCopyBundles) {
-  const npmTmpBundlesPath = path.resolve(NPM_BUILD_DIR, 'build');
+  const npmTmpBundlesPath = path.resolve(buildDir, 'build');
   const cdnBundlesPath = path.resolve('build', 'bundles');
   try {
     if (!fs.existsSync(npmTmpBundlesPath)) {
@@ -55,18 +60,20 @@ if (tmpCopyBundles) {
     }
     void fse.copy(cdnBundlesPath, npmTmpBundlesPath);
   } catch (error) {
-    console.error(`Error while tmp copying CDN bundles to ${NPM_BUILD_DIR}`);
+    console.error(`Error while tmp copying CDN bundles to ${buildDir}`);
     process.exit(1);
   }
 }
+// end remove
+
 // package.json modifications
-const packageJsonPath = path.resolve(NPM_BUILD_DIR, 'package.json');
+const packageJsonPath = path.resolve(buildDir, 'package.json');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkgJson: { [key: string]: unknown } = require(packageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
 ENTRY_POINTS.filter(entryPoint => pkgJson[entryPoint]).forEach(entryPoint => {
-  pkgJson[entryPoint] = (pkgJson[entryPoint] as string).replace(`${NPM_BUILD_DIR}/`, '');
+  pkgJson[entryPoint] = (pkgJson[entryPoint] as string).replace(`${buildDir}/`, '');
 });
 
 delete pkgJson.scripts;
