@@ -25,7 +25,7 @@
     "chai": "^4.1.2"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:types build:bundle",
+    "build": "run-p build:rollup build:types build:bundle",
     "build:bundle": "bash scripts/buildBundles.sh",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
