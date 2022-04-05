@@ -60,6 +60,19 @@ If you run into trouble writing tests and need to debug one of them, you can do 
 
 Pro tip: If any of your breakpoints are in code run by multiple tests, and you run the whole test file, you'll land on those breakpoints over and over again, in the middle of tests you don't care about. To avoid this, replace the test's initial `it` or `test` with `it.only` or `test.only`. That way, when you hit a breakpoint, you'll know you got there are part of the buggy test.
 
+## Debug Build Flags
+
+Throughout the codebase, you will find debug flags like `IS_DEBUG_BUILD` guarding various code sections.
+These flags serve two purposes:
+
+1. They enable us to remove debug code for our production browser bundles.
+2. Enable users to tree-shake Sentry debug code for their production builds.
+
+These debug flags need to be declared in each package individually and must not be imported across package boundaries, because some build tools have trouble tree-shaking imported guards.
+As a convention, we define debug flags in a `flags.ts` file in the root of a package's `src` folder.
+The `flags.ts` file will contain "magic strings" like `__SENTRY_DEBUG__` that may get replaced with actual values during our, or the user's build process.
+Take care when introducing new flags - they must not throw if they are not replaced.
+
 ## Linting
 
 Similar to building and testing, linting can be done in the project root or in individual packages by calling `yarn lint`.

@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventProcessor, Hub, Integration, IntegrationClass, Scope, Span, Transaction } from '@sentry/types';
-import { basename, getGlobalObject, isDebugBuild, logger, timestampWithMs } from '@sentry/utils';
+import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
+
+import { IS_DEBUG_BUILD } from './flags';
 
 /**
  * Used to extract Tracing integration from the current client,
@@ -156,7 +158,7 @@ export class Vue implements Integration {
   public constructor(
     options: Partial<Omit<IntegrationOptions, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }>,
   ) {
-    isDebugBuild() && logger.log('You are still using the Vue.js integration, consider moving to @sentry/vue');
+    IS_DEBUG_BUILD && logger.log('You are still using the Vue.js integration, consider moving to @sentry/vue');
     this._options = {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Vue: getGlobalObject<any>().Vue,
@@ -178,7 +180,7 @@ export class Vue implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._options.Vue) {
-      isDebugBuild() && logger.error('Vue integration is missing a Vue instance');
+      IS_DEBUG_BUILD && logger.error('Vue integration is missing a Vue instance');
       return;
     }
 
@@ -325,7 +327,7 @@ export class Vue implements Integration {
       const internalHooks = HOOKS[operation];
 
       if (!internalHooks) {
-        isDebugBuild() && logger.warn(`Unknown hook: ${operation}`);
+        IS_DEBUG_BUILD && logger.warn(`Unknown hook: ${operation}`);
         return;
       }
 
@@ -382,7 +384,7 @@ export class Vue implements Integration {
           // `this` points to currently rendered component
           applyTracingHooks(this, getCurrentHub);
         } else {
-          isDebugBuild() &&
+          IS_DEBUG_BUILD &&
             logger.error('Vue integration has tracing enabled, but Tracing integration is not configured');
         }
       },
@@ -405,7 +407,7 @@ export class Vue implements Integration {
             metadata.propsData = vm.$options.propsData;
           }
         } catch (_oO) {
-          isDebugBuild() && logger.warn('Unable to extract metadata from Vue component.');
+          IS_DEBUG_BUILD && logger.warn('Unable to extract metadata from Vue component.');
         }
       }
 

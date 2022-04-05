@@ -6,8 +6,9 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, isDebugBuild, isInstanceOf, logger } from '@sentry/utils';
+import { dropUndefinedKeys, isInstanceOf, logger } from '@sentry/utils';
 
+import { IS_DEBUG_BUILD } from './flags';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
@@ -92,7 +93,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
 
     if (!this.name) {
-      isDebugBuild() && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      IS_DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
       this.name = '<unlabeled transaction>';
     }
 
@@ -101,7 +102,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      isDebugBuild() && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
+      IS_DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
       const client = this._hub.getClient();
       const transport = client && client.getTransport && client.getTransport();
@@ -138,7 +139,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const hasMeasurements = Object.keys(this._measurements).length > 0;
 
     if (hasMeasurements) {
-      isDebugBuild() &&
+      IS_DEBUG_BUILD &&
         logger.log(
           '[Measurements] Adding measurements to transaction',
           JSON.stringify(this._measurements, undefined, 2),
@@ -146,7 +147,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    isDebugBuild() && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+    IS_DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
     return this._hub.captureEvent(transaction);
   }

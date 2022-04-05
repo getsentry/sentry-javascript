@@ -1,7 +1,7 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
-import { isDebugBuild } from './env';
 import { SentryError } from './error';
+import { IS_DEBUG_BUILD } from './flags';
 
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w.-]+)(?::(\d+))?\/(.+)/;
@@ -73,7 +73,7 @@ function dsnFromComponents(components: DsnComponents): DsnComponents {
 }
 
 function validateDsn(dsn: DsnComponents): boolean | void {
-  if (!isDebugBuild()) {
+  if (!IS_DEBUG_BUILD) {
     return;
   }
 

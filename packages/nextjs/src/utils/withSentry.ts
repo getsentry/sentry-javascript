@@ -1,16 +1,11 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  isDebugBuild,
-  isString,
-  logger,
-  objectify,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import { addExceptionMechanism, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
+
+import { IS_DEBUG_BUILD } from '../flags';
 
 const { parseRequest } = Handlers;
 
@@ -50,7 +45,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {
             traceparentData = extractTraceparentData(req.headers['sentry-trace']);
-            isDebugBuild() && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+            IS_DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
           const url = `${req.url}`;
@@ -193,10 +188,10 @@ async function finishSentryProcessing(res: AugmentedNextApiResponse): Promise<vo
   // Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
   // ends. If there was an error, rethrow it so that the normal exception-handling mechanisms can apply.
   try {
-    isDebugBuild() && logger.log('Flushing events...');
+    IS_DEBUG_BUILD && logger.log('Flushing events...');
     await flush(2000);
-    isDebugBuild() && logger.log('Done flushing events');
+    IS_DEBUG_BUILD && logger.log('Done flushing events');
   } catch (e) {
-    isDebugBuild() && logger.log('Error while flushing events:\n', e);
+    IS_DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
   }
 }

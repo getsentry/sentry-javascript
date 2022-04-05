@@ -1,9 +1,10 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint } from '@sentry/types';
-import { isDebugBuild, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { NodeBackend } from './backend';
+import { IS_DEBUG_BUILD } from './flags';
 import { NodeOptions } from './types';
 
 /**
@@ -96,7 +97,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
     if (!release) {
-      isDebugBuild() && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
+      IS_DEBUG_BUILD && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
     } else {
       this._sessionFlusher = new SessionFlusher(this.getTransport(), {
         release,
@@ -122,7 +123,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    */
   protected _captureRequestSession(): void {
     if (!this._sessionFlusher) {
-      isDebugBuild() && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
+      IS_DEBUG_BUILD && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }

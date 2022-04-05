@@ -1,7 +1,8 @@
 import { getCurrentHub } from '@sentry/core';
-import { forget, isDebugBuild, logger } from '@sentry/utils';
+import { forget, logger } from '@sentry/utils';
 
 import { NodeClient } from '../../client';
+import { IS_DEBUG_BUILD } from '../../flags';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
@@ -15,7 +16,7 @@ export function logAndExitProcess(error: Error): void {
   const client = getCurrentHub().getClient<NodeClient>();
 
   if (client === undefined) {
-    isDebugBuild() && logger.warn('No NodeClient was defined, we are exiting the process now.');
+    IS_DEBUG_BUILD && logger.warn('No NodeClient was defined, we are exiting the process now.');
     global.process.exit(1);
   }
 
@@ -26,7 +27,7 @@ export function logAndExitProcess(error: Error): void {
   forget(
     client.close(timeout).then((result: boolean) => {
       if (!result) {
-        isDebugBuild() && logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
+        IS_DEBUG_BUILD && logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
       }
       global.process.exit(1);
     }),

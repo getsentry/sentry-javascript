@@ -50,9 +50,8 @@ function makeLicensePlugin(title) {
 
 function makeIsDebugBuildPlugin(includeDebugging) {
   return replace({
-    // don't turn `const __SENTRY_DEBUG__ = false` into `const false = false`
-    preventAssignment: true,
-    // everywhere else, replace it with the value of `includeDebugging`
+    // __SENTRY_DEBUG__ should be save to replace in any case, so no checks for assignments necessary
+    preventAssignment: false,
     values: {
       __SENTRY_DEBUG__: includeDebugging,
     },

@@ -1,8 +1,9 @@
 import { getCurrentHub, Scope } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
-import { isDebugBuild, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { NodeClient } from '../client';
+import { IS_DEBUG_BUILD } from '../flags';
 import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
@@ -95,7 +96,7 @@ export class OnUncaughtException implements Integration {
         }
       } else if (calledFatalError) {
         // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
-        isDebugBuild() &&
+        IS_DEBUG_BUILD &&
           logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
         logAndExitProcess(error);
       } else if (!caughtSecondError) {

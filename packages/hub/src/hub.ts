@@ -20,16 +20,9 @@ import {
   TransactionContext,
   User,
 } from '@sentry/types';
-import {
-  consoleSandbox,
-  dateTimestampInSeconds,
-  getGlobalObject,
-  isDebugBuild,
-  isNodeEnv,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { consoleSandbox, dateTimestampInSeconds, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
+import { IS_DEBUG_BUILD } from './flags';
 import { Scope } from './scope';
 import { Session } from './session';
 
@@ -379,7 +372,7 @@ export class Hub implements HubInterface {
     try {
       return client.getIntegration(integration);
     } catch (_oO) {
-      isDebugBuild() && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
+      IS_DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;
     }
   }
@@ -511,7 +504,7 @@ export class Hub implements HubInterface {
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
-    isDebugBuild() && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
+    IS_DEBUG_BUILD && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
   }
 }
 
@@ -574,7 +567,7 @@ export function getCurrentHub(): Hub {
  */
 // eslint-disable-next-line deprecation/deprecation
 export function getActiveDomain(): DomainAsCarrier | undefined {
-  isDebugBuild() && logger.warn('Function `getActiveDomain` is deprecated and will be removed in a future version.');
+  IS_DEBUG_BUILD && logger.warn('Function `getActiveDomain` is deprecated and will be removed in a future version.');
 
   const sentry = getMainCarrier().__SENTRY__;
 

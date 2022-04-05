@@ -1,8 +1,9 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
-import { getGlobalObject, isDebugBuild, logger } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 
 import { BrowserBackend, BrowserOptions } from './backend';
+import { IS_DEBUG_BUILD } from './flags';
 import { injectReportDialog, ReportDialogOptions } from './helpers';
 import { Breadcrumbs } from './integrations';
 
@@ -47,7 +48,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     }
 
     if (!this._isEnabled()) {
-      isDebugBuild() && logger.error('Trying to call showReportDialog with Sentry Client disabled');
+      IS_DEBUG_BUILD && logger.error('Trying to call showReportDialog with Sentry Client disabled');
       return;
     }
 

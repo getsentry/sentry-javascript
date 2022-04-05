@@ -6,10 +6,11 @@ import {
   addNonEnumerableProperty,
   getGlobalObject,
   getOriginalFunction,
-  isDebugBuild,
   logger,
   markFunctionWrapped,
 } from '@sentry/utils';
+
+import { IS_DEBUG_BUILD } from './flags';
 
 const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
@@ -192,12 +193,12 @@ export function injectReportDialog(options: ReportDialogOptions = {}): void {
   }
 
   if (!options.eventId) {
-    isDebugBuild() && logger.error('Missing eventId option in showReportDialog call');
+    IS_DEBUG_BUILD && logger.error('Missing eventId option in showReportDialog call');
     return;
   }
 
   if (!options.dsn) {
-    isDebugBuild() && logger.error('Missing dsn option in showReportDialog call');
+    IS_DEBUG_BUILD && logger.error('Missing dsn option in showReportDialog call');
     return;
   }
 

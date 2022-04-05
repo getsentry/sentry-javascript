@@ -12,7 +12,6 @@ import {
 } from '@sentry/types';
 import {
   eventStatusFromHttpCode,
-  isDebugBuild,
   logger,
   makePromiseBuffer,
   parseRetryAfterHeader,
@@ -24,6 +23,7 @@ import * as http from 'http';
 import * as https from 'https';
 import { URL } from 'url';
 
+import { IS_DEBUG_BUILD } from '../../flags';
 import { SDK_NAME } from '../../version';
 import { HTTPModule } from './http-module';
 
@@ -237,7 +237,7 @@ export abstract class BaseTransport implements Transport {
 
             const limited = this._handleRateLimit(headers);
             if (limited)
-              isDebugBuild() &&
+              IS_DEBUG_BUILD &&
                 logger.warn(
                   `Too many ${sentryRequest.type} requests, backing off until: ${this._disabledUntil(
                     sentryRequest.type,

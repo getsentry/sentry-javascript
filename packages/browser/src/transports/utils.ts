@@ -1,4 +1,6 @@
-import { forget, getGlobalObject, isDebugBuild, isNativeFetch, logger, supportsFetch } from '@sentry/utils';
+import { forget, getGlobalObject, isNativeFetch, logger, supportsFetch } from '@sentry/utils';
+
+import { IS_DEBUG_BUILD } from '../flags';
 
 const global = getGlobalObject<Window>();
 let cachedFetchImpl: FetchImpl;
@@ -69,7 +71,7 @@ export function getNativeFetchImplementation(): FetchImpl {
       }
       document.head.removeChild(sandbox);
     } catch (e) {
-      isDebugBuild() &&
+      IS_DEBUG_BUILD &&
         logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', e);
     }
   }
