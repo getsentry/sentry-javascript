@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /*
   This script prepares the central `build` directory for NPM package creation.
   It first copies all non-code files into the `build` directory, including `package.json`, which
@@ -47,12 +48,12 @@ ASSETS.forEach(asset => {
 const tmpCopyBundles = !process.argv.includes('-skipBundleCopy');
 if (tmpCopyBundles) {
   const npmTmpBundlesPath = path.resolve(NPM_BUILD_DIR, 'build');
-  const cdnBundlesPaht = path.resolve('build', 'bundles');
+  const cdnBundlesPath = path.resolve('build', 'bundles');
   try {
     if (!fs.existsSync(npmTmpBundlesPath)) {
       fs.mkdirSync(npmTmpBundlesPath);
     }
-    fse.copy(cdnBundlesPaht, npmTmpBundlesPath);
+    void fse.copy(cdnBundlesPath, npmTmpBundlesPath);
   } catch (error) {
     console.error(`Error while tmp copying CDN bundles to ${NPM_BUILD_DIR}`);
     process.exit(1);
@@ -60,6 +61,7 @@ if (tmpCopyBundles) {
 }
 // package.json modifications
 const packageJsonPath = path.resolve(NPM_BUILD_DIR, 'package.json');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkgJson: { [key: string]: unknown } = require(packageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
@@ -75,7 +77,7 @@ delete pkgJson.jest;
 try {
   fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
 } catch (error) {
-  console.error(`Error while writing package.json to disk`);
+  console.error('Error while writing package.json to disk');
   process.exit(1);
 }
 
