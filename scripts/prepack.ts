@@ -14,7 +14,7 @@ const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
 
 const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
-const ENTRY_POINTS = ['main', 'module', 'types'];
+const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
 
 const packageWithBundles = !process.argv.includes('-noBundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
