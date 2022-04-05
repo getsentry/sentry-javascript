@@ -1,4 +1,4 @@
-const Sentry = require('../../../../dist');
+const Sentry = require('../../../../build/dist');
 const {
   assertSessions,
   constructStrippedSessionObject,
