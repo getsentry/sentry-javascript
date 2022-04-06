@@ -6,7 +6,6 @@
   the directory structure inside `build`.
 */
 
-import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as fse from 'fs-extra';
 import * as path from 'path';
@@ -89,19 +88,20 @@ try {
   process.exit(1);
 }
 
+async function runPackagePrepack(packagePrepackPath: string): Promise<void> {
+  const { prepack } = await import(packagePrepackPath);
+  if (prepack && typeof prepack === 'function') {
+    prepack(buildDir);
+  }
+}
+
 // execute package specific settings
 // 1. check if a package called `<package-root>/scripts/prepack.ts` exitsts
 // if yes, 2.) execute that script for things that are package-specific
 const packagePrepackPath = path.resolve('scripts', 'prepack.ts');
 try {
   if (fs.existsSync(packagePrepackPath)) {
-    const proc = childProcess.fork(packagePrepackPath);
-    proc.on('exit', code => {
-      if (code !== 0) {
-        console.error(`Error while executing ${packagePrepackPath.toString()}`);
-        process.exit(1);
-      }
-    });
+    void runPackagePrepack(packagePrepackPath);
   }
 } catch (error) {
   console.error(`Error while trying to access ${packagePrepackPath.toString()}`);
