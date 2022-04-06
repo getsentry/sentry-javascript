@@ -1,4 +1,4 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryServer } from 'mongodb-memory-server-global';
 
 import { assertSentryTransaction, conditionalTest, getEnvelopeRequest, runServer } from '../../../../utils';
 
