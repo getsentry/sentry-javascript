@@ -98,14 +98,15 @@ async function runPackagePrepack(packagePrepackPath: string): Promise<void> {
 // execute package specific settings
 // 1. check if a package called `<package-root>/scripts/prepack.ts` exitsts
 // if yes, 2.) execute that script for things that are package-specific
-const packagePrepackPath = path.resolve('scripts', 'prepack.ts');
-try {
-  if (fs.existsSync(packagePrepackPath)) {
-    void runPackagePrepack(packagePrepackPath);
+void (async () => {
+  const packagePrepackPath = path.resolve('scripts', 'prepack.ts');
+  try {
+    if (fs.existsSync(packagePrepackPath)) {
+      await runPackagePrepack(packagePrepackPath);
+    }
+  } catch (error) {
+    console.error(`Error while trying to access ${packagePrepackPath.toString()}`);
+    process.exit(1);
   }
-} catch (error) {
-  console.error(`Error while trying to access ${packagePrepackPath.toString()}`);
-  process.exit(1);
-}
-
-console.log(`\nSuccessfully finished prepack commands for ${pkgJson.name}\n`);
+  console.log(`\nSuccessfully finished prepack commands for ${pkgJson.name}\n`);
+})();
