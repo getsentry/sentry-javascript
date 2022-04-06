@@ -38,7 +38,7 @@ Sentry.init({
   integrations: [
     new SentryReplay({
       stickySession: true, // Default is false
-      rrwebOptions: {
+      rrwebConfig: {
         maskAllInputs: false, // Default is true
       },
     }),
