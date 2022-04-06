@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { WrappedFunction } from '@sentry/types';
 
 import { IS_DEBUG_BUILD } from './flags';
-import { getGlobalObject } from './global';
+import { getGlobalObject, getGlobalSingleton } from './global';
 
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject<Window | NodeJS.Global>();
@@ -10,109 +9,91 @@ const global = getGlobalObject<Window | NodeJS.Global>();
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
 
-export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
+export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert'] as const;
+
+type LoggerMethod = (...args: unknown[]) => void;
+type LoggerConsoleMethods = Record<typeof CONSOLE_LEVELS[number], LoggerMethod>;
 
 /** JSDoc */
-interface ExtensibleConsole extends Console {
-  [key: string]: any;
+interface Logger extends LoggerConsoleMethods {
+  disable(): void;
+  enable(): void;
 }
 
 /**
- * Temporarily unwrap `console.log` and friends in order to perform the given callback using the original methods.
- * Restores wrapping after the callback completes.
+ * Temporarily disable sentry console instrumentations.
  *
  * @param callback The function to run against the original `console` messages
  * @returns The results of the callback
  */
-export function consoleSandbox(callback: () => any): any {
+export function consoleSandbox<T>(callback: () => T): T {
   const global = getGlobalObject<Window>();
 
   if (!('console' in global)) {
     return callback();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const originalConsole = (global as any).console as ExtensibleConsole;
-  const wrappedLevels: { [key: string]: any } = {};
+  const originalConsole = global.console as Console & Record<string, unknown>;
+  const wrappedLevels: Partial<LoggerConsoleMethods> = {};
 
   // Restore all wrapped console methods
   CONSOLE_LEVELS.forEach(level => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (level in (global as any).console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
-      wrappedLevels[level] = originalConsole[level] as WrappedFunction;
-      originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
+    // TODO(v7): Remove this check as it's only needed for Node 6
+    const originalWrappedFunc =
+      originalConsole[level] && (originalConsole[level] as WrappedFunction).__sentry_original__;
+    if (level in global.console && originalWrappedFunc) {
+      wrappedLevels[level] = originalConsole[level] as LoggerConsoleMethods[typeof level];
+      originalConsole[level] = originalWrappedFunc as Console[typeof level];
     }
   });
 
-  // Perform callback manipulations
-  const result = callback();
-
-  // Revert restoration to wrapped state
-  Object.keys(wrappedLevels).forEach(level => {
-    originalConsole[level] = wrappedLevels[level];
-  });
-
-  return result;
-}
-
-/** JSDoc */
-class Logger {
-  /** JSDoc */
-  private _enabled: boolean;
-
-  /** JSDoc */
-  public constructor() {
-    this._enabled = false;
-  }
-
-  /** JSDoc */
-  public disable(): void {
-    this._enabled = false;
-  }
-
-  /** JSDoc */
-  public enable(): void {
-    this._enabled = true;
-  }
-
-  /** JSDoc */
-  public log(...args: any[]): void {
-    if (!this._enabled) {
-      return;
-    }
-    consoleSandbox(() => {
-      global.console.log(`${PREFIX}[Log]:`, ...args);
-    });
-  }
-
-  /** JSDoc */
-  public warn(...args: any[]): void {
-    if (!this._enabled) {
-      return;
-    }
-    consoleSandbox(() => {
-      global.console.warn(`${PREFIX}[Warn]:`, ...args);
-    });
-  }
-
-  /** JSDoc */
-  public error(...args: any[]): void {
-    if (!this._enabled) {
-      return;
-    }
-    consoleSandbox(() => {
-      global.console.error(`${PREFIX}[Error]:`, ...args);
+  try {
+    return callback();
+  } finally {
+    // Revert restoration to wrapped state
+    Object.keys(wrappedLevels).forEach(level => {
+      originalConsole[level] = wrappedLevels[level as typeof CONSOLE_LEVELS[number]];
     });
   }
 }
 
-const sentryGlobal = global.__SENTRY__ || {};
-const logger = (sentryGlobal.logger as Logger) || new Logger();
+function makeLogger(): Logger {
+  let enabled = false;
+  const logger: Partial<Logger> = {
+    enable: () => {
+      enabled = true;
+    },
+    disable: () => {
+      enabled = false;
+    },
+  };
 
+  if (IS_DEBUG_BUILD) {
+    CONSOLE_LEVELS.forEach(name => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      logger[name] = (...args: any[]) => {
+        if (enabled) {
+          consoleSandbox(() => {
+            global.console[name](`${PREFIX}[${name}]:`, ...args);
+          });
+        }
+      };
+    });
+  } else {
+    CONSOLE_LEVELS.forEach(name => {
+      logger[name] = () => undefined;
+    });
+  }
+
+  return logger as Logger;
+}
+
+// Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
+let logger: Logger;
 if (IS_DEBUG_BUILD) {
-  // Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
-  sentryGlobal.logger = logger;
-  global.__SENTRY__ = sentryGlobal;
+  logger = getGlobalSingleton('logger', makeLogger);
+} else {
+  logger = makeLogger();
 }
 
 export { logger };

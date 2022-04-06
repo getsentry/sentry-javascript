@@ -18,12 +18,12 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly _levels: string[] = CONSOLE_LEVELS;
+  private readonly _levels: typeof CONSOLE_LEVELS = CONSOLE_LEVELS;
 
   /**
    * @inheritDoc
    */
-  public constructor(options: { levels?: string[] } = {}) {
+  public constructor(options: { levels?: typeof CONSOLE_LEVELS } = {}) {
     if (options.levels) {
       this._levels = options.levels;
     }
