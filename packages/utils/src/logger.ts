@@ -38,7 +38,9 @@ export function consoleSandbox<T>(callback: () => T): T {
 
   // Restore all wrapped console methods
   CONSOLE_LEVELS.forEach(level => {
-    const originalWrappedFunc = (originalConsole[level] as WrappedFunction).__sentry_original__;
+    // TODO(v7): Remove this check as it's only needed for Node 6
+    const originalWrappedFunc =
+      originalConsole[level] && (originalConsole[level] as WrappedFunction).__sentry_original__;
     if (level in global.console && originalWrappedFunc) {
       wrappedLevels[level] = originalConsole[level] as LoggerConsoleMethods[typeof level];
       originalConsole[level] = originalWrappedFunc as Console[typeof level];
