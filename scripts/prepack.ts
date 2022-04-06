@@ -91,10 +91,16 @@ try {
 async function runPackagePrepack(packagePrepackPath: string): Promise<void> {
   const { prepack } = await import(packagePrepackPath);
   if (prepack && typeof prepack === 'function') {
-    const success = prepack(buildDir);
-    if (!success) {
+    const isScuccess = prepack(buildDir);
+    if (!isScuccess) {
       process.exit(1);
     }
+  } else {
+    console.error(`Could not find a prepack function in ${packagePrepackPath}.`);
+    console.error(
+      'Make sure, your package-specific prepack script exports `function prepack(buildDir: string): boolean`.',
+    );
+    process.exit(1);
   }
 }
 
