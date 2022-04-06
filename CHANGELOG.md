@@ -4,10 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.19.5
+
+- ref(build): Add debug constants in each package individually (#4842)
+- ref(build): Introduce central build directory to packages with bundles (#4838) (#4854) (#4868)
+- feat(utils): Introduce getGlobalSingleton helper (#4860)
+
 ## 6.19.4
 
-- feat(react): Add React 18 as peer dep ([#4819](https://github.com/getsentry/sentry-javascript/pull/4819)))
-- ref(build): Add `build/types` to tarballs and adjust `types` entry points ([#4824](https://github.com/getsentry/sentry-javascript/pull/4824)))
+- feat(react): Add React 18 as peer dep (#4819)
+- ref(build): Add `build/types` to tarballs and adjust `types` entry points (#4824)
 
 Work in this release contributed by @MikevPeeren. Thank you for your contribution!
 
