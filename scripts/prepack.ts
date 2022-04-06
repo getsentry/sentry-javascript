@@ -91,8 +91,8 @@ try {
 async function runPackagePrepack(packagePrepackPath: string): Promise<void> {
   const { prepack } = await import(packagePrepackPath);
   if (prepack && typeof prepack === 'function') {
-    const isScuccess = prepack(buildDir);
-    if (!isScuccess) {
+    const isSuccess = prepack(buildDir);
+    if (!isSuccess) {
       process.exit(1);
     }
   } else {
