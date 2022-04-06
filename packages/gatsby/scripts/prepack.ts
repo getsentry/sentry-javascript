@@ -8,19 +8,20 @@ import * as path from 'path';
 
 const PACKAGE_ASSETS = ['gatsby-browser.js', 'gatsby-node.js'];
 
-export function prepack(buildDir: string): void {
+export function prepack(buildDir: string): boolean {
   // copy package-specific assets to build dir
-  PACKAGE_ASSETS.forEach(asset => {
+  return PACKAGE_ASSETS.every(asset => {
     const assetPath = path.resolve(asset);
     try {
       if (!fs.existsSync(assetPath)) {
         console.error(`Asset ${asset} does not exist.`);
-        process.exit(1);
+        return false;
       }
       fs.copyFileSync(assetPath, path.resolve(buildDir, asset));
     } catch (error) {
       console.error(`Error while copying ${asset} to ${buildDir}`);
-      process.exit(1);
+      return false;
     }
+    return true;
   });
 }
