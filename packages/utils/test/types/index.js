@@ -3,7 +3,7 @@ const path = require('path');
 
 const testStrings = ['/// <reference types="node" />'];
 
-const paths = [path.join('./dist'), path.join('./esm')];
+const paths = [path.join('./build/dist'), path.join('./build/esm')];
 
 paths.forEach(dir => {
   if (!fs.existsSync(dir)) {
