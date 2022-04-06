@@ -80,8 +80,8 @@
     }
   },
   "sideEffects": [
-    "./build/npm/dist/index.js",
-    "./build/npm/esm/index.js",
+    "./npm/dist/index.js",
+    "./npm/esm/index.js",
     "./src/index.ts"
   ]
 }
