@@ -26,5 +26,10 @@
     "nock": "^13.1.0",
     "pg": "^8.7.3",
     "portfinder": "^1.0.28"
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "downloadDir": "./node_modules/mongodb-memory-server"
+    }
   }
 }
