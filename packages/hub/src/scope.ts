@@ -18,7 +18,7 @@ import {
   Transaction,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, getGlobalObject, isPlainObject, isThenable, SyncPromise } from '@sentry/utils';
+import { dateTimestampInSeconds, getGlobalSingleton, isPlainObject, isThenable, SyncPromise } from '@sentry/utils';
 
 import { Session } from './session';
 
@@ -522,12 +522,7 @@ export class Scope implements ScopeInterface {
  * Returns the global event processors.
  */
 function getGlobalEventProcessors(): EventProcessor[] {
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access  */
-  const global = getGlobalObject<any>();
-  global.__SENTRY__ = global.__SENTRY__ || {};
-  global.__SENTRY__.globalEventProcessors = global.__SENTRY__.globalEventProcessors || [];
-  return global.__SENTRY__.globalEventProcessors;
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
+  return getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []);
 }
 
 /**
