@@ -11,6 +11,6 @@ export default async (): Promise<Config.InitialOptions> => {
       prefix: '<rootDir>/',
     }),
     testEnvironment: 'jsdom',
-    testMatch: ['<rootDir>/tests/**/*(*.)@(spec|test).ts'],
+    testMatch: ['<rootDir>/**/*(*.)@(spec|test).ts'],
   };
 };

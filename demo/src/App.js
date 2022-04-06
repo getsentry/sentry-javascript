@@ -2,17 +2,19 @@ import React from 'react';
 import './App.css';
 
 function App() {
-  const [state, setState] = React.useState(0);
+  const [state, setState] = React.useState(99);
   React.useEffect(() => {
-    const id = window.setInterval(async () => {
-      try {
-      await fetch('/');
-      setState(state + 1);
-      } catch {}
-    }, 5000 + Math.random()*10000);
+    async function test() {
 
-    return () => clearInterval(id);
-  }, [state])
+      try {
+      await fetch('/testing');
+      } catch {}
+    }
+
+    test();
+
+    return () => {};
+  }, [])
 
   return (
     <div className='App'>

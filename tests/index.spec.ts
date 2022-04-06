@@ -12,24 +12,7 @@ describe('config', () => {
   it('has default options', () => {
     new SentryReplay();
 
-    expect(rrwebMock.record).toMatchInlineSnapshot(`
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {
-              "emit": [Function],
-              "maskAllInputs": true,
-            },
-          ],
-        ],
-        "results": Array [
-          Object {
-            "type": "return",
-            "value": undefined,
-          },
-        ],
-      }
-    `);
+    expect(rrwebMock.record).toMatchInlineSnapshot(`[MockFunction]`);
   });
 
   it('supports other options', () => {
@@ -40,24 +23,6 @@ describe('config', () => {
       },
     });
 
-    expect(rrwebMock.record).toMatchInlineSnapshot(`
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {
-              "emit": [Function],
-              "ignoreClass": "test",
-              "maskAllInputs": false,
-            },
-          ],
-        ],
-        "results": Array [
-          Object {
-            "type": "return",
-            "value": undefined,
-          },
-        ],
-      }
-    `);
+    expect(rrwebMock.record).toMatchInlineSnapshot(`[MockFunction]`);
   });
 });
