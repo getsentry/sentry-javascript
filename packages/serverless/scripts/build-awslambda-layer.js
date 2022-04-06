@@ -69,7 +69,7 @@ async function collectPackages(cwd, packages = {}) {
 
 async function main() {
   const workDir = path.resolve(__dirname, '..'); // packages/serverless directory
-  const distRequirements = path.resolve(workDir, 'dist');
+  const distRequirements = path.resolve(workDir, 'build', 'dist');
   if (!fs.existsSync(distRequirements)) {
     console.log(`The path ${distRequirements} must exist.`);
     return;

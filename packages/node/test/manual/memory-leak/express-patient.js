@@ -1,4 +1,4 @@
-const Sentry = require('../../../dist');
+const Sentry = require('../../../build/dist');
 
 Sentry.init({ dsn: 'https://public@app.getsentry.com/12345' });
 

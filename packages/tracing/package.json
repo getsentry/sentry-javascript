@@ -43,7 +43,7 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build/npm",
+    "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "clean": "rimraf dist esm build coverage",
     "circularDepCheck": "madge --circular src/index.ts",
     "fix": "run-s fix:eslint fix:prettier",

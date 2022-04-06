@@ -1,4 +1,4 @@
-const Sentry = require('../../../../dist');
+const Sentry = require('../../../../build/dist');
 const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('../test-utils');
 
 class DummyTransport extends BaseDummyTransport {

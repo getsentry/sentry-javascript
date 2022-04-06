@@ -3,10 +3,9 @@
 
 *
 
+# TODO remove bundles (which in the tarball are inside `build`) in v7
+!/build/**/*
+
 !/dist/**/*
 !/esm/**/*
 !/types/**/*
-
-# Gatsby specific
-!gatsby-browser.js
-!gatsby-node.js

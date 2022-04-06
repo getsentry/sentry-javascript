@@ -1,7 +1,7 @@
 const http = require('http');
 const express = require('express');
 const app = express();
-const Sentry = require('../../../dist');
+const Sentry = require('../../../build/dist');
 
 function assertTags(actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {

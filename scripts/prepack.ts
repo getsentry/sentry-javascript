@@ -12,11 +12,12 @@ import * as path from 'path';
 
 const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
+const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignore';
 
-const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
-const ENTRY_POINTS = ['main', 'module', 'types'];
+const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE];
+const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
 
-const packageWithBundles = !process.argv.includes('-noBundles');
+const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
 // check if build dir exists
@@ -39,7 +40,9 @@ ASSETS.forEach(asset => {
       console.error(`Asset ${asset} does not exist.`);
       process.exit(1);
     }
-    fs.copyFileSync(assetPath, path.resolve(buildDir, asset));
+    const destinationPath = path.resolve(buildDir, path.basename(asset));
+    console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
+    fs.copyFileSync(assetPath, destinationPath);
   } catch (error) {
     console.error(`Error while copying ${asset} to ${buildDir}`);
     process.exit(1);
@@ -50,7 +53,7 @@ ASSETS.forEach(asset => {
 // copy CDN bundles into npm dir to temporarily keep bundles in npm tarball
 // inside the tarball, they are located in `build/`
 // for now, copy it by default, unless explicitly forbidden via an command line arg
-const tmpCopyBundles = packageWithBundles && !process.argv.includes('-skipBundleCopy');
+const tmpCopyBundles = packageWithBundles && !process.argv.includes('--skipBundleCopy');
 if (tmpCopyBundles) {
   const npmTmpBundlesPath = path.resolve(buildDir, 'build');
   const cdnBundlesPath = path.resolve('build', 'bundles');
