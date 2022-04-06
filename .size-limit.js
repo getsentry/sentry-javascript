@@ -39,14 +39,14 @@ module.exports = [
   },
   {
     name: '@sentry/react - Webpack (gzipped + minified)',
-    path: 'packages/react/esm/index.js',
+    path: 'packages/react/build/esm/index.js',
     import: '{ init }',
     gzip: true,
     limit: '100 KB',
   },
   {
     name: '@sentry/nextjs Client - Webpack (gzipped + minified)',
-    path: 'packages/nextjs/esm/index.client.js',
+    path: 'packages/nextjs/build/esm/index.client.js',
     import: '{ init }',
     gzip: true,
     limit: '100 KB',
