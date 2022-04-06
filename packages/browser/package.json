@@ -44,7 +44,7 @@
     "webpack": "^4.30.0"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:bundle build:types",
+    "build": "run-p build:cjs build:esm build:bundle build:types build:legacy",
     "build:bundle": "rollup --config",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
@@ -58,7 +58,11 @@
     "build:dev:watch": "run-p build:cjs:watch build:esm:watch build:types:watch",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build/npm",
+    "build:legacy": "run-p build:types:legacy build:cjs:legacy build:esm:legacy",
+    "build:types:legacy": "tsc -p tsconfig.types.json --outDir build/npm-legacy/types",
+    "build:cjs:legacy": "tsc -p tsconfig.cjs.json --outDir build/npm-legacy/dist",
+    "build:esm:legacy": "tsc -p tsconfig.esm.json --outDir build/npm-legacy/esm",
+    "build:npm": "ts-node ../../scripts/prepack.ts -legacyPackage && npm pack ./build/npm && npm pack ./build/npm-legacy",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache",
     "fix": "run-s fix:eslint fix:prettier",
