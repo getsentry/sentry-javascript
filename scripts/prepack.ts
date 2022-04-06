@@ -17,7 +17,7 @@ const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignor
 const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE];
 const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
 
-const packageWithBundles = !process.argv.includes('-noBundles');
+const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
 // check if build dir exists
@@ -53,7 +53,7 @@ ASSETS.forEach(asset => {
 // copy CDN bundles into npm dir to temporarily keep bundles in npm tarball
 // inside the tarball, they are located in `build/`
 // for now, copy it by default, unless explicitly forbidden via an command line arg
-const tmpCopyBundles = packageWithBundles && !process.argv.includes('-skipBundleCopy');
+const tmpCopyBundles = packageWithBundles && !process.argv.includes('--skipBundleCopy');
 if (tmpCopyBundles) {
   const npmTmpBundlesPath = path.resolve(buildDir, 'build');
   const cdnBundlesPath = path.resolve('build', 'bundles');

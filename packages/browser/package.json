@@ -58,7 +58,7 @@
     "build:dev:watch": "run-p build:cjs:watch build:esm:watch build:types:watch",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build/npm",
+    "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache",
     "fix": "run-s fix:eslint fix:prettier",

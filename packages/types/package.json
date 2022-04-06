@@ -28,7 +28,7 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "ts-node ../../scripts/prepack.ts -noBundles && npm pack ./build",
+    "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "clean": "rimraf dist esm build",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
