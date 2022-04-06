@@ -12,8 +12,9 @@ import * as path from 'path';
 
 const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
+const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignore';
 
-const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
+const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE];
 const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
 
 const packageWithBundles = !process.argv.includes('-noBundles');
@@ -39,7 +40,9 @@ ASSETS.forEach(asset => {
       console.error(`Asset ${asset} does not exist.`);
       process.exit(1);
     }
-    fs.copyFileSync(assetPath, path.resolve(buildDir, asset));
+    const destinationPath = path.resolve(buildDir, path.basename(asset));
+    console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
+    fs.copyFileSync(assetPath, destinationPath);
   } catch (error) {
     console.error(`Error while copying ${asset} to ${buildDir}`);
     process.exit(1);
