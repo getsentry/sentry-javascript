@@ -36,10 +36,6 @@ describe('onClientEntry', () => {
     tracingAddExtensionMethods = jest.fn();
   });
 
-  afterEach(() => {
-    (window as any).Sentry = undefined;
-  });
-
   it.each([
     [{}, ['dsn', 'release']],
     [{ key: 'value' }, ['dsn', 'release', 'key']],
@@ -54,7 +50,6 @@ describe('onClientEntry', () => {
 
   describe('inits Sentry once', () => {
     afterEach(() => {
-      delete (window as any).Sentry;
       delete (window as any).__SENTRY__;
       (global.console.warn as jest.Mock).mockClear();
       (global.console.error as jest.Mock).mockClear();
@@ -78,7 +73,6 @@ describe('onClientEntry', () => {
       // eslint-disable-next-line no-console
       expect(console.error).not.toHaveBeenCalled();
       expect(sentryInit).not.toHaveBeenCalled();
-      expect((window as any).Sentry).toBeDefined();
     });
 
     it('initialized in injected config, with pluginParams', () => {
@@ -94,7 +88,6 @@ describe('onClientEntry', () => {
       // eslint-disable-next-line no-console
       expect(console.error).not.toHaveBeenCalled();
       expect(sentryInit).not.toHaveBeenCalled();
-      expect((window as any).Sentry).toBeDefined();
     });
 
     it('not initialized in injected config, without pluginParams', () => {
@@ -108,7 +101,6 @@ describe('onClientEntry', () => {
         Learn how to configure it on https://docs.sentry.io/platforms/javascript/guides/gatsby/",
         ]
       `);
-      expect((window as any).Sentry).not.toBeDefined();
     });
 
     it('not initialized in injected config, with pluginParams', () => {
@@ -125,7 +117,6 @@ describe('onClientEntry', () => {
                 "release": "release",
               }
             `);
-      expect((window as any).Sentry).toBeDefined();
     });
   });
 
@@ -164,7 +155,6 @@ describe('onClientEntry', () => {
   it('does not run if plugin params are undefined', () => {
     onClientEntry();
     expect(sentryInit).toHaveBeenCalledTimes(0);
-    expect((window as any).Sentry).toBeUndefined();
     expect(tracingAddExtensionMethods).toHaveBeenCalledTimes(0);
   });
 });
