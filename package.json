@@ -89,7 +89,7 @@
     "ts-node": "^8.10.2",
     "tslib": "^2.3.1",
     "typedoc": "^0.18.0",
-    "typescript": "3.7.5"
+    "typescript": "3.8.3"
   },
   "resolutions": {
     "**/agent-base": "5",
