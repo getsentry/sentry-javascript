@@ -110,8 +110,16 @@ function getModifiedPkgJson(newName: string, removeDependencies?: boolean): Reco
   delete newPkgJson.volta;
   delete newPkgJson.jest;
 
-  if (removeDependencies) {
-    newPkgJson.dependencies = {};
+  if (removeDependencies && typeof pkgJson.dependencies === 'object' && pkgJson.dependencies !== null) {
+    const newDependencies: Record<string, string> = {};
+
+    for (const dependency in pkgJson.dependencies) {
+      if (!dependency.startsWith('@sentry')) {
+        newDependencies[dependency] = (pkgJson.dependencies as Record<string, string>)[dependency];
+      }
+    }
+
+    newPkgJson.dependencies = newDependencies;
   }
 
   // modify entry points to point to correct paths (i.e. strip out the build directory)
