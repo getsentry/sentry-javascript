@@ -5,8 +5,6 @@ export type DsnProtocol = 'http' | 'https';
 export interface DsnComponents {
   /** Protocol used to connect to Sentry. */
   protocol: DsnProtocol;
-  /** Public authorization key (deprecated, renamed to publicKey). */
-  user?: string;
   /** Public authorization key. */
   publicKey?: string;
   /** Private authorization key (deprecated, optional). */
