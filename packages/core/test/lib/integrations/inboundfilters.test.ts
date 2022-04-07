@@ -1,4 +1,4 @@
-import { EventProcessor, Event } from '@sentry/types';
+import { Event, EventProcessor } from '@sentry/types';
 
 import { InboundFilters, InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 
