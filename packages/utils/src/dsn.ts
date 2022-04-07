@@ -55,13 +55,7 @@ function dsnFromString(str: string): DsnComponents {
 }
 
 function dsnFromComponents(components: DsnComponents): DsnComponents {
-  // TODO this is for backwards compatibility, and can be removed in a future version
-  if ('user' in components && !('publicKey' in components)) {
-    components.publicKey = components.user;
-  }
-
   return {
-    user: components.publicKey || '',
     protocol: components.protocol,
     publicKey: components.publicKey || '',
     pass: components.pass || '',
