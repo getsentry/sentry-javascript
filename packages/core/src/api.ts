@@ -17,73 +17,6 @@ export interface APIDetails {
   readonly tunnel?: string;
 }
 
-/**
- * Helper class to provide urls, headers and metadata that can be used to form
- * different types of requests to Sentry endpoints.
- * Supports both envelopes and regular event requests.
- *
- * @deprecated Please use APIDetails
- **/
-export class API {
-  /** The DSN as passed to Sentry.init() */
-  public dsn: DsnLike;
-
-  /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
-  public metadata: SdkMetadata;
-
-  /** The internally used Dsn object. */
-  private readonly _dsnObject: DsnComponents;
-
-  /** The envelope tunnel to use. */
-  private readonly _tunnel?: string;
-
-  /** Create a new instance of API */
-  public constructor(dsn: DsnLike, metadata: SdkMetadata = {}, tunnel?: string) {
-    this.dsn = dsn;
-    this._dsnObject = makeDsn(dsn);
-    this.metadata = metadata;
-    this._tunnel = tunnel;
-  }
-
-  /** Returns the Dsn object. */
-  public getDsn(): DsnComponents {
-    return this._dsnObject;
-  }
-
-  /** Does this transport force envelopes? */
-  public forceEnvelope(): boolean {
-    return !!this._tunnel;
-  }
-
-  /** Returns the prefix to construct Sentry ingestion API endpoints. */
-  public getBaseApiEndpoint(): string {
-    return getBaseApiEndpoint(this._dsnObject);
-  }
-
-  /** Returns the store endpoint URL. */
-  public getStoreEndpoint(): string {
-    return getStoreEndpoint(this._dsnObject);
-  }
-
-  /**
-   * Returns the store endpoint URL with auth in the query string.
-   *
-   * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
-   */
-  public getStoreEndpointWithUrlEncodedAuth(): string {
-    return getStoreEndpointWithUrlEncodedAuth(this._dsnObject);
-  }
-
-  /**
-   * Returns the envelope endpoint URL with auth in the query string.
-   *
-   * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
-   */
-  public getEnvelopeEndpointWithUrlEncodedAuth(): string {
-    return getEnvelopeEndpointWithUrlEncodedAuth(this._dsnObject, this._tunnel);
-  }
-}
-
 /** Initializes API Details */
 export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: string): APIDetails {
   return {
@@ -117,7 +50,7 @@ function _encodedAuth(dsn: DsnComponents): string {
 }
 
 /** Returns the store endpoint URL. */
-function getStoreEndpoint(dsn: DsnComponents): string {
+export function getStoreEndpoint(dsn: DsnComponents): string {
   return _getIngestEndpoint(dsn, 'store');
 }
 
