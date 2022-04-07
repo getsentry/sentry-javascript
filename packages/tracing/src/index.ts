@@ -26,8 +26,7 @@ export { Span, SpanStatusType, spanStatusfromHttpCode } from './span';
 export { SpanStatus } from './spanstatus';
 export { Transaction } from './transaction';
 export {
-  // TODO deprecate old name in v7
-  instrumentOutgoingRequests as registerRequestInstrumentation,
+  instrumentOutgoingRequests,
   RequestInstrumentationOptions,
   defaultRequestInstrumentationOptions,
 } from './browser';
