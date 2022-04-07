@@ -29,7 +29,7 @@
     "jsdom": "^16.2.2"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:types build:bundle && ts-node ../../scripts/prepack.ts #necessary for integration tests",
+    "build": "run-p build:cjs build:esm build:types build:bundle build:legacy && ts-node ../../scripts/prepack.ts #necessary for integration tests",
     "build:bundle": "rollup --config",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
@@ -43,7 +43,11 @@
     "build:es5:watch": "yarn build:cjs:watch # *** backwards compatibility - remove in v7 ***",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:legacy": "run-p build:types:legacy build:cjs:legacy build:esm:legacy",
+    "build:types:legacy": "tsc -p tsconfig.types.json --outDir build/npm-legacy/types",
+    "build:cjs:legacy": "tsc -p tsconfig.cjs.json --outDir build/npm-legacy/dist",
+    "build:esm:legacy": "tsc -p tsconfig.esm.json --outDir build/npm-legacy/esm",
+    "build:npm": "ts-node ../../scripts/prepack.ts --bundles --legacyPackage && npm pack ./build/npm && npm pack ./build/npm-legacy",
     "clean": "rimraf dist esm build coverage",
     "circularDepCheck": "madge --circular src/index.ts",
     "fix": "run-s fix:eslint fix:prettier",

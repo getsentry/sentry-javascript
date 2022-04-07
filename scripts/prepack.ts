@@ -10,15 +10,23 @@ import * as fs from 'fs';
 import * as fse from 'fs-extra';
 import * as path from 'path';
 
-const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
-const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignore';
+const NPM_BUILD_DIR = 'build/npm';
+const NPM_LEGACY_BUILD_DIR = 'build/npm-legacy';
 
-const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE];
+const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignore';
+const ASSETS = ['README.md', 'LICENSE', NPM_IGNORE];
 const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
 
 const packageWithBundles = process.argv.includes('--bundles');
+const shouldPrepareLegacyPackage = process.argv.includes('--legacyPackage');
+
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
+
+if (shouldPrepareLegacyPackage && !packageWithBundles) {
+  console.error('Error: --legacyPackage flag can only be used in combination with --bundles!');
+  process.exit(1);
+}
 
 // check if build dir exists
 try {
@@ -32,22 +40,44 @@ try {
   process.exit(1);
 }
 
-// copy non-code assets to build dir
-ASSETS.forEach(asset => {
-  const assetPath = path.resolve(asset);
+if (shouldPrepareLegacyPackage) {
+  // check if legacy build dir exists
   try {
-    if (!fs.existsSync(assetPath)) {
-      console.error(`Asset ${asset} does not exist.`);
+    if (!fs.existsSync(path.resolve(NPM_LEGACY_BUILD_DIR))) {
+      console.error(`Directory ${NPM_LEGACY_BUILD_DIR} DOES NOT exist`);
+      console.error('Legacy files have not been built yet. Have you run "yarn:build"?');
       process.exit(1);
     }
-    const destinationPath = path.resolve(buildDir, path.basename(asset));
-    console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
-    fs.copyFileSync(assetPath, destinationPath);
   } catch (error) {
-    console.error(`Error while copying ${asset} to ${buildDir}`);
+    console.error(`Error while looking up directory ${NPM_LEGACY_BUILD_DIR}`);
     process.exit(1);
   }
-});
+}
+
+// copy non-code assets to build dir
+function copyAssets(target: string): void {
+  ASSETS.forEach(asset => {
+    const assetPath = path.resolve(asset);
+    try {
+      if (!fs.existsSync(assetPath)) {
+        console.error(`Asset ${asset} does not exist.`);
+        process.exit(1);
+      }
+
+      const assetFileName = path.basename(assetPath);
+      fs.copyFileSync(assetPath, path.resolve(target, assetFileName));
+    } catch (error) {
+      console.error(`Error while copying ${asset} to ${target}`, error);
+      process.exit(1);
+    }
+  });
+}
+
+copyAssets(buildDir);
+
+if (shouldPrepareLegacyPackage) {
+  copyAssets(NPM_LEGACY_BUILD_DIR);
+}
 
 // TODO remove in v7! Until then:
 // copy CDN bundles into npm dir to temporarily keep bundles in npm tarball
@@ -69,26 +99,52 @@ if (tmpCopyBundles) {
 }
 // end remove
 
-// package.json modifications
-const packageJsonPath = path.resolve(buildDir, 'package.json');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const pkgJson: { [key: string]: unknown } = require(packageJsonPath);
+const packageJsonPath = path.resolve('package.json');
+const pkgJson: { [key: string]: unknown } = JSON.parse(fs.readFileSync(packageJsonPath, { encoding: 'utf8' }));
 
-// modify entry points to point to correct paths (i.e. strip out the build directory)
-ENTRY_POINTS.filter(entryPoint => pkgJson[entryPoint]).forEach(entryPoint => {
-  pkgJson[entryPoint] = (pkgJson[entryPoint] as string).replace(`${buildDir}/`, '');
-});
+function getModifiedPkgJson(newName: string, removeDependencies?: boolean): Record<string, unknown> {
+  const newPkgJson = { ...pkgJson };
+  newPkgJson.name = newName;
 
-delete pkgJson.scripts;
-delete pkgJson.volta;
-delete pkgJson.jest;
+  delete newPkgJson.scripts;
+  delete newPkgJson.volta;
+  delete newPkgJson.jest;
 
-// write modified package.json to file (pretty-printed with 2 spaces)
+  if (removeDependencies) {
+    newPkgJson.dependencies = {};
+  }
+
+  // modify entry points to point to correct paths (i.e. strip out the build directory)
+  ENTRY_POINTS.forEach(entryPoint => {
+    const oldEntryPoint = pkgJson[entryPoint] as string | undefined;
+    if (oldEntryPoint) {
+      newPkgJson[entryPoint] = path.relative(buildDir, oldEntryPoint);
+    }
+  });
+
+  return newPkgJson;
+}
+
+// write modified package.json to new location
 try {
-  fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
+  const modifiedPkgJson = getModifiedPkgJson(pkgJson.name as string);
+  const modifiedPkgJsonPath = path.resolve(buildDir, 'package.json');
+  fs.writeFileSync(modifiedPkgJsonPath, JSON.stringify(modifiedPkgJson, null, 2));
 } catch (error) {
   console.error('Error while writing package.json to disk');
   process.exit(1);
+}
+
+// write modified package.json for legacy package to new location
+if (shouldPrepareLegacyPackage) {
+  try {
+    const modifiedPkgJson = getModifiedPkgJson(`${pkgJson.name}-legacy`, true);
+    const modifiedPkgJsonPath = path.resolve(NPM_LEGACY_BUILD_DIR, 'package.json');
+    fs.writeFileSync(modifiedPkgJsonPath, JSON.stringify(modifiedPkgJson, null, 2));
+  } catch (error) {
+    console.error('Error while writing legacy package.json to disk');
+    process.exit(1);
+  }
 }
 
 async function runPackagePrepack(packagePrepackPath: string): Promise<void> {
