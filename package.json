@@ -85,7 +85,7 @@
     "rollup-plugin-typescript2": "^0.31.2",
     "sinon": "^7.3.2",
     "size-limit": "^4.5.5",
-    "ts-jest": "^24.3.0",
+    "ts-jest": "^27.1.4",
     "ts-node": "^8.10.2",
     "tslib": "^2.3.1",
     "typedoc": "^0.18.0",
