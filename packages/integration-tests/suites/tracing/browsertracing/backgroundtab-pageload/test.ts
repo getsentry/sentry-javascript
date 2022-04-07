@@ -9,7 +9,7 @@ sentryTest('should finish pageload transaction when the page goes background', a
 
   await page.goto(url);
 
-  page.click('#go-background');
+  void page.click('#go-background');
 
   const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page);
 
