@@ -53,16 +53,6 @@ export class ContextLines implements Integration {
 
   /** Get's the number of context lines to add */
   private get _contextLines(): number {
-    // This is only here to copy frameContextLines from init options if it hasn't
-    // been set via this integrations constructor.
-    //
-    // TODO: Remove on next major!
-    if (this._options.frameContextLines === undefined) {
-      const initOptions = getCurrentHub().getClient<NodeClient>()?.getOptions();
-      // eslint-disable-next-line deprecation/deprecation
-      this._options.frameContextLines = initOptions?.frameContextLines;
-    }
-
     return this._options.frameContextLines !== undefined ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
   }
 
