@@ -23,12 +23,6 @@ export interface BrowserOptions extends Options {
    * By default, all errors will be sent.
    */
   denyUrls?: Array<string | RegExp>;
-
-  /** @deprecated use {@link Options.allowUrls} instead. */
-  whitelistUrls?: Array<string | RegExp>;
-
-  /** @deprecated use {@link Options.denyUrls} instead. */
-  blacklistUrls?: Array<string | RegExp>;
 }
 
 /**
