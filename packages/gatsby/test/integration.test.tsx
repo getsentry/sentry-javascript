@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import * as React from 'react';
 
 import { onClientEntry } from '../gatsby-browser';
+import * as Sentry from '../src';
 
 beforeAll(() => {
   (global as any).__SENTRY_RELEASE__ = '683f3a6ab819d47d23abfca9a914c81f0524d35b';
@@ -28,7 +29,7 @@ describe('useEffect', () => {
     function TestComponent() {
       useEffect(() => {
         const error = new Error('testing 123');
-        (window as any).Sentry.captureException(error);
+        Sentry.captureException(error);
       });
 
       return <div>Hello</div>;
