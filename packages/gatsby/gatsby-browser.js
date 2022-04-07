@@ -6,12 +6,11 @@ exports.onClientEntry = function (_, pluginParams) {
   const areOptionsDefined = areSentryOptionsDefined(pluginParams);
 
   if (isIntialized) {
-    window.Sentry = Sentry; // For backwards compatibility
     if (areOptionsDefined) {
       console.warn(
         'Sentry Logger [Warn]: The SDK was initialized in the Sentry config file, but options were found in the Gatsby config. ' +
-          'These have been ignored, merge them to the Sentry config if you want to use them.\n' +
-          'Learn more about the Gatsby SDK on https://docs.sentry.io/platforms/javascript/guides/gatsby/',
+        'These have been ignored, merge them to the Sentry config if you want to use them.\n' +
+        'Learn more about the Gatsby SDK on https://docs.sentry.io/platforms/javascript/guides/gatsby/',
       );
     }
     return;
@@ -20,7 +19,7 @@ exports.onClientEntry = function (_, pluginParams) {
   if (!areOptionsDefined) {
     console.error(
       'Sentry Logger [Error]: No config for the Gatsby SDK was found.\n' +
-        'Learn how to configure it on https://docs.sentry.io/platforms/javascript/guides/gatsby/',
+      'Learn how to configure it on https://docs.sentry.io/platforms/javascript/guides/gatsby/',
     );
     return;
   }
@@ -32,7 +31,6 @@ exports.onClientEntry = function (_, pluginParams) {
     dsn: __SENTRY_DSN__,
     ...pluginParams,
   });
-  window.Sentry = Sentry; // For backwards compatibility
 };
 
 function isSentryInitialized() {
