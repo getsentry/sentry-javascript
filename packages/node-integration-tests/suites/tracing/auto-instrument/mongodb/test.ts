@@ -8,7 +8,7 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     process.env.MONGO_URL = mongoServer.getUri();
-  }, 30000);
+  }, 40000);
 
   afterAll(async () => {
     await mongoServer.stop();
