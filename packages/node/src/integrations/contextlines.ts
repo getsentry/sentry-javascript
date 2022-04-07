@@ -1,10 +1,7 @@
-import { getCurrentHub } from '@sentry/core';
 import { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
-
-import { NodeClient } from '../client';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
