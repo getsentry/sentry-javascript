@@ -129,14 +129,6 @@ export interface Span extends SpanContext {
   setHttpStatus(httpStatus: number): this;
 
   /**
-   * Use {@link startChild}
-   * @deprecated
-   */
-  child(
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): Span;
-
-  /**
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
    * Also the `sampled` decision will be inherited.
    */
