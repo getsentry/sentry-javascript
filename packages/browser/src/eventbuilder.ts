@@ -71,10 +71,10 @@ export function eventFromPlainObject(
     },
   };
 
-  if (syntheticException) {
+  if (syntheticException && event.exception?.values?.[0]) {
     const frames = parseStackFrames(syntheticException);
     if (frames.length) {
-      event.stacktrace = { frames };
+      event.exception.values[0].stacktrace = { frames };
     }
   }
 
@@ -273,7 +273,9 @@ export function eventFromString(input: string, syntheticException?: Error, attac
   if (attachStacktrace && syntheticException) {
     const frames = parseStackFrames(syntheticException);
     if (frames.length) {
-      event.stacktrace = { frames };
+      event.exception = {
+        values: [{ stacktrace: { frames } }],
+      };
     }
   }
 

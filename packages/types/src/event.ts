@@ -9,7 +9,6 @@ import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
 import { Severity } from './severity';
 import { Span } from './span';
-import { Stacktrace } from './stacktrace';
 import { Measurements } from './transaction';
 import { User } from './user';
 
@@ -34,7 +33,6 @@ export interface Event {
   exception?: {
     values?: Exception[];
   };
-  stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: Contexts;
   tags?: { [key: string]: Primitive };
