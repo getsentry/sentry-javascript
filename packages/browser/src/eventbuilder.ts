@@ -274,7 +274,7 @@ export function eventFromString(input: string, syntheticException?: Error, attac
     const frames = parseStackFrames(syntheticException);
     if (frames.length) {
       event.exception = {
-        values: [{ stacktrace: { frames } }],
+        values: [{ value: input, stacktrace: { frames } }],
       };
     }
   }
