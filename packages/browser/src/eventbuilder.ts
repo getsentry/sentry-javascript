@@ -71,10 +71,11 @@ export function eventFromPlainObject(
     },
   };
 
-  if (syntheticException && event.exception?.values?.[0]) {
+  if (syntheticException) {
     const frames = parseStackFrames(syntheticException);
     if (frames.length) {
-      event.exception.values[0].stacktrace = { frames };
+      // event.exception.values[0] has been set above
+      (event.exception as { values: Exception[] }).values[0].stacktrace = { frames };
     }
   }
 
