@@ -44,9 +44,7 @@ describe('tracing', () => {
 
     http.get('http://dogs.are.great/');
 
-    // TODO: For some reason in node 6 two request spans are appearing. Once we stop testing against it, this can go
-    // back to being `toEqual()`.
-    expect(spans.length).toBeGreaterThanOrEqual(2);
+    expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spans[1].description).toEqual('GET http://dogs.are.great/');
