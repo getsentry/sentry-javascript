@@ -7,7 +7,6 @@ import { Primitive } from './misc';
 import { Scope } from './scope';
 import { Session, SessionContext } from './session';
 import { Severity } from './severity';
-import { Span, SpanContext } from './span';
 import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import { User } from './user';
 
@@ -179,11 +178,6 @@ export interface Hub {
 
   /** Returns all trace headers that are currently on the top scope. */
   traceHeaders(): { [key: string]: string };
-
-  /**
-   * @deprecated No longer does anything. Use use {@link Transaction.startChild} instead.
-   */
-  startSpan(context: SpanContext): Span;
 
   /**
    * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
