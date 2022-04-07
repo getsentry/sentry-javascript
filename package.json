@@ -70,6 +70,7 @@
     "deepmerge": "^4.2.2",
     "eslint": "7.32.0",
     "jest": "^27.5.1",
+    "jest-environment-node": "^27.5.1",
     "karma-browserstack-launcher": "^1.5.1",
     "karma-firefox-launcher": "^1.1.0",
     "lerna": "3.13.4",
@@ -92,8 +93,7 @@
     "typescript": "3.8.3"
   },
   "resolutions": {
-    "**/agent-base": "5",
-    "**/jest-environment-node": "24"
+    "**/agent-base": "5"
   },
   "version": "0.0.0",
   "dependencies": {}
