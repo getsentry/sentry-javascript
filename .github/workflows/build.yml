@@ -217,7 +217,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [6, 8, 10, 12, 14, 16]
+        node: [8, 10, 12, 14, 16]
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2

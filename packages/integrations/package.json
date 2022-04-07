@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
-    "node": ">=6"
+    "node": ">=8"
   },
   "publishConfig": {
     "access": "public"

@@ -11,21 +11,7 @@ function run(cmd: string, cwd: string = '') {
 
 const nodeMajorVersion = parseInt(process.version.split('.')[0].replace('v', ''), 10);
 
-// control which packages we test on each version of node
-if (nodeMajorVersion <= 6) {
-  // install legacy versions of packages whose current versions don't support node 6
-  // ignoring engines and scripts lets us get away with having incompatible things installed for packages we're not testing
-  run('yarn add --dev --ignore-engines --ignore-scripts nock@10.x', 'packages/node');
-  run('yarn add --dev --ignore-engines --ignore-scripts jsdom@11.x', 'packages/tracing');
-  run('yarn add --dev --ignore-engines --ignore-scripts jsdom@11.x', 'packages/utils');
-
-  // only test against @sentry/node and its dependencies - node 6 is too old for anything else to work
-  const scope = ['@sentry/core', '@sentry/hub', '@sentry/minimal', '@sentry/node', '@sentry/utils', '@sentry/tracing']
-    .map(dep => `--scope="${dep}"`)
-    .join(' ');
-
-  run(`yarn test ${scope}`);
-} else if (nodeMajorVersion <= 8) {
+if (nodeMajorVersion <= 8) {
   // install legacy versions of packages whose current versions don't support node 8
   // ignoring engines and scripts lets us get away with having incompatible things installed for packages we're not testing
   run('yarn add --dev --ignore-engines --ignore-scripts jsdom@15.x', 'packages/tracing');
