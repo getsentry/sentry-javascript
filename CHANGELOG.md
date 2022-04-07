@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 6.19.6
+
+- fix(typing): Fix typing API in CaptureConsle (#4879)
+
 ## 6.19.5
 
 - ref(build): Add debug constants in each package individually (#4842)
