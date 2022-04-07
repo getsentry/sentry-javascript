@@ -14,8 +14,6 @@ import {
   Primitive,
   SessionContext,
   Severity,
-  Span,
-  SpanContext,
   Transaction,
   TransactionContext,
   User,
@@ -383,13 +381,6 @@ export class Hub implements HubInterface {
       IS_DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public startSpan(context: SpanContext): Span {
-    return this._callExtensionMethod('startSpan', context);
   }
 
   /**
