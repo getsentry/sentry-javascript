@@ -15,8 +15,6 @@ export {
 } from '@sentry/minimal';
 export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMain, Scope, Session } from '@sentry/hub';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  API,
   APIDetails,
   getEnvelopeEndpointWithUrlEncodedAuth,
   getStoreEndpointWithUrlEncodedAuth,
