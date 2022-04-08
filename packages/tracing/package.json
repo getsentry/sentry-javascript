@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "build/npm/dist/index.js",
+  "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "publishConfig": {
@@ -44,7 +44,7 @@
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
-    "clean": "rimraf dist esm build coverage",
+    "clean": "rimraf build coverage",
     "circularDepCheck": "madge --circular src/index.ts",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
