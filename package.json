@@ -1,18 +1,18 @@
 {
   "name": "@sentry/replay",
-  "version": "0.2.0-0",
+  "version": "0.2.0-1",
   "description": "User replays for Sentry",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn",
-    "build": "yarn rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
+    "build": "NODE_ENV=production yarn rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "clean": "yarn rimraf dist",
     "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx",
     "prepare": "husky install",
     "start:demo": "yarn build && cd demo && yarn start",
     "test": "yarn jest",
-    "watch": "yarn build --watch"
+    "watch": "NODE_ENV=development yarn build --watch"
   },
   "files": [
     "dist"
@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.17.5",
+    "@rollup/plugin-replace": "^4.0.0",
     "@rollup/plugin-typescript": "^8.3.1",
     "@sentry/browser": "^6.19.1",
     "@sentry/tracing": "^6.19.1",
