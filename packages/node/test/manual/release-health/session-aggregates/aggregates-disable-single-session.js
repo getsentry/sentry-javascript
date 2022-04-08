@@ -1,7 +1,7 @@
 const http = require('http');
 const express = require('express');
 const app = express();
-const Sentry = require('../../../../build/dist');
+const Sentry = require('../../../../build/cjs');
 const { assertSessions, BaseDummyTransport } = require('../test-utils');
 
 function cleanUpAndExitSuccessfully() {
