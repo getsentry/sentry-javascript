@@ -6,6 +6,7 @@ package-lock.json
 # build and test
 build/
 packages/*/dist/
+packages/*/cjs/
 packages/*/esm/
 coverage/
 scratch/
