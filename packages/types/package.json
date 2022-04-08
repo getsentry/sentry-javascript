@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "build/dist/index.js",
+  "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "publishConfig": {
@@ -29,7 +29,7 @@
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
-    "clean": "rimraf dist esm build",
+    "clean": "rimraf build",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
