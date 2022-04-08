@@ -4,6 +4,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.0.0-alpha.0
+
+- **(breaking)** ref: Drop support for Node 6 (#4851)
+- **(breaking)** ref(bundles): Stop publishing CDN bundles on npm (#4901)
+- **(breaking)** ref(build): Rename `dist` directories to `cjs` (#4900)
+- **(breaking)** ref(build): Update to TypeScript 3.8.3 (#4895)
+- **(breaking)** ref(browser): Remove top level eventbuilder exports (#4887)
+- **(breaking)** ref(core): Remove `whitelistUrls`/`blacklistUrls` (#4850)
+- **(breaking)** ref(core): Delete `API` class (#4848)
+- **(breaking)** ref(gatsby): Remove `Sentry` from window (#4857)
+- **(breaking)** ref(hub): Remove `setTransaction` scope method (#4865)
+- **(breaking)** ref(hub): Remove `getActiveDomain` (#4858)
+- **(breaking)** ref(integrations): Remove old `angular`, `ember`, and `vue` integrations (#4893)
+- **(breaking)** ref(node): Remove deprecated `frameContextLines` (#4884)
+- **(breaking)** ref(tracing): Rename `registerRequestInstrumentation` -> `instrumentOutgoingRequests` (#4859)
+- **(breaking)** ref(tracing): Delete deprecated `startSpan` and `child` methods (#4849)
+- **(breaking)** ref(tracing): Remove references to `@sentry/apm` (#4845)
+- **(breaking)** ref(types): Delete `SessionStatus` enum (#4890)
+- **(breaking)** ref(types): Delete `RequestSessionStatus` enum (#4889)
+- **(breaking)** ref(types): Remove deprecated `user` dsn field (#4864)
+- **(breaking)** ref(types): Delete `Status` enum (#4891)
+
 ## 6.19.7
 
 - fix(react): Add children prop type to ErrorBoundary component (#4966)
