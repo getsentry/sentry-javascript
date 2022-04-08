@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/browser';
 import { logger } from '@/util/logger';
 import { saveSession } from './saveSession';
 import type { ReplaySession } from './types';
+import { ROOT_REPLAY_NAME } from './constants';
 
 interface CreateSessionParams {
   /**
@@ -23,7 +24,7 @@ export function createSession({
 
   // Create root replay event, this is where attachments will be saved
   const transaction = Sentry.getCurrentHub().startTransaction({
-    name: 'sentry-replay',
+    name: ROOT_REPLAY_NAME,
     tags: {
       isReplayRoot: 'yes',
     },
