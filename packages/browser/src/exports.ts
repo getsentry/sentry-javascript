@@ -41,6 +41,15 @@ export {
   withScope,
 } from '@sentry/core';
 
+export {
+  defaultStackParsers,
+  chromeStackParser,
+  geckoStackParser,
+  opera10StackParser,
+  opera11StackParser,
+  winjsStackParser,
+} from './stack-parsers';
+
 export { BrowserOptions } from './backend';
 export { BrowserClient } from './client';
 export { injectReportDialog, ReportDialogOptions } from './helpers';

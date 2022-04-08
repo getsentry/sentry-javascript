@@ -1,4 +1,8 @@
+import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
+import { defaultStackParsers } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...defaultStackParsers);
 
 describe('Tracekit - Misc Tests', () => {
   it('should parse PhantomJS 1.19 error', () => {
@@ -11,7 +15,7 @@ describe('Tracekit - Misc Tests', () => {
         '    at foo (http://path/to/file.js:4283)\n' +
         '    at http://path/to/file.js:4287',
     };
-    const ex = exceptionFromError(PHANTOMJS_1_19);
+    const ex = exceptionFromError(parser, PHANTOMJS_1_19);
 
     expect(ex).toEqual({
       value: 'bar',

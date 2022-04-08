@@ -1,4 +1,8 @@
+import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
+import { defaultStackParsers } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...defaultStackParsers);
 
 describe('Tracekit - IE Tests', () => {
   it('should parse IE 10 error', () => {
@@ -14,7 +18,7 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823281,
     };
 
-    const ex = exceptionFromError(IE_10);
+    const ex = exceptionFromError(parser, IE_10);
 
     // TODO: func should be normalized
     expect(ex).toEqual({
@@ -43,7 +47,7 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823281,
     };
 
-    const ex = exceptionFromError(IE_11);
+    const ex = exceptionFromError(parser, IE_11);
 
     // TODO: func should be normalized
     expect(ex).toEqual({
@@ -72,7 +76,7 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823279,
     };
 
-    const ex = exceptionFromError(IE_11_EVAL);
+    const ex = exceptionFromError(parser, IE_11_EVAL);
 
     expect(ex).toEqual({
       value: "'getExceptionProps' is undefined",

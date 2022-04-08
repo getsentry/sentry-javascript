@@ -1,4 +1,8 @@
+import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
+import { defaultStackParsers } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...defaultStackParsers);
 
 describe('Tracekit - Safari Tests', () => {
   it('should parse Safari 6 error', () => {
@@ -14,7 +18,7 @@ describe('Tracekit - Safari Tests', () => {
       sourceURL: 'http://path/to/file.js',
     };
 
-    const stackFrames = exceptionFromError(SAFARI_6);
+    const stackFrames = exceptionFromError(parser, SAFARI_6);
 
     expect(stackFrames).toEqual({
       value: "'null' is not an object (evaluating 'x.undef')",
@@ -40,7 +44,7 @@ describe('Tracekit - Safari Tests', () => {
       sourceURL: 'http://path/to/file.js',
     };
 
-    const stackFrames = exceptionFromError(SAFARI_7);
+    const stackFrames = exceptionFromError(parser, SAFARI_7);
 
     expect(stackFrames).toEqual({
       value: "'null' is not an object (evaluating 'x.undef')",
@@ -66,7 +70,7 @@ describe('Tracekit - Safari Tests', () => {
       sourceURL: 'http://path/to/file.js',
     };
 
-    const stackFrames = exceptionFromError(SAFARI_8);
+    const stackFrames = exceptionFromError(parser, SAFARI_8);
 
     expect(stackFrames).toEqual({
       value: "null is not an object (evaluating 'x.undef')",
@@ -96,7 +100,7 @@ describe('Tracekit - Safari Tests', () => {
       column: 18,
     };
 
-    const stackFrames = exceptionFromError(SAFARI_8_EVAL);
+    const stackFrames = exceptionFromError(parser, SAFARI_8_EVAL);
 
     expect(stackFrames).toEqual({
       value: "Can't find variable: getExceptionProps",
@@ -121,7 +125,7 @@ describe('Tracekit - Safari Tests', () => {
       at safari-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
       };
 
-      const ex = exceptionFromError(SAFARI_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(parser, SAFARI_EXTENSION_EXCEPTION);
 
       expect(ex).toEqual({
         value: 'wat',
@@ -155,7 +159,7 @@ describe('Tracekit - Safari Tests', () => {
         safari-extension://com.grammarly.safari.extension.ext2-W8F64X92K3/ee7759dd/Grammarly.js:2:1588410
         promiseReactionJob@[native code]`,
       };
-      const ex = exceptionFromError(SAFARI_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(parser, SAFARI_EXTENSION_EXCEPTION);
 
       expect(ex).toEqual({
         value: "undefined is not an object (evaluating 'e.groups.includes')",
@@ -191,7 +195,7 @@ describe('Tracekit - Safari Tests', () => {
       at safari-web-extension:(//3284871F-A480-4FFC-8BC4-3F362C752446/2665fee0/topee-content.js:3313:26)`,
       };
 
-      const ex = exceptionFromError(SAFARI_WEB_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(parser, SAFARI_WEB_EXTENSION_EXCEPTION);
 
       expect(ex).toEqual({
         value: 'wat',
@@ -225,7 +229,7 @@ describe('Tracekit - Safari Tests', () => {
       safari-web-extension://46434E60-F5BD-48A4-80C8-A422C5D16897/scripts/content-script.js:29:56027
       promiseReactionJob@[native code]`,
       };
-      const ex = exceptionFromError(SAFARI_EXTENSION_EXCEPTION);
+      const ex = exceptionFromError(parser, SAFARI_EXTENSION_EXCEPTION);
 
       expect(ex).toEqual({
         value: "undefined is not an object (evaluating 'e.groups.includes')",
@@ -263,7 +267,7 @@ describe('Tracekit - Safari Tests', () => {
           global code@http://localhost:5000/test:24:10`,
     };
 
-    const ex = exceptionFromError(SAFARI12_NATIVE_CODE_EXCEPTION);
+    const ex = exceptionFromError(parser, SAFARI12_NATIVE_CODE_EXCEPTION);
 
     expect(ex).toEqual({
       value: 'test',
@@ -297,7 +301,7 @@ describe('Tracekit - Safari Tests', () => {
           http://localhost:5000/:50:29`,
     };
 
-    const ex = exceptionFromError(SAFARI12_EVAL_EXCEPTION);
+    const ex = exceptionFromError(parser, SAFARI12_EVAL_EXCEPTION);
 
     expect(ex).toEqual({
       value: 'aha',

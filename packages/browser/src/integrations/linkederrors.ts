@@ -1,7 +1,8 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
-import { isInstanceOf } from '@sentry/utils';
+import { isInstanceOf, StackParser, stackParserFromOptions } from '@sentry/utils';
 
+import { BrowserClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';
 
 const DEFAULT_KEY = 'cause';
@@ -46,9 +47,12 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
+    const options = getCurrentHub().getClient<BrowserClient>()?.getOptions();
+    const parser = stackParserFromOptions(options);
+
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
-      return self ? _handler(self._key, self._limit, event, hint) : event;
+      return self ? _handler(parser, self._key, self._limit, event, hint) : event;
     });
   }
 }
@@ -56,11 +60,17 @@ export class LinkedErrors implements Integration {
 /**
  * @inheritDoc
  */
-export function _handler(key: string, limit: number, event: Event, hint?: EventHint): Event | null {
+export function _handler(
+  parser: StackParser,
+  key: string,
+  limit: number,
+  event: Event,
+  hint?: EventHint,
+): Event | null {
   if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
     return event;
   }
-  const linkedErrors = _walkErrorTree(limit, hint.originalException as ExtendedError, key);
+  const linkedErrors = _walkErrorTree(parser, limit, hint.originalException as ExtendedError, key);
   event.exception.values = [...linkedErrors, ...event.exception.values];
   return event;
 }
@@ -68,10 +78,16 @@ export function _handler(key: string, limit: number, event: Event, hint?: EventH
 /**
  * JSDOC
  */
-export function _walkErrorTree(limit: number, error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
+export function _walkErrorTree(
+  parser: StackParser,
+  limit: number,
+  error: ExtendedError,
+  key: string,
+  stack: Exception[] = [],
+): Exception[] {
   if (!isInstanceOf(error[key], Error) || stack.length + 1 >= limit) {
     return stack;
   }
-  const exception = exceptionFromError(error[key]);
-  return _walkErrorTree(limit, error[key], key, [exception, ...stack]);
+  const exception = exceptionFromError(parser, error[key]);
+  return _walkErrorTree(parser, limit, error[key], key, [exception, ...stack]);
 }

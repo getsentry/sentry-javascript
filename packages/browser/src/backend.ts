@@ -1,6 +1,6 @@
 import { BaseBackend, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport, TransportOptions } from '@sentry/types';
-import { supportsFetch } from '@sentry/utils';
+import { StackLineParser, StackParser, stackParserFromOptions, supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTransport } from './transports';
@@ -23,6 +23,12 @@ export interface BrowserOptions extends Options {
    * By default, all errors will be sent.
    */
   denyUrls?: Array<string | RegExp>;
+
+  /**
+   * A stack parser implementation or an array of stack line parsers
+   * By default, a stack parser is supplied for all supported browsers
+   */
+  stackParser?: StackParser | StackLineParser[];
 }
 
 /**
@@ -34,13 +40,19 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(exception, hint, this._options.attachStacktrace);
+    return eventFromException(stackParserFromOptions(this._options), exception, hint, this._options.attachStacktrace);
   }
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return eventFromMessage(message, level, hint, this._options.attachStacktrace);
+    return eventFromMessage(
+      stackParserFromOptions(this._options),
+      message,
+      level,
+      hint,
+      this._options.attachStacktrace,
+    );
   }
 
   /**

@@ -1,7 +1,11 @@
 import { ExtendedError } from '@sentry/types';
+import { createStackParser } from '@sentry/utils';
 
 import { BrowserBackend } from '../../../src/backend';
+import { defaultStackParsers } from '../../../src/stack-parsers';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
+
+const parser = createStackParser(...defaultStackParsers);
 
 describe('LinkedErrors', () => {
   describe('handler', () => {
@@ -9,7 +13,7 @@ describe('LinkedErrors', () => {
       const event = {
         message: 'foo',
       };
-      const result = LinkedErrorsModule._handler('cause', 5, event);
+      const result = LinkedErrorsModule._handler(parser, 'cause', 5, event);
       expect(result).toEqual(event);
     });
 
@@ -20,7 +24,7 @@ describe('LinkedErrors', () => {
         },
         message: 'foo',
       };
-      const result = LinkedErrorsModule._handler('cause', 5, event);
+      const result = LinkedErrorsModule._handler(parser, 'cause', 5, event);
       expect(result).toEqual(event);
     });
 
@@ -34,11 +38,13 @@ describe('LinkedErrors', () => {
       one.cause = two;
 
       const originalException = one;
-      const backend = new BrowserBackend({});
+      const backend = new BrowserBackend({ stackParser: parser });
       return backend.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler('cause', 5, event, {
+        const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
           originalException,
         });
+
+        console.log(result.exception.values);
 
         // It shouldn't include root exception, as it's already processed in the event by the main error handler
         expect(result.exception.values.length).toBe(3);
@@ -64,9 +70,9 @@ describe('LinkedErrors', () => {
       one.reason = two;
 
       const originalException = one;
-      const backend = new BrowserBackend({});
+      const backend = new BrowserBackend({ stackParser: parser });
       return backend.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler('reason', 5, event, {
+        const result = LinkedErrorsModule._handler(parser, 'reason', 5, event, {
           originalException,
         });
 
@@ -90,10 +96,10 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const backend = new BrowserBackend({});
+      const backend = new BrowserBackend({ stackParser: parser });
       const originalException = one;
       return backend.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler('cause', 2, event, {
+        const result = LinkedErrorsModule._handler(parser, 'cause', 2, event, {
           originalException,
         });
 

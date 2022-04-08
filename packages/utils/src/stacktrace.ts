@@ -34,6 +34,29 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
   };
 }
 
+interface StackParserOptions {
+  stackParser?: StackParser | StackLineParser[];
+}
+
+/**
+ * Gets a stack parser implementation from options
+ *
+ * If options contains an array of line parsers, it is converted into a parser
+ */
+export function stackParserFromOptions(options: StackParserOptions | undefined): StackParser {
+  if (options) {
+    if (Array.isArray(options.stackParser)) {
+      options.stackParser = createStackParser(...options.stackParser);
+    }
+
+    if (typeof options.stackParser === 'function') {
+      return options.stackParser;
+    }
+  }
+
+  return _ => [];
+}
+
 /**
  * @hidden
  */

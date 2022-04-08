@@ -1,4 +1,8 @@
+import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
+import { defaultStackParsers } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...defaultStackParsers);
 
 describe('Tracekit - React Tests', () => {
   it('should correctly parse Invariant Violation errors and use framesToPop to drop info message', () => {
@@ -14,7 +18,7 @@ describe('Tracekit - React Tests', () => {
           at f (http://localhost:5000/:1:980)`,
     };
 
-    const ex = exceptionFromError(REACT_INVARIANT_VIOLATION_EXCEPTION);
+    const ex = exceptionFromError(parser, REACT_INVARIANT_VIOLATION_EXCEPTION);
 
     expect(ex).toEqual({
       value:
@@ -61,7 +65,7 @@ describe('Tracekit - React Tests', () => {
         at f (http://localhost:5000/:1:980)`,
     };
 
-    const ex = exceptionFromError(REACT_PRODUCTION_ERROR);
+    const ex = exceptionFromError(parser, REACT_PRODUCTION_ERROR);
 
     expect(ex).toEqual({
       value:
@@ -109,7 +113,7 @@ describe('Tracekit - React Tests', () => {
         at f (http://localhost:5000/:1:980)`,
     };
 
-    const ex = exceptionFromError(REACT_PRODUCTION_ERROR);
+    const ex = exceptionFromError(parser, REACT_PRODUCTION_ERROR);
 
     expect(ex).toEqual({
       value:

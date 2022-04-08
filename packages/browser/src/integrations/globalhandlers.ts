@@ -9,8 +9,11 @@ import {
   isPrimitive,
   isString,
   logger,
+  StackParser,
+  stackParserFromOptions,
 } from '@sentry/utils';
 
+import { BrowserClient } from '../client';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { IS_DEBUG_BUILD } from '../flags';
 import { shouldIgnoreOnError } from '../helpers';
@@ -79,7 +82,7 @@ function _installGlobalOnErrorHandler(): void {
     'error',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (data: { msg: any; url: any; line: any; column: any; error: any }) => {
-      const [hub, attachStacktrace] = getHubAndAttachStacktrace();
+      const [hub, stackParser, attachStacktrace] = getHubAndOptions();
       if (!hub.getIntegration(GlobalHandlers)) {
         return;
       }
@@ -92,7 +95,7 @@ function _installGlobalOnErrorHandler(): void {
         error === undefined && isString(msg)
           ? _eventFromIncompleteOnError(msg, url, line, column)
           : _enhanceEventWithInitialFrame(
-              eventFromUnknownInput(error || msg, undefined, attachStacktrace, false),
+              eventFromUnknownInput(stackParser, error || msg, undefined, attachStacktrace, false),
               url,
               line,
               column,
@@ -111,7 +114,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
     'unhandledrejection',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (e: any) => {
-      const [hub, attachStacktrace] = getHubAndAttachStacktrace();
+      const [hub, stackParser, attachStacktrace] = getHubAndOptions();
       if (!hub.getIntegration(GlobalHandlers)) {
         return;
       }
@@ -142,7 +145,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
 
       const event = isPrimitive(error)
         ? _eventFromRejectionWithPrimitive(error)
-        : eventFromUnknownInput(error, undefined, attachStacktrace, true);
+        : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, true);
 
       event.level = Severity.Error;
 
@@ -250,9 +253,11 @@ function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'],
   });
 }
 
-function getHubAndAttachStacktrace(): [Hub, boolean | undefined] {
+function getHubAndOptions(): [Hub, StackParser, boolean | undefined] {
   const hub = getCurrentHub();
-  const client = hub.getClient();
-  const attachStacktrace = client && client.getOptions().attachStacktrace;
-  return [hub, attachStacktrace];
+  const client = hub.getClient<BrowserClient>();
+  const options = client?.getOptions();
+  const parser = stackParserFromOptions(options);
+  const attachStacktrace = options?.attachStacktrace;
+  return [hub, parser, attachStacktrace];
 }
