@@ -7,7 +7,6 @@
 */
 
 import * as fs from 'fs';
-import * as fse from 'fs-extra';
 import * as path from 'path';
 
 const NPM_BUILD_DIR = 'build/npm';
@@ -48,26 +47,6 @@ ASSETS.forEach(asset => {
     process.exit(1);
   }
 });
-
-// TODO remove in v7! Until then:
-// copy CDN bundles into npm dir to temporarily keep bundles in npm tarball
-// inside the tarball, they are located in `build/`
-// for now, copy it by default, unless explicitly forbidden via an command line arg
-const tmpCopyBundles = packageWithBundles && !process.argv.includes('--skipBundleCopy');
-if (tmpCopyBundles) {
-  const npmTmpBundlesPath = path.resolve(buildDir, 'build');
-  const cdnBundlesPath = path.resolve('build', 'bundles');
-  try {
-    if (!fs.existsSync(npmTmpBundlesPath)) {
-      fs.mkdirSync(npmTmpBundlesPath);
-    }
-    void fse.copy(cdnBundlesPath, npmTmpBundlesPath);
-  } catch (error) {
-    console.error(`Error while tmp copying CDN bundles to ${buildDir}`);
-    process.exit(1);
-  }
-}
-// end remove
 
 // package.json modifications
 const packageJsonPath = path.resolve(buildDir, 'package.json');
