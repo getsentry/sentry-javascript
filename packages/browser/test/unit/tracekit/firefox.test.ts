@@ -1,4 +1,5 @@
 import { createStackParser } from '@sentry/utils';
+
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParsers } from '../../../src/stack-parsers';
 

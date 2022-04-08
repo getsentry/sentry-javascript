@@ -2,8 +2,8 @@ import { ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
 
 import { BrowserBackend } from '../../../src/backend';
-import { defaultStackParsers } from '../../../src/stack-parsers';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
+import { defaultStackParsers } from '../../../src/stack-parsers';
 
 const parser = createStackParser(...defaultStackParsers);
 
@@ -43,8 +43,6 @@ describe('LinkedErrors', () => {
         const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
           originalException,
         });
-
-        console.log(result.exception.values);
 
         // It shouldn't include root exception, as it's already processed in the event by the main error handler
         expect(result.exception.values.length).toBe(3);
