@@ -39,7 +39,7 @@
 - **breaking** feat(types): Delete RequestSessionStatus enum (#4889)
 - **breaking** feat(types): Delete Status enum (#4891)
 - **breaking** feat(types): Delete SessionStatus enum (#4890)
--
+
 ## 6.19.7
 
 - fix(react): Add children prop type to ErrorBoundary component (#4966)
