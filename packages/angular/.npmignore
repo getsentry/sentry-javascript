@@ -1,4 +1,4 @@
 *
-!/dist/**/*
+!/cjs/**/*
 !/esm/**/*
 !/build/types/**/*

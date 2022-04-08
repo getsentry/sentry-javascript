@@ -23,7 +23,7 @@ env:
 
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/packages/**/build
-    ${{ github.workspace }}/packages/**/dist
+    ${{ github.workspace }}/packages/**/cjs
     ${{ github.workspace }}/packages/**/esm
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
