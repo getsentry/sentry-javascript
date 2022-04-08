@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
-import { isInstanceOf, StackParser, stackParserFromOptions } from '@sentry/utils';
+import { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
+import { isInstanceOf, stackParserFromOptions } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';

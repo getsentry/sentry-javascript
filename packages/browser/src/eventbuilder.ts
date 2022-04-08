@@ -1,4 +1,4 @@
-import { Event, EventHint, Exception, Severity, StackFrame } from '@sentry/types';
+import { Event, EventHint, Exception, Severity, StackFrame, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -11,7 +11,6 @@ import {
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
-  StackParser,
 } from '@sentry/utils';
 
 /**

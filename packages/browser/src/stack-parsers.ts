@@ -1,5 +1,4 @@
-import { StackFrame } from '@sentry/types';
-import { StackLineParser, StackLineParserFn } from '@sentry/utils';
+import { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
 
 // global reference to slice
 const UNKNOWN_FUNCTION = '?';

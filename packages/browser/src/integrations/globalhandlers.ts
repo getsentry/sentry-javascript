@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Hub, Integration, Primitive, Severity } from '@sentry/types';
+import { Event, EventHint, Hub, Integration, Primitive, Severity, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -9,7 +9,6 @@ import {
   isPrimitive,
   isString,
   logger,
-  StackParser,
   stackParserFromOptions,
 } from '@sentry/utils';
 
