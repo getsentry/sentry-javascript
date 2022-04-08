@@ -1,10 +1,6 @@
-import { StackFrame } from '@sentry/types';
+import { StackFrame, StackLineParser, StackParser } from '@sentry/types';
 
 const STACKTRACE_LIMIT = 50;
-
-export type StackParser = (stack: string, skipFirst?: number) => StackFrame[];
-export type StackLineParserFn = (line: string) => StackFrame | undefined;
-export type StackLineParser = [number, StackLineParserFn];
 
 /**
  * Creates a stack parser with the supplied line parsers

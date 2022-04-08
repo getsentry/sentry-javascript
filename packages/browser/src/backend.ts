@@ -1,6 +1,6 @@
 import { BaseBackend, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport, TransportOptions } from '@sentry/types';
-import { StackLineParser, StackParser, stackParserFromOptions, supportsFetch } from '@sentry/utils';
+import { stackParserFromOptions, supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTransport } from './transports';
@@ -23,12 +23,6 @@ export interface BrowserOptions extends Options {
    * By default, all errors will be sent.
    */
   denyUrls?: Array<string | RegExp>;
-
-  /**
-   * A stack parser implementation or an array of stack line parsers
-   * By default, a stack parser is supplied for all supported browsers
-   */
-  stackParser?: StackParser | StackLineParser[];
 }
 
 /**
