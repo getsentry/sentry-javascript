@@ -7,7 +7,6 @@
 */
 
 import * as fs from 'fs';
-import * as fse from 'fs-extra';
 import * as path from 'path';
 
 const NPM_BUILD_DIR = 'build/npm';
