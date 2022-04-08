@@ -6,7 +6,7 @@ module.exports = {
   exclude: [
     '**/test/**/*',
     '**/*.js',
-    '**/dist/**/*',
+    '**/cjs/**/*',
     '**/esm/**/*',
     '**/build/**/*',
     '**/packages/typescript/**/*',
