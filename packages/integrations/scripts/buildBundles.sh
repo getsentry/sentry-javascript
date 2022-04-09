@@ -3,9 +3,10 @@ for filepath in ./src/*; do
 
     file=$(basename $filepath)
 
-    # the index file is only there for the purposes of npm builds - for the CDN we create a separate bundle for each
-    # integration - so we can skip it here
-    if [[ $file == "index.ts" ]]; then
+    # The index file is only there for the purposes of npm builds (for the CDN we create a separate bundle for each
+    # integration) and the flags file is just a helper for including or not including debug logging, whose contents gets
+    # incorporated into each of the individual integration bundles, so we can skip them both here.
+    if [[ $file == "index.ts" || $file == "flags.ts" ]]; then
       continue
     fi
 
