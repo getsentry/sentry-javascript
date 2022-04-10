@@ -15,4 +15,5 @@ module.exports = {
       diagnostics: false,
     },
   },
+  testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/'],
 };
