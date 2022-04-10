@@ -24,9 +24,7 @@
   },
   "devDependencies": {
     "@sentry/browser": "7.0.0-alpha.0",
-    "@types/express": "^4.17.1",
-    "@types/jsdom": "^16.2.3",
-    "jsdom": "^16.2.2"
+    "@types/express": "^4.17.1"
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:types build:bundle && ts-node ../../scripts/prepack.ts #necessary for integration tests",
