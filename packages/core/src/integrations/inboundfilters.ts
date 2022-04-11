@@ -170,9 +170,6 @@ function _getLastValidUrl(frames: StackFrame[] = []): string | null {
 
 function _getEventFilterUrl(event: Event): string | null {
   try {
-    if (event.stacktrace) {
-      return _getLastValidUrl(event.stacktrace.frames);
-    }
     let frames;
     try {
       // @ts-ignore we only care about frames if the whole thing here is defined
