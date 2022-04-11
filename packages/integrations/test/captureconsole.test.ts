@@ -17,6 +17,15 @@ const mockHub = {
   captureException: jest.fn(),
 };
 
+const mockConsole = {
+  debug: jest.fn(),
+  log: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  assert: jest.fn(),
+  info: jest.fn(),
+};
+
 const getMockHubWithIntegration = (integration: Integration) =>
   ({
     ...mockHub,
@@ -27,6 +36,11 @@ const getMockHubWithIntegration = (integration: Integration) =>
 const originalConsole = Object.assign({}, global.console);
 
 describe('CaptureConsole setup', () => {
+  beforeEach(() => {
+    // this suppresses output to the terminal running the tests, but doesn't interfere with our wrapping
+    Object.assign(global.console, mockConsole);
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
 
@@ -34,56 +48,67 @@ describe('CaptureConsole setup', () => {
     Object.assign(global.console, originalConsole);
   });
 
-  it('should patch user-configured console levels', () => {
-    const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'warn'] });
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration),
-    );
+  describe('monkeypatching', () => {
+    beforeEach(() => {
+      // for these tests only, we don't want to use the mock console, because we're testing for equality to methods from
+      // the original, so undo the global `beforeEach()`
+      Object.assign(global.console, originalConsole);
+    });
 
-    expect(global.console.error).toBe(originalConsole.error); // not monkey patched
-    expect(global.console.log).not.toBe(originalConsole.log); // monkey patched
-    expect(global.console.warn).not.toBe(originalConsole.warn); // monkey patched
-  });
+    it('should patch user-configured console levels', () => {
+      const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'warn'] });
+      captureConsoleIntegration.setupOnce(
+        () => undefined,
+        () => getMockHubWithIntegration(captureConsoleIntegration),
+      );
 
-  it('should fall back to default console levels if none are provided', () => {
-    const captureConsoleIntegration = new CaptureConsole();
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration),
-    );
+      expect(global.console.error).toBe(originalConsole.error); // not monkey patched
+      expect(global.console.log).not.toBe(originalConsole.log); // monkey patched
+      expect(global.console.warn).not.toBe(originalConsole.warn); // monkey patched
+    });
 
-    // expect a set of defined console levels to have been monkey patched
-    expect(global.console.debug).not.toBe(originalConsole.debug);
-    expect(global.console.info).not.toBe(originalConsole.info);
-    expect(global.console.warn).not.toBe(originalConsole.warn);
-    expect(global.console.error).not.toBe(originalConsole.error);
-    expect(global.console.log).not.toBe(originalConsole.log);
-    expect(global.console.assert).not.toBe(originalConsole.assert);
+    it('should fall back to default console levels if none are provided', () => {
+      const captureConsoleIntegration = new CaptureConsole();
+      captureConsoleIntegration.setupOnce(
+        () => undefined,
+        () => getMockHubWithIntegration(captureConsoleIntegration),
+      );
 
-    // any other fields should not have been patched
-    expect(global.console.trace).toBe(originalConsole.trace);
-    expect(global.console.table).toBe(originalConsole.table);
-  });
+      // expect a set of defined console levels to have been monkey patched
+      expect(global.console.debug).not.toBe(originalConsole.debug);
+      expect(global.console.info).not.toBe(originalConsole.info);
+      expect(global.console.warn).not.toBe(originalConsole.warn);
+      expect(global.console.error).not.toBe(originalConsole.error);
+      expect(global.console.log).not.toBe(originalConsole.log);
+      expect(global.console.assert).not.toBe(originalConsole.assert);
 
-  it('should not wrap any functions with an empty levels option', () => {
-    const captureConsoleIntegration = new CaptureConsole({ levels: [] });
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration),
-    );
+      // any other fields should not have been patched
+      expect(global.console.trace).toBe(originalConsole.trace);
+      expect(global.console.table).toBe(originalConsole.table);
+    });
 
-    // expect the default set of console levels not to have been monkey patched
-    expect(global.console.debug).toBe(originalConsole.debug);
-    expect(global.console.info).toBe(originalConsole.info);
-    expect(global.console.warn).toBe(originalConsole.warn);
-    expect(global.console.error).toBe(originalConsole.error);
-    expect(global.console.log).toBe(originalConsole.log);
-    expect(global.console.assert).toBe(originalConsole.assert);
+    it('should not wrap any functions with an empty levels option', () => {
+      const captureConsoleIntegration = new CaptureConsole({ levels: [] });
+      captureConsoleIntegration.setupOnce(
+        () => undefined,
+        () => getMockHubWithIntegration(captureConsoleIntegration),
+      );
 
-    // expect no message to be captured with console.log
-    global.console.log('some message');
-    expect(mockHub.captureMessage).not.toHaveBeenCalled();
+      // expect the default set of console levels not to have been monkey patched
+      expect(global.console.debug).toBe(originalConsole.debug);
+      expect(global.console.info).toBe(originalConsole.info);
+      expect(global.console.warn).toBe(originalConsole.warn);
+      expect(global.console.error).toBe(originalConsole.error);
+      expect(global.console.log).toBe(originalConsole.log);
+      expect(global.console.assert).toBe(originalConsole.assert);
+
+      // suppress output from the logging we're about to do
+      global.console.log = global.console.info = jest.fn();
+
+      // expect no message to be captured with console.log
+      global.console.log('some message');
+      expect(mockHub.captureMessage).not.toHaveBeenCalled();
+    });
   });
 
   it('setup should fail gracefully when console is not available', () => {
