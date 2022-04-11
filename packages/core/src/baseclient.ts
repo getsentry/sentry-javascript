@@ -41,7 +41,7 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
 /**
  * Base implementation for all JavaScript SDK clients.
  *
- * TODO: refactor doc w.r.t. Backend
+ * TODO(v7): refactor doc w.r.t. Backend
  *
  * Call the constructor with the corresponding backend constructor and options
  * specific to the client subclass. To access these options later, use
@@ -77,7 +77,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * The backend used to physically interact in the environment. Usually, this
    * will correspond to the client. When composing SDKs, however, the Backend
    * from the root SDK will be used.
-   * TODO: DELETE
+   * TODO(v7): DELETE
    */
   protected readonly _backend: B;
 
@@ -106,7 +106,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param options Options for the client.
    */
   protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    // TODO: Delete
+    // TODO(v7): Delete
     this._backend = new backendClass(options);
     this._options = options;
 
@@ -149,7 +149,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
-    // TODO: refactor
     const promisedEvent = isPrimitive(message)
       ? this.eventFromMessage(String(message), level, hint)
       : this.eventFromException(message, hint);
@@ -367,6 +366,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Deliver captured session to Sentry */
+  // TODO(v7): should this be deleted?
   protected _sendSession(session: Session): void {
     this.sendSession(session);
   }
@@ -402,7 +402,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Returns the current backend.
-   * TODO: DELETE
+   * TODO(v7): DELETE
    */
   protected _getBackend(): B {
     return this._backend;
@@ -576,7 +576,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * Tells the backend to send this event
    * @param event The Sentry event to send
    */
-  // TODO: refactor: get rid of method?
+  // TODO(v7): refactor: get rid of method?
   protected _sendEvent(event: Event): void {
     this.sendEvent(event);
   }

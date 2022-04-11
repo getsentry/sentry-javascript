@@ -14,7 +14,7 @@ import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTranspor
  *
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
- * TODO: remove BrowserBackend
+ * TODO(v7): remove BrowserBackend
  */
 export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
@@ -35,7 +35,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       version: SDK_VERSION,
     };
 
-    // TODO: remove BrowserBackend param
+    // TODO(v7): remove BrowserBackend param
     super(BrowserBackend, options);
   }
 

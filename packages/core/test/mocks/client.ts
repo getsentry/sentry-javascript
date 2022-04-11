@@ -10,7 +10,7 @@ export interface TestOptions extends Options {
   enableSend?: boolean;
 }
 
-// TODO: remove TestBackend
+// TODO(v7): remove TestBackend
 export class TestClient extends BaseClient<TestBackend, TestOptions> {
   public static instance?: TestClient;
   public static sendEventCalled?: (event: Event) => void;
@@ -19,7 +19,7 @@ export class TestClient extends BaseClient<TestBackend, TestOptions> {
   public session?: Session;
 
   public constructor(options: TestOptions) {
-    // TODO: remove TestBackend param
+    // TODO(v7): remove TestBackend param
     super(TestBackend, options);
     TestClient.instance = this;
   }

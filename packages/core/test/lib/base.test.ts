@@ -3,6 +3,7 @@ import { Event, Span, Transport } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
+import { NoopTransport } from '../../src/transports/noop';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
@@ -105,6 +106,16 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
 
       expect(client.getTransport()).toBeInstanceOf(FakeTransport);
+      expect(TestClient.instance!.getTransport()).toBe(client.getTransport());
+    });
+
+    test('retruns NoopTransport when no transport is passed', () => {
+      expect.assertions(2);
+
+      const options = { dsn: PUBLIC_DSN };
+      const client = new TestClient(options);
+
+      expect(client.getTransport()).toBeInstanceOf(NoopTransport);
       expect(TestClient.instance!.getTransport()).toBe(client.getTransport());
     });
   });

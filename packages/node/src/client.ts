@@ -15,7 +15,7 @@ import { NodeOptions } from './types';
  * @see NodeOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  *
- * TODO: remove NodeBackend
+ * TODO(v7): remove NodeBackend
  */
 export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   protected _sessionFlusher: SessionFlusher | undefined;
@@ -37,7 +37,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
       version: SDK_VERSION,
     };
 
-    // TODO: remove NodeBackend param
+    // TODO(v7): remove NodeBackend param
     super(NodeBackend, options);
   }
 
