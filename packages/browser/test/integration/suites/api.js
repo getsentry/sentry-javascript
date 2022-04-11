@@ -65,8 +65,8 @@ describe('API', function () {
     return runInSandbox(sandbox, function () {
       throwNonError();
     }).then(function (summary) {
-      assert.isAtLeast(summary.events[0].stacktrace.frames.length, 1);
-      assert.isAtMost(summary.events[0].stacktrace.frames.length, 3);
+      assert.isAtLeast(summary.events[0].exception.values[0].stacktrace.frames.length, 1);
+      assert.isAtMost(summary.events[0].exception.values[0].stacktrace.frames.length, 3);
     });
   });
 

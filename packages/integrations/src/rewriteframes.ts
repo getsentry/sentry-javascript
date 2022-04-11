@@ -61,10 +61,6 @@ export class RewriteFrames implements Integration {
       processedEvent = this._processExceptionsEvent(processedEvent);
     }
 
-    if (originalEvent.stacktrace) {
-      processedEvent = this._processStacktraceEvent(processedEvent);
-    }
-
     return processedEvent;
   }
 
@@ -104,18 +100,6 @@ export class RewriteFrames implements Integration {
             stacktrace: this._processStacktrace(value.stacktrace),
           })),
         },
-      };
-    } catch (_oO) {
-      return event;
-    }
-  }
-
-  /** JSDoc */
-  private _processStacktraceEvent(event: Event): Event {
-    try {
-      return {
-        ...event,
-        stacktrace: this._processStacktrace(event.stacktrace),
       };
     } catch (_oO) {
       return event;
