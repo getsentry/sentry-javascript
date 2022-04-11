@@ -198,8 +198,6 @@ function _getFramesFromEvent(event: Event): StackFrame[] | undefined {
     } catch (_oO) {
       return undefined;
     }
-  } else if (event.stacktrace) {
-    return event.stacktrace.frames;
   }
   return undefined;
 }
