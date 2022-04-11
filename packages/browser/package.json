@@ -72,11 +72,11 @@
     "size:check:es5": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
     "size:check:es6": "cat build/bundles/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",
     "test": "run-s test:unit",
-    "test:unit": "jest --config test/unit/jest.config.js",
+    "test:unit": "jest",
     "test:integration": "test/integration/run.js",
     "test:integration:checkbrowsers": "node scripts/checkbrowsers.js",
     "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
-    "test:unit:watch": "jest --config test/unit/jest.config.js --watch",
+    "test:unit:watch": "jest --watch",
     "test:integration:watch": "test/integration/run.js --watch"
   },
   "volta": {
