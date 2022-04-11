@@ -1,6 +1,7 @@
 import { Session } from '@sentry/hub';
-import { Options, Severity, Event, Transport } from '@sentry/types';
+import { Event, Options, Severity, Transport } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
+
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { TestBackend } from './backend';
