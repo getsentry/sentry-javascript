@@ -4,8 +4,9 @@ import * as domain from 'domain';
 // We need this import here to patch domain on the global object
 import * as Sentry from '../src';
 
-// eslint-disable-next-line no-console
-console.log(Sentry.SDK_NAME);
+// TODO This is here because if we don't use the `Sentry` object, the 'concurrent domain hubs' test will fail. Is this a
+// product of treeshaking?
+Sentry.getCurrentHub();
 
 describe('domains', () => {
   test('without domain', () => {
