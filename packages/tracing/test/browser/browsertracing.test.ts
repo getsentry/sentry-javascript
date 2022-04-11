@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { setupBrowserTransport } from '@sentry/browser/src/transports';
 import { Hub, makeMain } from '@sentry/hub';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import {
@@ -24,7 +24,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: (type, callback): void => {
+    addInstrumentationHandler: (type: InstrumentHandlerType, callback: InstrumentHandlerCallback): void => {
       if (type === 'history') {
         // rather than actually add the navigation-change handler, grab a reference to it, so we can trigger it manually
         mockChangeHistory = callback;

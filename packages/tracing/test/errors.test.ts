@@ -1,18 +1,19 @@
 import { BrowserClient } from '@sentry/browser';
 import { setupBrowserTransport } from '@sentry/browser/src/transports';
 import { Hub, makeMain } from '@sentry/hub';
+import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from '../src/errors';
 import { _addTracingExtensions } from '../src/hubextensions';
 
 const mockAddInstrumentationHandler = jest.fn();
-let mockErrorCallback: () => void = () => undefined;
-let mockUnhandledRejectionCallback: () => void = () => undefined;
+let mockErrorCallback: InstrumentHandlerCallback = () => undefined;
+let mockUnhandledRejectionCallback: InstrumentHandlerCallback = () => undefined;
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: (type, callback) => {
+    addInstrumentationHandler: (type: InstrumentHandlerType, callback: InstrumentHandlerCallback) => {
       if (type === 'error') {
         mockErrorCallback = callback;
       }
@@ -55,10 +56,10 @@ describe('registerErrorHandlers()', () => {
     const transaction = hub.startTransaction({ name: 'test' });
     expect(transaction.status).toBe(undefined);
 
-    mockErrorCallback();
+    mockErrorCallback({});
     expect(transaction.status).toBe(undefined);
 
-    mockUnhandledRejectionCallback();
+    mockUnhandledRejectionCallback({});
     expect(transaction.status).toBe(undefined);
     transaction.finish();
   });
@@ -68,7 +69,7 @@ describe('registerErrorHandlers()', () => {
     const transaction = hub.startTransaction({ name: 'test' });
     hub.configureScope(scope => scope.setSpan(transaction));
 
-    mockErrorCallback();
+    mockErrorCallback({});
     expect(transaction.status).toBe('internal_error');
 
     transaction.finish();
@@ -79,7 +80,7 @@ describe('registerErrorHandlers()', () => {
     const transaction = hub.startTransaction({ name: 'test' });
     hub.configureScope(scope => scope.setSpan(transaction));
 
-    mockUnhandledRejectionCallback();
+    mockUnhandledRejectionCallback({});
     expect(transaction.status).toBe('internal_error');
     transaction.finish();
   });
