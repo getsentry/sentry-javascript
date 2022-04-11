@@ -26,9 +26,6 @@
   "peerDependencies": {
     "vue": "2.x || 3.x"
   },
-  "devDependencies": {
-    "jsdom": "^16.2.2"
-  },
   "scripts": {
     "build": "run-p build:cjs build:esm build:types",
     "build:bundle": "rollup --config",
