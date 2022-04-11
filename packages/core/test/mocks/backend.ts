@@ -1,14 +1,11 @@
 import { Session } from '@sentry/hub';
-import { Event, Options, Severity, Transport } from '@sentry/types';
+import { Event, Severity, Transport } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseBackend } from '../../src/basebackend';
+import { TestOptions } from './client';
 
-export interface TestOptions extends Options {
-  test?: boolean;
-  mockInstallFailure?: boolean;
-  enableSend?: boolean;
-}
+// TODO: Delete whole file (?)
 
 export class TestBackend extends BaseBackend<TestOptions> {
   public static instance?: TestBackend;
