@@ -34,6 +34,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
 
       const originalException = one;
+      // TODO(v7): refactor to use client here!
       const backend = new BrowserBackend({});
       return backend.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler('cause', 5, event, {
@@ -65,6 +66,7 @@ describe('LinkedErrors', () => {
 
       const originalException = one;
       const backend = new BrowserBackend({});
+      // TODO(v7): refactor to use client here!
       return backend.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler('reason', 5, event, {
           originalException,
@@ -92,6 +94,7 @@ describe('LinkedErrors', () => {
 
       const backend = new BrowserBackend({});
       const originalException = one;
+      // TODO(v7): refactor to use client here!
       return backend.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler('cause', 2, event, {
           originalException,
