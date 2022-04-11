@@ -51,7 +51,7 @@ export class TestClient extends BaseClient<TestBackend, TestOptions> {
       return;
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    TestBackend.sendEventCalled && TestClient.sendEventCalled(event);
+    TestClient.sendEventCalled && TestClient.sendEventCalled(event);
   }
 
   public sendSession(session: Session): void {
