@@ -29,7 +29,7 @@ If you need to support Internet Explorer 11 or old Node.js versions, we recommen
 
 ### Restructuring Of Package Content
 
-Up until now, we have published our packages on npm with the following structure:
+Up until v6.x, we have published our packages on npm with the following structure:
 
 - `build` folder contained CDN bundles
 - `dist` folder contained CommonJS files and TypeScript declarations
@@ -45,10 +45,12 @@ Moving forward the JavaScript SDK packages will generally have the following str
 This means that most third-party CDNs like [unpkg](https://unpkg.com/) or [jsDelivr](https://www.jsdelivr.com/) will also not provide them.
 
 If you depend on any specific files in a Sentry JavaScript npm package, you will most likely need to update their references.
+For example, imports on `@sentry/browser/dist/client` will become `@sentry/browser/cjs/client`.
+However, directly importing from specific files is discouraged.
 
-### Removing the `API` class from `@sentry/core``
+### Removing the `API` class from `@sentry/core`
 
-The internal `API` class was removed. More details can be found in the [PR that deprecated this class](https://github.com/getsentry/sentry-javascript/pull/4281). To migrate, see the following example.
+The internal `API` class was removed in favor of the `initAPIDetails` function and the `APIDetails` type. More details can be found in the [PR that deprecated this class](https://github.com/getsentry/sentry-javascript/pull/4281). To migrate, see the following example.
 
 ```js
 // New in v7:
