@@ -42,6 +42,7 @@ export {
 } from '@sentry/core';
 
 export { NodeOptions } from './types';
+// TODO(v7): delete!
 export { NodeBackend } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';

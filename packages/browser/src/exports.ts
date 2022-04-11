@@ -41,6 +41,7 @@ export {
   withScope,
 } from '@sentry/core';
 
+// TODO(v7): refactor to use client here!
 export { BrowserOptions } from './backend';
 export { BrowserClient } from './client';
 export { injectReportDialog, ReportDialogOptions } from './helpers';
