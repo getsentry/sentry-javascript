@@ -269,21 +269,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event> {
-    throw new SentryError('Client has to implement `eventFromException` method');
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event> {
-    throw new SentryError('Client has to implement `eventFromMessage` method');
-  }
-
-  /**
-   * @inheritDoc
-   */
   public sendEvent(event: Event): void {
     // TODO(v7): Remove the if-else
     if (
@@ -712,6 +697,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected _setupTransport(): Transport {
     return new NoopTransport();
   }
+
+  /**
+   * @inheritDoc
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+
+  /**
+   * @inheritDoc
+   */
+  public abstract eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event>;
 }
 
 /**
