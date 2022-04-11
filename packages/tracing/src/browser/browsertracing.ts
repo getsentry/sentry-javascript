@@ -7,6 +7,7 @@ import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
 import { extractTraceparentData, secToMs } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
+import { addBrowserSessionData } from './browsersession';
 import { MetricsInstrumentation } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
@@ -68,6 +69,13 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Default: undefined
    */
   _metricOptions?: Partial<{ _reportAllChanges: boolean }>;
+
+  /**
+   * _enableSessions allows the user to specify if they want to add a browser session id to transactions.
+   *
+   * Default: undefined
+   */
+  _enableBrowserSessions?: boolean;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -205,7 +213,7 @@ export class BrowserTracing implements Integration {
     }
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
+    const { beforeNavigate, idleTimeout, maxTransactionDuration, _enableBrowserSessions } = this.options;
 
     const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
 
@@ -238,6 +246,9 @@ export class BrowserTracing implements Integration {
     );
     idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {
       this._metrics.addPerformanceEntries(transaction);
+      if (_enableBrowserSessions) {
+        addBrowserSessionData(transaction);
+      }
       adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);
     });
 
