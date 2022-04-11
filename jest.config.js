@@ -7,7 +7,6 @@ module.exports = {
   },
   coverageDirectory: '<rootDir>/coverage',
   moduleFileExtensions: ['js', 'ts', 'tsx'],
-  testEnvironment: 'node',
   testMatch: ['<rootDir>/**/*.test.ts', '<rootDir>/**/*.test.tsx'],
   globals: {
     'ts-jest': {
