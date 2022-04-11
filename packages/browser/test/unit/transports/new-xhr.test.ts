@@ -27,7 +27,7 @@ function createXHRMock() {
         case 'Retry-After':
           return '10';
         case `${retryAfterSeconds}`:
-          return;
+          return null;
         default:
           return `${retryAfterSeconds}:error:scope`;
       }
@@ -57,7 +57,7 @@ describe('NewXHRTransport', () => {
     expect(xhrMock.setRequestHeader).toHaveBeenCalledTimes(0);
     expect(xhrMock.send).toHaveBeenCalledTimes(0);
 
-    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange(null)]);
+    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange!({} as Event)]);
 
     expect(xhrMock.open).toHaveBeenCalledTimes(1);
     expect(xhrMock.open).toHaveBeenCalledWith('POST', DEFAULT_XHR_TRANSPORT_OPTIONS.url);
@@ -70,7 +70,7 @@ describe('NewXHRTransport', () => {
 
     const [res] = await Promise.all([
       transport.send(ERROR_ENVELOPE),
-      (xhrMock as XMLHttpRequest).onreadystatechange(null),
+      (xhrMock as XMLHttpRequest).onreadystatechange!({} as Event),
     ]);
 
     expect(res).toBeDefined();
@@ -80,7 +80,7 @@ describe('NewXHRTransport', () => {
   it('sets rate limit response headers', async () => {
     const transport = makeNewXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
 
-    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange(null)]);
+    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange!({} as Event)]);
 
     expect(xhrMock.getResponseHeader).toHaveBeenCalledTimes(2);
     expect(xhrMock.getResponseHeader).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
@@ -99,7 +99,7 @@ describe('NewXHRTransport', () => {
     };
 
     const transport = makeNewXHRTransport(options);
-    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange(null)]);
+    await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange!({} as Event)]);
 
     expect(xhrMock.setRequestHeader).toHaveBeenCalledTimes(3);
     expect(xhrMock.setRequestHeader).toHaveBeenCalledWith('referrerPolicy', headers.referrerPolicy);
