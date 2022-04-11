@@ -1,13 +1,21 @@
-import { Event } from '@sentry/types';
+import { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
 
 import { _shouldDropEvent } from '../src/dedupe';
+
+type EventWithException = SentryEvent & {
+  exception: {
+    values: ExceptionWithStacktrace[];
+  };
+};
+type ExceptionWithStacktrace = Exception & { stacktrace: StacktraceWithFrames };
+type StacktraceWithFrames = Stacktrace & { frames: StackFrame[] };
 
 /** JSDoc */
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
 }
 
-const messageEvent: Event = {
+const messageEvent: EventWithException = {
   fingerprint: ['MrSnuffles'],
   message: 'PickleRick',
   exception: {
@@ -34,7 +42,7 @@ const messageEvent: Event = {
     ],
   },
 };
-const exceptionEvent: Event = {
+const exceptionEvent: EventWithException = {
   exception: {
     values: [
       {

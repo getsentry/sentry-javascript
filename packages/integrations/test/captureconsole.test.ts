@@ -1,4 +1,5 @@
-import { Event, Integration } from '@sentry/types';
+/* eslint-disable @typescript-eslint/unbound-method */
+import { Event, Hub, Integration } from '@sentry/types';
 
 import { CaptureConsole } from '../src/captureconsole';
 
@@ -16,10 +17,11 @@ const mockHub = {
   captureException: jest.fn(),
 };
 
-const getMockHubWithIntegration = (integration: Integration) => ({
-  ...mockHub,
-  getIntegration: jest.fn(() => integration),
-});
+const getMockHubWithIntegration = (integration: Integration) =>
+  ({
+    ...mockHub,
+    getIntegration: jest.fn(() => integration),
+  } as unknown as Hub);
 
 // We're using this to un-monkey patch the console after each test.
 const originalConsole = Object.assign({}, global.console);
@@ -36,7 +38,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'warn'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     expect(global.console.error).toBe(originalConsole.error); // not monkey patched
@@ -48,7 +50,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole();
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     // expect a set of defined console levels to have been monkey patched
@@ -68,7 +70,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: [] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     // expect the default set of console levels not to have been monkey patched
@@ -93,7 +95,7 @@ describe('CaptureConsole setup', () => {
       const captureConsoleIntegration = new CaptureConsole();
       captureConsoleIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+        () => getMockHubWithIntegration(captureConsoleIntegration),
       );
     }).not.toThrow();
 
@@ -105,7 +107,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     // call a wrapped function
@@ -119,7 +121,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     // call a wrapped function
@@ -135,7 +137,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     // call a wrapped function
@@ -154,7 +156,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['assert'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     global.console.assert(1 + 1 === 3);
@@ -168,7 +170,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['assert'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     global.console.assert(1 + 1 === 3, 'expression is false');
@@ -182,7 +184,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['assert'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     global.console.assert(1 + 1 === 2);
@@ -192,7 +194,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     const someError = new Error('some error');
@@ -206,7 +208,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole();
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     const someError = new Error('some error');
@@ -220,7 +222,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole();
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     global.console.error('some message');
@@ -233,7 +235,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     global.console.error('some non-error message');
@@ -247,7 +249,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['info'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     global.console.info('some message');
@@ -265,7 +267,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     global.console.log('some message 1', 'some message 2');
@@ -281,11 +283,11 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'someNonExistingLevel', 'error'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     // The provided level should not be created
-    expect(global.console['someNonExistingLevel']).toBeUndefined();
+    expect((global.console as any)['someNonExistingLevel']).toBeUndefined();
 
     // Ohter levels should be wrapped as expected
     expect(global.console.log).not.toBe(originalConsole.log);
@@ -296,7 +298,7 @@ describe('CaptureConsole setup', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'error'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(null) as any, // simulate not having the integration registered
+      () => getMockHubWithIntegration(null as any), // simulate not having the integration registered
     );
 
     // Console should be wrapped
@@ -310,12 +312,12 @@ describe('CaptureConsole setup', () => {
 
   it("should not crash when the original console methods don't exist at time of invocation", () => {
     const originalConsoleLog = global.console.log;
-    global.console.log = undefined; // don't `delete` here, otherwise `fill` won't wrap the function
+    global.console.log = undefined as any; // don't `delete` here, otherwise `fill` won't wrap the function
 
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
-      () => getMockHubWithIntegration(captureConsoleIntegration) as any,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
     );
 
     expect(() => {
