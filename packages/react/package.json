@@ -77,28 +77,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "jest": {
-    "collectCoverage": true,
-    "transform": {
-      "^.+\\.ts$": "ts-jest",
-      "^.+\\.tsx$": "ts-jest"
-    },
-    "moduleFileExtensions": [
-      "js",
-      "ts",
-      "tsx"
-    ],
-    "testEnvironment": "jsdom",
-    "testMatch": [
-      "**/*.test.ts",
-      "**/*.test.tsx"
-    ],
-    "globals": {
-      "ts-jest": {
-        "tsConfig": "./tsconfig.json",
-        "diagnostics": false
-      }
-    }
-  },
   "sideEffects": false
 }

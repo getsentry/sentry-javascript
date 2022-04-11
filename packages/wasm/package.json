@@ -59,8 +59,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "jest": {
-    "preset": "jest-puppeteer"
-  },
   "sideEffects": false
 }
