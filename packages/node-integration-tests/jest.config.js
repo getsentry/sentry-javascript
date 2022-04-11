@@ -1,10 +1,6 @@
-const config = {
-  transform: {
-    '^.+\\.ts$': 'ts-jest',
-  },
-  testEnvironment: 'node',
-  testMatch: ['**/test.ts'],
-  moduleFileExtensions: ['js', 'ts'],
-};
+const baseConfig = require('../../jest.config.js');
 
-module.exports = config;
+module.exports = {
+  ...baseConfig,
+  testMatch: ['**/test.ts'],
+};

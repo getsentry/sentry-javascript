@@ -1,6 +1,6 @@
 const pkg = require('../package.json');
 
-const TYPESCRIPT_VERSION = '3.7.5';
+const TYPESCRIPT_VERSION = '3.8.3';
 
 if (pkg.devDependencies.typescript !== TYPESCRIPT_VERSION) {
   console.error(`
