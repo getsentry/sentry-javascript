@@ -310,7 +310,6 @@ export class SentryReplay {
    **/
   createReplayEvent() {
     logger.log('CreateReplayEvent rootReplayId', this.session.id);
-    console.error(new Error('creating replay event'), new Date());
     this.replayEvent = Sentry.startTransaction({
       name: REPLAY_EVENT_NAME,
       parentSpanId: this.session.spanId,
