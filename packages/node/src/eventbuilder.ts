@@ -99,7 +99,7 @@ export function eventFromUnknownInput(stackParser: StackParser, exception: unkno
 export function eventFromMessage(
   stackParser: StackParser,
   message: string,
-  level: Severity | SeverityLevel = Severity.Info,
+  level: Severity | SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): Event {

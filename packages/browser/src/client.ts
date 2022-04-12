@@ -91,7 +91,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
    */
   public eventFromMessage(
     message: string,
-    level: Severity | SeverityLevel = Severity.Info,
+    level: Severity | SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return eventFromMessage(

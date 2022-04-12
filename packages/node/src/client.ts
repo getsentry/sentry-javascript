@@ -120,7 +120,7 @@ export class NodeClient extends BaseClient<NodeOptions> {
    */
   public eventFromMessage(
     message: string,
-    level: Severity | SeverityLevel = Severity.Info,
+    level: Severity | SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return resolvedSyncPromise(

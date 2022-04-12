@@ -38,7 +38,7 @@ export class TestClient extends BaseClient<TestOptions> {
     });
   }
 
-  public eventFromMessage(message: string, level: Severity | SeverityLevel = Severity.Info): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: Severity | SeverityLevel = 'info'): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 
