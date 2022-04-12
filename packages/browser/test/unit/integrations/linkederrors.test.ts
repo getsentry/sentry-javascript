@@ -40,7 +40,7 @@ describe('LinkedErrors', () => {
       const originalException = one;
       const client = new BrowserClient({ stackParser: parser });
       return client.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler('cause', 5, event, {
+        const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
           originalException,
         });
 
@@ -70,7 +70,7 @@ describe('LinkedErrors', () => {
       const originalException = one;
       const client = new BrowserClient({ stackParser: parser });
       return client.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler('reason', 5, event, {
+        const result = LinkedErrorsModule._handler(parser, 'reason', 5, event, {
           originalException,
         });
 
@@ -97,7 +97,7 @@ describe('LinkedErrors', () => {
       const client = new BrowserClient({ stackParser: parser });
       const originalException = one;
       return client.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler('cause', 2, event, {
+        const result = LinkedErrorsModule._handler(parser, 'cause', 2, event, {
           originalException,
         });
 
