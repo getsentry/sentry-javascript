@@ -1,15 +1,15 @@
 import { severityFromString, validSeverityLevels } from '../src/severity';
 
 describe('severityFromString()', () => {
-  describe('normalize warn and warning', () => {
-    test("converts 'warn' to 'warning'", () => {
-      expect(severityFromString('warn')).toBe('warning');
-    });
+  test("converts 'warn' to 'warning'", () => {
+    expect(severityFromString('warn')).toBe('warning');
   });
-  describe('default to log', () => {
+
+  test('defaults to log', () => {
     expect(severityFromString('foo')).toBe('log');
   });
-  describe('allows ', () => {
+
+  test('acts as a pass-through for valid level strings', () => {
     for (const level of validSeverityLevels) {
       expect(severityFromString(level)).toBe(level);
     }
