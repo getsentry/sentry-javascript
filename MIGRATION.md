@@ -27,6 +27,12 @@ From version 7 onwards, the CommonJS files in Sentry JavaScript SDK packages wil
 
 If you need to support Internet Explorer 11 or old Node.js versions, we recommend using a preprocessing tool like [Babel](https://babeljs.io/) to convert Sentry packages to ES5.
 
+### Renaming Of CDN Bundles
+
+CDN bundles will be ES6 by default. Files that followed the naming scheme `bundle.es6.min.js` were renamed to `bundle.min.js` and any bundles using ES5 (files without `.es6`) turned into `bundle.es5.min.js`.
+
+See our [docs on CDN bundles](https://docs.sentry.io/platforms/javascript/install/cdn/) for more information.
+
 ### Restructuring Of Package Content
 
 Up until v6.x, we have published our packages on npm with the following structure:
