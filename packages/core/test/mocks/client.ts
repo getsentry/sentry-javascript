@@ -4,15 +4,13 @@ import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
-import { TestBackend } from './backend';
 export interface TestOptions extends Options {
   test?: boolean;
   mockInstallFailure?: boolean;
   enableSend?: boolean;
 }
 
-// TODO(v7): remove TestBackend
-export class TestClient extends BaseClient<TestBackend, TestOptions> {
+export class TestClient extends BaseClient<TestOptions> {
   public static instance?: TestClient;
   public static sendEventCalled?: (event: Event) => void;
 
@@ -20,8 +18,7 @@ export class TestClient extends BaseClient<TestBackend, TestOptions> {
   public session?: Session;
 
   public constructor(options: TestOptions) {
-    // TODO(v7): remove TestBackend param
-    super(TestBackend, options);
+    super(options);
     TestClient.instance = this;
   }
 

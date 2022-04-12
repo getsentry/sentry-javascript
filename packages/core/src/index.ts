@@ -23,8 +23,6 @@ export {
   getReportDialogEndpoint,
 } from './api';
 export { BaseClient } from './baseclient';
-// TODO(v7): Delete!
-export { BackendClass, BaseBackend } from './basebackend';
 export { eventToSentryRequest, sessionToSentryRequest } from './request';
 export { initAndBind, ClientClass } from './sdk';
 export { NoopTransport } from './transports/noop';

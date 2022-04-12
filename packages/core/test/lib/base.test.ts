@@ -898,7 +898,7 @@ describe('BaseClient', () => {
       }
 
       expect(capturedEvent).toEqual(normalizedTransaction);
-      // expect(TestBackend.instance!.event!).toEqual(normalizedTransaction);
+      // expect(TestClient.instance!.event!).toEqual(normalizedTransaction);
     });
 
     test('calls beforeSend and uses original event without any changes', () => {

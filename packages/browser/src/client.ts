@@ -1,8 +1,7 @@
 import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
-import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
+import { Event, EventHint, Options, Severity, Transport, TransportOptions } from '@sentry/types';
 import { getGlobalObject, logger, supportsFetch } from '@sentry/utils';
 
-import { BrowserBackend, BrowserOptions } from './backend';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
 import { injectReportDialog, ReportDialogOptions } from './helpers';
@@ -10,13 +9,32 @@ import { Breadcrumbs } from './integrations';
 import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTransport } from './transports';
 
 /**
+ * Configuration options for the Sentry Browser SDK.
+ * @see BrowserClient for more information.
+ */
+export interface BrowserOptions extends Options {
+  /**
+   * A pattern for error URLs which should exclusively be sent to Sentry.
+   * This is the opposite of {@link Options.denyUrls}.
+   * By default, all errors will be sent.
+   */
+  allowUrls?: Array<string | RegExp>;
+
+  /**
+   * A pattern for error URLs which should not be sent to Sentry.
+   * To allow certain errors instead, use {@link Options.allowUrls}.
+   * By default, all errors will be sent.
+   */
+  denyUrls?: Array<string | RegExp>;
+}
+
+/**
  * The Sentry Browser SDK Client.
  *
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
- * TODO(v7): remove BrowserBackend
  */
-export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
+export class BrowserClient extends BaseClient<BrowserOptions> {
   /**
    * Creates a new Browser SDK instance.
    *
@@ -35,8 +53,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       version: SDK_VERSION,
     };
 
-    // TODO(v7): remove BrowserBackend param
-    super(BrowserBackend, options);
+    super(options);
   }
 
   /**
