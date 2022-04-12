@@ -1,5 +1,5 @@
 import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
-import { Event, EventHint, Options, Severity, Transport, TransportOptions } from '@sentry/types';
+import { ClientOptions, Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
 import { getGlobalObject, logger, stackParserFromOptions, supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -12,7 +12,7 @@ import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTranspor
  * Configuration options for the Sentry Browser SDK.
  * @see BrowserClient for more information.
  */
-export interface BrowserOptions extends Options {
+export interface BrowserClientOptions extends ClientOptions {
   /**
    * A pattern for error URLs which should exclusively be sent to Sentry.
    * This is the opposite of {@link Options.denyUrls}.
@@ -34,13 +34,13 @@ export interface BrowserOptions extends Options {
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class BrowserClient extends BaseClient<BrowserOptions> {
+export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * Creates a new Browser SDK instance.
    *
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: BrowserOptions = {}) {
+  public constructor(options: BrowserClientOptions) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.browser',

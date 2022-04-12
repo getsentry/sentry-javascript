@@ -1,10 +1,10 @@
-import { Options } from '@sentry/types';
+import { ClientOptions } from '@sentry/types';
 
 /**
  * Configuration options for the Sentry Node SDK.
  * @see NodeClient for more information.
  */
-export interface NodeOptions extends Options {
+export interface NodeClientOptions extends ClientOptions {
   /** Sets an optional server name (device name) */
   serverName?: string;
 

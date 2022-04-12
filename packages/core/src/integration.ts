@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, Options } from '@sentry/types';
+import { ClientOptions, Integration } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
@@ -24,7 +24,7 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integration to install */
-export function getIntegrationsToSetup(options: Options): Integration[] {
+export function getIntegrationsToSetup(options: ClientOptions): Integration[] {
   const defaultIntegrations = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
   const userIntegrations = options.integrations;
 
@@ -70,7 +70,7 @@ export function setupIntegration(integration: Integration): void {
  * @param integrations array of integration instances
  * @param withDefault should enable default integrations
  */
-export function setupIntegrations<O extends Options>(options: O): IntegrationIndex {
+export function setupIntegrations<O extends ClientOptions>(options: O): IntegrationIndex {
   const integrations: IntegrationIndex = {};
   getIntegrationsToSetup(options).forEach(integration => {
     integrations[integration.name] = integration;

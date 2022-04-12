@@ -1,4 +1,5 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+import { DsnComponents } from './dsn';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { CaptureContext } from './scope';
@@ -209,4 +210,13 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => Breadcrumb | null;
+}
+
+/** */
+export interface ClientOptions extends Omit<Options, 'dsn'> {
+  dsn?: DsnComponents;
+  integrations: Integration[];
+  transport: TransportClass<Transport>;
+  transportOptions: TransportOptions;
+  stackParser: StackParser;
 }

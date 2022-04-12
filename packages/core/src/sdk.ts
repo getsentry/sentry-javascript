@@ -1,11 +1,11 @@
 import { getCurrentHub } from '@sentry/hub';
-import { Client, Options } from '@sentry/types';
+import { Client, ClientOptions } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
 
 /** A class object that can instantiate Client objects. */
-export type ClientClass<F extends Client, O extends Options> = new (options: O) => F;
+export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
 
 /**
  * Internal function to create a new SDK client instance. The client is
@@ -14,7 +14,10 @@ export type ClientClass<F extends Client, O extends Options> = new (options: O) 
  * @param clientClass The client class to instantiate.
  * @param options Options to pass to the client.
  */
-export function initAndBind<F extends Client, O extends Options>(clientClass: ClientClass<F, O>, options: O): void {
+export function initAndBind<F extends Client, O extends ClientOptions>(
+  clientClass: ClientClass<F, O>,
+  options: O,
+): void {
   if (options.debug === true) {
     if (IS_DEBUG_BUILD) {
       logger.enable();
