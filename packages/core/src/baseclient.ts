@@ -9,6 +9,7 @@ import {
   IntegrationClass,
   Options,
   Severity,
+  SeverityLevel,
   Transport,
 } from '@sentry/types';
 import {
@@ -131,7 +132,12 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureMessage(
+    message: string,
+    level?: Severity | SeverityLevel,
+    hint?: EventHint,
+    scope?: Scope,
+  ): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
@@ -685,7 +691,11 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public abstract eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event>;
+  public abstract eventFromMessage(
+    _message: string,
+    _level?: Severity | SeverityLevel,
+    _hint?: EventHint,
+  ): PromiseLike<Event>;
 }
 
 /**

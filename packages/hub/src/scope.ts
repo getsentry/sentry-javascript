@@ -14,6 +14,7 @@ import {
   Scope as ScopeInterface,
   ScopeContext,
   Severity,
+  SeverityLevel,
   Span,
   Transaction,
   User,
@@ -61,7 +62,7 @@ export class Scope implements ScopeInterface {
   protected _fingerprint?: string[];
 
   /** Severity */
-  protected _level?: Severity;
+  protected _level?: Severity | SeverityLevel;
 
   /** Transaction Name */
   protected _transactionName?: string;
@@ -208,7 +209,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setLevel(level: Severity): this {
+  public setLevel(level: Severity | SeverityLevel): this {
     this._level = level;
     this._notifyScopeListeners();
     return this;

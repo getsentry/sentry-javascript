@@ -1,6 +1,6 @@
 import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
+import { Event, EventHint, Severity, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
 import { logger, makeDsn, resolvedSyncPromise, stackParserFromOptions } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
@@ -118,7 +118,11 @@ export class NodeClient extends BaseClient<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(
+    message: string,
+    level: Severity | SeverityLevel = Severity.Info,
+    hint?: EventHint,
+  ): PromiseLike<Event> {
     return resolvedSyncPromise(
       eventFromMessage(stackParserFromOptions(this._options), message, level, hint, this._options.attachStacktrace),
     );

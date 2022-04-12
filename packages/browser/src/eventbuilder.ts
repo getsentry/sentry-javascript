@@ -1,4 +1,4 @@
-import { Event, EventHint, Exception, Severity, StackFrame, StackParser } from '@sentry/types';
+import { Event, EventHint, Exception, Severity, SeverityLevel, StackFrame, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -164,7 +164,7 @@ export function eventFromException(
 export function eventFromMessage(
   stackParser: StackParser,
   message: string,
-  level: Severity = Severity.Info,
+  level: Severity | SeverityLevel = Severity.Info,
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {

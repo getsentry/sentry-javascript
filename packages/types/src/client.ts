@@ -4,7 +4,7 @@ import { Integration, IntegrationClass } from './integration';
 import { Options } from './options';
 import { Scope } from './scope';
 import { Session } from './session';
-import { Severity } from './severity';
+import { Severity, SeverityLevel } from './severity';
 import { Transport } from './transport';
 
 /**
@@ -36,7 +36,12 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined;
+  captureMessage(
+    message: string,
+    level?: Severity | SeverityLevel,
+    hint?: EventHint,
+    scope?: Scope,
+  ): string | undefined;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -99,7 +104,7 @@ export interface Client<O extends Options = Options> {
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
-  eventFromMessage(message: string, level?: Severity, hint?: EventHint): PromiseLike<Event>;
+  eventFromMessage(message: string, level?: Severity | SeverityLevel, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event): void;

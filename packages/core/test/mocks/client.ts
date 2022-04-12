@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { Event, Options, Severity, Transport } from '@sentry/types';
+import { Event, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
@@ -38,7 +38,7 @@ export class TestClient extends BaseClient<TestOptions> {
     });
   }
 
-  public eventFromMessage(message: string, level: Severity = Severity.Info): PromiseLike<Event> {
+  public eventFromMessage(message: string, level: Severity | SeverityLevel = Severity.Info): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 
