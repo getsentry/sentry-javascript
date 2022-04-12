@@ -1,7 +1,7 @@
 import { ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
 
-import { BrowserBackend } from '../../../src/backend';
+import { BrowserClient } from '../../../src/client';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
 import { defaultStackParsers } from '../../../src/stack-parsers';
 
@@ -38,9 +38,9 @@ describe('LinkedErrors', () => {
       one.cause = two;
 
       const originalException = one;
-      const backend = new BrowserBackend({ stackParser: parser });
-      return backend.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
+      const client = new BrowserClient({ stackParser: parser });
+      return client.eventFromException(originalException).then(event => {
+        const result = LinkedErrorsModule._handler('cause', 5, event, {
           originalException,
         });
 
@@ -68,9 +68,9 @@ describe('LinkedErrors', () => {
       one.reason = two;
 
       const originalException = one;
-      const backend = new BrowserBackend({ stackParser: parser });
-      return backend.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler(parser, 'reason', 5, event, {
+      const client = new BrowserClient({ stackParser: parser });
+      return client.eventFromException(originalException).then(event => {
+        const result = LinkedErrorsModule._handler('reason', 5, event, {
           originalException,
         });
 
@@ -94,10 +94,10 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const backend = new BrowserBackend({ stackParser: parser });
+      const client = new BrowserClient({ stackParser: parser });
       const originalException = one;
-      return backend.eventFromException(originalException).then(event => {
-        const result = LinkedErrorsModule._handler(parser, 'cause', 2, event, {
+      return client.eventFromException(originalException).then(event => {
+        const result = LinkedErrorsModule._handler('cause', 2, event, {
           originalException,
         });
 

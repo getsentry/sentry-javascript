@@ -58,9 +58,6 @@ export class Wasm implements Integration {
           }
         });
       }
-      if (event.stacktrace?.frames) {
-        haveWasm = haveWasm || patchFrames(event.stacktrace.frames);
-      }
 
       if (haveWasm) {
         event.debug_meta = event.debug_meta || {};

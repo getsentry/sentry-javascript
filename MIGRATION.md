@@ -1,3 +1,97 @@
+## Upgrading from 6.x to 7.x
+
+The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.
+Below we will outline all the breaking changes you should consider when upgrading.
+
+### Dropping Support for Node.js v6
+
+Node.js version 6 has reached end of life in April 2019. For Sentry JavaScript SDK version 7, we will no longer be supporting version 6 of Node.js.
+
+As far as SDK development goes, dropping support means no longer running integration tests for Node.js version 6, and also no longer handling edge cases specific to version 6.
+Running the new SDK version on Node.js v6 is therefore highly discouraged.
+
+### Removal Of Old Platform Integrations From `@sentry/integrations` Package
+
+The following classes will be removed from the `@sentry/integrations` package and can no longer be used:
+
+- `Angular`
+- `Ember`
+- `Vue`
+
+These classes have been superseded and were moved into their own packages, `@sentry/angular`, `@sentry/ember`, and `@sentry/vue` in a previous version.
+Refer to those packages if you want to integrate Sentry into your Angular, Ember, or Vue application.
+
+### Moving To ES6 For CommonJS Files
+
+From version 7 onwards, the CommonJS files in Sentry JavaScript SDK packages will use ES6.
+
+If you need to support Internet Explorer 11 or old Node.js versions, we recommend using a preprocessing tool like [Babel](https://babeljs.io/) to convert Sentry packages to ES5.
+
+### Renaming Of CDN Bundles
+
+CDN bundles will be ES6 by default. Files that followed the naming scheme `bundle.es6.min.js` were renamed to `bundle.min.js` and any bundles using ES5 (files without `.es6`) turned into `bundle.es5.min.js`.
+
+See our [docs on CDN bundles](https://docs.sentry.io/platforms/javascript/install/cdn/) for more information.
+
+### Restructuring Of Package Content
+
+Up until v6.x, we have published our packages on npm with the following structure:
+
+- `build` folder contained CDN bundles
+- `dist` folder contained CommonJS files and TypeScript declarations
+- `esm` folder contained ESM files and TypeScript declarations
+
+Moving forward the JavaScript SDK packages will generally have the following structure:
+
+- `cjs` folder contains CommonJS files
+- `esm` folder contains ESM files
+- `types` folder contains TypeScript declarations
+
+**CDN bundles of version 7 or higher will no longer be distributed through our npm package.**
+This means that most third-party CDNs like [unpkg](https://unpkg.com/) or [jsDelivr](https://www.jsdelivr.com/) will also not provide them.
+
+If you depend on any specific files in a Sentry JavaScript npm package, you will most likely need to update their references.
+For example, imports on `@sentry/browser/dist/client` will become `@sentry/browser/cjs/client`.
+However, directly importing from specific files is discouraged.
+
+### Removing the `API` class from `@sentry/core`
+
+The internal `API` class was removed in favor of the `initAPIDetails` function and the `APIDetails` type. More details can be found in the [PR that deprecated this class](https://github.com/getsentry/sentry-javascript/pull/4281). To migrate, see the following example.
+
+```js
+// New in v7:
+import {
+  initAPIDetails,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getStoreEndpointWithUrlEncodedAuth,
+} from '@sentry/core';
+
+const dsn = initAPIDetails(dsn, metadata, tunnel);
+const dsn = api.dsn;
+const storeEndpoint = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
+const envelopeEndpoint = getStoreEndpointWithUrlEncodedAuth(api.dsn);
+
+// Before:
+import { API } from '@sentry/core';
+
+const api = new API(dsn, metadata, tunnel);
+const dsn = api.getDsn();
+const storeEndpoint = api.getStoreEndpointWithUrlEncodedAuth();
+const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
+```
+
+### General API Changes
+
+For our efforts to reduce bundle size of the SDK we had to remove and refactor parts of the package which introduced a few changes to the API:
+
+- Remove support for deprecated `@sentry/apm` package. `@sentry/tracing` should be used instead.
+- Remove deprecated `user` field from DSN. `publicKey` should be used instead.
+- Remove deprecated `whitelistUrls` and `blacklistUrls` options from `Sentry.init`. They have been superseded by `allowUrls` and `denyUrls` specifically. See [our docs page on inclusive language](https://develop.sentry.dev/inclusion/) for more details.
+- Gatsby SDK: Remove `Sentry` from `window` object.
+- Remove deprecated `Status`, `SessionStatus`, and `RequestSessionStatus` enums. These were only part of an internal API. If you are using these enums, we encourage you to to look at [b177690d](https://github.com/getsentry/sentry-javascript/commit/b177690d89640aef2587039113c614672c07d2be), [5fc3147d](https://github.com/getsentry/sentry-javascript/commit/5fc3147dfaaf1a856d5923e4ba409479e87273be), and [f99bdd16](https://github.com/getsentry/sentry-javascript/commit/f99bdd16539bf6fac14eccf1a974a4988d586b28) to to see the changes we've made to our code as result. We generally recommend using string literals instead of the removed enums.
+- Remove deprecated `getActiveDomain` method and `DomainAsCarrier` type from `@sentry/hub`.
+- Rename `registerRequestInstrumentation` to `instrumentOutgoingRequests` in `@sentry/tracing`.
+
 # Upgrading from 6.17.x to 6.18.0
 
 Version 6.18.0 deprecates the `frameContextLines` top-level option for the Node SDK. This option will be removed in an upcoming major version. To migrate off of the top-level option, pass it instead to the new `ContextLines` integration.

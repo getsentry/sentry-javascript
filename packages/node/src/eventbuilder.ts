@@ -103,7 +103,14 @@ export function eventFromMessage(
   if (attachStacktrace && hint && hint.syntheticException) {
     const frames = parseStackFrames(stackParser, hint.syntheticException);
     if (frames.length) {
-      event.stacktrace = { frames };
+      event.exception = {
+        values: [
+          {
+            value: message,
+            stacktrace: { frames },
+          },
+        ],
+      };
     }
   }
 

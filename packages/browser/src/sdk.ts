@@ -2,8 +2,7 @@ import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@s
 import { Hub } from '@sentry/types';
 import { addInstrumentationHandler, getGlobalObject, logger, resolvedSyncPromise } from '@sentry/utils';
 
-import { BrowserOptions } from './backend';
-import { BrowserClient } from './client';
+import { BrowserClient, BrowserOptions } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';

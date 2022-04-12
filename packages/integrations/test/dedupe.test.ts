@@ -1,3 +1,5 @@
+import { Event } from '@sentry/types';
+
 import { _shouldDropEvent } from '../src/dedupe';
 
 /** JSDoc */
@@ -5,27 +7,34 @@ function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
 }
 
-const messageEvent = {
+const messageEvent: Event = {
   fingerprint: ['MrSnuffles'],
   message: 'PickleRick',
-  stacktrace: {
-    frames: [
+  exception: {
+    values: [
       {
-        colno: 1,
-        filename: 'filename.js',
-        function: 'function',
-        lineno: 1,
-      },
-      {
-        colno: 2,
-        filename: 'filename.js',
-        function: 'function',
-        lineno: 2,
+        value: 'PickleRick',
+        stacktrace: {
+          frames: [
+            {
+              colno: 1,
+              filename: 'filename.js',
+              function: 'function',
+              lineno: 1,
+            },
+            {
+              colno: 2,
+              filename: 'filename.js',
+              function: 'function',
+              lineno: 2,
+            },
+          ],
+        },
       },
     ],
   },
 };
-const exceptionEvent = {
+const exceptionEvent: Event = {
   exception: {
     values: [
       {
@@ -64,13 +73,14 @@ describe('Dedupe', () => {
       const eventA = clone(messageEvent);
       const eventB = clone(messageEvent);
       eventB.message = 'EvilMorty';
+      eventB.exception.values[0].value = 'EvilMorty';
       expect(_shouldDropEvent(eventA, eventB)).toBe(false);
     });
 
     it('should not drop if events have same messages, but different stacktraces', () => {
       const eventA = clone(messageEvent);
       const eventB = clone(messageEvent);
-      eventB.stacktrace.frames[0].colno = 1337;
+      eventB.exception.values[0].stacktrace.frames[0].colno = 1337;
       expect(_shouldDropEvent(eventA, eventB)).toBe(false);
     });
 

@@ -1,10 +1,11 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
+import { logger, makeDsn, resolvedSyncPromise, stackParserFromOptions } from '@sentry/utils';
 
-import { NodeBackend } from './backend';
+import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
+import { HTTPSTransport, HTTPTransport, makeNodeTransport } from './transports';
 import { NodeOptions } from './types';
 
 /**
@@ -13,7 +14,7 @@ import { NodeOptions } from './types';
  * @see NodeOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
+export class NodeClient extends BaseClient<NodeOptions> {
   protected _sessionFlusher: SessionFlusher | undefined;
 
   /**
@@ -33,7 +34,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
       version: SDK_VERSION,
     };
 
-    super(NodeBackend, options);
+    super(options);
   }
 
   /**
@@ -109,6 +110,23 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
+    return resolvedSyncPromise(eventFromUnknownInput(stackParserFromOptions(this._options), exception, hint));
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+    return resolvedSyncPromise(
+      eventFromMessage(stackParserFromOptions(this._options), message, level, hint, this._options.attachStacktrace),
+    );
+  }
+
+  /**
+   * @inheritDoc
+   */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
     event.platform = event.platform || 'node';
     if (this.getOptions().serverName) {
@@ -127,5 +145,46 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _setupTransport(): Transport {
+    if (!this._options.dsn) {
+      // We return the noop transport here in case there is no Dsn.
+      return super._setupTransport();
+    }
+
+    const dsn = makeDsn(this._options.dsn);
+
+    const transportOptions: TransportOptions = {
+      ...this._options.transportOptions,
+      ...(this._options.httpProxy && { httpProxy: this._options.httpProxy }),
+      ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
+      ...(this._options.caCerts && { caCerts: this._options.caCerts }),
+      dsn: this._options.dsn,
+      tunnel: this._options.tunnel,
+      _metadata: this._options._metadata,
+    };
+
+    if (this._options.transport) {
+      return new this._options.transport(transportOptions);
+    }
+
+    const api = initAPIDetails(transportOptions.dsn, transportOptions._metadata, transportOptions.tunnel);
+    const url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
+
+    this._newTransport = makeNodeTransport({
+      url,
+      headers: transportOptions.headers,
+      proxy: transportOptions.httpProxy,
+      caCerts: transportOptions.caCerts,
+    });
+
+    if (dsn.protocol === 'http') {
+      return new HTTPTransport(transportOptions);
+    }
+    return new HTTPSTransport(transportOptions);
   }
 }
