@@ -51,7 +51,6 @@ export type TransportResponse = {
 interface InternalBaseTransportOptions {
   bufferSize?: number;
 }
-
 export interface BaseTransportOptions extends InternalBaseTransportOptions {
   // url to send the event
   // transport does not care about dsn specific - client should take care of
@@ -59,7 +58,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
   url: string;
 }
 
-// TODO: Move into Browser Transport
+// TODO(v7): Delete
 export interface BrowserTransportOptions extends BaseTransportOptions {
   // options to pass into fetch request
   fetchParams: Record<string, string>;

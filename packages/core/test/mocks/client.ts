@@ -78,6 +78,7 @@ export class TestClient extends BaseClient<TestOptions> {
   }
 }
 
+// TODO(v7): wtf?
 export function init(options: TestOptions): void {
   initAndBind(TestClient, options);
 }

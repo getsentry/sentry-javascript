@@ -1,4 +1,11 @@
-import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
+import {
+  BaseClient,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  initAPIDetails,
+  NewTransport,
+  Scope,
+  SDK_VERSION,
+} from '@sentry/core';
 import { Event, EventHint, Options, Severity, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
 import { getGlobalObject, logger, stackParserFromOptions, supportsFetch } from '@sentry/utils';
 
@@ -40,7 +47,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
    *
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: BrowserOptions = {}) {
+  public constructor(options: BrowserOptions = {}, transport: Transport, newTransport?: NewTransport) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.browser',
@@ -53,7 +60,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
       version: SDK_VERSION,
     };
 
-    super(options);
+    super(options, transport, newTransport);
   }
 
   /**

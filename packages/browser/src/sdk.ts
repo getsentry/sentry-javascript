@@ -7,6 +7,7 @@ import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 import { defaultStackParsers } from './stack-parsers';
+import { setupBrowserTransport } from './transports/setup';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -97,7 +98,8 @@ export function init(options: BrowserOptions = {}): void {
     options.stackParser = defaultStackParsers;
   }
 
-  initAndBind(BrowserClient, options);
+  const { transport, newTransport } = setupBrowserTransport(options);
+  initAndBind(BrowserClient, options, transport, newTransport);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

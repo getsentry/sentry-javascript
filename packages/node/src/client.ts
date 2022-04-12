@@ -1,4 +1,11 @@
-import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
+import {
+  BaseClient,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  initAPIDetails,
+  NewTransport,
+  Scope,
+  SDK_VERSION,
+} from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, Severity, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
 import { logger, makeDsn, resolvedSyncPromise, stackParserFromOptions } from '@sentry/utils';
@@ -21,7 +28,7 @@ export class NodeClient extends BaseClient<NodeOptions> {
    * Creates a new Node SDK instance.
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: NodeOptions) {
+  public constructor(options: NodeOptions, transport: Transport, newTransport?: NewTransport) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.node',
@@ -34,7 +41,7 @@ export class NodeClient extends BaseClient<NodeOptions> {
       version: SDK_VERSION,
     };
 
-    super(options);
+    super(options, transport, newTransport);
   }
 
   /**
@@ -154,6 +161,7 @@ export class NodeClient extends BaseClient<NodeOptions> {
 
   /**
    * @inheritDoc
+   * TODO(v7): delete
    */
   protected _setupTransport(): Transport {
     if (!this._options.dsn) {

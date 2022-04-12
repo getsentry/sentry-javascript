@@ -92,8 +92,10 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    * Initializes this client instance.
    *
    * @param options Options for the client.
+   * @param transport The (old) Transport instance for the client to use (TODO(v7): remove)
+   * @param newTransport The NewTransport instance for the client to use
    */
-  protected constructor(options: O) {
+  protected constructor(options: O, transport: Transport, newTransport?: NewTransport) {
     this._options = options;
 
     if (options.dsn) {
@@ -102,7 +104,9 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
 
-    this._transport = this._setupTransport();
+    // TODO(v7): remove old transport
+    this._transport = transport;
+    this._newTransport = newTransport;
   }
 
   /**
