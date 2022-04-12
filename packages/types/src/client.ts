@@ -60,7 +60,12 @@ export interface Client<O extends Options = Options> {
   /** Returns the current options. */
   getOptions(): O;
 
-  /** Returns clients transport. */
+  /**
+   * Returns the transport that is used by the client.
+   * Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.
+   *
+   * @returns The transport.
+   */
   getTransport?(): Transport;
 
   /**
@@ -88,4 +93,17 @@ export interface Client<O extends Options = Options> {
 
   /** This is an internal function to setup all integrations that should run on the client */
   setupIntegrations(): void;
+
+  /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
+
+  /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
+  eventFromMessage(message: string, level?: Severity, hint?: EventHint): PromiseLike<Event>;
+
+  /** Submits the event to Sentry */
+  sendEvent(event: Event): void;
+
+  /** Submits the session to Sentry */
+  sendSession(session: Session): void;
 }
