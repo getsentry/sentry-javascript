@@ -7,6 +7,7 @@ import * as domain from 'domain';
 import { NodeClient } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
+import { nodeStackParser } from './stack-parser';
 import { NodeOptions } from './types';
 
 export const defaultIntegrations = [
@@ -118,6 +119,10 @@ export function init(options: NodeOptions = {}): void {
 
   if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
     options.autoSessionTracking = true;
+  }
+
+  if (options.stackParser === undefined) {
+    options.stackParser = [nodeStackParser];
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any

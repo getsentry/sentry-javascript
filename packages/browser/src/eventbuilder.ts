@@ -1,8 +1,7 @@
-import { Event, EventHint, Exception, Severity, StackFrame } from '@sentry/types';
+import { Event, EventHint, Exception, Severity, StackFrame, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
-  createStackParser,
   extractExceptionKeysForMessage,
   isDOMError,
   isDOMException,
@@ -14,22 +13,12 @@ import {
   resolvedSyncPromise,
 } from '@sentry/utils';
 
-import {
-  chromeStackParser,
-  geckoStackParser,
-  opera10StackParser,
-  opera11StackParser,
-  winjsStackParser,
-} from './stack-parsers';
-
 /**
  * This function creates an exception from an TraceKitStackTrace
- * @param stacktrace TraceKitStackTrace that will be converted to an exception
- * @hidden
  */
-export function exceptionFromError(ex: Error): Exception {
+export function exceptionFromError(stackParser: StackParser, ex: Error): Exception {
   // Get the frames first since Opera can lose the stack if we touch anything else first
-  const frames = parseStackFrames(ex);
+  const frames = parseStackFrames(stackParser, ex);
 
   const exception: Exception = {
     type: ex && ex.name,
@@ -51,6 +40,7 @@ export function exceptionFromError(ex: Error): Exception {
  * @hidden
  */
 export function eventFromPlainObject(
+  stackParser: StackParser,
   exception: Record<string, unknown>,
   syntheticException?: Error,
   isUnhandledRejection?: boolean,
@@ -72,7 +62,7 @@ export function eventFromPlainObject(
   };
 
   if (syntheticException) {
-    const frames = parseStackFrames(syntheticException);
+    const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       // event.exception.values[0] has been set above
       (event.exception as { values: Exception[] }).values[0].stacktrace = { frames };
@@ -85,16 +75,19 @@ export function eventFromPlainObject(
 /**
  * @hidden
  */
-export function eventFromError(ex: Error): Event {
+export function eventFromError(stackParser: StackParser, ex: Error): Event {
   return {
     exception: {
-      values: [exceptionFromError(ex)],
+      values: [exceptionFromError(stackParser, ex)],
     },
   };
 }
 
 /** Parses stack frames from an error */
-export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?: string }): StackFrame[] {
+export function parseStackFrames(
+  stackParser: StackParser,
+  ex: Error & { framesToPop?: number; stacktrace?: string },
+): StackFrame[] {
   // Access and store the stacktrace property before doing ANYTHING
   // else to it because Opera is not very good at providing it
   // reliably in other circumstances.
@@ -103,13 +96,7 @@ export function parseStackFrames(ex: Error & { framesToPop?: number; stacktrace?
   const popSize = getPopSize(ex);
 
   try {
-    return createStackParser(
-      opera10StackParser,
-      opera11StackParser,
-      chromeStackParser,
-      winjsStackParser,
-      geckoStackParser,
-    )(stacktrace, popSize);
+    return stackParser(stacktrace, popSize);
   } catch (e) {
     // no-empty
   }
@@ -155,12 +142,13 @@ function extractMessage(ex: Error & { message: { error?: Error } }): string {
  * @hidden
  */
 export function eventFromException(
+  stackParser: StackParser,
   exception: unknown,
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
-  const event = eventFromUnknownInput(exception, syntheticException, attachStacktrace);
+  const event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
   event.level = Severity.Error;
   if (hint && hint.event_id) {
@@ -174,13 +162,14 @@ export function eventFromException(
  * @hidden
  */
 export function eventFromMessage(
+  stackParser: StackParser,
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
-  const event = eventFromString(message, syntheticException, attachStacktrace);
+  const event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
   event.level = level;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
@@ -192,6 +181,7 @@ export function eventFromMessage(
  * @hidden
  */
 export function eventFromUnknownInput(
+  stackParser: StackParser,
   exception: unknown,
   syntheticException?: Error,
   attachStacktrace?: boolean,
@@ -202,7 +192,7 @@ export function eventFromUnknownInput(
   if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
     // If it is an ErrorEvent with `error` property, extract it to get actual Error
     const errorEvent = exception as ErrorEvent;
-    return eventFromError(errorEvent.error as Error);
+    return eventFromError(stackParser, errorEvent.error as Error);
   }
 
   // If it is a `DOMError` (which is a legacy API, but still supported in some browsers) then we just extract the name
@@ -216,11 +206,11 @@ export function eventFromUnknownInput(
     const domException = exception as DOMException;
 
     if ('stack' in (exception as Error)) {
-      event = eventFromError(exception as Error);
+      event = eventFromError(stackParser, exception as Error);
     } else {
       const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
       const message = domException.message ? `${name}: ${domException.message}` : name;
-      event = eventFromString(message, syntheticException, attachStacktrace);
+      event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
       addExceptionTypeValue(event, message);
     }
     if ('code' in domException) {
@@ -231,14 +221,14 @@ export function eventFromUnknownInput(
   }
   if (isError(exception)) {
     // we have a real Error object, do nothing
-    return eventFromError(exception);
+    return eventFromError(stackParser, exception);
   }
   if (isPlainObject(exception) || isEvent(exception)) {
     // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
     // it manually. This will allow us to group events based on top-level keys which is much better than creating a new
     // group on any key/value change.
     const objectException = exception as Record<string, unknown>;
-    event = eventFromPlainObject(objectException, syntheticException, isUnhandledRejection);
+    event = eventFromPlainObject(stackParser, objectException, syntheticException, isUnhandledRejection);
     addExceptionMechanism(event, {
       synthetic: true,
     });
@@ -254,7 +244,7 @@ export function eventFromUnknownInput(
   // - a plain Object
   //
   // So bail out and capture it as a simple message:
-  event = eventFromString(exception as string, syntheticException, attachStacktrace);
+  event = eventFromString(stackParser, exception as string, syntheticException, attachStacktrace);
   addExceptionTypeValue(event, `${exception}`, undefined);
   addExceptionMechanism(event, {
     synthetic: true,
@@ -266,13 +256,18 @@ export function eventFromUnknownInput(
 /**
  * @hidden
  */
-export function eventFromString(input: string, syntheticException?: Error, attachStacktrace?: boolean): Event {
+export function eventFromString(
+  stackParser: StackParser,
+  input: string,
+  syntheticException?: Error,
+  attachStacktrace?: boolean,
+): Event {
   const event: Event = {
     message: input,
   };
 
   if (attachStacktrace && syntheticException) {
-    const frames = parseStackFrames(syntheticException);
+    const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       event.exception = {
         values: [{ value: input, stacktrace: { frames } }],

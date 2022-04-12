@@ -1,7 +1,11 @@
 import { ExtendedError } from '@sentry/types';
+import { createStackParser } from '@sentry/utils';
 
 import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
+import { nodeStackParser } from '../../src/stack-parser';
+
+const stackParser = createStackParser(nodeStackParser);
 
 let linkedErrors: any;
 
@@ -17,7 +21,7 @@ describe('LinkedErrors', () => {
       const event = {
         message: 'foo',
       };
-      return linkedErrors._handler(event).then((result: any) => {
+      return linkedErrors._handler(stackParser, event).then((result: any) => {
         expect(spy.mock.calls.length).toEqual(0);
         expect(result).toEqual(event);
       });
@@ -27,13 +31,13 @@ describe('LinkedErrors', () => {
       expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const one = new Error('originalException');
-      const client = new NodeClient({});
+      const client = new NodeClient({ stackParser });
       let event: Event | undefined;
       return client
         .eventFromException(one)
         .then(eventFromException => {
           event = eventFromException;
-          return linkedErrors._handler(eventFromException);
+          return linkedErrors._handler(stackParser, eventFromException);
         })
         .then(result => {
           expect(spy.mock.calls.length).toEqual(0);
@@ -50,10 +54,10 @@ describe('LinkedErrors', () => {
           }),
       );
       const one = new Error('originalException');
-      const client = new NodeClient({});
+      const client = new NodeClient({ stackParser });
       return client.eventFromException(one).then(event =>
         linkedErrors
-          ._handler(event, {
+          ._handler(stackParser, event, {
             originalException: one,
           })
           .then((_: any) => {
@@ -70,10 +74,10 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const client = new NodeClient({});
+      const client = new NodeClient({ stackParser });
       return client.eventFromException(one).then(event =>
         linkedErrors
-          ._handler(event, {
+          ._handler(stackParser, event, {
             originalException: one,
           })
           .then((result: any) => {
@@ -103,10 +107,10 @@ describe('LinkedErrors', () => {
       one.reason = two;
       two.reason = three;
 
-      const client = new NodeClient({});
+      const client = new NodeClient({ stackParser });
       return client.eventFromException(one).then(event =>
         linkedErrors
-          ._handler(event, {
+          ._handler(stackParser, event, {
             originalException: one,
           })
           .then((result: any) => {
@@ -136,10 +140,10 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const client = new NodeClient({});
+      const client = new NodeClient({ stackParser });
       return client.eventFromException(one).then(event =>
         linkedErrors
-          ._handler(event, {
+          ._handler(stackParser, event, {
             originalException: one,
           })
           .then((result: any) => {

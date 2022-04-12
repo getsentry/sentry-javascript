@@ -42,6 +42,15 @@ export {
 } from '@sentry/core';
 
 export { BrowserClient, BrowserOptions } from './client';
+
+export {
+  defaultStackParsers,
+  chromeStackParser,
+  geckoStackParser,
+  opera10StackParser,
+  opera11StackParser,
+  winjsStackParser,
+} from './stack-parsers';
 export { injectReportDialog, ReportDialogOptions } from './helpers';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
 export { SDK_NAME } from './version';
