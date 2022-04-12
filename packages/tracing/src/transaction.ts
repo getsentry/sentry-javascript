@@ -80,17 +80,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * Set observed measurments for this transaction. This is a convenience function
-   * instead of multiple `setMeasurement` calls.
-   *
-   * @param measurements Measurements to set. Keys represent measurement names.
-   * Existing measurements with matching names will be overwritten.
-   */
-  public setMeasurements(measurements: Measurements): void {
-    this._measurements = { ...this._measurements, ...measurements };
-  }
-
-  /**
    * Set metadata for this transaction.
    * @hidden
    */
