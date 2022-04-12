@@ -1,6 +1,6 @@
 import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport, TransportOptions } from '@sentry/types';
-import { getGlobalObject, logger, supportsFetch } from '@sentry/utils';
+import { getGlobalObject, logger, stackParserFromOptions, supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
@@ -83,14 +83,20 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(exception, hint, this._options.attachStacktrace);
+    return eventFromException(stackParserFromOptions(this._options), exception, hint, this._options.attachStacktrace);
   }
 
   /**
    * @inheritDoc
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
-    return eventFromMessage(message, level, hint, this._options.attachStacktrace);
+    return eventFromMessage(
+      stackParserFromOptions(this._options),
+      message,
+      level,
+      hint,
+      this._options.attachStacktrace,
+    );
   }
 
   /**

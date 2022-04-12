@@ -50,7 +50,7 @@ export { Severity } from './severity';
 export { SeverityLevel, SeverityLevels } from './severity';
 export { Span, SpanContext } from './span';
 export { StackFrame } from './stackframe';
-export { Stacktrace } from './stacktrace';
+export { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export {
   CustomSamplingContext,
   Measurements,

@@ -1,4 +1,9 @@
+import { createStackParser } from '@sentry/utils';
+
 import { exceptionFromError } from '../../../src/eventbuilder';
+import { defaultStackParsers } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...defaultStackParsers);
 
 describe('Tracekit - Opera Tests', () => {
   it('should parse Opera 10 error', () => {
@@ -24,7 +29,7 @@ describe('Tracekit - Opera Tests', () => {
         '',
     };
 
-    const ex = exceptionFromError(OPERA_10);
+    const ex = exceptionFromError(parser, OPERA_10);
 
     expect(ex).toEqual({
       value: 'Statement on line 42: Type mismatch (usually non-object value supplied where object required)',
@@ -70,7 +75,7 @@ describe('Tracekit - Opera Tests', () => {
         '    foo();',
     };
 
-    const ex = exceptionFromError(OPERA_11);
+    const ex = exceptionFromError(parser, OPERA_11);
 
     expect(ex).toEqual({
       value: "'this.undef' is not a function",
@@ -107,7 +112,7 @@ describe('Tracekit - Opera Tests', () => {
         '    dumpException3();',
     };
 
-    const ex = exceptionFromError(OPERA_12);
+    const ex = exceptionFromError(parser, OPERA_12);
 
     expect(ex).toEqual({
       value: "Cannot convert 'x' to object",
@@ -151,7 +156,7 @@ describe('Tracekit - Opera Tests', () => {
         '    at bar (http://path/to/file.js:108:168)',
     };
 
-    const ex = exceptionFromError(OPERA_25);
+    const ex = exceptionFromError(parser, OPERA_25);
 
     expect(ex).toEqual({
       value: "Cannot read property 'undef' of null",
