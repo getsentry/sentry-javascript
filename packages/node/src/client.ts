@@ -3,7 +3,6 @@ import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, Severity, Transport, TransportOptions } from '@sentry/types';
 import { logger, makeDsn, resolvedSyncPromise } from '@sentry/utils';
 
-import { NodeBackend } from './backend';
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
 import { HTTPSTransport, HTTPTransport, makeNodeTransport } from './transports';
@@ -14,10 +13,8 @@ import { NodeOptions } from './types';
  *
  * @see NodeOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
- *
- * TODO(v7): remove NodeBackend
  */
-export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
+export class NodeClient extends BaseClient<NodeOptions> {
   protected _sessionFlusher: SessionFlusher | undefined;
 
   /**
@@ -37,8 +34,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
       version: SDK_VERSION,
     };
 
-    // TODO(v7): remove NodeBackend param
-    super(NodeBackend, options);
+    super(options);
   }
 
   /**

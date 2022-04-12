@@ -29,7 +29,6 @@ import {
 } from '@sentry/utils';
 
 import { initAPIDetails } from './api';
-import { Backend, BackendClass } from './basebackend';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
@@ -41,19 +40,16 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
 /**
  * Base implementation for all JavaScript SDK clients.
  *
- * TODO(v7): refactor doc w.r.t. Backend
- *
- * Call the constructor with the corresponding backend constructor and options
+ * Call the constructor with the corresponding options
  * specific to the client subclass. To access these options later, use
- * {@link Client.getOptions}. Also, the Backend instance is available via
- * {@link Client.getBackend}.
+ * {@link Client.getOptions}.
  *
  * If a Dsn is specified in the options, it will be parsed and stored. Use
  * {@link Client.getDsn} to retrieve the Dsn at any moment. In case the Dsn is
  * invalid, the constructor will throw a {@link SentryException}. Note that
  * without a valid Dsn, the SDK will not send any events to Sentry.
  *
- * Before sending an event via the backend, it is passed through
+ * Before sending an event, it is passed through
  * {@link BaseClient._prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
@@ -64,23 +60,15 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * {@link Client.addBreadcrumb}.
  *
  * @example
- * class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
+ * class NodeClient extends BaseClient<NodeOptions> {
  *   public constructor(options: NodeOptions) {
- *     super(NodeBackend, options);
+ *     super(options);
  *   }
  *
  *   // ...
  * }
  */
-export abstract class BaseClient<B extends Backend, O extends Options> implements Client<O> {
-  /**
-   * The backend used to physically interact in the environment. Usually, this
-   * will correspond to the client. When composing SDKs, however, the Backend
-   * from the root SDK will be used.
-   * TODO(v7): DELETE
-   */
-  protected readonly _backend: B;
-
+export abstract class BaseClient<O extends Options> implements Client<O> {
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -102,12 +90,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * Initializes this client instance.
    *
-   * @param backendClass A constructor function to create the backend.
    * @param options Options for the client.
    */
-  protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    // TODO(v7): Delete
-    this._backend = new backendClass(options);
+  protected constructor(options: O) {
     this._options = options;
 
     if (options.dsn) {
@@ -386,13 +371,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     });
   }
 
-  /** Returns the current backend.
-   * TODO(v7): DELETE
-   */
-  protected _getBackend(): B {
-    return this._backend;
-  }
-
   /** Determines whether this SDK is enabled and a valid Dsn is present. */
   protected _isEnabled(): boolean {
     return this.getOptions().enabled !== false && this._dsn !== undefined;
@@ -558,7 +536,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
-   * Tells the backend to send this event
+   * Sends the passed event
    * @param event The Sentry event to send
    */
   // TODO(v7): refactor: get rid of method?
