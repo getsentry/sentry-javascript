@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Measurements, SpanContext } from '@sentry/types';
+import { SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
@@ -17,7 +17,7 @@ const global = getGlobalObject<Window>();
 
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
-  private _measurements: Measurements = {};
+  private _measurements: Record<string, { value: number }> = {};
 
   private _performanceCursor: number = 0;
   private _lcpEntry: LargestContentfulPaint | undefined;
@@ -162,7 +162,10 @@ export class MetricsInstrumentation {
         delete this._measurements.cls;
       }
 
-      transaction.setMeasurements(this._measurements);
+      Object.keys(this._measurements).forEach(measurementName => {
+        transaction.setMeasurement(measurementName, this._measurements[measurementName].value);
+      });
+
       tagMetricInfo(transaction, this._lcpEntry, this._clsEntry);
       transaction.setTag('sentry_reportAllChanges', this._reportAllChanges);
     }
@@ -189,11 +192,11 @@ export class MetricsInstrumentation {
       }
 
       if (isMeasurementValue(connection.rtt)) {
-        this._measurements['connection.rtt'] = { value: connection.rtt as number };
+        this._measurements['connection.rtt'] = { value: connection.rtt };
       }
 
       if (isMeasurementValue(connection.downlink)) {
-        this._measurements['connection.downlink'] = { value: connection.downlink as number };
+        this._measurements['connection.downlink'] = { value: connection.downlink };
       }
     }
 
@@ -392,7 +395,7 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
 /**
  * Checks if a given value is a valid measurement value.
  */
-function isMeasurementValue(value: any): boolean {
+function isMeasurementValue(value: unknown): value is number {
   return typeof value === 'number' && isFinite(value);
 }
 

@@ -115,7 +115,8 @@ export interface SamplingContext extends CustomSamplingContext {
   request?: ExtractedNodeRequestData;
 }
 
-export type Measurements = Record<string, { value: number }>;
+export type MeasurementUnit = 'ns' | 'ms' | 's';
+export type Measurements = Record<string, { value: number; unit: MeasurementUnit }>;
 
 export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'client_rate' | 'inheritance';
 
