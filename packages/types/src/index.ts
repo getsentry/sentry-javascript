@@ -54,7 +54,6 @@ export { Stacktrace } from './stacktrace';
 export {
   CustomSamplingContext,
   Measurements,
-  MeasurementUnit,
   SamplingContext,
   TraceparentData,
   Transaction,

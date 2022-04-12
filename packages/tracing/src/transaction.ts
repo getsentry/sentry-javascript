@@ -2,7 +2,6 @@ import { getCurrentHub, Hub } from '@sentry/hub';
 import {
   Event,
   Measurements,
-  MeasurementUnit,
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionMetadata,
@@ -72,10 +71,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * Set observed measurement for this transaction.
    * @param name Name of the measurement
    * @param value Value of the measurement
-   * @param unit Unit of the measurement. (Defaults to 'ms' - milliseconds)
+   * @param unit Unit of the measurement. (Defaults to an empty string)
    * @hidden
    */
-  public setMeasurement(name: string, value: number, unit: MeasurementUnit = 'ms'): void {
+  public setMeasurement(name: string, value: number, unit: string = ''): void {
     this._measurements[name] = { value, unit };
   }
 
