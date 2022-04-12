@@ -29,7 +29,7 @@ If you need to support Internet Explorer 11 or old Node.js versions, we recommen
 
 ### Renaming Of CDN Bundles
 
-CDN bundles will be ES6 by default. Files that followed the naming scheme `bundle.es6.min.js` will be renamed to `bundle.min.js` and any bundles using ES5 (files without `.es6`) will turn into `bundle.es5.min.js`.
+CDN bundles will be ES6 by default. Files that followed the naming scheme `bundle.es6.min.js` were renamed to `bundle.min.js` and any bundles using ES5 (files without `.es6`) turned into `bundle.es5.min.js`.
 
 See our [docs on CDN bundles](https://docs.sentry.io/platforms/javascript/install/cdn/) for more information.
 
