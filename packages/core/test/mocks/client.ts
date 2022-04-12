@@ -4,6 +4,8 @@ import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
+import { NewTransport } from '../../src/transports/base';
+import { NoopTransport } from '../../src/transports/noop';
 export interface TestOptions extends Options {
   test?: boolean;
   mockInstallFailure?: boolean;
@@ -17,8 +19,8 @@ export class TestClient extends BaseClient<TestOptions> {
   public event?: Event;
   public session?: Session;
 
-  public constructor(options: TestOptions) {
-    super(options);
+  public constructor(options: TestOptions, transport: Transport, newTransport?: NewTransport) {
+    super(options, transport, newTransport);
     TestClient.instance = this;
   }
 
@@ -59,26 +61,25 @@ export class TestClient extends BaseClient<TestOptions> {
   public sendSession(session: Session): void {
     this.session = session;
   }
-
-  protected _setupTransport(): Transport {
-    if (!this._options.dsn) {
-      // We return the noop transport here in case there is no Dsn.
-      return super._setupTransport();
-    }
-
-    const transportOptions = this._options.transportOptions
-      ? this._options.transportOptions
-      : { dsn: this._options.dsn };
-
-    if (this._options.transport) {
-      return new this._options.transport(transportOptions);
-    }
-
-    return super._setupTransport();
-  }
 }
 
-// TODO(v7): wtf?
-export function init(options: TestOptions): void {
-  initAndBind(TestClient, options);
+export function init(options: TestOptions, transport: Transport, newTransport?: NewTransport): void {
+  initAndBind(TestClient, options, transport, newTransport);
+}
+
+export function setupTestTransport(options: TestOptions): { transport: Transport; newTransport?: NewTransport } {
+  const noop = { transport: new NoopTransport() };
+
+  if (!options.dsn) {
+    // We return the noop transport here in case there is no Dsn.
+    return noop;
+  }
+
+  const transportOptions = options.transportOptions ? options.transportOptions : { dsn: options.dsn };
+
+  if (options.transport) {
+    return { transport: new this._options.transport(transportOptions) };
+  }
+
+  return noop;
 }
