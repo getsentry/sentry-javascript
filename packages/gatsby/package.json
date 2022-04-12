@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "6.19.6",
+  "version": "7.0.0-alpha.0",
   "description": "Official Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -13,15 +13,15 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "build/dist/index.js",
+  "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/react": "6.19.6",
-    "@sentry/tracing": "6.19.6",
+    "@sentry/react": "7.0.0-alpha.0",
+    "@sentry/tracing": "7.0.0-alpha.0",
     "@sentry/webpack-plugin": "1.18.8"
   },
   "peerDependencies": {
@@ -29,7 +29,7 @@
     "react": "15.x || 16.x || 17.x || 18.x"
   },
   "devDependencies": {
-    "@sentry/types": "6.19.6",
+    "@sentry/types": "7.0.0-alpha.0",
     "@testing-library/react": "^13.0.0",
     "react": "^18.0.0"
   },
@@ -48,7 +48,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf dist esm build coverage",
+    "clean": "rimraf build coverage",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
@@ -61,32 +61,6 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "jest": {
-    "collectCoverage": true,
-    "transform": {
-      "^.+\\.ts$": "ts-jest",
-      "^.+\\.tsx$": "ts-jest"
-    },
-    "moduleFileExtensions": [
-      "js",
-      "ts",
-      "tsx"
-    ],
-    "testEnvironment": "jsdom",
-    "testMatch": [
-      "**/*.test.ts",
-      "**/*.test.tsx"
-    ],
-    "globals": {
-      "ts-jest": {
-        "tsConfig": "./tsconfig.json",
-        "diagnostics": false
-      }
-    },
-    "setupFiles": [
-      "<rootDir>/test/setEnvVars.ts"
-    ]
   },
   "sideEffects": false
 }

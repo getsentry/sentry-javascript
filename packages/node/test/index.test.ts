@@ -1,6 +1,7 @@
 import { initAndBind, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
 import { Integration } from '@sentry/types';
+import { createStackParser } from '@sentry/utils';
 import * as domain from 'domain';
 
 import {
@@ -15,8 +16,10 @@ import {
   NodeClient,
   Scope,
 } from '../src';
-import { NodeBackend } from '../src/backend';
 import { ContextLines, LinkedErrors } from '../src/integrations';
+import { nodeStackParser } from '../src/stack-parser';
+
+const stackParser = createStackParser(nodeStackParser);
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
@@ -78,7 +81,7 @@ describe('SentryNode', () => {
     let s: jest.SpyInstance<void, Event[]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
@@ -87,6 +90,7 @@ describe('SentryNode', () => {
 
     test('record auto breadcrumbs', done => {
       const client = new NodeClient({
+        stackParser,
         beforeSend: (event: Event) => {
           // TODO: It should be 3, but we don't capture a breadcrumb
           // for our own captureMessage/captureException calls yet
@@ -107,7 +111,7 @@ describe('SentryNode', () => {
     let s: jest.SpyInstance<void, Event[]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
@@ -118,6 +122,7 @@ describe('SentryNode', () => {
       expect.assertions(6);
       getCurrentHub().bindClient(
         new NodeClient({
+          stackParser,
           beforeSend: (event: Event) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
@@ -145,6 +150,7 @@ describe('SentryNode', () => {
       expect.assertions(6);
       getCurrentHub().bindClient(
         new NodeClient({
+          stackParser,
           beforeSend: (event: Event) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
@@ -172,6 +178,7 @@ describe('SentryNode', () => {
       expect.assertions(10);
       getCurrentHub().bindClient(
         new NodeClient({
+          stackParser,
           beforeSend: (event: Event) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
@@ -203,6 +210,7 @@ describe('SentryNode', () => {
       expect.assertions(15);
       getCurrentHub().bindClient(
         new NodeClient({
+          stackParser,
           integrations: [new ContextLines(), new LinkedErrors()],
           beforeSend: (event: Event) => {
             expect(event.exception).not.toBeUndefined();
@@ -243,6 +251,7 @@ describe('SentryNode', () => {
       expect.assertions(2);
       getCurrentHub().bindClient(
         new NodeClient({
+          stackParser,
           beforeSend: (event: Event) => {
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
@@ -259,6 +268,7 @@ describe('SentryNode', () => {
       expect.assertions(2);
       getCurrentHub().bindClient(
         new NodeClient({
+          stackParser,
           beforeSend: (event: Event) => {
             expect(event.message).toBe('test event');
             expect(event.exception).toBeUndefined();
@@ -275,6 +285,7 @@ describe('SentryNode', () => {
       const d = domain.create();
 
       const client = new NodeClient({
+        stackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test domain');
           expect(event.exception).toBeUndefined();
@@ -295,6 +306,7 @@ describe('SentryNode', () => {
       expect.assertions(1);
       getCurrentHub().bindClient(
         new NodeClient({
+          stackParser,
           beforeSend: (event: Event) => {
             expect(
               event.exception!.values![0].stacktrace!.frames![
@@ -360,7 +372,7 @@ describe('SentryNode initialization', () => {
       init({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');
@@ -372,7 +384,7 @@ describe('SentryNode initialization', () => {
       const client = new NodeClient({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (client as any)._backend._transport._api.metadata?.sdk;
+      const sdkData = (client as any).getTransport()._api.metadata?.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');
@@ -401,7 +413,7 @@ describe('SentryNode initialization', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any)._backend._transport._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.serverless');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/serverless');

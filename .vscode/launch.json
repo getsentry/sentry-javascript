@@ -5,16 +5,16 @@
   "version": "0.2.0",
   "inputs": [
     {
-        "id": "getPackageName",
-        "type": "command",
-        "command": "shellCommand.execute",
-        "args": {
-            "command": "echo '${file}' | sed s/'.*sentry-javascript\\/packages\\/'// | grep --extended-regexp --only-matching --max-count 1 '[^\\/]+' | head -1",
-            "cwd": "${workspaceFolder}" ,
-            // normally `input` commands bring up a selector for the user, but given that there should only be one
-            // choice here, this lets us skip the prompt
-            "useSingleResult": true
-        }
+      "id": "getPackageName",
+      "type": "command",
+      "command": "shellCommand.execute",
+      "args": {
+        "command": "echo '${file}' | sed s/'.*sentry-javascript\\/packages\\/'// | grep --extended-regexp --only-matching --max-count 1 '[^\\/]+' | head -1",
+        "cwd": "${workspaceFolder}",
+        // normally `input` commands bring up a selector for the user, but given that there should only be one
+        // choice here, this lets us skip the prompt
+        "useSingleResult": true
+      }
     }
   ],
   "configurations": [
@@ -25,18 +25,9 @@
       "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
       "request": "launch",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": [
-        "rollup",
-        "-c",
-        "${file}"
-      ],
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "outFiles": [
-        "${workspaceFolder}/**/*.js",
-        "!**/node_modules/**"
-      ],
+      "runtimeArgs": ["rollup", "-c", "${file}"],
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**"],
       "sourceMaps": true,
       "smartStep": true,
       "internalConsoleOptions": "openOnSessionStart",
@@ -56,9 +47,6 @@
         // this runs one test at a time, rather than running them in parallel (necessary for debugging so that you know
         // you're hitting a single test's breakpoints, in order)
         "--runInBand",
-        // TODO: when we unify jest config, we may need to change this
-        "--config",
-        "${workspaceFolder}/packages/${input:getPackageName}/package.json",
         // coverage messes up the source maps
         "--coverage",
         "false",
@@ -67,13 +55,12 @@
       ],
       "sourceMaps": true,
       "smartStep": true,
-       // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on
-       // "outputCapture" option here; default is to show console logs), but not both
+      // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on
+      // "outputCapture" option here; default is to show console logs), but not both
       "console": "integratedTerminal",
       // since we're not using it, don't automatically switch to it
-      "internalConsoleOptions": "neverOpen",
+      "internalConsoleOptions": "neverOpen"
     },
-
 
     // @sentry/nextjs - Run a specific integration test file
     // Must have test file in currently active tab when hitting the play button, and must already have run `yarn` in test app directory
@@ -105,18 +92,17 @@
       // this controls which files are sourcemapped
       "outFiles": [
         // our SDK code
-        "${workspaceFolder}/**/dist/**/*.js",
+        "${workspaceFolder}/**/cjs/**/*.js",
         // the built test app
         "${workspaceFolder}/packages/nextjs/test/integration/.next/**/*.js",
         "!**/node_modules/**"
       ],
       "resolveSourceMapLocations": [
-        "${workspaceFolder}/**/dist/**",
+        "${workspaceFolder}/**/cjs/**",
         "${workspaceFolder}/packages/nextjs/test/integration/.next/**",
         "!**/node_modules/**"
       ],
       "internalConsoleOptions": "openOnSessionStart"
-
-    },
+    }
   ]
 }

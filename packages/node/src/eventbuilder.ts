@@ -1,34 +1,31 @@
 import { getCurrentHub } from '@sentry/hub';
-import { Event, EventHint, Exception, Mechanism, Severity, StackFrame } from '@sentry/types';
+import { Event, EventHint, Exception, Mechanism, Severity, StackFrame, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
-  createStackParser,
   extractExceptionKeysForMessage,
   isError,
   isPlainObject,
   normalizeToSize,
 } from '@sentry/utils';
 
-import { nodeStackParser } from './stack-parser';
-
 /**
  * Extracts stack frames from the error.stack string
  */
-export function parseStackFrames(error: Error): StackFrame[] {
-  return createStackParser(nodeStackParser)(error.stack || '', 1);
+export function parseStackFrames(stackParser: StackParser, error: Error): StackFrame[] {
+  return stackParser(error.stack || '', 1);
 }
 
 /**
  * Extracts stack frames from the error and builds a Sentry Exception
  */
-export function exceptionFromError(error: Error): Exception {
+export function exceptionFromError(stackParser: StackParser, error: Error): Exception {
   const exception: Exception = {
     type: error.name || error.constructor.name,
     value: error.message,
   };
 
-  const frames = parseStackFrames(error);
+  const frames = parseStackFrames(stackParser, error);
   if (frames.length) {
     exception.stacktrace = { frames };
   }
@@ -40,7 +37,7 @@ export function exceptionFromError(error: Error): Exception {
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromUnknownInput(exception: unknown, hint?: EventHint): Event {
+export function eventFromUnknownInput(stackParser: StackParser, exception: unknown, hint?: EventHint): Event {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =
@@ -73,7 +70,7 @@ export function eventFromUnknownInput(exception: unknown, hint?: EventHint): Eve
 
   const event = {
     exception: {
-      values: [exceptionFromError(ex as Error)],
+      values: [exceptionFromError(stackParser, ex as Error)],
     },
   };
 
@@ -91,6 +88,7 @@ export function eventFromUnknownInput(exception: unknown, hint?: EventHint): Eve
  * @hidden
  */
 export function eventFromMessage(
+  stackParser: StackParser,
   message: string,
   level: Severity = Severity.Info,
   hint?: EventHint,
@@ -103,9 +101,16 @@ export function eventFromMessage(
   };
 
   if (attachStacktrace && hint && hint.syntheticException) {
-    const frames = parseStackFrames(hint.syntheticException);
+    const frames = parseStackFrames(stackParser, hint.syntheticException);
     if (frames.length) {
-      event.stacktrace = { frames };
+      event.exception = {
+        values: [
+          {
+            value: message,
+            stacktrace: { frames },
+          },
+        ],
+      };
     }
   }
 

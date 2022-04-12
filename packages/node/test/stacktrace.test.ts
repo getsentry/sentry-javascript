@@ -10,7 +10,12 @@
  * @license MIT
  */
 
+import { createStackParser } from '@sentry/utils';
+
 import { parseStackFrames } from '../src/eventbuilder';
+import { nodeStackParser } from '../src/stack-parser';
+
+const stackParser = createStackParser(nodeStackParser);
 
 function testBasic() {
   return new Error('something went wrong');
@@ -26,17 +31,17 @@ function evalWrapper() {
 
 describe('Stack parsing', () => {
   test('test basic error', () => {
-    const frames = parseStackFrames(testBasic());
+    const frames = parseStackFrames(stackParser, testBasic());
 
     const last = frames.length - 1;
     expect(frames[last].filename).toEqual(__filename);
     expect(frames[last].function).toEqual('testBasic');
-    expect(frames[last].lineno).toEqual(16);
+    expect(frames[last].lineno).toEqual(21);
     expect(frames[last].colno).toEqual(10);
   });
 
   test('test error with wrapper', () => {
-    const frames = parseStackFrames(testWrapper());
+    const frames = parseStackFrames(stackParser, testWrapper());
 
     const last = frames.length - 1;
     expect(frames[last].function).toEqual('testBasic');
@@ -44,7 +49,7 @@ describe('Stack parsing', () => {
   });
 
   test('test error with eval wrapper', () => {
-    const frames = parseStackFrames(evalWrapper());
+    const frames = parseStackFrames(stackParser, evalWrapper());
 
     const last = frames.length - 1;
     expect(frames[last].function).toEqual('testBasic');
@@ -59,7 +64,7 @@ describe('Stack parsing', () => {
       '    at [object Object].global.every [as _onTimeout] (/Users/hoitz/develop/test.coffee:36:3)\n' +
       '    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)\n';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -83,7 +88,7 @@ describe('Stack parsing', () => {
 
   test('parses undefined stack', () => {
     const err = { stack: undefined };
-    const trace = parseStackFrames(err as Error);
+    const trace = parseStackFrames(stackParser, err as Error);
 
     expect(trace).toEqual([]);
   });
@@ -97,7 +102,7 @@ describe('Stack parsing', () => {
       'oh no' +
       '    at TestCase.run (/Users/felix/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -126,7 +131,7 @@ describe('Stack parsing', () => {
       '    at Test.fn (/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js:6)\n' +
       '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/test.js:45)';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -157,7 +162,7 @@ describe('Stack parsing', () => {
       '    at Array.0 (native)\n' +
       '    at EventEmitter._tickCallback (node.js:126:26)';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -212,7 +217,7 @@ describe('Stack parsing', () => {
     const err = new Error();
     err.stack = 'AssertionError: true == false\n' + '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -232,7 +237,7 @@ describe('Stack parsing', () => {
       'AssertionError: true == false\nAnd some more shit\n' +
       '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -252,7 +257,7 @@ describe('Stack parsing', () => {
       'AssertionError: expected [] to be arguments\n' +
       '    at Assertion.prop.(anonymous function) (/Users/den/Projects/should.js/lib/should.js:60:14)\n';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -273,7 +278,7 @@ describe('Stack parsing', () => {
       '    at Test.run (/Users/felix (something)/code/node-fast-or-slow/lib/test.js:45:10)\n' +
       '    at TestCase.run (/Users/felix (something)/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {
@@ -309,7 +314,7 @@ describe('Stack parsing', () => {
       '    at async onBatch (/code/node_modules/kafkajs/src/consumer/runner.js:326:9)\n' +
       '    at async /code/node_modules/kafkajs/src/consumer/runner.js:376:15\n';
 
-    const frames = parseStackFrames(err);
+    const frames = parseStackFrames(stackParser, err);
 
     expect(frames).toEqual([
       {

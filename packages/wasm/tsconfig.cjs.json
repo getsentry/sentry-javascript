@@ -3,6 +3,6 @@
 
   "compilerOptions": {
     "module": "commonjs",
-    "outDir": "build/npm/dist"
+    "outDir": "build/npm/cjs"
   }
 }

@@ -234,8 +234,6 @@ describe('breadcrumbs', function () {
         assert.equal(summary.breadcrumbHints.length, 1);
         assert.equal(summary.breadcrumbHints[0].name, 'click');
         assert.equal(summary.breadcrumbHints[0].event.target.tagName, 'INPUT');
-        // There should be no expection, if there is one it means we threw it
-        assert.isUndefined(summary.events[0].exception);
       }
     });
   });
@@ -265,9 +263,6 @@ describe('breadcrumbs', function () {
 
         assert.equal(summary.breadcrumbs[1].category, 'ui.input');
         assert.equal(summary.breadcrumbs[1].message, 'body > form#foo-form > input[name="foo"]');
-
-        // There should be no expection, if there is one it means we threw it
-        assert.isUndefined(summary.events[0].exception);
       }
     });
   });
@@ -288,8 +283,6 @@ describe('breadcrumbs', function () {
         // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
         assert.lengthOf(summary.events, 1);
       } else {
-        // There should be no expection, if there is one it means we threw it
-        assert.isUndefined(summary.events[0].exception);
         assert.equal(summary.breadcrumbs.length, 0);
       }
     });
@@ -309,8 +302,6 @@ describe('breadcrumbs', function () {
         // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
         assert.lengthOf(summary.events, 1);
       } else {
-        // There should be no expection, if there is one it means we threw it
-        assert.isUndefined(summary.events[0].exception);
         assert.equal(summary.breadcrumbs.length, 0);
       }
     });
@@ -472,7 +463,6 @@ describe('breadcrumbs', function () {
         assert.equal(summary.breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
         assert.equal(summary.breadcrumbHints[0].global, false);
         assert.equal(summary.breadcrumbHints[1].global, false);
-        assert.isUndefined(summary.events[0].exception);
       }
     });
   });
@@ -507,7 +497,6 @@ describe('breadcrumbs', function () {
         assert.equal(summary.breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
         assert.equal(summary.breadcrumbHints[0].global, false);
         assert.equal(summary.breadcrumbHints[1].global, false);
-        assert.isUndefined(summary.events[0].exception);
       }
     });
   });
@@ -538,7 +527,6 @@ describe('breadcrumbs', function () {
         assert.equal(summary.breadcrumbs[1].message, 'body > form#foo-form > div.contenteditable');
         assert.equal(summary.breadcrumbHints[0].global, false);
         assert.equal(summary.breadcrumbHints[1].global, false);
-        assert.isUndefined(summary.events[0].exception);
       }
     });
   });
@@ -706,7 +694,6 @@ describe('breadcrumbs', function () {
         assert.equal(summary.breadcrumbs.length, 2);
         assert.equal(summary.breadcrumbHints[0].global, true);
         assert.equal(summary.breadcrumbHints[1].global, true);
-        assert.isUndefined(summary.events[0].exception);
       }
     });
   });

@@ -20,7 +20,7 @@ function runVariant(variant) {
     });
 
     /**
-     * This part will be replaced by the test runner
+     * The test runner will replace each of these placeholders with the contents of the corresponding file.
      */
     {{ suites/config.js }} // prettier-ignore
     {{ suites/api.js }} // prettier-ignore

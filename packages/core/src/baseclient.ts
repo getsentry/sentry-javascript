@@ -28,26 +28,28 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { Backend, BackendClass } from './basebackend';
+import { initAPIDetails } from './api';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
+import { createEventEnvelope, createSessionEnvelope } from './request';
+import { NewTransport } from './transports/base';
+import { NoopTransport } from './transports/noop';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
 /**
  * Base implementation for all JavaScript SDK clients.
  *
- * Call the constructor with the corresponding backend constructor and options
+ * Call the constructor with the corresponding options
  * specific to the client subclass. To access these options later, use
- * {@link Client.getOptions}. Also, the Backend instance is available via
- * {@link Client.getBackend}.
+ * {@link Client.getOptions}.
  *
  * If a Dsn is specified in the options, it will be parsed and stored. Use
  * {@link Client.getDsn} to retrieve the Dsn at any moment. In case the Dsn is
  * invalid, the constructor will throw a {@link SentryException}. Note that
  * without a valid Dsn, the SDK will not send any events to Sentry.
  *
- * Before sending an event via the backend, it is passed through
+ * Before sending an event, it is passed through
  * {@link BaseClient._prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
@@ -58,22 +60,15 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * {@link Client.addBreadcrumb}.
  *
  * @example
- * class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
+ * class NodeClient extends BaseClient<NodeOptions> {
  *   public constructor(options: NodeOptions) {
- *     super(NodeBackend, options);
+ *     super(options);
  *   }
  *
  *   // ...
  * }
  */
-export abstract class BaseClient<B extends Backend, O extends Options> implements Client<O> {
-  /**
-   * The backend used to physically interact in the environment. Usually, this
-   * will correspond to the client. When composing SDKs, however, the Backend
-   * from the root SDK will be used.
-   */
-  protected readonly _backend: B;
-
+export abstract class BaseClient<O extends Options> implements Client<O> {
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -86,19 +81,27 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Number of calls being processed */
   protected _numProcessing: number = 0;
 
+  /** Cached transport used internally. */
+  protected _transport: Transport;
+
+  /** New v7 Transport that is initialized alongside the old one */
+  protected _newTransport?: NewTransport;
+
   /**
    * Initializes this client instance.
    *
-   * @param backendClass A constructor function to create the backend.
    * @param options Options for the client.
    */
-  protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    this._backend = new backendClass(options);
+  protected constructor(options: O) {
     this._options = options;
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
+    } else {
+      IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
+
+    this._transport = this._setupTransport();
   }
 
   /**
@@ -115,8 +118,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
-      this._getBackend()
-        .eventFromException(exception, hint)
+      this.eventFromException(exception, hint)
         .then(event => this._captureEvent(event, hint, scope))
         .then(result => {
           eventId = result;
@@ -133,8 +135,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
-      ? this._getBackend().eventFromMessage(String(message), level, hint)
-      : this._getBackend().eventFromException(message, hint);
+      ? this.eventFromMessage(String(message), level, hint)
+      : this.eventFromException(message, hint);
 
     this._process(
       promisedEvent
@@ -204,7 +206,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public getTransport(): Transport {
-    return this._getBackend().getTransport();
+    return this._transport;
   }
 
   /**
@@ -249,6 +251,57 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
   }
 
+  /**
+   * @inheritDoc
+   */
+  public sendEvent(event: Event): void {
+    // TODO(v7): Remove the if-else
+    if (
+      this._newTransport &&
+      this._options.dsn &&
+      this._options._experiments &&
+      this._options._experiments.newTransport
+    ) {
+      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
+      const env = createEventEnvelope(event, api);
+      void this._newTransport.send(env).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
+      });
+    } else {
+      void this._transport.sendEvent(event).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
+      });
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public sendSession(session: Session): void {
+    if (!this._transport.sendSession) {
+      IS_DEBUG_BUILD && logger.warn("Dropping session because custom transport doesn't implement sendSession");
+      return;
+    }
+
+    // TODO(v7): Remove the if-else
+    if (
+      this._newTransport &&
+      this._options.dsn &&
+      this._options._experiments &&
+      this._options._experiments.newTransport
+    ) {
+      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
+      const [env] = createSessionEnvelope(session, api);
+      void this._newTransport.send(env).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
+      });
+    } else {
+      void this._transport.sendSession(session).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
+      });
+    }
+  }
+
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
@@ -283,8 +336,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Deliver captured session to Sentry */
+  // TODO(v7): should this be deleted?
   protected _sendSession(session: Session): void {
-    this._getBackend().sendSession(session);
+    this.sendSession(session);
   }
 
   /**
@@ -315,11 +369,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
       }, tick);
     });
-  }
-
-  /** Returns the current backend. */
-  protected _getBackend(): B {
-    return this._backend;
   }
 
   /** Determines whether this SDK is enabled and a valid Dsn is present. */
@@ -487,11 +536,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
-   * Tells the backend to send this event
+   * Sends the passed event
    * @param event The Sentry event to send
    */
+  // TODO(v7): refactor: get rid of method?
   protected _sendEvent(event: Event): void {
-    this._getBackend().sendEvent(event);
+    this.sendEvent(event);
   }
 
   /**
@@ -618,6 +668,24 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       },
     );
   }
+
+  /**
+   * Sets up the transport so it can be used later to send requests.
+   */
+  protected _setupTransport(): Transport {
+    return new NoopTransport();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+
+  /**
+   * @inheritDoc
+   */
+  public abstract eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event>;
 }
 
 /**

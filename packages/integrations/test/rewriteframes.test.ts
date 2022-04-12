@@ -65,12 +65,6 @@ describe('RewriteFrames', () => {
       rewriteFrames = new RewriteFrames();
     });
 
-    it('transforms messageEvent frames', () => {
-      const event = rewriteFrames.process(messageEvent);
-      expect(event.stacktrace!.frames![0].filename).toEqual('app:///file1.js');
-      expect(event.stacktrace!.frames![1].filename).toEqual('app:///file2.js');
-    });
-
     it('transforms exceptionEvent frames', () => {
       const event = rewriteFrames.process(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
@@ -83,12 +77,6 @@ describe('RewriteFrames', () => {
       rewriteFrames = new RewriteFrames({
         prefix: 'foobar/',
       });
-    });
-
-    it('transforms messageEvent frames', () => {
-      const event = rewriteFrames.process(messageEvent);
-      expect(event.stacktrace!.frames![0].filename).toEqual('foobar/file1.js');
-      expect(event.stacktrace!.frames![1].filename).toEqual('foobar/file2.js');
     });
 
     it('transforms exceptionEvent frames', () => {
@@ -117,12 +105,6 @@ describe('RewriteFrames', () => {
       });
     });
 
-    it('transforms messageEvent frames', () => {
-      const event = rewriteFrames.process(messageEvent);
-      expect(event.stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
-      expect(event.stacktrace!.frames![1].filename).toEqual('app:///src/app/mo\\dule/file2.js');
-    });
-
     it('transforms exceptionEvent frames', () => {
       const event = rewriteFrames.process(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
@@ -144,14 +126,6 @@ describe('RewriteFrames', () => {
           function: 'whoops',
         }),
       });
-    });
-
-    it('transforms messageEvent frames', () => {
-      const event = rewriteFrames.process(messageEvent);
-      expect(event.stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
-      expect(event.stacktrace!.frames![0].function).toEqual('whoops');
-      expect(event.stacktrace!.frames![1].filename).toEqual('/www/src/app/mo\\dule/file2.js');
-      expect(event.stacktrace!.frames![1].function).toEqual('whoops');
     });
 
     it('transforms exceptionEvent frames', () => {
