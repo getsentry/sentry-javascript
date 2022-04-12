@@ -7,13 +7,12 @@ export {
   Exception,
   Response,
   Severity,
+  SeverityLevel,
   StackFrame,
   Stacktrace,
   Thread,
   User,
 } from '@sentry/types';
-
-export { SeverityLevel } from '@sentry/utils';
 
 export {
   addGlobalEventProcessor,

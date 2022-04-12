@@ -1,6 +1,4 @@
-import { Severity } from '@sentry/types';
-
-import { SeverityLevel } from './enums';
+import { Severity, SeverityLevel } from '@sentry/types';
 
 export const validSeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug', 'critical'];
 
