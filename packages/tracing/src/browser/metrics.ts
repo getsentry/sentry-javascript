@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SpanContext } from '@sentry/types';
+import { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
@@ -17,7 +17,7 @@ const global = getGlobalObject<Window>();
 
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
-  private _measurements: Record<string, { value: number }> = {};
+  private _measurements: Measurements = {};
 
   private _performanceCursor: number = 0;
   private _lcpEntry: LargestContentfulPaint | undefined;
@@ -79,14 +79,14 @@ export class MetricsInstrumentation {
 
             if (entry.name === 'first-paint' && shouldRecord) {
               IS_DEBUG_BUILD && logger.log('[Measurements] Adding FP');
-              this._measurements['fp'] = { value: entry.startTime };
-              this._measurements['mark.fp'] = { value: startTimestamp };
+              this._measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
+              this._measurements['mark.fp'] = { value: startTimestamp, unit: 'second' };
             }
 
             if (entry.name === 'first-contentful-paint' && shouldRecord) {
               IS_DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
-              this._measurements['fcp'] = { value: entry.startTime };
-              this._measurements['mark.fcp'] = { value: startTimestamp };
+              this._measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
+              this._measurements['mark.fcp'] = { value: startTimestamp, unit: 'second' };
             }
 
             break;
@@ -115,12 +115,18 @@ export class MetricsInstrumentation {
       // start of the response in milliseconds
       if (typeof responseStartTimestamp === 'number') {
         IS_DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
-        this._measurements['ttfb'] = { value: (responseStartTimestamp - transaction.startTimestamp) * 1000 };
+        this._measurements['ttfb'] = {
+          value: (responseStartTimestamp - transaction.startTimestamp) * 1000,
+          unit: 'millisecond',
+        };
 
         if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
           // Capture the time spent making the request and receiving the first byte of the response.
           // This is the time between the start of the request and the start of the response in milliseconds.
-          this._measurements['ttfb.requestTime'] = { value: (responseStartTimestamp - requestStartTimestamp) * 1000 };
+          this._measurements['ttfb.requestTime'] = {
+            value: (responseStartTimestamp - requestStartTimestamp) * 1000,
+            unit: 'second',
+          };
         }
       }
 
@@ -163,7 +169,11 @@ export class MetricsInstrumentation {
       }
 
       Object.keys(this._measurements).forEach(measurementName => {
-        transaction.setMeasurement(measurementName, this._measurements[measurementName].value);
+        transaction.setMeasurement(
+          measurementName,
+          this._measurements[measurementName].value,
+          this._measurements[measurementName].unit,
+        );
       });
 
       tagMetricInfo(transaction, this._lcpEntry, this._clsEntry);
@@ -192,11 +202,11 @@ export class MetricsInstrumentation {
       }
 
       if (isMeasurementValue(connection.rtt)) {
-        this._measurements['connection.rtt'] = { value: connection.rtt };
+        this._measurements['connection.rtt'] = { value: connection.rtt, unit: 'millisecond' };
       }
 
       if (isMeasurementValue(connection.downlink)) {
-        this._measurements['connection.downlink'] = { value: connection.downlink };
+        this._measurements['connection.downlink'] = { value: connection.downlink, unit: 'megabit' };
       }
     }
 
@@ -221,7 +231,7 @@ export class MetricsInstrumentation {
       }
 
       IS_DEBUG_BUILD && logger.log('[Measurements] Adding CLS');
-      this._measurements['cls'] = { value: metric.value };
+      this._measurements['cls'] = { value: metric.value, unit: 'millisecond' };
       this._clsEntry = entry as LayoutShift;
     });
   }
@@ -237,8 +247,8 @@ export class MetricsInstrumentation {
       const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
       const startTime = msToSec(entry.startTime);
       IS_DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
-      this._measurements['lcp'] = { value: metric.value };
-      this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
+      this._measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
+      this._measurements['mark.lcp'] = { value: timeOrigin + startTime, unit: 'second' };
       this._lcpEntry = entry as LargestContentfulPaint;
     }, this._reportAllChanges);
   }
@@ -254,8 +264,8 @@ export class MetricsInstrumentation {
       const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
       const startTime = msToSec(entry.startTime);
       IS_DEBUG_BUILD && logger.log('[Measurements] Adding FID');
-      this._measurements['fid'] = { value: metric.value };
-      this._measurements['mark.fid'] = { value: timeOrigin + startTime };
+      this._measurements['fid'] = { value: metric.value, unit: 'millisecond' };
+      this._measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
     });
   }
 }
