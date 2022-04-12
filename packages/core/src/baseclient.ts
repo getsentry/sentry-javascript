@@ -654,7 +654,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        this.sendEvent(processedEvent);
+        this._sendEvent(processedEvent);
         return processedEvent;
       })
       .then(null, reason => {
