@@ -11,4 +11,13 @@ function ensureBrowserBundle() {
   }
 }
 
+function ensureWasmBundle() {
+  if (!fs.existsSync('build/bundles/wasm.js')) {
+    // eslint-disable-next-line no-console
+    console.warn('\nWARNING: Missing wasm bundle. Bundle will be created before running wasm integration tests.');
+    execSync('yarn build:bundle');
+  }
+}
+
 ensureBrowserBundle();
+ensureWasmBundle();
