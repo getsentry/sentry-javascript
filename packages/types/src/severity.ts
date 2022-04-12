@@ -20,5 +20,4 @@ export enum Severity {
 
 // TODO: in v7, these can disappear, because they now also exist in `@sentry/utils`. (Having them there rather than here
 // is nice because then it enforces the idea that only types are exported from `@sentry/types`.)
-export const SeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug', 'critical'] as const;
-export type SeverityLevel = typeof SeverityLevels[number];
+export type SeverityLevel = 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug' | 'critical';

@@ -1,5 +1,4 @@
-import { SeverityLevels } from '../src/enums';
-import { severityFromString } from '../src/severity';
+import { severityFromString, validSeverityLevels } from '../src/severity';
 
 describe('severityFromString()', () => {
   describe('normalize warn and warning', () => {
@@ -16,7 +15,7 @@ describe('severityFromString()', () => {
     expect(severityFromString('foo')).toBe('log');
   });
   describe('allows ', () => {
-    for (const level of SeverityLevels) {
+    for (const level of validSeverityLevels) {
       expect(severityFromString(level)).toBe(level);
     }
   });

@@ -1,9 +1,11 @@
 import { Severity } from '@sentry/types';
 
-import { SeverityLevel, SeverityLevels } from './enums';
+import { SeverityLevel } from './enums';
+
+export const validSeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug', 'critical'];
 
 function isSupportedSeverity(level: string): level is Severity {
-  return SeverityLevels.indexOf(level as SeverityLevel) !== -1;
+  return validSeverityLevels.indexOf(level as SeverityLevel) !== -1;
 }
 /**
  * Converts a string-based level into a {@link Severity}.

@@ -46,8 +46,7 @@ export {
   SessionFlusherLike,
 } from './session';
 
-export { Severity } from './severity';
-export { SeverityLevel, SeverityLevels } from './severity';
+export { Severity, SeverityLevel } from './severity';
 export { Span, SpanContext } from './span';
 export { StackFrame } from './stackframe';
 export { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
