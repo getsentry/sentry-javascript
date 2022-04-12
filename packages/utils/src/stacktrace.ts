@@ -1,10 +1,6 @@
-import { StackFrame } from '@sentry/types';
+import { StackFrame, StackLineParser, StackParser } from '@sentry/types';
 
 const STACKTRACE_LIMIT = 50;
-
-export type StackParser = (stack: string, skipFirst?: number) => StackFrame[];
-export type StackLineParserFn = (line: string) => StackFrame | undefined;
-export type StackLineParser = [number, StackLineParserFn];
 
 /**
  * Creates a stack parser with the supplied line parsers
@@ -32,6 +28,29 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
     return stripSentryFramesAndReverse(frames);
   };
+}
+
+interface StackParserOptions {
+  stackParser?: StackParser | StackLineParser[];
+}
+
+/**
+ * Gets a stack parser implementation from options
+ *
+ * If options contains an array of line parsers, it is converted into a parser
+ */
+export function stackParserFromOptions(options: StackParserOptions | undefined): StackParser {
+  if (options) {
+    if (Array.isArray(options.stackParser)) {
+      options.stackParser = createStackParser(...options.stackParser);
+    }
+
+    if (typeof options.stackParser === 'function') {
+      return options.stackParser;
+    }
+  }
+
+  return _ => [];
 }
 
 /**

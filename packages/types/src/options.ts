@@ -3,6 +3,7 @@ import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { CaptureContext } from './scope';
 import { SdkMetadata } from './sdkmetadata';
+import { StackLineParser, StackParser } from './stacktrace';
 import { SamplingContext } from './transaction';
 import { Transport, TransportClass, TransportOptions } from './transport';
 
@@ -148,6 +149,12 @@ export interface Options {
    * Initial data to populate scope.
    */
   initialScope?: CaptureContext;
+
+  /**
+   * A stack parser implementation or an array of stack line parsers
+   * By default, a stack parser is supplied for all supported browsers
+   */
+  stackParser?: StackParser | StackLineParser[];
 
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,

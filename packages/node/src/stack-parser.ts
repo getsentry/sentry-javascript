@@ -1,4 +1,5 @@
-import { basename, dirname, StackLineParser, StackLineParserFn } from '@sentry/utils';
+import { StackLineParser, StackLineParserFn } from '@sentry/types';
+import { basename, dirname } from '@sentry/utils';
 
 /** Gets the module */
 function getModule(filename: string | undefined): string | undefined {

@@ -1,4 +1,9 @@
+import { createStackParser } from '@sentry/utils';
+
 import { exceptionFromError } from '../../../src/eventbuilder';
+import { defaultStackParsers } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...defaultStackParsers);
 
 describe('Tracekit - Firefox Tests', () => {
   it('should parse Firefox 3 error', () => {
@@ -18,7 +23,7 @@ describe('Tracekit - Firefox Tests', () => {
         '',
     };
 
-    const ex = exceptionFromError(FIREFOX_3);
+    const ex = exceptionFromError(parser, FIREFOX_3);
 
     expect(ex).toEqual({
       value: 'this.undef is not a function',
@@ -54,7 +59,7 @@ describe('Tracekit - Firefox Tests', () => {
         '',
     };
 
-    const ex = exceptionFromError(FIREFOX_7);
+    const ex = exceptionFromError(parser, FIREFOX_7);
 
     expect(ex).toEqual({
       value: 'bar',
@@ -86,7 +91,7 @@ describe('Tracekit - Firefox Tests', () => {
       lineNumber: 48,
     };
 
-    const ex = exceptionFromError(FIREFOX_14);
+    const ex = exceptionFromError(parser, FIREFOX_14);
 
     expect(ex).toEqual({
       value: 'x is null',
@@ -115,7 +120,7 @@ describe('Tracekit - Firefox Tests', () => {
       columnNumber: 12,
     };
 
-    const ex = exceptionFromError(FIREFOX_31);
+    const ex = exceptionFromError(parser, FIREFOX_31);
 
     expect(ex).toEqual({
       value: 'Default error',
@@ -150,7 +155,7 @@ describe('Tracekit - Firefox Tests', () => {
       result: 2147500037,
     };
 
-    const ex = exceptionFromError(FIREFOX_44_NS_EXCEPTION);
+    const ex = exceptionFromError(parser, FIREFOX_44_NS_EXCEPTION);
 
     expect(ex).toEqual({
       value: 'No error message',
@@ -185,7 +190,7 @@ describe('Tracekit - Firefox Tests', () => {
       name: 'TypeError',
     };
 
-    const ex = exceptionFromError(FIREFOX_50_RESOURCE_URL);
+    const ex = exceptionFromError(parser, FIREFOX_50_RESOURCE_URL);
 
     expect(ex).toEqual({
       value: 'this.props.raw[this.state.dataSource].rows is undefined',
@@ -233,7 +238,7 @@ describe('Tracekit - Firefox Tests', () => {
         '@http://localhost:8080/file.js:33:9',
     };
 
-    const ex = exceptionFromError(FIREFOX_43_EVAL);
+    const ex = exceptionFromError(parser, FIREFOX_43_EVAL);
 
     expect(ex).toEqual({
       value: 'message string',
@@ -259,7 +264,7 @@ describe('Tracekit - Firefox Tests', () => {
           @http://localhost:5000/test:24:7`,
     };
 
-    const stacktrace = exceptionFromError(FIREFOX66_NATIVE_CODE_EXCEPTION);
+    const stacktrace = exceptionFromError(parser, FIREFOX66_NATIVE_CODE_EXCEPTION);
 
     expect(stacktrace).toEqual({
       value: 'test',
@@ -289,7 +294,7 @@ describe('Tracekit - Firefox Tests', () => {
           @http://localhost:5000/:50:19`,
     };
 
-    const stacktrace = exceptionFromError(FIREFOX66_EVAL_EXCEPTION);
+    const stacktrace = exceptionFromError(parser, FIREFOX66_EVAL_EXCEPTION);
 
     expect(stacktrace).toEqual({
       value: 'aha',

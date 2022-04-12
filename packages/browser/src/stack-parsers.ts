@@ -1,5 +1,4 @@
-import { StackFrame } from '@sentry/types';
-import { StackLineParser, StackLineParserFn } from '@sentry/utils';
+import { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
 
 // global reference to slice
 const UNKNOWN_FUNCTION = '?';
@@ -130,6 +129,14 @@ const opera11: StackLineParserFn = line => {
 };
 
 export const opera11StackParser: StackLineParser = [OPERA11_PRIORITY, opera11];
+
+export const defaultStackParsers = [
+  chromeStackParser,
+  geckoStackParser,
+  opera10StackParser,
+  opera11StackParser,
+  winjsStackParser,
+];
 
 /**
  * Safari web extensions, starting version unknown, can produce "frames-only" stacktraces.

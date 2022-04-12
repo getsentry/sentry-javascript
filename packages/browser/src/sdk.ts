@@ -6,6 +6,7 @@ import { BrowserClient, BrowserOptions } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { defaultStackParsers } from './stack-parsers';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -91,6 +92,9 @@ export function init(options: BrowserOptions = {}): void {
   }
   if (options.sendClientReports === undefined) {
     options.sendClientReports = true;
+  }
+  if (options.stackParser === undefined) {
+    options.stackParser = defaultStackParsers;
   }
 
   initAndBind(BrowserClient, options);

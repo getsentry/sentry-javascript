@@ -46,6 +46,7 @@ export { NodeClient } from './client';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';
 export { deepReadDirSync } from './utils';
 export { SDK_NAME } from './version';
+export { nodeStackParser } from './stack-parser';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
