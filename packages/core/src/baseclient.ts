@@ -231,9 +231,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    */
   public flush(timeout?: number): PromiseLike<boolean> {
     return this._isClientDoneProcessing(timeout).then(clientFinished => {
-      return this.getTransport()
-        .close(timeout)
-        .then(transportFlushed => clientFinished && transportFlushed);
+      return this._transport.close(timeout).then(transportFlushed => clientFinished && transportFlushed);
     });
   }
 
@@ -242,7 +240,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    */
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
-      this.getOptions().enabled = false;
+      this._options.enabled = false;
       return result;
     });
   }
@@ -390,7 +388,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
 
   /** Determines whether this SDK is enabled and a valid Dsn is present. */
   protected _isEnabled(): boolean {
-    return this.getOptions().enabled !== false && this._dsn !== undefined;
+    return this._options.enabled !== false && this._dsn !== undefined;
   }
 
   /**
@@ -408,7 +406,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    * @returns A new event with more information.
    */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = this.getOptions();
+    const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = this._options;
     const prepared: Event = {
       ...event,
       event_id: event.event_id || (hint && hint.event_id ? hint.event_id : uuid4()),
@@ -510,7 +508,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    * @param event event instance to be enhanced
    */
   protected _applyClientOptions(event: Event): void {
-    const options = this.getOptions();
+    const options = this._options;
     const { environment, release, dist, maxValueLength = 250 } = options;
 
     if (!('environment' in event)) {
@@ -594,8 +592,8 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    */
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const { beforeSend, sampleRate } = this.getOptions();
-    const transport = this.getTransport();
+    const { beforeSend, sampleRate } = this._options;
+    const transport = this._transport;
 
     type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
     type RecordLostEventParams = Parameters<RecordLostEvent>;
