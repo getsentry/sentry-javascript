@@ -8,6 +8,8 @@ import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTranspor
 /**
  * Configuration options for the Sentry Browser SDK.
  * @see BrowserClient for more information.
+ *
+ * TODO(v7): move to client
  */
 export interface BrowserOptions extends Options {
   /**

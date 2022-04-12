@@ -28,6 +28,7 @@ describe('LinkedErrors', () => {
       expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const one = new Error('originalException');
+      // TODO(v7): refactor to use client here!
       const backend = new NodeBackend({});
       let event: Event | undefined;
       return backend
@@ -52,6 +53,7 @@ describe('LinkedErrors', () => {
       );
       const one = new Error('originalException');
       const backend = new NodeBackend({});
+      // TODO(v7): refactor to use client here!
       return backend.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
@@ -72,6 +74,7 @@ describe('LinkedErrors', () => {
       two.cause = three;
 
       const backend = new NodeBackend({});
+      // TODO(v7): refactor to use client here!
       return backend.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
@@ -105,6 +108,7 @@ describe('LinkedErrors', () => {
       two.reason = three;
 
       const backend = new NodeBackend({});
+      // TODO(v7): refactor to use client here!
       return backend.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
@@ -138,6 +142,7 @@ describe('LinkedErrors', () => {
       two.cause = three;
 
       const backend = new NodeBackend({});
+      // TODO(v7): refactor to use client here!
       return backend.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
