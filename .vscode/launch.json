@@ -47,9 +47,6 @@
         // this runs one test at a time, rather than running them in parallel (necessary for debugging so that you know
         // you're hitting a single test's breakpoints, in order)
         "--runInBand",
-        // TODO: when we unify jest config, we may need to change this
-        "--config",
-        "${workspaceFolder}/packages/${input:getPackageName}/package.json",
         // coverage messes up the source maps
         "--coverage",
         "false",
