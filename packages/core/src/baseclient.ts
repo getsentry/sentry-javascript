@@ -29,7 +29,6 @@ import {
 } from '@sentry/utils';
 
 import { initAPIDetails } from './api';
-import { Backend, BackendClass } from './basebackend';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
@@ -72,15 +71,7 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  *   // ...
  * }
  */
-export abstract class BaseClient<B extends Backend, O extends Options> implements Client<O> {
-  /**
-   * The backend used to physically interact in the environment. Usually, this
-   * will correspond to the client. When composing SDKs, however, the Backend
-   * from the root SDK will be used.
-   * TODO(v7): DELETE
-   */
-  protected readonly _backend: B;
-
+export abstract class BaseClient<O extends Options> implements Client<O> {
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -102,12 +93,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * Initializes this client instance.
    *
-   * @param backendClass A constructor function to create the backend.
    * @param options Options for the client.
    */
-  protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    // TODO(v7): Delete
-    this._backend = new backendClass(options);
+  protected constructor(options: O) {
     this._options = options;
 
     if (options.dsn) {
@@ -384,13 +372,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         }
       }, tick);
     });
-  }
-
-  /** Returns the current backend.
-   * TODO(v7): DELETE
-   */
-  protected _getBackend(): B {
-    return this._backend;
   }
 
   /** Determines whether this SDK is enabled and a valid Dsn is present. */

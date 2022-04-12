@@ -1,7 +1,6 @@
 import { ExtendedError } from '@sentry/types';
 
-import { Event } from '../../src';
-import { NodeBackend } from '../../src/backend';
+import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 
 let linkedErrors: any;
@@ -28,10 +27,9 @@ describe('LinkedErrors', () => {
       expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const one = new Error('originalException');
-      // TODO(v7): refactor to use client here!
-      const backend = new NodeBackend({});
+      const client = new NodeClient({});
       let event: Event | undefined;
-      return backend
+      return client
         .eventFromException(one)
         .then(eventFromException => {
           event = eventFromException;
@@ -52,9 +50,8 @@ describe('LinkedErrors', () => {
           }),
       );
       const one = new Error('originalException');
-      const backend = new NodeBackend({});
-      // TODO(v7): refactor to use client here!
-      return backend.eventFromException(one).then(event =>
+      const client = new NodeClient({});
+      return client.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
@@ -73,9 +70,8 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const backend = new NodeBackend({});
-      // TODO(v7): refactor to use client here!
-      return backend.eventFromException(one).then(event =>
+      const client = new NodeClient({});
+      return client.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
@@ -107,9 +103,8 @@ describe('LinkedErrors', () => {
       one.reason = two;
       two.reason = three;
 
-      const backend = new NodeBackend({});
-      // TODO(v7): refactor to use client here!
-      return backend.eventFromException(one).then(event =>
+      const client = new NodeClient({});
+      return client.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
@@ -141,9 +136,8 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const backend = new NodeBackend({});
-      // TODO(v7): refactor to use client here!
-      return backend.eventFromException(one).then(event =>
+      const client = new NodeClient({});
+      return client.eventFromException(one).then(event =>
         linkedErrors
           ._handler(event, {
             originalException: one,
