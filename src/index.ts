@@ -132,7 +132,7 @@ export class SentryReplay {
      *
      * So we do this as a workaround to wait for other global event processors to finish
      */
-    setImmediate(() => this.setup());
+    window.setTimeout(() => this.setup());
   }
 
   setup() {
@@ -310,6 +310,7 @@ export class SentryReplay {
    **/
   createReplayEvent() {
     logger.log('CreateReplayEvent rootReplayId', this.session.id);
+    console.error(new Error('creating replay event'), new Date());
     this.replayEvent = Sentry.startTransaction({
       name: REPLAY_EVENT_NAME,
       parentSpanId: this.session.spanId,
@@ -406,6 +407,8 @@ export class SentryReplay {
       }),
       `rrweb-${new Date().getTime()}.json`
     );
+
+    console.log('sendReplayRequest: ', endpoint);
 
     // If sendBeacon is supported and payload is smol enough...
     if (this.hasSendBeacon() && stringifiedPayload.length <= 65536) {
