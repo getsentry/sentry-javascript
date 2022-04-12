@@ -53,7 +53,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
-    "test": "node test/scripts/ensure-browser-bundle.js && cross-env PORT=1337 jest",
+    "test": "node test/scripts/ensure-bundles.js && cross-env PORT=1337 jest",
     "test:watch": "jest --watch"
   },
   "volta": {
