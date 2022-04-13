@@ -467,9 +467,9 @@ export class Scope implements ScopeInterface {
         const result = processor({ ...event }, hint) as Event | null;
 
         IS_DEBUG_BUILD &&
-          processor.name &&
+          processor.identifier &&
           result === null &&
-          logger.log(`Event processor ${processor.name} dropped event.`);
+          logger.log(`Event processor ${processor.identifier} dropped event.`);
 
         if (isThenable(result)) {
           void result

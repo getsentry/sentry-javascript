@@ -24,7 +24,7 @@ export class Dedupe implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor((currentEvent: Event) => {
+    const eventProcessor = (currentEvent: Event): Event | null => {
       const self = getCurrentHub().getIntegration(Dedupe);
       if (self) {
         // Juuust in case something goes wrong
@@ -40,7 +40,11 @@ export class Dedupe implements Integration {
         return (self._previousEvent = currentEvent);
       }
       return currentEvent;
-    });
+    };
+
+    eventProcessor.identifier = 'dedupe-processor';
+
+    addGlobalEventProcessor(eventProcessor);
   }
 }
 

@@ -7,6 +7,6 @@ import { Event, EventHint } from './event';
  * Event processing will be deferred until your Promise is resolved.
  */
 export interface EventProcessor {
-  name?: string;
+  identifier?: string; // This field can't be named "name" because functions already have this field natively
   (event: Event, hint?: EventHint): PromiseLike<Event | null> | Event | null;
 }
