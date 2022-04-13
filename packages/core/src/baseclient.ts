@@ -34,7 +34,6 @@ import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
 import { NewTransport } from './transports/base';
-import { NoopTransport } from './transports/noop';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -685,13 +684,6 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
         return reason;
       },
     );
-  }
-
-  /**
-   * Sets up the transport so it can be used later to send requests.
-   */
-  protected _setupTransport(): Transport {
-    return new NoopTransport();
   }
 
   /**

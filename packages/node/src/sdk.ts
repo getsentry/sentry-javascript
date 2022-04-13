@@ -131,7 +131,6 @@ export function init(options: NodeOptions = {}): void {
     setHubOnCarrier(carrier, getCurrentHub());
   }
 
-  // TODO(v7): Init transport here and pass it to initAndBind
   const { transport, newTransport } = setupNodeTransport(options);
   initAndBind(NodeClient, options, transport, newTransport);
 

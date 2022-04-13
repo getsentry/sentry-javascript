@@ -58,14 +58,6 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
   url: string;
 }
 
-// TODO(v7): Delete
-export interface BrowserTransportOptions extends BaseTransportOptions {
-  // options to pass into fetch request
-  fetchParams: Record<string, string>;
-  headers?: Record<string, string>;
-  sendClientReports?: boolean;
-}
-
 export interface NewTransport {
   send(request: Envelope): PromiseLike<TransportResponse>;
   flush(timeout?: number): PromiseLike<boolean>;

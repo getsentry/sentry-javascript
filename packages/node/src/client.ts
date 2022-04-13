@@ -1,18 +1,10 @@
-import {
-  BaseClient,
-  getEnvelopeEndpointWithUrlEncodedAuth,
-  initAPIDetails,
-  NewTransport,
-  Scope,
-  SDK_VERSION,
-} from '@sentry/core';
+import { BaseClient, NewTransport, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint, Severity, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
-import { logger, makeDsn, resolvedSyncPromise, stackParserFromOptions } from '@sentry/utils';
+import { Event, EventHint, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { logger, resolvedSyncPromise, stackParserFromOptions } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
-import { HTTPSTransport, HTTPTransport, makeNodeTransport } from './transports';
 import { NodeOptions } from './types';
 
 /**
@@ -157,47 +149,5 @@ export class NodeClient extends BaseClient<NodeOptions> {
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }
-  }
-
-  /**
-   * @inheritDoc
-   * TODO(v7): delete
-   */
-  protected _setupTransport(): Transport {
-    if (!this._options.dsn) {
-      // We return the noop transport here in case there is no Dsn.
-      return super._setupTransport();
-    }
-
-    const dsn = makeDsn(this._options.dsn);
-
-    const transportOptions: TransportOptions = {
-      ...this._options.transportOptions,
-      ...(this._options.httpProxy && { httpProxy: this._options.httpProxy }),
-      ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
-      ...(this._options.caCerts && { caCerts: this._options.caCerts }),
-      dsn: this._options.dsn,
-      tunnel: this._options.tunnel,
-      _metadata: this._options._metadata,
-    };
-
-    if (this._options.transport) {
-      return new this._options.transport(transportOptions);
-    }
-
-    const api = initAPIDetails(transportOptions.dsn, transportOptions._metadata, transportOptions.tunnel);
-    const url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
-
-    this._newTransport = makeNodeTransport({
-      url,
-      headers: transportOptions.headers,
-      proxy: transportOptions.httpProxy,
-      caCerts: transportOptions.caCerts,
-    });
-
-    if (dsn.protocol === 'http') {
-      return new HTTPTransport(transportOptions);
-    }
-    return new HTTPSTransport(transportOptions);
   }
 }

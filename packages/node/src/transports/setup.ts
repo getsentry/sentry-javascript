@@ -6,10 +6,13 @@ import { NodeOptions } from '../types';
 import { HTTPSTransport, HTTPTransport, makeNodeTransport } from '.';
 
 /**
- * TODO(v7): Add documentation
- * @inheritDoc
+ * Sets up Node transport based on the passed `options`.
+ *
+ * @returns an object currently still containing both, the old `Transport` and
+ * `NewTransport` which will eventually replace `Transport`. Once this is replaced,
+ * this function will return a ready to use `NewTransport`.
  */
-// TODO(v7): Adjust when NewTransport is the default
+// TODO(v7): Adjust return value when NewTransport is the default
 export function setupNodeTransport(options: NodeOptions): { transport: Transport; newTransport?: NewTransport } {
   if (!options.dsn) {
     // We return the noop transport here in case there is no Dsn.
