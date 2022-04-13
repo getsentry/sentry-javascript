@@ -68,11 +68,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * Set observed measurements for this transaction.
+   * Set observed measurement for this transaction.
+   *
+   * @param name Name of the measurement
+   * @param value Value of the measurement
+   * @param unit Unit of the measurement. (Defaults to an empty string)
    * @hidden
    */
-  public setMeasurements(measurements: Measurements): void {
-    this._measurements = { ...measurements };
+  public setMeasurement(name: string, value: number, unit: string = ''): void {
+    this._measurements[name] = { value, unit };
   }
 
   /**
