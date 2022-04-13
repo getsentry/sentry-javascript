@@ -21,3 +21,13 @@ export const validSeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 
 export function severityFromString(level: SeverityLevel | string): Severity {
   return (level === 'warn' ? Severity.Warning : validSeverityLevels.includes(level) ? level : Severity.Log) as Severity;
 }
+
+/**
+ * Converts a string-based level into a `SeverityLevel`, normalizing it along the way.
+ *
+ * @param level String representation of desired `SeverityLevel`.
+ * @returns The `SeverityLevel` corresponding to the given string, or 'log' if the string isn't a valid level.
+ */
+export function severityLevelFromString(level: SeverityLevel | string): SeverityLevel {
+  return (level === 'warn' ? 'warning' : validSeverityLevels.includes(level) ? level : 'log') as SeverityLevel;
+}
