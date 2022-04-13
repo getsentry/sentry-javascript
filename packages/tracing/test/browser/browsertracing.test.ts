@@ -1,6 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
 import { setupBrowserTransport } from '@sentry/browser/src/transports';
-import { NoopTransport } from '@sentry/core';
 import { Hub, makeMain } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
