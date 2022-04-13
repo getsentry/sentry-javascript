@@ -13,7 +13,9 @@ import { Severity, SeverityLevel } from '@sentry/types';
 export const validSeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug', 'critical'];
 
 /**
- * Converts a string-based level into a member of the {@link Severity} enum.
+ * Converts a string-based level into a member of the deprecated {@link Severity} enum.
+ *
+ * @deprecated `severityFromString` is deprecated. Please use `severityLevelFromString` instead.
  *
  * @param level String representation of Severity
  * @returns Severity

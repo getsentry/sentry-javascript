@@ -1,5 +1,6 @@
 /**
- * TODO(v7): Remove this enum and replace with SeverityLevel
+ * @deprecated Please use a `SeverityLevel` string instead of the `Severity` enum. Acceptable values are 'fatal',
+ * 'critical', 'error', 'warning', 'log', 'info', and 'debug'.
  */
 export enum Severity {
   /** JSDoc */
