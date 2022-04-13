@@ -366,10 +366,8 @@ describe('SentryNode initialization', () => {
     it('should set SDK data when Sentry.init() is called', () => {
       init({ dsn });
 
-      // TODO(v7): Is this replacement ok?
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');
@@ -382,9 +380,7 @@ describe('SentryNode initialization', () => {
       const client = new NodeClient(options, setupNodeTransport(options).transport);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // TODO(v7): Is this alright?
-      // const sdkData = (client as any).getTransport()._api.metadata?.sdk;
-      const sdkData = (client as any).getOptions()._metadata?.sdk;
+      const sdkData = (client as any).getTransport()._api.metadata?.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');

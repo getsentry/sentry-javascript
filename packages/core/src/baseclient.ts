@@ -29,7 +29,7 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { initAPIDetails } from './api';
+import { APIDetails, initAPIDetails } from './api';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
@@ -107,6 +107,13 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
     // TODO(v7): remove old transport
     this._transport = transport;
     this._newTransport = newTransport;
+
+    // TODO(v7): refactor this to keep metadata/api outside of transport. This hack is used to
+    //           satisfy tests until we move to NewTransport where we have to revisit this.
+    (this._transport as unknown as { _api: Partial<APIDetails> })._api = {
+      ...((this._transport as unknown as { _api: Partial<APIDetails> })._api || {}),
+      metadata: options._metadata || {},
+    };
   }
 
   /**

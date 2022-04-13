@@ -10,8 +10,11 @@ test('should aggregate successful, crashed and erroneous sessions', async () => 
     getEnvelopeRequest(`${url}/error_handled`),
     getEnvelopeRequest(`${url}/error_unhandled`),
   ]);
+  console.log(envelope);
 
   expect(envelope).toHaveLength(3);
+  console.log(envelope[0]);
+
   expect(envelope[0]).toMatchObject({
     sent_at: expect.any(String),
     sdk: {
