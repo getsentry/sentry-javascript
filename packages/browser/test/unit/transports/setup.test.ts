@@ -1,4 +1,5 @@
 import { NoopTransport } from '@sentry/core';
+
 import { FetchTransport, setupBrowserTransport, XHRTransport } from '../../../src/transports';
 import { SimpleTransport } from '../mocks/simpletransport';
 

@@ -269,7 +269,7 @@ describe('SentryBrowser initialization', () => {
     it('should set SDK data when instantiating a client directly', () => {
       const client = new BrowserClient({ dsn }, new SimpleTransport({ dsn }));
 
-      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
+      const sdkData = (client.getTransport() as any)._api.metadata?.sdk;
 
       expect(sdkData.name).toBe('sentry.javascript.browser');
       expect(sdkData.packages[0].name).toBe('npm:@sentry/browser');
