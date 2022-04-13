@@ -87,7 +87,12 @@ export interface Hub {
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
-  captureMessage(message: string, level?: Severity | SeverityLevel, hint?: EventHint): string;
+  captureMessage(
+    message: string,
+    // eslint-disable-next-line deprecation/deprecation
+    level?: Severity | SeverityLevel,
+    hint?: EventHint,
+  ): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.

@@ -6,6 +6,7 @@ export {
   EventStatus,
   Exception,
   Response,
+  // eslint-disable-next-line deprecation/deprecation
   Severity,
   SeverityLevel,
   StackFrame,

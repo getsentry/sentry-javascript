@@ -91,6 +91,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
    */
   public eventFromMessage(
     message: string,
+    // eslint-disable-next-line deprecation/deprecation
     level: Severity | SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {

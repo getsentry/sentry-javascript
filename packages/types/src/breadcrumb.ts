@@ -3,6 +3,7 @@ import { Severity, SeverityLevel } from './severity';
 /** JSDoc */
 export interface Breadcrumb {
   type?: string;
+  // eslint-disable-next-line deprecation/deprecation
   level?: Severity | SeverityLevel;
   event_id?: string;
   category?: string;

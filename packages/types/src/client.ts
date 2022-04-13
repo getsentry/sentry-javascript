@@ -38,6 +38,7 @@ export interface Client<O extends Options = Options> {
    */
   captureMessage(
     message: string,
+    // eslint-disable-next-line deprecation/deprecation
     level?: Severity | SeverityLevel,
     hint?: EventHint,
     scope?: Scope,
@@ -104,7 +105,12 @@ export interface Client<O extends Options = Options> {
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
-  eventFromMessage(message: string, level?: Severity | SeverityLevel, hint?: EventHint): PromiseLike<Event>;
+  eventFromMessage(
+    message: string,
+    // eslint-disable-next-line deprecation/deprecation
+    level?: Severity | SeverityLevel,
+    hint?: EventHint,
+  ): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event): void;

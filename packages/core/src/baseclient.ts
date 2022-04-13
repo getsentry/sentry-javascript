@@ -134,6 +134,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    */
   public captureMessage(
     message: string,
+    // eslint-disable-next-line deprecation/deprecation
     level?: Severity | SeverityLevel,
     hint?: EventHint,
     scope?: Scope,
@@ -693,6 +694,7 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    */
   public abstract eventFromMessage(
     _message: string,
+    // eslint-disable-next-line deprecation/deprecation
     _level?: Severity | SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;

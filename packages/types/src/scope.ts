@@ -15,6 +15,7 @@ export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => 
 /** JSDocs */
 export interface ScopeContext {
   user: User;
+  // eslint-disable-next-line deprecation/deprecation
   level: Severity | SeverityLevel;
   extra: Extras;
   contexts: Contexts;
@@ -81,7 +82,10 @@ export interface Scope {
    * Sets the level on the scope for future events.
    * @param level string {@link SeverityLevel}
    */
-  setLevel(level: Severity | SeverityLevel): this;
+  setLevel(
+    // eslint-disable-next-line deprecation/deprecation
+    level: Severity | SeverityLevel,
+  ): this;
 
   /**
    * Sets the transaction name on the scope for future events.

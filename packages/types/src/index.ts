@@ -46,6 +46,7 @@ export {
   SessionFlusherLike,
 } from './session';
 
+// eslint-disable-next-line deprecation/deprecation
 export { Severity, SeverityLevel } from './severity';
 export { Span, SpanContext } from './span';
 export { StackFrame } from './stackframe';

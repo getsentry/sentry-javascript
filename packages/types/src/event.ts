@@ -18,6 +18,7 @@ export interface Event {
   message?: string;
   timestamp?: number;
   start_timestamp?: number;
+  // eslint-disable-next-line deprecation/deprecation
   level?: Severity | SeverityLevel;
   platform?: string;
   logger?: string;

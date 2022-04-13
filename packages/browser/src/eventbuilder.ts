@@ -164,6 +164,7 @@ export function eventFromException(
 export function eventFromMessage(
   stackParser: StackParser,
   message: string,
+  // eslint-disable-next-line deprecation/deprecation
   level: Severity | SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,

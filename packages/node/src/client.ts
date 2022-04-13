@@ -120,6 +120,7 @@ export class NodeClient extends BaseClient<NodeOptions> {
    */
   public eventFromMessage(
     message: string,
+    // eslint-disable-next-line deprecation/deprecation
     level: Severity | SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {

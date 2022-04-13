@@ -38,7 +38,11 @@ export class TestClient extends BaseClient<TestOptions> {
     });
   }
 
-  public eventFromMessage(message: string, level: Severity | SeverityLevel = 'info'): PromiseLike<Event> {
+  public eventFromMessage(
+    message: string,
+    // eslint-disable-next-line deprecation/deprecation
+    level: Severity | SeverityLevel = 'info',
+  ): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 

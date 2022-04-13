@@ -53,7 +53,11 @@ export function captureException(exception: any, captureContext?: CaptureContext
  * @param Severity Define the level of the message.
  * @returns The generated eventId.
  */
-export function captureMessage(message: string, captureContext?: CaptureContext | Severity | SeverityLevel): string {
+export function captureMessage(
+  message: string,
+  // eslint-disable-next-line deprecation/deprecation
+  captureContext?: CaptureContext | Severity | SeverityLevel,
+): string {
   const syntheticException = new Error(message);
 
   // This is necessary to provide explicit scopes upgrade, without changing the original
