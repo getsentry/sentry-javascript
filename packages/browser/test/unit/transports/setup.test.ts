@@ -1,12 +1,17 @@
 import { NoopTransport } from '@sentry/core';
 
-import { FetchTransport, setupBrowserTransport, XHRTransport } from '../../../src/transports';
+import {
+  FetchTransport,
+  makeNewFetchTransport,
+  makeNewXHRTransport,
+  setupBrowserTransport,
+  XHRTransport,
+} from '../../../src/transports';
 import { SimpleTransport } from '../mocks/simpletransport';
 
 const DSN = 'https://username@domain/123';
 
 let fetchSupported = true;
-let getNativeFetchImplCalled = false;
 
 jest.mock('@sentry/utils', () => {
   const original = jest.requireActual('@sentry/utils');
@@ -23,23 +28,32 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-jest.mock('@sentry/browser/src/transports/utils', () => {
-  const original = jest.requireActual('@sentry/browser/src/transports/utils');
+jest.mock('../../../src/transports/new-fetch', () => {
+  const original = jest.requireActual('../../../src/transports/new-fetch');
   return {
     ...original,
-    getNativeFetchImplementation() {
-      getNativeFetchImplCalled = true;
-      return {
-        fetch: () => {},
-      };
-    },
+    makeNewFetchTransport: jest.fn(() => ({
+      send: () => Promise.resolve({ status: 'success' }),
+      flush: () => Promise.resolve(true),
+    })),
+  };
+});
+
+jest.mock('../../../src/transports/new-xhr', () => {
+  const original = jest.requireActual('../../../src/transports/new-xhr');
+  return {
+    ...original,
+    makeNewXHRTransport: jest.fn(() => ({
+      send: () => Promise.resolve({ status: 'success' }),
+      flush: () => Promise.resolve(true),
+    })),
   };
 });
 
 describe('setupBrowserTransport', () => {
-  beforeEach(() => {
-    getNativeFetchImplCalled = false;
-  });
+  afterEach(() => jest.clearAllMocks());
+
+  afterAll(() => jest.resetAllMocks());
 
   it('returns NoopTransport if no dsn is passed', () => {
     const { transport, newTransport } = setupBrowserTransport({});
@@ -65,10 +79,8 @@ describe('setupBrowserTransport', () => {
     expect(transport).toBeDefined();
     expect(transport).toBeInstanceOf(FetchTransport);
     expect(newTransport).toBeDefined();
-    // This is a weird way of testing that `newTransport` is using fetch but it works.
-    // Given that the new transports are functions, we cannot test their instance.
-    // Totally open for suggestions how to test this better here
-    expect(getNativeFetchImplCalled).toBe(true);
+    expect(makeNewFetchTransport).toHaveBeenCalledTimes(1);
+    expect(makeNewXHRTransport).toHaveBeenCalledTimes(0);
   });
 
   it('returns xhrTransports if fetch is not supported', () => {
@@ -80,9 +92,7 @@ describe('setupBrowserTransport', () => {
     expect(transport).toBeDefined();
     expect(transport).toBeInstanceOf(XHRTransport);
     expect(newTransport).toBeDefined();
-    // This is a weird way of testing that `newTransport` is using fetch but it works.
-    // Given that the new transports are functions, we cannot test their instance.
-    // Totally open for suggestions how to test this better here
-    expect(getNativeFetchImplCalled).toBe(false);
+    expect(makeNewFetchTransport).toHaveBeenCalledTimes(0);
+    expect(makeNewXHRTransport).toHaveBeenCalledTimes(1);
   });
 });
