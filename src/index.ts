@@ -407,8 +407,6 @@ export class SentryReplay {
       `rrweb-${new Date().getTime()}.json`
     );
 
-    console.log('sendReplayRequest: ', endpoint);
-
     // If sendBeacon is supported and payload is smol enough...
     if (this.hasSendBeacon() && stringifiedPayload.length <= 65536) {
       logger.log(`uploading attachment via sendBeacon()`);
