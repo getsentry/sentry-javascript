@@ -29,7 +29,8 @@
   },
   "config": {
     "mongodbMemoryServer": {
-      "downloadDir": "./node_modules/mongodb-memory-server"
+      "preferGlobalPath": true,
+      "runtimeDownload": false
     }
   }
 }
