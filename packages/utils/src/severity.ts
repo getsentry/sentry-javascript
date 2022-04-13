@@ -19,7 +19,7 @@ export const validSeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 
  * @returns Severity
  */
 export function severityFromString(level: Severity | SeverityLevel | string): Severity {
-  return (level === 'warn' ? 'warning' : validSeverityLevels.includes(level) ? level : 'log') as Severity;
+  return severityLevelFromString(level) as Severity;
 }
 
 /**

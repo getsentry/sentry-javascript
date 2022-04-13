@@ -9,7 +9,7 @@ import {
   htmlTreeAsString,
   parseUrl,
   safeJoin,
-  severityFromString,
+  severityLevelFromString,
 } from '@sentry/utils';
 
 /** JSDoc */
@@ -157,7 +157,7 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
       arguments: handlerData.args,
       logger: 'console',
     },
-    level: severityFromString(handlerData.level),
+    level: severityLevelFromString(handlerData.level),
     message: safeJoin(handlerData.args, ' '),
   };
 
