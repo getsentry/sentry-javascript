@@ -10,3 +10,5 @@
 # Gatsby specific
 !gatsby-browser.js
 !gatsby-node.js
+!gatsby-browser.d.ts
+!gatsby-node.d.ts
