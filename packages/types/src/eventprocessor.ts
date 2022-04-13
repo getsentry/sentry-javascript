@@ -6,4 +6,7 @@ import { Event, EventHint } from './event';
  * Returning a PromiseLike<Event | null> will work just fine, but better be sure that you know what you are doing.
  * Event processing will be deferred until your Promise is resolved.
  */
-export type EventProcessor = (event: Event, hint?: EventHint) => PromiseLike<Event | null> | Event | null;
+export interface EventProcessor {
+  name?: string;
+  (event: Event, hint?: EventHint): PromiseLike<Event | null> | Event | null;
+}
