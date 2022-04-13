@@ -1,5 +1,6 @@
 import { configureScope, init as reactInit, Integrations as BrowserIntegrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
+import { EventProcessor } from '@sentry/types';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
@@ -42,9 +43,13 @@ export function init(options: NextjsOptions): void {
     ...options,
     integrations,
   });
+
   configureScope(scope => {
     scope.setTag('runtime', 'browser');
-    scope.addEventProcessor(event => (event.type === 'transaction' && event.transaction === '/404' ? null : event));
+    const filterTransactions: EventProcessor = event =>
+      event.type === 'transaction' && event.transaction === '/404' ? null : event;
+    filterTransactions.id = 'NextClient404Filter';
+    scope.addEventProcessor(filterTransactions);
   });
 }
 

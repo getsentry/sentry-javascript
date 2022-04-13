@@ -80,10 +80,12 @@ export class Offline implements Integration {
       });
     }
 
-    addGlobalEventProcessor((event: Event) => {
+    const eventProcessor: EventProcessor = event => {
       if (this.hub && this.hub.getIntegration(Offline)) {
         // cache if we are positively offline
         if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
+          IS_DEBUG_BUILD && logger.log('Event dropped due to being a offline - caching instead');
+
           void this._cacheEvent(event)
             .then((_event: Event): Promise<void> => this._enforceMaxEvents())
             .catch((_error): void => {
@@ -96,7 +98,10 @@ export class Offline implements Integration {
       }
 
       return event;
-    });
+    };
+
+    eventProcessor.id = 'OfflineIntegration';
+    addGlobalEventProcessor(eventProcessor);
 
     // if online now, send any events stored in a previous offline session
     if ('navigator' in this.global && 'onLine' in this.global.navigator && this.global.navigator.onLine) {

@@ -23,12 +23,12 @@ import {
   getGlobalSingleton,
   isPlainObject,
   isThenable,
-  SyncPromise,
   logger,
+  SyncPromise,
 } from '@sentry/utils';
 
-import { Session } from './session';
 import { IS_DEBUG_BUILD } from './flags';
+import { Session } from './session';
 
 /**
  * Absolute maximum number of breadcrumbs added to an event.
@@ -467,9 +467,9 @@ export class Scope implements ScopeInterface {
         const result = processor({ ...event }, hint) as Event | null;
 
         IS_DEBUG_BUILD &&
-          processor.identifier &&
+          processor.id &&
           result === null &&
-          logger.log(`Event processor ${processor.identifier} dropped event.`);
+          logger.log(`Event processor "${processor.id}" dropped event`);
 
         if (isThenable(result)) {
           void result
