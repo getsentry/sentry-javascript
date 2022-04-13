@@ -73,6 +73,15 @@ export interface Transaction extends TransactionContext, Span {
    */
   setName(name: string): void;
 
+  /**
+   * Set observed measurement for this transaction.
+   *
+   * @param name Name of the measurement
+   * @param value Value of the measurement
+   * @param unit Unit of the measurement. (Defaults to an empty string)
+   */
+  setMeasurement(name: string, value: number, unit: string): void;
+
   /** Returns the current transaction properties as a `TransactionContext` */
   toContext(): TransactionContext;
 
