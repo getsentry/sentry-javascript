@@ -720,7 +720,7 @@ describe('errorHandler()', () => {
   });
 
   afterEach(() => {
-    if ('_sessionFlusher' in client) clearInterval((client as any)._sessionFlusher._intervalId);
+    if ((client as any)._sessionFlusher) clearInterval((client as any)._sessionFlusher._intervalId);
     jest.restoreAllMocks();
   });
   it('when autoSessionTracking is disabled, does not set requestSession status on Crash', () => {

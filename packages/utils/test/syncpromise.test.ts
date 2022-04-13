@@ -163,7 +163,7 @@ describe('SyncPromise', () => {
       .then(null, () => {
         // no-empty
       });
-    expect(qp).not.toHaveProperty('_value');
+    expect((qp as any)._value).not.toBeDefined();
     void qp
       .then(value => {
         expect(value).toEqual(2);
@@ -172,7 +172,7 @@ describe('SyncPromise', () => {
         // no-empty
       });
     jest.runAllTimers();
-    expect(qp).toHaveProperty('_value');
+    expect((qp as any)._value).toBeDefined();
   });
 
   test('multiple then returning undefined', async () => {
