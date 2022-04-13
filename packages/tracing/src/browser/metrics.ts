@@ -206,7 +206,7 @@ export class MetricsInstrumentation {
       }
 
       if (isMeasurementValue(connection.downlink)) {
-        this._measurements['connection.downlink'] = { value: connection.downlink, unit: 'megabit' };
+        this._measurements['connection.downlink'] = { value: connection.downlink, unit: '' }; // unit is empty string for now, while relay doesn't support download speed units
       }
     }
 
