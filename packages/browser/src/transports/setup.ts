@@ -46,6 +46,7 @@ export function setupBrowserTransport(options: BrowserOptions): { transport: Tra
   if (options.transport) {
     return { transport: new options.transport(transportOptions) };
   }
+
   if (supportsFetch()) {
     const requestOptions: RequestInit = { ...transportOptions.fetchParameters };
     const newTransport = makeNewFetchTransport({ requestOptions, url });
