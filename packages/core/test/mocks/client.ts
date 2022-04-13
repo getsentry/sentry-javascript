@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { Event, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { Event, Integration, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
@@ -10,6 +10,7 @@ export interface TestOptions extends Options {
   test?: boolean;
   mockInstallFailure?: boolean;
   enableSend?: boolean;
+  defaultIntegrations?: Integration[] | false;
 }
 
 export class TestClient extends BaseClient<TestOptions> {

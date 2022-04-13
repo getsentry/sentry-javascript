@@ -983,8 +983,9 @@ describe('BaseClient', () => {
 
       for (const val of invalidValues) {
         const beforeSend = jest.fn(() => val);
+        const options = { dsn: PUBLIC_DSN, beforeSend };
         // @ts-ignore we need to test regular-js behavior
-        const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+        const client = new TestClient(options, setupTestTransport({ dsn: PUBLIC_DSN }).transport);
         const loggerErrorSpy = jest.spyOn(logger, 'error');
 
         client.captureEvent({ message: 'hello' });
