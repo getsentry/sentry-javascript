@@ -2,7 +2,7 @@ import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/hub';
 import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
-import { Event, EventProcessor } from '@sentry/types';
+import { EventProcessor } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
