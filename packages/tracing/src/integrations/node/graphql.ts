@@ -20,15 +20,15 @@ export class GraphQL implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     const pkg = loadModule<{
       [method: string]: (...args: unknown[]) => unknown;
-    }>(`graphql/execution/execute.js`);
+    }>('graphql/execution/execute.js');
 
     if (!pkg) {
       logger.error('GraphQL Integration was unable to require graphql/execution package.');
       return;
     }
 
-    fill(pkg, 'execute', function(orig: () => void | Promise<unknown>) {
-      return function(this: unknown, ...args: unknown[]) {
+    fill(pkg, 'execute', function (orig: () => void | Promise<unknown>) {
+      return function (this: unknown, ...args: unknown[]) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
 

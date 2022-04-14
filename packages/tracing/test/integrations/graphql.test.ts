@@ -43,7 +43,7 @@ describe('setupOnce', () => {
     jest.spyOn(childSpan, 'finish');
   });
 
-  it(`should wrap execute method`, async () => {
+  it('should wrap execute method', async () => {
     await GQLExecute.execute();
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({

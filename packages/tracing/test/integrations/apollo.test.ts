@@ -22,12 +22,12 @@ class ApolloServerBase {
       resolvers: [
         {
           Query: {
-            res_1(...args: unknown[]) {
+            res_1(..._args: unknown[]) {
               return 'foo';
             },
           },
           Mutation: {
-            res_2(...args: unknown[]) {
+            res_2(..._args: unknown[]) {
               return 'bar';
             },
           },
@@ -38,7 +38,7 @@ class ApolloServerBase {
     this.constructSchema();
   }
 
-  public constructSchema(...args: unknown[]) {
+  public constructSchema(..._args: unknown[]) {
     return null;
   }
 }

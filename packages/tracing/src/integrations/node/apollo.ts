@@ -3,7 +3,7 @@ import { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 type ApolloResolverGroup = {
-  [key: string]: () => any;
+  [key: string]: () => unknown;
 };
 
 type ApolloModelResolvers = {
@@ -32,7 +32,7 @@ export class Apollo implements Integration {
           constructSchema: () => unknown;
         };
       };
-    }>(`apollo-server-core`);
+    }>('apollo-server-core');
 
     if (!pkg) {
       logger.error('Apollo Integration was unable to require apollo-server-core package.');
@@ -42,8 +42,8 @@ export class Apollo implements Integration {
     /**
      * Iterate over resolvers of the ApolloServer instance before schemas are constructed.
      */
-    fill(pkg.ApolloServerBase.prototype, 'constructSchema', function(orig: () => void) {
-      return function(this: { config: { resolvers: ApolloModelResolvers[] } }) {
+    fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: () => void) {
+      return function (this: { config: { resolvers: ApolloModelResolvers[] } }) {
         this.config.resolvers = this.config.resolvers.map(model => {
           Object.keys(model).forEach(resolverGroupName => {
             Object.keys(model[resolverGroupName]).forEach(resolverName => {
@@ -73,13 +73,13 @@ function wrapResolver(
   resolverName: string,
   getCurrentHub: () => Hub,
 ): void {
-  fill(model[resolverGroupName], resolverName, function(orig: () => unknown | Promise<unknown>) {
-    return function(this: unknown, ...args: unknown[]) {
+  fill(model[resolverGroupName], resolverName, function (orig: () => unknown | Promise<unknown>) {
+    return function (this: unknown, ...args: unknown[]) {
       const scope = getCurrentHub().getScope();
       const parentSpan = scope?.getSpan();
       const span = parentSpan?.startChild({
         description: `${resolverGroupName}.${resolverName}`,
-        op: `apollo`,
+        op: 'apollo',
       });
 
       scope?.setSpan(span);
