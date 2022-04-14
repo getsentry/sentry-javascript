@@ -18,16 +18,6 @@
     "noImplicitUseStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "plugins": [
-      {
-        "name": "typescript-tslint-plugin",
-        "configFile": "./tslint.json",
-        "alwaysShowRuleFailuresAsWarnings": false,
-        "ignoreDefinitionFiles": true,
-        "mockTypeScriptVersion": false,
-        "suppressWhileTypeErrorsPresent": false
-      }
-    ],
     "preserveWatchOutput": true,
     "pretty": true,
     "sourceMap": true,
