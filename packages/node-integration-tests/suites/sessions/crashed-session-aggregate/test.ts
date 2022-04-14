@@ -8,7 +8,7 @@ test('should aggregate successful and crashed sessions', async () => {
   const envelope = await Promise.race([
     getEnvelopeRequest(`${url}/success`),
     getEnvelopeRequest(`${url}/error_unhandled`),
-    getEnvelopeRequest(`${url}/success_slow`),
+    getEnvelopeRequest(`${url}/success_next`),
   ]);
 
   expect(envelope).toHaveLength(3);
