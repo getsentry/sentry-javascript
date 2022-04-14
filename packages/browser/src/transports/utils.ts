@@ -1,4 +1,4 @@
-import { forget, getGlobalObject, isNativeFetch, logger, supportsFetch } from '@sentry/utils';
+import { getGlobalObject, isNativeFetch, logger, supportsFetch } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
 
@@ -98,13 +98,11 @@ export function sendReport(url: string, body: string): void {
 
   if (supportsFetch()) {
     const fetch = getNativeFetchImplementation();
-    return forget(
-      fetch(url, {
-        body,
-        method: 'POST',
-        credentials: 'omit',
-        keepalive: true,
-      }),
-    );
+    fetch(url, {
+      body,
+      method: 'POST',
+      credentials: 'omit',
+      keepalive: true,
+    }).then(null, error => logger.error(error));
   }
 }
