@@ -4,3 +4,5 @@ export { XHRTransport } from './xhr';
 
 export { makeNewFetchTransport } from './new-fetch';
 export { makeNewXHRTransport } from './new-xhr';
+
+export { setupBrowserTransport } from './setup';

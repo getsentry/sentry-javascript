@@ -1,4 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
+import { setupBrowserTransport } from '@sentry/browser/src/transports';
 import { Hub, makeMain } from '@sentry/hub';
 
 import { registerErrorInstrumentation } from '../src/errors';
@@ -33,7 +34,8 @@ describe('registerErrorHandlers()', () => {
   let hub: Hub;
   beforeEach(() => {
     mockAddInstrumentationHandler.mockClear();
-    hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+    const options = { tracesSampleRate: 1 };
+    hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
     makeMain(hub);
   });
 
