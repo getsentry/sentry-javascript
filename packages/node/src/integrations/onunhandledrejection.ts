@@ -46,36 +46,15 @@ export class OnUnhandledRejection implements Integration {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public sendUnhandledPromise(reason: any, promise: any): void {
     const hub = getCurrentHub();
-
-    if (!hub.getIntegration(OnUnhandledRejection)) {
-      this._handleRejection(reason);
-      return;
-    }
-
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-    const context = (promise.domain && promise.domain.sentryContext) || {};
-
-    hub.withScope((scope: Scope) => {
-      scope.setExtra('unhandledPromiseRejection', true);
-
-      // Preserve backwards compatibility with raven-node for now
-      if (context.user) {
-        scope.setUser(context.user);
-      }
-      if (context.tags) {
-        scope.setTags(context.tags);
-      }
-      if (context.extra) {
-        scope.setExtras(context.extra);
-      }
-
-      hub.captureException(reason, {
-        originalException: promise,
-        data: { mechanism: { handled: false, type: 'onunhandledrejection' } },
+    if (hub.getIntegration(OnUnhandledRejection)) {
+      hub.withScope((scope: Scope) => {
+        scope.setExtra('unhandledPromiseRejection', true);
+        hub.captureException(reason, {
+          originalException: promise,
+          data: { mechanism: { handled: false, type: 'onunhandledrejection' } },
+        });
       });
-    });
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
+    }
     this._handleRejection(reason);
   }
 
