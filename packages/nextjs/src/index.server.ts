@@ -2,7 +2,7 @@ import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/hub';
 import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
-import { Event } from '@sentry/types';
+import { EventProcessor } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
@@ -71,6 +71,12 @@ export function init(options: NextjsOptions): void {
 
   nodeInit(options);
 
+  const filterTransactions: EventProcessor = event => {
+    return event.type === 'transaction' && event.transaction === '/404' ? null : event;
+  };
+
+  filterTransactions.id = 'NextServer404Filter';
+
   configureScope(scope => {
     scope.setTag('runtime', 'node');
     if (isVercel) {
@@ -129,10 +135,6 @@ function addServerIntegrations(options: NextjsOptions): void {
       Http: { keyPath: '_tracing', value: true },
     });
   }
-}
-
-function filterTransactions(event: Event): Event | null {
-  return event.type === 'transaction' && event.transaction === '/404' ? null : event;
 }
 
 export type { SentryWebpackPluginOptions } from './config/types';
