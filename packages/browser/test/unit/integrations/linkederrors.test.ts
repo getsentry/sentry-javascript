@@ -4,6 +4,7 @@ import { createStackParser } from '@sentry/utils';
 import { BrowserClient } from '../../../src/client';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
 import { defaultStackParsers } from '../../../src/stack-parsers';
+import { setupBrowserTransport } from '../../../src/transports';
 
 const parser = createStackParser(...defaultStackParsers);
 
@@ -38,7 +39,8 @@ describe('LinkedErrors', () => {
       one.cause = two;
 
       const originalException = one;
-      const client = new BrowserClient({ stackParser: parser });
+      const options = { stackParser: parser };
+      const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
           originalException,
@@ -68,7 +70,8 @@ describe('LinkedErrors', () => {
       one.reason = two;
 
       const originalException = one;
-      const client = new BrowserClient({ stackParser: parser });
+      const options = { stackParser: parser };
+      const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'reason', 5, event, {
           originalException,
@@ -94,7 +97,8 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const client = new BrowserClient({ stackParser: parser });
+      const options = { stackParser: parser };
+      const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       const originalException = one;
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'cause', 2, event, {
