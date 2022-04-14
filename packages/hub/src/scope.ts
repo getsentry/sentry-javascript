@@ -19,8 +19,16 @@ import {
   Transaction,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, getGlobalSingleton, isPlainObject, isThenable, SyncPromise } from '@sentry/utils';
+import {
+  dateTimestampInSeconds,
+  getGlobalSingleton,
+  isPlainObject,
+  isThenable,
+  logger,
+  SyncPromise,
+} from '@sentry/utils';
 
+import { IS_DEBUG_BUILD } from './flags';
 import { Session } from './session';
 
 /**
@@ -462,6 +470,12 @@ export class Scope implements ScopeInterface {
         resolve(event);
       } else {
         const result = processor({ ...event }, hint) as Event | null;
+
+        IS_DEBUG_BUILD &&
+          processor.id &&
+          result === null &&
+          logger.log(`Event processor "${processor.id}" dropped event`);
+
         if (isThenable(result)) {
           void result
             .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
