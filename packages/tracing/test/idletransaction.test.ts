@@ -14,7 +14,8 @@ export class SimpleTransport extends Transports.BaseTransport {}
 const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
 beforeEach(() => {
-  hub = new Hub(new BrowserClient({ dsn, tracesSampleRate: 1, transport: SimpleTransport }));
+  const options = { dsn, tracesSampleRate: 1, transport: SimpleTransport };
+  hub = new Hub(new BrowserClient(options, new SimpleTransport(options)));
 });
 
 describe('IdleTransaction', () => {

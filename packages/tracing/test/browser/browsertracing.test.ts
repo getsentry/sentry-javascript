@@ -1,4 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
+import { setupBrowserTransport } from '@sentry/browser/src/transports';
 import { Hub, makeMain } from '@sentry/hub';
 import { getGlobalObject } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
@@ -51,7 +52,8 @@ describe('BrowserTracing', () => {
   let hub: Hub;
   beforeEach(() => {
     jest.useFakeTimers();
-    hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+    const options = { tracesSampleRate: 1 };
+    hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
     makeMain(hub);
     document.head.innerHTML = '';
 
@@ -472,7 +474,8 @@ describe('BrowserTracing', () => {
       getGlobalObject<Window>().location = dogParkLocation as any;
 
       const tracesSampler = jest.fn();
-      hub.bindClient(new BrowserClient({ tracesSampler }));
+      const options = { tracesSampler };
+      hub.bindClient(new BrowserClient(options, setupBrowserTransport(options).transport));
       // setting up the BrowserTracing integration automatically starts a pageload transaction
       createBrowserTracing(true);
 
@@ -488,7 +491,8 @@ describe('BrowserTracing', () => {
       getGlobalObject<Window>().location = dogParkLocation as any;
 
       const tracesSampler = jest.fn();
-      hub.bindClient(new BrowserClient({ tracesSampler }));
+      const options = { tracesSampler };
+      hub.bindClient(new BrowserClient(options, setupBrowserTransport(options).transport));
       // setting up the BrowserTracing integration normally automatically starts a pageload transaction, but that's not
       // what we're testing here
       createBrowserTracing(true, { startTransactionOnPageLoad: false });

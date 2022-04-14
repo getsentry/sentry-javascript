@@ -1,12 +1,11 @@
-import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
-import { Event, EventHint, Options, Severity, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
-import { getGlobalObject, logger, stackParserFromOptions, supportsFetch } from '@sentry/utils';
+import { BaseClient, NewTransport, Scope, SDK_VERSION } from '@sentry/core';
+import { Event, EventHint, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { getGlobalObject, logger, stackParserFromOptions } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
 import { injectReportDialog, ReportDialogOptions } from './helpers';
 import { Breadcrumbs } from './integrations';
-import { FetchTransport, makeNewFetchTransport, makeNewXHRTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -40,7 +39,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
    *
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: BrowserOptions = {}) {
+  public constructor(options: BrowserOptions = {}, transport: Transport, newTransport?: NewTransport) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.browser',
@@ -53,7 +52,7 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
       version: SDK_VERSION,
     };
 
-    super(options);
+    super(options, transport, newTransport);
   }
 
   /**
@@ -121,41 +120,5 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
       integration.addSentryBreadcrumb(event);
     }
     super._sendEvent(event);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected _setupTransport(): Transport {
-    if (!this._options.dsn) {
-      // We return the noop transport here in case there is no Dsn.
-      return super._setupTransport();
-    }
-
-    const transportOptions: TransportOptions = {
-      ...this._options.transportOptions,
-      dsn: this._options.dsn,
-      tunnel: this._options.tunnel,
-      sendClientReports: this._options.sendClientReports,
-      _metadata: this._options._metadata,
-    };
-
-    const api = initAPIDetails(transportOptions.dsn, transportOptions._metadata, transportOptions.tunnel);
-    const url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
-
-    if (this._options.transport) {
-      return new this._options.transport(transportOptions);
-    }
-    if (supportsFetch()) {
-      const requestOptions: RequestInit = { ...transportOptions.fetchParameters };
-      this._newTransport = makeNewFetchTransport({ requestOptions, url });
-      return new FetchTransport(transportOptions);
-    }
-
-    this._newTransport = makeNewXHRTransport({
-      url,
-      headers: transportOptions.headers,
-    });
-    return new XHRTransport(transportOptions);
   }
 }
