@@ -1,7 +1,8 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { defaultCoreOptions, getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getIntegrationsToSetup } from '@sentry/core/build/types/integration';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, logger, makeDsn, stackParserFromOptions } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
@@ -9,7 +10,7 @@ import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { nodeStackParser } from './stack-parser';
 import { setupNodeTransport } from './transports';
-import { NodeOptions } from './types';
+import { NodeClientOptions, NodeOptions } from './types';
 
 export const defaultIntegrations = [
   // Common
@@ -132,7 +133,18 @@ export function init(options: NodeOptions = {}): void {
   }
 
   const { transport, newTransport } = setupNodeTransport(options);
-  initAndBind(NodeClient, options, transport, newTransport);
+
+  // TODO(v7): Refactor this to reduce the logic above
+  const clientOptions: NodeClientOptions = {
+    ...options,
+    ...defaultCoreOptions,
+    dsn: options.dsn === undefined ? undefined : makeDsn(process.env.SENTRY_DSN ? process.env.SENTRY_DSN : options.dsn),
+    stackParser: stackParserFromOptions(options),
+    integrations: getIntegrationsToSetup(options),
+    transport,
+  };
+
+  initAndBind(NodeClient, clientOptions, transport, newTransport);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

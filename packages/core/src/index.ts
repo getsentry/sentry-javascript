@@ -37,6 +37,7 @@ export { initAndBind } from './sdk';
 export { NoopTransport } from './transports/noop';
 export { createTransport } from './transports/base';
 export { SDK_VERSION } from './version';
+export { defaultCoreOptions, optionsToClientOptions } from './options';
 
 import * as Integrations from './integrations';
 

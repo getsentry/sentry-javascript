@@ -2,7 +2,7 @@ import { getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, NewTransport, No
 import { Transport, TransportOptions } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 
-import { NodeClientOptions } from '../types';
+import { NodeOptions } from '../types';
 import { HTTPSTransport, HTTPTransport, makeNodeTransport } from '.';
 
 /**
@@ -13,7 +13,7 @@ import { HTTPSTransport, HTTPTransport, makeNodeTransport } from '.';
  * this function will return a ready to use `NewTransport`.
  */
 // TODO(v7): Adjust return value when NewTransport is the default
-export function setupNodeTransport(options: NodeClientOptions): { transport: Transport; newTransport?: NewTransport } {
+export function setupNodeTransport(options: NodeOptions): { transport: Transport; newTransport?: NewTransport } {
   if (!options.dsn) {
     // We return the noop transport here in case there is no Dsn.
     return { transport: new NoopTransport() };
