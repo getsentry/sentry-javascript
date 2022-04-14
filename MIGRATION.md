@@ -1,16 +1,16 @@
-## Upgrading from 6.x to 7.x
+# Upgrading from 6.x to 7.x
 
 The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.
 Below we will outline all the breaking changes you should consider when upgrading.
 
-### Dropping Support for Node.js v6
+## Dropping Support for Node.js v6
 
 Node.js version 6 has reached end of life in April 2019. For Sentry JavaScript SDK version 7, we will no longer be supporting version 6 of Node.js.
 
 As far as SDK development goes, dropping support means no longer running integration tests for Node.js version 6, and also no longer handling edge cases specific to version 6.
 Running the new SDK version on Node.js v6 is therefore highly discouraged.
 
-### Removal Of Old Platform Integrations From `@sentry/integrations` Package
+## Removal Of Old Platform Integrations From `@sentry/integrations` Package
 
 The following classes will be removed from the `@sentry/integrations` package and can no longer be used:
 
@@ -21,19 +21,19 @@ The following classes will be removed from the `@sentry/integrations` package an
 These classes have been superseded and were moved into their own packages, `@sentry/angular`, `@sentry/ember`, and `@sentry/vue` in a previous version.
 Refer to those packages if you want to integrate Sentry into your Angular, Ember, or Vue application.
 
-### Moving To ES6 For CommonJS Files
+## Moving To ES6 For CommonJS Files
 
 From version 7 onwards, the CommonJS files in Sentry JavaScript SDK packages will use ES6.
 
 If you need to support Internet Explorer 11 or old Node.js versions, we recommend using a preprocessing tool like [Babel](https://babeljs.io/) to convert Sentry packages to ES5.
 
-### Renaming Of CDN Bundles
+## Renaming Of CDN Bundles
 
 CDN bundles will be ES6 by default. Files that followed the naming scheme `bundle.es6.min.js` were renamed to `bundle.min.js` and any bundles using ES5 (files without `.es6`) turned into `bundle.es5.min.js`.
 
 See our [docs on CDN bundles](https://docs.sentry.io/platforms/javascript/install/cdn/) for more information.
 
-### Restructuring Of Package Content
+## Restructuring Of Package Content
 
 Up until v6.x, we have published our packages on npm with the following structure:
 
@@ -54,7 +54,7 @@ If you depend on any specific files in a Sentry JavaScript npm package, you will
 For example, imports on `@sentry/browser/dist/client` will become `@sentry/browser/cjs/client`.
 However, directly importing from specific files is discouraged.
 
-### Removing the `API` class from `@sentry/core`
+## Removing the `API` class from `@sentry/core`
 
 The internal `API` class was removed in favor of the `initAPIDetails` function and the `APIDetails` type. More details can be found in the [PR that deprecated this class](https://github.com/getsentry/sentry-javascript/pull/4281). To migrate, see the following example.
 
@@ -80,12 +80,12 @@ const storeEndpoint = api.getStoreEndpointWithUrlEncodedAuth();
 const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
 ```
 
-### Enum changes
+## Enum changes
 
 Given that enums have a high bundle-size impact, our long term goal is to eventually remove all enums from the SDK in
 favor of string literals.
 
-#### Removed Enums
+### Removed Enums
 * The previously deprecated enum `Status` was removed (see [#4891](https://github.com/getsentry/sentry-javascript/pull/4891)).
   [This example](#status) explains how to migrate.
 * The previously deprecated internal-only enum `RequestSessionStatus` was removed (see
@@ -93,13 +93,13 @@ favor of string literals.
 * The previously deprecated internal-only enum `SessionStatus` was removed (see
   [#4890](https://github.com/getsentry/sentry-javascript/pull/4890)) in favor of string literals.
 
-#### Deprecated Enums
+### Deprecated Enums
 The two enums `SpanStatus`, and `Severity` remain deprecated, as we decided to limit the number of high-impact breaking
 changes in v7. They will be removed in the next major release which is why we strongly recommend moving to the
 corresponding string literals. Here's how to adjust [`Severity`](#severity-severitylevel-and-severitylevels) and
 [`SpanStatus`](#spanstatus).
 
-### General API Changes
+## General API Changes
 
 For our efforts to reduce bundle size of the SDK we had to remove and refactor parts of the package which introduced a few changes to the API:
 
