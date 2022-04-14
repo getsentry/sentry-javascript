@@ -1,9 +1,10 @@
-import { Severity } from './severity';
+import { Severity, SeverityLevel } from './severity';
 
 /** JSDoc */
 export interface Breadcrumb {
   type?: string;
-  level?: Severity;
+  // eslint-disable-next-line deprecation/deprecation
+  level?: Severity | SeverityLevel;
   event_id?: string;
   category?: string;
   message?: string;

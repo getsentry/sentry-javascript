@@ -1,5 +1,6 @@
 /**
- * TODO(v7): Remove this enum and replace with SeverityLevel
+ * @deprecated Please use a `SeverityLevel` string instead of the `Severity` enum. Acceptable values are 'fatal',
+ * 'critical', 'error', 'warning', 'log', 'info', and 'debug'.
  */
 export enum Severity {
   /** JSDoc */
@@ -18,7 +19,6 @@ export enum Severity {
   Critical = 'critical',
 }
 
-// TODO: in v7, these can disappear, because they now also exist in `@sentry/utils`. (Having them there rather than here
-// is nice because then it enforces the idea that only types are exported from `@sentry/types`.)
-export const SeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug', 'critical'] as const;
-export type SeverityLevel = typeof SeverityLevels[number];
+// Note: If this is ever changed, the `validSeverityLevels` array in `@sentry/utils` needs to be changed, also. (See
+// note there for why we can't derive one from the other.)
+export type SeverityLevel = 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug' | 'critical';
