@@ -201,7 +201,7 @@ export function isAutoSessionTrackingEnabled(client?: NodeClient): boolean {
   if (client === undefined) {
     return false;
   }
-  const clientOptions: NodeOptions = client && client.getOptions();
+  const clientOptions: NodeClientOptions = client && client.getOptions();
   if (clientOptions && clientOptions.autoSessionTracking !== undefined) {
     return clientOptions.autoSessionTracking;
   }

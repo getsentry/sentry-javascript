@@ -1,8 +1,16 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { defaultCoreOptions, getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getIntegrationsToSetup } from '@sentry/core/build/types/integration';
 import { Hub } from '@sentry/types';
-import { addInstrumentationHandler, getGlobalObject, logger, resolvedSyncPromise } from '@sentry/utils';
+import {
+  addInstrumentationHandler,
+  getGlobalObject,
+  logger,
+  makeDsn,
+  resolvedSyncPromise,
+  stackParserFromOptions,
+} from '@sentry/utils';
 
-import { BrowserClient, BrowserOptions } from './client';
+import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
@@ -97,9 +105,18 @@ export function init(options: BrowserOptions = {}): void {
   if (options.stackParser === undefined) {
     options.stackParser = defaultStackParsers;
   }
-
   const { transport, newTransport } = setupBrowserTransport(options);
-  initAndBind(BrowserClient, options, transport, newTransport);
+
+  const clientOptions: BrowserClientOptions = {
+    ...options,
+    ...defaultCoreOptions,
+    dsn: options.dsn === undefined ? undefined : makeDsn(options.dsn),
+    stackParser: stackParserFromOptions(options),
+    integrations: getIntegrationsToSetup(options),
+    transport,
+  };
+
+  initAndBind(BrowserClient, clientOptions, transport, newTransport);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

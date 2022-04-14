@@ -8,7 +8,7 @@ import {
 import { Transport, TransportOptions } from '@sentry/types';
 import { supportsFetch } from '@sentry/utils';
 
-import { BrowserClientOptions } from '../client';
+import { BrowserOptions } from '../client';
 import { FetchTransport } from './fetch';
 import { makeNewFetchTransport } from './new-fetch';
 import { makeNewXHRTransport } from './new-xhr';
@@ -31,7 +31,7 @@ export interface BrowserTransportOptions extends BaseTransportOptions {
  * this function will return a ready to use `NewTransport`.
  */
 // TODO(v7): Adjust return value when NewTransport is the default
-export function setupBrowserTransport(options: BrowserClientOptions): {
+export function setupBrowserTransport(options: BrowserOptions): {
   transport: Transport;
   newTransport?: NewTransport;
 } {
