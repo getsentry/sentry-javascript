@@ -11,6 +11,7 @@
 - **(breaking)** ref: Delete Backend classes (#4919)
 - **(breaking)** feat(browser): Remove stack parser support for Opera pre v15 (#4923)
 - **(breaking)** ref(client): Inject Transports into Client (#4921)
+- feat: Add name field to EventProcessor (#4932)
 - ref: Expose configurable stack parser (#4902)
 - ref: Turn on isolatedModules TS option (#4896)
 - ref(tracing): Make setMeasurement public API (#4933)
