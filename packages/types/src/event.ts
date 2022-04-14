@@ -7,7 +7,7 @@ import { Primitive } from './misc';
 import { Request } from './request';
 import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
-import { Severity } from './severity';
+import { Severity, SeverityLevel } from './severity';
 import { Span } from './span';
 import { Measurements } from './transaction';
 import { User } from './user';
@@ -18,7 +18,8 @@ export interface Event {
   message?: string;
   timestamp?: number;
   start_timestamp?: number;
-  level?: Severity;
+  // eslint-disable-next-line deprecation/deprecation
+  level?: Severity | SeverityLevel;
   platform?: string;
   logger?: string;
   server_name?: string;

@@ -1,5 +1,5 @@
 import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, Scope, SDK_VERSION } from '@sentry/core';
-import { Event, EventHint, Options, Severity, Transport, TransportOptions } from '@sentry/types';
+import { Event, EventHint, Options, Severity, SeverityLevel, Transport, TransportOptions } from '@sentry/types';
 import { getGlobalObject, logger, stackParserFromOptions, supportsFetch } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -89,7 +89,12 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
+  public eventFromMessage(
+    message: string,
+    // eslint-disable-next-line deprecation/deprecation
+    level: Severity | SeverityLevel = 'info',
+    hint?: EventHint,
+  ): PromiseLike<Event> {
     return eventFromMessage(
       stackParserFromOptions(this._options),
       message,
