@@ -42,7 +42,7 @@ export class Dedupe implements Integration {
       return currentEvent;
     };
 
-    eventProcessor.id = 'DedupeIntegration';
+    eventProcessor.id = this.name;
     addGlobalEventProcessor(eventProcessor);
   }
 }

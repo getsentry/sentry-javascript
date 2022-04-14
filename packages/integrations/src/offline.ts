@@ -100,7 +100,7 @@ export class Offline implements Integration {
       return event;
     };
 
-    eventProcessor.id = 'OfflineIntegration';
+    eventProcessor.id = this.name;
     addGlobalEventProcessor(eventProcessor);
 
     // if online now, send any events stored in a previous offline session

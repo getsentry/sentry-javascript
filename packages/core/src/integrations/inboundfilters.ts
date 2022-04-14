@@ -47,7 +47,7 @@ export class InboundFilters implements Integration {
       return event;
     };
 
-    eventProcess.id = 'InboundFiltersIntegration';
+    eventProcess.id = this.name;
     addGlobalEventProcessor(eventProcess);
   }
 }

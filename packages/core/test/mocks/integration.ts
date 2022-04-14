@@ -16,7 +16,7 @@ export class TestIntegration implements Integration {
       return null;
     };
 
-    eventProcessor.id = 'TestIntegration';
+    eventProcessor.id = this.name;
 
     configureScope(scope => {
       scope.addEventProcessor(eventProcessor);
