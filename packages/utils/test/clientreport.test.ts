@@ -3,7 +3,7 @@ import { ClientReport } from '@sentry/types';
 import { createClientReportEnvelope } from '../src/clientreport';
 import { serializeEnvelope } from '../src/envelope';
 
-const DEFAULT_DISCARDED_EVENTS: Array<ClientReport['discarded_events']> = [
+const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
   {
     reason: 'before_send',
     category: 'event',

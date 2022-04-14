@@ -1,7 +1,7 @@
 import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from '../src/syncpromise';
 
 describe('SyncPromise', () => {
-  test('simple', () => {
+  test('simple', async () => {
     expect.assertions(1);
 
     return new SyncPromise<number>(resolve => {
@@ -11,7 +11,7 @@ describe('SyncPromise', () => {
     });
   });
 
-  test('simple chaining', () => {
+  test('simple chaining', async () => {
     expect.assertions(1);
 
     return new SyncPromise<number>(resolve => {
@@ -94,7 +94,7 @@ describe('SyncPromise', () => {
     );
   });
 
-  test('simple static', () => {
+  test('simple static', async () => {
     expect.assertions(1);
 
     const p = resolvedSyncPromise(10);
@@ -103,7 +103,7 @@ describe('SyncPromise', () => {
     });
   });
 
-  test('using new Promise internally', () => {
+  test('using new Promise internally', async () => {
     expect.assertions(2);
 
     return new SyncPromise<number>(done => {
@@ -120,7 +120,7 @@ describe('SyncPromise', () => {
     });
   });
 
-  test('with setTimeout', () => {
+  test('with setTimeout', async () => {
     jest.useFakeTimers();
     expect.assertions(1);
 
@@ -175,7 +175,7 @@ describe('SyncPromise', () => {
     expect(qp).toHaveProperty('_value');
   });
 
-  test('multiple then returning undefined', () => {
+  test('multiple then returning undefined', async () => {
     expect.assertions(3);
 
     return new SyncPromise<number>(resolve => {
@@ -192,7 +192,7 @@ describe('SyncPromise', () => {
       });
   });
 
-  test('multiple then returning different values', () => {
+  test('multiple then returning different values', async () => {
     expect.assertions(3);
 
     return new SyncPromise<number>(resolve => {
@@ -211,7 +211,7 @@ describe('SyncPromise', () => {
       });
   });
 
-  test('multiple then returning different SyncPromise', () => {
+  test('multiple then returning different SyncPromise', async () => {
     expect.assertions(2);
 
     return new SyncPromise<number>(resolve => {
@@ -228,7 +228,7 @@ describe('SyncPromise', () => {
       });
   });
 
-  test('reject immediatly and do not call then', () => {
+  test('reject immediatly and do not call then', async () => {
     expect.assertions(1);
 
     return new SyncPromise<number>((_, reject) => {
@@ -242,7 +242,7 @@ describe('SyncPromise', () => {
       });
   });
 
-  test('reject', () => {
+  test('reject', async () => {
     expect.assertions(1);
 
     return new SyncPromise<number>((_, reject) => {
@@ -252,7 +252,7 @@ describe('SyncPromise', () => {
     });
   });
 
-  test('rejecting after first then', () => {
+  test('rejecting after first then', async () => {
     expect.assertions(2);
 
     return new SyncPromise<number>(resolve => {

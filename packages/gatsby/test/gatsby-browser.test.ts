@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const { onClientEntry } = require('../gatsby-browser');
+import { onClientEntry } from '../gatsby-browser';
 
 (global as any).__SENTRY_RELEASE__ = '683f3a6ab819d47d23abfca9a914c81f0524d35b';
 (global as any).__SENTRY_DSN__ = 'https://examplePublicKey@o0.ingest.sentry.io/0';
@@ -153,7 +153,7 @@ describe('onClientEntry', () => {
 
   // Run this last to check for any test side effects
   it('does not run if plugin params are undefined', () => {
-    onClientEntry();
+    onClientEntry(undefined, undefined);
     expect(sentryInit).toHaveBeenCalledTimes(0);
     expect(tracingAddExtensionMethods).toHaveBeenCalledTimes(0);
   });

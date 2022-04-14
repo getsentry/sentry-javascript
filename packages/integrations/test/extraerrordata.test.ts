@@ -71,7 +71,7 @@ describe('ExtraErrorData()', () => {
     event = {
       // @ts-ignore Allow contexts on event
       contexts: {
-        foo: 42,
+        foo: { bar: 42 },
       },
     };
     const error = new TypeError('foo') as ExtendedError;
@@ -85,7 +85,7 @@ describe('ExtraErrorData()', () => {
       TypeError: {
         baz: 42,
       },
-      foo: 42,
+      foo: { bar: 42 },
     });
   });
 

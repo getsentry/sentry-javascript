@@ -69,7 +69,7 @@ describe('BaseClient', () => {
 
       const options = { dsn: PUBLIC_DSN };
       const client = new TestClient(options, setupTestTransport(options).transport);
-      expect(dsnToString(client.getDsn())).toBe(PUBLIC_DSN);
+      expect(dsnToString(client.getDsn()!)).toBe(PUBLIC_DSN);
     });
 
     test('allows missing Dsn', () => {

@@ -79,7 +79,7 @@ export function setupTestTransport(options: TestOptions): { transport: Transport
   const transportOptions = options.transportOptions ? options.transportOptions : { dsn: options.dsn };
 
   if (options.transport) {
-    return { transport: new this._options.transport(transportOptions) };
+    return { transport: new options.transport(transportOptions) };
   }
 
   return noop;
