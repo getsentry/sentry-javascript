@@ -39,7 +39,7 @@ export interface ClientOptions {
    * The Dsn used to connect to Sentry and identify the project. If omitted, the
    * SDK will not send any data to Sentry.
    */
-  dsn?: DsnComponents;
+  dsn?: string;
 
   /**
    * The release identifier used when uploading respective source maps. Specify
