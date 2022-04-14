@@ -3,18 +3,12 @@ import { Event, StackFrame } from '@sentry/types';
 import { RewriteFrames } from '../src/rewriteframes';
 
 let rewriteFrames: RewriteFrames;
-let messageEvent: Event;
 let exceptionEvent: Event;
 let windowsExceptionEvent: Event;
 let multipleStacktracesEvent: Event;
 
 describe('RewriteFrames', () => {
   beforeEach(() => {
-    messageEvent = {
-      stacktrace: {
-        frames: [{ filename: '/www/src/app/file1.js' }, { filename: '/www/src/app/mo\\dule/file2.js' }],
-      },
-    };
     exceptionEvent = {
       exception: {
         values: [

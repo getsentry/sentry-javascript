@@ -9,7 +9,9 @@ import {
 } from '../src/idletransaction';
 import { Span } from '../src/span';
 
-export class SimpleTransport extends Transports.BaseTransport {}
+// @ts-ignore It's okay that we're not implementing the methods of the abstract `BaseTransport` class, because it's not
+// what we're testing here
+class SimpleTransport extends Transports.BaseTransport {}
 
 const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
@@ -167,9 +169,9 @@ describe('IdleTransaction', () => {
   it('should record dropped transactions', async () => {
     const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
 
-    const transport = hub.getClient()?.getTransport();
+    const transport = hub.getClient()!.getTransport!();
 
-    const spy = jest.spyOn(transport!, 'recordLostEvent');
+    const spy = jest.spyOn(transport, 'recordLostEvent');
 
     transaction.initSpanRecorder(10);
     transaction.finish(transaction.startTimestamp + 10);

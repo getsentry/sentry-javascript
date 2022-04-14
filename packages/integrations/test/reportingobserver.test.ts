@@ -1,4 +1,4 @@
-import { Integration } from '@sentry/types';
+import { Hub, Integration } from '@sentry/types';
 
 import { ReportingObserver } from '../src/reportingobserver';
 
@@ -13,10 +13,11 @@ const mockHub = {
   captureMessage: jest.fn(),
 };
 
-const getMockHubWithIntegration = (integration: Integration) => ({
-  ...mockHub,
-  getIntegration: jest.fn(() => integration),
-});
+const getMockHubWithIntegration = (integration: Integration) =>
+  ({
+    ...mockHub,
+    getIntegration: jest.fn(() => integration),
+  } as unknown as Hub);
 
 const mockReportingObserverConstructor = jest.fn();
 const mockObserve = jest.fn();
@@ -49,7 +50,7 @@ describe('ReportingObserver', () => {
       expect(() => {
         reportingObserverIntegration.setupOnce(
           () => undefined,
-          () => getMockHubWithIntegration(null) as any,
+          () => getMockHubWithIntegration(null as any),
         );
       }).not.toThrow();
 
@@ -61,7 +62,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
@@ -75,7 +76,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver({ types: ['crash'] });
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
@@ -89,7 +90,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
@@ -103,7 +104,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       expect(mockObserve).toHaveBeenCalledTimes(1);
@@ -115,7 +116,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(null) as any,
+        () => getMockHubWithIntegration(null as any),
       );
 
       expect(() => {
@@ -129,7 +130,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       reportingObserverIntegration.handler([
@@ -144,7 +145,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       reportingObserverIntegration.handler([
@@ -160,7 +161,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report1 = { type: 'crash', url: 'some url 1', body: { crashId: 'id1' } } as const;
@@ -176,7 +177,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       reportingObserverIntegration.handler([{ type: 'crash', url: 'some url' }]);
@@ -188,7 +189,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report = {
@@ -207,7 +208,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report = {
@@ -225,7 +226,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report = {
@@ -243,7 +244,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report = {
@@ -260,7 +261,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report = { type: 'crash', url: 'some url', body: { crashId: '', reason: '' } } as const;
@@ -274,7 +275,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report = {
@@ -292,7 +293,7 @@ describe('ReportingObserver', () => {
       const reportingObserverIntegration = new ReportingObserver();
       reportingObserverIntegration.setupOnce(
         () => undefined,
-        () => getMockHubWithIntegration(reportingObserverIntegration) as any,
+        () => getMockHubWithIntegration(reportingObserverIntegration),
       );
 
       const report = {

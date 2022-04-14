@@ -8,6 +8,7 @@ const mockGetCurrentHub = (getIntegrationResult: Integration) => ({
 
 // Replace console log with a mock so we can check for invocations
 const mockConsoleLog = jest.fn();
+// eslint-disable-next-line @typescript-eslint/unbound-method
 const originalConsoleLog = global.console.log;
 global.console.log = mockConsoleLog;
 
