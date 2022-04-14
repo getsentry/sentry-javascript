@@ -21,10 +21,16 @@
     "cors": "^2.8.5",
     "express": "^4.17.3",
     "mongodb": "^3.7.3",
-    "mongodb-memory-server": "^7.6.3",
+    "mongodb-memory-server-global": "^7.6.3",
     "mysql": "^2.18.1",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
     "portfinder": "^1.0.28"
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "preferGlobalPath": true,
+      "runtimeDownload": false
+    }
   }
 }
