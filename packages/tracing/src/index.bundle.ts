@@ -1,4 +1,4 @@
-export {
+export type {
   Breadcrumb,
   Request,
   SdkInfo,
@@ -14,6 +14,8 @@ export {
   Thread,
   User,
 } from '@sentry/types';
+
+export type { BrowserOptions, ReportDialogOptions } from '@sentry/browser';
 
 export {
   addGlobalEventProcessor,
@@ -37,8 +39,7 @@ export {
   withScope,
 } from '@sentry/browser';
 
-export { BrowserOptions } from '@sentry/browser';
-export { BrowserClient, ReportDialogOptions } from '@sentry/browser';
+export { BrowserClient } from '@sentry/browser';
 export {
   defaultIntegrations,
   forceLoad,

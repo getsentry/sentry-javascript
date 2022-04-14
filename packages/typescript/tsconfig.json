@@ -6,6 +6,7 @@
     "downlevelIteration": true,
     "importHelpers": true,
     "inlineSources": true,
+    "isolatedModules": true,
     "lib": ["es6", "dom"],
     // "module": "commonjs", // implied by "target" : "es5"
     "moduleResolution": "node",
