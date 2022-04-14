@@ -8,6 +8,7 @@ import { NodeClient } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { nodeStackParser } from './stack-parser';
+import { setupNodeTransport } from './transports';
 import { NodeOptions } from './types';
 
 export const defaultIntegrations = [
@@ -130,7 +131,8 @@ export function init(options: NodeOptions = {}): void {
     setHubOnCarrier(carrier, getCurrentHub());
   }
 
-  initAndBind(NodeClient, options);
+  const { transport, newTransport } = setupNodeTransport(options);
+  initAndBind(NodeClient, options, transport, newTransport);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

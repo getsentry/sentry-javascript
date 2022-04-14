@@ -18,6 +18,7 @@ import {
 } from '../src';
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { nodeStackParser } from '../src/stack-parser';
+import { setupNodeTransport } from '../src/transports';
 
 const stackParser = createStackParser(nodeStackParser);
 
@@ -89,8 +90,7 @@ describe('SentryNode', () => {
     });
 
     test('record auto breadcrumbs', done => {
-      const client = new NodeClient({
-        stackParser,
+      const options = {
         beforeSend: (event: Event) => {
           // TODO: It should be 3, but we don't capture a breadcrumb
           // for our own captureMessage/captureException calls yet
@@ -99,7 +99,9 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      });
+        stackParser,
+      };
+      const client = new NodeClient(options, setupNodeTransport(options).transport);
       getCurrentHub().bindClient(client);
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
@@ -120,22 +122,21 @@ describe('SentryNode', () => {
 
     test('capture an exception', done => {
       expect.assertions(6);
-      getCurrentHub().bindClient(
-        new NodeClient({
-          stackParser,
-          beforeSend: (event: Event) => {
-            expect(event.tags).toEqual({ test: '1' });
-            expect(event.exception).not.toBeUndefined();
-            expect(event.exception!.values![0]).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
-            expect(event.exception!.values![0].value).toEqual('test');
-            done();
-            return null;
-          },
-          dsn,
-        }),
-      );
+      const options = {
+        stackParser,
+        beforeSend: (event: Event) => {
+          expect(event.tags).toEqual({ test: '1' });
+          expect(event.exception).not.toBeUndefined();
+          expect(event.exception!.values![0]).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
+          expect(event.exception!.values![0].value).toEqual('test');
+          done();
+          return null;
+        },
+        dsn,
+      };
+      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
       });
@@ -148,22 +149,21 @@ describe('SentryNode', () => {
 
     test('capture a string exception', done => {
       expect.assertions(6);
-      getCurrentHub().bindClient(
-        new NodeClient({
-          stackParser,
-          beforeSend: (event: Event) => {
-            expect(event.tags).toEqual({ test: '1' });
-            expect(event.exception).not.toBeUndefined();
-            expect(event.exception!.values![0]).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
-            expect(event.exception!.values![0].value).toEqual('test string exception');
-            done();
-            return null;
-          },
-          dsn,
-        }),
-      );
+      const options = {
+        stackParser,
+        beforeSend: (event: Event) => {
+          expect(event.tags).toEqual({ test: '1' });
+          expect(event.exception).not.toBeUndefined();
+          expect(event.exception!.values![0]).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
+          expect(event.exception!.values![0].value).toEqual('test string exception');
+          done();
+          return null;
+        },
+        dsn,
+      };
+      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
       });
@@ -176,26 +176,25 @@ describe('SentryNode', () => {
 
     test('capture an exception with pre/post context', done => {
       expect.assertions(10);
-      getCurrentHub().bindClient(
-        new NodeClient({
-          stackParser,
-          beforeSend: (event: Event) => {
-            expect(event.tags).toEqual({ test: '1' });
-            expect(event.exception).not.toBeUndefined();
-            expect(event.exception!.values![0]).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
-            expect(event.exception!.values![0].type).toBe('Error');
-            expect(event.exception!.values![0].value).toBe('test');
-            expect(event.exception!.values![0].stacktrace).toBeTruthy();
-            done();
-            return null;
-          },
-          dsn,
-        }),
-      );
+      const options = {
+        stackParser,
+        beforeSend: (event: Event) => {
+          expect(event.tags).toEqual({ test: '1' });
+          expect(event.exception).not.toBeUndefined();
+          expect(event.exception!.values![0]).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
+          expect(event.exception!.values![0].type).toBe('Error');
+          expect(event.exception!.values![0].value).toBe('test');
+          expect(event.exception!.values![0].stacktrace).toBeTruthy();
+          done();
+          return null;
+        },
+        dsn,
+      };
+      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
       });
@@ -208,33 +207,32 @@ describe('SentryNode', () => {
 
     test('capture a linked exception with pre/post context', done => {
       expect.assertions(15);
-      getCurrentHub().bindClient(
-        new NodeClient({
-          stackParser,
-          integrations: [new ContextLines(), new LinkedErrors()],
-          beforeSend: (event: Event) => {
-            expect(event.exception).not.toBeUndefined();
-            expect(event.exception!.values![1]).not.toBeUndefined();
-            expect(event.exception!.values![1].stacktrace!).not.toBeUndefined();
-            expect(event.exception!.values![1].stacktrace!.frames![1]).not.toBeUndefined();
-            expect(event.exception!.values![1].stacktrace!.frames![1].pre_context).not.toBeUndefined();
-            expect(event.exception!.values![1].stacktrace!.frames![1].post_context).not.toBeUndefined();
-            expect(event.exception!.values![1].type).toBe('Error');
-            expect(event.exception!.values![1].value).toBe('test');
+      const options = {
+        stackParser,
+        integrations: [new ContextLines(), new LinkedErrors()],
+        beforeSend: (event: Event) => {
+          expect(event.exception).not.toBeUndefined();
+          expect(event.exception!.values![1]).not.toBeUndefined();
+          expect(event.exception!.values![1].stacktrace!).not.toBeUndefined();
+          expect(event.exception!.values![1].stacktrace!.frames![1]).not.toBeUndefined();
+          expect(event.exception!.values![1].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+          expect(event.exception!.values![1].stacktrace!.frames![1].post_context).not.toBeUndefined();
+          expect(event.exception!.values![1].type).toBe('Error');
+          expect(event.exception!.values![1].value).toBe('test');
 
-            expect(event.exception!.values![0]).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
-            expect(event.exception!.values![0].type).toBe('Error');
-            expect(event.exception!.values![0].value).toBe('cause');
-            done();
-            return null;
-          },
-          dsn,
-        }),
-      );
+          expect(event.exception!.values![0]).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+          expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
+          expect(event.exception!.values![0].type).toBe('Error');
+          expect(event.exception!.values![0].value).toBe('cause');
+          done();
+          return null;
+        },
+        dsn,
+      };
+      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       try {
         throw new Error('test');
       } catch (e) {
@@ -249,42 +247,40 @@ describe('SentryNode', () => {
 
     test('capture a message', done => {
       expect.assertions(2);
-      getCurrentHub().bindClient(
-        new NodeClient({
-          stackParser,
-          beforeSend: (event: Event) => {
-            expect(event.message).toBe('test');
-            expect(event.exception).toBeUndefined();
-            done();
-            return null;
-          },
-          dsn,
-        }),
-      );
+      const options = {
+        stackParser,
+        beforeSend: (event: Event) => {
+          expect(event.message).toBe('test');
+          expect(event.exception).toBeUndefined();
+          done();
+          return null;
+        },
+        dsn,
+      };
+      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       captureMessage('test');
     });
 
     test('capture an event', done => {
       expect.assertions(2);
-      getCurrentHub().bindClient(
-        new NodeClient({
-          stackParser,
-          beforeSend: (event: Event) => {
-            expect(event.message).toBe('test event');
-            expect(event.exception).toBeUndefined();
-            done();
-            return null;
-          },
-          dsn,
-        }),
-      );
+      const options = {
+        stackParser,
+        beforeSend: (event: Event) => {
+          expect(event.message).toBe('test event');
+          expect(event.exception).toBeUndefined();
+          done();
+          return null;
+        },
+        dsn,
+      };
+      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       captureEvent({ message: 'test event' });
     });
 
     test('capture an event in a domain', done => {
       const d = domain.create();
 
-      const client = new NodeClient({
+      const options = {
         stackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test domain');
@@ -293,7 +289,8 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      });
+      };
+      const client = new NodeClient(options, setupNodeTransport(options).transport);
 
       d.run(() => {
         getCurrentHub().bindClient(client);
@@ -304,21 +301,19 @@ describe('SentryNode', () => {
 
     test('stacktrace order', done => {
       expect.assertions(1);
-      getCurrentHub().bindClient(
-        new NodeClient({
-          stackParser,
-          beforeSend: (event: Event) => {
-            expect(
-              event.exception!.values![0].stacktrace!.frames![
-                event.exception!.values![0].stacktrace!.frames!.length - 1
-              ].function,
-            ).toEqual('testy');
-            done();
-            return null;
-          },
-          dsn,
-        }),
-      );
+      const options = {
+        stackParser,
+        beforeSend: (event: Event) => {
+          expect(
+            event.exception!.values![0].stacktrace!.frames![event.exception!.values![0].stacktrace!.frames!.length - 1]
+              .function,
+          ).toEqual('testy');
+          done();
+          return null;
+        },
+        dsn,
+      };
+      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       try {
         // @ts-ignore allow function declarations in strict mode
         // eslint-disable-next-line no-inner-declarations
@@ -381,7 +376,8 @@ describe('SentryNode initialization', () => {
     });
 
     it('should set SDK data when instantiating a client directly', () => {
-      const client = new NodeClient({ dsn });
+      const options = { dsn };
+      const client = new NodeClient(options, setupNodeTransport(options).transport);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sdkData = (client as any).getTransport()._api.metadata?.sdk;

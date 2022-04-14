@@ -73,6 +73,15 @@ export interface Transaction extends TransactionContext, Span {
    */
   setName(name: string): void;
 
+  /**
+   * Set observed measurement for this transaction.
+   *
+   * @param name Name of the measurement
+   * @param value Value of the measurement
+   * @param unit Unit of the measurement. (Defaults to an empty string)
+   */
+  setMeasurement(name: string, value: number, unit: string): void;
+
   /** Returns the current transaction properties as a `TransactionContext` */
   toContext(): TransactionContext;
 
@@ -115,7 +124,7 @@ export interface SamplingContext extends CustomSamplingContext {
   request?: ExtractedNodeRequestData;
 }
 
-export type Measurements = Record<string, { value: number }>;
+export type Measurements = Record<string, { value: number; unit: string }>;
 
 export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'client_rate' | 'inheritance';
 

@@ -1,4 +1,4 @@
-export {
+export type {
   Breadcrumb,
   BreadcrumbHint,
   Request,
@@ -8,14 +8,17 @@ export {
   EventStatus,
   Exception,
   Response,
+  // eslint-disable-next-line deprecation/deprecation
   Severity,
+  SeverityLevel,
   StackFrame,
   Stacktrace,
   Thread,
   User,
 } from '@sentry/types';
 
-export { SeverityLevel } from '@sentry/utils';
+export type { BrowserOptions } from './client';
+export type { ReportDialogOptions } from './helpers';
 
 export {
   addGlobalEventProcessor,
@@ -41,8 +44,7 @@ export {
   withScope,
 } from '@sentry/core';
 
-export { BrowserClient, BrowserOptions } from './client';
-
+export { BrowserClient } from './client';
 export {
   defaultStackParsers,
   chromeStackParser,
@@ -51,6 +53,6 @@ export {
   opera11StackParser,
   winjsStackParser,
 } from './stack-parsers';
-export { injectReportDialog, ReportDialogOptions } from './helpers';
+export { injectReportDialog } from './helpers';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
 export { SDK_NAME } from './version';

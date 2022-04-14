@@ -1,6 +1,7 @@
 import { Scope, SessionFlusher } from '@sentry/hub';
 
 import { NodeClient } from '../src';
+import { setupNodeTransport } from '../src/transports';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -14,7 +15,8 @@ describe('NodeClient', () => {
 
   describe('captureException', () => {
     test('when autoSessionTracking is enabled, and requestHandler is not used -> requestStatus should not be set', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       const scope = new Scope();
       scope.setRequestSession({ status: 'ok' });
 
@@ -24,7 +26,8 @@ describe('NodeClient', () => {
       expect(requestSession!.status).toEqual('ok');
     });
     test('when autoSessionTracking is disabled -> requestStatus should not be set', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.4' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.4' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -38,7 +41,8 @@ describe('NodeClient', () => {
       expect(requestSession!.status).toEqual('ok');
     });
     test('when autoSessionTracking is enabled + requestSession status is Crashed -> requestStatus should not be overridden', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -52,7 +56,8 @@ describe('NodeClient', () => {
       expect(requestSession!.status).toEqual('crashed');
     });
     test('when autoSessionTracking is enabled + error occurs within request bounds -> requestStatus should be set to Errored', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -66,7 +71,8 @@ describe('NodeClient', () => {
       expect(requestSession!.status).toEqual('errored');
     });
     test('when autoSessionTracking is enabled + error occurs outside of request bounds -> requestStatus should not be set to Errored', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -82,7 +88,8 @@ describe('NodeClient', () => {
 
   describe('captureEvent()', () => {
     test('If autoSessionTracking is disabled, requestSession status should not be set', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.4' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.4' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -100,7 +107,8 @@ describe('NodeClient', () => {
     });
 
     test('When captureEvent is called with an exception, requestSession status should be set to Errored', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -115,7 +123,8 @@ describe('NodeClient', () => {
     });
 
     test('When captureEvent is called without an exception, requestSession status should not be set to Errored', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -130,7 +139,8 @@ describe('NodeClient', () => {
     });
 
     test('When captureEvent is called with an exception but outside of a request, then requestStatus should not be set', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '2.2' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -147,7 +157,8 @@ describe('NodeClient', () => {
     });
 
     test('When captureEvent is called with a transaction, then requestSession status should not be set', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
@@ -161,7 +172,8 @@ describe('NodeClient', () => {
     });
 
     test('When captureEvent is called with an exception but requestHandler is not used, then requestSession status should not be set', () => {
-      client = new NodeClient({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' });
+      const options = { dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' };
+      client = new NodeClient(options, setupNodeTransport(options).transport);
 
       const scope = new Scope();
       scope.setRequestSession({ status: 'ok' });
@@ -180,11 +192,12 @@ describe('NodeClient', () => {
 describe('flush/close', () => {
   test('client close function disables _sessionFlusher', async () => {
     jest.useRealTimers();
-    const client = new NodeClient({
+    const options = {
       dsn: PUBLIC_DSN,
       autoSessionTracking: true,
       release: '1.1',
-    });
+    };
+    const client = new NodeClient(options, setupNodeTransport(options).transport);
     client.initSessionFlusher();
     // Clearing interval is important here to ensure that the flush function later on is called by the `client.close()`
     // not due to the interval running every 60s

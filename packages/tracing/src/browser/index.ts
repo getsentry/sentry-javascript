@@ -1,6 +1,4 @@
+export type { RequestInstrumentationOptions } from './request';
+
 export { BrowserTracing } from './browsertracing';
-export {
-  instrumentOutgoingRequests,
-  RequestInstrumentationOptions,
-  defaultRequestInstrumentationOptions,
-} from './request';
+export { instrumentOutgoingRequests, defaultRequestInstrumentationOptions } from './request';

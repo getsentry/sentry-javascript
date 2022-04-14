@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration } from '@sentry/types';
-import { fill, severityFromString } from '@sentry/utils';
+import { fill, severityLevelFromString } from '@sentry/utils';
 import * as util from 'util';
 
 /** Console module integration */
@@ -30,7 +30,7 @@ export class Console implements Integration {
  */
 function createConsoleWrapper(level: string): (originalConsoleMethod: () => void) => void {
   return function consoleWrapper(originalConsoleMethod: () => void): () => void {
-    const sentryLevel = severityFromString(level);
+    const sentryLevel = severityLevelFromString(level);
 
     /* eslint-disable prefer-rest-params */
     return function (this: typeof console): void {
