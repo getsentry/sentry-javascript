@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { forget, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { NodeClient } from '../../client';
 import { IS_DEBUG_BUILD } from '../../flags';
@@ -24,12 +24,13 @@ export function logAndExitProcess(error: Error): void {
   const timeout =
     (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) ||
     DEFAULT_SHUTDOWN_TIMEOUT;
-  forget(
-    client.close(timeout).then((result: boolean) => {
+  client.close(timeout).then(
+    (result: boolean) => {
       if (!result) {
         IS_DEBUG_BUILD && logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
       }
       global.process.exit(1);
-    }),
+    },
+    error => logger.error(error),
   );
 }
