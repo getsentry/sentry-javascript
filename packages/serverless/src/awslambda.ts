@@ -279,7 +279,7 @@ export function wrapHandler<TEvent, TResult>(
           scope.setTag('timeout', humanReadableTimeout);
           captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
         });
-      }, timeoutWarningDelay);
+      }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
     }
 
     // Applying `sentry-trace` to context

@@ -168,7 +168,7 @@ describe('default protocols', () => {
     let nockProtocol = 'https';
 
     const proxy = 'http://<PROXY_URL>:3128';
-    const agent = new HttpsProxyAgent(proxy);
+    const agent = HttpsProxyAgent(proxy);
 
     if (NODE_VERSION.major && NODE_VERSION.major < 9) {
       nockProtocol = 'http';

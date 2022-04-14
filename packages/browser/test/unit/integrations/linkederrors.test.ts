@@ -1,4 +1,4 @@
-import { ExtendedError } from '@sentry/types';
+import { Event as SentryEvent, Exception, ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
 
 import { BrowserClient } from '../../../src/client';
@@ -7,6 +7,12 @@ import { defaultStackParsers } from '../../../src/stack-parsers';
 import { setupBrowserTransport } from '../../../src/transports';
 
 const parser = createStackParser(...defaultStackParsers);
+
+type EventWithException = SentryEvent & {
+  exception: {
+    values: Exception[];
+  };
+};
 
 describe('LinkedErrors', () => {
   describe('handler', () => {
@@ -44,7 +50,7 @@ describe('LinkedErrors', () => {
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
           originalException,
-        });
+        }) as EventWithException;
 
         // It shouldn't include root exception, as it's already processed in the event by the main error handler
         expect(result.exception.values.length).toBe(3);
@@ -75,7 +81,7 @@ describe('LinkedErrors', () => {
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'reason', 5, event, {
           originalException,
-        });
+        }) as EventWithException;
 
         expect(result.exception.values.length).toBe(3);
         expect(result.exception.values[0].type).toBe('SyntaxError');
@@ -103,7 +109,7 @@ describe('LinkedErrors', () => {
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'cause', 2, event, {
           originalException,
-        });
+        }) as EventWithException;
 
         expect(result.exception.values.length).toBe(2);
         expect(result.exception.values[0].type).toBe('TypeError');

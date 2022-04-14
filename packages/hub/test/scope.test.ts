@@ -1,4 +1,4 @@
-import { Event, EventHint } from '@sentry/types';
+import { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';
@@ -194,7 +194,7 @@ describe('Scope', () => {
   });
 
   describe('applyToEvent', () => {
-    test('basic usage', () => {
+    test('basic usage', async () => {
       expect.assertions(9);
 
       const scope = new Scope();
@@ -222,7 +222,7 @@ describe('Scope', () => {
       });
     });
 
-    test('merge with existing event data', () => {
+    test('merge with existing event data', async () => {
       expect.assertions(8);
       const scope = new Scope();
       scope.setExtra('a', 2);
@@ -291,7 +291,7 @@ describe('Scope', () => {
       });
     });
 
-    test('scope level should have priority over event level', () => {
+    test('scope level should have priority over event level', async () => {
       expect.assertions(1);
       const scope = new Scope();
       scope.setLevel('warning');
@@ -302,7 +302,7 @@ describe('Scope', () => {
       });
     });
 
-    test('scope transaction should have priority over event transaction', () => {
+    test('scope transaction should have priority over event transaction', async () => {
       expect.assertions(1);
       const scope = new Scope();
       scope.setTransactionName('/abc');
@@ -511,10 +511,10 @@ describe('Scope', () => {
         contexts: { bar: { id: '3' }, baz: { id: '4' } },
         extra: { bar: '3', baz: '4' },
         fingerprint: ['bar'],
-        level: 'warning',
+        level: 'warning' as const,
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
-        requestSession: { status: 'errored' },
+        requestSession: { status: 'errored' as RequestSessionStatus },
       };
       const updatedScope = scope.update(localAttributes) as any;
 
@@ -541,7 +541,7 @@ describe('Scope', () => {
   });
 
   describe('addEventProcessor', () => {
-    test('should allow for basic event manipulation', () => {
+    test('should allow for basic event manipulation', async () => {
       expect.assertions(3);
       const event: Event = {
         extra: { b: 3 },
@@ -566,7 +566,7 @@ describe('Scope', () => {
       });
     });
 
-    test('should work alongside global event processors', () => {
+    test('should work alongside global event processors', async () => {
       expect.assertions(3);
       const event: Event = {
         extra: { b: 3 },
@@ -667,7 +667,7 @@ describe('Scope', () => {
       });
     });
 
-    test('should drop an event when any of processors return null', () => {
+    test('should drop an event when any of processors return null', async () => {
       expect.assertions(1);
       const event: Event = {
         extra: { b: 3 },
@@ -680,7 +680,7 @@ describe('Scope', () => {
       });
     });
 
-    test('should have an access to the EventHint', () => {
+    test('should have an access to the EventHint', async () => {
       expect.assertions(3);
       const event: Event = {
         extra: { b: 3 },

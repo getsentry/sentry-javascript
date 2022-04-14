@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const { onCreateWebpackConfig } = require('../gatsby-node');
+import { onCreateWebpackConfig } from '../gatsby-node';
 
 describe('onCreateWebpackConfig', () => {
   it('sets a webpack config', () => {
@@ -12,7 +12,9 @@ describe('onCreateWebpackConfig', () => {
       setWebpackConfig: jest.fn(),
     };
 
-    onCreateWebpackConfig({ plugins, actions });
+    const getConfig = jest.fn();
+
+    onCreateWebpackConfig({ plugins, actions, getConfig });
 
     expect(plugins.define).toHaveBeenCalledTimes(1);
     expect(plugins.define).toHaveBeenLastCalledWith({

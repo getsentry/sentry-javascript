@@ -169,7 +169,7 @@ function initIntegration(options: { maxStoredEvents?: number } = {}): void {
   jest.spyOn(utils, 'getGlobalObject').mockImplementation(
     () =>
       ({
-        addEventListener: (_windowEvent, callback) => {
+        addEventListener: (_windowEvent: any, callback: any) => {
           eventListeners.push(callback);
         },
         navigator: {
