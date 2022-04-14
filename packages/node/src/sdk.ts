@@ -2,7 +2,7 @@ import { defaultCoreOptions, getCurrentHub, initAndBind, Integrations as CoreInt
 import { getIntegrationsToSetup } from '@sentry/core/build/types/integration';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
-import { getGlobalObject, logger, makeDsn, stackParserFromOptions } from '@sentry/utils';
+import { getGlobalObject, logger, stackParserFromOptions } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
