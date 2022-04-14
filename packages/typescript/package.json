@@ -10,12 +10,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "tslint-config-prettier": "^1.18.0",
-    "tslint-consistent-codestyle": "^1.15.1"
-  },
+  "dependencies": {},
   "peerDependencies": {
-    "tslint": "5.16.0",
     "typescript": "3.8.3"
   },
   "scripts": {
