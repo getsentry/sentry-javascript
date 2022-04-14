@@ -95,7 +95,7 @@ favour of string literals.
 
 #### Deprecated Enums
 The two enums `SpanStatus`, and `Severity` remain deprecated, as we decided to limit the number of high-impact breaking
-changes in v7. They will be removed in the next major release which is why we strongly recommend to move to the
+changes in v7. They will be removed in the next major release which is why we strongly recommend moving to the
 corresponding string literals. Here's how to adjust [`Severity`](#severity-severitylevel-and-severitylevels) and
 [`SpanStatus`](#spanstatus). Until the removal of these enums, our APIs will accept both, the deprecated enums and as well
 as their replacements.
