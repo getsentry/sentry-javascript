@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Hub, Integration, Primitive, Severity, StackParser } from '@sentry/types';
+import { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -100,7 +100,7 @@ function _installGlobalOnErrorHandler(): void {
               column,
             );
 
-      event.level = Severity.Error;
+      event.level = 'error';
 
       addMechanismAndCapture(hub, error, event, 'onerror');
     },
@@ -146,7 +146,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
         ? _eventFromRejectionWithPrimitive(error)
         : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, true);
 
-      event.level = Severity.Error;
+      event.level = 'error';
 
       addMechanismAndCapture(hub, error, event, 'onunhandledrejection');
       return;

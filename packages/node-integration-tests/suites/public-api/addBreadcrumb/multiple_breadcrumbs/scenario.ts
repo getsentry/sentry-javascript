@@ -8,7 +8,7 @@ Sentry.init({
 Sentry.addBreadcrumb({
   category: 'foo',
   message: 'bar',
-  level: Sentry.Severity.Critical,
+  level: 'critical',
 });
 
 Sentry.addBreadcrumb({
