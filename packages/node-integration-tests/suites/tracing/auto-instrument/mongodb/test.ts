@@ -1,6 +1,9 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryServer } from 'mongodb-memory-server-global';
 
 import { assertSentryTransaction, conditionalTest, getEnvelopeRequest, runServer } from '../../../../utils';
+
+// This test can take longer.
+jest.setTimeout(15000);
 
 conditionalTest({ min: 12 })('MongoDB Test', () => {
   let mongoServer: MongoMemoryServer;
@@ -8,7 +11,7 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     process.env.MONGO_URL = mongoServer.getUri();
-  }, 40000);
+  }, 10000);
 
   afterAll(async () => {
     await mongoServer.stop();

@@ -18,6 +18,7 @@ env:
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/**/node_modules
     ~/.cache/ms-playwright/
+    ~/.cache/mongodb-binaries/
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
