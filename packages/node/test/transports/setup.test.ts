@@ -40,11 +40,6 @@ describe('setupNodeTransport', () => {
   });
 
   it('returns HTTPS transport as a default', () => {
-    // jest.spyOn(nodeTransportCreation, 'makeNodeTransport').mockImplementation(() => ({
-    //   send: (request: Envelope) => Promise.resolve({ status: 'success' }),
-    //   flush: (timeout: number) => Promise.resolve(true),
-    // }));
-
     const options = { dsn: DSN };
     const { transport, newTransport } = setupNodeTransport(options);
 

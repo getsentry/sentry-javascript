@@ -12,7 +12,6 @@ test('should aggregate successful, crashed and erroneous sessions', async () => 
   ]);
 
   expect(envelope).toHaveLength(3);
-
   expect(envelope[0]).toMatchObject({
     sent_at: expect.any(String),
     sdk: {
