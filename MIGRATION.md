@@ -80,6 +80,26 @@ const storeEndpoint = api.getStoreEndpointWithUrlEncodedAuth();
 const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
 ```
 
+### Enum changes
+
+Given that enums have a high bundle-size impact, our long term goal is to eventually remove all enums from the SDK in
+favour of string literals.
+
+#### Removed Enums
+* The previously deprecated enum `Status` was removed (see [#4891](https://github.com/getsentry/sentry-javascript/pull/4891)).
+  [This example](#status) explains how to migrate.
+* The previously deprecated internal-only enum `RequestSessionStatus` was removed (see
+  [#4889](https://github.com/getsentry/sentry-javascript/pull/4889) in favour of string literals.
+* The previously deprecated internal-only enum `SessionStatus` was removed (see
+  [#4890](https://github.com/getsentry/sentry-javascript/pull/4890)) in favour of string literals.
+
+#### Deprecated Enums
+The two enums `SpanStatus`, and `Severity` remain deprecated, as we decided to limit the number of high-impact breaking
+changes in v7. They will be removed in the next major release which is why we strongly recommend to move to the
+corresponding string literals. Here's how to adjust [`Severity`](#severity-severitylevel-and-severitylevels) and
+[`SpanStatus`](#spanstatus). Until the removal of these enums, our APIs will accept both, the deprecated enums and as well
+as their replacements.
+
 ### General API Changes
 
 For our efforts to reduce bundle size of the SDK we had to remove and refactor parts of the package which introduced a few changes to the API:
