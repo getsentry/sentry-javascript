@@ -1,4 +1,4 @@
-export {
+export type {
   Breadcrumb,
   Request,
   SdkInfo,
@@ -13,9 +13,10 @@ export {
   User,
 } from '@sentry/types';
 
+export type { BrowserOptions, ReportDialogOptions } from '@sentry/browser';
+
 export {
   BrowserClient,
-  BrowserOptions,
   defaultIntegrations,
   forceLoad,
   lastEventId,
@@ -24,7 +25,6 @@ export {
   flush,
   close,
   wrap,
-  ReportDialogOptions,
   addGlobalEventProcessor,
   addBreadcrumb,
   captureException,
