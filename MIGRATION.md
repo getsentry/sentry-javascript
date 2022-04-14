@@ -121,8 +121,7 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
   [#4921](https://github.com/getsentry/sentry-javascript/pull/4921/)). If you are creating your own `Client` or
   calling `initAndBind`, you will have to supply your desired transport. Either provide a custom one or call
   `setupBrowserTransport` or `setupNodeTransport` for default transports, depending on your requirements.
-
-
+- Remove support for Opera browser pre v15
 
 # Upgrading from 6.17.x to 6.18.0
 

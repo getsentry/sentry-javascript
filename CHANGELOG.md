@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.0.0-alpha.1
+
+- **(breaking)** ref: Inject Transports into Client (#4921)
+- **(breaking)** ref: Port functionality from `Backend` to `Client` (#4911)
+- **(breaking)** ref: Delete `Backend` classes (#4919)
+- **(breaking)** ref(browser): Remove stack parser support for Opera pre v15 (#4923)
+- **(breaking)** ref(various): Remove usage of deprecated `event.stacktrace` (#4885)
+- feat: Add `name` field to `EventProcessor` (#4932)
+- feat: Expose configurable stack parser (#4902)
+- ref(build): Turn on `isolatedModules` TS option (#4896)
+- feat(tracing): Make `setMeasurement` public API (#4933)
+- ref(tracing): Update `setMeasurements` to only set a single measurement (#4920)
+- ref(types): Stop using `Severity` enum (#4926)
+
 ## 7.0.0-alpha.0
 
 - **(breaking)** ref: Drop support for Node 6 (#4851)
