@@ -211,7 +211,7 @@ export class MetricsInstrumentation {
     }
 
     if (isMeasurementValue(navigator.deviceMemory)) {
-      transaction.setTag('deviceMemory', String(navigator.deviceMemory));
+      transaction.setTag('deviceMemory', `${navigator.deviceMemory} GB`);
     }
 
     if (isMeasurementValue(navigator.hardwareConcurrency)) {
