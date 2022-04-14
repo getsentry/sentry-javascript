@@ -36,14 +36,6 @@ npm install --save-dev @sentry-internal/typescript
 
 Add the following config files to your project's root directory:
 
-**tslint.json**:
-
-```json
-{
-  "extends": "@sentry-internal/typescript/tslint"
-}
-```
-
 **tsconfig.json**:
 
 ```json
