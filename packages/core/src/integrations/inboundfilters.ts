@@ -33,7 +33,7 @@ export class InboundFilters implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (processor: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor((event: Event) => {
+    const eventProcess: EventProcessor = (event: Event) => {
       const hub = getCurrentHub();
       if (hub) {
         const self = hub.getIntegration(InboundFilters);
@@ -45,7 +45,10 @@ export class InboundFilters implements Integration {
         }
       }
       return event;
-    });
+    };
+
+    eventProcess.id = this.name;
+    addGlobalEventProcessor(eventProcess);
   }
 }
 
