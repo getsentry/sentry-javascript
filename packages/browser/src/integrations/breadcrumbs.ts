@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration, Severity } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -9,7 +9,7 @@ import {
   htmlTreeAsString,
   parseUrl,
   safeJoin,
-  severityFromString,
+  severityLevelFromString,
 } from '@sentry/utils';
 
 /** JSDoc */
@@ -157,7 +157,7 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
       arguments: handlerData.args,
       logger: 'console',
     },
-    level: severityFromString(handlerData.level),
+    level: severityLevelFromString(handlerData.level),
     message: safeJoin(handlerData.args, ' '),
   };
 
@@ -230,7 +230,7 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
       {
         category: 'fetch',
         data: handlerData.fetchData,
-        level: Severity.Error,
+        level: 'error',
         type: 'http',
       },
       {

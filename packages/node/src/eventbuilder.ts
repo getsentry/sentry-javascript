@@ -1,5 +1,14 @@
 import { getCurrentHub } from '@sentry/hub';
-import { Event, EventHint, Exception, Mechanism, Severity, StackFrame, StackParser } from '@sentry/types';
+import {
+  Event,
+  EventHint,
+  Exception,
+  Mechanism,
+  Severity,
+  SeverityLevel,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -90,7 +99,8 @@ export function eventFromUnknownInput(stackParser: StackParser, exception: unkno
 export function eventFromMessage(
   stackParser: StackParser,
   message: string,
-  level: Severity = Severity.Info,
+  // eslint-disable-next-line deprecation/deprecation
+  level: Severity | SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): Event {

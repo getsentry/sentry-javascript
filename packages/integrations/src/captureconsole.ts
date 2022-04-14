@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { CONSOLE_LEVELS, fill, getGlobalObject, safeJoin, severityFromString } from '@sentry/utils';
+import { CONSOLE_LEVELS, fill, getGlobalObject, safeJoin, severityLevelFromString } from '@sentry/utils';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 
@@ -48,7 +48,7 @@ export class CaptureConsole implements Integration {
 
         if (hub.getIntegration(CaptureConsole)) {
           hub.withScope(scope => {
-            scope.setLevel(severityFromString(level));
+            scope.setLevel(severityLevelFromString(level));
             scope.setExtra('arguments', args);
             scope.addEventProcessor(event => {
               event.logger = 'console';

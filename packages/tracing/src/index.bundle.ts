@@ -6,14 +6,14 @@ export {
   EventStatus,
   Exception,
   Response,
+  // eslint-disable-next-line deprecation/deprecation
   Severity,
+  SeverityLevel,
   StackFrame,
   Stacktrace,
   Thread,
   User,
 } from '@sentry/types';
-
-export { SeverityLevel } from '@sentry/utils';
 
 export {
   addGlobalEventProcessor,
