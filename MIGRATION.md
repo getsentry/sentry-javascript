@@ -89,7 +89,7 @@ favor of string literals.
 * The previously deprecated enum `Status` was removed (see [#4891](https://github.com/getsentry/sentry-javascript/pull/4891)).
   [This example](#status) explains how to migrate.
 * The previously deprecated internal-only enum `RequestSessionStatus` was removed (see
-  [#4889](https://github.com/getsentry/sentry-javascript/pull/4889) in favor of string literals.
+  [#4889](https://github.com/getsentry/sentry-javascript/pull/4889)) in favor of string literals.
 * The previously deprecated internal-only enum `SessionStatus` was removed (see
   [#4890](https://github.com/getsentry/sentry-javascript/pull/4890)) in favor of string literals.
 
