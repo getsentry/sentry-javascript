@@ -5,7 +5,6 @@ import {
   addInstrumentationHandler,
   getGlobalObject,
   logger,
-  makeDsn,
   resolvedSyncPromise,
   stackParserFromOptions,
 } from '@sentry/utils';
