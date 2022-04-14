@@ -8,7 +8,7 @@ import {
 import { Transport, TransportOptions } from '@sentry/types';
 import { supportsFetch } from '@sentry/utils';
 
-import { BrowserOptions } from '../client';
+import { BrowserClientOptions } from '../client';
 import { FetchTransport } from './fetch';
 import { makeNewFetchTransport } from './new-fetch';
 import { makeNewXHRTransport } from './new-xhr';

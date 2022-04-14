@@ -23,6 +23,14 @@ export interface BaseBrowserOptions {
   denyUrls?: Array<string | RegExp>;
 }
 
+export interface BrowserOptions extends Options, BaseBrowserOptions {}
+
+/**
+ * Configuration options for the Sentry Browser SDK.
+ * @see BrowserClient for more information.
+ */
+export interface BrowserClientOptions extends ClientOptions, BaseBrowserOptions {}
+
 /**
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.
