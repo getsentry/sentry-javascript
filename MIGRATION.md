@@ -91,6 +91,19 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
 - Remove deprecated `Status`, `SessionStatus`, and `RequestSessionStatus` enums. These were only part of an internal API. If you are using these enums, we encourage you to to look at [b177690d](https://github.com/getsentry/sentry-javascript/commit/b177690d89640aef2587039113c614672c07d2be), [5fc3147d](https://github.com/getsentry/sentry-javascript/commit/5fc3147dfaaf1a856d5923e4ba409479e87273be), and [f99bdd16](https://github.com/getsentry/sentry-javascript/commit/f99bdd16539bf6fac14eccf1a974a4988d586b28) to to see the changes we've made to our code as result. We generally recommend using string literals instead of the removed enums.
 - Remove deprecated `getActiveDomain` method and `DomainAsCarrier` type from `@sentry/hub`.
 - Rename `registerRequestInstrumentation` to `instrumentOutgoingRequests` in `@sentry/tracing`.
+- Remove `Backend` and port its functionality into `Client` (see
+  [#4911](https://github.com/getsentry/sentry-javascript/pull/4911) and
+  [#4919](https://github.com/getsentry/sentry-javascript/pull/4919)). `Backend` was an unnecessary abstraction which is
+  not present in other Sentry SDKs. For the sake of reducing complexity, increasing consistency with other Sentry SDKs and
+  decreasing bundle-size, `Backend` was removed.
+  <!-- TODO(v7): Add more info and PR link for passing transports in options once this is done -->
+  <!-- TODO(v7): This needs refinement once NewTransport is the default (maybe this should get its own section with an expamp) -->
+- Inject transport into client instead of initializing it in the client in `setupTransport` (see
+  [#4921](https://github.com/getsentry/sentry-javascript/pull/4921/)). If you are creating your own `Client` or
+  calling `initAndBind`, you will have to supply your desired transport. Either provide a custom one or call
+  `setupBrowserTransport` or `setupNodeTransport` for default transports, depending on your requirements.
+
+
 
 # Upgrading from 6.17.x to 6.18.0
 
