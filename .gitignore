@@ -40,3 +40,5 @@ tmp.js
 # eslint
 .eslintcache
 eslintcache/*
+
+*.d.ts
