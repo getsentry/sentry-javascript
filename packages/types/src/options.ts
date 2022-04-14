@@ -1,5 +1,4 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
-import { DsnComponents } from './dsn';
 import { Event, EventHint } from './event';
 import { Integration } from './integration';
 import { CaptureContext } from './scope';
