@@ -4,7 +4,7 @@ import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
 import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
-import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
+import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
 
@@ -56,7 +56,7 @@ describe('callbacks', () => {
     fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
     startTimestamp,
   };
-  const xhrHandlerData: XHRData = {
+  const xhrHandlerData = {
     xhr: {
       __sentry_xhr__: {
         method: 'GET',
@@ -130,17 +130,17 @@ describe('callbacks', () => {
       // triggered by request being sent
       fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
 
-      const newSpan = transaction.spanRecorder?.spans[1];
+      const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
       expect(newSpan).toBeDefined();
       expect(newSpan).toBeInstanceOf(Span);
-      expect(newSpan!.data).toEqual({
+      expect(newSpan.data).toEqual({
         method: 'GET',
         type: 'fetch',
         url: 'http://dogs.are.great/',
       });
-      expect(newSpan!.description).toBe('GET http://dogs.are.great/');
-      expect(newSpan!.op).toBe('http.client');
+      expect(newSpan.description).toBe('GET http://dogs.are.great/');
+      expect(newSpan.op).toBe('http.client');
       expect(fetchHandlerData.fetchData?.__span).toBeDefined();
 
       const postRequestFetchHandlerData = {
@@ -151,7 +151,7 @@ describe('callbacks', () => {
       // triggered by response coming back
       fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.endTimestamp).toBeDefined();
+      expect(newSpan.endTimestamp).toBeDefined();
     });
 
     it('sets response status on finish', () => {
@@ -160,7 +160,7 @@ describe('callbacks', () => {
       // triggered by request being sent
       fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
 
-      const newSpan = transaction.spanRecorder?.spans[1];
+      const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
       expect(newSpan).toBeDefined();
 
@@ -173,7 +173,7 @@ describe('callbacks', () => {
       // triggered by response coming back
       fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.status).toBe(spanStatusfromHttpCode(404));
+      expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
     });
 
     it('ignores response with no associated span', () => {
@@ -238,18 +238,18 @@ describe('callbacks', () => {
       // triggered by request being sent
       xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
 
-      const newSpan = transaction.spanRecorder?.spans[1];
+      const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
       expect(newSpan).toBeInstanceOf(Span);
-      expect(newSpan!.data).toEqual({
+      expect(newSpan.data).toEqual({
         method: 'GET',
         type: 'xhr',
         url: 'http://dogs.are.great/',
       });
-      expect(newSpan!.description).toBe('GET http://dogs.are.great/');
-      expect(newSpan!.op).toBe('http.client');
-      expect(xhrHandlerData.xhr!.__sentry_xhr_span_id__).toBeDefined();
-      expect(xhrHandlerData.xhr!.__sentry_xhr_span_id__).toEqual(newSpan?.spanId);
+      expect(newSpan.description).toBe('GET http://dogs.are.great/');
+      expect(newSpan.op).toBe('http.client');
+      expect(xhrHandlerData.xhr.__sentry_xhr_span_id__).toBeDefined();
+      expect(xhrHandlerData.xhr.__sentry_xhr_span_id__).toEqual(newSpan?.spanId);
 
       const postRequestXHRHandlerData = {
         ...xhrHandlerData,
@@ -259,7 +259,7 @@ describe('callbacks', () => {
       // triggered by response coming back
       xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.endTimestamp).toBeDefined();
+      expect(newSpan.endTimestamp).toBeDefined();
     });
 
     it('sets response status on finish', () => {
@@ -268,7 +268,7 @@ describe('callbacks', () => {
       // triggered by request being sent
       xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
 
-      const newSpan = transaction.spanRecorder?.spans[1];
+      const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
       expect(newSpan).toBeDefined();
 
@@ -276,12 +276,12 @@ describe('callbacks', () => {
         ...xhrHandlerData,
         endTimestamp,
       };
-      postRequestXHRHandlerData.xhr!.__sentry_xhr__!.status_code = 404;
+      postRequestXHRHandlerData.xhr.__sentry_xhr__.status_code = 404;
 
       // triggered by response coming back
       xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
 
-      expect(newSpan!.status).toBe(spanStatusfromHttpCode(404));
+      expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
     });
 
     it('ignores response with no associated span', () => {

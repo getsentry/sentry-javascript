@@ -13,7 +13,7 @@ import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();
 
-type InstrumentHandlerType =
+export type InstrumentHandlerType =
   | 'console'
   | 'dom'
   | 'fetch'
@@ -22,7 +22,7 @@ type InstrumentHandlerType =
   | 'xhr'
   | 'error'
   | 'unhandledrejection';
-type InstrumentHandlerCallback = (data: any) => void;
+export type InstrumentHandlerCallback = (data: any) => void;
 
 /**
  * Instrument native APIs to call handlers that can be used to create breadcrumbs, APM spans etc.

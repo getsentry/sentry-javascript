@@ -3,6 +3,8 @@ import { BaseTransport } from '../../../src/transports/base';
 const testDsn = 'https://123@sentry.io/42';
 const envelopeEndpoint = 'https://sentry.io/api/42/envelope/?sentry_key=123&sentry_version=7';
 
+// @ts-ignore We're purposely not implementing the methods of the abstract `BaseTransport` class in order to be able to
+// assert on what the class provides and what it leaves to the concrete class to implement
 class SimpleTransport extends BaseTransport {}
 
 describe('BaseTransport', () => {
@@ -111,12 +113,12 @@ describe('BaseTransport', () => {
     });
   });
 
-  it('doesnt provide sendEvent() implementation', () => {
+  it('doesnt provide sendEvent() implementation', async () => {
     expect.assertions(1);
     const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
-      void transport.sendEvent({});
+      await transport.sendEvent({});
     } catch (e) {
       expect(e).toBeDefined();
     }

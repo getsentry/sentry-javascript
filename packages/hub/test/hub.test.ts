@@ -1,4 +1,5 @@
-import { Event } from '@sentry/types';
+/* eslint-disable @typescript-eslint/unbound-method */
+import { Client, Event } from '@sentry/types';
 
 import { getCurrentHub, Hub, Scope } from '../src';
 
@@ -15,7 +16,18 @@ function makeClient() {
     getIntegration: jest.fn(),
     setupIntegrations: jest.fn(),
     captureMessage: jest.fn(),
-  };
+  } as unknown as Client;
+}
+
+/**
+ * Return an array containing the arguments passed to the given mocked or spied-upon function.
+ *
+ * By default, the args passed to the first call of the function are returned, but it is also possible to retrieve the
+ * nth call by passing `callIndex`. If the function wasn't called, an error message is returned instead.
+ */
+function getPassedArgs(mock: (...args: any[]) => any, callIndex: number = 0): any[] {
+  const asMock = mock as jest.MockedFunction<(...args: any[]) => any>;
+  return asMock.mock.calls[callIndex] || ["Error: Function wasn't called."];
 }
 
 describe('Hub', () => {
@@ -102,7 +114,7 @@ describe('Hub', () => {
       });
     });
 
-    test('inherit processors', () => {
+    test('inherit processors', async () => {
       expect.assertions(1);
       const event: Event = {
         extra: { b: 3 },
@@ -210,34 +222,45 @@ describe('Hub', () => {
     test('simple', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureException('a');
-      expect(testClient.captureException).toHaveBeenCalled();
-      expect(testClient.captureException.mock.calls[0][0]).toBe('a');
+      const args = getPassedArgs(testClient.captureException);
+
+      expect(args[0]).toBe('a');
     });
 
     test('should set event_id in hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureException('a');
-      expect(testClient.captureException.mock.calls[0][1].event_id).toBeTruthy();
+      const args = getPassedArgs(testClient.captureException);
+
+      expect(args[1].event_id).toBeTruthy();
     });
 
     test('should keep event_id from hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const id = Math.random().toString();
+
       hub.captureException('a', { event_id: id });
-      expect(testClient.captureException.mock.calls[0][1].event_id).toBe(id);
+      const args = getPassedArgs(testClient.captureException);
+
+      expect(args[1].event_id).toBe(id);
     });
 
     test('should generate hint if not provided in the call', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const ex = new Error('foo');
+
       hub.captureException(ex);
-      expect(testClient.captureException.mock.calls[0][1].originalException).toBe(ex);
-      expect(testClient.captureException.mock.calls[0][1].syntheticException).toBeInstanceOf(Error);
-      expect(testClient.captureException.mock.calls[0][1].syntheticException.message).toBe('Sentry syntheticException');
+      const args = getPassedArgs(testClient.captureException);
+
+      expect(args[1].originalException).toBe(ex);
+      expect(args[1].syntheticException).toBeInstanceOf(Error);
+      expect(args[1].syntheticException.message).toBe('Sentry syntheticException');
     });
   });
 
@@ -245,32 +268,44 @@ describe('Hub', () => {
     test('simple', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureMessage('a');
-      expect(testClient.captureMessage.mock.calls[0][0]).toBe('a');
+      const args = getPassedArgs(testClient.captureMessage);
+
+      expect(args[0]).toBe('a');
     });
 
     test('should set event_id in hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureMessage('a');
-      expect(testClient.captureMessage.mock.calls[0][2].event_id).toBeTruthy();
+      const args = getPassedArgs(testClient.captureMessage);
+
+      expect(args[2].event_id).toBeTruthy();
     });
 
     test('should keep event_id from hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const id = Math.random().toString();
+
       hub.captureMessage('a', undefined, { event_id: id });
-      expect(testClient.captureMessage.mock.calls[0][2].event_id).toBe(id);
+      const args = getPassedArgs(testClient.captureMessage);
+
+      expect(args[2].event_id).toBe(id);
     });
 
     test('should generate hint if not provided in the call', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureMessage('foo');
-      expect(testClient.captureMessage.mock.calls[0][2].originalException).toBe('foo');
-      expect(testClient.captureMessage.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
-      expect(testClient.captureMessage.mock.calls[0][2].syntheticException.message).toBe('foo');
+      const args = getPassedArgs(testClient.captureMessage);
+
+      expect(args[2].originalException).toBe('foo');
+      expect(args[2].syntheticException).toBeInstanceOf(Error);
+      expect(args[2].syntheticException.message).toBe('foo');
     });
   });
 
@@ -281,8 +316,11 @@ describe('Hub', () => {
       };
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureEvent(event);
-      expect(testClient.captureEvent.mock.calls[0][0]).toBe(event);
+      const args = getPassedArgs(testClient.captureEvent);
+
+      expect(args[0]).toBe(event);
     });
 
     test('should set event_id in hint', () => {
@@ -291,8 +329,11 @@ describe('Hub', () => {
       };
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureEvent(event);
-      expect(testClient.captureEvent.mock.calls[0][1].event_id).toBeTruthy();
+      const args = getPassedArgs(testClient.captureEvent);
+
+      expect(args[1].event_id).toBeTruthy();
     });
 
     test('should keep event_id from hint', () => {
@@ -302,8 +343,11 @@ describe('Hub', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
       const id = Math.random().toString();
+
       hub.captureEvent(event, { event_id: id });
-      expect(testClient.captureEvent.mock.calls[0][1].event_id).toBe(id);
+      const args = getPassedArgs(testClient.captureEvent);
+
+      expect(args[1].event_id).toBe(id);
     });
 
     test('sets lastEventId', () => {
@@ -312,8 +356,11 @@ describe('Hub', () => {
       };
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureEvent(event);
-      expect(testClient.captureEvent.mock.calls[0][1].event_id).toEqual(hub.lastEventId());
+      const args = getPassedArgs(testClient.captureEvent);
+
+      expect(args[1].event_id).toEqual(hub.lastEventId());
     });
 
     test('transactions do not set lastEventId', () => {
@@ -323,8 +370,11 @@ describe('Hub', () => {
       };
       const testClient = makeClient();
       const hub = new Hub(testClient);
+
       hub.captureEvent(event);
-      expect(testClient.captureEvent.mock.calls[0][1].event_id).not.toEqual(hub.lastEventId());
+      const args = getPassedArgs(testClient.captureEvent);
+
+      expect(args[1].event_id).not.toEqual(hub.lastEventId());
     });
   });
 
