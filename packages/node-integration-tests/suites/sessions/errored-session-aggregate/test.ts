@@ -6,7 +6,7 @@ test('should aggregate successful, crashed and erroneous sessions', async () => 
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const envelope = await Promise.race([
-    getEnvelopeRequest(`${url}/success_slow`),
+    getEnvelopeRequest(`${url}/success`),
     getEnvelopeRequest(`${url}/error_handled`),
     getEnvelopeRequest(`${url}/error_unhandled`),
   ]);

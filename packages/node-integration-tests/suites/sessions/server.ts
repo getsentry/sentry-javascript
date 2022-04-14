@@ -24,8 +24,7 @@ clearInterval(flusherIntervalId);
 // @ts-ignore: need access to `_intervalId`
 flusherIntervalId = flusher?._intervalId = setInterval(() => flusher?.flush(), 1000);
 
-// @ts-ignore: need access to `_intervalId` again
-setTimeout(() => clearInterval(flusherIntervalId), 3000);
+setTimeout(() => clearInterval(flusherIntervalId), 2000);
 
 app.get('/test/success', (_req, res) => {
   res.send('Success!');
