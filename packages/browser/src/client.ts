@@ -1,5 +1,5 @@
 import { BaseClient, NewTransport, Scope, SDK_VERSION } from '@sentry/core';
-import { Event, EventHint, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
 import { getGlobalObject, logger, stackParserFromOptions } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -7,11 +7,7 @@ import { IS_DEBUG_BUILD } from './flags';
 import { injectReportDialog, ReportDialogOptions } from './helpers';
 import { Breadcrumbs } from './integrations';
 
-/**
- * Configuration options for the Sentry Browser SDK.
- * @see BrowserClient for more information.
- */
-export interface BrowserOptions extends Options {
+export interface BaseBrowserOptions {
   /**
    * A pattern for error URLs which should exclusively be sent to Sentry.
    * This is the opposite of {@link Options.denyUrls}.
@@ -27,19 +23,27 @@ export interface BrowserOptions extends Options {
   denyUrls?: Array<string | RegExp>;
 }
 
+export interface BrowserOptions extends Options, BaseBrowserOptions {}
+
+/**
+ * Configuration options for the Sentry Browser SDK.
+ * @see BrowserClient for more information.
+ */
+export interface BrowserClientOptions extends ClientOptions, BaseBrowserOptions {}
+
 /**
  * The Sentry Browser SDK Client.
  *
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class BrowserClient extends BaseClient<BrowserOptions> {
+export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * Creates a new Browser SDK instance.
    *
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: BrowserOptions = {}, transport: Transport, newTransport?: NewTransport) {
+  public constructor(options: BrowserClientOptions, transport: Transport, newTransport?: NewTransport) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.browser',
@@ -51,7 +55,6 @@ export class BrowserClient extends BaseClient<BrowserOptions> {
       ],
       version: SDK_VERSION,
     };
-
     super(options, transport, newTransport);
   }
 
