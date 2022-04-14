@@ -29,12 +29,11 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { initAPIDetails } from './api';
+import { APIDetails, initAPIDetails } from './api';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
 import { NewTransport } from './transports/base';
-import { NoopTransport } from './transports/noop';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -92,8 +91,10 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
    * Initializes this client instance.
    *
    * @param options Options for the client.
+   * @param transport The (old) Transport instance for the client to use (TODO(v7): remove)
+   * @param newTransport The NewTransport instance for the client to use
    */
-  protected constructor(options: O) {
+  protected constructor(options: O, transport: Transport, newTransport?: NewTransport) {
     this._options = options;
 
     if (options.dsn) {
@@ -102,7 +103,16 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
 
-    this._transport = this._setupTransport();
+    // TODO(v7): remove old transport
+    this._transport = transport;
+    this._newTransport = newTransport;
+
+    // TODO(v7): refactor this to keep metadata/api outside of transport. This hack is used to
+    //           satisfy tests until we move to NewTransport where we have to revisit this.
+    (this._transport as unknown as { _api: Partial<APIDetails> })._api = {
+      ...((this._transport as unknown as { _api: Partial<APIDetails> })._api || {}),
+      metadata: options._metadata || {},
+    };
   }
 
   /**
@@ -674,13 +684,6 @@ export abstract class BaseClient<O extends Options> implements Client<O> {
         return reason;
       },
     );
-  }
-
-  /**
-   * Sets up the transport so it can be used later to send requests.
-   */
-  protected _setupTransport(): Transport {
-    return new NoopTransport();
   }
 
   /**

@@ -11,18 +11,18 @@ import * as nock from 'nock';
 import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
+import { setupNodeTransport } from '../../src/transports';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
 describe('tracing', () => {
   function createTransactionOnScope() {
-    const hub = new Hub(
-      new NodeClient({
-        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-        tracesSampleRate: 1.0,
-        integrations: [new HttpIntegration({ tracing: true })],
-      }),
-    );
+    const options = {
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+      integrations: [new HttpIntegration({ tracing: true })],
+    };
+    const hub = new Hub(new NodeClient(options, setupNodeTransport(options).transport));
     addExtensionMethods();
 
     // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
@@ -97,18 +97,17 @@ describe('default protocols', () => {
     const p = new Promise<Breadcrumb>(r => {
       resolve = r;
     });
-    hub.bindClient(
-      new NodeClient({
-        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-        integrations: [new HttpIntegration({ breadcrumbs: true })],
-        beforeBreadcrumb: (b: Breadcrumb) => {
-          if ((b.data?.url as string).includes(key)) {
-            resolve(b);
-          }
-          return b;
-        },
-      }),
-    );
+    const options = {
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      integrations: [new HttpIntegration({ breadcrumbs: true })],
+      beforeBreadcrumb: (b: Breadcrumb) => {
+        if ((b.data?.url as string).includes(key)) {
+          resolve(b);
+        }
+        return b;
+      },
+    };
+    hub.bindClient(new NodeClient(options, setupNodeTransport(options).transport));
 
     return p;
   }

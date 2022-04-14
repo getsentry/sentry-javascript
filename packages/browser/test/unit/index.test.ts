@@ -75,7 +75,7 @@ describe('SentryBrowser', () => {
   describe('showReportDialog', () => {
     describe('user', () => {
       const EX_USER = { email: 'test@example.com' };
-      const client = new BrowserClient({ dsn });
+      const client = new BrowserClient({ dsn }, new SimpleTransport({ dsn }));
       const reportDialogSpy = jest.spyOn(client, 'showReportDialog');
 
       beforeEach(() => {
@@ -140,30 +140,36 @@ describe('SentryBrowser', () => {
 
     it('should capture a message', done => {
       getCurrentHub().bindClient(
-        new BrowserClient({
-          beforeSend: (event: Event): Event | null => {
-            expect(event.message).toBe('test');
-            expect(event.exception).toBeUndefined();
-            done();
-            return event;
+        new BrowserClient(
+          {
+            beforeSend: (event: Event): Event | null => {
+              expect(event.message).toBe('test');
+              expect(event.exception).toBeUndefined();
+              done();
+              return event;
+            },
+            dsn,
           },
-          dsn,
-        }),
+          new SimpleTransport({ dsn }),
+        ),
       );
       captureMessage('test');
     });
 
     it('should capture an event', done => {
       getCurrentHub().bindClient(
-        new BrowserClient({
-          beforeSend: (event: Event): Event | null => {
-            expect(event.message).toBe('event');
-            expect(event.exception).toBeUndefined();
-            done();
-            return event;
+        new BrowserClient(
+          {
+            beforeSend: (event: Event): Event | null => {
+              expect(event.message).toBe('event');
+              expect(event.exception).toBeUndefined();
+              done();
+              return event;
+            },
+            dsn,
           },
-          dsn,
-        }),
+          new SimpleTransport({ dsn }),
+        ),
       );
       captureEvent({ message: 'event' });
     });
@@ -171,11 +177,14 @@ describe('SentryBrowser', () => {
     it('should not dedupe an event on bound client', async () => {
       const localBeforeSend = jest.fn();
       getCurrentHub().bindClient(
-        new BrowserClient({
-          beforeSend: localBeforeSend,
-          dsn,
-          integrations: [],
-        }),
+        new BrowserClient(
+          {
+            beforeSend: localBeforeSend,
+            dsn,
+            integrations: [],
+          },
+          new SimpleTransport({ dsn }),
+        ),
       );
 
       captureMessage('event222');
@@ -189,11 +198,14 @@ describe('SentryBrowser', () => {
     it('should use inboundfilter rules of bound client', async () => {
       const localBeforeSend = jest.fn();
       getCurrentHub().bindClient(
-        new BrowserClient({
-          beforeSend: localBeforeSend,
-          dsn,
-          integrations: [new Integrations.InboundFilters({ ignoreErrors: ['capture'] })],
-        }),
+        new BrowserClient(
+          {
+            beforeSend: localBeforeSend,
+            dsn,
+            integrations: [new Integrations.InboundFilters({ ignoreErrors: ['capture'] })],
+          },
+          new SimpleTransport({ dsn }),
+        ),
       );
 
       captureMessage('capture');
@@ -248,16 +260,16 @@ describe('SentryBrowser initialization', () => {
 
       const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
 
-      expect(sdkData.name).toBe('sentry.javascript.browser');
-      expect(sdkData.packages[0].name).toBe('npm:@sentry/browser');
-      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
-      expect(sdkData.version).toBe(SDK_VERSION);
+      expect(sdkData?.name).toBe('sentry.javascript.browser');
+      expect(sdkData?.packages[0].name).toBe('npm:@sentry/browser');
+      expect(sdkData?.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData?.version).toBe(SDK_VERSION);
     });
 
     it('should set SDK data when instantiating a client directly', () => {
-      const client = new BrowserClient({ dsn });
+      const client = new BrowserClient({ dsn }, new SimpleTransport({ dsn }));
 
-      const sdkData = (client as any).getTransport()._api.metadata?.sdk;
+      const sdkData = (client.getTransport() as any)._api.metadata?.sdk;
 
       expect(sdkData.name).toBe('sentry.javascript.browser');
       expect(sdkData.packages[0].name).toBe('npm:@sentry/browser');
@@ -298,15 +310,18 @@ describe('SentryBrowser initialization', () => {
 describe('wrap()', () => {
   it('should wrap and call function while capturing error', done => {
     getCurrentHub().bindClient(
-      new BrowserClient({
-        beforeSend: (event: Event): Event | null => {
-          expect(event.exception!.values![0].type).toBe('TypeError');
-          expect(event.exception!.values![0].value).toBe('mkey');
-          done();
-          return null;
+      new BrowserClient(
+        {
+          beforeSend: (event: Event): Event | null => {
+            expect(event.exception!.values![0].type).toBe('TypeError');
+            expect(event.exception!.values![0].value).toBe('mkey');
+            done();
+            return null;
+          },
+          dsn,
         },
-        dsn,
-      }),
+        new SimpleTransport({ dsn }),
+      ),
     );
 
     try {

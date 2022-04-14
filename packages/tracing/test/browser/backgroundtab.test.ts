@@ -1,4 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
+import { setupBrowserTransport } from '@sentry/browser/src/transports';
 import { Hub, makeMain } from '@sentry/hub';
 import { JSDOM } from 'jsdom';
 
@@ -13,7 +14,8 @@ describe('registerBackgroundTabDetection', () => {
     // @ts-ignore need to override global document
     global.document = dom.window.document;
 
-    hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
+    const options = { tracesSampleRate: 1 };
+    hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
     makeMain(hub);
 
     // If we do not add extension methods, invoking hub.startTransaction returns undefined
