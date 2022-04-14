@@ -62,7 +62,7 @@ export interface ClientOptions {
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport: TransportClass<Transport>;
+  transport: Transport;
 
   /**
    * A stack parser implementation
@@ -221,7 +221,7 @@ export interface Options extends Omit<Partial<ClientOptions>, 'integrations' | '
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport?: Transport;
+  transport?: TransportClass<Transport>;
 
   /**
    * A stack parser implementation or an array of stack line parsers
