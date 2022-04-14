@@ -138,7 +138,6 @@ export function init(options: NodeOptions = {}): void {
   const clientOptions: NodeClientOptions = {
     ...options,
     ...defaultCoreOptions,
-    dsn: options.dsn === undefined ? undefined : makeDsn(process.env.SENTRY_DSN ? process.env.SENTRY_DSN : options.dsn),
     stackParser: stackParserFromOptions(options),
     integrations: getIntegrationsToSetup(options),
     transport,

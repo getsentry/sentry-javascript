@@ -39,7 +39,7 @@ export interface ClientOptions {
    * The Dsn used to connect to Sentry and identify the project. If omitted, the
    * SDK will not send any data to Sentry.
    */
-  dsn?: DsnComponents;
+  dsn?: string;
 
   /**
    * The release identifier used when uploading respective source maps. Specify
@@ -203,13 +203,7 @@ export interface ClientOptions {
 }
 
 /** Base configuration options for every SDK. */
-export interface Options extends Omit<Partial<ClientOptions>, 'dsn' | 'integrations' | 'transport' | 'stackParser'> {
-  /**
-   * The Dsn used to connect to Sentry and identify the project. If omitted, the
-   * SDK will not send any data to Sentry.
-   */
-  dsn?: string;
-
+export interface Options extends Omit<Partial<ClientOptions>, 'integrations' | 'transport' | 'stackParser'> {
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.

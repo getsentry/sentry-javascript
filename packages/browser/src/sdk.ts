@@ -110,7 +110,6 @@ export function init(options: BrowserOptions = {}): void {
   const clientOptions: BrowserClientOptions = {
     ...options,
     ...defaultCoreOptions,
-    dsn: options.dsn === undefined ? undefined : makeDsn(options.dsn),
     stackParser: stackParserFromOptions(options),
     integrations: getIntegrationsToSetup(options),
     transport,
