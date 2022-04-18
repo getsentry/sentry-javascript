@@ -1,4 +1,4 @@
-import { defaultCoreOptions, getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getIntegrationsToSetup } from '@sentry/core/build/types/integration';
 import { Hub } from '@sentry/types';
 import {
@@ -108,7 +108,6 @@ export function init(options: BrowserOptions = {}): void {
 
   const clientOptions: BrowserClientOptions = {
     ...options,
-    ...defaultCoreOptions,
     stackParser: stackParserFromOptions(options),
     integrations: getIntegrationsToSetup(options),
     transport,

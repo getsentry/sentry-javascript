@@ -94,13 +94,13 @@ export interface ClientOptions {
    * The maximum number of breadcrumbs sent with events. Defaults to 100.
    * Values over 100 will be ignored and 100 used instead.
    */
-  maxBreadcrumbs: number;
+  maxBreadcrumbs?: number;
 
   /** A global sample rate to apply to all events (0 - 1). */
-  sampleRate: number;
+  sampleRate?: number;
 
   /** Maximum number of chars a single value can have before it will be truncated. */
-  maxValueLength: number;
+  maxValueLength?: number;
 
   /**
    * Maximum number of levels that normalization algorithm will traverse in objects and arrays.
@@ -111,7 +111,7 @@ export interface ClientOptions {
    * - `extra`
    * Defaults to `3`. Set to `0` to disable.
    */
-  normalizeDepth: number;
+  normalizeDepth?: number;
 
   /**
    * Maximum number of properties or elements that the normalization algorithm will output in any single array or object included in the normalized event.
@@ -122,7 +122,7 @@ export interface ClientOptions {
    * - `extra`
    * Defaults to `1000`
    */
-  normalizeMaxBreadth: number;
+  normalizeMaxBreadth?: number;
 
   /**
    * Controls how many milliseconds to wait before shutting down. The default is
@@ -131,7 +131,7 @@ export interface ClientOptions {
    * high can cause the application to block for users with network connectivity
    * problems.
    */
-  shutdownTimeout: number;
+  shutdownTimeout?: number;
 
   /**
    * A pattern for error messages which should not be sent to Sentry.

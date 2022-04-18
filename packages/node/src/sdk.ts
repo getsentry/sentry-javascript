@@ -1,4 +1,4 @@
-import { defaultCoreOptions, getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getIntegrationsToSetup } from '@sentry/core/build/types/integration';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
@@ -137,7 +137,6 @@ export function init(options: NodeOptions = {}): void {
   // TODO(v7): Refactor this to reduce the logic above
   const clientOptions: NodeClientOptions = {
     ...options,
-    ...defaultCoreOptions,
     stackParser: stackParserFromOptions(options),
     integrations: getIntegrationsToSetup(options),
     transport,
