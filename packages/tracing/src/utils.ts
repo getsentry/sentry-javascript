@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Options, Transaction } from '@sentry/types';
+import { ClientOptions, Transaction } from '@sentry/types';
 
 /**
  * The `extractTraceparentData` function and `TRACEPARENT_REGEXP` constant used
@@ -20,7 +20,7 @@ export { TRACEPARENT_REGEXP, extractTraceparentData } from '@sentry/utils';
  *
  * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
  */
-export function hasTracingEnabled(maybeOptions?: Options | undefined): boolean {
+export function hasTracingEnabled(maybeOptions?: ClientOptions | undefined): boolean {
   const client = getCurrentHub().getClient();
   const options = maybeOptions || (client && client.getOptions());
   return !!options && ('tracesSampleRate' in options || 'tracesSampler' in options);
