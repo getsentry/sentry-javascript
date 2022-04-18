@@ -1,5 +1,4 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getIntegrationsToSetup } from '@sentry/core/build/types/integration';
+import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
 import { getGlobalObject, logger, stackParserFromOptions } from '@sentry/utils';
