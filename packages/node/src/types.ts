@@ -17,10 +17,14 @@ export interface BaseNodeOptions {
   onFatalError?(error: Error): void;
 }
 
+/**
+ * Configuration options for the Sentry Node SDK
+ * @see @sentry/types Options for more information.
+ */
 export interface NodeOptions extends Options, BaseNodeOptions {}
 
 /**
- * Configuration options for the Sentry Node SDK.
+ * Configuration options for the Sentry Node SDK Client class
  * @see NodeClient for more information.
  */
 export interface NodeClientOptions extends ClientOptions, BaseNodeOptions {}

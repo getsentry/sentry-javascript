@@ -10,7 +10,7 @@ import { NodeClientOptions } from './types';
 /**
  * The Sentry Node SDK Client.
  *
- * @see NodeOptions for documentation on configuration options.
+ * @see NodeClientOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
 export class NodeClient extends BaseClient<NodeClientOptions> {
