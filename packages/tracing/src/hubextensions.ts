@@ -4,6 +4,7 @@ import {
   CustomSamplingContext,
   Integration,
   IntegrationClass,
+  Options,
   SamplingContext,
   TransactionContext,
 } from '@sentry/types';
@@ -41,7 +42,11 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  *
  * @returns The given transaction with its `sampled` value set
  */
-function sample<T extends Transaction>(transaction: T, options: ClientOptions, samplingContext: SamplingContext): T {
+function sample<T extends Transaction>(
+  transaction: T,
+  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler'>,
+  samplingContext: SamplingContext,
+): T {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
     transaction.sampled = false;
@@ -174,7 +179,7 @@ function _startTransaction(
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   let transaction = new Transaction(transactionContext, this);
-  transaction = sample(transaction, options as ClientOptions, {
+  transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
     ...customSamplingContext,
@@ -199,7 +204,7 @@ export function startIdleTransaction(
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
-  transaction = sample(transaction, options as ClientOptions, {
+  transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
     ...customSamplingContext,
