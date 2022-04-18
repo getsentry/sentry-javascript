@@ -4,6 +4,7 @@ import {
   CustomSamplingContext,
   Integration,
   IntegrationClass,
+  Options,
   SamplingContext,
   TransactionContext,
 } from '@sentry/types';
@@ -178,7 +179,7 @@ function _startTransaction(
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   let transaction = new Transaction(transactionContext, this);
-  transaction = sample(transaction, options as ClientOptions, {
+  transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
     ...customSamplingContext,
@@ -203,7 +204,7 @@ export function startIdleTransaction(
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
-  transaction = sample(transaction, options as ClientOptions, {
+  transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
     ...customSamplingContext,
