@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup/index.js';
+import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/index.js';
 
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.bundle.ts',
@@ -8,4 +8,4 @@ const baseBundleConfig = makeBaseBundleConfig({
   outputFileBase: 'bundle.vue',
 });
 
-export default makeConfigVariants(baseBundleConfig);
+export default makeBundleConfigVariants(baseBundleConfig);

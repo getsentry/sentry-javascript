@@ -87,7 +87,7 @@ export function makeBaseBundleConfig(options) {
  * @param baseConfig The rollup config shared by the entire package
  * @returns An array of versions of that config
  */
-export function makeConfigVariants(baseConfig) {
+export function makeBundleConfigVariants(baseConfig) {
   const configVariants = [];
 
   const { plugins: baseConfigPlugins } = baseConfig;
