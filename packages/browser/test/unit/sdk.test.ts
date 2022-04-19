@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { NoopTransport, Scope } from '@sentry/core';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import { Client, Integration } from '@sentry/types';
 
@@ -10,7 +11,13 @@ import { Client, Integration } from '@sentry/types';
 
 import { BrowserOptions } from '../../src';
 import { init } from '../../src/sdk';
+=======
+import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
+import { Client, Integration } from '@sentry/types';
+
+>>>>>>> 88d4cff1b (fix linter errors)
 import { BrowserOptions } from '../../src';
+import { init } from '../../src/sdk';
 // eslint-disable-next-line no-var
 declare var global: any;
 

@@ -6,7 +6,6 @@ import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils'
 
 import { registerErrorInstrumentation } from '../src/errors';
 import { _addTracingExtensions } from '../src/hubextensions';
-import { NoopTransport } from '@sentry/core/src/transports/noop';
 
 const mockAddInstrumentationHandler = jest.fn();
 let mockErrorCallback: InstrumentHandlerCallback = () => undefined;
