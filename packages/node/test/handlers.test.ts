@@ -1,6 +1,6 @@
 import * as sentryCore from '@sentry/core';
-import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
+import { Hub } from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
 import { Runtime } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
@@ -19,6 +19,7 @@ import {
 } from '../src/handlers';
 import * as SDK from '../src/sdk';
 import { setupNodeTransport } from '../src/transports';
+import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 describe('parseRequest', () => {
   let mockReq: { [key: string]: any };
@@ -224,7 +225,7 @@ describe('requestHandler', () => {
   });
 
   it('autoSessionTracking is enabled, sets requestSession status to ok, when handling a request', () => {
-    const options = { autoSessionTracking: true, release: '1.2' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
     const hub = new Hub(client);
 
@@ -237,7 +238,7 @@ describe('requestHandler', () => {
   });
 
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
-    const options = { autoSessionTracking: false, release: '1.2' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
     const hub = new Hub(client);
 
@@ -250,7 +251,7 @@ describe('requestHandler', () => {
   });
 
   it('autoSessionTracking is enabled, calls _captureRequestSession, on response finish', done => {
-    const options = { autoSessionTracking: true, release: '1.2' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
     const hub = new Hub(client);
 
@@ -271,7 +272,7 @@ describe('requestHandler', () => {
   });
 
   it('autoSessionTracking is disabled, does not call _captureRequestSession, on response finish', done => {
-    const options = { autoSessionTracking: false, release: '1.2' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
     const hub = new Hub(client);
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
@@ -372,7 +373,7 @@ describe('tracingHandler', () => {
 
   it('extracts request data for sampling context', () => {
     const tracesSampler = jest.fn();
-    const options = { tracesSampler };
+    const options = getDefaultNodeClientOptions({ tracesSampler });
     const hub = new Hub(new NodeClient(options, setupNodeTransport(options).transport));
     // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
     // `@sentry/hub`, and mocking breaks the link between the two
@@ -395,7 +396,7 @@ describe('tracingHandler', () => {
   });
 
   it('puts its transaction on the scope', () => {
-    const options = { tracesSampleRate: 1.0 };
+    const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
     const hub = new Hub(new NodeClient(options, setupNodeTransport(options).transport));
     // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
     // `@sentry/hub`, and mocking breaks the link between the two
@@ -727,7 +728,7 @@ describe('errorHandler()', () => {
     jest.restoreAllMocks();
   });
   it('when autoSessionTracking is disabled, does not set requestSession status on Crash', () => {
-    const options = { autoSessionTracking: false, release: '3.3' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '3.3' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
@@ -747,7 +748,7 @@ describe('errorHandler()', () => {
   });
 
   it('autoSessionTracking is enabled + requestHandler is not used -> does not set requestSession status on Crash', () => {
-    const options = { autoSessionTracking: false, release: '3.3' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '3.3' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
 
     const scope = sentryCore.getCurrentHub().getScope();
@@ -764,7 +765,7 @@ describe('errorHandler()', () => {
   });
 
   it('when autoSessionTracking is enabled, should set requestSession status to Crashed when an unhandled error occurs within the bounds of a request', () => {
-    const options = { autoSessionTracking: true, release: '1.1' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.1' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
@@ -783,7 +784,7 @@ describe('errorHandler()', () => {
   });
 
   it('when autoSessionTracking is enabled, should not set requestSession status on Crash when it occurs outside the bounds of a request', () => {
-    const options = { autoSessionTracking: true, release: '2.2' };
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '2.2' });
     client = new NodeClient(options, setupNodeTransport(options).transport);
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)

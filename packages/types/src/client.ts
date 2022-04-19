@@ -1,7 +1,7 @@
 import { DsnComponents } from './dsn';
 import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
-import { Options } from './options';
+import { ClientOptions } from './options';
 import { Scope } from './scope';
 import { Session } from './session';
 import { Severity, SeverityLevel } from './severity';
@@ -16,7 +16,7 @@ import { Transport } from './transport';
  * there will only be one instance during runtime.
  *
  */
-export interface Client<O extends Options = Options> {
+export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Captures an exception event and sends it to Sentry.
    *

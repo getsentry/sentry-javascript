@@ -5,6 +5,7 @@ import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 import { nodeStackParser } from '../../src/stack-parser';
 import { setupNodeTransport } from '../../src/transports';
+import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const stackParser = createStackParser(nodeStackParser);
 
@@ -32,7 +33,7 @@ describe('LinkedErrors', () => {
       expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const one = new Error('originalException');
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       let event: Event | undefined;
       return client
@@ -56,7 +57,7 @@ describe('LinkedErrors', () => {
           }),
       );
       const one = new Error('originalException');
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors
@@ -77,7 +78,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors
@@ -111,7 +112,7 @@ describe('LinkedErrors', () => {
       one.reason = two;
       two.reason = three;
 
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors
@@ -145,7 +146,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors

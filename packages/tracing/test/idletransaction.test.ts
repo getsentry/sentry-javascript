@@ -1,4 +1,5 @@
 import { BrowserClient, Transports } from '@sentry/browser';
+import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
 import { Hub } from '@sentry/hub';
 
 import {
@@ -16,8 +17,8 @@ class SimpleTransport extends Transports.BaseTransport {}
 const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
 beforeEach(() => {
-  const options = { dsn, tracesSampleRate: 1, transport: SimpleTransport };
-  hub = new Hub(new BrowserClient(options, new SimpleTransport(options)));
+  const options = getDefaultBrowserClientOptions({ dsn, tracesSampleRate: 1, transport: SimpleTransport });
+  hub = new Hub(new BrowserClient(options, new SimpleTransport({ dsn })));
 });
 
 describe('IdleTransaction', () => {
