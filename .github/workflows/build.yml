@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
@@ -68,6 +70,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
       - name: Check dependency cache
@@ -109,6 +113,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
@@ -139,6 +145,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
       - name: Check dependency cache
@@ -162,6 +170,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
       - name: Check dependency cache
@@ -186,6 +196,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
       - name: Check dependency cache
@@ -223,6 +235,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
@@ -256,6 +270,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
@@ -288,11 +304,12 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
         # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
         # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
         # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
         # well, we can pull it out.
-        with:
           fetch-depth: 0
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -343,6 +360,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
@@ -381,6 +400,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
       - name: Check dependency cache
@@ -410,6 +431,8 @@ jobs:
     steps:
       - name: Check out current commit (${ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
@@ -445,6 +468,8 @@ jobs:
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
