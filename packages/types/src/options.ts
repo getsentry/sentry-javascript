@@ -61,7 +61,7 @@ export interface ClientOptions {
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport: Transport;
+  transport: TransportClass<Transport>;
 
   /**
    * A stack parser implementation
