@@ -11,7 +11,6 @@ module.exports = {
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.test.json',
-      diagnostics: false,
     },
   },
   testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/'],

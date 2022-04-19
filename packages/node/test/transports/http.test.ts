@@ -31,6 +31,7 @@ const sessionPayload: Session = {
   update: jest.fn(),
   close: jest.fn(),
   toJSON: jest.fn(),
+  ignoreDuration: false,
 };
 const sessionsPayload: SessionAggregates = {
   attrs: { environment: 'test', release: '1.0' },

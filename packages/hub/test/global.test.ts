@@ -1,4 +1,8 @@
+import { getGlobalObject } from '@sentry/utils';
+
 import { getCurrentHub, getHubFromCarrier, Hub } from '../src';
+
+const global = getGlobalObject();
 
 describe('global', () => {
   test('getGlobalHub', () => {

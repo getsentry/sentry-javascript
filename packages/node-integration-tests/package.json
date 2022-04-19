@@ -14,7 +14,7 @@
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
     "pretest": "run-s --silent prisma:init",
-    "test": "jest --detectOpenHandles --runInBand --forceExit",
+    "test": "jest --runInBand --forceExit",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {

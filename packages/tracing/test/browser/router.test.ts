@@ -1,3 +1,4 @@
+import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
@@ -8,7 +9,7 @@ jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: (type, callback): void => {
+    addInstrumentationHandler: (type: InstrumentHandlerType, callback: InstrumentHandlerCallback): void => {
       addInstrumentationHandlerType = type;
       mockChangeHistory = callback;
     },

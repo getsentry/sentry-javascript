@@ -28,6 +28,7 @@ env:
     ${{ github.workspace }}/packages/**/esm
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
+    ${{ github.workspace }}/packages/gatsby/*.d.ts
     ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
