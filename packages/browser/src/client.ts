@@ -36,18 +36,6 @@ export interface BrowserOptions extends Options, BaseBrowserOptions {}
 export interface BrowserClientOptions extends ClientOptions, BaseBrowserOptions {}
 
 /**
- * Configuration options for the Sentry Browser SDK.
- * @see @sentry/types Options for more information.
- */
-export interface BrowserOptions extends Options, BaseBrowserOptions {}
-
-/**
- * Configuration options for the Sentry Browser SDK Client class
- * @see BrowserClient for more information.
- */
-export interface BrowserClientOptions extends ClientOptions, BaseBrowserOptions {}
-
-/**
  * The Sentry Browser SDK Client.
  *
  * @see BrowserOptions for documentation on configuration options.
