@@ -107,7 +107,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
 
-    this._transport = options.transport({ ...options.transportOptions, url: url || '' });
+    this._transport = options.transport({ ...options.transportOptions, url });
   }
 
   /**
