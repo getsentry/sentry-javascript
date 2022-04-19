@@ -62,6 +62,19 @@ export type {
   TransactionSamplingMethod,
 } from './transaction';
 export type { Thread } from './thread';
-export type { Outcome, Transport, TransportOptions, TransportClass } from './transport';
+export type {
+  Outcome,
+  Transport,
+  TransportOptions,
+  TransportClass,
+  TransportCategory,
+  TransportRequest,
+  TransportMakeRequestResponse,
+  TransportResponse,
+  InternalBaseTransportOptions,
+  BaseTransportOptions,
+  NewTransport,
+  TransportRequestExecutor,
+} from './transport';
 export type { User, UserFeedback } from './user';
 export type { WrappedFunction } from './wrappedfunction';
