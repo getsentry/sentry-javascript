@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
+import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/index.js';
 
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.ts',
@@ -8,4 +8,4 @@ const baseBundleConfig = makeBaseBundleConfig({
   outputFileBase: 'bundles/wasm',
 });
 
-export default makeConfigVariants(baseBundleConfig);
+export default makeBundleConfigVariants(baseBundleConfig);

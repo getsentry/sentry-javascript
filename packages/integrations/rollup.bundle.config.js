@@ -1,6 +1,6 @@
 import commonjs from '@rollup/plugin-commonjs';
 
-import { insertAt, makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
+import { insertAt, makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/index.js';
 
 const builds = [];
 
@@ -19,6 +19,6 @@ const baseBundleConfig = makeBaseBundleConfig({
 baseBundleConfig.plugins = insertAt(baseBundleConfig.plugins, -2, commonjs());
 
 // this makes non-minified, minified, and minified-with-debug-logging versions of each bundle
-builds.push(...makeConfigVariants(baseBundleConfig));
+builds.push(...makeBundleConfigVariants(baseBundleConfig));
 
 export default builds;
