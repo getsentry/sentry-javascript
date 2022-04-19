@@ -1,5 +1,4 @@
 import { Scope, SessionFlusher } from '@sentry/hub';
-import { NoopTransport } from '@sentry/core';
 
 import { NodeClient } from '../src';
 import { setupNodeTransport } from '../src/transports';

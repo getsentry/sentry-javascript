@@ -1,6 +1,5 @@
 import { ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
-import { NoopTransport } from '@sentry/core';
 
 import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
