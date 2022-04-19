@@ -27,13 +27,6 @@ export class SessionFlusher implements SessionFlusherLike {
     this._sessionAttrs = attrs;
   }
 
-  /** Sends session aggregates to Transport */
-  public sendSessionAggregates(sessionAggregates: SessionAggregates): void {
-    void this._client.sendSession(sessionAggregates).then(null, reason => {
-      IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
-    });
-  }
-
   /** Checks if `pendingAggregates` has entries, and if it does flushes them by calling `sendSessions` */
   public flush(): void {
     const sessionAggregates = this.getSessionAggregates();
@@ -41,7 +34,7 @@ export class SessionFlusher implements SessionFlusherLike {
       return;
     }
     this._pendingAggregates = {};
-    this.sendSessionAggregates(sessionAggregates);
+    this._client.sendSession(sessionAggregates);
   }
 
   /** Massages the entries in `pendingAggregates` and returns aggregated sessions */

@@ -10,6 +10,7 @@ import {
   Integration,
   IntegrationClass,
   NewTransport,
+  SessionAggregates,
   Severity,
   SeverityLevel,
   Transport,
@@ -186,7 +187,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (!(typeof session.release === 'string')) {
       IS_DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
     } else {
-      this._sendSession(session);
+      this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
       session.update({ init: false });
     }
@@ -271,7 +272,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendSession(session: Session): void {
+  public sendSession(session: Session | SessionAggregates): void {
     if (this._dsn) {
       const [env] = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
       this.sendEnvelope(env);
@@ -322,12 +323,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       });
       this.captureSession(session);
     }
-  }
-
-  /** Deliver captured session to Sentry */
-  // TODO(v7): should this be deleted?
-  protected _sendSession(session: Session): void {
-    this.sendSession(session);
   }
 
   /**
