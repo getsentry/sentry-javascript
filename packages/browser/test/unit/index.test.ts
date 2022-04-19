@@ -17,7 +17,7 @@ import {
   wrap,
 } from '../../src';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
-import { SimpleTransport } from './mocks/simpletransport';
+import { makeSimpleTransport } from './mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
@@ -31,7 +31,7 @@ describe('SentryBrowser', () => {
     init({
       beforeSend,
       dsn,
-      transport: SimpleTransport,
+      transport: makeSimpleTransport,
     });
   });
 
@@ -77,7 +77,7 @@ describe('SentryBrowser', () => {
     describe('user', () => {
       const EX_USER = { email: 'test@example.com' };
       const options = getDefaultBrowserClientOptions({ dsn });
-      const client = new BrowserClient(options, new SimpleTransport({ dsn }));
+      const client = new BrowserClient(options);
       const reportDialogSpy = jest.spyOn(client, 'showReportDialog');
 
       beforeEach(() => {
@@ -150,7 +150,7 @@ describe('SentryBrowser', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new BrowserClient(options, new SimpleTransport({ dsn })));
+      getCurrentHub().bindClient(new BrowserClient(options));
       captureMessage('test');
     });
 
@@ -164,7 +164,7 @@ describe('SentryBrowser', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new BrowserClient(options, new SimpleTransport({ dsn })));
+      getCurrentHub().bindClient(new BrowserClient(options));
       captureEvent({ message: 'event' });
     });
 
@@ -175,7 +175,7 @@ describe('SentryBrowser', () => {
         dsn,
         integrations: [],
       });
-      getCurrentHub().bindClient(new BrowserClient(options, new SimpleTransport({ dsn })));
+      getCurrentHub().bindClient(new BrowserClient(options));
 
       captureMessage('event222');
       captureMessage('event222');
@@ -192,7 +192,7 @@ describe('SentryBrowser', () => {
         dsn,
         integrations: [new Integrations.InboundFilters({ ignoreErrors: ['capture'] })],
       });
-      getCurrentHub().bindClient(new BrowserClient(options, new SimpleTransport({ dsn })));
+      getCurrentHub().bindClient(new BrowserClient(options));
 
       captureMessage('capture');
 
@@ -244,7 +244,7 @@ describe('SentryBrowser initialization', () => {
     it('should set SDK data when Sentry.init() is called', () => {
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
 
       expect(sdkData?.name).toBe('sentry.javascript.browser');
       expect(sdkData?.packages[0].name).toBe('npm:@sentry/browser');
@@ -254,9 +254,9 @@ describe('SentryBrowser initialization', () => {
 
     it('should set SDK data when instantiating a client directly', () => {
       const options = getDefaultBrowserClientOptions({ dsn });
-      const client = new BrowserClient(options, new SimpleTransport({ dsn }));
+      const client = new BrowserClient(options);
 
-      const sdkData = (client.getTransport() as any)._api.metadata?.sdk;
+      const sdkData = client.getOptions()._metadata?.sdk as any;
 
       expect(sdkData.name).toBe('sentry.javascript.browser');
       expect(sdkData.packages[0].name).toBe('npm:@sentry/browser');
@@ -284,7 +284,7 @@ describe('SentryBrowser initialization', () => {
         },
       });
 
-      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata?.sdk;
 
       expect(sdkData.name).toBe('sentry.javascript.angular');
       expect(sdkData.packages[0].name).toBe('npm:@sentry/angular');
@@ -305,7 +305,7 @@ describe('wrap()', () => {
       },
       dsn,
     });
-    getCurrentHub().bindClient(new BrowserClient(options, new SimpleTransport({ dsn })));
+    getCurrentHub().bindClient(new BrowserClient(options));
 
     try {
       wrap(() => {
