@@ -2,12 +2,12 @@
 import { Scope, Session } from '@sentry/hub';
 import {
   Client,
+  ClientOptions,
   DsnComponents,
   Event,
   EventHint,
   Integration,
   IntegrationClass,
-  Options,
   Severity,
   SeverityLevel,
   Transport,
@@ -68,7 +68,7 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  *   // ...
  * }
  */
-export abstract class BaseClient<O extends Options> implements Client<O> {
+export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Options passed to the SDK. */
   protected readonly _options: O;
 

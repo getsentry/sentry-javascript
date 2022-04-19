@@ -1,15 +1,15 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, logger, stackParserFromOptions } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { nodeStackParser } from './stack-parser';
-import { setupNodeTransport } from './transports';
-import { NodeOptions } from './types';
+import { HTTPSTransport, HTTPTransport, setupNodeTransport } from './transports';
+import { NodeClientOptions, NodeOptions } from './types';
 
 export const defaultIntegrations = [
   // Common
@@ -132,7 +132,17 @@ export function init(options: NodeOptions = {}): void {
   }
 
   const { transport, newTransport } = setupNodeTransport(options);
-  initAndBind(NodeClient, options, transport, newTransport);
+
+  // TODO(v7): Refactor this to reduce the logic above
+  const clientOptions: NodeClientOptions = {
+    ...options,
+    stackParser: stackParserFromOptions(options),
+    integrations: getIntegrationsToSetup(options),
+    // TODO(v7): Fix me when we switch to new transports entirely.
+    transport: options.transport || (transport instanceof HTTPTransport ? HTTPTransport : HTTPSTransport),
+  };
+
+  initAndBind(NodeClient, clientOptions, transport, newTransport);
 
   if (options.autoSessionTracking) {
     startSessionTracking();
@@ -189,7 +199,7 @@ export function isAutoSessionTrackingEnabled(client?: NodeClient): boolean {
   if (client === undefined) {
     return false;
   }
-  const clientOptions: NodeOptions = client && client.getOptions();
+  const clientOptions = client && client.getOptions();
   if (clientOptions && clientOptions.autoSessionTracking !== undefined) {
     return clientOptions.autoSessionTracking;
   }

@@ -98,8 +98,6 @@ function validateDsn(dsn: DsnComponents): boolean | void {
 /** The Sentry Dsn, identifying a Sentry instance and project. */
 export function makeDsn(from: DsnLike): DsnComponents {
   const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
-
   validateDsn(components);
-
   return components;
 }

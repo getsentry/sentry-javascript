@@ -1,5 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { setupBrowserTransport } from '@sentry/browser/src/transports';
+import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
 import { Hub, makeMain } from '@sentry/hub';
 import { JSDOM } from 'jsdom';
 
@@ -14,7 +15,7 @@ describe('registerBackgroundTabDetection', () => {
     // @ts-ignore need to override global document
     global.document = dom.window.document;
 
-    const options = { tracesSampleRate: 1 };
+    const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
     hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
     makeMain(hub);
 

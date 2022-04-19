@@ -7,6 +7,7 @@ import {
   setupBrowserTransport,
   XHRTransport,
 } from '../../../src/transports';
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { SimpleTransport } from '../mocks/simpletransport';
 
 const DSN = 'https://username@domain/123';
@@ -64,7 +65,7 @@ describe('setupBrowserTransport', () => {
   });
 
   it('returns the instantiated transport passed via the options', () => {
-    const options = { dsn: DSN, transport: SimpleTransport };
+    const options = getDefaultBrowserClientOptions({ dsn: DSN, transport: SimpleTransport });
     const { transport, newTransport } = setupBrowserTransport(options);
 
     expect(transport).toBeDefined();
@@ -73,7 +74,8 @@ describe('setupBrowserTransport', () => {
   });
 
   it('returns fetchTransports if fetch is supported', () => {
-    const options = { dsn: DSN };
+    const options = getDefaultBrowserClientOptions({ dsn: DSN });
+    delete options.transport;
     const { transport, newTransport } = setupBrowserTransport(options);
 
     expect(transport).toBeDefined();
@@ -86,7 +88,8 @@ describe('setupBrowserTransport', () => {
   it('returns xhrTransports if fetch is not supported', () => {
     fetchSupported = false;
 
-    const options = { dsn: DSN };
+    const options = getDefaultBrowserClientOptions({ dsn: DSN });
+    delete options.transport;
     const { transport, newTransport } = setupBrowserTransport(options);
 
     expect(transport).toBeDefined();

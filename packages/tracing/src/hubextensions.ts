@@ -1,5 +1,6 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
 import {
+  ClientOptions,
   CustomSamplingContext,
   Integration,
   IntegrationClass,
@@ -41,7 +42,11 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  *
  * @returns The given transaction with its `sampled` value set
  */
-function sample<T extends Transaction>(transaction: T, options: Options, samplingContext: SamplingContext): T {
+function sample<T extends Transaction>(
+  transaction: T,
+  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler'>,
+  samplingContext: SamplingContext,
+): T {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
     transaction.sampled = false;
@@ -171,7 +176,7 @@ function _startTransaction(
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
   const client = this.getClient();
-  const options = (client && client.getOptions()) || {};
+  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   let transaction = new Transaction(transactionContext, this);
   transaction = sample(transaction, options, {
@@ -196,7 +201,7 @@ export function startIdleTransaction(
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
   const client = hub.getClient();
-  const options = (client && client.getOptions()) || {};
+  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
   transaction = sample(transaction, options, {
