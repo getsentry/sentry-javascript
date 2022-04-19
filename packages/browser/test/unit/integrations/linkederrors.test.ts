@@ -1,20 +1,11 @@
 import { Event as SentryEvent, Exception, ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
 
-import { BrowserClient, BrowserClientOptions } from '../../../src/client';
+import { BrowserClient } from '../../../src/client';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
 import { defaultStackParsers } from '../../../src/stack-parsers';
 import { setupBrowserTransport } from '../../../src/transports';
-import { NoopTransport } from '@sentry/core/src/transports/noop';
-
-function getDefaultBrowserOptions(options: Partial<BrowserClientOptions> = {}): BrowserClientOptions {
-  return {
-    integrations: [],
-    transport: NoopTransport,
-    stackParser: () => [],
-    ...options,
-  };
-}
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 const parser = createStackParser(...defaultStackParsers);
 
@@ -55,7 +46,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
 
       const originalException = one;
-      const options = getDefaultBrowserOptions({ stackParser: parser });
+      const options = getDefaultBrowserClientOptions({ stackParser: parser });
       const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
@@ -86,7 +77,7 @@ describe('LinkedErrors', () => {
       one.reason = two;
 
       const originalException = one;
-      const options = getDefaultBrowserOptions({ stackParser: parser });
+      const options = getDefaultBrowserClientOptions({ stackParser: parser });
       const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'reason', 5, event, {
@@ -113,7 +104,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const options = getDefaultBrowserOptions({ stackParser: parser });
+      const options = getDefaultBrowserClientOptions({ stackParser: parser });
       const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       const originalException = one;
       return client.eventFromException(originalException).then(event => {
