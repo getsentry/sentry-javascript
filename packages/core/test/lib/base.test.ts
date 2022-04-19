@@ -4,7 +4,7 @@ import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
 import { NoopTransport } from '../../src/transports/noop';
-import { setupTestTransport, TestClient, TestOptions } from '../mocks/client';
+import { setupTestTransport, TestClient, getDefaultTestOptions } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
 import { FakeTransport } from '../mocks/transport';
 
@@ -52,15 +52,6 @@ jest.mock('@sentry/utils', () => {
     },
   };
 });
-
-function getDefaultTestOptions(options: Partial<TestOptions> = {}): TestOptions {
-  return {
-    integrations: [],
-    transport: NoopTransport,
-    stackParser: () => [],
-    ...options,
-  };
-}
 
 describe('BaseClient', () => {
   beforeEach(() => {

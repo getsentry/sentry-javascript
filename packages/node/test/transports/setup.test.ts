@@ -3,6 +3,7 @@ import { FakeTransport } from '@sentry/core/test/mocks/transport';
 import { HTTPSTransport, HTTPTransport, setupNodeTransport } from '@sentry/node/src/transports';
 
 import { makeNodeTransport } from '../../src/transports/new';
+import { NodeClientOptions } from '../../src/types';
 
 jest.mock('../../src/transports/new', () => {
   const original = jest.requireActual('../../src/transports/new');
@@ -14,6 +15,15 @@ jest.mock('../../src/transports/new', () => {
     })),
   };
 });
+
+function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
+  return {
+    integrations: [],
+    transport: NoopTransport,
+    stackParser: () => [],
+    ...options,
+  };
+}
 
 const DSN = 'https://username@domain/123';
 
@@ -31,7 +41,7 @@ describe('setupNodeTransport', () => {
   });
 
   it('returns the instantiated transport passed via the options', () => {
-    const options = { dsn: DSN, transport: FakeTransport };
+    const options = getDefaultNodeClientOptions({ dsn: DSN, transport: FakeTransport });
     const { transport, newTransport } = setupNodeTransport(options);
 
     expect(transport).toBeDefined();

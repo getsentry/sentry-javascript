@@ -1,14 +1,25 @@
 import { ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
+import { NoopTransport } from '@sentry/core';
 
 import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 import { nodeStackParser } from '../../src/stack-parser';
 import { setupNodeTransport } from '../../src/transports';
+import { NodeClientOptions } from '../../src/types';
 
 const stackParser = createStackParser(nodeStackParser);
 
 let linkedErrors: any;
+
+function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
+  return {
+    integrations: [],
+    transport: NoopTransport,
+    stackParser: () => [],
+    ...options,
+  };
+}
 
 describe('LinkedErrors', () => {
   beforeEach(() => {
@@ -32,7 +43,7 @@ describe('LinkedErrors', () => {
       expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const one = new Error('originalException');
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       let event: Event | undefined;
       return client
@@ -56,7 +67,7 @@ describe('LinkedErrors', () => {
           }),
       );
       const one = new Error('originalException');
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors
@@ -77,7 +88,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors
@@ -111,7 +122,7 @@ describe('LinkedErrors', () => {
       one.reason = two;
       two.reason = three;
 
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors
@@ -145,7 +156,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const options = { stackParser };
+      const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       return client.eventFromException(one).then(event =>
         linkedErrors

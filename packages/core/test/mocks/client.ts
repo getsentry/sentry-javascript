@@ -6,6 +6,16 @@ import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { NewTransport } from '../../src/transports/base';
 import { NoopTransport } from '../../src/transports/noop';
+
+export function getDefaultTestOptions(options: Partial<TestOptions> = {}): TestOptions {
+  return {
+    integrations: [],
+    transport: NoopTransport,
+    stackParser: () => [],
+    ...options,
+  };
+}
+
 export interface TestOptions extends ClientOptions {
   test?: boolean;
   mockInstallFailure?: boolean;
