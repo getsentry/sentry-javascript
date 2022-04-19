@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup.config';
+import { makeBaseBundleConfig, makeConfigVariants } from '../../rollup/index.js';
 
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.bundle.ts',
