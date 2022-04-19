@@ -7,7 +7,7 @@ import * as path from 'path';
 
 import deepMerge from 'deepmerge';
 
-import { makeNodeResolvePlugin, makeSucrasePlugin } from './plugins/index.js';
+import { makeConstToVarPlugin, makeNodeResolvePlugin, makeSucrasePlugin } from './plugins/index.js';
 
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
@@ -21,6 +21,7 @@ export function makeBaseNPMConfig(options = {}) {
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
+  const constToVarPlugin = makeConstToVarPlugin();
 
   return {
     input: entrypoints,
@@ -61,7 +62,7 @@ export function makeBaseNPMConfig(options = {}) {
       interop: esModuleInterop ? 'auto' : 'esModule',
     },
 
-    plugins: [nodeResolvePlugin, sucrasePlugin],
+    plugins: [nodeResolvePlugin, sucrasePlugin, constToVarPlugin],
 
     // don't include imported modules from outside the package in the final output
     external: [
