@@ -1,4 +1,4 @@
-import { initAndBind, SDK_VERSION } from '@sentry/core';
+import { initAndBind, SDK_VERSION, NoopTransport } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
