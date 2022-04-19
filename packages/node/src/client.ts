@@ -5,22 +5,22 @@ import { logger, resolvedSyncPromise, stackParserFromOptions } from '@sentry/uti
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
-import { NodeOptions } from './types';
+import { NodeClientOptions } from './types';
 
 /**
  * The Sentry Node SDK Client.
  *
- * @see NodeOptions for documentation on configuration options.
+ * @see NodeClientOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class NodeClient extends BaseClient<NodeOptions> {
+export class NodeClient extends BaseClient<NodeClientOptions> {
   protected _sessionFlusher: SessionFlusher | undefined;
 
   /**
    * Creates a new Node SDK instance.
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: NodeOptions, transport: Transport, newTransport?: NewTransport) {
+  public constructor(options: NodeClientOptions, transport: Transport, newTransport?: NewTransport) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.node',

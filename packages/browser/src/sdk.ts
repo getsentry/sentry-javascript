@@ -1,12 +1,20 @@
-import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { Hub } from '@sentry/types';
-import { addInstrumentationHandler, getGlobalObject, logger, resolvedSyncPromise } from '@sentry/utils';
+import {
+  addInstrumentationHandler,
+  getGlobalObject,
+  logger,
+  resolvedSyncPromise,
+  stackParserFromOptions,
+  supportsFetch,
+} from '@sentry/utils';
 
-import { BrowserClient, BrowserOptions } from './client';
+import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 import { defaultStackParsers } from './stack-parsers';
+import { FetchTransport, XHRTransport } from './transports';
 import { setupBrowserTransport } from './transports/setup';
 
 export const defaultIntegrations = [
@@ -97,9 +105,17 @@ export function init(options: BrowserOptions = {}): void {
   if (options.stackParser === undefined) {
     options.stackParser = defaultStackParsers;
   }
-
   const { transport, newTransport } = setupBrowserTransport(options);
-  initAndBind(BrowserClient, options, transport, newTransport);
+
+  const clientOptions: BrowserClientOptions = {
+    ...options,
+    stackParser: stackParserFromOptions(options),
+    integrations: getIntegrationsToSetup(options),
+    // TODO(v7): get rid of transport being passed down below
+    transport: options.transport || (supportsFetch() ? FetchTransport : XHRTransport),
+  };
+
+  initAndBind(BrowserClient, clientOptions, transport, newTransport);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

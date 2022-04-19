@@ -7,8 +7,7 @@ import { StackLineParser, StackParser } from './stacktrace';
 import { SamplingContext } from './transaction';
 import { Transport, TransportClass, TransportOptions } from './transport';
 
-/** Base configuration options for every SDK. */
-export interface Options {
+export interface ClientOptions {
   /**
    * Enable debug functionality in the SDK itself
    */
@@ -20,48 +19,26 @@ export interface Options {
    */
   enabled?: boolean;
 
+  /** Attaches stacktraces to pure capture message / log integrations */
+  attachStacktrace?: boolean;
+
+  /**
+   * A flag enabling Sessions Tracking feature.
+   * By default, Sessions Tracking is enabled.
+   */
+  autoSessionTracking?: boolean;
+
+  /**
+   * Send SDK Client Reports.
+   * By default, Client Reports are enabled.
+   */
+  sendClientReports?: boolean;
+
   /**
    * The Dsn used to connect to Sentry and identify the project. If omitted, the
    * SDK will not send any data to Sentry.
    */
   dsn?: string;
-
-  /**
-   * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
-   * recommended default integrations.
-   * TODO: We should consider changing this to `boolean | Integration[]`
-   */
-  defaultIntegrations?: false | Integration[];
-
-  /**
-   * List of integrations that should be installed after SDK was initialized.
-   * Accepts either a list of integrations or a function that receives
-   * default integrations and returns a new, updated list.
-   */
-  integrations?: Integration[] | ((integrations: Integration[]) => Integration[]);
-
-  /**
-   * A pattern for error messages which should not be sent to Sentry.
-   * By default, all errors will be sent.
-   */
-  ignoreErrors?: Array<string | RegExp>;
-
-  /**
-   * Transport object that should be used to send events to Sentry
-   */
-  transport?: TransportClass<Transport>;
-
-  /**
-   * Options for the default transport that the SDK uses.
-   */
-  transportOptions?: TransportOptions;
-
-  /**
-   * A URL to an envelope tunnel endpoint. An envelope tunnel is an HTTP endpoint
-   * that accepts Sentry envelopes for forwarding. This can be used to force data
-   * through a custom server independent of the type of data.
-   */
-  tunnel?: string;
 
   /**
    * The release identifier used when uploading respective source maps. Specify
@@ -77,6 +54,43 @@ export interface Options {
   dist?: string;
 
   /**
+   * List of integrations that should be installed after SDK was initialized.
+   */
+  integrations: Integration[];
+
+  /**
+   * Transport object that should be used to send events to Sentry
+   */
+  transport: TransportClass<Transport>;
+
+  /**
+   * A stack parser implementation
+   * By default, a stack parser is supplied for all supported platforms
+   */
+  stackParser: StackParser;
+
+  /**
+   * Options for the default transport that the SDK uses.
+   */
+  transportOptions?: TransportOptions;
+
+  /**
+   * Sample rate to determine trace sampling.
+   *
+   * 0.0 = 0% chance of a given trace being sent (send no traces) 1.0 = 100% chance of a given trace being sent (send
+   * all traces)
+   *
+   * Tracing is enabled if either this or `tracesSampler` is defined. If both are defined, `tracesSampleRate` is
+   * ignored.
+   */
+  tracesSampleRate?: number;
+
+  /**
+   * Initial data to populate scope.
+   */
+  initialScope?: CaptureContext;
+
+  /**
    * The maximum number of breadcrumbs sent with events. Defaults to 100.
    * Values over 100 will be ignored and 100 used instead.
    */
@@ -84,9 +98,6 @@ export interface Options {
 
   /** A global sample rate to apply to all events (0 - 1). */
   sampleRate?: number;
-
-  /** Attaches stacktraces to pure capture message / log integrations */
-  attachStacktrace?: boolean;
 
   /** Maximum number of chars a single value can have before it will be truncated. */
   maxValueLength?: number;
@@ -123,38 +134,17 @@ export interface Options {
   shutdownTimeout?: number;
 
   /**
-   * Sample rate to determine trace sampling.
-   *
-   * 0.0 = 0% chance of a given trace being sent (send no traces) 1.0 = 100% chance of a given trace being sent (send
-   * all traces)
-   *
-   * Tracing is enabled if either this or `tracesSampler` is defined. If both are defined, `tracesSampleRate` is
-   * ignored.
+   * A pattern for error messages which should not be sent to Sentry.
+   * By default, all errors will be sent.
    */
-  tracesSampleRate?: number;
+  ignoreErrors?: Array<string | RegExp>;
 
   /**
-   * A flag enabling Sessions Tracking feature.
-   * By default, Sessions Tracking is enabled.
+   * A URL to an envelope tunnel endpoint. An envelope tunnel is an HTTP endpoint
+   * that accepts Sentry envelopes for forwarding. This can be used to force data
+   * through a custom server independent of the type of data.
    */
-  autoSessionTracking?: boolean;
-
-  /**
-   * Send SDK Client Reports.
-   * By default, Client Reports are enabled.
-   */
-  sendClientReports?: boolean;
-
-  /**
-   * Initial data to populate scope.
-   */
-  initialScope?: CaptureContext;
-
-  /**
-   * A stack parser implementation or an array of stack line parsers
-   * By default, a stack parser is supplied for all supported browsers
-   */
-  stackParser?: StackParser | StackLineParser[];
+  tunnel?: string;
 
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
@@ -209,4 +199,32 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => Breadcrumb | null;
+}
+
+/** Base configuration options for every SDK. */
+export interface Options extends Omit<Partial<ClientOptions>, 'integrations' | 'transport' | 'stackParser'> {
+  /**
+   * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
+   * recommended default integrations.
+   * TODO: We should consider changing this to `boolean | Integration[]`
+   */
+  defaultIntegrations?: false | Integration[];
+
+  /**
+   * List of integrations that should be installed after SDK was initialized.
+   * Accepts either a list of integrations or a function that receives
+   * default integrations and returns a new, updated list.
+   */
+  integrations?: Integration[] | ((integrations: Integration[]) => Integration[]);
+
+  /**
+   * Transport object that should be used to send events to Sentry
+   */
+  transport?: TransportClass<Transport>;
+
+  /**
+   * A stack parser implementation or an array of stack line parsers
+   * By default, a stack parser is supplied for all supported browsers
+   */
+  stackParser?: StackParser | StackLineParser[];
 }

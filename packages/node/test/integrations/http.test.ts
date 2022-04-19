@@ -1,6 +1,6 @@
 import * as sentryCore from '@sentry/core';
-import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
+import { Hub } from '@sentry/hub';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
@@ -12,16 +12,17 @@ import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
 import { setupNodeTransport } from '../../src/transports';
+import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
 describe('tracing', () => {
   function createTransactionOnScope() {
-    const options = {
+    const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
       integrations: [new HttpIntegration({ tracing: true })],
-    };
+    });
     const hub = new Hub(new NodeClient(options, setupNodeTransport(options).transport));
     addExtensionMethods();
 
@@ -97,7 +98,7 @@ describe('default protocols', () => {
     const p = new Promise<Breadcrumb>(r => {
       resolve = r;
     });
-    const options = {
+    const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       integrations: [new HttpIntegration({ breadcrumbs: true })],
       beforeBreadcrumb: (b: Breadcrumb) => {
@@ -106,7 +107,7 @@ describe('default protocols', () => {
         }
         return b;
       },
-    };
+    });
     hub.bindClient(new NodeClient(options, setupNodeTransport(options).transport));
 
     return p;

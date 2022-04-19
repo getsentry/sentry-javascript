@@ -1,5 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { setupBrowserTransport } from '@sentry/browser/src/transports';
+import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
 import { Hub, makeMain, Scope } from '@sentry/hub';
 
 import { Span, Transaction } from '../src';
@@ -10,7 +11,7 @@ describe('Span', () => {
 
   beforeEach(() => {
     const myScope = new Scope();
-    const options = { tracesSampleRate: 1 };
+    const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
     hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport), myScope);
     makeMain(hub);
   });
@@ -218,10 +219,10 @@ describe('Span', () => {
       });
 
       test('maxSpans correctly limits number of spans', () => {
-        const options = {
+        const options = getDefaultBrowserClientOptions({
           _experiments: { maxSpans: 3 },
           tracesSampleRate: 1,
-        };
+        });
         const _hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
         const transaction = _hub.startTransaction({ name: 'test' });
@@ -234,9 +235,9 @@ describe('Span', () => {
       });
 
       test('no span recorder created if transaction.sampled is false', () => {
-        const options = {
+        const options = getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
-        };
+        });
         const _hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
         const transaction = _hub.startTransaction({ name: 'test', sampled: false });

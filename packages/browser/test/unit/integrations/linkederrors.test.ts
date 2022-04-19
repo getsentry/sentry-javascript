@@ -5,6 +5,7 @@ import { BrowserClient } from '../../../src/client';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
 import { defaultStackParsers } from '../../../src/stack-parsers';
 import { setupBrowserTransport } from '../../../src/transports';
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 const parser = createStackParser(...defaultStackParsers);
 
@@ -45,7 +46,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
 
       const originalException = one;
-      const options = { stackParser: parser };
+      const options = getDefaultBrowserClientOptions({ stackParser: parser });
       const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'cause', 5, event, {
@@ -76,7 +77,7 @@ describe('LinkedErrors', () => {
       one.reason = two;
 
       const originalException = one;
-      const options = { stackParser: parser };
+      const options = getDefaultBrowserClientOptions({ stackParser: parser });
       const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       return client.eventFromException(originalException).then(event => {
         const result = LinkedErrorsModule._handler(parser, 'reason', 5, event, {
@@ -103,7 +104,7 @@ describe('LinkedErrors', () => {
       one.cause = two;
       two.cause = three;
 
-      const options = { stackParser: parser };
+      const options = getDefaultBrowserClientOptions({ stackParser: parser });
       const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       const originalException = one;
       return client.eventFromException(originalException).then(event => {
