@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { NoopTransport, Scope } from '@sentry/core';
+<<<<<<< HEAD
+=======
+import { Client, Integration } from '@sentry/types';
+
+>>>>>>> bb8f9175e (fix remaning browser unit tests)
 import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
 import { Client, Integration } from '@sentry/types';
 
 import { BrowserOptions } from '../../src';
 import { init } from '../../src/sdk';
+import { BrowserOptions } from '../../src';
 // eslint-disable-next-line no-var
 declare var global: any;
 

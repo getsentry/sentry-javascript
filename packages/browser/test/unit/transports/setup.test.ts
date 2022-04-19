@@ -9,7 +9,6 @@ import {
 } from '../../../src/transports';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { SimpleTransport } from '../mocks/simpletransport';
-import { BrowserClientOptions } from '../../../src/client';
 
 const DSN = 'https://username@domain/123';
 

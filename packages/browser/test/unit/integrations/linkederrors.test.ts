@@ -1,7 +1,7 @@
 import { Event as SentryEvent, Exception, ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
 
-import { BrowserClient, BrowserClientOptions } from '../../../src/client';
+import { BrowserClient } from '../../../src/client';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
 import { defaultStackParsers } from '../../../src/stack-parsers';
 import { setupBrowserTransport } from '../../../src/transports';
