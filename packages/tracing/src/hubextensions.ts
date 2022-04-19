@@ -262,12 +262,6 @@ function _autoloadDatabaseIntegrations(): void {
       };
       return new integration.Postgres();
     },
-    prisma() {
-      const integration = dynamicRequire(module, './integrations/node/prisma') as {
-        Prisma: IntegrationClass<Integration>;
-      };
-      return new integration.Prisma();
-    },
   };
 
   const mappedPackages = Object.keys(packageToIntegrationMapping)

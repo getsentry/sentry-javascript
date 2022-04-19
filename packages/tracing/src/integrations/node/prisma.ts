@@ -1,13 +1,41 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { fill, isThenable, loadModule, logger } from '@sentry/utils';
+import { isThenable, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../../flags';
 
+type PrismaAction =
+  | 'findUnique'
+  | 'findMany'
+  | 'findFirst'
+  | 'create'
+  | 'createMany'
+  | 'update'
+  | 'updateMany'
+  | 'upsert'
+  | 'delete'
+  | 'deleteMany'
+  | 'executeRaw'
+  | 'queryRaw'
+  | 'aggregate'
+  | 'count'
+  | 'runCommandRaw';
+
+interface PrismaMiddlewareParams {
+  model?: any;
+  action: PrismaAction;
+  args: any;
+  dataPath: string[];
+  runInTransaction: boolean;
+}
+
+type PrismaMiddleware<T = any> = (
+  params: PrismaMiddlewareParams,
+  next: (params: PrismaMiddlewareParams) => Promise<T>,
+) => Promise<T>;
+
 interface PrismaClient {
-  prototype: {
-    query: () => void | Promise<unknown>;
-  };
+  $use: (cb: PrismaMiddleware) => void;
 }
 
 /** Tracing integration for @prisma/client package */
@@ -23,37 +51,49 @@ export class Prisma implements Integration {
   public name: string = Prisma.id;
 
   /**
+   * Prisma ORM Client Instance
+   */
+  private readonly _client?: PrismaClient;
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(options: { client?: PrismaClient } = {}) {
+    this._client = options.client;
+  }
+
+  /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const pkg = loadModule<{ PrismaClient: PrismaClient }>('@prisma/client');
-
-    if (!pkg) {
-      IS_DEBUG_BUILD && logger.error('Prisma integration was unable to require `@prisma/client` package.');
+    if (!this._client) {
+      IS_DEBUG_BUILD && logger.error('PrismaIntegration is missing a Prisma Client Instance');
       return;
     }
 
-    fill(pkg.PrismaClient.prototype, '_executeRequest', function (orig: () => void | Promise<unknown>) {
-      return function (this: unknown, config: unknown) {
-        const scope = getCurrentHub().getScope();
-        const parentSpan = scope?.getSpan();
-        const span = parentSpan?.startChild({
-          description: typeof config === 'string' ? config : (config as { clientMethod: string }).clientMethod,
-          op: 'db',
+    this._client.$use((params: PrismaMiddlewareParams, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
+      const scope = getCurrentHub().getScope();
+      const parentSpan = scope?.getSpan();
+
+      const action = params.action;
+      const model = params.model;
+
+      const span = parentSpan?.startChild({
+        description: `Action: ${action}, ${model ? `Model: ${model}` : ''}`,
+        op: 'prisma',
+      });
+
+      const rv = next(params);
+
+      if (isThenable(rv)) {
+        return rv.then((res: unknown) => {
+          span?.finish();
+          return res;
         });
+      }
 
-        const rv = orig.call(this, config);
-
-        if (isThenable(rv)) {
-          return rv.then((res: unknown) => {
-            span?.finish();
-            return res;
-          });
-        }
-
-        span?.finish();
-        return rv;
-      };
+      span?.finish();
+      return rv;
     });
   }
 }
