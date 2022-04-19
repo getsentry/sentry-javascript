@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { NoopTransport, Scope } from '@sentry/core';
 import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
 import { Client, Integration } from '@sentry/types';
