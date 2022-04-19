@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
 import { setupBrowserTransport } from '@sentry/browser/src/transports';
+import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
 import { Hub, makeMain } from '@sentry/hub';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
@@ -33,7 +34,7 @@ describe('Hub', () => {
 
   describe('getTransaction()', () => {
     it('should find a transaction which has been set on the scope if sampled = true', () => {
-      const options = { tracesSampleRate: 1 };
+      const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
       const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -47,7 +48,7 @@ describe('Hub', () => {
     });
 
     it('should find a transaction which has been set on the scope if sampled = false', () => {
-      const options = { tracesSampleRate: 1 };
+      const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
       const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
@@ -60,7 +61,7 @@ describe('Hub', () => {
     });
 
     it("should not find an open transaction if it's not on the scope", () => {
-      const options = { tracesSampleRate: 1 };
+      const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
       const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
       makeMain(hub);
       hub.startTransaction({ name: 'dogpark' });
@@ -73,7 +74,7 @@ describe('Hub', () => {
     describe('default sample context', () => {
       it('should add transaction context data to default sample context', () => {
         const tracesSampler = jest.fn();
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
 
@@ -90,7 +91,7 @@ describe('Hub', () => {
 
       it("should add parent's sampling decision to default sample context", () => {
         const tracesSampler = jest.fn();
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const parentSamplingDecsion = false;
@@ -109,7 +110,7 @@ describe('Hub', () => {
 
     describe('sample()', () => {
       it('should set sampled = false when tracing is disabled', () => {
-        const options = {};
+        const options = getDefaultBrowserClientOptions({});
         // neither tracesSampleRate nor tracesSampler is defined -> tracing disabled
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
@@ -119,7 +120,7 @@ describe('Hub', () => {
       });
 
       it('should set sampled = false if tracesSampleRate is 0', () => {
-        const options = { tracesSampleRate: 0 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -128,7 +129,7 @@ describe('Hub', () => {
       });
 
       it('should set sampled = true if tracesSampleRate is 1', () => {
-        const options = { tracesSampleRate: 1 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -137,7 +138,7 @@ describe('Hub', () => {
       });
 
       it('should set sampled = true if tracesSampleRate is 1 (without global hub)', () => {
-        const options = { tracesSampleRate: 1 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
@@ -146,7 +147,7 @@ describe('Hub', () => {
 
       it("should call tracesSampler if it's defined", () => {
         const tracesSampler = jest.fn();
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -156,7 +157,7 @@ describe('Hub', () => {
 
       it('should set sampled = false if tracesSampler returns 0', () => {
         const tracesSampler = jest.fn().mockReturnValue(0);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -167,7 +168,7 @@ describe('Hub', () => {
 
       it('should set sampled = true if tracesSampler returns 1', () => {
         const tracesSampler = jest.fn().mockReturnValue(1);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -178,7 +179,7 @@ describe('Hub', () => {
 
       it('should set sampled = true if tracesSampler returns 1 (without global hub)', () => {
         const tracesSampler = jest.fn().mockReturnValue(1);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         const transaction = hub.startTransaction({ name: 'dogpark' });
 
@@ -189,7 +190,7 @@ describe('Hub', () => {
       it('should not try to override explicitly set positive sampling decision', () => {
         // so that the decision otherwise would be false
         const tracesSampler = jest.fn().mockReturnValue(0);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark', sampled: true });
@@ -200,7 +201,7 @@ describe('Hub', () => {
       it('should not try to override explicitly set negative sampling decision', () => {
         // so that the decision otherwise would be true
         const tracesSampler = jest.fn().mockReturnValue(1);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
@@ -211,7 +212,7 @@ describe('Hub', () => {
       it('should prefer tracesSampler to tracesSampleRate', () => {
         // make the two options do opposite things to prove precedence
         const tracesSampler = jest.fn().mockReturnValue(true);
-        const options = { tracesSampleRate: 0, tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0, tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -222,7 +223,7 @@ describe('Hub', () => {
 
       it('should tolerate tracesSampler returning a boolean', () => {
         const tracesSampler = jest.fn().mockReturnValue(true);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -233,7 +234,7 @@ describe('Hub', () => {
 
       it('should record sampling method when sampling decision is explicitly set', () => {
         const tracesSampler = jest.fn().mockReturnValue(0.1121);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', sampled: true });
@@ -245,7 +246,7 @@ describe('Hub', () => {
 
       it('should record sampling method and rate when sampling decision comes from tracesSampler', () => {
         const tracesSampler = jest.fn().mockReturnValue(0.1121);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -256,7 +257,7 @@ describe('Hub', () => {
       });
 
       it('should record sampling method when sampling decision is inherited', () => {
-        const options = { tracesSampleRate: 0.1121 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0.1121 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', parentSampled: true });
@@ -267,7 +268,7 @@ describe('Hub', () => {
       });
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
-        const options = { tracesSampleRate: 0.1121 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0.1121 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -280,7 +281,7 @@ describe('Hub', () => {
 
     describe('isValidSampleRate()', () => {
       it("should reject tracesSampleRates which aren't numbers or booleans", () => {
-        const options = { tracesSampleRate: 'dogs!' as any };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 'dogs!' as any });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -289,7 +290,7 @@ describe('Hub', () => {
       });
 
       it('should reject tracesSampleRates which are NaN', () => {
-        const options = { tracesSampleRate: 'dogs!' as any };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 'dogs!' as any });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -299,7 +300,7 @@ describe('Hub', () => {
 
       // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampleRates less than 0', () => {
-        const options = { tracesSampleRate: -26 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: -26 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -309,7 +310,7 @@ describe('Hub', () => {
 
       // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampleRates greater than 1', () => {
-        const options = { tracesSampleRate: 26 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 26 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -319,7 +320,7 @@ describe('Hub', () => {
 
       it("should reject tracesSampler return values which aren't numbers or booleans", () => {
         const tracesSampler = jest.fn().mockReturnValue('dogs!');
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -329,7 +330,7 @@ describe('Hub', () => {
 
       it('should reject tracesSampler return values which are NaN', () => {
         const tracesSampler = jest.fn().mockReturnValue(NaN);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -340,7 +341,7 @@ describe('Hub', () => {
       // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampler return values less than 0', () => {
         const tracesSampler = jest.fn().mockReturnValue(-12);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -351,7 +352,7 @@ describe('Hub', () => {
       // the rate might be a boolean, but for our purposes, false is equivalent to 0 and true is equivalent to 1
       it('should reject tracesSampler return values greater than 1', () => {
         const tracesSampler = jest.fn().mockReturnValue(31);
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
@@ -361,7 +362,7 @@ describe('Hub', () => {
     });
 
     it('should drop transactions with sampled = false', () => {
-      const options = { tracesSampleRate: 0 };
+      const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0 });
       const client = new BrowserClient(options, setupBrowserTransport(options).transport);
       jest.spyOn(client, 'captureEvent');
 
@@ -379,7 +380,7 @@ describe('Hub', () => {
 
     describe('sampling inheritance', () => {
       it('should propagate sampling decision to child spans', () => {
-        const options = { tracesSampleRate: Math.random() };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: Math.random() });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const transaction = hub.startTransaction({ name: 'dogpark' });
@@ -392,11 +393,11 @@ describe('Hub', () => {
       testOnlyIfNodeVersionAtLeast(10)(
         'should propagate positive sampling decision to child transactions in XHR header',
         async () => {
-          const options = {
+          const options = getDefaultBrowserClientOptions({
             dsn: 'https://1231@dogs.are.great/1121',
             tracesSampleRate: 1,
             integrations: [new BrowserTracing()],
-          };
+          });
           const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
           makeMain(hub);
 
@@ -433,11 +434,11 @@ describe('Hub', () => {
       testOnlyIfNodeVersionAtLeast(10)(
         'should propagate negative sampling decision to child transactions in XHR header',
         async () => {
-          const options = {
+          const options = getDefaultBrowserClientOptions({
             dsn: 'https://1231@dogs.are.great/1121',
             tracesSampleRate: 1,
             integrations: [new BrowserTracing()],
-          };
+          });
           const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
           makeMain(hub);
 
@@ -483,7 +484,7 @@ describe('Hub', () => {
         // sample rate), so make parent's decision the opposite to prove that inheritance takes precedence over
         // tracesSampleRate
         mathRandom.mockReturnValueOnce(1);
-        const options = { tracesSampleRate: 0.5 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0.5 });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
         const parentSamplingDecsion = true;
@@ -498,7 +499,7 @@ describe('Hub', () => {
       });
 
       it("should inherit parent's negative sampling decision if tracesSampler is undefined", () => {
-        const options = { tracesSampleRate: 1 };
+        const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
         // tracesSampleRate = 1 means every transaction should end up with sampled = true, so make parent's decision the
         // opposite to prove that inheritance takes precedence over tracesSampleRate
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
@@ -520,7 +521,7 @@ describe('Hub', () => {
         const tracesSampler = () => true;
         const parentSamplingDecsion = false;
 
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
 
@@ -539,7 +540,7 @@ describe('Hub', () => {
         const tracesSampler = () => false;
         const parentSamplingDecsion = true;
 
-        const options = { tracesSampler };
+        const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
         makeMain(hub);
 

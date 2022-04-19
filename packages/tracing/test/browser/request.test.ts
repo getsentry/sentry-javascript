@@ -1,5 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { setupBrowserTransport } from '@sentry/browser/src/transports';
+import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
 import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
@@ -73,7 +74,7 @@ describe('callbacks', () => {
   };
 
   beforeAll(() => {
-    const options = { tracesSampleRate: 1 };
+    const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
     hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
     makeMain(hub);
   });
