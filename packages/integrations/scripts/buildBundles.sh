@@ -11,7 +11,7 @@ for filepath in ./src/*; do
     fi
 
     # run the build for each integration
-    INTEGRATION_FILE=$file JS_VERSION=$js_version yarn --silent rollup -c rollup.config.js
+    INTEGRATION_FILE=$file JS_VERSION=$js_version yarn --silent rollup --config rollup.bundle.config.js
 
   done
 done
