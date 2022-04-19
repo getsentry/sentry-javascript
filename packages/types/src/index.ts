@@ -65,8 +65,6 @@ export type { Thread } from './thread';
 export type {
   Outcome,
   Transport,
-  TransportOptions,
-  TransportClass,
   TransportCategory,
   TransportRequest,
   TransportMakeRequestResponse,

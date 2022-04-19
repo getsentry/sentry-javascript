@@ -29,6 +29,8 @@ export const ATTACHMENT_TRANSPORT_CATEGORY = 'attachment';
 
 export const SESSION_TRANSPORT_CATEGORY = 'session';
 
+export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
+
 /**
  * Creates a `NewTransport`
  *
