@@ -1,7 +1,7 @@
 import { Scope } from '@sentry/hub';
 import { Client, Integration } from '@sentry/types';
 
-import { installedIntegrations } from '../../src/integration';
+import { getIntegrationsToSetup, installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
 import { getDefaultTestClientOptions, setupTestTransport, TestClient } from '../mocks/client';
 
