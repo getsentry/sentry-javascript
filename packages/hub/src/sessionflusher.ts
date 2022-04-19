@@ -1,10 +1,4 @@
-import {
-  AggregationCounts,
-  RequestSessionStatus,
-  SessionAggregates,
-  SessionFlusherLike,
-  Transport,
-} from '@sentry/types';
+import { AggregationCounts, Client, RequestSessionStatus, SessionAggregates, SessionFlusherLike } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
@@ -24,10 +18,10 @@ export class SessionFlusher implements SessionFlusherLike {
   private _sessionAttrs: ReleaseHealthAttributes;
   private _intervalId: ReturnType<typeof setInterval>;
   private _isEnabled: boolean = true;
-  private _transport: Transport;
+  private _client: Client;
 
-  public constructor(transport: Transport, attrs: ReleaseHealthAttributes) {
-    this._transport = transport;
+  public constructor(client: Client, attrs: ReleaseHealthAttributes) {
+    this._client = client;
     // Call to setInterval, so that flush is called every 60 seconds
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
     this._sessionAttrs = attrs;
@@ -35,11 +29,7 @@ export class SessionFlusher implements SessionFlusherLike {
 
   /** Sends session aggregates to Transport */
   public sendSessionAggregates(sessionAggregates: SessionAggregates): void {
-    if (!this._transport.sendSession) {
-      IS_DEBUG_BUILD && logger.warn("Dropping session because custom transport doesn't implement sendSession");
-      return;
-    }
-    void this._transport.sendSession(sessionAggregates).then(null, reason => {
+    void this._client.sendSession(sessionAggregates).then(null, reason => {
       IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
     });
   }

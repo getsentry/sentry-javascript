@@ -3,7 +3,7 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { ClientOptions } from './options';
 import { Scope } from './scope';
-import { Session } from './session';
+import { Session, SessionAggregates } from './session';
 import { Severity, SeverityLevel } from './severity';
 import { NewTransport } from './transport';
 
@@ -116,5 +116,5 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   sendEvent(event: Event): void;
 
   /** Submits the session to Sentry */
-  sendSession(session: Session): void;
+  sendSession(session: Session | SessionAggregates): void;
 }
