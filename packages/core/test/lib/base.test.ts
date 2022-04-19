@@ -1,12 +1,11 @@
 import { Hub, Scope, Session } from '@sentry/hub';
-import { Event, Span, Transport } from '@sentry/types';
+import { Event, Span } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
-import { NoopTransport } from '../../src/transports/noop';
-import { getDefaultTestClientOptions, setupTestTransport, TestClient } from '../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
-import { FakeTransport } from '../mocks/transport';
+import { makeFakeTransport } from '../mocks/transport';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
@@ -68,7 +67,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       expect(dsnToString(client.getDsn()!)).toBe(PUBLIC_DSN);
     });
 
@@ -76,7 +75,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions();
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       expect(client.getDsn()).toBeUndefined();
     });
@@ -85,7 +84,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: 'abc' });
-      expect(() => new TestClient(options, setupTestTransport(options).transport)).toThrow(SentryError);
+      expect(() => new TestClient(options)).toThrow(SentryError);
     });
   });
 
@@ -94,31 +93,20 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, test: true });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       expect(client.getOptions()).toEqual(options);
     });
   });
 
   describe('getTransport()', () => {
-    test('returns the transport from client', () => {
-      expect.assertions(2);
+    test('returns undefined when no dsn is set', () => {
+      expect.assertions(1);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, transport: FakeTransport });
-      const client = new TestClient(options, new FakeTransport());
+      const options = getDefaultTestClientOptions({});
+      const client = new TestClient(options);
 
-      expect(client.getTransport()).toBeInstanceOf(FakeTransport);
-      expect(TestClient.instance!.getTransport()).toBe(client.getTransport());
-    });
-
-    test('retruns NoopTransport when no transport is passed', () => {
-      expect.assertions(2);
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
-
-      expect(client.getTransport()).toBeInstanceOf(NoopTransport);
-      expect(TestClient.instance!.getTransport()).toBe(client.getTransport());
+      expect(client.getTransport()).toBeUndefined();
     });
   });
 
@@ -127,7 +115,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -141,7 +129,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -155,7 +143,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -170,7 +158,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -185,7 +173,7 @@ describe('BaseClient', () => {
 
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -199,7 +187,7 @@ describe('BaseClient', () => {
 
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -213,7 +201,7 @@ describe('BaseClient', () => {
 
       const beforeBreadcrumb = jest.fn(() => null);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -227,7 +215,7 @@ describe('BaseClient', () => {
 
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
@@ -241,7 +229,7 @@ describe('BaseClient', () => {
   describe('captureException', () => {
     test('captures and sends exceptions', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureException(new Error('test exception'));
 
@@ -264,7 +252,7 @@ describe('BaseClient', () => {
 
     test('allows for providing explicit scope', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       scope.setExtra('foo', 'wat');
 
@@ -292,7 +280,7 @@ describe('BaseClient', () => {
 
     test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       scope.setExtra('foo', 'wat');
 
@@ -327,7 +315,7 @@ describe('BaseClient', () => {
       // is encountered, so this test doesn't apply.
     ])("doesn't capture the same exception twice - %s", (_name: string, thrown: any) => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       expect(thrown.__sentry_captured__).toBeUndefined();
 
@@ -346,7 +334,7 @@ describe('BaseClient', () => {
   describe('captureMessage', () => {
     test('captures and sends messages', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureMessage('test message');
 
@@ -363,7 +351,7 @@ describe('BaseClient', () => {
 
     test('should call eventFromException if input to captureMessage is not a primitive', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const spy = jest.spyOn(TestClient.instance!, 'eventFromException');
 
       client.captureMessage('foo');
@@ -382,7 +370,7 @@ describe('BaseClient', () => {
 
     test('allows for providing explicit scope', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       scope.setExtra('foo', 'wat');
 
@@ -416,7 +404,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ enabled: false, dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({}, undefined, scope);
@@ -428,7 +416,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({}, undefined, scope);
@@ -449,7 +437,7 @@ describe('BaseClient', () => {
       // Note: this is the same test as in `describe(captureException)`, except with the exception already wrapped in a
       // hint and accompanying an event. Duplicated here because some methods skip `captureException` and go straight to
       // `captureEvent`.
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const event = { exception: { values: [{ type: 'Error', message: 'Will I get caught twice?' }] } };
       const hint = { originalException: thrown };
 
@@ -470,7 +458,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({ message: 'message' }, undefined, scope);
@@ -490,7 +478,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({ message: 'message', timestamp: 1234 }, undefined, scope);
@@ -510,7 +498,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({ message: 'message' }, { event_id: 'wat' }, scope);
@@ -529,7 +517,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({ message: 'message' }, undefined, scope);
@@ -548,7 +536,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ environment: 'env', dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({ message: 'message' }, undefined, scope);
@@ -567,7 +555,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, environment: undefined });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({ message: 'message' }, undefined, scope);
@@ -586,7 +574,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, release: 'v1.0.0' });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
 
       client.captureEvent({ message: 'message' }, undefined, scope);
@@ -606,7 +594,7 @@ describe('BaseClient', () => {
       expect.assertions(4);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'breadcrumb' }, 100);
 
@@ -622,7 +610,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
       hub.addBreadcrumb({ message: '1' });
@@ -638,7 +626,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       scope.setExtra('b', 'b');
       scope.setTag('a', 'a');
@@ -663,7 +651,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const scope = new Scope();
       scope.setFingerprint(['abcd']);
 
@@ -682,7 +670,7 @@ describe('BaseClient', () => {
 
     test('adds installed integrations to sdk info', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       client.setupIntegrations();
 
       client.captureEvent({ message: 'message' });
@@ -696,7 +684,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const fourLevelsObject = {
         a: {
           b: {
@@ -748,7 +736,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, normalizeDepth: 2 });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const fourLevelsObject = {
         a: {
           b: {
@@ -797,7 +785,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, normalizeDepth: 0 });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const fourLevelsObject = {
         a: {
           b: {
@@ -851,7 +839,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const transaction: Event = {
         contexts: {
           trace: {
@@ -926,7 +914,7 @@ describe('BaseClient', () => {
 
       const beforeSend = jest.fn(event => event);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' });
 
@@ -938,7 +926,7 @@ describe('BaseClient', () => {
 
       const beforeSend = jest.fn(() => ({ message: 'changed1' }));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' });
 
@@ -950,7 +938,7 @@ describe('BaseClient', () => {
 
       const beforeSend = jest.fn(() => null);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
       const loggerErrorSpy = jest.spyOn(logger, 'error');
 
@@ -969,7 +957,7 @@ describe('BaseClient', () => {
         const beforeSend = jest.fn(() => val);
         // @ts-ignore we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-        const client = new TestClient(options, setupTestTransport(options).transport);
+        const client = new TestClient(options);
         const loggerErrorSpy = jest.spyOn(logger, 'error');
 
         client.captureEvent({ message: 'hello' });
@@ -994,7 +982,7 @@ describe('BaseClient', () => {
           }),
       );
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' });
       jest.runOnlyPendingTimers();
@@ -1023,7 +1011,7 @@ describe('BaseClient', () => {
           }),
       );
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' });
       jest.runOnlyPendingTimers();
@@ -1052,7 +1040,7 @@ describe('BaseClient', () => {
           }),
       );
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' });
       jest.runAllTimers();
@@ -1065,7 +1053,7 @@ describe('BaseClient', () => {
 
       const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
 
@@ -1073,38 +1061,35 @@ describe('BaseClient', () => {
       expect((TestClient.instance!.event! as any).data).toBe('someRandomThing');
     });
 
-    test('beforeSend records dropped events', () => {
-      expect.assertions(1);
+    // TODO(v7): Add back test with client reports
+    // test('beforeSend records dropped events', () => {
+    //   expect.assertions(1);
 
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: PUBLIC_DSN,
-          beforeSend() {
-            return null;
-          },
-        }),
-        setupTestTransport(getDefaultTestClientOptions({ dsn: PUBLIC_DSN })).transport,
-      );
-      const recordLostEventSpy = jest.fn();
-      jest.spyOn(client, 'getTransport').mockImplementationOnce(
-        () =>
-          ({
-            recordLostEvent: recordLostEventSpy,
-          } as any as Transport),
-      );
+    //   const client = new TestClient(
+    //     getDefaultTestClientOptions({
+    //       dsn: PUBLIC_DSN,
+    //       beforeSend() {
+    //         return null;
+    //       },
+    //     }),
+    //   );
+    //   const recordLostEventSpy = jest.fn();
+    //   jest.spyOn(client, 'getTransport').mockImplementationOnce(
+    //     () =>
+    //       ({
+    //         recordLostEvent: recordLostEventSpy,
+    //       } as any as Transport),
+    //   );
 
-      client.captureEvent({ message: 'hello' }, {});
+    //   client.captureEvent({ message: 'hello' }, {});
 
-      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'event');
-    });
+    //   expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'event');
+    // });
 
     test('eventProcessor can drop the even when it returns null', () => {
       expect.assertions(3);
 
-      const client = new TestClient(
-        getDefaultTestClientOptions({ dsn: PUBLIC_DSN }),
-        setupTestTransport(getDefaultTestClientOptions({ dsn: PUBLIC_DSN })).transport,
-      );
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
       const loggerErrorSpy = jest.spyOn(logger, 'error');
       const scope = new Scope();
@@ -1117,33 +1102,34 @@ describe('BaseClient', () => {
       expect(loggerErrorSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
     });
 
-    test('eventProcessor records dropped events', () => {
-      expect.assertions(1);
+    // TODO(v7): Add back tests with client reports
+    // test('eventProcessor records dropped events', () => {
+    //   expect.assertions(1);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+    //   const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    //   const client = new TestClient(options);
 
-      const recordLostEventSpy = jest.fn();
-      jest.spyOn(client, 'getTransport').mockImplementationOnce(
-        () =>
-          ({
-            recordLostEvent: recordLostEventSpy,
-          } as any as Transport),
-      );
+    //   const recordLostEventSpy = jest.fn();
+    //   jest.spyOn(client, 'getTransport').mockImplementationOnce(
+    //     () =>
+    //       ({
+    //         recordLostEvent: recordLostEventSpy,
+    //       } as any as Transport),
+    //   );
 
-      const scope = new Scope();
-      scope.addEventProcessor(() => null);
+    //   const scope = new Scope();
+    //   scope.addEventProcessor(() => null);
 
-      client.captureEvent({ message: 'hello' }, {}, scope);
+    //   client.captureEvent({ message: 'hello' }, {}, scope);
 
-      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'event');
-    });
+    //   expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'event');
+    // });
 
     test('eventProcessor sends an event and logs when it crashes', () => {
       expect.assertions(3);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
       const loggerErrorSpy = jest.spyOn(logger, 'error');
       const scope = new Scope();
@@ -1168,23 +1154,24 @@ describe('BaseClient', () => {
       );
     });
 
-    test('records events dropped due to sampleRate', () => {
-      expect.assertions(1);
+    // TODO(v7): Add back test with client reports
+    // test('records events dropped due to sampleRate', () => {
+    //   expect.assertions(1);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+    //   const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+    //   const client = new TestClient(options);
 
-      const recordLostEventSpy = jest.fn();
-      jest.spyOn(client, 'getTransport').mockImplementationOnce(
-        () =>
-          ({
-            recordLostEvent: recordLostEventSpy,
-          } as any as Transport),
-      );
+    //   const recordLostEventSpy = jest.fn();
+    //   jest.spyOn(client, 'getTransport').mockImplementationOnce(
+    //     () =>
+    //       ({
+    //         recordLostEvent: recordLostEventSpy,
+    //       } as any as Transport),
+    //   );
 
-      client.captureEvent({ message: 'hello' }, {});
-      expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'event');
-    });
+    //   client.captureEvent({ message: 'hello' }, {});
+    //   expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'event');
+    // });
   });
 
   describe('integrations', () => {
@@ -1196,7 +1183,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toBe(1);
@@ -1207,7 +1194,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ integrations: [new TestIntegration()] });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toBe(0);
@@ -1222,7 +1209,7 @@ describe('BaseClient', () => {
         enabled: false,
         integrations: [new TestIntegration()],
       });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toBe(0);
@@ -1233,7 +1220,7 @@ describe('BaseClient', () => {
       expect.assertions(4);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       // note: not the `Client` method `setupIntegrations`, but the free-standing function which that method calls
       const setupIntegrationsHelper = jest.spyOn(integrationModule, 'setupIntegrations');
 
@@ -1254,47 +1241,43 @@ describe('BaseClient', () => {
   describe('flush/close', () => {
     test('flush', async () => {
       jest.useRealTimers();
-      expect.assertions(5);
+      expect.assertions(4);
+
+      const { makeTransport, getSendCalled, getSentCount, delay } = makeFakeTransport(1);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: PUBLIC_DSN,
           enableSend: true,
-          transport: FakeTransport,
+          transport: makeTransport,
         }),
-        new FakeTransport(),
       );
-
-      const delay = 1;
-      const transportInstance = client.getTransport() as FakeTransport;
-      transportInstance.delay = delay;
 
       client.captureMessage('test');
 
-      expect(transportInstance).toBeInstanceOf(FakeTransport);
-      expect(transportInstance.sendCalled).toEqual(1);
-      expect(transportInstance.sentCount).toEqual(0);
+      expect(getSendCalled()).toEqual(1);
+      expect(getSentCount()).toEqual(0);
 
       await client.flush(delay);
 
-      expect(transportInstance.sentCount).toEqual(1);
-      expect(transportInstance.sendCalled).toEqual(1);
+      expect(getSentCount()).toEqual(1);
+      expect(getSendCalled()).toEqual(1);
     });
 
     test('flush with some events being processed async', async () => {
       jest.useRealTimers();
-      expect.assertions(5);
+      expect.assertions(4);
+
+      const { makeTransport, getSendCalled, getSentCount, delay } = makeFakeTransport(300);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: PUBLIC_DSN,
           enableSend: true,
-          transport: FakeTransport,
+          transport: makeTransport,
         }),
-        new FakeTransport(),
       );
 
-      const delay = 300;
       const spy = jest.spyOn(TestClient.instance!, 'eventFromMessage');
       spy.mockImplementationOnce(
         (message, level) =>
@@ -1302,20 +1285,16 @@ describe('BaseClient', () => {
             setTimeout(() => resolve({ message, level }), 150);
           }),
       );
-      const transportInstance = client.getTransport() as FakeTransport;
-      transportInstance.delay = delay;
-
       client.captureMessage('test async');
       client.captureMessage('test non-async');
 
-      expect(transportInstance).toBeInstanceOf(FakeTransport);
-      expect(transportInstance.sendCalled).toEqual(1);
-      expect(transportInstance.sentCount).toEqual(0);
+      expect(getSendCalled()).toEqual(1);
+      expect(getSentCount()).toEqual(0);
 
       await client.flush(delay);
 
-      expect(transportInstance.sentCount).toEqual(2);
-      expect(transportInstance.sendCalled).toEqual(2);
+      expect(getSentCount()).toEqual(2);
+      expect(getSendCalled()).toEqual(2);
 
       spy.mockRestore();
     });
@@ -1324,19 +1303,15 @@ describe('BaseClient', () => {
       jest.useRealTimers();
       expect.assertions(2);
 
+      const { makeTransport, delay } = makeFakeTransport(300);
+
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: PUBLIC_DSN,
           enableSend: true,
-          transport: FakeTransport,
+          transport: makeTransport,
         }),
-        new FakeTransport(),
       );
-
-      const delay = 1;
-      const transportInstance = client.getTransport() as FakeTransport;
-      transportInstance.delay = delay;
-
       expect(client.captureMessage('test')).toBeTruthy();
 
       await client.close(delay);
@@ -1350,7 +1325,7 @@ describe('BaseClient', () => {
       expect.assertions(3);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
 
       return Promise.all([
         client.flush(1).then(() => {
@@ -1371,7 +1346,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const session = new Session({ release: 'test' });
 
       client.captureSession(session);
@@ -1383,7 +1358,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ enabled: false, dsn: PUBLIC_DSN });
-      const client = new TestClient(options, setupTestTransport(options).transport);
+      const client = new TestClient(options);
       const session = new Session({ release: 'test' });
 
       client.captureSession(session);
