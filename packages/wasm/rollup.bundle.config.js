@@ -3,7 +3,7 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/ind
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.ts',
   isAddOn: true,
-  jsVersion: 'es6',
+  jsVersion: 'es5',
   licenseTitle: '@sentry/wasm',
   outputFileBase: 'bundles/wasm',
 });
