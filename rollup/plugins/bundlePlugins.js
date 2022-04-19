@@ -1,3 +1,12 @@
+/**
+ * License plugin docs: https://github.com/mjeanroy/rollup-plugin-license
+ * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
+ * Resolve plugin docs: https://github.com/rollup/plugins/tree/master/packages/node-resolve
+ * Terser plugin docs: https://github.com/TrySound/rollup-plugin-terser#options
+ * Terser docs: https://github.com/terser/terser#api-reference
+ * Typescript plugin docs: https://github.com/ezolenko/rollup-plugin-typescript2
+ */
+
 import deepMerge from 'deepmerge';
 import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';

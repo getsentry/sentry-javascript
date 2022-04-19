@@ -1,3 +1,7 @@
+/**
+ * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
+ */
+
 import assert from 'assert';
 
 import deepMerge from 'deepmerge';
