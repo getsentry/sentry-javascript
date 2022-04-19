@@ -1,4 +1,5 @@
 import { Integration } from '@sentry/types';
+
 import { init } from '../src/sdk';
 import * as sdk from '../src/sdk';
 
@@ -9,7 +10,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 
 class MockIntegration implements Integration {
   public name: string;
-  public setupOnce = jest.fn();
+  public setupOnce: jest.Mock = jest.fn();
   public constructor(name: string) {
     this.name = name;
   }
@@ -23,7 +24,7 @@ describe('init()', () => {
   });
 
   afterEach(() => {
-    // @ts-ignore
+    // @ts-ignore - Reset the default integrations of node sdk to original
     sdk.defaultIntegrations = defaultIntegrationsBackup;
   });
 
@@ -33,7 +34,7 @@ describe('init()', () => {
       new MockIntegration('Mock integration 1.2'),
     ];
 
-    //@ts-ignore
+    // @ts-ignore - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
     sdk.defaultIntegrations = mockDefaultIntegrations;
 
     init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
@@ -48,7 +49,7 @@ describe('init()', () => {
       new MockIntegration('Some mock integration 2.2'),
     ];
 
-    //@ts-ignore
+    // @ts-ignore - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
     sdk.defaultIntegrations = mockDefaultIntegrations;
 
     const mockIntegrations = [
@@ -70,7 +71,7 @@ describe('init()', () => {
       new MockIntegration('Some mock integration 3.2'),
     ];
 
-    //@ts-ignore
+    // @ts-ignore - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
     sdk.defaultIntegrations = mockDefaultIntegrations;
 
     const newIntegration = new MockIntegration('Some mock integration 3.3');
