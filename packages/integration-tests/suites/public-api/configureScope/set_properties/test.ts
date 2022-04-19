@@ -1,12 +1,13 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getSentryRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should set different properties of a scope', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getSentryRequest(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.message).toBe('configured_scope');
   expect(eventData.user).toMatchObject({ id: 'baz' });

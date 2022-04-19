@@ -1,10 +1,8 @@
 import { Page, Request } from '@playwright/test';
 import { Event } from '@sentry/types';
 
-const storeUrlRegex = /\.sentry\.io\/api\/\d+\/store\//;
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
-const storeRequestParser = (request: Request | null): Event => JSON.parse((request && request.postData()) || '');
 const envelopeRequestParser = (request: Request | null): Event => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
@@ -22,17 +20,6 @@ const envelopeRequestParser = (request: Request | null): Event => {
  */
 async function runScriptInSandbox(page: Page, path: string): Promise<void> {
   await page.addScriptTag({ path });
-}
-
-/**
- * Wait and get Sentry's request sending the event at the given URL, or the current page
- *
- * @param {Page} page
- * @param {string} [url]
- * @return {*}  {Promise<Event>}
- */
-async function getSentryRequest(page: Page, url?: string): Promise<Event> {
-  return (await getMultipleSentryRequests(page, 1, url))[0];
 }
 
 /**
@@ -115,18 +102,6 @@ async function getMultipleRequests(
 }
 
 /**
- * Wait and get multiple event requests at the given URL, or the current page
- *
- * @param {Page} page
- * @param {number} count
- * @param {string} [url]
- * @return {*}  {Promise<Event>}
- */
-async function getMultipleSentryRequests(page: Page, count: number, url?: string): Promise<Event[]> {
-  return getMultipleRequests(page, count, storeUrlRegex, storeRequestParser, url);
-}
-
-/**
  * Wait and get multiple envelope requests at the given URL, or the current page
  *
  * @template T
@@ -172,10 +147,8 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
 
 export {
   runScriptInSandbox,
-  getMultipleSentryRequests,
   getMultipleSentryEnvelopeRequests,
   getFirstSentryEnvelopeRequest,
-  getSentryRequest,
   getSentryEvents,
   injectScriptAndGetEvents,
 };
