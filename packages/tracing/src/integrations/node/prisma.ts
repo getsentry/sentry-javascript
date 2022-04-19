@@ -79,8 +79,8 @@ export class Prisma implements Integration {
       const model = params.model;
 
       const span = parentSpan?.startChild({
-        description: `Action: ${action}, ${model ? `Model: ${model}` : ''}`,
-        op: 'prisma',
+        description: model ? `${model} ${action}` : action,
+        op: 'db.prisma',
       });
 
       const rv = next(params);
