@@ -88,8 +88,6 @@ export function makeBaseBundleConfig(options) {
  * @returns An array of versions of that config
  */
 export function makeBundleConfigVariants(baseConfig) {
-  const configVariants = [];
-
   const { plugins: baseConfigPlugins } = baseConfig;
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
@@ -131,14 +129,11 @@ export function makeBundleConfigVariants(baseConfig) {
     },
   ];
 
-  variantSpecificConfigs.forEach(variant => {
-    const mergedConfig = deepMerge(baseConfig, variant, {
+  return variantSpecificConfigs.map(variant =>
+    deepMerge(baseConfig, variant, {
       // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
       // just overwritten by the second value
       arrayMerge: (first, second) => second,
-    });
-    configVariants.push(mergedConfig);
-  });
-
-  return configVariants;
+    }),
+  );
 }
