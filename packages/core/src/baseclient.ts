@@ -4,6 +4,7 @@ import {
   Client,
   ClientOptions,
   DsnComponents,
+  Envelope,
   Event,
   EventHint,
   Integration,
@@ -30,7 +31,7 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails } from './api';
+import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
@@ -75,17 +76,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
   protected readonly _dsn?: DsnComponents;
 
+  protected readonly _transport?: NewTransport | undefined;
+
   /** Array of used integrations. */
   protected _integrations: IntegrationIndex = {};
 
   /** Number of calls being processed */
   protected _numProcessing: number = 0;
-
-  /** Cached transport used internally. */
-  protected _transport: NewTransport;
-
-  /** New v7 Transport that is initialized alongside the old one */
-  protected _newTransport?: NewTransport;
 
   /**
    * Initializes this client instance.
@@ -96,18 +93,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   protected constructor(options: O) {
     this._options = options;
-
-    let url;
     if (options.dsn) {
-      this._dsn = makeDsn(options.dsn);
-      // TODO(v7): Figure out what to do with transport when dsn is not defined
-      const api = initAPIDetails(this._dsn, options._metadata, options.tunnel);
-      url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
+      const dsn = makeDsn(options.dsn);
+      const url = getEnvelopeEndpointWithUrlEncodedAuth(dsn, options.tunnel);
+      this._transport = options.transport({ ...options.transportOptions, url });
     } else {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
-
-    this._transport = options.transport({ ...options.transportOptions, url });
   }
 
   /**
@@ -217,7 +209,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public getTransport(): Transport {
+  public getTransport(): NewTransport | undefined {
     return this._transport;
   }
 
@@ -225,11 +217,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public flush(timeout?: number): PromiseLike<boolean> {
-    return this._isClientDoneProcessing(timeout).then(clientFinished => {
-      return this.getTransport()
-        .close(timeout)
-        .then(transportFlushed => clientFinished && transportFlushed);
-    });
+    const transport = this._transport;
+    if (transport) {
+      return this._isClientDoneProcessing(timeout).then(clientFinished => {
+        return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
+      });
+    } else {
+      return resolvedSyncPromise(true);
+    }
   }
 
   /**
@@ -267,22 +262,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendEvent(event: Event): void {
-    // TODO(v7): Remove the if-else
-    if (
-      this._newTransport &&
-      this._options.dsn &&
-      this._options._experiments &&
-      this._options._experiments.newTransport
-    ) {
-      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
-      const env = createEventEnvelope(event, api);
-      void this._newTransport.send(env).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      void this._transport.sendEvent(event).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
+    if (this._dsn) {
+      const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+      this.sendEnvelope(env);
     }
   }
 
@@ -290,27 +272,22 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session): void {
-    if (!this._transport.sendSession) {
-      IS_DEBUG_BUILD && logger.warn("Dropping session because custom transport doesn't implement sendSession");
-      return;
+    if (this._dsn) {
+      const [env] = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+      this.sendEnvelope(env);
     }
+  }
 
-    // TODO(v7): Remove the if-else
-    if (
-      this._newTransport &&
-      this._options.dsn &&
-      this._options._experiments &&
-      this._options._experiments.newTransport
-    ) {
-      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
-      const [env] = createSessionEnvelope(session, api);
-      void this._newTransport.send(env).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
+  /**
+   * @inheritdoc
+   */
+  public sendEnvelope(env: Envelope): void {
+    if (this._transport && this._dsn) {
+      this._transport.send(env).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
       });
     } else {
-      void this._transport.sendSession(session).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
-      });
+      IS_DEBUG_BUILD && logger.error('Transport disabled');
     }
   }
 
@@ -590,15 +567,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
-    const transport = this.getTransport();
 
     type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
     type RecordLostEventParams = Parameters<RecordLostEvent>;
 
-    function recordLostEvent(outcome: RecordLostEventParams[0], category: RecordLostEventParams[1]): void {
-      if (transport.recordLostEvent) {
-        transport.recordLostEvent(outcome, category);
-      }
+    function recordLostEvent(_outcome: RecordLostEventParams[0], _category: RecordLostEventParams[1]): void {
+      // no-op as new transports don't have client outcomes
+      // if (transport.recordLostEvent) {
+      //   transport.recordLostEvent(outcome, category);
+      // }
     }
 
     if (!this._isEnabled()) {

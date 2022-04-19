@@ -35,12 +35,6 @@ export interface NodeTransportOptions extends BaseTransportOptions {
  * Creates a Transport that uses native the native 'http' and 'https' modules to send events to Sentry.
  */
 export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
-  if (!options.url) {
-    return {
-      send: () => new Promise(() => undefined),
-      flush: () => new Promise(() => true),
-    };
-  }
   const urlSegments = new URL(options.url);
   const isHttps = urlSegments.protocol === 'https:';
 
@@ -60,8 +54,7 @@ export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
     : new nativeHttpModule.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(
-    // have to explicitly cast because we check url above
-    options as NodeTransportOptions & { url: string },
+    options as NodeTransportOptions,
     options.httpModule ?? nativeHttpModule,
     agent,
   );
@@ -97,7 +90,7 @@ function applyNoProxyOption(transportUrlSegments: URL, proxy: string | undefined
  * Creates a RequestExecutor to be used with `createTransport`.
  */
 function createRequestExecutor(
-  options: NodeTransportOptions & { url: string },
+  options: NodeTransportOptions,
   httpModule: HTTPModule,
   agent: http.Agent,
 ): TransportRequestExecutor {

@@ -1,6 +1,6 @@
 import { createTransport } from '@sentry/core';
 import { BaseTransportOptions, NewTransport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { resolvedSyncPromise, SyncPromise } from '@sentry/utils';
+import { SyncPromise } from '@sentry/utils';
 
 /**
  * The DONE ready state for XmlHttpRequest
@@ -21,10 +21,6 @@ export interface XHRTransportOptions extends BaseTransportOptions {
  */
 export function makeNewXHRTransport(options: XHRTransportOptions): NewTransport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
-    if (!options.url) {
-      return resolvedSyncPromise({ statusCode: 400 });
-    }
-
     return new SyncPromise<TransportMakeRequestResponse>((resolve, _reject) => {
       const xhr = new XMLHttpRequest();
 
