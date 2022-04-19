@@ -1,5 +1,4 @@
 import { Integration } from '@sentry/types';
-
 import { init } from '../src/sdk';
 import * as sdk from '../src/sdk';
 
