@@ -45,7 +45,8 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
   // url to send the event
   // transport does not care about dsn specific - client should take care of
   // parsing and figuring that out
-  url: string;
+  // If no DSN is configured, pass in an undefined url.
+  url?: string;
 }
 
 export interface NewTransport {

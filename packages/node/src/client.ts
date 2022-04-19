@@ -1,6 +1,6 @@
-import { BaseClient, NewTransport, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise, stackParserFromOptions } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
@@ -20,7 +20,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    * Creates a new Node SDK instance.
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: NodeClientOptions, transport: Transport, newTransport?: NewTransport) {
+  public constructor(options: NodeClientOptions) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.node',
@@ -33,7 +33,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
       version: SDK_VERSION,
     };
 
-    super(options, transport, newTransport);
+    super(options);
   }
 
   /**

@@ -14,8 +14,7 @@ import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 import { defaultStackParsers } from './stack-parsers';
-import { FetchTransport, XHRTransport } from './transports';
-import { setupBrowserTransport } from './transports/setup';
+import { makeNewFetchTransport, makeNewXHRTransport } from './transports';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -105,17 +104,15 @@ export function init(options: BrowserOptions = {}): void {
   if (options.stackParser === undefined) {
     options.stackParser = defaultStackParsers;
   }
-  const { transport, newTransport } = setupBrowserTransport(options);
 
   const clientOptions: BrowserClientOptions = {
     ...options,
     stackParser: stackParserFromOptions(options),
     integrations: getIntegrationsToSetup(options),
-    // TODO(v7): get rid of transport being passed down below
-    transport: options.transport || (supportsFetch() ? FetchTransport : XHRTransport),
+    transport: options.transport || (supportsFetch() ? makeNewFetchTransport : makeNewXHRTransport),
   };
 
-  initAndBind(BrowserClient, clientOptions, transport, newTransport);
+  initAndBind(BrowserClient, clientOptions);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

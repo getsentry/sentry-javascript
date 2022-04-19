@@ -8,7 +8,7 @@ import { NodeClient } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { nodeStackParser } from './stack-parser';
-import { HTTPSTransport, HTTPTransport, setupNodeTransport } from './transports';
+import { makeNodeTransport } from './transports';
 import { NodeClientOptions, NodeOptions } from './types';
 
 export const defaultIntegrations = [
@@ -131,18 +131,15 @@ export function init(options: NodeOptions = {}): void {
     setHubOnCarrier(carrier, getCurrentHub());
   }
 
-  const { transport, newTransport } = setupNodeTransport(options);
-
   // TODO(v7): Refactor this to reduce the logic above
   const clientOptions: NodeClientOptions = {
     ...options,
     stackParser: stackParserFromOptions(options),
     integrations: getIntegrationsToSetup(options),
-    // TODO(v7): Fix me when we switch to new transports entirely.
-    transport: options.transport || (transport instanceof HTTPTransport ? HTTPTransport : HTTPSTransport),
+    transport: options.transport || makeNodeTransport,
   };
 
-  initAndBind(NodeClient, clientOptions, transport, newTransport);
+  initAndBind(NodeClient, clientOptions);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

@@ -7,7 +7,7 @@ import { StackLineParser, StackParser } from './stacktrace';
 import { SamplingContext } from './transaction';
 import { BaseTransportOptions, NewTransport } from './transport';
 
-export interface ClientOptions<TO extends BaseTransportOptions> {
+export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
    * Enable debug functionality in the SDK itself
    */
@@ -72,7 +72,7 @@ export interface ClientOptions<TO extends BaseTransportOptions> {
   /**
    * Options for the default transport that the SDK uses.
    */
-  transportOptions?: TO;
+  transportOptions?: Partial<TO>;
 
   /**
    * Sample rate to determine trace sampling.

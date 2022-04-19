@@ -1,10 +1,6 @@
-import {
-  BaseTransportOptions,
-  createTransport,
-  NewTransport,
-  TransportMakeRequestResponse,
-  TransportRequest,
-} from '@sentry/core';
+import { createTransport } from '@sentry/core';
+import { BaseTransportOptions, NewTransport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import { resolvedSyncPromise } from '@sentry/utils';
 
 import { FetchImpl, getNativeFetchImplementation } from './utils';
 
@@ -20,6 +16,10 @@ export function makeNewFetchTransport(
   nativeFetch: FetchImpl = getNativeFetchImplementation(),
 ): NewTransport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+    if (!options.url) {
+      return resolvedSyncPromise({ statusCode: 400 });
+    }
+
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',

@@ -115,12 +115,6 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
   [#4919](https://github.com/getsentry/sentry-javascript/pull/4919)). `Backend` was an unnecessary abstraction which is
   not present in other Sentry SDKs. For the sake of reducing complexity, increasing consistency with other Sentry SDKs and
   decreasing bundle-size, `Backend` was removed.
-  <!-- TODO(v7): Add more info and PR link for passing transports in options once this is done -->
-  <!-- TODO(v7): This needs refinement once NewTransport is the default (maybe this should get its own section with an expamp) -->
-- Inject transport into client instead of initializing it in the client in `setupTransport` (see
-  [#4921](https://github.com/getsentry/sentry-javascript/pull/4921/)). If you are creating your own `Client` or
-  calling `initAndBind`, you will have to supply your desired transport. Either provide a custom one or call
-  `setupBrowserTransport` or `setupNodeTransport` for default transports, depending on your requirements.
 - Remove support for Opera browser pre v15
 
 # Upgrading from 6.17.x to 6.18.0

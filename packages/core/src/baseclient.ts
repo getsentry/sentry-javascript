@@ -11,6 +11,7 @@ import {
   Severity,
   SeverityLevel,
   Transport,
+  NewTransport,
 } from '@sentry/types';
 import {
   checkOrSetAlreadyCaught,
@@ -29,7 +30,7 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { APIDetails, initAPIDetails } from './api';
+import { APIDetails, initAPIDetails, getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
@@ -82,7 +83,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _numProcessing: number = 0;
 
   /** Cached transport used internally. */
-  protected _transport: Transport;
+  protected _transport: NewTransport;
 
   /** New v7 Transport that is initialized alongside the old one */
   protected _newTransport?: NewTransport;
@@ -94,25 +95,20 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param transport The (old) Transport instance for the client to use (TODO(v7): remove)
    * @param newTransport The NewTransport instance for the client to use
    */
-  protected constructor(options: O, transport: Transport, newTransport?: NewTransport) {
+  protected constructor(options: O) {
     this._options = options;
 
+    let url;
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
+      // TODO(v7): Figure out what to do with transport when dsn is not defined
+      const api = initAPIDetails(this._dsn, options._metadata, options.tunnel);
+      url = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
     } else {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
 
-    // TODO(v7): remove old transport
-    this._transport = transport;
-    this._newTransport = newTransport;
-
-    // TODO(v7): refactor this to keep metadata/api outside of transport. This hack is used to
-    //           satisfy tests until we move to NewTransport where we have to revisit this.
-    (this._transport as unknown as { _api: Partial<APIDetails> })._api = {
-      ...((this._transport as unknown as { _api: Partial<APIDetails> })._api || {}),
-      metadata: options._metadata || {},
-    };
+    this._transport = options.transport({ ...options.transportOptions, url: url || '' });
   }
 
   /**

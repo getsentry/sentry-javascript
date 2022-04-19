@@ -1,11 +1,11 @@
+import { createTransport } from '@sentry/core';
 import {
   BaseTransportOptions,
-  createTransport,
   NewTransport,
   TransportMakeRequestResponse,
   TransportRequest,
   TransportRequestExecutor,
-} from '@sentry/core';
+} from '@sentry/types';
 import { eventStatusFromHttpCode } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -35,6 +35,12 @@ export interface NodeTransportOptions extends BaseTransportOptions {
  * Creates a Transport that uses native the native 'http' and 'https' modules to send events to Sentry.
  */
 export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
+  if (!options.url) {
+    return {
+      send: () => new Promise(() => undefined),
+      flush: () => new Promise(() => true),
+    };
+  }
   const urlSegments = new URL(options.url);
   const isHttps = urlSegments.protocol === 'https:';
 
@@ -53,7 +59,12 @@ export function makeNodeTransport(options: NodeTransportOptions): NewTransport {
     ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
     : new nativeHttpModule.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
 
-  const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
+  const requestExecutor = createRequestExecutor(
+    // have to explicitly cast because we check url above
+    options as NodeTransportOptions & { url: string },
+    options.httpModule ?? nativeHttpModule,
+    agent,
+  );
   return createTransport({ bufferSize: options.bufferSize }, requestExecutor);
 }
 
@@ -86,12 +97,11 @@ function applyNoProxyOption(transportUrlSegments: URL, proxy: string | undefined
  * Creates a RequestExecutor to be used with `createTransport`.
  */
 function createRequestExecutor(
-  options: NodeTransportOptions,
+  options: NodeTransportOptions & { url: string },
   httpModule: HTTPModule,
   agent: http.Agent,
 ): TransportRequestExecutor {
   const { hostname, pathname, port, protocol, search } = new URL(options.url);
-
   return function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     return new Promise((resolve, reject) => {
       const req = httpModule.request(
