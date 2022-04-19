@@ -56,7 +56,7 @@ jest.mock('@sentry/utils', () => {
 function getDefaultTestOptions(options: Partial<TestOptions> = {}): TestOptions {
   return {
     integrations: [],
-    transport: new NoopTransport(),
+    transport: NoopTransport,
     stackParser: () => [],
     ...options,
   };
