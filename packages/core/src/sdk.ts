@@ -1,12 +1,12 @@
 import { getCurrentHub } from '@sentry/hub';
-import { Client, Options, Transport } from '@sentry/types';
+import { Client, ClientOptions, Transport } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
 import { NewTransport } from './transports/base';
 
 /** A class object that can instantiate Client objects. */
-export type ClientClass<F extends Client, O extends Options> = new (
+export type ClientClass<F extends Client, O extends ClientOptions> = new (
   options: O,
   transport: Transport,
   newTransport?: NewTransport,
@@ -19,7 +19,7 @@ export type ClientClass<F extends Client, O extends Options> = new (
  * @param clientClass The client class to instantiate.
  * @param options Options to pass to the client.
  */
-export function initAndBind<F extends Client, O extends Options>(
+export function initAndBind<F extends Client, O extends ClientOptions>(
   clientClass: ClientClass<F, O>,
   options: O,
   transport: Transport,

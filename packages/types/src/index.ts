@@ -27,7 +27,7 @@ export type { Hub } from './hub';
 export type { Integration, IntegrationClass } from './integration';
 export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
-export type { Options } from './options';
+export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { QueryParams, Request, SentryRequest, SentryRequestType } from './request';
 export type { Response } from './response';

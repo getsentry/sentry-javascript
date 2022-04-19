@@ -31,7 +31,10 @@ export interface BrowserTransportOptions extends BaseTransportOptions {
  * this function will return a ready to use `NewTransport`.
  */
 // TODO(v7): Adjust return value when NewTransport is the default
-export function setupBrowserTransport(options: BrowserOptions): { transport: Transport; newTransport?: NewTransport } {
+export function setupBrowserTransport(options: BrowserOptions): {
+  transport: Transport;
+  newTransport?: NewTransport;
+} {
   if (!options.dsn) {
     // We return the noop transport here in case there is no Dsn.
     return { transport: new NoopTransport() };

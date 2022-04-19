@@ -19,6 +19,7 @@ import {
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { nodeStackParser } from '../src/stack-parser';
 import { setupNodeTransport } from '../src/transports';
+import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 const stackParser = createStackParser(nodeStackParser);
 
@@ -90,7 +91,7 @@ describe('SentryNode', () => {
     });
 
     test('record auto breadcrumbs', done => {
-      const options = {
+      const options = getDefaultNodeClientOptions({
         beforeSend: (event: Event) => {
           // TODO: It should be 3, but we don't capture a breadcrumb
           // for our own captureMessage/captureException calls yet
@@ -100,7 +101,7 @@ describe('SentryNode', () => {
         },
         dsn,
         stackParser,
-      };
+      });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
       getCurrentHub().bindClient(client);
       addBreadcrumb({ message: 'test1' });
@@ -122,7 +123,7 @@ describe('SentryNode', () => {
 
     test('capture an exception', done => {
       expect.assertions(6);
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         beforeSend: (event: Event) => {
           expect(event.tags).toEqual({ test: '1' });
@@ -135,7 +136,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
@@ -149,7 +150,7 @@ describe('SentryNode', () => {
 
     test('capture a string exception', done => {
       expect.assertions(6);
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         beforeSend: (event: Event) => {
           expect(event.tags).toEqual({ test: '1' });
@@ -162,7 +163,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
@@ -176,7 +177,7 @@ describe('SentryNode', () => {
 
     test('capture an exception with pre/post context', done => {
       expect.assertions(10);
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         beforeSend: (event: Event) => {
           expect(event.tags).toEqual({ test: '1' });
@@ -193,7 +194,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
@@ -207,7 +208,7 @@ describe('SentryNode', () => {
 
     test('capture a linked exception with pre/post context', done => {
       expect.assertions(15);
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         integrations: [new ContextLines(), new LinkedErrors()],
         beforeSend: (event: Event) => {
@@ -231,7 +232,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       try {
         throw new Error('test');
@@ -247,7 +248,7 @@ describe('SentryNode', () => {
 
     test('capture a message', done => {
       expect.assertions(2);
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test');
@@ -256,14 +257,14 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       captureMessage('test');
     });
 
     test('capture an event', done => {
       expect.assertions(2);
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test event');
@@ -272,7 +273,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       captureEvent({ message: 'test event' });
     });
@@ -280,7 +281,7 @@ describe('SentryNode', () => {
     test('capture an event in a domain', done => {
       const d = domain.create();
 
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test domain');
@@ -289,7 +290,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
 
       d.run(() => {
@@ -301,7 +302,7 @@ describe('SentryNode', () => {
 
     test('stacktrace order', done => {
       expect.assertions(1);
-      const options = {
+      const options = getDefaultNodeClientOptions({
         stackParser,
         beforeSend: (event: Event) => {
           expect(
@@ -312,7 +313,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-      };
+      });
       getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
       try {
         // @ts-ignore allow function declarations in strict mode
@@ -376,7 +377,7 @@ describe('SentryNode initialization', () => {
     });
 
     it('should set SDK data when instantiating a client directly', () => {
-      const options = { dsn };
+      const options = getDefaultNodeClientOptions({ dsn });
       const client = new NodeClient(options, setupNodeTransport(options).transport);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

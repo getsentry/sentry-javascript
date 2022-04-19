@@ -20,7 +20,9 @@ export { TRACEPARENT_REGEXP, extractTraceparentData } from '@sentry/utils';
  *
  * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
  */
-export function hasTracingEnabled(maybeOptions?: Options | undefined): boolean {
+export function hasTracingEnabled(
+  maybeOptions?: Pick<Options, 'tracesSampleRate' | 'tracesSampler'> | undefined,
+): boolean {
   const client = getCurrentHub().getClient();
   const options = maybeOptions || (client && client.getOptions());
   return !!options && ('tracesSampleRate' in options || 'tracesSampler' in options);
