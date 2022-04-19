@@ -11,7 +11,7 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
-    "test": "jest --detectOpenHandles --runInBand --forceExit",
+    "test": "jest --runInBand --forceExit",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
