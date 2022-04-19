@@ -8,9 +8,9 @@ conditionalTest({ min: 12 })('Prisma ORM Integration', () => {
     assertSentryTransaction(envelope[2], {
       transaction: 'Test Transaction',
       spans: [
-        { description: 'Action: create, Model: User', op: 'prisma' },
-        { description: 'Action: findMany, Model: User', op: 'prisma' },
-        { description: 'Action: deleteMany, Model: User', op: 'prisma' },
+        { description: 'User create', op: 'db.prisma' },
+        { description: 'User findMany', op: 'db.prisma' },
+        { description: 'User deleteMany', op: 'db.prisma' },
       ],
     });
   });
