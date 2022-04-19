@@ -7,7 +7,7 @@ import { initAndBind } from '../../src/sdk';
 import { NewTransport } from '../../src/transports/base';
 import { NoopTransport } from '../../src/transports/noop';
 
-export function getDefaultTestOptions(options: Partial<TestOptions> = {}): TestOptions {
+export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
     integrations: [],
     transport: NoopTransport,
@@ -16,21 +16,21 @@ export function getDefaultTestOptions(options: Partial<TestOptions> = {}): TestO
   };
 }
 
-export interface TestOptions extends ClientOptions {
+export interface TestClientOptions extends ClientOptions {
   test?: boolean;
   mockInstallFailure?: boolean;
   enableSend?: boolean;
   defaultIntegrations?: Integration[] | false;
 }
 
-export class TestClient extends BaseClient<TestOptions> {
+export class TestClient extends BaseClient<TestClientOptions> {
   public static instance?: TestClient;
   public static sendEventCalled?: (event: Event) => void;
 
   public event?: Event;
   public session?: Session;
 
-  public constructor(options: TestOptions, transport: Transport, newTransport?: NewTransport) {
+  public constructor(options: TestClientOptions, transport: Transport, newTransport?: NewTransport) {
     super(options, transport, newTransport);
     TestClient.instance = this;
   }
@@ -74,11 +74,11 @@ export class TestClient extends BaseClient<TestOptions> {
   }
 }
 
-export function init(options: TestOptions, transport: Transport, newTransport?: NewTransport): void {
+export function init(options: TestClientOptions, transport: Transport, newTransport?: NewTransport): void {
   initAndBind(TestClient, options, transport, newTransport);
 }
 
-export function setupTestTransport(options: TestOptions): { transport: Transport; newTransport?: NewTransport } {
+export function setupTestTransport(options: TestClientOptions): { transport: Transport; newTransport?: NewTransport } {
   const noop = { transport: new NoopTransport() };
 
   if (!options.dsn) {
