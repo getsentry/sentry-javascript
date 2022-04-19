@@ -1,7 +1,6 @@
 import { AggregationCounts, Client, RequestSessionStatus, SessionAggregates, SessionFlusherLike } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from './flags';
 import { getCurrentHub } from './hub';
 
 type ReleaseHealthAttributes = {
@@ -27,7 +26,7 @@ export class SessionFlusher implements SessionFlusherLike {
     this._sessionAttrs = attrs;
   }
 
-  /** Checks if `pendingAggregates` has entries, and if it does flushes them by calling `sendSessions` */
+  /** Checks if `pendingAggregates` has entries, and if it does flushes them by calling `sendSession` */
   public flush(): void {
     const sessionAggregates = this.getSessionAggregates();
     if (sessionAggregates.aggregates.length === 0) {
