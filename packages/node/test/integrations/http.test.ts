@@ -1,6 +1,6 @@
 import * as sentryCore from '@sentry/core';
-import { Hub } from '@sentry/hub';
 import * as hubModule from '@sentry/hub';
+import { Hub } from '@sentry/hub';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
@@ -12,18 +12,9 @@ import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
 import { setupNodeTransport } from '../../src/transports';
-import { NodeClientOptions } from '../../src/types';
+import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const NODE_VERSION = parseSemver(process.versions.node);
-
-function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
-  return {
-    integrations: [],
-    transport: sentryCore.NoopTransport,
-    stackParser: () => [],
-    ...options,
-  };
-}
 
 describe('tracing', () => {
   function createTransactionOnScope() {

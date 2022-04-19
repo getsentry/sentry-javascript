@@ -1,25 +1,15 @@
 import { ExtendedError } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
-import { NoopTransport } from '@sentry/core';
 
 import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 import { nodeStackParser } from '../../src/stack-parser';
 import { setupNodeTransport } from '../../src/transports';
-import { NodeClientOptions } from '../../src/types';
+import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const stackParser = createStackParser(nodeStackParser);
 
 let linkedErrors: any;
-
-function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
-  return {
-    integrations: [],
-    transport: NoopTransport,
-    stackParser: () => [],
-    ...options,
-  };
-}
 
 describe('LinkedErrors', () => {
   beforeEach(() => {

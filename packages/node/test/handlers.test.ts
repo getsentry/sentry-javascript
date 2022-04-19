@@ -1,6 +1,6 @@
 import * as sentryCore from '@sentry/core';
-import { Hub } from '@sentry/hub';
 import * as sentryHub from '@sentry/hub';
+import { Hub } from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
 import { Runtime } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
@@ -19,16 +19,7 @@ import {
 } from '../src/handlers';
 import * as SDK from '../src/sdk';
 import { setupNodeTransport } from '../src/transports';
-import { NodeClientOptions } from '../src/types';
-
-function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
-  return {
-    integrations: [],
-    transport: sentryCore.NoopTransport,
-    stackParser: () => [],
-    ...options,
-  };
-}
+import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 describe('parseRequest', () => {
   let mockReq: { [key: string]: any };

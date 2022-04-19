@@ -1,4 +1,4 @@
-import { initAndBind, SDK_VERSION, NoopTransport } from '@sentry/core';
+import { initAndBind, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
@@ -19,7 +19,7 @@ import {
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { nodeStackParser } from '../src/stack-parser';
 import { setupNodeTransport } from '../src/transports';
-import { NodeClientOptions } from '../src/types';
+import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 const stackParser = createStackParser(nodeStackParser);
 
@@ -30,15 +30,6 @@ jest.mock('@sentry/core', () => {
     initAndBind: jest.fn().mockImplementation(original.initAndBind),
   };
 });
-
-function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
-  return {
-    integrations: [],
-    transport: NoopTransport,
-    stackParser: () => [],
-    ...options,
-  };
-}
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 

@@ -1,20 +1,10 @@
 import { Scope, SessionFlusher } from '@sentry/hub';
-import { NoopTransport } from '@sentry/core';
 
 import { NodeClient } from '../src';
 import { setupNodeTransport } from '../src/transports';
-import { NodeClientOptions } from '../src/types';
+import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 const PUBLIC_DSN = 'https://username@domain/123';
-
-function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
-  return {
-    integrations: [],
-    transport: NoopTransport,
-    stackParser: () => [],
-    ...options,
-  };
-}
 
 describe('NodeClient', () => {
   let client: NodeClient;
