@@ -101,21 +101,23 @@ export class SentryReplay {
     }/api/${projectId}/events/${eventId}/attachments/?sentry_key=${user}&sentry_version=7&sentry_client=replay`;
   }
 
-  /**
-   * Get integration's instance on the current hub
-   */
-  private get instance() {
-    return Sentry.getCurrentHub().getIntegration(SentryReplay);
-  }
-
   public constructor({
     uploadMinDelay = 5000,
     uploadMaxDelay = 15000,
     stickySession = false, // TBD: Making this opt-in for now
-    rrwebConfig: { maskAllInputs = true, ...rrwebRecordOptions } = {},
+    rrwebConfig: {
+      maskAllInputs = true,
+      blockClass = 'sr-block',
+      ignoreClass = 'sr-ignore',
+      maskTextClass = 'sr-mask',
+      ...rrwebRecordOptions
+    } = {},
   }: SentryReplayConfiguration = {}) {
     this.rrwebRecordOptions = {
       maskAllInputs,
+      blockClass,
+      ignoreClass,
+      maskTextClass,
       ...rrwebRecordOptions,
     };
 
@@ -354,8 +356,6 @@ export class SentryReplay {
   }
 
   finishReplayEvent() {
-    // if (!this.instance) return;
-
     // Ensure that our existing session has not expired
     const isExpired = isSessionExpired(this.session, SESSION_IDLE_DURATION);
 
@@ -414,40 +414,42 @@ export class SentryReplay {
       return;
     }
 
-    try {
-      logger.log(`uploading attachment via fetch()`);
-      // Otherwise use `fetch`, which *WILL* get cancelled on page reloads/unloads
-      await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-    } catch (ex) {
-      // we have to catch this otherwise it throws an infinite loop in Sentry
-      console.error(ex);
-    }
+    // Otherwise use `fetch`, which *WILL* get cancelled on page reloads/unloads
+    logger.log(`uploading attachment via fetch()`);
+    await fetch(endpoint, {
+      method: 'POST',
+      body: formData,
+    });
   }
 
   /**
    * Finalize and send the current replay event to Sentry
    */
   async sendReplay(eventId: string) {
-    // if (!this.instance) return;
+    // short circuit if theres no events to replay
+    if (!this.events.length) return;
+
+    // Make a copy of the events array reference and immediately clear the
+    // events member so that we do not lose new events while uploading
+    // attachment.
+    const events = this.events;
+    this.events = [];
+
+    const client = Sentry.getCurrentHub().getClient();
+    const endpoint = SentryReplay.attachmentUrlFromDsn(
+      client.getDsn(),
+      eventId
+    );
 
     try {
-      // short circuit if theres no events to replay
-      if (!this.events.length) return;
-
-      const client = Sentry.getCurrentHub().getClient();
-      const endpoint = SentryReplay.attachmentUrlFromDsn(
-        client.getDsn(),
-        eventId
-      );
-
-      await this.sendReplayRequest(endpoint, this.events);
-      this.events = [];
+      await this.sendReplayRequest(endpoint, events);
       return true;
     } catch (ex) {
+      // we have to catch this otherwise it throws an infinite loop in Sentry
       console.error(ex);
+
+      // If an error happened here, it's likely that uploading the attachment failed, we'll want to restore the events that failed to upload
+      this.events = [...events, ...this.events];
       return false;
     }
   }
