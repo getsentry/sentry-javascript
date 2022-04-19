@@ -5,7 +5,7 @@ import { ClientOptions } from './options';
 import { Scope } from './scope';
 import { Session } from './session';
 import { Severity, SeverityLevel } from './severity';
-import { Transport, NewTransport } from './transport';
+import { NewTransport } from './transport';
 
 /**
  * User-Facing Sentry SDK Client.
