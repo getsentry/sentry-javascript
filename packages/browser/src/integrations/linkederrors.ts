@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
-import { isInstanceOf, stackParserFromOptions } from '@sentry/utils';
+import { isInstanceOf } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';
@@ -47,12 +47,14 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    const options = getCurrentHub().getClient<BrowserClient>()?.getOptions();
-    const parser = stackParserFromOptions(options);
-
+    const client = getCurrentHub().getClient<BrowserClient>();
+    const options = client && client.getOptions();
+    if (!options) {
+      return;
+    }
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
-      return self ? _handler(parser, self._key, self._limit, event, hint) : event;
+      return self ? _handler(options.stackParser, self._key, self._limit, event, hint) : event;
     });
   }
 }

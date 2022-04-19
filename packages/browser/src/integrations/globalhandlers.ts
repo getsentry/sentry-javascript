@@ -9,7 +9,6 @@ import {
   isPrimitive,
   isString,
   logger,
-  stackParserFromOptions,
 } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
@@ -255,8 +254,9 @@ function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'],
 function getHubAndOptions(): [Hub, StackParser, boolean | undefined] {
   const hub = getCurrentHub();
   const client = hub.getClient<BrowserClient>();
-  const options = client?.getOptions();
-  const parser = stackParserFromOptions(options);
-  const attachStacktrace = options?.attachStacktrace;
-  return [hub, parser, attachStacktrace];
+  const options = (client && client.getOptions()) || {
+    stackParser: () => [],
+    attachStacktrace: false,
+  };
+  return [hub, options.stackParser, options.attachStacktrace];
 }
