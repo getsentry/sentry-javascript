@@ -8,7 +8,7 @@ import { NodeClient } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { nodeStackParser } from './stack-parser';
-import { setupNodeTransport } from './transports';
+import { HTTPSTransport, HTTPTransport, setupNodeTransport } from './transports';
 import { NodeClientOptions, NodeOptions } from './types';
 
 export const defaultIntegrations = [
@@ -138,7 +138,8 @@ export function init(options: NodeOptions = {}): void {
     ...options,
     stackParser: stackParserFromOptions(options),
     integrations: getIntegrationsToSetup(options),
-    transport,
+    // TODO(v7): Fix me when we switch to new transports entirely.
+    transport: options.transport || (transport instanceof HTTPTransport ? HTTPTransport : HTTPSTransport),
   };
 
   initAndBind(NodeClient, clientOptions, transport, newTransport);
@@ -198,7 +199,7 @@ export function isAutoSessionTrackingEnabled(client?: NodeClient): boolean {
   if (client === undefined) {
     return false;
   }
-  const clientOptions: NodeClientOptions = client && client.getOptions();
+  const clientOptions = client && client.getOptions();
   if (clientOptions && clientOptions.autoSessionTracking !== undefined) {
     return clientOptions.autoSessionTracking;
   }
