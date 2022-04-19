@@ -1,12 +1,12 @@
 import { Session } from '@sentry/hub';
-import { Event, Integration, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { Event, Integration, Severity, SeverityLevel, Transport, ClientOptions } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { NewTransport } from '../../src/transports/base';
 import { NoopTransport } from '../../src/transports/noop';
-export interface TestOptions extends Options {
+export interface TestOptions extends ClientOptions {
   test?: boolean;
   mockInstallFailure?: boolean;
   enableSend?: boolean;
