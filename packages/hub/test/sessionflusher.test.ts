@@ -9,7 +9,7 @@ describe('Session Flusher', () => {
     jest.useFakeTimers();
     sendSession = jest.fn(() => Promise.resolve({ status: 'success' }));
     mockClient = {
-      captureSession: jest.fn(),
+      sendSession,
     } as unknown as Client;
   });
 
