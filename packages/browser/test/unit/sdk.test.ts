@@ -1,10 +1,9 @@
 import { NoopTransport, Scope } from '@sentry/core';
+import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
 import { Client, Integration } from '@sentry/types';
 
-import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
-
-import { init } from '../../src/sdk';
 import { BrowserOptions } from '../../src';
+import { init } from '../../src/sdk';
 // eslint-disable-next-line no-var
 declare var global: any;
 

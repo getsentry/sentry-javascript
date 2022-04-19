@@ -3,7 +3,7 @@ import { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
-import { setupTestTransport, TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { getDefaultTestClientOptions, setupTestTransport, TestClient } from '../mocks/client';
 
 // eslint-disable-next-line no-var
 declare var global: any;

@@ -4,7 +4,7 @@ import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import * as integrationModule from '../../src/integration';
 import { NoopTransport } from '../../src/transports/noop';
-import { setupTestTransport, TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { getDefaultTestClientOptions, setupTestTransport, TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
 import { FakeTransport } from '../mocks/transport';
 
