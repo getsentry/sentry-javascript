@@ -28,7 +28,7 @@
   },
   "scripts": {
     "build": "run-p build:cjs build:esm build:types",
-    "build:bundle": "rollup --config",
+    "build:bundle": "rollup --config rollup.bundle.config.js",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
