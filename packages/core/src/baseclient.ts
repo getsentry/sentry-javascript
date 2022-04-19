@@ -8,10 +8,10 @@ import {
   EventHint,
   Integration,
   IntegrationClass,
+  NewTransport,
   Severity,
   SeverityLevel,
   Transport,
-  NewTransport,
 } from '@sentry/types';
 import {
   checkOrSetAlreadyCaught,
@@ -30,11 +30,10 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { APIDetails, initAPIDetails, getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails } from './api';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
-import { NewTransport } from './transports/base';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 

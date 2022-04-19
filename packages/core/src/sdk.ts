@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/hub';
-import { Client, ClientOptions, NewTransport, Transport } from '@sentry/types';
+import { Client, ClientOptions } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
