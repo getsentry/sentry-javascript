@@ -12,7 +12,7 @@ import { makeNodeResolvePlugin, makeSucrasePlugin } from './plugins/index.js';
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
 export function makeBaseNPMConfig(options = {}) {
-  const { entrypoints = ['src/index.ts'] } = options;
+  const { entrypoints = ['src/index.ts'], hasBundles = false } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -21,6 +21,9 @@ export function makeBaseNPMConfig(options = {}) {
     input: entrypoints,
 
     output: {
+      // an appropriately-named directory will be added to this base value when we specify either a cjs or esm build
+      dir: hasBundles ? 'build/npm' : 'build',
+
       sourcemap: true,
 
       // output individual files rather than one big bundle
@@ -62,8 +65,8 @@ export function makeBaseNPMConfig(options = {}) {
 
 export function makeNPMConfigVariants(baseConfig) {
   const variantSpecificConfigs = [
-    { output: { format: 'cjs', dir: 'build/cjs' } },
-    { output: { format: 'esm', dir: 'build/esm' } },
+    { output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } },
+    { output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm') } },
   ];
 
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
