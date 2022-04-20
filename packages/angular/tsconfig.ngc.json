@@ -6,11 +6,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "es2015",
-    "lib": [
-      "dom",
-      "es2018"
-    ],
-    "baseUrl": "./",
+    "lib": ["dom", "es2015"],
+    "baseUrl": "./"
   },
   "angularCompilerOptions": {
     "skipTemplateCodegen": true,

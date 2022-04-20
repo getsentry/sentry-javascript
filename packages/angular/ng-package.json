@@ -8,12 +8,6 @@
       "@sentry/utils": "Sentry.util"
     }
   },
-  "whitelistedNonPeerDependencies": [
-    "@sentry/browser",
-    "@sentry/utils",
-    "@sentry/types",
-    "tslib",
-    "rxjs"
-  ],
+  "whitelistedNonPeerDependencies": ["@sentry/browser", "@sentry/utils", "@sentry/types", "tslib"],
   "assets": ["README.md", "LICENSE"]
 }

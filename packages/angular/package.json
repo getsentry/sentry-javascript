@@ -9,9 +9,9 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "cjs/index.js",
-  "module": "esm/index.js",
-  "types": "build/types/index.d.ts",
+  "main": "build/bundles/sentry-angular.umd.js",
+  "module": "build/fesm2015/sentry-angular.js",
+  "types": "build/types",
   "publishConfig": {
     "access": "public"
   },
@@ -39,7 +39,7 @@
     "typescript": "~4.0.2"
   },
   "scripts": {
-    "build": "yarn build:ngc",
+    "build": "yarn build:ngc && ts-node scripts/postbuild.ts",
     "build:legacy": "run-p build:esm build:cjs",
     "build:ngc": "ng build --prod",
     "build:cjs": "tsc -p tsconfig.cjs.json",
