@@ -56,7 +56,7 @@
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "npm pack ./build",
-    "circularDepCheck": "madge --circular projects/sentry-angular/src/index.ts #TODO change to final index path!!",
+    "circularDepCheck": "madge --circular src/index.ts #TODO change to final index path!!",
     "clean": "rimraf cjs esm build coverage",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
