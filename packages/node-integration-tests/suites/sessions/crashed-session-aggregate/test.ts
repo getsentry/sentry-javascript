@@ -1,17 +1,19 @@
 import path from 'path';
 
-import { getEnvelopeRequest, runServer } from '../../../utils';
+import { runServer, getMultipleEnvelopeRequest } from '../../../utils';
 
 test('should aggregate successful and crashed sessions', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
-  const envelope = await Promise.race([
-    getEnvelopeRequest(`${url}/success`),
-    getEnvelopeRequest(`${url}/error_unhandled`),
-    getEnvelopeRequest(`${url}/success_next`),
+  const envelopes = await Promise.race([
+    getMultipleEnvelopeRequest(`${url}/success`, 3),
+    getMultipleEnvelopeRequest(`${url}/error_unhandled`, 3),
+    getMultipleEnvelopeRequest(`${url}/success_next`, 3),
   ]);
 
-  expect(envelope).toHaveLength(3);
+  expect(envelopes).toHaveLength(3);
+  const envelope = envelopes[2];
+
   expect(envelope[0]).toMatchObject({
     sent_at: expect.any(String),
     sdk: {

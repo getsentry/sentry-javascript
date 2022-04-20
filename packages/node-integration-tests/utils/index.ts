@@ -66,42 +66,6 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
 };
 
 /**
- * Intercepts and extracts multiple requests containing a Sentry Event
- *
- * @param {string} url
- * @param {number} count
- * @return {*}  {Promise<Array<Record<string, unknown>>>}
- */
-export const getMultipleEventRequests = async (url: string, count: number): Promise<Array<Record<string, unknown>>> => {
-  const events: Record<string, unknown>[] = [];
-
-  return new Promise(resolve => {
-    nock('https://dsn.ingest.sentry.io')
-      .post('/api/1337/store/', body => {
-        events.push(body);
-
-        if (events.length === count) {
-          resolve(events);
-        }
-        return true;
-      })
-      .times(7)
-      .reply(200);
-    http.get(url);
-  });
-};
-
-/**
- * Intercepts and extracts a single request containing a Sentry Event
- *
- * @param {string} url
- * @return {*}  {Promise<Record<string, unknown>>}
- */
-export const getEventRequest = async (url: string): Promise<Record<string, unknown>> => {
-  return (await getMultipleEventRequests(url, 1))[0];
-};
-
-/**
  * Intercepts and extracts up to a number of requests containing Sentry envelopes.
  *
  * @param url The url the intercepted requests will be directed to.
