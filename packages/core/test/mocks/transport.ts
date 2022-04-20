@@ -1,4 +1,5 @@
 import { SyncPromise } from '@sentry/utils';
+
 import { createTransport } from '../../src/transports/base';
 
 async function sleep(delay: number): Promise<void> {

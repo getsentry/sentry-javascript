@@ -1,13 +1,10 @@
-import { EventEnvelope, EventItem } from '@sentry/types';
+import { EventEnvelope, EventItem, NewTransport, TransportMakeRequestResponse, TransportResponse } from '@sentry/types';
 import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
 
 import {
   createTransport,
   ERROR_TRANSPORT_CATEGORY,
-  NewTransport,
   TRANSACTION_TRANSPORT_CATEGORY,
-  TransportMakeRequestResponse,
-  TransportResponse,
 } from '../../../src/transports/base';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
