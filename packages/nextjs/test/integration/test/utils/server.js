@@ -35,14 +35,15 @@ const getAsync = (url, rewrap = false) => {
 
 const interceptEventRequest = (expectedEvent, argv, testName = '') => {
   return nock('https://dsn.ingest.sentry.io')
-    .post('/api/1337/store/', body => {
+    .post('/api/1337/envelope/', body => {
+      const { envelopeHeader, itemHeader, item } = parseEnvelope(body);
       logIf(
         process.env.LOG_REQUESTS,
         '\nIntercepted Event' + (testName.length ? ` (from test \`${testName}\`)` : ''),
-        body,
+        { envelopeHeader, itemHeader, item },
         argv.depth,
       );
-      return objectMatches(body, expectedEvent);
+      return itemHeader.type === 'event' && objectMatches(item, expectedItem);
     })
     .reply(200);
 };

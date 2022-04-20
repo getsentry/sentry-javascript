@@ -38,12 +38,12 @@ const isSentryRequest = request => {
   return /sentry.io\/api/.test(request.url());
 };
 
-const isEventRequest = request => {
-  return /sentry.io\/api\/\d+\/store/.test(request.url());
-};
-
 const isEnvelopeRequest = request => {
   return /sentry.io\/api\/\d+\/envelope/.test(request.url());
+};
+
+const isEventRequest = request => {
+  return isEnvelopeRequest(request) && extractEnvelopeFromRequest(request).itemHeader.type === 'event';
 };
 
 const isSessionRequest = request => {
