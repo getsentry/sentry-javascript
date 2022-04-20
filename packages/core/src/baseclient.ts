@@ -79,8 +79,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   protected readonly _transport?: NewTransport | undefined;
 
-  /** Array of used integrations. */
+  /** Array of set up integrations. */
   protected _integrations: IntegrationIndex = {};
+
+  /** Indicates whether this client's integrations have been set up. */
+  protected _integrationsInitialized: boolean = false;
 
   /** Number of calls being processed */
   protected _numProcessing: number = 0;
@@ -242,8 +245,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * Sets up the integrations
    */
   public setupIntegrations(): void {
-    if (this._isEnabled() && !this._integrations.initialized) {
-      this._integrations = setupIntegrations(this._options);
+    if (this._isEnabled() && !this._integrationsInitialized) {
+      this._integrations = setupIntegrations(this._options.integrations);
+      this._integrationsInitialized = true;
     }
   }
 
