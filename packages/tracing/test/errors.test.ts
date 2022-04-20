@@ -1,8 +1,8 @@
 import { BrowserClient } from '@sentry/browser';
-import { setupBrowserTransport } from '@sentry/browser/src/transports';
-import { NoopTransport } from '@sentry/core/src/transports/noop';
 import { Hub, makeMain } from '@sentry/hub';
 import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+
+import { getDefaultBrowserClientOptions } from './testutils';
 
 import { registerErrorInstrumentation } from '../src/errors';
 import { _addTracingExtensions } from '../src/hubextensions';
@@ -36,8 +36,8 @@ describe('registerErrorHandlers()', () => {
   let hub: Hub;
   beforeEach(() => {
     mockAddInstrumentationHandler.mockClear();
-    const options = { tracesSampleRate: 1, transport: NoopTransport, integrations: [], stackParser: () => [] };
-    hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
+    const options = getDefaultBrowserClientOptions();
+    hub = new Hub(new BrowserClient(options));
     makeMain(hub);
   });
 

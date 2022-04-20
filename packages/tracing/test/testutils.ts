@@ -1,4 +1,7 @@
-import { getGlobalObject } from '@sentry/utils';
+import { createTransport } from '@sentry/browser';
+import { ClientOptions } from '@sentry/types';
+import { getGlobalObject, resolvedSyncPromise } from '@sentry/utils';
+
 import { JSDOM } from 'jsdom';
 
 /**
@@ -56,3 +59,12 @@ export const testOnlyIfNodeVersionAtLeast = (minVersion: number): jest.It => {
 
   return it;
 };
+
+export function getDefaultBrowserClientOptions(options: Partial<ClientOptions> = {}): ClientOptions {
+  return {
+    integrations: [],
+    transport: () => createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 })),
+    stackParser: () => [],
+    ...options,
+  };
+}
