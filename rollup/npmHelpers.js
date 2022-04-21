@@ -12,7 +12,12 @@ import { makeNodeResolvePlugin, makeSucrasePlugin } from './plugins/index.js';
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
 export function makeBaseNPMConfig(options = {}) {
-  const { entrypoints = ['src/index.ts'], externals: packageSpecificExternals = [], hasBundles = false } = options;
+  const {
+    entrypoints = ['src/index.ts'],
+    esModuleInterop = false,
+    externals: packageSpecificExternals = [],
+    hasBundles = false,
+  } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -43,6 +48,17 @@ export function makeBaseNPMConfig(options = {}) {
       //       get: () => are.great,
       //     });
       externalLiveBindings: false,
+
+      // Equivalent to `esModuleInterop` in tsconfig.
+      // Controls whether rollup emits helpers to handle special cases where turning
+      //     `import * as dogs from 'dogs'`
+      // into
+      //     `const dogs = require('dogs')`
+      // doesn't work.
+      //
+      // `auto` -> emit helpers
+      // `esModule` -> don't emit helpers
+      interop: esModuleInterop ? 'auto' : 'esModule',
     },
 
     plugins: [nodeResolvePlugin, sucrasePlugin],
