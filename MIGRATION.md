@@ -123,6 +123,19 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
   `setupBrowserTransport` or `setupNodeTransport` for default transports, depending on your requirements.
 - Remove support for Opera browser pre v15
 
+## Sentry Angular SDK Changes
+
+The Sentry Angular SDK (`@sentry/angular`) is now compiled with the Angular compiler (see [#4641](https://github.com/getsentry/sentry-javascript/pull/4641)). This change was necessary to fix a long-lasting bug in the SDK (see [#3282](https://github.com/getsentry/sentry-javascript/issues/3282)): `TraceDirective` and `TraceModule` can now be used again without risking an application compiler error or having to disable AOT compilation.
+
+### Angular Version Compatibility
+
+Given the forward compatibility of the Angular compiler, v7 of our SDK will only work with Angular 10 and above. Previously, it was possible to use the SDK with versions <10, although we officially only supported Angular 10-13 as `peerDependencies`. If you are using Angular <10 in your project, we recommend staying on the latest 6.x version until you can upgrade your Angular version.
+
+### Import Changes
+
+Due to the compiler change, our NPM package structure changed as well as it now conforms to the [Angular Package Format v10](https://docs.google.com/document/d/1uh2D6XqaGh2yjjXwfF4SrJqWl1MBhMPntlNBBsk6rbw/edit).
+In case you're importing from specific paths other than `@sentry/angular` you will have to adjust these paths. As an example, `import ... from '@sentry/angular/esm/injex.js'` should be changed to `import ... from '@sentry/angular/esm2015/index.js'`. Generally, we strongly recommend only importing from `@sentry/angular`.
+
 # Upgrading from 6.17.x to 6.18.0
 
 Version 6.18.0 deprecates the `frameContextLines` top-level option for the Node SDK. This option will be removed in an upcoming major version. To migrate off of the top-level option, pass it instead to the new `ContextLines` integration.
