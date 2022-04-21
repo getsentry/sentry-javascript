@@ -10,30 +10,17 @@ import Application from '../app';
 import config from '../config/environment';
 import { setApplication } from '@ember/test-helpers';
 import { start } from 'ember-qunit';
-import { Transports } from '@sentry/browser';
 import Ember from 'ember';
 
-import { getConfig } from '@embroider/macros';
-
-function getSentryConfig() {
-  return getConfig('@sentry/ember').sentryConfig;
-}
-
-export class TestFetchTransport extends Transports.FetchTransport {
-  sendEvent(event) {
-    if (Ember.testing) {
-      if (!window._sentryTestEvents) {
-        window._sentryTestEvents = [];
-      }
-      window._sentryTestEvents.push(event);
-      return Promise.resolve();
+Sentry.addGlobalEventProcessor((event) => {
+  if (Ember.testing) {
+    if (!window._sentryTestEvents) {
+      window._sentryTestEvents = [];
     }
-    return super.sendEvent(event);
+    window._sentryTestEvents.push(event);
   }
-}
-
-const sentryConfig = getSentryConfig();
-sentryConfig.sentry['transport'] = TestFetchTransport;
+  return event;
+});
 
 setApplication(Application.create(config.APP));
 
