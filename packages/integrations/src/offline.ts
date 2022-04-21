@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, logger, normalize, uuid4 } from '@sentry/utils';
-import localForage from 'localforage';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const localForage = require('localforage');
 
 import { IS_DEBUG_BUILD } from './flags';
 
