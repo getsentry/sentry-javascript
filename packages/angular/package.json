@@ -11,7 +11,7 @@
   },
   "main": "build/bundles/sentry-angular.umd.js",
   "module": "build/fesm2015/sentry-angular.js",
-  "types": "build/types",
+  "types": "build/types/sentry-angular.d.ts",
   "publishConfig": {
     "access": "public"
   },
