@@ -68,12 +68,12 @@ describe('Client init()', () => {
       tracesSampleRate: 1.0,
     });
     const hub = getCurrentHub();
-    const sendEvent = jest.spyOn(hub.getClient()!.getTransport!(), 'sendEvent');
+    const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
 
     const transaction = hub.startTransaction({ name: '/404' });
     transaction.finish();
 
-    expect(sendEvent).not.toHaveBeenCalled();
+    expect(transportSend).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();
     expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
