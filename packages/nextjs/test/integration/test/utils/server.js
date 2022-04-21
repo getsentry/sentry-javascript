@@ -43,7 +43,7 @@ const interceptEventRequest = (expectedEvent, argv, testName = '') => {
         { envelopeHeader, itemHeader, item },
         argv.depth,
       );
-      return itemHeader.type === 'event' && objectMatches(item, expectedItem);
+      return itemHeader.type === 'event' && objectMatches(item, expectedEvent);
     })
     .query(true) // accept any query params - used for sentry_key param used by the envelope endpoint
     .reply(200);
