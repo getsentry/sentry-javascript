@@ -7,6 +7,6 @@ module.exports = {
     jsx: true,
   },
   // ignore these because they're not covered by a `tsconfig`, which makes eslint throw an error
-  ignorePatterns: ['scripts/prepack.ts', 'gatsby-browser.d.ts', 'gatsby-node.d.ts'],
+  ignorePatterns: ['gatsby-browser.d.ts', 'gatsby-node.d.ts'],
   extends: ['../../.eslintrc.js'],
 };
