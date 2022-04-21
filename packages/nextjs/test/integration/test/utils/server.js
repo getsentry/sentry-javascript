@@ -45,6 +45,7 @@ const interceptEventRequest = (expectedEvent, argv, testName = '') => {
       );
       return itemHeader.type === 'event' && objectMatches(item, expectedItem);
     })
+    .query(true) // accept any query params - used for sentry_key param used by the envelope endpoint
     .reply(200);
 };
 
@@ -60,6 +61,7 @@ const interceptSessionRequest = (expectedItem, argv, testName = '') => {
       );
       return itemHeader.type === 'session' && objectMatches(item, expectedItem);
     })
+    .query(true) // accept any query params - used for sentry_key param used by the envelope endpoint
     .reply(200);
 };
 
@@ -75,6 +77,7 @@ const interceptTracingRequest = (expectedItem, argv, testName = '') => {
       );
       return itemHeader.type === 'transaction' && objectMatches(item, expectedItem);
     })
+    .query(true) // accept any query params - used for sentry_key param used by the envelope endpoint
     .reply(200);
 };
 
