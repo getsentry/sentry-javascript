@@ -3,7 +3,7 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/ind
 const baseBundleConfig = makeBaseBundleConfig({
   input: 'src/index.bundle.ts',
   isAddOn: false,
-  jsVersion: 'es5',
+  jsVersion: 'es6',
   licenseTitle: '@sentry/vue',
   outputFileBase: 'bundle.vue',
 });
