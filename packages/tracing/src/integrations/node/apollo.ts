@@ -42,9 +42,11 @@ export class Apollo implements Integration {
     /**
      * Iterate over resolvers of the ApolloServer instance before schemas are constructed.
      */
-    fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: () => void) {
+    fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: () => unknown) {
       return function (this: { config: { resolvers: ApolloModelResolvers[] } }) {
-        this.config.resolvers = this.config.resolvers.map(model => {
+        const resolvers = Array.isArray(this.config.resolvers) ? this.config.resolvers : [this.config.resolvers];
+
+        this.config.resolvers = resolvers.map(model => {
           Object.keys(model).forEach(resolverGroupName => {
             Object.keys(model[resolverGroupName]).forEach(resolverName => {
               if (typeof model[resolverGroupName][resolverName] !== 'function') {
@@ -79,23 +81,20 @@ function wrapResolver(
       const parentSpan = scope?.getSpan();
       const span = parentSpan?.startChild({
         description: `${resolverGroupName}.${resolverName}`,
-        op: 'apollo',
+        op: 'db.graphql.apollo',
       });
-
-      scope?.setSpan(span);
 
       const rv = orig.call(this, ...args);
 
       if (isThenable(rv)) {
-        return (rv as Promise<unknown>).then((res: unknown) => {
+        return rv.then((res: unknown) => {
           span?.finish();
-          scope?.setSpan(parentSpan);
           return res;
         });
       }
 
       span?.finish();
-      scope?.setSpan(parentSpan);
+
       return rv;
     };
   });

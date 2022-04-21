@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { fill, loadModule, logger } from '@sentry/utils';
+import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 /** Tracing integration for graphql package */
 export class GraphQL implements Integration {
@@ -34,18 +34,25 @@ export class GraphQL implements Integration {
 
         const span = parentSpan?.startChild({
           description: 'execute',
-          op: 'graphql',
+          op: 'db.graphql',
         });
 
         scope?.setSpan(span);
 
-        const rv = orig.call(this, ...args) as Promise<unknown>;
+        const rv = orig.call(this, ...args);
 
-        return rv.then((res: unknown) => {
-          span?.finish();
-          scope?.setSpan(parentSpan);
-          return res;
-        });
+        if (isThenable(rv)) {
+          return rv.then((res: unknown) => {
+            span?.finish();
+            scope?.setSpan(parentSpan);
+
+            return res;
+          });
+        }
+
+        span?.finish();
+        scope?.setSpan(parentSpan);
+        return rv;
       };
     });
   }
