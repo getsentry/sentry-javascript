@@ -101,13 +101,10 @@ export function init(options: BrowserOptions = {}): void {
   if (options.sendClientReports === undefined) {
     options.sendClientReports = true;
   }
-  if (options.stackParser === undefined) {
-    options.stackParser = defaultStackParsers;
-  }
 
   const clientOptions: BrowserClientOptions = {
     ...options,
-    stackParser: stackParserFromOptions(options),
+    stackParser: stackParserFromOptions(options.stackParser || defaultStackParsers),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || (supportsFetch() ? makeNewFetchTransport : makeNewXHRTransport),
   };

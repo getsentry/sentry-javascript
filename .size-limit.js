@@ -1,25 +1,25 @@
 module.exports = [
   {
     name: '@sentry/browser - ES5 CDN Bundle (gzipped + minified)',
-    path: 'packages/browser/build/bundles/bundle.min.js',
+    path: 'packages/browser/build/bundles/bundle.es5.min.js',
     gzip: true,
     limit: '100 KB',
   },
   {
     name: '@sentry/browser - ES5 CDN Bundle (minified)',
-    path: 'packages/browser/build/bundles/bundle.min.js',
+    path: 'packages/browser/build/bundles/bundle.es5.min.js',
     gzip: false,
     limit: '120 KB',
   },
   {
     name: '@sentry/browser - ES6 CDN Bundle (gzipped + minified)',
-    path: 'packages/browser/build/bundles/bundle.es6.min.js',
+    path: 'packages/browser/build/bundles/bundle.min.js',
     gzip: true,
     limit: '100 KB',
   },
   {
     name: '@sentry/browser - ES6 CDN Bundle (minified)',
-    path: 'packages/browser/build/bundles/bundle.es6.min.js',
+    path: 'packages/browser/build/bundles/bundle.min.js',
     gzip: false,
     limit: '120 KB',
   },
@@ -53,13 +53,13 @@ module.exports = [
   },
   {
     name: '@sentry/browser + @sentry/tracing - ES5 CDN Bundle (gzipped + minified)',
-    path: 'packages/tracing/build/bundles/bundle.tracing.min.js',
+    path: 'packages/tracing/build/bundles/bundle.tracing.es5.min.js',
     gzip: true,
     limit: '100 KB',
   },
   {
     name: '@sentry/browser + @sentry/tracing - ES6 CDN Bundle (gzipped + minified)',
-    path: 'packages/tracing/build/bundles/bundle.tracing.es6.min.js',
+    path: 'packages/tracing/build/bundles/bundle.tracing.min.js',
     gzip: true,
     limit: '100 KB',
   },
