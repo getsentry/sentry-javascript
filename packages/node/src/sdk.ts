@@ -122,10 +122,6 @@ export function init(options: NodeOptions = {}): void {
     options.autoSessionTracking = true;
   }
 
-  if (options.stackParser === undefined) {
-    options.stackParser = [nodeStackParser];
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {
     setHubOnCarrier(carrier, getCurrentHub());
@@ -136,7 +132,7 @@ export function init(options: NodeOptions = {}): void {
   // TODO(v7): Refactor this to reduce the logic above
   const clientOptions: NodeClientOptions = {
     ...options,
-    stackParser: stackParserFromOptions(options),
+    stackParser: stackParserFromOptions(options.stackParser || [nodeStackParser]),
     integrations: getIntegrationsToSetup(options),
     // TODO(v7): Fix me when we switch to new transports entirely.
     transport: options.transport || (transport instanceof HTTPTransport ? HTTPTransport : HTTPSTransport),
