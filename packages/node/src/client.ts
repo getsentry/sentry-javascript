@@ -1,7 +1,7 @@
 import { BaseClient, NewTransport, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, Severity, SeverityLevel, Transport } from '@sentry/types';
-import { logger, resolvedSyncPromise, stackParserFromOptions } from '@sentry/utils';
+import { logger, resolvedSyncPromise } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
@@ -111,7 +111,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(stackParserFromOptions(this._options), exception, hint));
+    return resolvedSyncPromise(eventFromUnknownInput(this._options.stackParser, exception, hint));
   }
 
   /**
@@ -124,7 +124,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     hint?: EventHint,
   ): PromiseLike<Event> {
     return resolvedSyncPromise(
-      eventFromMessage(stackParserFromOptions(this._options), message, level, hint, this._options.attachStacktrace),
+      eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace),
     );
   }
 
