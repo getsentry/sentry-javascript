@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "clean": "rimraf -g **/node_modules",
-    "prisma:init": "(cd suites/tracing/prisma-orm && ./setup.sh)",
+    "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
