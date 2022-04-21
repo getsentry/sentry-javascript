@@ -129,7 +129,7 @@ The Sentry Angular SDK (`@sentry/angular`) is now compiled with the Angular comp
 
 ### Angular Version Compatibility
 
-Given the forward compatibility of the Angular compiler, v7 of our SDK will only work with Angular 10 and above. Previously, it was possible to use the SDK with versions <10, although we officially only supported Angular 10-13 as `peerDependencies`. If you are using Angular <10 in your project, we recommend staying on the latest 6.x version until you can upgrade your Angular version.
+Given the forward compatibility of the Angular compiler, v7 of our SDK will only work with Angular 10 and above. Previously, it was possible to use the SDK with versions <10, although we officially only supported Angular 10-13 as peer dependencies. If you are using Angular <10 in your project, we recommend staying on the latest 6.x version until you can upgrade your Angular version.
 
 ### Import Changes
 
