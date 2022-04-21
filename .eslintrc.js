@@ -34,6 +34,14 @@ module.exports = {
       },
     },
     {
+      files: ['**/scripts/**/*.ts'],
+      parserOptions: {
+        // since filepaths are relative to the working directory, we need to go back up to reach the repo root level
+        // tsconfig
+        project: ['../../tsconfig.json'],
+      },
+    },
+    {
       files: ['*.tsx'],
       rules: {
         // Turn off jsdoc on tsx files until jsdoc is fixed for tsx files
