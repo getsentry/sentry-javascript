@@ -1,6 +1,6 @@
 import { BaseClient, NewTransport, Scope, SDK_VERSION } from '@sentry/core';
 import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
-import { getGlobalObject, logger, stackParserFromOptions } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
@@ -89,7 +89,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return eventFromException(stackParserFromOptions(this._options), exception, hint, this._options.attachStacktrace);
+    return eventFromException(this._options.stackParser, exception, hint, this._options.attachStacktrace);
   }
 
   /**
@@ -101,13 +101,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     level: Severity | SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
-    return eventFromMessage(
-      stackParserFromOptions(this._options),
-      message,
-      level,
-      hint,
-      this._options.attachStacktrace,
-    );
+    return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);
   }
 
   /**

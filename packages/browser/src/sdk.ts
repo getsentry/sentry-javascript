@@ -102,14 +102,11 @@ export function init(options: BrowserOptions = {}): void {
   if (options.sendClientReports === undefined) {
     options.sendClientReports = true;
   }
-  if (options.stackParser === undefined) {
-    options.stackParser = defaultStackParsers;
-  }
   const { transport, newTransport } = setupBrowserTransport(options);
 
   const clientOptions: BrowserClientOptions = {
     ...options,
-    stackParser: stackParserFromOptions(options),
+    stackParser: stackParserFromOptions(options.stackParser || defaultStackParsers),
     integrations: getIntegrationsToSetup(options),
     // TODO(v7): get rid of transport being passed down below
     transport: options.transport || (supportsFetch() ? FetchTransport : XHRTransport),

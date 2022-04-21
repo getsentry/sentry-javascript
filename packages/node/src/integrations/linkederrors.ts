@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
-import { isInstanceOf, resolvedSyncPromise, stackParserFromOptions, SyncPromise } from '@sentry/utils';
+import { isInstanceOf, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
 
 import { NodeClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';
@@ -46,12 +46,10 @@ export class LinkedErrors implements Integration {
     addGlobalEventProcessor(async (event: Event, hint?: EventHint) => {
       const hub = getCurrentHub();
       const self = hub.getIntegration(LinkedErrors);
-      const stackParser = stackParserFromOptions(hub.getClient<NodeClient>()?.getOptions());
-
-      if (self) {
-        await self._handler(stackParser, event, hint);
+      const client = hub.getClient<NodeClient>();
+      if (client && self) {
+        await self._handler(client.getOptions().stackParser, event, hint);
       }
-
       return event;
     });
   }
