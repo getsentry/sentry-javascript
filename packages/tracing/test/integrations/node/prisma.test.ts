@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/hub';
 
 import { Prisma } from '../../../src/integrations/node/prisma';
@@ -6,22 +7,22 @@ import { Span } from '../../../src/span';
 type PrismaMiddleware = (params: unknown, next: (params?: unknown) => Promise<unknown>) => Promise<unknown>;
 
 class PrismaClient {
-  constructor() {
-    this.middleware = undefined;
-  }
+  public user: { create: () => Promise<unknown> | undefined } = {
+    create: () => this._middleware?.({ action: 'create', model: 'user' }, () => Promise.resolve('result')),
+  };
 
-  private middleware?: PrismaMiddleware;
+  private _middleware?: PrismaMiddleware;
+
+  constructor() {
+    this._middleware = undefined;
+  }
 
   public $use(cb: PrismaMiddleware) {
-    this.middleware = cb;
+    this._middleware = cb;
   }
-
-  public user = {
-    create: () => this.middleware?.({ action: 'create', model: 'user' }, () => Promise.resolve('result')),
-  };
 }
 
-describe('setupOnce', () => {
+describe('setupOnce', function () {
   const Client: PrismaClient = new PrismaClient();
 
   let scope = new Scope();
@@ -29,7 +30,7 @@ describe('setupOnce', () => {
   let childSpan: Span;
 
   beforeAll(() => {
-    // @ts-ignore
+    // @ts-ignore, not to export PrismaClient types from integration source
     new Prisma({ client: Client }).setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),
@@ -45,8 +46,8 @@ describe('setupOnce', () => {
     jest.spyOn(childSpan, 'finish');
   });
 
-  it(`should add middleware with $use method correctly`, done => {
-    Client.user.create()?.then(res => {
+  it('should add middleware with $use method correctly', done => {
+    void Client.user.create()?.then(res => {
       expect(res).toBe('result');
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({

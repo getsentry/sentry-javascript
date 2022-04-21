@@ -22,14 +22,14 @@ type PrismaAction =
   | 'runCommandRaw';
 
 interface PrismaMiddlewareParams {
-  model?: any;
+  model?: unknown;
   action: PrismaAction;
-  args: any;
+  args: unknown;
   dataPath: string[];
   runInTransaction: boolean;
 }
 
-type PrismaMiddleware<T = any> = (
+type PrismaMiddleware<T = unknown> = (
   params: PrismaMiddlewareParams,
   next: (params: PrismaMiddlewareParams) => Promise<T>,
 ) => Promise<T>;
