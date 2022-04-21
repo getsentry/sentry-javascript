@@ -2,10 +2,9 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 
-import { getDefaultBrowserClientOptions } from './testutils';
-
 import { registerErrorInstrumentation } from '../src/errors';
 import { _addTracingExtensions } from '../src/hubextensions';
+import { getDefaultBrowserClientOptions } from './testutils';
 
 const mockAddInstrumentationHandler = jest.fn();
 let mockErrorCallback: InstrumentHandlerCallback = () => undefined;

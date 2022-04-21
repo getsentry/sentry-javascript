@@ -1,7 +1,6 @@
 import { createTransport } from '@sentry/browser';
 import { ClientOptions } from '@sentry/types';
 import { getGlobalObject, resolvedSyncPromise } from '@sentry/utils';
-
 import { JSDOM } from 'jsdom';
 
 /**

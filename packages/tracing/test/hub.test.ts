@@ -10,9 +10,9 @@ import { Transaction } from '../src/transaction';
 import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
 import {
   addDOMPropertiesToGlobal,
+  getDefaultBrowserClientOptions,
   getSymbolObjectKeyByName,
   testOnlyIfNodeVersionAtLeast,
-  getDefaultBrowserClientOptions,
 } from './testutils';
 
 addExtensionMethods();

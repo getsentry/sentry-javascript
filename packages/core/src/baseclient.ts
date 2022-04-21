@@ -77,7 +77,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
   protected readonly _dsn?: DsnComponents;
 
-  protected readonly _transport?: NewTransport | undefined;
+  protected readonly _transport?: NewTransport;
 
   /** Array of set up integrations. */
   protected _integrations: IntegrationIndex = {};
@@ -572,6 +572,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     function recordLostEvent(_outcome: RecordLostEventParams[0], _category: RecordLostEventParams[1]): void {
       // no-op as new transports don't have client outcomes
+      // TODO(v7): Re-add this functionality
       // if (transport.recordLostEvent) {
       //   transport.recordLostEvent(outcome, category);
       // }

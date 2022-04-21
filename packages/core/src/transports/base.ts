@@ -21,14 +21,6 @@ import {
   updateRateLimits,
 } from '@sentry/utils';
 
-export const ERROR_TRANSPORT_CATEGORY = 'error';
-
-export const TRANSACTION_TRANSPORT_CATEGORY = 'transaction';
-
-export const ATTACHMENT_TRANSPORT_CATEGORY = 'attachment';
-
-export const SESSION_TRANSPORT_CATEGORY = 'session';
-
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 
 /**

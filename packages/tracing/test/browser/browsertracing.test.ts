@@ -3,8 +3,6 @@ import { Hub, makeMain } from '@sentry/hub';
 import { getGlobalObject, InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { getDefaultBrowserClientOptions } from '../testutils';
-
 import {
   BrowserTracing,
   BrowserTracingOptions,
@@ -18,6 +16,7 @@ import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
 import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
 import { getActiveTransaction, secToMs } from '../../src/utils';
+import { getDefaultBrowserClientOptions } from '../testutils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
 

@@ -2,12 +2,11 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
-import { getDefaultBrowserClientOptions } from '../testutils';
-
 import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
 import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
+import { getDefaultBrowserClientOptions } from '../testutils';
 
 beforeAll(() => {
   addExtensionMethods();

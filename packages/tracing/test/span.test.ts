@@ -1,10 +1,9 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain, Scope } from '@sentry/hub';
 
-import { getDefaultBrowserClientOptions } from './testutils';
-
 import { Span, Transaction } from '../src';
 import { TRACEPARENT_REGEXP } from '../src/utils';
+import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('Span', () => {
   let hub: Hub;

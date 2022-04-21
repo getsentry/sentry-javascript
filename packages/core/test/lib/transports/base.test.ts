@@ -1,11 +1,11 @@
 import { EventEnvelope, EventItem, NewTransport, TransportMakeRequestResponse, TransportResponse } from '@sentry/types';
 import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
 
-import {
-  createTransport,
-  ERROR_TRANSPORT_CATEGORY,
-  TRANSACTION_TRANSPORT_CATEGORY,
-} from '../../../src/transports/base';
+import { createTransport } from '../../../src/transports/base';
+
+const ERROR_TRANSPORT_CATEGORY = 'error';
+
+const TRANSACTION_TRANSPORT_CATEGORY = 'transaction';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
