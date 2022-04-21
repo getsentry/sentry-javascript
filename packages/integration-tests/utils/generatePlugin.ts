@@ -19,18 +19,18 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
-    bundle_es5: 'build/bundles/bundle.js',
-    bundle_es5_min: 'build/bundles/bundle.min.js',
-    bundle_es6: 'build/bundles/bundle.es6.js',
-    bundle_es6_min: 'build/bundles/bundle.es6.min.js',
+    bundle_es5: 'build/bundles/bundle.es5.js',
+    bundle_es5_min: 'build/bundles/bundle.es5.min.js',
+    bundle_es6: 'build/bundles/bundle.js',
+    bundle_es6_min: 'build/bundles/bundle.min.js',
   },
   tracing: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
-    bundle_es5: 'build/bundles/bundle.tracing.js',
-    bundle_es5_min: 'build/bundles/bundle.tracing.min.js',
-    bundle_es6: 'build/bundles/bundle.tracing.es6.js',
-    bundle_es6_min: 'build/bundles/bundle.tracing.es6.min.js',
+    bundle_es5: 'build/bundles/bundle.tracing.es5.js',
+    bundle_es5_min: 'build/bundles/bundle.tracing.es5.min.js',
+    bundle_es6: 'build/bundles/bundle.tracing.js',
+    bundle_es6_min: 'build/bundles/bundle.tracing.min.js',
   },
 };
 
