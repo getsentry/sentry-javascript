@@ -1,7 +1,5 @@
-import { BrowserClient, Transports } from '@sentry/browser';
+import { BrowserClient } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
-
-import { getDefaultBrowserClientOptions } from './testutils';
 
 import {
   DEFAULT_IDLE_TIMEOUT,
@@ -10,10 +8,7 @@ import {
   IdleTransactionSpanRecorder,
 } from '../src/idletransaction';
 import { Span } from '../src/span';
-
-// @ts-ignore It's okay that we're not implementing the methods of the abstract `BaseTransport` class, because it's not
-// what we're testing here
-class SimpleTransport extends Transports.BaseTransport {}
+import { getDefaultBrowserClientOptions } from './testutils';
 
 const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
