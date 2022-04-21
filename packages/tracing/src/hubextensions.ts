@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { getMainCarrier, Hub } from '@sentry/hub';
 import {
   CustomSamplingContext,

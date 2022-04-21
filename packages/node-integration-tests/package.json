@@ -7,18 +7,14 @@
   },
   "private": true,
   "scripts": {
-    "clean": "rimraf -g **/node_modules",
-    "prisma:init": "(cd suites/tracing/prisma-orm && ./setup.sh)",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
-    "pretest": "run-s --silent prisma:init",
     "test": "jest --runInBand --forceExit",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@prisma/client": "^3.12.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
