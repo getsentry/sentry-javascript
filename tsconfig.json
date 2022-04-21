@@ -8,6 +8,7 @@
 
     "allowSyntheticDefaultImports": true,
     "types": ["node"],
-    "noErrorTruncation": true // move me up to @sentry/typescript
+    "noErrorTruncation": true, // move me up to @sentry/typescript
+    "skipLibCheck": true,
   }
 }
