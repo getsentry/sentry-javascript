@@ -7,7 +7,7 @@ import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 sentryTest('should update user', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 2, url);
+  const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
 
   expect(eventData[0].message).toBe('first_user');
   expect(eventData[0].user).toMatchObject({

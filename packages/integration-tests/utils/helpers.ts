@@ -39,27 +39,26 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
 }
 
 /**
- * Wait and get multiple requests matching urlRgx at the given URL, or the current page
- *
- * @param {Page} page
- * @param {number} count
- * @param {RegExp} urlRgx
- * @param {(req: Request) => Event} requestParser
- * @param {string} [url]
- * @return {*}  {Promise<Event[]>}
+ * Waits until a number of requests matching urlRgx at the given URL arrive.
+ * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
+ * amount of requests, and returns all the events recieved up to that point in time.
  */
 async function getMultipleRequests(
   page: Page,
   count: number,
   urlRgx: RegExp,
   requestParser: (req: Request) => Event,
-  url?: string,
+  options?: {
+    url?: string;
+    timeout?: number;
+  },
 ): Promise<Event[]> {
   const requests: Promise<Event[]> = new Promise((resolve, reject) => {
     let reqCount = count;
     const requestData: Event[] = [];
+    let timeoutId: NodeJS.Timeout | undefined = undefined;
 
-    page.on('request', request => {
+    function requestHandler(request: Request): void {
       if (urlRgx.test(request.url())) {
         try {
           reqCount -= 1;
@@ -85,17 +84,29 @@ async function getMultipleRequests(
           // requestData.push(requestParser(request));
 
           if (reqCount === 0) {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            page.off('request', requestHandler);
             resolve(requestData);
           }
         } catch (err) {
           reject(err);
         }
       }
-    });
+    }
+
+    page.on('request', requestHandler);
+
+    if (options?.timeout) {
+      timeoutId = setTimeout(() => {
+        resolve(requestData);
+      }, options.timeout);
+    }
   });
 
-  if (url) {
-    await page.goto(url);
+  if (options?.url) {
+    await page.goto(options.url);
   }
 
   return requests;
@@ -103,17 +114,18 @@ async function getMultipleRequests(
 
 /**
  * Wait and get multiple envelope requests at the given URL, or the current page
- *
- * @template T
- * @param {Page} page
- * @param {number} count
- * @param {string} [url]
- * @return {*}  {Promise<T[]>}
  */
-async function getMultipleSentryEnvelopeRequests<T>(page: Page, count: number, url?: string): Promise<T[]> {
+async function getMultipleSentryEnvelopeRequests<T>(
+  page: Page,
+  count: number,
+  options?: {
+    url?: string;
+    timeout?: number;
+  },
+): Promise<T[]> {
   // TODO: This is not currently checking the type of envelope, just casting for now.
   // We can update this to include optional type-guarding when we have types for Envelope.
-  return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, url) as Promise<T[]>;
+  return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, options) as Promise<T[]>;
 }
 
 /**
@@ -125,7 +137,7 @@ async function getMultipleSentryEnvelopeRequests<T>(page: Page, count: number, u
  * @return {*}  {Promise<T>}
  */
 async function getFirstSentryEnvelopeRequest<T>(page: Page, url?: string): Promise<T> {
-  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, url))[0];
+  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }))[0];
 }
 
 /**

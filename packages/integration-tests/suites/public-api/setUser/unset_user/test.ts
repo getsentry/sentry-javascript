@@ -7,7 +7,7 @@ import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 sentryTest('should unset user', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 3, url);
+  const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url });
 
   expect(eventData[0].message).toBe('no_user');
   expect(eventData[0].user).toBeUndefined();
