@@ -42,3 +42,22 @@ export function makeConstToVarPlugin() {
     },
   });
 }
+
+/**
+ * Create a plugin which can be used to pause the build process at the given hook.
+ *
+ * Hooks can be found here: https://rollupjs.org/guide/en/#build-hooks
+ *
+ * @param hookName The name of the hook at which to pause.
+ * @returns A plugin which inserts a debugger statement in the phase represented by the given hook
+ */
+export function makeDebuggerPlugin(hookName) {
+  return {
+    name: 'debugger-plugin',
+    [hookName]: () => {
+      // eslint-disable-next-line no-debugger
+      debugger;
+      return null;
+    },
+  };
+}
