@@ -12,7 +12,7 @@ import { makeNodeResolvePlugin, makeSucrasePlugin } from './plugins/index.js';
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
 export function makeBaseNPMConfig(options = {}) {
-  const { entrypoints = ['src/index.ts'], hasBundles = false } = options;
+  const { entrypoints = ['src/index.ts'], externals: packageSpecificExternals = [], hasBundles = false } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -53,6 +53,7 @@ export function makeBaseNPMConfig(options = {}) {
       ...Object.keys(packageDotJSON.dependencies || {}),
       ...Object.keys(packageDotJSON.devDependencies || {}),
       ...Object.keys(packageDotJSON.peerDependencies || {}),
+      ...packageSpecificExternals,
     ],
 
     // TODO `'smallest'` will get rid of `isDebugBuild()` by evaluating it and inlining the result and then treeshaking
