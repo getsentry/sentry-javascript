@@ -12,6 +12,11 @@
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/angular/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
+## Angular Version Compatibility
+
+For Angular 10-13 use the latest version of the Sentry Angular SDK. In case
+you are using an Angular 9 or earlier, use version 6.x of the SDK as newer versions do not support Angular <10.
+
 ## General
 
 This package is a wrapper around `@sentry/browser`, with added functionality related to Angular. All methods available
