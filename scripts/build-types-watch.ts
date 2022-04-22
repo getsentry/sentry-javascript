@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * If `yarn build:types:watch` is run without types files previously having been created, the build will get stuck in an
  * errored state. This happens because lerna runs all of the packages' `yarn build:types:watch` statements in parallel,
@@ -28,7 +29,9 @@ for (const pkg of packages) {
     continue;
   }
 
-  const packageJSON = JSON.parse(fs.readFileSync(path.resolve(packagePath, 'package.json'), 'utf-8'));
+  const packageJSON = JSON.parse(fs.readFileSync(path.resolve(packagePath, 'package.json'), 'utf-8')) as {
+    scripts: Record<string, string>;
+  };
 
   if ('build:types' in packageJSON.scripts && !fs.existsSync(path.resolve(packagePath, 'build/types'))) {
     console.warn(
