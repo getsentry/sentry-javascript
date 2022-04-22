@@ -1,6 +1,7 @@
 import { VERSION } from '@angular/core';
 import { BrowserOptions, init as browserInit, SDK_VERSION } from '@sentry/browser';
 import { logger } from '@sentry/utils';
+
 import { ANGULAR_MINIMUM_VERSION } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 
