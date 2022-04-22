@@ -14,8 +14,7 @@
 
 ## Angular Version Compatibility
 
-The latest version of this SDK officially supports Angular 10-13. In case you are using an older version of Angular,
-use v6 of the Sentry Angular SDK if you experience problems with newer SDK versions.
+The latest version of this SDK officially supports Angular 10-13. If you are using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the SDK to version 6.x.
 
 ## General
 
