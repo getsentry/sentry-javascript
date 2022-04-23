@@ -12,6 +12,8 @@ scratch/
 *.pyc
 *.tsbuildinfo
 scenarios/*/dist/
+# these are transpiled versions of the real transformers, which are TS files
+jest/transformers/*.js
 
 # logs
 yarn-error.log
