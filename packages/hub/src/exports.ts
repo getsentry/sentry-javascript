@@ -1,4 +1,4 @@
-import { Breadcrumb, CaptureContext, Event, Severity, SeverityLevel } from '@sentry/types';
+import { Breadcrumb, CaptureContext, Event, Severity, SeverityLevel, Extras } from '@sentry/types';
 
 import { getCurrentHub, Hub } from './hub';
 import { Scope } from './scope';
@@ -63,7 +63,7 @@ export function captureEvent(event: Event): ReturnType<Hub['captureEvent']> {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
-  return getCurrentHub().configureScope(callback);
+  getCurrentHub().configureScope(callback);
 }
 
 /**
@@ -75,7 +75,7 @@ export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub
  * @param breadcrumb The breadcrumb to record.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
-  return getCurrentHub().addBreadcrumb(breadcrumb);
+  getCurrentHub().addBreadcrumb(breadcrumb);
 }
 
 /**
@@ -85,5 +85,13 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadc
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
-  return getCurrentHub().setContext(name, context);
+  getCurrentHub().setContext(name, context);
+}
+
+/**
+ * Set an object that will be merged sent as extra data with the event.
+ * @param extras Extras object to merge into current context.
+ */
+export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
+  getCurrentHub().setExtras(extras);
 }
