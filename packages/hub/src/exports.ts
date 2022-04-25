@@ -1,4 +1,4 @@
-import { CaptureContext, Hub } from '@sentry/types';
+import { CaptureContext, Hub, Severity, SeverityLevel } from '@sentry/types';
 
 import { getCurrentHub } from './hub';
 
@@ -26,4 +26,23 @@ export function callOnHub<T>(method: string, ...args: any[]): T {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export function captureException(exception: any, captureContext?: CaptureContext): string {
   return getCurrentHub().captureException(exception, { captureContext });
+}
+
+/**
+ * Captures a message event and sends it to Sentry.
+ *
+ * @param message The message to send to Sentry.
+ * @param Severity Define the level of the message.
+ * @returns The generated eventId.
+ */
+export function captureMessage(
+  message: string,
+  // eslint-disable-next-line deprecation/deprecation
+  captureContext?: CaptureContext | Severity | SeverityLevel,
+): string {
+  // This is necessary to provide explicit scopes upgrade, without changing the original
+  // arity of the `captureMessage(message, level)` method.
+  const level = typeof captureContext === 'string' ? captureContext : undefined;
+  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
+  return getCurrentHub().captureMessage(message, level, context);
 }

@@ -30,32 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Captures a message event and sends it to Sentry.
- *
- * @param message The message to send to Sentry.
- * @param Severity Define the level of the message.
- * @returns The generated eventId.
- */
-export function captureMessage(
-  message: string,
-  // eslint-disable-next-line deprecation/deprecation
-  captureContext?: CaptureContext | Severity | SeverityLevel,
-): string {
-  const syntheticException = new Error(message);
-
-  // This is necessary to provide explicit scopes upgrade, without changing the original
-  // arity of the `captureMessage(message, level)` method.
-  const level = typeof captureContext === 'string' ? captureContext : undefined;
-  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-
-  return callOnHub('captureMessage', message, level, {
-    originalException: message,
-    syntheticException,
-    ...context,
-  });
-}
-
-/**
  * Captures a manually created event and sends it to Sentry.
  *
  * @param event The event to send to Sentry.
