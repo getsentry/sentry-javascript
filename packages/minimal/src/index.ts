@@ -30,18 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Records a new breadcrumb which will be attached to future events.
- *
- * Breadcrumbs will be added to subsequent events to provide more context on
- * user's actions prior to an error or crash.
- *
- * @param breadcrumb The breadcrumb to record.
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  callOnHub<void>('addBreadcrumb', breadcrumb);
-}
-
-/**
  * Sets context data with the given name.
  * @param name of the context
  * @param context Any kind of data. This data will be normalized.

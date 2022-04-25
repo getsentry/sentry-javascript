@@ -1,4 +1,4 @@
-import { CaptureContext, Event, Severity, SeverityLevel } from '@sentry/types';
+import { Breadcrumb, CaptureContext, Event, Severity, SeverityLevel } from '@sentry/types';
 
 import { getCurrentHub, Hub } from './hub';
 import { Scope } from './scope';
@@ -64,4 +64,16 @@ export function captureEvent(event: Event): ReturnType<Hub['captureEvent']> {
  */
 export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
   return getCurrentHub().configureScope(callback);
+}
+
+/**
+ * Records a new breadcrumb which will be attached to future events.
+ *
+ * Breadcrumbs will be added to subsequent events to provide more context on
+ * user's actions prior to an error or crash.
+ *
+ * @param breadcrumb The breadcrumb to record.
+ */
+export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
+  return getCurrentHub().addBreadcrumb(breadcrumb);
 }
