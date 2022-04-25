@@ -5,10 +5,8 @@ import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, initAPI
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
-const legacyDsn = 'https://abc:123@sentry.io:1234/subpath/123';
 const tunnel = 'https://hello.com/world';
 
-const ingestDsnAPI = initAPIDetails(ingestDsn);
 const dsnPublicAPI = initAPIDetails(dsnPublic);
 
 describe('API', () => {

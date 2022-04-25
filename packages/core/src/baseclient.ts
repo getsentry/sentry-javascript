@@ -32,9 +32,9 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
-import { createEventEnvelope, createSessionEnvelope } from './request';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
