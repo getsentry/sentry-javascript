@@ -1,4 +1,4 @@
-import { Breadcrumb, CaptureContext, Event, Extras, Primitive, Severity, SeverityLevel } from '@sentry/types';
+import { Breadcrumb, CaptureContext, Event, Extra, Extras, Primitive, Severity, SeverityLevel } from '@sentry/types';
 
 import { getCurrentHub, Hub } from './hub';
 import { Scope } from './scope';
@@ -94,6 +94,15 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  */
 export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
   getCurrentHub().setExtras(extras);
+}
+
+/**
+ * Set key:value that will be sent as extra data with the event.
+ * @param key String of extra
+ * @param extra Any kind of data. This data will be normalized.
+ */
+export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
+  getCurrentHub().setExtra(key, extra);
 }
 
 /**

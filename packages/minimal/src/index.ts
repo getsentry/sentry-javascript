@@ -30,15 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Set key:value that will be sent as extra data with the event.
- * @param key String of extra
- * @param extra Any kind of data. This data will be normalized.
- */
-export function setExtra(key: string, extra: Extra): void {
-  callOnHub<void>('setExtra', key, extra);
-}
-
-/**
  * Set key:value that will be sent as tags data with the event.
  *
  * Can also be used to unset a tag, by passing `undefined`.
