@@ -1,7 +1,7 @@
 import {
   Envelope,
   InternalBaseTransportOptions,
-  NewTransport,
+  Transport,
   TransportCategory,
   TransportRequest,
   TransportRequestExecutor,
@@ -24,7 +24,7 @@ import {
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 
 /**
- * Creates a `NewTransport`
+ * Creates an instance of a Sentry `Transport`
  *
  * @param options
  * @param makeRequest
@@ -33,7 +33,7 @@ export function createTransport(
   options: InternalBaseTransportOptions,
   makeRequest: TransportRequestExecutor,
   buffer: PromiseBuffer<TransportResponse> = makePromiseBuffer(options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE),
-): NewTransport {
+): Transport {
   let rateLimits: RateLimits = {};
 
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);

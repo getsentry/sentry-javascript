@@ -1,4 +1,4 @@
-import { EventEnvelope, EventItem, NewTransport, TransportMakeRequestResponse, TransportResponse } from '@sentry/types';
+import { EventEnvelope, EventItem, Transport, TransportMakeRequestResponse, TransportResponse } from '@sentry/types';
 import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
 
 import { createTransport } from '../../../src/transports/base';
@@ -88,7 +88,7 @@ describe('createTransport', () => {
 
       function createTestTransport(
         initialTransportResponse: TransportMakeRequestResponse,
-      ): [NewTransport, (res: TransportMakeRequestResponse) => void] {
+      ): [Transport, (res: TransportMakeRequestResponse) => void] {
         let transportResponse: TransportMakeRequestResponse = initialTransportResponse;
 
         function setTransportResponse(res: TransportMakeRequestResponse) {
