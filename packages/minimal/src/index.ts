@@ -30,23 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Captures an exception event and sends it to Sentry.
- *
- * @param exception An exception-like object.
- * @returns The generated eventId.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function captureException(exception: any, captureContext?: CaptureContext): string {
-  const syntheticException = new Error('Sentry syntheticException');
-
-  return callOnHub('captureException', exception, {
-    captureContext,
-    originalException: exception,
-    syntheticException,
-  });
-}
-
-/**
  * Captures a message event and sends it to Sentry.
  *
  * @param message The message to send to Sentry.
