@@ -1,11 +1,11 @@
+import { createTransport } from '@sentry/core';
 import {
   BaseTransportOptions,
-  createTransport,
   NewTransport,
   TransportMakeRequestResponse,
   TransportRequest,
   TransportRequestExecutor,
-} from '@sentry/core';
+} from '@sentry/types';
 import { eventStatusFromHttpCode } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -91,7 +91,6 @@ function createRequestExecutor(
   agent: http.Agent,
 ): TransportRequestExecutor {
   const { hostname, pathname, port, protocol, search } = new URL(options.url);
-
   return function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     return new Promise((resolve, reject) => {
       const req = httpModule.request(

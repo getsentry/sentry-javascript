@@ -3,9 +3,9 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { ClientOptions } from './options';
 import { Scope } from './scope';
-import { Session } from './session';
+import { Session, SessionAggregates } from './session';
 import { Severity, SeverityLevel } from './severity';
-import { Transport } from './transport';
+import { NewTransport } from './transport';
 
 /**
  * User-Facing Sentry SDK Client.
@@ -72,7 +72,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * @returns The transport.
    */
-  getTransport?(): Transport;
+  getTransport(): NewTransport | undefined;
 
   /**
    * Flush the event queue and set the client to `enabled = false`. See {@link Client.flush}.
@@ -116,5 +116,5 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   sendEvent(event: Event): void;
 
   /** Submits the session to Sentry */
-  sendSession(session: Session): void;
+  sendSession(session: Session | SessionAggregates): void;
 }

@@ -1,11 +1,12 @@
-import { NoopTransport } from '@sentry/core';
+import { createTransport } from '@sentry/core';
+import { resolvedSyncPromise } from '@sentry/utils';
 
 import { NodeClientOptions } from '../../src/types';
 
 export function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
   return {
     integrations: [],
-    transport: NoopTransport,
+    transport: () => createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 })),
     stackParser: () => [],
     ...options,
   };

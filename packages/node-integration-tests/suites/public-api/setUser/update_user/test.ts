@@ -1,10 +1,10 @@
-import { assertSentryEvent, getMultipleEventRequests, runServer } from '../../../../utils';
+import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should update user', async () => {
   const url = await runServer(__dirname);
-  const events = await getMultipleEventRequests(url, 2);
+  const envelopes = await getMultipleEnvelopeRequest(url, 4);
 
-  assertSentryEvent(events[0], {
+  assertSentryEvent(envelopes[1][2], {
     message: 'first_user',
     user: {
       id: 'foo',
@@ -12,7 +12,7 @@ test('should update user', async () => {
     },
   });
 
-  assertSentryEvent(events[1], {
+  assertSentryEvent(envelopes[3][2], {
     message: 'second_user',
     user: {
       id: 'baz',

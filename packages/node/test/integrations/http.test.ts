@@ -11,7 +11,6 @@ import * as nock from 'nock';
 import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
-import { setupNodeTransport } from '../../src/transports';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const NODE_VERSION = parseSemver(process.versions.node);
@@ -23,7 +22,7 @@ describe('tracing', () => {
       tracesSampleRate: 1.0,
       integrations: [new HttpIntegration({ tracing: true })],
     });
-    const hub = new Hub(new NodeClient(options, setupNodeTransport(options).transport));
+    const hub = new Hub(new NodeClient(options));
     addExtensionMethods();
 
     // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
@@ -108,7 +107,7 @@ describe('default protocols', () => {
         return b;
       },
     });
-    hub.bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+    hub.bindClient(new NodeClient(options));
 
     return p;
   }

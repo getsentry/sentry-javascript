@@ -1,12 +1,13 @@
 import { expect } from '@playwright/test';
+import { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryRequests } from '../../../../utils/helpers';
+import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
 sentryTest('should allow nested scoping', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getMultipleSentryRequests(page, 5, url);
+  const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 5, { url });
 
   expect(eventData[0].message).toBe('root_before');
   expect(eventData[0].user).toMatchObject({ id: 'qux' });

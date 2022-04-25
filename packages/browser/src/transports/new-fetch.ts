@@ -1,10 +1,5 @@
-import {
-  BaseTransportOptions,
-  createTransport,
-  NewTransport,
-  TransportMakeRequestResponse,
-  TransportRequest,
-} from '@sentry/core';
+import { createTransport } from '@sentry/core';
+import { BaseTransportOptions, NewTransport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 
 import { FetchImpl, getNativeFetchImplementation } from './utils';
 

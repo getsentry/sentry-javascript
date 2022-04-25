@@ -1,16 +1,15 @@
 import { Session } from '@sentry/hub';
-import { ClientOptions, Event, Integration, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { ClientOptions, Event, Integration, Severity, SeverityLevel } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
-import { NewTransport } from '../../src/transports/base';
-import { NoopTransport } from '../../src/transports/noop';
+import { createTransport } from '../../src/transports/base';
 
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
     integrations: [],
-    transport: NoopTransport,
+    transport: () => createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 })),
     stackParser: () => [],
     ...options,
   };
@@ -30,8 +29,8 @@ export class TestClient extends BaseClient<TestClientOptions> {
   public event?: Event;
   public session?: Session;
 
-  public constructor(options: TestClientOptions, transport: Transport, newTransport?: NewTransport) {
-    super(options, transport, newTransport);
+  public constructor(options: TestClientOptions) {
+    super(options);
     TestClient.instance = this;
   }
 
@@ -74,23 +73,6 @@ export class TestClient extends BaseClient<TestClientOptions> {
   }
 }
 
-export function init(options: TestClientOptions, transport: Transport, newTransport?: NewTransport): void {
-  initAndBind(TestClient, options, transport, newTransport);
-}
-
-export function setupTestTransport(options: TestClientOptions): { transport: Transport; newTransport?: NewTransport } {
-  const noop = { transport: new NoopTransport() };
-
-  if (!options.dsn) {
-    // We return the noop transport here in case there is no Dsn.
-    return noop;
-  }
-
-  const transportOptions = options.transportOptions ? options.transportOptions : { dsn: options.dsn };
-
-  if (options.transport) {
-    return { transport: new options.transport(transportOptions) };
-  }
-
-  return noop;
+export function init(options: TestClientOptions): void {
+  initAndBind(TestClient, options);
 }

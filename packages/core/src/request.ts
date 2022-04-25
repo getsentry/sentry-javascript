@@ -1,8 +1,10 @@
 import {
+  DsnComponents,
   Event,
   EventEnvelope,
   EventItem,
   SdkInfo,
+  SdkMetadata,
   SentryRequest,
   SentryRequestType,
   Session,
@@ -15,11 +17,11 @@ import { createEnvelope, dsnToString, normalize, serializeEnvelope } from '@sent
 import { APIDetails, getEnvelopeEndpointWithUrlEncodedAuth, getStoreEndpointWithUrlEncodedAuth } from './api';
 
 /** Extract sdk info from from the API metadata */
-function getSdkMetadataForEnvelopeHeader(api: APIDetails): SdkInfo | undefined {
-  if (!api.metadata || !api.metadata.sdk) {
+function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
+  if (!metadata || !metadata.sdk) {
     return;
   }
-  const { name, version } = api.metadata.sdk;
+  const { name, version } = metadata.sdk;
   return { name, version };
 }
 
@@ -42,13 +44,15 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 /** Creates an envelope from a Session */
 export function createSessionEnvelope(
   session: Session | SessionAggregates,
-  api: APIDetails,
+  dsn: DsnComponents,
+  metadata?: SdkMetadata,
+  tunnel?: string,
 ): [SessionEnvelope, SentryRequestType] {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   const envelopeHeaders = {
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!api.tunnel && { dsn: dsnToString(api.dsn) }),
+    ...(!!tunnel && { dsn: dsnToString(dsn) }),
   };
 
   // I know this is hacky but we don't want to add `sessions` to request type since it's never rate limited
@@ -63,7 +67,7 @@ export function createSessionEnvelope(
 
 /** Creates a SentryRequest from a Session. */
 export function sessionToSentryRequest(session: Session | SessionAggregates, api: APIDetails): SentryRequest {
-  const [envelope, type] = createSessionEnvelope(session, api);
+  const [envelope, type] = createSessionEnvelope(session, api.dsn, api.metadata, api.tunnel);
   return {
     body: serializeEnvelope(envelope),
     type,
@@ -75,8 +79,13 @@ export function sessionToSentryRequest(session: Session | SessionAggregates, api
  * Create an Envelope from an event. Note that this is duplicated from below,
  * but on purpose as this will be refactored in v7.
  */
-export function createEventEnvelope(event: Event, api: APIDetails): EventEnvelope {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
+export function createEventEnvelope(
+  event: Event,
+  dsn: DsnComponents,
+  metadata?: SdkMetadata,
+  tunnel?: string,
+): EventEnvelope {
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   const eventType = event.type || 'event';
 
   const { transactionSampling } = event.sdkProcessingMetadata || {};
@@ -96,7 +105,7 @@ export function createEventEnvelope(event: Event, api: APIDetails): EventEnvelop
   // 2. Restore the original version of the request body, which is commented out
   // 3. Search for either of the PR URLs above and pull out the companion hacks in the browser playwright tests and the
   //    baseClient tests in this package
-  enhanceEventWithSdkInfo(event, api.metadata.sdk);
+  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
   event.tags = event.tags || {};
   event.extra = event.extra || {};
 
@@ -115,7 +124,7 @@ export function createEventEnvelope(event: Event, api: APIDetails): EventEnvelop
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!api.tunnel && { dsn: dsnToString(api.dsn) }),
+    ...(!!tunnel && { dsn: dsnToString(dsn) }),
   };
   const eventItem: EventItem = [
     {
@@ -129,7 +138,7 @@ export function createEventEnvelope(event: Event, api: APIDetails): EventEnvelop
 
 /** Creates a SentryRequest from an event. */
 export function eventToSentryRequest(event: Event, api: APIDetails): SentryRequest {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(api);
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(api.metadata);
   const eventType = event.type || 'event';
   const useEnvelope = eventType === 'transaction' || !!api.tunnel;
 

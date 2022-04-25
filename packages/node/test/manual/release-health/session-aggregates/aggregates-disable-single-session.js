@@ -2,7 +2,7 @@ const http = require('http');
 const express = require('express');
 const app = express();
 const Sentry = require('../../../../build/cjs');
-const { assertSessions, BaseDummyTransport } = require('../test-utils');
+const { assertSessions } = require('../test-utils');
 
 function cleanUpAndExitSuccessfully() {
   server.close();
@@ -27,9 +27,10 @@ function assertSessionAggregates(session, expected) {
   assertSessions(session, expected);
 }
 
-class DummyTransport extends BaseDummyTransport {
-  sendSession(session) {
-    assertSessionAggregates(session, {
+function makeDummyTransport() {
+  return Sentry.createTransport({}, req => {
+    const sessionEnv = req.body.split('\n').map(e => JSON.parse(e));
+    assertSessionAggregates(sessionEnv[2], {
       attrs: { release: '1.1' },
       aggregates: [{ crashed: 2, errored: 1, exited: 1 }],
     });
@@ -37,15 +38,15 @@ class DummyTransport extends BaseDummyTransport {
     cleanUpAndExitSuccessfully();
 
     return Promise.resolve({
-      status: 'success',
+      statusCode: 200,
     });
-  }
+  })
 }
 
 Sentry.init({
   dsn: 'http://test@example.com/1337',
   release: '1.1',
-  transport: DummyTransport,
+  transport: makeDummyTransport,
   autoSessionTracking: true,
 });
 /**
