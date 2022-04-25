@@ -1,7 +1,6 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
 
 import {
-  _callOnClient,
   captureEvent,
   captureException,
   captureMessage,
@@ -194,17 +193,6 @@ describe('Minimal', () => {
   test('returns the bound client', () => {
     init({});
     expect(getCurrentHub().getClient()).toBe(TestClient.instance);
-  });
-
-  test('Calls function on the client', done => {
-    const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
-    getCurrentHub().withScope(() => {
-      getCurrentHub().bindClient(new TestClient({}) as any);
-      _callOnClient('mySecretPublicMethod', 'test');
-      expect(s.mock.calls[0][0]).toBe('test');
-      s.mockRestore();
-      done();
-    });
   });
 
   test('does not throw an error when pushing different clients', () => {
