@@ -8,4 +8,5 @@ module.exports = {
       },
     },
   ],
+  ignorePatterns: ['jsPolyfills/**'],
 };
