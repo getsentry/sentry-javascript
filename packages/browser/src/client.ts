@@ -1,5 +1,5 @@
-import { BaseClient, NewTransport, Scope, SDK_VERSION } from '@sentry/core';
-import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel, Transport } from '@sentry/types';
+import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -47,7 +47,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    *
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: BrowserClientOptions, transport: Transport, newTransport?: NewTransport) {
+  public constructor(options: BrowserClientOptions) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.browser',
@@ -59,7 +59,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       ],
       version: SDK_VERSION,
     };
-    super(options, transport, newTransport);
+    super(options);
   }
 
   /**

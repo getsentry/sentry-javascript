@@ -20,7 +20,7 @@ const createRequestInterceptor = env => {
     }
 
     if (isEventRequest(request)) {
-      logIf(process.env.LOG_REQUESTS, 'Intercepted Event', extractEventFromRequest(request), env.argv.depth);
+      logIf(process.env.LOG_REQUESTS, 'Intercepted Event', extractEnvelopeFromRequest(request), env.argv.depth);
       env.requests.events.push(request);
     } else if (isSessionRequest(request)) {
       logIf(process.env.LOG_REQUESTS, 'Intercepted Session', extractEnvelopeFromRequest(request), env.argv.depth);
@@ -38,12 +38,12 @@ const isSentryRequest = request => {
   return /sentry.io\/api/.test(request.url());
 };
 
-const isEventRequest = request => {
-  return /sentry.io\/api\/\d+\/store/.test(request.url());
-};
-
 const isEnvelopeRequest = request => {
   return /sentry.io\/api\/\d+\/envelope/.test(request.url());
+};
+
+const isEventRequest = request => {
+  return isEnvelopeRequest(request) && extractEnvelopeFromRequest(request).itemHeader.type === 'event';
 };
 
 const isSessionRequest = request => {
@@ -54,21 +54,25 @@ const isTransactionRequest = request => {
   return isEnvelopeRequest(request) && extractEnvelopeFromRequest(request).itemHeader.type === 'transaction';
 };
 
-const expectEvent = (request, expectedEvent) => {
+const expectEvent = (request, expectedItem) => {
   if (!request) throw new Error('Event missing');
-  return assertObjectMatches(extractEventFromRequest(request), expectedEvent);
+  const { itemHeader, item } = extractEnvelopeFromRequest(request);
+  strictEqual(itemHeader.type, 'event');
+  assertObjectMatches(item, expectedItem);
 };
 
 const expectSession = (request, expectedItem) => {
   if (!request) throw new Error('Session missing');
   const { itemHeader, item } = extractEnvelopeFromRequest(request);
-  return itemHeader.type === 'session' && assertObjectMatches(item, expectedItem);
+  strictEqual(itemHeader.type, 'session');
+  assertObjectMatches(item, expectedItem);
 };
 
 const expectTransaction = (request, expectedItem) => {
   if (!request) throw new Error('Transaction missing');
   const { itemHeader, item } = extractEnvelopeFromRequest(request);
-  return itemHeader.type === 'transaction' && assertObjectMatches(item, expectedItem);
+  strictEqual(itemHeader.type, 'transaction');
+  assertObjectMatches(item, expectedItem);
 };
 
 const expectRequestCount = (requests, expectedCount, timeout = 100) => {
@@ -89,10 +93,6 @@ const expectRequestCount = (requests, expectedCount, timeout = 100) => {
   });
 };
 
-const extractEventFromRequest = request => {
-  return JSON.parse(request.postData());
-};
-
 const extractEnvelopeFromRequest = request => {
   return parseEnvelope(request.postData());
 };
@@ -111,8 +111,6 @@ const assertObjectMatches = (actual, expected) => {
       strictEqual(actual[key], expectedValue);
     }
   }
-
-  return true;
 };
 
 module.exports = {
@@ -122,7 +120,6 @@ module.exports = {
   expectSession,
   expectTransaction,
   extractEnvelopeFromRequest,
-  extractEventFromRequest,
   isEnvelopeRequest,
   isEventRequest,
   isSentryRequest,

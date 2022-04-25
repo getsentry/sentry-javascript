@@ -1,4 +1,12 @@
-import { Envelope, EventStatus } from '@sentry/types';
+import {
+  Envelope,
+  InternalBaseTransportOptions,
+  NewTransport,
+  TransportCategory,
+  TransportRequest,
+  TransportRequestExecutor,
+  TransportResponse,
+} from '@sentry/types';
 import {
   disabledUntil,
   eventStatusFromHttpCode,
@@ -12,58 +20,6 @@ import {
   serializeEnvelope,
   updateRateLimits,
 } from '@sentry/utils';
-
-export const ERROR_TRANSPORT_CATEGORY = 'error';
-
-export const TRANSACTION_TRANSPORT_CATEGORY = 'transaction';
-
-export const ATTACHMENT_TRANSPORT_CATEGORY = 'attachment';
-
-export const SESSION_TRANSPORT_CATEGORY = 'session';
-
-type TransportCategory =
-  | typeof ERROR_TRANSPORT_CATEGORY
-  | typeof TRANSACTION_TRANSPORT_CATEGORY
-  | typeof ATTACHMENT_TRANSPORT_CATEGORY
-  | typeof SESSION_TRANSPORT_CATEGORY;
-
-export type TransportRequest = {
-  body: string;
-  category: TransportCategory;
-};
-
-export type TransportMakeRequestResponse = {
-  body?: string;
-  headers?: {
-    [key: string]: string | null;
-    'x-sentry-rate-limits': string | null;
-    'retry-after': string | null;
-  };
-  reason?: string;
-  statusCode: number;
-};
-
-export type TransportResponse = {
-  status: EventStatus;
-  reason?: string;
-};
-
-interface InternalBaseTransportOptions {
-  bufferSize?: number;
-}
-export interface BaseTransportOptions extends InternalBaseTransportOptions {
-  // url to send the event
-  // transport does not care about dsn specific - client should take care of
-  // parsing and figuring that out
-  url: string;
-}
-
-export interface NewTransport {
-  send(request: Envelope): PromiseLike<TransportResponse>;
-  flush(timeout?: number): PromiseLike<boolean>;
-}
-
-export type TransportRequestExecutor = (request: TransportRequest) => PromiseLike<TransportMakeRequestResponse>;
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 

@@ -5,9 +5,9 @@ import { CaptureContext } from './scope';
 import { SdkMetadata } from './sdkmetadata';
 import { StackLineParser, StackParser } from './stacktrace';
 import { SamplingContext } from './transaction';
-import { Transport, TransportClass, TransportOptions } from './transport';
+import { BaseTransportOptions, NewTransport } from './transport';
 
-export interface ClientOptions {
+export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
    * Enable debug functionality in the SDK itself
    */
@@ -61,7 +61,7 @@ export interface ClientOptions {
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport: TransportClass<Transport>;
+  transport: (transportOptions: TO) => NewTransport;
 
   /**
    * A stack parser implementation
@@ -72,7 +72,7 @@ export interface ClientOptions {
   /**
    * Options for the default transport that the SDK uses.
    */
-  transportOptions?: TransportOptions;
+  transportOptions?: Partial<TO>;
 
   /**
    * Sample rate to determine trace sampling.
@@ -202,7 +202,8 @@ export interface ClientOptions {
 }
 
 /** Base configuration options for every SDK. */
-export interface Options extends Omit<Partial<ClientOptions>, 'integrations' | 'transport' | 'stackParser'> {
+export interface Options<TO extends BaseTransportOptions = BaseTransportOptions>
+  extends Omit<Partial<ClientOptions<TO>>, 'integrations' | 'transport' | 'stackParser'> {
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.
@@ -220,7 +221,7 @@ export interface Options extends Omit<Partial<ClientOptions>, 'integrations' | '
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport?: TransportClass<Transport>;
+  transport?: (transportOptions: TO) => NewTransport;
 
   /**
    * A stack parser implementation or an array of stack line parsers

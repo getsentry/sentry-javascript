@@ -12,8 +12,8 @@ function assertTags(actual, expected) {
 
 let remaining = 3;
 
-class DummyTransport {
-  sendEvent(event) {
+function makeDummyTransport() {
+  return Sentry.createTransport({}, req => {
     --remaining;
 
     if (!remaining) {
@@ -23,14 +23,14 @@ class DummyTransport {
     }
 
     return Promise.resolve({
-      status: 'success',
+      statusCode: 200,
     });
-  }
+  })
 }
 
 Sentry.init({
   dsn: 'http://test@example.com/1337',
-  transport: DummyTransport,
+  transport: makeDummyTransport,
   beforeSend(event) {
     if (event.transaction === 'GET /foo') {
       assertTags(event.tags, {

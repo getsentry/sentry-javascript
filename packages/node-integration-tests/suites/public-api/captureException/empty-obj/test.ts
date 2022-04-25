@@ -1,10 +1,11 @@
-import { assertSentryEvent, getEventRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should capture an empty object', async () => {
   const url = await runServer(__dirname);
-  const requestBody = await getEventRequest(url);
+  const envelopes = await getMultipleEnvelopeRequest(url, 2);
+  const errorEnvelope = envelopes[1];
 
-  assertSentryEvent(requestBody, {
+  assertSentryEvent(errorEnvelope[2], {
     exception: {
       values: [
         {
