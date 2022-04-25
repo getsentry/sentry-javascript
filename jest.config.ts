@@ -10,7 +10,8 @@ export default async (): Promise<Config.InitialOptions> => {
     moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
       prefix: '<rootDir>/',
     }),
+    setupFilesAfterEnv: ['./jest.setup.ts'],
     testEnvironment: 'jsdom',
-    testMatch: ['<rootDir>/**/*(*.)@(spec|test).ts'],
+    testMatch: ['<rootDir>/src/**/*(*.)@(spec|test).ts'],
   };
 };

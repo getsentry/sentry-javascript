@@ -13,14 +13,17 @@
     "target": "es5",
     "paths": {
       "@": ["src"],
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@test": ["test"],
+      "@test/*": ["test/*"]
     }
   },
   "include": [
     "src/**/*.ts",
-    "tests/**/*.ts",
+    "test/**/*.ts",
     "rollup.config.ts",
-    "jest.config.ts"
+    "jest.config.ts",
+    "jest.setup.ts"
   ],
   "exclude": ["node_modules"]
 }
