@@ -2,8 +2,8 @@ const Sentry = require('../../../build/cjs');
 
 let remaining = 2;
 
-class DummyTransport {
-  sendEvent(event) {
+function makeDummyTransport() {
+  return Sentry.createTransport({}, req => {
     --remaining;
 
     if (!remaining) {
@@ -14,12 +14,12 @@ class DummyTransport {
     return Promise.resolve({
       status: 'success',
     });
-  }
+  })
 }
 
 Sentry.init({
   dsn: 'https://a@example.com/1',
-  transport: DummyTransport,
+  transport: makeDummyTransport,
   beforeSend(event) {
     if (event.message === 'inside') {
       if (event.tags.a !== 'x' && event.tags.b !== 'c') {

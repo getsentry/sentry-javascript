@@ -1,12 +1,5 @@
 export type { APIDetails } from './api';
 export type { ClientClass } from './sdk';
-export type {
-  BaseTransportOptions,
-  NewTransport,
-  TransportMakeRequestResponse,
-  TransportRequest,
-  TransportRequestExecutor,
-} from './transports/base';
 
 export {
   addBreadcrumb,

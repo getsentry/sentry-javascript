@@ -2,7 +2,6 @@ const Sentry = require('../../../../build/cjs');
 const {
   assertSessions,
   constructStrippedSessionObject,
-  BaseDummyTransport,
   validateSessionCountFunction,
 } = require('../test-utils');
 
@@ -13,25 +12,30 @@ const sessionCounts = {
 
 validateSessionCountFunction(sessionCounts);
 
-class DummyTransport extends BaseDummyTransport {
-  sendSession(session) {
-    sessionCounts.sessionCounter++;
+function makeDummyTransport() {
+  return Sentry.createTransport({}, req => {
+    if (req.category === 'session') {
+      sessionCounts.sessionCounter++;
+      const sessionEnv = req.body.split('\n').map(e => JSON.parse(e));
 
-    assertSessions(constructStrippedSessionObject(session), {
-      init: true,
-      status: 'crashed',
-      errors: 1,
-      release: '1.1',
+      assertSessions(constructStrippedSessionObject(sessionEnv[2]), {
+        init: true,
+        status: 'crashed',
+        errors: 1,
+        release: '1.1',
+      });
+    }
+
+    return Promise.resolve({
+      statusCode: 200,
     });
-
-    return super.sendSession(session);
-  }
+  })
 }
 
 Sentry.init({
   dsn: 'http://test@example.com/1337',
   release: '1.1',
-  transport: DummyTransport,
+  transport: makeDummyTransport,
   autoSessionTracking: true,
 });
 

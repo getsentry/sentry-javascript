@@ -1,5 +1,4 @@
-import { BrowserClient, Transports } from '@sentry/browser';
-import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
+import { BrowserClient } from '@sentry/browser';
 import { Hub } from '@sentry/hub';
 
 import {
@@ -9,16 +8,13 @@ import {
   IdleTransactionSpanRecorder,
 } from '../src/idletransaction';
 import { Span } from '../src/span';
-
-// @ts-ignore It's okay that we're not implementing the methods of the abstract `BaseTransport` class, because it's not
-// what we're testing here
-class SimpleTransport extends Transports.BaseTransport {}
+import { getDefaultBrowserClientOptions } from './testutils';
 
 const dsn = 'https://123@sentry.io/42';
 let hub: Hub;
 beforeEach(() => {
-  const options = getDefaultBrowserClientOptions({ dsn, tracesSampleRate: 1, transport: SimpleTransport });
-  hub = new Hub(new BrowserClient(options, new SimpleTransport({ dsn })));
+  const options = getDefaultBrowserClientOptions({ dsn, tracesSampleRate: 1 });
+  hub = new Hub(new BrowserClient(options));
 });
 
 describe('IdleTransaction', () => {
@@ -167,18 +163,19 @@ describe('IdleTransaction', () => {
     }
   });
 
-  it('should record dropped transactions', async () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
+  // TODO(v7): Add with client reports
+  // it('should record dropped transactions', async () => {
+  //   const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
 
-    const transport = hub.getClient()!.getTransport!();
+  //   const transport = hub.getClient()!.getTransport!();
 
-    const spy = jest.spyOn(transport, 'recordLostEvent');
+  //   const spy = jest.spyOn(transport, 'recordLostEvent');
 
-    transaction.initSpanRecorder(10);
-    transaction.finish(transaction.startTimestamp + 10);
+  //   transaction.initSpanRecorder(10);
+  //   transaction.finish(transaction.startTimestamp + 10);
 
-    expect(spy).toHaveBeenCalledWith('sample_rate', 'transaction');
-  });
+  //   expect(spy).toHaveBeenCalledWith('sample_rate', 'transaction');
+  // });
 
   describe('_initTimeout', () => {
     it('finishes if no activities are added to the transaction', () => {

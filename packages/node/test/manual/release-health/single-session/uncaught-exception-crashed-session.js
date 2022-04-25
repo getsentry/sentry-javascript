@@ -1,24 +1,29 @@
 const Sentry = require('../../../../build/cjs');
-const { assertSessions, constructStrippedSessionObject, BaseDummyTransport } = require('../test-utils');
+const { assertSessions, constructStrippedSessionObject } = require('../test-utils');
 
-class DummyTransport extends BaseDummyTransport {
-  sendSession(session) {
-    assertSessions(constructStrippedSessionObject(session), {
-      init: true,
-      status: 'crashed',
-      errors: 1,
-      release: '1.1',
-    });
+function makeDummyTransport() {
+  return Sentry.createTransport({}, req => {
+    if (req.category === 'session') {
+      sessionCounts.sessionCounter++;
+      const sessionEnv = req.body.split('\n').map(e => JSON.parse(e));
+
+      assertSessions(constructStrippedSessionObject(sessionEnv[2]), {
+        init: true,
+        status: 'crashed',
+        errors: 1,
+        release: '1.1',
+      });
+    }
 
     // We need to explicitly exit process early here to allow for 0 exit code
     process.exit(0);
-  }
+  })
 }
 
 Sentry.init({
   dsn: 'http://test@example.com/1337',
   release: '1.1',
-  transport: DummyTransport,
+  transport: makeDummyTransport,
   autoSessionTracking: true,
 });
 

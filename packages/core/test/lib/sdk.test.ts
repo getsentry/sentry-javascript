@@ -3,7 +3,7 @@ import { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
-import { getDefaultTestClientOptions, setupTestTransport, TestClient } from '../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 // eslint-disable-next-line no-var
 declare var global: any;
@@ -56,7 +56,7 @@ describe('SDK', () => {
         new MockIntegration('MockIntegration 2'),
       ];
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations });
-      initAndBind(TestClient, options, setupTestTransport(options).transport);
+      initAndBind(TestClient, options);
       expect((integrations[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
       expect((integrations[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
     });

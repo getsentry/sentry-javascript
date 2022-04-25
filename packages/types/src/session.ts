@@ -74,9 +74,6 @@ export interface SessionFlusherLike {
    */
   incrementSessionStatusCount(): void;
 
-  /** Submits the aggregates request mode sessions to Sentry */
-  sendSessionAggregates(sessionAggregates: SessionAggregates): void;
-
   /** Empties Aggregate Buckets and Sends them to Transport Buffer */
   flush(): void;
 

@@ -1,11 +1,10 @@
 import { BrowserClient } from '@sentry/browser';
-import { setupBrowserTransport } from '@sentry/browser/src/transports';
-import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
 import { Hub, makeMain } from '@sentry/hub';
 import { JSDOM } from 'jsdom';
 
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
 import { addExtensionMethods } from '../../src/hubextensions';
+import { getDefaultBrowserClientOptions } from '../testutils';
 
 describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
@@ -16,7 +15,7 @@ describe('registerBackgroundTabDetection', () => {
     global.document = dom.window.document;
 
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
+    hub = new Hub(new BrowserClient(options));
     makeMain(hub);
 
     // If we do not add extension methods, invoking hub.startTransaction returns undefined

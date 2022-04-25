@@ -1,10 +1,8 @@
 import { Page, Request } from '@playwright/test';
 import { Event } from '@sentry/types';
 
-const storeUrlRegex = /\.sentry\.io\/api\/\d+\/store\//;
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
-const storeRequestParser = (request: Request | null): Event => JSON.parse((request && request.postData()) || '');
 const envelopeRequestParser = (request: Request | null): Event => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
@@ -25,17 +23,6 @@ async function runScriptInSandbox(page: Page, path: string): Promise<void> {
 }
 
 /**
- * Wait and get Sentry's request sending the event at the given URL, or the current page
- *
- * @param {Page} page
- * @param {string} [url]
- * @return {*}  {Promise<Event>}
- */
-async function getSentryRequest(page: Page, url?: string): Promise<Event> {
-  return (await getMultipleSentryRequests(page, 1, url))[0];
-}
-
-/**
  * Get Sentry events at the given URL, or the current page.
  *
  * @param {Page} page
@@ -52,27 +39,26 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
 }
 
 /**
- * Wait and get multiple requests matching urlRgx at the given URL, or the current page
- *
- * @param {Page} page
- * @param {number} count
- * @param {RegExp} urlRgx
- * @param {(req: Request) => Event} requestParser
- * @param {string} [url]
- * @return {*}  {Promise<Event[]>}
+ * Waits until a number of requests matching urlRgx at the given URL arrive.
+ * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
+ * amount of requests, and returns all the events recieved up to that point in time.
  */
 async function getMultipleRequests(
   page: Page,
   count: number,
   urlRgx: RegExp,
   requestParser: (req: Request) => Event,
-  url?: string,
+  options?: {
+    url?: string;
+    timeout?: number;
+  },
 ): Promise<Event[]> {
   const requests: Promise<Event[]> = new Promise((resolve, reject) => {
     let reqCount = count;
     const requestData: Event[] = [];
+    let timeoutId: NodeJS.Timeout | undefined = undefined;
 
-    page.on('request', request => {
+    function requestHandler(request: Request): void {
       if (urlRgx.test(request.url())) {
         try {
           reqCount -= 1;
@@ -98,47 +84,48 @@ async function getMultipleRequests(
           // requestData.push(requestParser(request));
 
           if (reqCount === 0) {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            page.off('request', requestHandler);
             resolve(requestData);
           }
         } catch (err) {
           reject(err);
         }
       }
-    });
+    }
+
+    page.on('request', requestHandler);
+
+    if (options?.timeout) {
+      timeoutId = setTimeout(() => {
+        resolve(requestData);
+      }, options.timeout);
+    }
   });
 
-  if (url) {
-    await page.goto(url);
+  if (options?.url) {
+    await page.goto(options.url);
   }
 
   return requests;
 }
 
 /**
- * Wait and get multiple event requests at the given URL, or the current page
- *
- * @param {Page} page
- * @param {number} count
- * @param {string} [url]
- * @return {*}  {Promise<Event>}
- */
-async function getMultipleSentryRequests(page: Page, count: number, url?: string): Promise<Event[]> {
-  return getMultipleRequests(page, count, storeUrlRegex, storeRequestParser, url);
-}
-
-/**
  * Wait and get multiple envelope requests at the given URL, or the current page
- *
- * @template T
- * @param {Page} page
- * @param {number} count
- * @param {string} [url]
- * @return {*}  {Promise<T[]>}
  */
-async function getMultipleSentryEnvelopeRequests<T>(page: Page, count: number, url?: string): Promise<T[]> {
+async function getMultipleSentryEnvelopeRequests<T>(
+  page: Page,
+  count: number,
+  options?: {
+    url?: string;
+    timeout?: number;
+  },
+): Promise<T[]> {
   // TODO: This is not currently checking the type of envelope, just casting for now.
   // We can update this to include optional type-guarding when we have types for Envelope.
-  return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, url) as Promise<T[]>;
+  return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, options) as Promise<T[]>;
 }
 
 /**
@@ -150,7 +137,7 @@ async function getMultipleSentryEnvelopeRequests<T>(page: Page, count: number, u
  * @return {*}  {Promise<T>}
  */
 async function getFirstSentryEnvelopeRequest<T>(page: Page, url?: string): Promise<T> {
-  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, url))[0];
+  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }))[0];
 }
 
 /**
@@ -172,10 +159,8 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
 
 export {
   runScriptInSandbox,
-  getMultipleSentryRequests,
   getMultipleSentryEnvelopeRequests,
   getFirstSentryEnvelopeRequest,
-  getSentryRequest,
   getSentryEvents,
   injectScriptAndGetEvents,
 };
