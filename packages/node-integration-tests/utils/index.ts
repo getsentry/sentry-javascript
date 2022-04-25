@@ -103,8 +103,8 @@ export const getMultipleEnvelopeRequest = async (url: string, count: number): Pr
  * @param {Record<string, string>} [headers]
  * @return {*}  {Promise<any>}
  */
-export const getAPIResponse = async (url: URL, headers?: Record<string, string>): Promise<any> => {
-  return await new Promise(resolve => {
+export const getAPIResponse = async (url: URL, headers?: Record<string, string>): Promise<unknown> => {
+  return new Promise(resolve => {
     http.get(
       headers
         ? ({
