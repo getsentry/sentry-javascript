@@ -30,15 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Updates user context information for future events.
- *
- * @param user User context object to be set in the current context. Pass `null` to unset the user.
- */
-export function setUser(user: User | null): void {
-  callOnHub<void>('setUser', user);
-}
-
-/**
  * Creates a new scope with and executes the given operation within.
  * The scope is automatically removed once the operation
  * finishes or throws.

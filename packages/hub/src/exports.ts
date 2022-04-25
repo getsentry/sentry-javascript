@@ -1,4 +1,14 @@
-import { Breadcrumb, CaptureContext, Event, Extra, Extras, Primitive, Severity, SeverityLevel } from '@sentry/types';
+import {
+  Breadcrumb,
+  CaptureContext,
+  Event,
+  Extra,
+  Extras,
+  Primitive,
+  Severity,
+  SeverityLevel,
+  User,
+} from '@sentry/types';
 
 import { getCurrentHub, Hub } from './hub';
 import { Scope } from './scope';
@@ -123,4 +133,13 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  */
 export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
   getCurrentHub().setTag(key, value);
+}
+
+/**
+ * Updates user context information for future events.
+ *
+ * @param user User context object to be set in the current context. Pass `null` to unset the user.
+ */
+export function setUser(user: User | null): ReturnType<Hub['setUser']> {
+  getCurrentHub().setUser(user);
 }
