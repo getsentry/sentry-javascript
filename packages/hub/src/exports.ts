@@ -112,3 +112,15 @@ export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']>
 export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
   getCurrentHub().setTags(tags);
 }
+
+/**
+ * Set key:value that will be sent as tags data with the event.
+ *
+ * Can also be used to unset a tag, by passing `undefined`.
+ *
+ * @param key String key of tag
+ * @param value Value of tag
+ */
+export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
+  getCurrentHub().setTag(key, value);
+}

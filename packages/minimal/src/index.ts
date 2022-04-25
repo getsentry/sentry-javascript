@@ -30,18 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Set key:value that will be sent as tags data with the event.
- *
- * Can also be used to unset a tag, by passing `undefined`.
- *
- * @param key String key of tag
- * @param value Value of tag
- */
-export function setTag(key: string, value: Primitive): void {
-  callOnHub<void>('setTag', key, value);
-}
-
-/**
  * Updates user context information for future events.
  *
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
