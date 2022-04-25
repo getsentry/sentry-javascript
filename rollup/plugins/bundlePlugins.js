@@ -109,7 +109,6 @@ export function makeTSPlugin(jsVersion) {
           '@sentry/browser': ['../browser/src'],
           '@sentry/core': ['../core/src'],
           '@sentry/hub': ['../hub/src'],
-          '@sentry/minimal': ['../minimal/src'],
           '@sentry/types': ['../types/src'],
           '@sentry/utils': ['../utils/src'],
         },

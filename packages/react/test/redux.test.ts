@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/minimal';
+import * as Sentry from '@sentry/browser';
 import { Scope } from '@sentry/types';
 import * as Redux from 'redux';
 
@@ -7,7 +7,8 @@ import { createReduxEnhancer } from '../src/redux';
 const mockAddBreadcrumb = jest.fn();
 const mockSetContext = jest.fn();
 
-jest.mock('@sentry/minimal', () => ({
+jest.mock('@sentry/browser', () => ({
+  ...jest.requireActual('@sentry/browser'),
   configureScope: (callback: (scope: any) => Partial<Scope>) =>
     callback({
       addBreadcrumb: mockAddBreadcrumb,

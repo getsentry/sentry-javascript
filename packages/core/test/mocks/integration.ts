@@ -1,5 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
-import { configureScope } from '@sentry/minimal';
+import { configureScope, getCurrentHub } from '@sentry/hub';
 import { Event, EventProcessor, Integration } from '@sentry/types';
 
 export class TestIntegration implements Integration {
