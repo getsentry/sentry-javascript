@@ -30,23 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Creates a new scope with and executes the given operation within.
- * The scope is automatically removed once the operation
- * finishes or throws.
- *
- * This is essentially a convenience function for:
- *
- *     pushScope();
- *     callback();
- *     popScope();
- *
- * @param callback that will be enclosed into push/popScope.
- */
-export function withScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('withScope', callback);
-}
-
-/**
  * Calls a function on the latest client. Use this with caution, it's meant as
  * in "internal" helper so we don't need to expose every possible function in
  * the shim. It is not guaranteed that the client actually implements the

@@ -143,3 +143,20 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
 export function setUser(user: User | null): ReturnType<Hub['setUser']> {
   getCurrentHub().setUser(user);
 }
+
+/**
+ * Creates a new scope with and executes the given operation within.
+ * The scope is automatically removed once the operation
+ * finishes or throws.
+ *
+ * This is essentially a convenience function for:
+ *
+ *     pushScope();
+ *     callback();
+ *     popScope();
+ *
+ * @param callback that will be enclosed into push/popScope.
+ */
+export function withScope(callback: (scope: Scope) => void): ReturnType<Hub['withScope']> {
+  getCurrentHub().withScope(callback);
+}
