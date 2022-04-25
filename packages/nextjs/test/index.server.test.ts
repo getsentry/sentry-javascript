@@ -95,7 +95,7 @@ describe('Server init()', () => {
       tracesSampleRate: 1.0,
     });
     const hub = getCurrentHub();
-    const sendEvent = jest.spyOn(hub.getClient()!.getTransport!(), 'sendEvent');
+    const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
 
     const transaction = hub.startTransaction({ name: '/404' });
     transaction.finish();
@@ -103,7 +103,7 @@ describe('Server init()', () => {
     // We need to flush because the event processor pipeline is async whereas transaction.finish() is sync.
     await SentryNode.flush();
 
-    expect(sendEvent).not.toHaveBeenCalled();
+    expect(transportSend).not.toHaveBeenCalled();
     expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 

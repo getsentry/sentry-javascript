@@ -1,18 +1,19 @@
 import path from 'path';
 
-import { getEnvelopeRequest, runServer } from '../../../utils';
+import { getMultipleEnvelopeRequest, runServer } from '../../../utils';
 
 test('should aggregate successful, crashed and erroneous sessions', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
-  const envelope = await Promise.race([
-    getEnvelopeRequest(`${url}/success`),
-    getEnvelopeRequest(`${url}/error_handled`),
-    getEnvelopeRequest(`${url}/error_unhandled`),
+  const envelopes = await Promise.race([
+    getMultipleEnvelopeRequest(`${url}/success`, 3),
+    getMultipleEnvelopeRequest(`${url}/error_handled`, 3),
+    getMultipleEnvelopeRequest(`${url}/error_unhandled`, 3),
   ]);
 
-  expect(envelope).toHaveLength(3);
-  expect(envelope[0]).toMatchObject({
+  expect(envelopes).toHaveLength(3);
+  const aggregateSessionEnvelope = envelopes[2];
+  expect(aggregateSessionEnvelope[0]).toMatchObject({
     sent_at: expect.any(String),
     sdk: {
       name: 'sentry.javascript.node',
@@ -20,11 +21,11 @@ test('should aggregate successful, crashed and erroneous sessions', async () => 
     },
   });
 
-  expect(envelope[1]).toMatchObject({
+  expect(aggregateSessionEnvelope[1]).toMatchObject({
     type: 'sessions',
   });
 
-  expect(envelope[2]).toMatchObject({
+  expect(aggregateSessionEnvelope[2]).toMatchObject({
     aggregates: [
       {
         started: expect.any(String),

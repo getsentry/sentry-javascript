@@ -1,16 +1,16 @@
 import { Event } from '@sentry/node';
 
-import { assertSentryEvent, getEventRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should clear previously set properties of a scope', async () => {
   const url = await runServer(__dirname);
-  const requestBody = await getEventRequest(url);
+  const envelope = await getEnvelopeRequest(url);
 
-  assertSentryEvent(requestBody, {
+  assertSentryEvent(envelope[2], {
     message: 'cleared_scope',
     tags: {},
     extra: {},
   });
 
-  expect((requestBody as Event).user).not.toBeDefined();
+  expect((envelope[2] as Event).user).not.toBeDefined();
 });

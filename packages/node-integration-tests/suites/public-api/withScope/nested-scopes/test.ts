@@ -1,12 +1,12 @@
 import { Event } from '@sentry/node';
 
-import { assertSentryEvent, getMultipleEventRequests, runServer } from '../../../../utils';
+import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should allow nested scoping', async () => {
   const url = await runServer(__dirname);
-  const events = await getMultipleEventRequests(url, 5);
+  const envelopes = await getMultipleEnvelopeRequest(url, 10);
 
-  assertSentryEvent(events[0], {
+  assertSentryEvent(envelopes[1][2], {
     message: 'root_before',
     user: {
       id: 'qux',
@@ -14,7 +14,7 @@ test('should allow nested scoping', async () => {
     tags: {},
   });
 
-  assertSentryEvent(events[1], {
+  assertSentryEvent(envelopes[3][2], {
     message: 'outer_before',
     user: {
       id: 'qux',
@@ -24,7 +24,7 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  assertSentryEvent(events[2], {
+  assertSentryEvent(envelopes[5][2], {
     message: 'inner',
     tags: {
       foo: false,
@@ -32,9 +32,9 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  expect((events[2] as Event).user).toBeUndefined();
+  expect((envelopes[4][2] as Event).user).toBeUndefined();
 
-  assertSentryEvent(events[3], {
+  assertSentryEvent(envelopes[7][2], {
     message: 'outer_after',
     user: {
       id: 'baz',
@@ -44,7 +44,7 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  assertSentryEvent(events[4], {
+  assertSentryEvent(envelopes[9][2], {
     message: 'root_after',
     user: {
       id: 'qux',

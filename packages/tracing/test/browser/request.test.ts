@@ -1,6 +1,4 @@
 import { BrowserClient } from '@sentry/browser';
-import { setupBrowserTransport } from '@sentry/browser/src/transports';
-import { getDefaultBrowserClientOptions } from '@sentry/browser/test/unit/helper/browser-client-options';
 import { Hub, makeMain } from '@sentry/hub';
 import * as utils from '@sentry/utils';
 
@@ -8,6 +6,7 @@ import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
 import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
+import { getDefaultBrowserClientOptions } from '../testutils';
 
 beforeAll(() => {
   addExtensionMethods();
@@ -75,7 +74,7 @@ describe('callbacks', () => {
 
   beforeAll(() => {
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new BrowserClient(options, setupBrowserTransport(options).transport));
+    hub = new Hub(new BrowserClient(options));
     makeMain(hub);
   });
 

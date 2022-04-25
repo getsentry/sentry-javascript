@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { NoopTransport, Scope } from '@sentry/core';
+import { Scope } from '@sentry/core';
+import { createTransport } from '@sentry/core';
 import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
 import { Client, Integration } from '@sentry/types';
+import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from '../../src';
 import { init } from '../../src/sdk';
@@ -13,7 +15,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 function getDefaultBrowserOptions(options: Partial<BrowserOptions> = {}): BrowserOptions {
   return {
     integrations: [],
-    transport: NoopTransport,
+    transport: () => createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 })),
     stackParser: () => [],
     ...options,
   };

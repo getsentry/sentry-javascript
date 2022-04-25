@@ -18,7 +18,6 @@ import {
 } from '../src';
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { nodeStackParser } from '../src/stack-parser';
-import { setupNodeTransport } from '../src/transports';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 const stackParser = createStackParser(nodeStackParser);
@@ -102,7 +101,7 @@ describe('SentryNode', () => {
         dsn,
         stackParser,
       });
-      const client = new NodeClient(options, setupNodeTransport(options).transport);
+      const client = new NodeClient(options);
       getCurrentHub().bindClient(client);
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
@@ -137,7 +136,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+      getCurrentHub().bindClient(new NodeClient(options));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
       });
@@ -164,7 +163,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+      getCurrentHub().bindClient(new NodeClient(options));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
       });
@@ -195,7 +194,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+      getCurrentHub().bindClient(new NodeClient(options));
       configureScope((scope: Scope) => {
         scope.setTag('test', '1');
       });
@@ -233,7 +232,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+      getCurrentHub().bindClient(new NodeClient(options));
       try {
         throw new Error('test');
       } catch (e) {
@@ -258,7 +257,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+      getCurrentHub().bindClient(new NodeClient(options));
       captureMessage('test');
     });
 
@@ -274,7 +273,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+      getCurrentHub().bindClient(new NodeClient(options));
       captureEvent({ message: 'test event' });
     });
 
@@ -291,7 +290,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      const client = new NodeClient(options, setupNodeTransport(options).transport);
+      const client = new NodeClient(options);
 
       d.run(() => {
         getCurrentHub().bindClient(client);
@@ -314,7 +313,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options, setupNodeTransport(options).transport));
+      getCurrentHub().bindClient(new NodeClient(options));
       try {
         // @ts-ignore allow function declarations in strict mode
         // eslint-disable-next-line no-inner-declarations
@@ -368,7 +367,7 @@ describe('SentryNode initialization', () => {
       init({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');
@@ -378,10 +377,10 @@ describe('SentryNode initialization', () => {
 
     it('should set SDK data when instantiating a client directly', () => {
       const options = getDefaultNodeClientOptions({ dsn });
-      const client = new NodeClient(options, setupNodeTransport(options).transport);
+      const client = new NodeClient(options);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (client as any).getTransport()._api.metadata?.sdk;
+      const sdkData = (client as any).getOptions()._metadata.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');
@@ -410,7 +409,7 @@ describe('SentryNode initialization', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any).getTransport()._api.metadata?.sdk;
+      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
 
       expect(sdkData.name).toEqual('sentry.javascript.serverless');
       expect(sdkData.packages[0].name).toEqual('npm:@sentry/serverless');

@@ -4,10 +4,13 @@ import {
   Client,
   ClientOptions,
   DsnComponents,
+  Envelope,
   Event,
   EventHint,
   Integration,
   IntegrationClass,
+  NewTransport,
+  SessionAggregates,
   Severity,
   SeverityLevel,
   Transport,
@@ -29,11 +32,10 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { APIDetails, initAPIDetails } from './api';
+import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { createEventEnvelope, createSessionEnvelope } from './request';
-import { NewTransport } from './transports/base';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -75,6 +77,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
   protected readonly _dsn?: DsnComponents;
 
+  protected readonly _transport?: NewTransport;
+
   /** Array of set up integrations. */
   protected _integrations: IntegrationIndex = {};
 
@@ -84,12 +88,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Number of calls being processed */
   protected _numProcessing: number = 0;
 
-  /** Cached transport used internally. */
-  protected _transport: Transport;
-
-  /** New v7 Transport that is initialized alongside the old one */
-  protected _newTransport?: NewTransport;
-
   /**
    * Initializes this client instance.
    *
@@ -97,25 +95,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param transport The (old) Transport instance for the client to use (TODO(v7): remove)
    * @param newTransport The NewTransport instance for the client to use
    */
-  protected constructor(options: O, transport: Transport, newTransport?: NewTransport) {
+  protected constructor(options: O) {
     this._options = options;
-
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
+      const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options.tunnel);
+      this._transport = options.transport({ ...options.transportOptions, url });
     } else {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
-
-    // TODO(v7): remove old transport
-    this._transport = transport;
-    this._newTransport = newTransport;
-
-    // TODO(v7): refactor this to keep metadata/api outside of transport. This hack is used to
-    //           satisfy tests until we move to NewTransport where we have to revisit this.
-    (this._transport as unknown as { _api: Partial<APIDetails> })._api = {
-      ...((this._transport as unknown as { _api: Partial<APIDetails> })._api || {}),
-      metadata: options._metadata || {},
-    };
   }
 
   /**
@@ -202,7 +190,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (!(typeof session.release === 'string')) {
       IS_DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
     } else {
-      this._sendSession(session);
+      this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
       session.update({ init: false });
     }
@@ -225,7 +213,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public getTransport(): Transport {
+  public getTransport(): NewTransport | undefined {
     return this._transport;
   }
 
@@ -233,11 +221,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public flush(timeout?: number): PromiseLike<boolean> {
-    return this._isClientDoneProcessing(timeout).then(clientFinished => {
-      return this.getTransport()
-        .close(timeout)
-        .then(transportFlushed => clientFinished && transportFlushed);
-    });
+    const transport = this._transport;
+    if (transport) {
+      return this._isClientDoneProcessing(timeout).then(clientFinished => {
+        return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
+      });
+    } else {
+      return resolvedSyncPromise(true);
+    }
   }
 
   /**
@@ -276,50 +267,32 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendEvent(event: Event): void {
-    // TODO(v7): Remove the if-else
-    if (
-      this._newTransport &&
-      this._options.dsn &&
-      this._options._experiments &&
-      this._options._experiments.newTransport
-    ) {
-      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
-      const env = createEventEnvelope(event, api);
-      void this._newTransport.send(env).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      void this._transport.sendEvent(event).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
+    if (this._dsn) {
+      const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+      this.sendEnvelope(env);
     }
   }
 
   /**
    * @inheritDoc
    */
-  public sendSession(session: Session): void {
-    if (!this._transport.sendSession) {
-      IS_DEBUG_BUILD && logger.warn("Dropping session because custom transport doesn't implement sendSession");
-      return;
+  public sendSession(session: Session | SessionAggregates): void {
+    if (this._dsn) {
+      const [env] = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+      this.sendEnvelope(env);
     }
+  }
 
-    // TODO(v7): Remove the if-else
-    if (
-      this._newTransport &&
-      this._options.dsn &&
-      this._options._experiments &&
-      this._options._experiments.newTransport
-    ) {
-      const api = initAPIDetails(this._options.dsn, this._options._metadata, this._options.tunnel);
-      const [env] = createSessionEnvelope(session, api);
-      void this._newTransport.send(env).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
+  /**
+   * @inheritdoc
+   */
+  public sendEnvelope(env: Envelope): void {
+    if (this._transport && this._dsn) {
+      this._transport.send(env).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
       });
     } else {
-      void this._transport.sendSession(session).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending session:', reason);
-      });
+      IS_DEBUG_BUILD && logger.error('Transport disabled');
     }
   }
 
@@ -354,12 +327,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       });
       this.captureSession(session);
     }
-  }
-
-  /** Deliver captured session to Sentry */
-  // TODO(v7): should this be deleted?
-  protected _sendSession(session: Session): void {
-    this.sendSession(session);
   }
 
   /**
@@ -599,15 +566,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
-    const transport = this.getTransport();
 
     type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
     type RecordLostEventParams = Parameters<RecordLostEvent>;
 
-    function recordLostEvent(outcome: RecordLostEventParams[0], category: RecordLostEventParams[1]): void {
-      if (transport.recordLostEvent) {
-        transport.recordLostEvent(outcome, category);
-      }
+    function recordLostEvent(_outcome: RecordLostEventParams[0], _category: RecordLostEventParams[1]): void {
+      // no-op as new transports don't have client outcomes
+      // TODO(v7): Re-add this functionality
+      // if (transport.recordLostEvent) {
+      //   transport.recordLostEvent(outcome, category);
+      // }
     }
 
     if (!this._isEnabled()) {

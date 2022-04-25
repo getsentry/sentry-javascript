@@ -8,24 +8,8 @@ function assertSessions(actual, expected) {
 }
 
 function constructStrippedSessionObject(actual) {
-  const { init, status, errors, release, did } = actual;
+  const { init, status, errors, attrs: { release }, did } = actual;
   return { init, status, errors, release, did };
-}
-
-class BaseDummyTransport {
-  sendEvent(event) {
-    return Promise.resolve({
-      status: 'success',
-    });
-  }
-  sendSession(session) {
-    return Promise.resolve({
-      status: 'success',
-    });
-  }
-  close(timeout) {
-    return Promise.resolve(true);
-  }
 }
 
 function validateSessionCountFunction(sessionCounts) {
@@ -38,4 +22,4 @@ function validateSessionCountFunction(sessionCounts) {
   });
 }
 
-module.exports = { assertSessions, constructStrippedSessionObject, BaseDummyTransport, validateSessionCountFunction };
+module.exports = { assertSessions, constructStrippedSessionObject, validateSessionCountFunction };
