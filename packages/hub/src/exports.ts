@@ -1,6 +1,7 @@
-import { CaptureContext, Event, Hub, Severity, SeverityLevel } from '@sentry/types';
+import { CaptureContext, Event, Severity, SeverityLevel } from '@sentry/types';
 
-import { getCurrentHub } from './hub';
+import { getCurrentHub, Hub } from './hub';
+import { Scope } from './scope';
 
 /**
  * This calls a function on the current hub.
@@ -24,7 +25,7 @@ export function callOnHub<T>(method: string, ...args: any[]): T {
  * @returns The generated eventId.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function captureException(exception: any, captureContext?: CaptureContext): string {
+export function captureException(exception: any, captureContext?: CaptureContext): ReturnType<Hub['captureException']> {
   return getCurrentHub().captureException(exception, { captureContext });
 }
 
@@ -39,7 +40,7 @@ export function captureMessage(
   message: string,
   // eslint-disable-next-line deprecation/deprecation
   captureContext?: CaptureContext | Severity | SeverityLevel,
-): string {
+): ReturnType<Hub['captureMessage']> {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
@@ -53,6 +54,14 @@ export function captureMessage(
  * @param event The event to send to Sentry.
  * @returns The generated eventId.
  */
-export function captureEvent(event: Event): string {
+export function captureEvent(event: Event): ReturnType<Hub['captureEvent']> {
   return getCurrentHub().captureEvent(event);
+}
+
+/**
+ * Callback to set context information onto the scope.
+ * @param callback Callback function that receives Scope.
+ */
+export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
+  return getCurrentHub().configureScope(callback);
 }

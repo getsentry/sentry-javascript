@@ -30,14 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Callback to set context information onto the scope.
- * @param callback Callback function that receives Scope.
- */
-export function configureScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('configureScope', callback);
-}
-
-/**
  * Records a new breadcrumb which will be attached to future events.
  *
  * Breadcrumbs will be added to subsequent events to provide more context on
