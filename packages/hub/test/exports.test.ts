@@ -1,5 +1,4 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '../src';
-
 import {
   captureEvent,
   captureException,
