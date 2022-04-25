@@ -20,7 +20,6 @@ export type FallbackRender = (errorData: {
 }) => React.ReactElement;
 
 export type ErrorBoundaryProps = {
-  children?: React.ReactNode | (() => React.ReactNode) | undefined;
   /** If a Sentry report dialog should be rendered on error */
   showDialog?: boolean;
   /**
@@ -67,7 +66,7 @@ const INITIAL_STATE = {
  * Sentry React SDK ErrorBoundary caught an error invoking your application code. This
  * is expected behavior and NOT indicative of a bug with the Sentry React SDK.
  */
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<React.PropsWithChildren<ErrorBoundaryProps>, ErrorBoundaryState> {
   public state: ErrorBoundaryState = INITIAL_STATE;
 
   public componentDidCatch(error: Error & { cause?: Error }, { componentStack }: React.ErrorInfo): void {
