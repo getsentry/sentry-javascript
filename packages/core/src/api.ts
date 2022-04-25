@@ -35,8 +35,8 @@ function getBaseApiEndpoint(dsn: DsnComponents): string {
 }
 
 /** Returns the ingest API endpoint for target. */
-function _getIngestEndpoint(dsn: DsnComponents, target: 'store' | 'envelope'): string {
-  return `${getBaseApiEndpoint(dsn)}${dsn.projectId}/${target}/`;
+function _getIngestEndpoint(dsn: DsnComponents): string {
+  return `${getBaseApiEndpoint(dsn)}${dsn.projectId}/envelope/`;
 }
 
 /** Returns a URL-encoded string with auth config suitable for a query string. */
@@ -49,54 +49,13 @@ function _encodedAuth(dsn: DsnComponents): string {
   });
 }
 
-/** Returns the store endpoint URL. */
-export function getStoreEndpoint(dsn: DsnComponents): string {
-  return _getIngestEndpoint(dsn, 'store');
-}
-
-/**
- * Returns the store endpoint URL with auth in the query string.
- *
- * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
- */
-export function getStoreEndpointWithUrlEncodedAuth(dsn: DsnComponents): string {
-  return `${getStoreEndpoint(dsn)}?${_encodedAuth(dsn)}`;
-}
-
-/** Returns the envelope endpoint URL. */
-function _getEnvelopeEndpoint(dsn: DsnComponents): string {
-  return _getIngestEndpoint(dsn, 'envelope');
-}
-
 /**
  * Returns the envelope endpoint URL with auth in the query string.
  *
  * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
  */
 export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel?: string): string {
-  return tunnel ? tunnel : `${_getEnvelopeEndpoint(dsn)}?${_encodedAuth(dsn)}`;
-}
-
-/**
- * Returns an object that can be used in request headers.
- * This is needed for node and the old /store endpoint in sentry
- */
-export function getRequestHeaders(
-  dsn: DsnComponents,
-  clientName: string,
-  clientVersion: string,
-): { [key: string]: string } {
-  // CHANGE THIS to use metadata but keep clientName and clientVersion compatible
-  const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
-  header.push(`sentry_client=${clientName}/${clientVersion}`);
-  header.push(`sentry_key=${dsn.publicKey}`);
-  if (dsn.pass) {
-    header.push(`sentry_secret=${dsn.pass}`);
-  }
-  return {
-    'Content-Type': 'application/json',
-    'X-Sentry-Auth': header.join(', '),
-  };
+  return tunnel ? tunnel : `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn)}`;
 }
 
 /** Returns the url to the report dialog endpoint. */

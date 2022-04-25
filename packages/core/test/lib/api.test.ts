@@ -1,14 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import { makeDsn } from '@sentry/utils';
 
-import {
-  getEnvelopeEndpointWithUrlEncodedAuth,
-  getReportDialogEndpoint,
-  getRequestHeaders,
-  getStoreEndpoint,
-  getStoreEndpointWithUrlEncodedAuth,
-  initAPIDetails,
-} from '../../src/api';
+import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, initAPIDetails } from '../../src/api';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
@@ -19,34 +12,12 @@ const ingestDsnAPI = initAPIDetails(ingestDsn);
 const dsnPublicAPI = initAPIDetails(dsnPublic);
 
 describe('API', () => {
-  test('getStoreEndpoint', () => {
-    expect(getStoreEndpointWithUrlEncodedAuth(dsnPublicAPI.dsn)).toEqual(
-      'https://sentry.io:1234/subpath/api/123/store/?sentry_key=abc&sentry_version=7',
-    );
-    expect(getStoreEndpoint(dsnPublicAPI.dsn)).toEqual('https://sentry.io:1234/subpath/api/123/store/');
-    expect(getStoreEndpoint(ingestDsnAPI.dsn)).toEqual('https://xxxx.ingest.sentry.io:1234/subpath/api/123/store/');
-  });
-
   test('getEnvelopeEndpoint', () => {
     expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicAPI.dsn)).toEqual(
       'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
     );
     const dsnPublicAPIWithTunnel = initAPIDetails(dsnPublic, {}, tunnel);
     expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicAPIWithTunnel.dsn, tunnel)).toEqual(tunnel);
-  });
-
-  test('getRequestHeaders', () => {
-    expect(getRequestHeaders(makeDsn(dsnPublic), 'a', '1.0')).toMatchObject({
-      'Content-Type': 'application/json',
-      'X-Sentry-Auth': expect.stringMatching(/^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc$/),
-    });
-
-    expect(getRequestHeaders(makeDsn(legacyDsn), 'a', '1.0')).toMatchObject({
-      'Content-Type': 'application/json',
-      'X-Sentry-Auth': expect.stringMatching(
-        /^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc, sentry_secret=123$/,
-      ),
-    });
   });
 
   describe('getReportDialogEndpoint', () => {

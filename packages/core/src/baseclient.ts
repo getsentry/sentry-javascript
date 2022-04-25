@@ -275,7 +275,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public sendSession(session: Session | SessionAggregates): void {
     if (this._dsn) {
-      const [env] = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+      const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
       this.sendEnvelope(env);
     }
   }
