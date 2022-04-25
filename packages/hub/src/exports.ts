@@ -1,4 +1,4 @@
-import { Breadcrumb, CaptureContext, Event, Severity, SeverityLevel, Extras } from '@sentry/types';
+import { Breadcrumb, CaptureContext, Event, Extras, Primitive, Severity, SeverityLevel } from '@sentry/types';
 
 import { getCurrentHub, Hub } from './hub';
 import { Scope } from './scope';
@@ -94,4 +94,12 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  */
 export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
   getCurrentHub().setExtras(extras);
+}
+
+/**
+ * Set an object that will be merged sent as tags data with the event.
+ * @param tags Tags context object to merge into current context.
+ */
+export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
+  getCurrentHub().setTags(tags);
 }
