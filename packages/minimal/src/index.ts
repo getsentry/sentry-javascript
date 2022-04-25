@@ -30,16 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Captures a manually created event and sends it to Sentry.
- *
- * @param event The event to send to Sentry.
- * @returns The generated eventId.
- */
-export function captureEvent(event: Event): string {
-  return callOnHub('captureEvent', event);
-}
-
-/**
  * Callback to set context information onto the scope.
  * @param callback Callback function that receives Scope.
  */

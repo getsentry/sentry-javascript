@@ -1,4 +1,4 @@
-import { CaptureContext, Hub, Severity, SeverityLevel } from '@sentry/types';
+import { CaptureContext, Event, Hub, Severity, SeverityLevel } from '@sentry/types';
 
 import { getCurrentHub } from './hub';
 
@@ -45,4 +45,14 @@ export function captureMessage(
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
   return getCurrentHub().captureMessage(message, level, context);
+}
+
+/**
+ * Captures a manually created event and sends it to Sentry.
+ *
+ * @param event The event to send to Sentry.
+ * @returns The generated eventId.
+ */
+export function captureEvent(event: Event): string {
+  return getCurrentHub().captureEvent(event);
 }
