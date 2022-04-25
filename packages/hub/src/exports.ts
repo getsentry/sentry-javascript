@@ -16,21 +16,6 @@ import { getCurrentHub, Hub } from './hub';
 import { Scope } from './scope';
 
 /**
- * This calls a function on the current hub.
- * @param method function to call on hub.
- * @param args to pass to function.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function callOnHub<T>(method: string, ...args: any[]): T {
-  const hub = getCurrentHub();
-  if (hub && hub[method as keyof Hub]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (hub[method as keyof Hub] as any)(...args);
-  }
-  throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
-}
-
-/**
  * Captures an exception event and sends it to Sentry.
  *
  * @param exception An exception-like object.
