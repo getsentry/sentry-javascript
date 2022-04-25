@@ -30,16 +30,6 @@ function callOnHub<T>(method: string, ...args: any[]): T {
 }
 
 /**
- * Sets context data with the given name.
- * @param name of the context
- * @param context Any kind of data. This data will be normalized.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function setContext(name: string, context: { [key: string]: any } | null): void {
-  callOnHub<void>('setContext', name, context);
-}
-
-/**
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */

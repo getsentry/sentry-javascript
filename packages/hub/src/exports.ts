@@ -77,3 +77,13 @@ export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub
 export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
   return getCurrentHub().addBreadcrumb(breadcrumb);
 }
+
+/**
+ * Sets context data with the given name.
+ * @param name of the context
+ * @param context Any kind of data. This data will be normalized.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
+  return getCurrentHub().setContext(name, context);
+}
