@@ -29,7 +29,7 @@
     "jsdom": "^16.2.2"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:types build:bundle && ts-node ../../scripts/prepack.ts #necessary for integration tests",
+    "build": "run-p build:cjs build:esm build:types build:bundle && ts-node ../../scripts/prepack.ts --bundles #necessary for integration tests",
     "build:bundle": "rollup --config",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-p build:cjs build:esm build:types",
@@ -82,8 +82,8 @@
   "sideEffects": [
     "./dist/index.js",
     "./esm/index.js",
-    "./npm/dist/index.js",
-    "./npm/esm/index.js",
+    "./build/npm/dist/index.js",
+    "./build/npm/esm/index.js",
     "./src/index.ts"
   ]
 }

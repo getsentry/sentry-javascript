@@ -145,6 +145,13 @@ async function main() {
   const zipFilename = `sentry-node-serverless-${version}.zip`;
 
   try {
+    fs.symlinkSync(path.resolve(destRoot, 'build', 'dist'), path.resolve(destRoot, 'dist'));
+    fs.symlinkSync(path.resolve(destRoot, 'build', 'esm'), path.resolve(destRoot, 'esm'));
+  } catch (error) {
+    console.error(error);
+  }
+
+  try {
     fs.unlinkSync(path.resolve(dist, zipFilename));
   } catch (error) {
     // If the ZIP file hasn't been previously created (e.g. running this script for the first time),
