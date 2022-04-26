@@ -23,15 +23,8 @@ export {
   Scope,
   Session,
 } from '@sentry/hub';
-export {
-  getEnvelopeEndpointWithUrlEncodedAuth,
-  getStoreEndpointWithUrlEncodedAuth,
-  getRequestHeaders,
-  initAPIDetails,
-  getReportDialogEndpoint,
-} from './api';
+export { getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
-export { eventToSentryRequest, sessionToSentryRequest } from './request';
 export { initAndBind } from './sdk';
 export { createTransport } from './transports/base';
 export { SDK_VERSION } from './version';
