@@ -58,9 +58,9 @@
     "extends": "../../package.json"
   },
   "sideEffects": [
-    "./dist/index.js",
+    "./cjs/index.js",
     "./esm/index.js",
-    "./build/npm/dist/index.js",
+    "./build/npm/cjs/index.js",
     "./build/npm/esm/index.js",
     "./src/index.ts"
   ]
