@@ -34,7 +34,7 @@ module.exports = {
       },
     },
     {
-      files: ['scripts/**/*.ts'],
+      files: ['jest/**/*.ts', 'scripts/**/*.ts'],
       parserOptions: {
         project: ['tsconfig.dev.json'],
       },
