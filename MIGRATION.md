@@ -10,6 +10,28 @@ Node.js version 6 has reached end of life in April 2019. For Sentry JavaScript S
 As far as SDK development goes, dropping support means no longer running integration tests for Node.js version 6, and also no longer handling edge cases specific to version 6.
 Running the new SDK version on Node.js v6 is therefore highly discouraged.
 
+## Removal of `@sentry/minimal`
+
+The `@sentry/minimal` package was deleted and it's functionality was moved to `@sentry/hub`. All exports from `@sentry/minimal` should be avaliable in `@sentry/hub` other than `_callOnClient` function which was removed.
+
+```ts
+// New in v7:
+import {
+  addBreadcrumb,
+  captureException,
+  configureScope,
+  setTag,
+} from '@sentry/hub';
+
+// Before:
+import {
+  addBreadcrumb,
+  captureException,
+  configureScope,
+  setTag,
+} from '@sentry/minimal';
+```
+
 ## Removal Of Old Platform Integrations From `@sentry/integrations` Package
 
 The following classes will be removed from the `@sentry/integrations` package and can no longer be used:

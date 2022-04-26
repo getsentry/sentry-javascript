@@ -15,8 +15,14 @@ export {
   setTags,
   setUser,
   withScope,
-} from '@sentry/minimal';
-export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMain, Scope, Session } from '@sentry/hub';
+  addGlobalEventProcessor,
+  getCurrentHub,
+  getHubFromCarrier,
+  Hub,
+  makeMain,
+  Scope,
+  Session,
+} from '@sentry/hub';
 export {
   getEnvelopeEndpointWithUrlEncodedAuth,
   getStoreEndpointWithUrlEncodedAuth,
