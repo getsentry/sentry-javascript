@@ -1,4 +1,3 @@
-import { getCurrentHub, Hub, Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   CaptureContext,
@@ -9,25 +8,19 @@ import {
   Primitive,
   Severity,
   SeverityLevel,
-  Transaction,
   TransactionContext,
   User,
 } from '@sentry/types';
 
-/**
- * This calls a function on the current hub.
- * @param method function to call on hub.
- * @param args to pass to function.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function callOnHub<T>(method: string, ...args: any[]): T {
-  const hub = getCurrentHub();
-  if (hub && hub[method as keyof Hub]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (hub[method as keyof Hub] as any)(...args);
-  }
-  throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
-}
+import { getCurrentHub, Hub } from './hub';
+import { Scope } from './scope';
+
+// Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
+// where HUB_FUNCTION is some method on the Hub class.
+//
+// This is done to make sure the top level SDK methods stay in sync with the hub methods.
+// Although every method here has an explicit return type, some of them (that map to void returns) do not
+// contain `return` keywords. This is done to save on bundle size, as `return` is not minifiable.
 
 /**
  * Captures an exception event and sends it to Sentry.
@@ -36,14 +29,8 @@ function callOnHub<T>(method: string, ...args: any[]): T {
  * @returns The generated eventId.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function captureException(exception: any, captureContext?: CaptureContext): string {
-  const syntheticException = new Error('Sentry syntheticException');
-
-  return callOnHub('captureException', exception, {
-    captureContext,
-    originalException: exception,
-    syntheticException,
-  });
+export function captureException(exception: any, captureContext?: CaptureContext): ReturnType<Hub['captureException']> {
+  return getCurrentHub().captureException(exception, { captureContext });
 }
 
 /**
@@ -57,19 +44,12 @@ export function captureMessage(
   message: string,
   // eslint-disable-next-line deprecation/deprecation
   captureContext?: CaptureContext | Severity | SeverityLevel,
-): string {
-  const syntheticException = new Error(message);
-
+): ReturnType<Hub['captureMessage']> {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-
-  return callOnHub('captureMessage', message, level, {
-    originalException: message,
-    syntheticException,
-    ...context,
-  });
+  return getCurrentHub().captureMessage(message, level, context);
 }
 
 /**
@@ -78,16 +58,16 @@ export function captureMessage(
  * @param event The event to send to Sentry.
  * @returns The generated eventId.
  */
-export function captureEvent(event: Event): string {
-  return callOnHub('captureEvent', event);
+export function captureEvent(event: Event): ReturnType<Hub['captureEvent']> {
+  return getCurrentHub().captureEvent(event);
 }
 
 /**
  * Callback to set context information onto the scope.
  * @param callback Callback function that receives Scope.
  */
-export function configureScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('configureScope', callback);
+export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
+  getCurrentHub().configureScope(callback);
 }
 
 /**
@@ -98,8 +78,8 @@ export function configureScope(callback: (scope: Scope) => void): void {
  *
  * @param breadcrumb The breadcrumb to record.
  */
-export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  callOnHub<void>('addBreadcrumb', breadcrumb);
+export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
+  getCurrentHub().addBreadcrumb(breadcrumb);
 }
 
 /**
@@ -108,24 +88,16 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param context Any kind of data. This data will be normalized.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function setContext(name: string, context: { [key: string]: any } | null): void {
-  callOnHub<void>('setContext', name, context);
+export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
+  getCurrentHub().setContext(name, context);
 }
 
 /**
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(extras: Extras): void {
-  callOnHub<void>('setExtras', extras);
-}
-
-/**
- * Set an object that will be merged sent as tags data with the event.
- * @param tags Tags context object to merge into current context.
- */
-export function setTags(tags: { [key: string]: Primitive }): void {
-  callOnHub<void>('setTags', tags);
+export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
+  getCurrentHub().setExtras(extras);
 }
 
 /**
@@ -133,8 +105,16 @@ export function setTags(tags: { [key: string]: Primitive }): void {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-export function setExtra(key: string, extra: Extra): void {
-  callOnHub<void>('setExtra', key, extra);
+export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
+  getCurrentHub().setExtra(key, extra);
+}
+
+/**
+ * Set an object that will be merged sent as tags data with the event.
+ * @param tags Tags context object to merge into current context.
+ */
+export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
+  getCurrentHub().setTags(tags);
 }
 
 /**
@@ -145,8 +125,8 @@ export function setExtra(key: string, extra: Extra): void {
  * @param key String key of tag
  * @param value Value of tag
  */
-export function setTag(key: string, value: Primitive): void {
-  callOnHub<void>('setTag', key, value);
+export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
+  getCurrentHub().setTag(key, value);
 }
 
 /**
@@ -154,8 +134,8 @@ export function setTag(key: string, value: Primitive): void {
  *
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export function setUser(user: User | null): void {
-  callOnHub<void>('setUser', user);
+export function setUser(user: User | null): ReturnType<Hub['setUser']> {
+  getCurrentHub().setUser(user);
 }
 
 /**
@@ -171,23 +151,8 @@ export function setUser(user: User | null): void {
  *
  * @param callback that will be enclosed into push/popScope.
  */
-export function withScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('withScope', callback);
-}
-
-/**
- * Calls a function on the latest client. Use this with caution, it's meant as
- * in "internal" helper so we don't need to expose every possible function in
- * the shim. It is not guaranteed that the client actually implements the
- * function.
- *
- * @param method The method to call on the client/client.
- * @param args Arguments to pass to the client/fontend.
- * @hidden
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function _callOnClient(method: string, ...args: any[]): void {
-  callOnHub<void>('_invokeClient', method, ...args);
+export function withScope(callback: (scope: Scope) => void): ReturnType<Hub['withScope']> {
+  getCurrentHub().withScope(callback);
 }
 
 /**
@@ -210,6 +175,6 @@ export function _callOnClient(method: string, ...args: any[]): void {
 export function startTransaction(
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
-): Transaction {
-  return callOnHub('startTransaction', { ...context }, customSamplingContext);
+): ReturnType<Hub['startTransaction']> {
+  return getCurrentHub().startTransaction({ ...context }, customSamplingContext);
 }

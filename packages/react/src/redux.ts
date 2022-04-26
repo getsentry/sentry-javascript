@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { configureScope } from '@sentry/minimal';
+import { configureScope } from '@sentry/browser';
 import { Scope } from '@sentry/types';
 
 interface Action<T = any> {

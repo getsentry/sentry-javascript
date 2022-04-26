@@ -40,7 +40,6 @@
     "packages/hub",
     "packages/integration-tests",
     "packages/integrations",
-    "packages/minimal",
     "packages/nextjs",
     "packages/node",
     "packages/node-integration-tests",

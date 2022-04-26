@@ -16,7 +16,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/minimal": "7.0.0-alpha.1",
     "@sentry/node": "7.0.0-alpha.1",
     "@sentry/tracing": "7.0.0-alpha.1",
     "@sentry/types": "7.0.0-alpha.1",
