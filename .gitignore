@@ -14,6 +14,8 @@ scratch/
 scenarios/*/dist/
 # these are transpiled versions of the real transformers, which are TS files
 jest/transformers/*.js
+# node tarballs
+packages/*/sentry-*.tgz
 
 # logs
 yarn-error.log
