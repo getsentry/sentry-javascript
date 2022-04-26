@@ -22,7 +22,7 @@
   "dependencies": {
     "@sentry/react": "6.19.7",
     "@sentry/tracing": "6.19.7",
-    "@sentry/webpack-plugin": "1.18.8"
+    "@sentry/webpack-plugin": "1.18.9"
   },
   "peerDependencies": {
     "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0",

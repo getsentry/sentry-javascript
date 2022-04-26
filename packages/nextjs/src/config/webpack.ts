@@ -325,6 +325,12 @@ export function getWebpackPluginOptions(
   return { ...defaultPluginOptions, ...userPluginOptions };
 }
 
+/**
+ * NOTE: `eval` usage is a workaround for @vercel/nft detecting the binary itself as the hard dependency
+ *       and effectively always including it in the bundle, which is not what we want.
+ * ref: https://github.com/getsentry/sentry-javascript/issues/3865
+ * ref: https://github.com/vercel/nft/issues/203
+ */
 function ensureCLIBinaryExists(): boolean {
-  return fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'));
+  return eval("fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))");
 }
