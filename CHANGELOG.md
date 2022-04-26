@@ -40,6 +40,14 @@
 - **(breaking)** feat(types): Delete Status enum (#4891)
 - **(breaking)** feat(types): Delete SessionStatus enum (#4890)
 
+## 6.19.7
+
+- fix(react): Add children prop type to ErrorBoundary component (#4966)
+- fix(serverless): Re-add missing modules in Node AWS Lambda Layer (#4982)
+- fix(tracing): Target tracing bundles for side effects (#4955)
+
+Work in this release contributed by @cameronaziz and @kpdecker. Thank you for your contributions!
+
 ## 6.19.6
 
 - fix(typing): Fix typing API in CaptureConsle (#4879)
