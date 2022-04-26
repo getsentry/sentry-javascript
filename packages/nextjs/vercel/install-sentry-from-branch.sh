@@ -27,6 +27,8 @@ yarn --prod false
 
 echo " "
 echo "BUILDING SDK"
+# Types are required for any type of build to succeed
+yarn build:types
 # We need to build es5 versions because `next.config.js` calls `require` on the SDK (to get `withSentryConfig`) and
 # therefore it looks for `cjs/index.js`
 yarn build:cjs
