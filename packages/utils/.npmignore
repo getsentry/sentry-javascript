@@ -8,4 +8,4 @@
 !/types/**/*
 
 # utils specific
-!jsPolyfills/*
+!jsPolyfills/**/*
