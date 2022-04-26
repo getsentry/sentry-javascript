@@ -5,6 +5,7 @@ import { record } from 'rrweb';
 import type { eventWithTime } from 'rrweb/typings/types';
 import {
   createPerformanceEntries,
+  createMemoryEntry,
   ReplayPerformanceEntry,
 } from './createPerformanceEntry';
 import { ReplaySession } from './session';
@@ -159,6 +160,9 @@ export class SentryReplay {
       return event;
     });
 
+    // not fully initialized and the event will not get properly sent to Sentry
+    this.createReplayEvent();
+
     record({
       ...this.rrwebRecordOptions,
       emit: (event: RRWebEvent, isCheckout?: boolean) => {
@@ -231,9 +235,6 @@ export class SentryReplay {
     });
 
     this.addListeners();
-
-    // not fully initialized and the event will not get properly sent to Sentry
-    this.createReplayEvent();
   }
 
   /**
@@ -401,6 +402,12 @@ export class SentryReplay {
     // Parse the entries
     const entryEvents = createPerformanceEntries(entries);
 
+    // window.performance.memory is a non-standard API and doesn't work on all browsers
+    // so we check before creating the event.
+    if ('memory' in window.performance) {
+      // @ts-expect-error memory doesn't exist on type Performance as the API is non-standard
+      entryEvents.push(createMemoryEntry(window.performance.memory));
+    }
     // This current implementation is to create spans on the transaction referenced in `this.replayEvent`
     this.createPerformanceSpans(entryEvents);
   }
