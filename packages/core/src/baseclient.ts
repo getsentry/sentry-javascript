@@ -9,7 +9,6 @@ import {
   EventHint,
   Integration,
   IntegrationClass,
-  NewTransport,
   SessionAggregates,
   Severity,
   SeverityLevel,
@@ -77,7 +76,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
   protected readonly _dsn?: DsnComponents;
 
-  protected readonly _transport?: NewTransport;
+  protected readonly _transport?: Transport;
 
   /** Array of set up integrations. */
   protected _integrations: IntegrationIndex = {};
@@ -92,8 +91,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * Initializes this client instance.
    *
    * @param options Options for the client.
-   * @param transport The (old) Transport instance for the client to use (TODO(v7): remove)
-   * @param newTransport The NewTransport instance for the client to use
    */
   protected constructor(options: O) {
     this._options = options;
@@ -213,7 +210,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public getTransport(): NewTransport | undefined {
+  public getTransport(): Transport | undefined {
     return this._transport;
   }
 
@@ -567,12 +564,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
 
-    type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
-    type RecordLostEventParams = Parameters<RecordLostEvent>;
+    // type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
+    type RecordLostEventParams = unknown[]; // Parameters<RecordLostEvent>;
 
+    // no-op as new transports don't have client outcomes
+    // TODO(v7): Re-add this functionality
     function recordLostEvent(_outcome: RecordLostEventParams[0], _category: RecordLostEventParams[1]): void {
-      // no-op as new transports don't have client outcomes
-      // TODO(v7): Re-add this functionality
       // if (transport.recordLostEvent) {
       //   transport.recordLostEvent(outcome, category);
       // }

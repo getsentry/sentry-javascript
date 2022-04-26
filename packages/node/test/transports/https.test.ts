@@ -1,332 +1,396 @@
-import { Session } from '@sentry/hub';
-import { SessionAggregates, TransportOptions } from '@sentry/types';
-import { SentryError } from '@sentry/utils';
+import { createTransport } from '@sentry/core';
+import { EventEnvelope, EventItem } from '@sentry/types';
+import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import * as http from 'http';
 import * as https from 'https';
-import * as HttpsProxyAgent from 'https-proxy-agent';
 
-import { HTTPSTransport } from '../../src/transports/https';
+import { makeNodeTransport } from '../../src/transports';
+import { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';
+import testServerCerts from './test-server-certs';
 
-const mockSetEncoding = jest.fn();
-const dsn = 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
-const storePath = '/mysubpath/api/50622/store/';
-const envelopePath = '/mysubpath/api/50622/envelope/';
-const tunnel = 'https://hello.com/world';
-const sessionsPayload: SessionAggregates = {
-  attrs: { environment: 'test', release: '1.0' },
-  aggregates: [{ started: '2021-03-17T16:00:00.000Z', exited: 1 }],
-};
-let mockReturnCode = 200;
-let mockHeaders = {};
-
-jest.mock('fs', () => ({
-  readFileSync(): string {
-    return 'mockedCert';
-  },
-}));
-
-function createTransport(options: TransportOptions): HTTPSTransport {
-  const transport = new HTTPSTransport(options);
-  transport.module = {
-    request: jest.fn().mockImplementation((_options: any, callback: any) => ({
-      end: () => {
-        callback({
-          headers: mockHeaders,
-          setEncoding: mockSetEncoding,
-          statusCode: mockReturnCode,
-        });
-      },
-      on: jest.fn(),
-    })),
+jest.mock('@sentry/core', () => {
+  const actualCore = jest.requireActual('@sentry/core');
+  return {
+    ...actualCore,
+    createTransport: jest.fn().mockImplementation(actualCore.createTransport),
   };
-  return transport;
+});
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const httpProxyAgent = require('https-proxy-agent');
+jest.mock('https-proxy-agent', () => {
+  return jest.fn().mockImplementation(() => new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 }));
+});
+
+const SUCCESS = 200;
+const RATE_LIMIT = 429;
+const INVALID = 400;
+const FAILED = 500;
+
+interface TestServerOptions {
+  statusCode: number;
+  responseHeaders?: Record<string, string | string[] | undefined>;
 }
 
-function assertBasicOptions(options: any, useEnvelope: boolean = false): void {
-  expect(options.headers['X-Sentry-Auth']).toContain('sentry_version');
-  expect(options.headers['X-Sentry-Auth']).toContain('sentry_client');
-  expect(options.headers['X-Sentry-Auth']).toContain('sentry_key');
-  expect(options.port).toEqual('8989');
-  expect(options.path).toEqual(useEnvelope ? envelopePath : storePath);
-  expect(options.hostname).toEqual('sentry.io');
+let testServer: http.Server | undefined;
+
+function setupTestServer(
+  options: TestServerOptions,
+  requestInspector?: (req: http.IncomingMessage, body: string) => void,
+) {
+  testServer = https.createServer(testServerCerts, (req, res) => {
+    let body = '';
+
+    req.on('data', data => {
+      body += data;
+    });
+
+    req.on('end', () => {
+      requestInspector?.(req, body);
+    });
+
+    res.writeHead(options.statusCode, options.responseHeaders);
+    res.end();
+
+    // also terminate socket because keepalive hangs connection a bit
+    res.connection.end();
+  });
+
+  testServer.listen(8099);
+
+  return new Promise(resolve => {
+    testServer?.on('listening', resolve);
+  });
 }
 
-describe('HTTPSTransport', () => {
-  beforeEach(() => {
-    mockReturnCode = 200;
-    mockHeaders = {};
+const TEST_SERVER_URL = 'https://localhost:8099';
+
+const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+  [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
+]);
+
+const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE);
+
+const unsafeHttpsModule: HTTPModule = {
+  request: jest
+    .fn()
+    .mockImplementation((options: https.RequestOptions, callback?: (res: HTTPModuleRequestIncomingMessage) => void) => {
+      return https.request({ ...options, rejectUnauthorized: false }, callback);
+    }),
+};
+
+describe('makeNewHttpsTransport()', () => {
+  afterEach(() => {
     jest.clearAllMocks();
+
+    if (testServer) {
+      testServer.close();
+    }
   });
 
-  test('send 200', async () => {
-    const transport = createTransport({ dsn });
-    await transport.sendEvent({
-      message: 'test',
+  describe('.send()', () => {
+    it('should correctly return successful server response', async () => {
+      await setupTestServer({ statusCode: SUCCESS });
+
+      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      const transportResponse = await transport.send(EVENT_ENVELOPE);
+
+      expect(transportResponse).toEqual(expect.objectContaining({ status: 'success' }));
     });
 
-    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-    assertBasicOptions(requestOptions);
-    expect(mockSetEncoding).toHaveBeenCalled();
-  });
-
-  test('send 400', async () => {
-    mockReturnCode = 400;
-    const transport = createTransport({ dsn });
-
-    try {
-      await transport.sendEvent({
-        message: 'test',
+    it('should correctly send envelope to server', async () => {
+      await setupTestServer({ statusCode: SUCCESS }, (req, body) => {
+        expect(req.method).toBe('POST');
+        expect(body).toBe(SERIALIZED_EVENT_ENVELOPE);
       });
-    } catch (e) {
-      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-      assertBasicOptions(requestOptions);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
-    }
-  });
 
-  test('send 200 session', async () => {
-    const transport = createTransport({ dsn });
-    await transport.sendSession(new Session());
-
-    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-    assertBasicOptions(requestOptions, true);
-    expect(mockSetEncoding).toHaveBeenCalled();
-  });
-
-  test('send 400 session', async () => {
-    mockReturnCode = 400;
-    const transport = createTransport({ dsn });
-
-    try {
-      await transport.sendSession(new Session());
-    } catch (e) {
-      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-      assertBasicOptions(requestOptions, true);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
-    }
-  });
-
-  test('send 200 request mode session', async () => {
-    const transport = createTransport({ dsn });
-    await transport.sendSession(sessionsPayload);
-
-    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-    assertBasicOptions(requestOptions, true);
-    expect(mockSetEncoding).toHaveBeenCalled();
-  });
-
-  test('send 400 request mode session', async () => {
-    mockReturnCode = 400;
-    const transport = createTransport({ dsn });
-
-    try {
-      await transport.sendSession(sessionsPayload);
-    } catch (e) {
-      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-      assertBasicOptions(requestOptions, true);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
-    }
-  });
-
-  test('send x-sentry-error header', async () => {
-    mockReturnCode = 429;
-    mockHeaders = {
-      'x-sentry-error': 'test-failed',
-    };
-    const transport = createTransport({ dsn });
-
-    try {
-      await transport.sendEvent({
-        message: 'test',
-      });
-    } catch (e) {
-      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-      assertBasicOptions(requestOptions);
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode}): test-failed`));
-    }
-  });
-
-  test('sends a request to tunnel if configured', async () => {
-    const transport = createTransport({ dsn, tunnel });
-
-    await transport.sendEvent({
-      message: 'test',
+      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      await transport.send(EVENT_ENVELOPE);
     });
 
-    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-    expect(requestOptions.protocol).toEqual('https:');
-    expect(requestOptions.hostname).toEqual('hello.com');
-    expect(requestOptions.path).toEqual('/world');
-  });
+    it('should correctly send user-provided headers to server', async () => {
+      await setupTestServer({ statusCode: SUCCESS }, req => {
+        expect(req.headers).toEqual(
+          expect.objectContaining({
+            // node http module lower-cases incoming headers
+            'x-some-custom-header-1': 'value1',
+            'x-some-custom-header-2': 'value2',
+          }),
+        );
+      });
 
-  test('back-off using retry-after header', async () => {
-    const retryAfterSeconds = 10;
-    mockReturnCode = 429;
-    mockHeaders = {
-      'retry-after': retryAfterSeconds,
-    };
-    const transport = createTransport({ dsn });
+      const transport = makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: TEST_SERVER_URL,
+        headers: {
+          'X-Some-Custom-Header-1': 'value1',
+          'X-Some-Custom-Header-2': 'value2',
+        },
+      });
 
-    const now = Date.now();
-    const mock = jest
-      .spyOn(Date, 'now')
-      // Check for first event
-      .mockReturnValueOnce(now)
-      // Setting disabledUntil
-      .mockReturnValueOnce(now)
-      // Check for second event
-      .mockReturnValueOnce(now + (retryAfterSeconds / 2) * 1000)
-      // Check for third event
-      .mockReturnValueOnce(now + retryAfterSeconds * 1000);
+      await transport.send(EVENT_ENVELOPE);
+    });
 
-    try {
-      await transport.sendEvent({ message: 'test' });
-    } catch (e) {
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
-    }
+    it.each([
+      [RATE_LIMIT, 'rate_limit'],
+      [INVALID, 'invalid'],
+      [FAILED, 'failed'],
+    ])('should correctly reject bad server response (status %i)', async (serverStatusCode, expectedStatus) => {
+      await setupTestServer({ statusCode: serverStatusCode });
 
-    try {
-      await transport.sendEvent({ message: 'test' });
-    } catch (e) {
-      expect(e.status).toEqual(429);
-      expect(e.reason).toEqual(
-        `Transport for event requests locked till ${new Date(
-          now + retryAfterSeconds * 1000,
-        )} due to too many requests.`,
+      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      await expect(transport.send(EVENT_ENVELOPE)).rejects.toEqual(expect.objectContaining({ status: expectedStatus }));
+    });
+
+    it('should resolve when server responds with rate limit header and status code 200', async () => {
+      await setupTestServer({
+        statusCode: SUCCESS,
+        responseHeaders: {
+          'Retry-After': '2700',
+          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+        },
+      });
+
+      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      const transportResponse = await transport.send(EVENT_ENVELOPE);
+
+      expect(transportResponse).toEqual(expect.objectContaining({ status: 'success' }));
+    });
+
+    it('should resolve when server responds with rate limit header and status code 200', async () => {
+      await setupTestServer({
+        statusCode: SUCCESS,
+        responseHeaders: {
+          'Retry-After': '2700',
+          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+        },
+      });
+
+      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      const transportResponse = await transport.send(EVENT_ENVELOPE);
+
+      expect(transportResponse).toEqual(expect.objectContaining({ status: 'success' }));
+    });
+
+    it('should use `caCerts` option', async () => {
+      await setupTestServer({ statusCode: SUCCESS });
+
+      const transport = makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: TEST_SERVER_URL,
+        caCerts: 'some cert',
+      });
+
+      await transport.send(EVENT_ENVELOPE);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(unsafeHttpsModule.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ca: 'some cert',
+        }),
+        expect.anything(),
       );
-      expect(e.payload.message).toEqual('test');
-      expect(e.type).toEqual('event');
-    }
-
-    try {
-      await transport.sendEvent({ message: 'test' });
-    } catch (e) {
-      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
-    }
-
-    mock.mockRestore();
-  });
-
-  test('transport options', async () => {
-    mockReturnCode = 200;
-    const transport = createTransport({
-      dsn,
-      headers: {
-        a: 'b',
-      },
     });
-    await transport.sendEvent({
-      message: 'test',
-    });
-
-    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-    assertBasicOptions(requestOptions);
-    expect(requestOptions.headers).toEqual(expect.objectContaining({ a: 'b' }));
   });
 
   describe('proxy', () => {
-    test('can be configured through client option', async () => {
-      const transport = createTransport({
-        dsn,
-        httpsProxy: 'https://example.com:8080',
+    it('can be configured through option', () => {
+      makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
+        proxy: 'https://example.com',
       });
-      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
-      expect(client).toBeInstanceOf(HttpsProxyAgent);
-      expect(client.secureProxy).toEqual(true);
-      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
+
+      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
+      expect(httpProxyAgent).toHaveBeenCalledWith('https://example.com');
     });
 
-    test('can be configured through env variables option', async () => {
-      process.env.https_proxy = 'https://example.com:8080';
-      const transport = createTransport({
-        dsn,
-        httpsProxy: 'https://example.com:8080',
+    it('can be configured through env variables option (http)', () => {
+      process.env.http_proxy = 'https://example.com';
+      makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
-      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
-      expect(client).toBeInstanceOf(HttpsProxyAgent);
-      expect(client.secureProxy).toEqual(true);
-      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
-      delete process.env.https_proxy;
-    });
 
-    test('https proxies have priority in client option', async () => {
-      const transport = createTransport({
-        dsn,
-        httpProxy: 'http://unsecure-example.com:8080',
-        httpsProxy: 'https://example.com:8080',
-      });
-      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
-      expect(client).toBeInstanceOf(HttpsProxyAgent);
-      expect(client.secureProxy).toEqual(true);
-      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
-    });
-
-    test('https proxies have priority in env variables', async () => {
-      process.env.http_proxy = 'http://unsecure-example.com:8080';
-      process.env.https_proxy = 'https://example.com:8080';
-      const transport = createTransport({
-        dsn,
-      });
-      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
-      expect(client).toBeInstanceOf(HttpsProxyAgent);
-      expect(client.secureProxy).toEqual(true);
-      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
+      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
+      expect(httpProxyAgent).toHaveBeenCalledWith('https://example.com');
       delete process.env.http_proxy;
-      delete process.env.https_proxy;
     });
 
-    test('client options have priority over env variables', async () => {
-      process.env.https_proxy = 'https://env-example.com:8080';
-      const transport = createTransport({
-        dsn,
-        httpsProxy: 'https://example.com:8080',
+    it('can be configured through env variables option (https)', () => {
+      process.env.https_proxy = 'https://example.com';
+      makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
-      const client = transport.client as unknown as { proxy: Record<string, string | number>; secureProxy: boolean };
-      expect(client).toBeInstanceOf(HttpsProxyAgent);
-      expect(client.secureProxy).toEqual(true);
-      expect(client.proxy).toEqual(expect.objectContaining({ protocol: 'https:', port: 8080, host: 'example.com' }));
+
+      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
+      expect(httpProxyAgent).toHaveBeenCalledWith('https://example.com');
       delete process.env.https_proxy;
     });
 
-    test('no_proxy allows for skipping specific hosts', async () => {
+    it('client options have priority over env variables', () => {
+      process.env.https_proxy = 'https://foo.com';
+      makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
+        proxy: 'https://bar.com',
+      });
+
+      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
+      expect(httpProxyAgent).toHaveBeenCalledWith('https://bar.com');
+      delete process.env.https_proxy;
+    });
+
+    it('no_proxy allows for skipping specific hosts', () => {
       process.env.no_proxy = 'sentry.io';
-      const transport = createTransport({
-        dsn,
-        httpsProxy: 'https://example.com:8080',
+      makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
+        proxy: 'https://example.com',
       });
-      expect(transport.client).toBeInstanceOf(https.Agent);
+
+      expect(httpProxyAgent).not.toHaveBeenCalled();
+
+      delete process.env.no_proxy;
     });
 
-    test('no_proxy works with a port', async () => {
-      process.env.https_proxy = 'https://example.com:8080';
+    it('no_proxy works with a port', () => {
+      process.env.http_proxy = 'https://example.com:8080';
       process.env.no_proxy = 'sentry.io:8989';
-      const transport = createTransport({
-        dsn,
+
+      makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
-      expect(transport.client).toBeInstanceOf(https.Agent);
-      delete process.env.https_proxy;
+
+      expect(httpProxyAgent).not.toHaveBeenCalled();
+
+      delete process.env.no_proxy;
+      delete process.env.http_proxy;
     });
 
-    test('no_proxy works with multiple comma-separated hosts', async () => {
+    it('no_proxy works with multiple comma-separated hosts', () => {
       process.env.http_proxy = 'https://example.com:8080';
       process.env.no_proxy = 'example.com,sentry.io,wat.com:1337';
-      const transport = createTransport({
-        dsn,
+
+      makeNodeTransport({
+        httpModule: unsafeHttpsModule,
+        url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
-      expect(transport.client).toBeInstanceOf(https.Agent);
-      delete process.env.https_proxy;
+
+      expect(httpProxyAgent).not.toHaveBeenCalled();
+
+      delete process.env.no_proxy;
+      delete process.env.http_proxy;
+    });
+  });
+
+  it('should register TransportRequestExecutor that returns the correct object from server response (rate limit)', async () => {
+    await setupTestServer({
+      statusCode: RATE_LIMIT,
+      responseHeaders: {
+        'Retry-After': '2700',
+        'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+      },
     });
 
-    test('can configure tls certificate through client option', async () => {
-      mockReturnCode = 200;
-      const transport = createTransport({
-        caCerts: './some/path.pem',
-        dsn,
-      });
-      await transport.sendEvent({
-        message: 'test',
-      });
-      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
-      expect(requestOptions.ca).toEqual('mockedCert');
+    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+    const executorResult = registeredRequestExecutor({
+      body: serializeEnvelope(EVENT_ENVELOPE),
+      category: 'error',
     });
+
+    await expect(executorResult).resolves.toEqual(
+      expect.objectContaining({
+        headers: {
+          'retry-after': '2700',
+          'x-sentry-rate-limits': '60::organization, 2700::organization',
+        },
+        statusCode: RATE_LIMIT,
+      }),
+    );
+  });
+
+  it('should register TransportRequestExecutor that returns the correct object from server response (OK)', async () => {
+    await setupTestServer({
+      statusCode: SUCCESS,
+    });
+
+    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+    const executorResult = registeredRequestExecutor({
+      body: serializeEnvelope(EVENT_ENVELOPE),
+      category: 'error',
+    });
+
+    await expect(executorResult).resolves.toEqual(
+      expect.objectContaining({
+        headers: {
+          'retry-after': null,
+          'x-sentry-rate-limits': null,
+        },
+        statusCode: SUCCESS,
+      }),
+    );
+  });
+
+  it('should register TransportRequestExecutor that returns the correct object from server response (OK with rate-limit headers)', async () => {
+    await setupTestServer({
+      statusCode: SUCCESS,
+      responseHeaders: {
+        'Retry-After': '2700',
+        'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+      },
+    });
+
+    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+    const executorResult = registeredRequestExecutor({
+      body: serializeEnvelope(EVENT_ENVELOPE),
+      category: 'error',
+    });
+
+    await expect(executorResult).resolves.toEqual(
+      expect.objectContaining({
+        headers: {
+          'retry-after': '2700',
+          'x-sentry-rate-limits': '60::organization, 2700::organization',
+        },
+        statusCode: SUCCESS,
+      }),
+    );
+  });
+
+  it('should register TransportRequestExecutor that returns the correct object from server response (NOK with rate-limit headers)', async () => {
+    await setupTestServer({
+      statusCode: RATE_LIMIT,
+      responseHeaders: {
+        'Retry-After': '2700',
+        'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+      },
+    });
+
+    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+    const executorResult = registeredRequestExecutor({
+      body: serializeEnvelope(EVENT_ENVELOPE),
+      category: 'error',
+    });
+
+    await expect(executorResult).resolves.toEqual(
+      expect.objectContaining({
+        headers: {
+          'retry-after': '2700',
+          'x-sentry-rate-limits': '60::organization, 2700::organization',
+        },
+        statusCode: RATE_LIMIT,
+      }),
+    );
   });
 });
