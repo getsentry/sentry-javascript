@@ -20,6 +20,7 @@ export type FallbackRender = (errorData: {
 }) => React.ReactElement;
 
 export type ErrorBoundaryProps = {
+  children?: React.ReactNode | (() => React.ReactNode);
   /** If a Sentry report dialog should be rendered on error */
   showDialog?: boolean;
   /**
@@ -151,7 +152,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
 
     if (typeof children === 'function') {
-      return children();
+      return (children as () => React.ReactNode)();
     }
     return children;
   }
