@@ -15,6 +15,13 @@ import {
 import { getCurrentHub, Hub } from './hub';
 import { Scope } from './scope';
 
+// Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
+// where HUB_FUNCTION is some method on the Hub class.
+//
+// This is done to make sure the top level SDK methods stay in sync with the hub methods.
+// Although every method here has an explicit return type, some of them (that map to void returns) do not
+// contain `return` keywords. This is done to save on bundle size, as `return` is not minifiable.
+
 /**
  * Captures an exception event and sends it to Sentry.
  *
