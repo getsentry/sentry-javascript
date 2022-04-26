@@ -1,7 +1,5 @@
-import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
-
+import { getCurrentHub, getHubFromCarrier, Scope } from '../src';
 import {
-  _callOnClient,
   captureEvent,
   captureException,
   captureMessage,
@@ -13,13 +11,30 @@ import {
   setTags,
   setUser,
   withScope,
-} from '../../src';
-import { init, TestClient, TestClient2 } from '../mocks/client';
+} from '../src/exports';
+
+export class TestClient {
+  public static instance?: TestClient;
+
+  public constructor(public options: Record<string, unknown>) {
+    TestClient.instance = this;
+  }
+
+  public mySecretPublicMethod(str: string): string {
+    return `secret: ${str}`;
+  }
+}
+
+export class TestClient2 {}
+
+export function init(options: Record<string, unknown>): void {
+  getCurrentHub().bindClient(new TestClient(options) as any);
+}
 
 // eslint-disable-next-line no-var
 declare var global: any;
 
-describe('Minimal', () => {
+describe('Top Level API', () => {
   beforeEach(() => {
     global.__SENTRY__ = {
       hub: undefined,
@@ -194,17 +209,6 @@ describe('Minimal', () => {
   test('returns the bound client', () => {
     init({});
     expect(getCurrentHub().getClient()).toBe(TestClient.instance);
-  });
-
-  test('Calls function on the client', done => {
-    const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
-    getCurrentHub().withScope(() => {
-      getCurrentHub().bindClient(new TestClient({}) as any);
-      _callOnClient('mySecretPublicMethod', 'test');
-      expect(s.mock.calls[0][0]).toBe('test');
-      s.mockRestore();
-      done();
-    });
   });
 
   test('does not throw an error when pushing different clients', () => {

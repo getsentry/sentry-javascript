@@ -374,24 +374,21 @@ describe('tracingHandler', () => {
     const tracesSampler = jest.fn();
     const options = getDefaultNodeClientOptions({ tracesSampler });
     const hub = new Hub(new NodeClient(options));
-    // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
-    // `@sentry/hub`, and mocking breaks the link between the two
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
+    hub.run(() => {
+      sentryTracingMiddleware(req, res, next);
 
-    sentryTracingMiddleware(req, res, next);
-
-    expect(tracesSampler).toHaveBeenCalledWith(
-      expect.objectContaining({
-        request: {
-          headers,
-          method,
-          url: `http://${hostname}${path}?${queryString}`,
-          cookies: { favorite: 'zukes' },
-          query_string: queryString,
-        },
-      }),
-    );
+      expect(tracesSampler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          request: {
+            headers,
+            method,
+            url: `http://${hostname}${path}?${queryString}`,
+            cookies: { favorite: 'zukes' },
+            query_string: queryString,
+          },
+        }),
+      );
+    });
   });
 
   it('puts its transaction on the scope', () => {
@@ -773,13 +770,13 @@ describe('errorHandler()', () => {
     const hub = new Hub(client, scope);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
-    scope?.setRequestSession({ status: 'ok' });
-    sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = scope?.getRequestSession();
-    expect(requestSession).toEqual({ status: 'crashed' });
+    hub.run(() => {
+      scope?.setRequestSession({ status: 'ok' });
+      sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
+      const requestSession = scope?.getRequestSession();
+      expect(requestSession).toEqual({ status: 'crashed' });
+    });
   });
 
   it('when autoSessionTracking is enabled, should not set requestSession status on Crash when it occurs outside the bounds of a request', () => {
