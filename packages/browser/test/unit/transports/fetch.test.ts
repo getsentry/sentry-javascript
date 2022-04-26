@@ -1,7 +1,7 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
-import { FetchTransportOptions, makeNewFetchTransport } from '../../../src/transports/fetch';
+import { FetchTransportOptions, makeFetchTransport } from '../../../src/transports/fetch';
 import { FetchImpl } from '../../../src/transports/utils';
 
 const DEFAULT_FETCH_TRANSPORT_OPTIONS: FetchTransportOptions = {
@@ -31,7 +31,7 @@ describe('NewFetchTransport', () => {
         text: () => Promise.resolve({}),
       }),
     ) as unknown as FetchImpl;
-    const transport = makeNewFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
+    const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 
     expect(mockFetch).toHaveBeenCalledTimes(0);
     const res = await transport.send(ERROR_ENVELOPE);
@@ -58,7 +58,7 @@ describe('NewFetchTransport', () => {
         text: () => Promise.resolve({}),
       }),
     ) as unknown as FetchImpl;
-    const transport = makeNewFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
+    const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 
     expect(headers.get).toHaveBeenCalledTimes(0);
     await transport.send(ERROR_ENVELOPE);
@@ -83,7 +83,7 @@ describe('NewFetchTransport', () => {
       referrer: 'http://example.org',
     };
 
-    const transport = makeNewFetchTransport(
+    const transport = makeFetchTransport(
       { ...DEFAULT_FETCH_TRANSPORT_OPTIONS, requestOptions: REQUEST_OPTIONS },
       mockFetch,
     );

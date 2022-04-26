@@ -19,7 +19,7 @@ export interface XHRTransportOptions extends BaseTransportOptions {
 /**
  * Creates a Transport that uses the XMLHttpRequest API to send events to Sentry.
  */
-export function makeNewXHRTransport(options: XHRTransportOptions): Transport {
+export function makeXHRTransport(options: XHRTransportOptions): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     return new SyncPromise<TransportMakeRequestResponse>((resolve, _reject) => {
       const xhr = new XMLHttpRequest();

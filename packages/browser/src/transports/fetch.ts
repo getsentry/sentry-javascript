@@ -10,7 +10,7 @@ export interface FetchTransportOptions extends BaseTransportOptions {
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
-export function makeNewFetchTransport(
+export function makeFetchTransport(
   options: FetchTransportOptions,
   nativeFetch: FetchImpl = getNativeFetchImplementation(),
 ): Transport {

@@ -13,13 +13,6 @@ import { URL } from 'url';
 
 import { HTTPModule } from './http-module';
 
-// TODO(v7):
-// - Rename this file "transport.ts"
-// - Move this file one folder upwards
-// - Delete "transports" folder
-// OR
-// - Split this file up and leave it in the transports folder
-
 export interface NodeTransportOptions extends BaseTransportOptions {
   /** Define custom headers */
   headers?: Record<string, string>;

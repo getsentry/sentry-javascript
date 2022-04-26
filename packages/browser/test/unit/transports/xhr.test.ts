@@ -1,7 +1,7 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
-import { makeNewXHRTransport, XHRTransportOptions } from '../../../src/transports/xhr';
+import { makeXHRTransport, XHRTransportOptions } from '../../../src/transports/xhr';
 
 const DEFAULT_XHR_TRANSPORT_OPTIONS: XHRTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
@@ -52,7 +52,7 @@ describe('NewXHRTransport', () => {
   });
 
   it('makes an XHR request to the given URL', async () => {
-    const transport = makeNewXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
+    const transport = makeXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
     expect(xhrMock.open).toHaveBeenCalledTimes(0);
     expect(xhrMock.setRequestHeader).toHaveBeenCalledTimes(0);
     expect(xhrMock.send).toHaveBeenCalledTimes(0);
@@ -66,7 +66,7 @@ describe('NewXHRTransport', () => {
   });
 
   it('returns the correct response', async () => {
-    const transport = makeNewXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
+    const transport = makeXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
 
     const [res] = await Promise.all([
       transport.send(ERROR_ENVELOPE),
@@ -78,7 +78,7 @@ describe('NewXHRTransport', () => {
   });
 
   it('sets rate limit response headers', async () => {
-    const transport = makeNewXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
+    const transport = makeXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
 
     await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange!({} as Event)]);
 
@@ -98,7 +98,7 @@ describe('NewXHRTransport', () => {
       headers,
     };
 
-    const transport = makeNewXHRTransport(options);
+    const transport = makeXHRTransport(options);
     await Promise.all([transport.send(ERROR_ENVELOPE), (xhrMock as XMLHttpRequest).onreadystatechange!({} as Event)]);
 
     expect(xhrMock.setRequestHeader).toHaveBeenCalledTimes(3);
