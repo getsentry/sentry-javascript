@@ -1,63 +1,55 @@
-import { Event, Response, SentryRequest, Session } from '@sentry/types';
-import { SentryError, SyncPromise } from '@sentry/utils';
+import { createTransport } from '@sentry/core';
+import { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import { SyncPromise } from '@sentry/utils';
 
-import { BaseTransport } from './base';
+/**
+ * The DONE ready state for XmlHttpRequest
+ *
+ * Defining it here as a constant b/c XMLHttpRequest.DONE is not always defined
+ * (e.g. during testing, it is `undefined`)
+ *
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/readyState}
+ */
+const XHR_READYSTATE_DONE = 4;
 
-/** `XHR` based transport */
-export class XHRTransport extends BaseTransport {
-  /**
-   * @param sentryRequest Prepared SentryRequest to be delivered
-   * @param originalPayload Original payload used to create SentryRequest
-   */
-  protected _sendRequest(sentryRequest: SentryRequest, originalPayload: Event | Session): PromiseLike<Response> {
-    // eslint-disable-next-line deprecation/deprecation
-    if (this._isRateLimited(sentryRequest.type)) {
-      this.recordLostEvent('ratelimit_backoff', sentryRequest.type);
+export interface XHRTransportOptions extends BaseTransportOptions {
+  headers?: { [key: string]: string };
+}
 
-      return Promise.reject({
-        event: originalPayload,
-        type: sentryRequest.type,
-        // eslint-disable-next-line deprecation/deprecation
-        reason: `Transport for ${sentryRequest.type} requests locked till ${this._disabledUntil(
-          sentryRequest.type,
-        )} due to too many requests.`,
-        status: 429,
-      });
-    }
+/**
+ * Creates a Transport that uses the XMLHttpRequest API to send events to Sentry.
+ */
+export function makeXHRTransport(options: XHRTransportOptions): Transport {
+  function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+    return new SyncPromise<TransportMakeRequestResponse>((resolve, _reject) => {
+      const xhr = new XMLHttpRequest();
 
-    return this._buffer
-      .add(
-        () =>
-          new SyncPromise<Response>((resolve, reject) => {
-            const request = new XMLHttpRequest();
-
-            request.onreadystatechange = (): void => {
-              if (request.readyState === 4) {
-                const headers = {
-                  'x-sentry-rate-limits': request.getResponseHeader('X-Sentry-Rate-Limits'),
-                  'retry-after': request.getResponseHeader('Retry-After'),
-                };
-                this._handleResponse({ requestType: sentryRequest.type, response: request, headers, resolve, reject });
-              }
-            };
-
-            request.open('POST', sentryRequest.url);
-            for (const header in this.options.headers) {
-              if (Object.prototype.hasOwnProperty.call(this.options.headers, header)) {
-                request.setRequestHeader(header, this.options.headers[header]);
-              }
-            }
-            request.send(sentryRequest.body);
-          }),
-      )
-      .then(undefined, reason => {
-        // It's either buffer rejection or any other xhr/fetch error, which are treated as NetworkError.
-        if (reason instanceof SentryError) {
-          this.recordLostEvent('queue_overflow', sentryRequest.type);
-        } else {
-          this.recordLostEvent('network_error', sentryRequest.type);
+      xhr.onreadystatechange = (): void => {
+        if (xhr.readyState === XHR_READYSTATE_DONE) {
+          const response = {
+            body: xhr.response,
+            headers: {
+              'x-sentry-rate-limits': xhr.getResponseHeader('X-Sentry-Rate-Limits'),
+              'retry-after': xhr.getResponseHeader('Retry-After'),
+            },
+            reason: xhr.statusText,
+            statusCode: xhr.status,
+          };
+          resolve(response);
         }
-        throw reason;
-      });
+      };
+
+      xhr.open('POST', options.url);
+
+      for (const header in options.headers) {
+        if (Object.prototype.hasOwnProperty.call(options.headers, header)) {
+          xhr.setRequestHeader(header, options.headers[header]);
+        }
+      }
+
+      xhr.send(request.body);
+    });
   }
+
+  return createTransport({ bufferSize: options.bufferSize }, makeRequest);
 }

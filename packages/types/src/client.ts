@@ -5,7 +5,7 @@ import { ClientOptions } from './options';
 import { Scope } from './scope';
 import { Session, SessionAggregates } from './session';
 import { Severity, SeverityLevel } from './severity';
-import { NewTransport } from './transport';
+import { Transport } from './transport';
 
 /**
  * User-Facing Sentry SDK Client.
@@ -72,7 +72,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * @returns The transport.
    */
-  getTransport(): NewTransport | undefined;
+  getTransport(): Transport | undefined;
 
   /**
    * Flush the event queue and set the client to `enabled = false`. See {@link Client.flush}.

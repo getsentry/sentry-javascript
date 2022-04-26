@@ -6,6 +6,10 @@ import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { createTransport } from '../../src/transports/base';
 
+// TODO(v7): Add client reports tests to this file
+// See old tests in packages/browser/test/unit/transports/base.test.ts
+// from https://github.com/getsentry/sentry-javascript/pull/4967
+
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
     integrations: [],

@@ -14,7 +14,7 @@ import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 import { defaultStackParsers } from './stack-parsers';
-import { makeNewFetchTransport, makeNewXHRTransport } from './transports';
+import { makeFetchTransport, makeXHRTransport } from './transports';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -106,7 +106,7 @@ export function init(options: BrowserOptions = {}): void {
     ...options,
     stackParser: stackParserFromOptions(options.stackParser || defaultStackParsers),
     integrations: getIntegrationsToSetup(options),
-    transport: options.transport || (supportsFetch() ? makeNewFetchTransport : makeNewXHRTransport),
+    transport: options.transport || (supportsFetch() ? makeFetchTransport : makeXHRTransport),
   };
 
   initAndBind(BrowserClient, clientOptions);

@@ -1,6 +1,3 @@
-export type { NodeTransportOptions } from './new';
+export type { NodeTransportOptions } from './http';
 
-export { BaseTransport } from './base';
-export { HTTPTransport } from './http';
-export { HTTPSTransport } from './https';
-export { makeNodeTransport } from './new';
+export { makeNodeTransport } from './http';

@@ -65,14 +65,12 @@ export type { Thread } from './thread';
 export type {
   Outcome,
   Transport,
-  TransportOptions,
   TransportCategory,
   TransportRequest,
   TransportMakeRequestResponse,
   TransportResponse,
   InternalBaseTransportOptions,
   BaseTransportOptions,
-  NewTransport,
   TransportRequestExecutor,
 } from './transport';
 export type { User, UserFeedback } from './user';

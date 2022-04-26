@@ -5,7 +5,7 @@ import { CaptureContext } from './scope';
 import { SdkMetadata } from './sdkmetadata';
 import { StackLineParser, StackParser } from './stacktrace';
 import { SamplingContext } from './transaction';
-import { BaseTransportOptions, NewTransport } from './transport';
+import { BaseTransportOptions, Transport } from './transport';
 
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
@@ -61,7 +61,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport: (transportOptions: TO) => NewTransport;
+  transport: (transportOptions: TO) => Transport;
 
   /**
    * A stack parser implementation
@@ -221,7 +221,7 @@ export interface Options<TO extends BaseTransportOptions = BaseTransportOptions>
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport?: (transportOptions: TO) => NewTransport;
+  transport?: (transportOptions: TO) => Transport;
 
   /**
    * A stack parser implementation or an array of stack line parsers
