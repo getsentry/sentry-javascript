@@ -34,11 +34,9 @@ module.exports = {
       },
     },
     {
-      files: ['**/scripts/**/*.ts'],
+      files: ['scripts/**/*.ts'],
       parserOptions: {
-        // since filepaths are relative to the working directory, we need to go back up to reach the repo root level
-        // tsconfig
-        project: ['../../tsconfig.json'],
+        project: ['tsconfig.dev.json'],
       },
     },
     {
