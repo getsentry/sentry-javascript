@@ -17,24 +17,30 @@ export type TransportRequest = {
 };
 
 export type TransportMakeRequestResponse = {
-  body?: string;
   headers?: {
     [key: string]: string | null;
     'x-sentry-rate-limits': string | null;
     'retry-after': string | null;
   };
-  reason?: string;
   statusCode: number;
 };
 
-export type TransportResponse = {
-  status: EventStatus;
-  reason?: string;
-};
+export type TransportResponse =
+  | {
+      // Status the server responded with.
+      status: EventStatus;
+    }
+  | {
+      // Event was not sent to the server with a provided reason.
+      status: 'not_sent';
+      /** these values directly map to @see {@link Outcome} */
+      reason: 'network_error' | 'queue_overflow' | 'ratelimit_backoff'; //
+    };
 
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
 }
+
 export interface BaseTransportOptions extends InternalBaseTransportOptions {
   // url to send the event
   // transport does not care about dsn specific - client should take care of
@@ -47,4 +53,8 @@ export interface Transport {
   flush(timeout?: number): PromiseLike<boolean>;
 }
 
+/**
+ * Executes a transport request.
+ * This function should return a rejected promise when an error occurs during transmission (ie, a network error).
+ */
 export type TransportRequestExecutor = (request: TransportRequest) => PromiseLike<TransportMakeRequestResponse>;

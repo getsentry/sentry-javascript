@@ -1,13 +1,11 @@
 export type EventStatus =
   /** The status could not be determined. */
   | 'unknown'
-  /** The event was skipped due to configuration or callbacks. */
-  | 'skipped'
-  /** The event was sent to Sentry successfully. */
-  | 'rate_limit'
   /** The client is currently rate limited and will try again later. */
-  | 'invalid'
+  | 'rate_limit'
   /** The event could not be processed. */
-  | 'failed'
+  | 'invalid'
   /** A server-side error occurred during submission. */
+  | 'failed'
+  /** The event was sent to Sentry successfully. */
   | 'success';

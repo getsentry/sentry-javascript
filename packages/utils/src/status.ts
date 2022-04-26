@@ -1,4 +1,5 @@
 import { EventStatus } from '@sentry/types';
+
 /**
  * Converts an HTTP status code to sentry status {@link EventStatus}.
  *
