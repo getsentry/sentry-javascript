@@ -1,6 +1,6 @@
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
-export type { ClientReport } from './clientreport';
+export type { ClientReportCategory, ClientReport } from './clientreport';
 export type { Context, Contexts } from './context';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export type { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
@@ -29,7 +29,7 @@ export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
-export type { QueryParams, Request, SentryRequest, SentryRequestType } from './request';
+export type { QueryParams, Request } from './request';
 export type { Response } from './response';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';
