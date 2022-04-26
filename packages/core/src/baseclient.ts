@@ -32,9 +32,9 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
-import { createEventEnvelope, createSessionEnvelope } from './request';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -275,7 +275,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public sendSession(session: Session | SessionAggregates): void {
     if (this._dsn) {
-      const [env] = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+      const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
       this.sendEnvelope(env);
     }
   }
