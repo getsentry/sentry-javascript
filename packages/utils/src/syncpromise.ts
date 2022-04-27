@@ -14,13 +14,17 @@ const enum States {
   REJECTED = 2,
 }
 
+// Overloads so we can call resolvedSyncPromise without arguments and generic argument
+export function resolvedSyncPromise(): PromiseLike<void>;
+export function resolvedSyncPromise<T>(value: T | PromiseLike<T>): PromiseLike<T>;
+
 /**
  * Creates a resolved sync promise.
  *
  * @param value the value to resolve the promise with
  * @returns the resolved sync promise
  */
-export function resolvedSyncPromise<T>(value: T | PromiseLike<T>): PromiseLike<T> {
+export function resolvedSyncPromise<T>(value?: T | PromiseLike<T>): PromiseLike<T> {
   return new SyncPromise(resolve => {
     resolve(value);
   });
