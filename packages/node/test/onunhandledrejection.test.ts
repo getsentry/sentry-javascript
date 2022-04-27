@@ -2,6 +2,10 @@ import { Hub } from '@sentry/hub';
 
 import { OnUnhandledRejection } from '../src/integrations/onunhandledrejection';
 
+// don't log the test errors we're going to throw, so at a quick glance it doesn't look like the test itself has failed
+global.console.warn = () => null;
+global.console.error = () => null;
+
 jest.mock('@sentry/hub', () => {
   // we just want to short-circuit it, so dont worry about types
   const original = jest.requireActual('@sentry/hub');

@@ -3,6 +3,9 @@ const express = require('express');
 const app = express();
 const Sentry = require('../../../build/cjs');
 
+// don't log the test errors we're going to throw, so at a quick glance it doesn't look like the test itself has failed
+global.console.error = () => null;
+
 function assertTags(actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     console.error('FAILED: Scope contains incorrect tags');
