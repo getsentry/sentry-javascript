@@ -1,19 +1,11 @@
 import { Envelope } from './envelope';
-import { EventStatus } from './eventstatus';
+import { EventDropReason } from './clientreport';
 
-export type Outcome =
-  | 'before_send'
-  | 'event_processor'
-  | 'network_error'
-  | 'queue_overflow'
-  | 'ratelimit_backoff'
-  | 'sample_rate';
-
-export type TransportCategory = 'error' | 'transaction' | 'attachment' | 'session';
+// Used in various places like Client Reports and Rate Limit Categories
+export type DataCategory = 'default' | 'transaction' | 'error' | 'security' | 'attachment' | 'session' | 'internal';
 
 export type TransportRequest = {
   body: string;
-  category: TransportCategory;
 };
 
 export type TransportMakeRequestResponse = {
@@ -25,20 +17,9 @@ export type TransportMakeRequestResponse = {
   statusCode: number;
 };
 
-export type TransportResponse =
-  | {
-      // Status the server responded with.
-      status: EventStatus;
-    }
-  | {
-      // Event was not sent to the server with a provided reason.
-      status: 'not_sent';
-      /** these values directly map to @see {@link Outcome} */
-      reason: 'network_error' | 'queue_overflow' | 'ratelimit_backoff'; //
-    };
-
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
+  recordDroppedEvent?: (reason: EventDropReason, dataCategory: DataCategory) => void;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {
@@ -49,7 +30,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
 }
 
 export interface Transport {
-  send(request: Envelope): PromiseLike<TransportResponse>;
+  send(request: Envelope): PromiseLike<void>;
   flush(timeout?: number): PromiseLike<boolean>;
 }
 

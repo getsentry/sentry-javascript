@@ -1,4 +1,4 @@
-// Keeping the key broad until we add the new transports
+// Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned
 export type RateLimits = Record<string, number>;
 
 export const DEFAULT_RETRY_AFTER = 60 * 1000; // 60 seconds

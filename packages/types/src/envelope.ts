@@ -21,6 +21,16 @@ export type BaseEnvelopeItemHeaders = {
 
 type BaseEnvelopeItem<IH extends BaseEnvelopeItemHeaders, P extends unknown> = [IH, P]; // P is for payload
 
+// TEMP Comment: We could also infer this type
+export type EnvelopeItemType =
+  | 'client_report'
+  | 'user_report'
+  | 'session'
+  | 'sessions'
+  | 'transaction'
+  | 'attachment'
+  | 'event';
+
 type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<BaseEnvelopeItemHeaders, unknown>> = [
   EH,
   I[],
