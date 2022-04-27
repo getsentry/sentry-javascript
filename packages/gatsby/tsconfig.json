@@ -5,7 +5,6 @@
 
   "compilerOptions": {
     // package-specific options
-    "esModuleInterop": true,
     "jsx": "react"
   }
 }
