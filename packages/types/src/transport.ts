@@ -14,7 +14,6 @@ export type TransportMakeRequestResponse = {
     'x-sentry-rate-limits': string | null;
     'retry-after': string | null;
   };
-  statusCode: number;
 };
 
 export interface InternalBaseTransportOptions {

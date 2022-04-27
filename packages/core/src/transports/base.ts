@@ -2,15 +2,11 @@ import {
   Envelope,
   InternalBaseTransportOptions,
   Transport,
-  TransportCategory,
   TransportRequest,
   TransportRequestExecutor,
-  TransportResponse,
+  EventDropReason,
 } from '@sentry/types';
 import {
-  disabledUntil,
-  eventStatusFromHttpCode,
-  getEnvelopeType,
   isRateLimited,
   logger,
   makePromiseBuffer,
@@ -20,6 +16,7 @@ import {
   SentryError,
   serializeEnvelope,
   updateRateLimits,
+  envelopeItemTypeToDataCategory,
 } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
@@ -35,51 +32,57 @@ export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 export function createTransport(
   options: InternalBaseTransportOptions,
   makeRequest: TransportRequestExecutor,
-  buffer: PromiseBuffer<TransportResponse> = makePromiseBuffer(options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE),
+  buffer: PromiseBuffer<void> = makePromiseBuffer(options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE),
 ): Transport {
   let rateLimits: RateLimits = {};
 
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
-  function send(envelope: Envelope): PromiseLike<TransportResponse> {
-    const envCategory = getEnvelopeType(envelope); // TODO(PR): Fix getting type from envelope - it's not that simple
-    const category = envCategory === 'event' ? 'error' : (envCategory as TransportCategory);
-    const request: TransportRequest = {
-      category, // TODO(PR): remove
-      body: serializeEnvelope(envelope),
-    };
+  function send(envelope: Envelope): PromiseLike<void> {
+    const filteredEnvelopeItems = envelope[1].filter((envelopeItem: Envelope[1][number]) => {
+      const envelopeItemType = envelopeItem[0].type;
 
-    // Don't add to buffer if transport is already rate-limited
-    if (isRateLimited(rateLimits, category)) {
-      IS_DEBUG_BUILD &&
-        logger.info(
-          `Too many ${category} requests, backing off until: ${new Date(
-            disabledUntil(rateLimits, category),
-          ).toISOString()}`,
-        );
+      const itemIsRateLimited = isRateLimited(rateLimits, envelopeItemType);
 
-      return resolvedSyncPromise({
-        status: 'not_sent',
-        reason: 'ratelimit_backoff',
-      });
+      if (itemIsRateLimited && options.recordDroppedEvent) {
+        options.recordDroppedEvent('ratelimit_backoff', envelopeItemTypeToDataCategory(envelopeItemType));
+      }
+
+      return !itemIsRateLimited;
+    });
+
+    if (filteredEnvelopeItems.length === 0) {
+      return resolvedSyncPromise(undefined);
     }
 
-    const requestTask = (): PromiseLike<TransportResponse> =>
+    const filteredEvelope: Envelope = [envelope[0], filteredEnvelopeItems];
+
+    const recordEnvelopeLoss = (reason: EventDropReason) => {
+      envelope[1].forEach((envelopeItem: Envelope[1][number]) => {
+        const envelopeItemType = envelopeItem[0].type;
+        if (options.recordDroppedEvent) {
+          options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(envelopeItemType));
+        }
+      });
+    };
+
+    const request: TransportRequest = {
+      body: serializeEnvelope(filteredEvelope),
+    };
+
+    const requestTask = (): PromiseLike<void> =>
       makeRequest(request).then(
-        ({ headers, statusCode }): PromiseLike<TransportResponse> => {
-          const status = eventStatusFromHttpCode(statusCode);
+        ({ headers }): PromiseLike<void> => {
           if (headers) {
             rateLimits = updateRateLimits(rateLimits, headers);
           }
 
-          return resolvedSyncPromise({ status });
+          return resolvedSyncPromise(undefined);
         },
         error => {
           IS_DEBUG_BUILD && logger.error('Failed while making request:', error);
-          return resolvedSyncPromise({
-            status: 'not_sent',
-            reason: 'network_error',
-          });
+          recordEnvelopeLoss('network_error');
+          return resolvedSyncPromise(undefined);
         },
       );
 
@@ -87,10 +90,8 @@ export function createTransport(
       result => result,
       error => {
         if (error instanceof SentryError) {
-          return resolvedSyncPromise({
-            status: 'not_sent',
-            reason: 'queue_overflow',
-          });
+          recordEnvelopeLoss('queue_overflow');
+          return resolvedSyncPromise(undefined);
         } else {
           throw error;
         }

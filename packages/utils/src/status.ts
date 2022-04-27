@@ -6,6 +6,7 @@ import { EventStatus } from '@sentry/types';
  * @param code number HTTP status code
  * @returns EventStatus
  */
+// TODO(PR): Maybe delete? Not needed anymore in SDK code
 export function eventStatusFromHttpCode(code: number): EventStatus {
   if (code >= 200 && code < 300) {
     return 'success';

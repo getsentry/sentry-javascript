@@ -13,6 +13,8 @@ import {
   Severity,
   SeverityLevel,
   Transport,
+  DataCategory,
+  EventDropReason,
 } from '@sentry/types';
 import {
   checkOrSetAlreadyCaught,
@@ -87,6 +89,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Number of calls being processed */
   protected _numProcessing: number = 0;
 
+  protected _outcomes: { [key: string]: number } = {};
+
   /**
    * Initializes this client instance.
    *
@@ -97,7 +101,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
       const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options.tunnel);
-      this._transport = options.transport({ ...options.transportOptions, url });
+      this._transport = options.transport({
+        ...options.transportOptions,
+        url,
+        recordDroppedEvent: this._recordDroppedEvent.bind(this),
+      });
     } else {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }
@@ -283,9 +291,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritdoc
    */
-  public sendEnvelope(env: Envelope): void {
+  private sendEnvelope(envelope: Envelope): void {
     if (this._transport && this._dsn) {
-      this._transport.send(env).then(null, reason => {
+      this._transport.send(envelope).then(null, reason => {
         IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
       });
     } else {
@@ -564,17 +572,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
 
-    // type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
-    type RecordLostEventParams = unknown[]; // Parameters<RecordLostEvent>;
-
-    // no-op as new transports don't have client outcomes
-    // TODO(v7): Re-add this functionality
-    function recordLostEvent(_outcome: RecordLostEventParams[0], _category: RecordLostEventParams[1]): void {
-      // if (transport.recordLostEvent) {
-      //   transport.recordLostEvent(outcome, category);
-      // }
-    }
-
     if (!this._isEnabled()) {
       return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.'));
     }
@@ -584,7 +581,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      recordLostEvent('sample_rate', 'event');
+      this._recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -595,7 +592,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     return this._prepareEvent(event, scope, hint)
       .then(prepared => {
         if (prepared === null) {
-          recordLostEvent('event_processor', event.type || 'event');
+          this._recordDroppedEvent('event_processor', event.type || 'error');
           throw new SentryError('An event processor returned null, will not send event.');
         }
 
@@ -609,7 +606,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          recordLostEvent('before_send', event.type || 'event');
+          this._recordDroppedEvent('before_send', event.type || 'error');
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
@@ -653,6 +650,53 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return reason;
       },
     );
+  }
+
+  /**
+   * Send outcomes as an envelope
+   */
+  // protected _flushOutcomes(): void {
+  //   if (!this._options.sendClientReports) {
+  //     return;
+  //   }
+  //   const outcomes = this._outcomes;
+  //   this._outcomes = {};
+  //   // Nothing to send
+  //   if (!Object.keys(outcomes).length) {
+  //     IS_DEBUG_BUILD && logger.log('No outcomes to flush');
+  //     return;
+  //   }
+  //   IS_DEBUG_BUILD && logger.log(`Flushing outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+  //   const url = getEnvelopeEndpointWithUrlEncodedAuth(this._api.dsn, this._api.tunnel);
+  //   const discardedEvents = Object.keys(outcomes).map(key => {
+  //     const [category, reason] = key.split(':');
+  //     return {
+  //       reason,
+  //       category,
+  //       quantity: outcomes[key],
+  //     };
+  //     // TODO: Improve types on discarded_events to get rid of cast
+  //   }) as ClientReport['discarded_events'];
+  //   const envelope = createClientReportEnvelope(discardedEvents, this._api.tunnel && dsnToString(this._api.dsn));
+  //   try {
+  //     sendReport(url, serializeEnvelope(envelope));
+  //   } catch (e) {
+  //     IS_DEBUG_BUILD && logger.error(e);
+  //   }
+  // }
+
+  /**
+   * TODO: Doc
+   */
+  private _recordDroppedEvent(reason: EventDropReason, category: DataCategory): void {
+    // We want to track each category (error, transaction, session) separately
+    // but still keep the distinction between different type of outcomes.
+    // We could use nested maps, but it's much easier to read and type this way.
+    // A correct type for map-based implementation if we want to go that route
+    // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
+    const key = `${category}:${reason}`;
+    IS_DEBUG_BUILD && logger.log(`Adding outcome: ${key}`);
+    this._outcomes[key] = this._outcomes[key] + 1 || 1; // This works because undefined + 1 === NaN
   }
 
   /**
