@@ -14,6 +14,7 @@ import {
   makeRemoveBlankLinesPlugin,
   makeRemoveESLintCommentsPlugin,
   makeSucrasePlugin,
+  makeWatchDependenciesPlugin,
 } from './plugins/index.js';
 
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
@@ -24,8 +25,10 @@ export function makeBaseNPMConfig(options = {}) {
     esModuleInterop = false,
     externals: packageSpecificExternals = [],
     hasBundles = false,
+    watchPackages = [],
   } = options;
 
+  const watchDependenciesPlugin = makeWatchDependenciesPlugin(watchPackages);
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
   const constToVarPlugin = makeConstToVarPlugin();
@@ -77,6 +80,7 @@ export function makeBaseNPMConfig(options = {}) {
     },
 
     plugins: [
+      watchDependenciesPlugin,
       nodeResolvePlugin,
       sucrasePlugin,
       constToVarPlugin,

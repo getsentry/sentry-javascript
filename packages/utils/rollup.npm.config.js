@@ -5,5 +5,6 @@ export default makeNPMConfigVariants(
     // We build the polyfills separately because they're not included in the top-level exports of the package, in order
     // to keep them out of the public API.
     entrypoints: ['src/index.ts', 'src/buildPolyfills/index.ts'],
+    watchPackages: ['types'],
   }),
 );

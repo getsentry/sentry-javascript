@@ -3,5 +3,6 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js'
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     esModuleInterop: true,
+    watchPackages: ['browser'],
   }),
 );
