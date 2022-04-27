@@ -1,28 +1,73 @@
 {
   "compilerOptions": {
+    // used as part of type checking
     "alwaysStrict": false,
-    "declaration": true,
-    "declarationMap": true,
-    "downlevelIteration": true,
-    "importHelpers": true,
-    "inlineSources": true,
-    "isolatedModules": true,
     "lib": ["es6", "dom"],
-    // "module": "commonjs", // implied by "target" : "es5"
+    "isolatedModules": true,
     "moduleResolution": "node",
-    "noEmitHelpers": true,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
+    // "noImplicitAny": true, // implied by strict: true
     "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noImplicitUseStrict": true,
+    // "noImplicitThis": true, // implied by strict: true
+
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "preserveWatchOutput": true,
-    "pretty": true,
-    "sourceMap": true,
+    "plugins": [
+      {
+        "name": "typescript-tslint-plugin",
+        "configFile": "./tslint.json",
+        "alwaysShowRuleFailuresAsWarnings": false,
+        "ignoreDefinitionFiles": true,
+        "mockTypeScriptVersion": false,
+        "suppressWhileTypeErrorsPresent": false
+      }
+    ],
     "strict": true,
     "strictBindCallApply": false,
-    "target": "es6"
+
+    // changes output
+    "noImplicitUseStrict": true,
+    "useDefineForClassFields": true, // added as a test!
+
+    // used as part of type file generation
+    "declaration": true,
+    "declarationMap": true,
+
+    // handled by rollup
+    "inlineSources": true,
+    "sourceMap": true,
+    // "module": "commonjs", // implied by "target" : "es5"
+
+    // handled by down-compiler (prob babel)
+    "downlevelIteration": true,
+    "importHelpers": true,
+    // "noEmitHelpers": true, // this contradicts `importHelpers`
+    "target": "es6",
+
+    // changes dev experience
+    "preserveWatchOutput": true,
+    // "pretty": true, // this is the default
+
+    // should add these here
+    // "forceConsistentCasingInFileNames": true,
+    // "noErrorTruncation": true
+    // "noEmitOnError": true
+
   }
 }
+
+// open questions
+// sucrase by default acts like `esmoduleinterop` is on everywhere - is that an issue? (says so, but doesn't actually seem to - emits same as esmoduleiterop being false)
+// `esmoduleinterop` implies `allowSyntheticDefaultImports`, which we do have on everywhere (seems maybe we shouldn't)
+//
+// what about `experimentalDecorators`?
+//
+// what about the entirety of ember?
+//
+// what about `jsx: 'react'`? -> use `jsx` transform for sucrase
+//
+// serverless has ES2018 target
+
+
+// in swc, to get esmoduleinterop, use the `module` config https://swc.rs/docs/configuration/modules
+// experimental decorators read from tsconfig
