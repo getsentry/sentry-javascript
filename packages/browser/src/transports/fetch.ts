@@ -22,17 +22,12 @@ export function makeFetchTransport(
       ...options.requestOptions,
     };
 
-    return nativeFetch(options.url, requestOptions).then(response => {
-      return response.text().then(body => ({
-        body,
-        headers: {
-          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-          'retry-after': response.headers.get('Retry-After'),
-        },
-        reason: response.statusText,
-        statusCode: response.status,
-      }));
-    });
+    return nativeFetch(options.url, requestOptions).then(response => ({
+      headers: {
+        'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+        'retry-after': response.headers.get('Retry-After'),
+      },
+    }));
   }
 
   return createTransport({ bufferSize: options.bufferSize }, makeRequest);

@@ -1,5 +1,4 @@
 import { Envelope } from './envelope';
-import { EventStatus } from './eventstatus';
 
 export type Outcome =
   | 'before_send'
@@ -13,23 +12,14 @@ export type TransportCategory = 'error' | 'transaction' | 'attachment' | 'sessio
 
 export type TransportRequest = {
   body: string;
-  category: TransportCategory;
 };
 
 export type TransportMakeRequestResponse = {
-  body?: string;
   headers?: {
     [key: string]: string | null;
     'x-sentry-rate-limits': string | null;
     'retry-after': string | null;
   };
-  reason?: string;
-  statusCode: number;
-};
-
-export type TransportResponse = {
-  status: EventStatus;
-  reason?: string;
 };
 
 export interface InternalBaseTransportOptions {
@@ -43,7 +33,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
 }
 
 export interface Transport {
-  send(request: Envelope): PromiseLike<TransportResponse>;
+  send(request: Envelope): PromiseLike<void>;
   flush(timeout?: number): PromiseLike<boolean>;
 }
 
