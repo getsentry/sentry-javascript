@@ -1,21 +1,20 @@
 /* eslint-disable deprecation/deprecation */
 import { makeDsn } from '@sentry/utils';
 
-import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, initAPIDetails } from '../../src/api';
+import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const tunnel = 'https://hello.com/world';
 
-const dsnPublicAPI = initAPIDetails(dsnPublic);
+const dsnPublicComponents = makeDsn(dsnPublic);
 
 describe('API', () => {
   test('getEnvelopeEndpoint', () => {
-    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicAPI.dsn)).toEqual(
+    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicComponents)).toEqual(
       'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
     );
-    const dsnPublicAPIWithTunnel = initAPIDetails(dsnPublic, {}, tunnel);
-    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicAPIWithTunnel.dsn, tunnel)).toEqual(tunnel);
+    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicComponents, tunnel)).toEqual(tunnel);
   });
 
   describe('getReportDialogEndpoint', () => {
@@ -96,15 +95,5 @@ describe('API', () => {
         expect(getReportDialogEndpoint(dsn, options)).toBe(output);
       },
     );
-  });
-
-  test('initAPIDetails dsn', () => {
-    expect(dsnPublicAPI.dsn.host).toEqual(makeDsn(dsnPublic).host);
-    expect(dsnPublicAPI.dsn.path).toEqual(makeDsn(dsnPublic).path);
-    expect(dsnPublicAPI.dsn.pass).toEqual(makeDsn(dsnPublic).pass);
-    expect(dsnPublicAPI.dsn.port).toEqual(makeDsn(dsnPublic).port);
-    expect(dsnPublicAPI.dsn.protocol).toEqual(makeDsn(dsnPublic).protocol);
-    expect(dsnPublicAPI.dsn.projectId).toEqual(makeDsn(dsnPublic).projectId);
-    expect(dsnPublicAPI.dsn.publicKey).toEqual(makeDsn(dsnPublic).publicKey);
   });
 });

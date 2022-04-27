@@ -1,4 +1,3 @@
-export type { APIDetails } from './api';
 export type { ClientClass } from './sdk';
 
 export {
@@ -23,7 +22,7 @@ export {
   Scope,
   Session,
 } from '@sentry/hub';
-export { getEnvelopeEndpointWithUrlEncodedAuth, initAPIDetails, getReportDialogEndpoint } from './api';
+export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
 export { initAndBind } from './sdk';
 export { createTransport } from './transports/base';
