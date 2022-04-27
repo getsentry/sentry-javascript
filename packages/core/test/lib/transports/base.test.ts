@@ -1,11 +1,7 @@
-import { EventEnvelope, EventItem, Transport, TransportMakeRequestResponse, TransportResponse } from '@sentry/types';
+import { EventEnvelope, EventItem, Transport, TransportMakeRequestResponse } from '@sentry/types';
 import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
 
 import { createTransport } from '../../../src/transports/base';
-
-const ERROR_TRANSPORT_CATEGORY = 'error';
-
-const TRANSACTION_TRANSPORT_CATEGORY = 'transaction';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
@@ -18,12 +14,12 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
 
 describe('createTransport', () => {
   it('flushes the buffer', async () => {
-    const mockBuffer: PromiseBuffer<TransportResponse> = {
+    const mockBuffer: PromiseBuffer<void> = {
       $: [],
       add: jest.fn(),
       drain: jest.fn(),
     };
-    const transport = createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 }), mockBuffer);
+    const transport = createTransport({}, _ => resolvedSyncPromise({}), mockBuffer);
     /* eslint-disable @typescript-eslint/unbound-method */
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
     await transport.flush(1000);
@@ -34,45 +30,29 @@ describe('createTransport', () => {
 
   describe('send', () => {
     it('constructs a request to send to Sentry', async () => {
+      expect.assertions(1);
       const transport = createTransport({}, req => {
-        expect(req.category).toEqual(ERROR_TRANSPORT_CATEGORY);
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
-        return resolvedSyncPromise({ statusCode: 200, reason: 'OK' });
+        return resolvedSyncPromise({});
       });
-      const res = await transport.send(ERROR_ENVELOPE);
-      expect(res.status).toBe('success');
-      expect(res.reason).toBe('OK');
+      await transport.send(ERROR_ENVELOPE);
     });
 
-    it('returns an error if request failed', async () => {
+    it('does throw if request fails', async () => {
+      expect.assertions(2);
+
       const transport = createTransport({}, req => {
-        expect(req.category).toEqual(ERROR_TRANSPORT_CATEGORY);
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
-        return resolvedSyncPromise({ statusCode: 400, reason: 'Bad Request' });
+        throw new Error();
       });
-      try {
-        await transport.send(ERROR_ENVELOPE);
-      } catch (res) {
-        expect(res.status).toBe('invalid');
-        expect(res.reason).toBe('Bad Request');
-      }
+
+      expect(() => {
+        void transport.send(ERROR_ENVELOPE);
+      }).toThrow();
     });
 
-    it('returns a default reason if reason not provided and request failed', async () => {
-      const transport = createTransport({}, req => {
-        expect(req.category).toEqual(TRANSACTION_TRANSPORT_CATEGORY);
-        expect(req.body).toEqual(serializeEnvelope(TRANSACTION_ENVELOPE));
-        return resolvedSyncPromise({ statusCode: 500 });
-      });
-      try {
-        await transport.send(TRANSACTION_ENVELOPE);
-      } catch (res) {
-        expect(res.status).toBe('failed');
-        expect(res.reason).toBe('Unknown transport error');
-      }
-    });
-
-    describe('Rate-limiting', () => {
+    // TODO(v7): Add tests back in and test by using client report logic
+    describe.skip('Rate-limiting', () => {
       function setRateLimitTimes(): {
         retryAfterSeconds: number;
         beforeLimit: number;
@@ -123,7 +103,6 @@ describe('createTransport', () => {
             'x-sentry-rate-limits': null,
             'retry-after': `${retryAfterSeconds}`,
           },
-          statusCode: 429,
         });
 
         try {
@@ -133,7 +112,7 @@ describe('createTransport', () => {
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        setTransportResponse({ statusCode: 200 });
+        setTransportResponse({});
 
         try {
           await transport.send(ERROR_ENVELOPE);
@@ -142,8 +121,7 @@ describe('createTransport', () => {
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        const res = await transport.send(ERROR_ENVELOPE);
-        expect(res.status).toBe('success');
+        await transport.send(ERROR_ENVELOPE);
       });
 
       it('back-off using X-Sentry-Rate-Limits with single category', async () => {
@@ -169,7 +147,6 @@ describe('createTransport', () => {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error:scope`,
             'retry-after': null,
           },
-          statusCode: 429,
         });
 
         try {
@@ -179,7 +156,7 @@ describe('createTransport', () => {
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        setTransportResponse({ statusCode: 200 });
+        setTransportResponse({});
 
         try {
           await transport.send(TRANSACTION_ENVELOPE);
@@ -195,8 +172,7 @@ describe('createTransport', () => {
           expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
         }
 
-        const res = await transport.send(TRANSACTION_ENVELOPE);
-        expect(res.status).toBe('success');
+        await transport.send(TRANSACTION_ENVELOPE);
       });
 
       it('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
@@ -222,7 +198,6 @@ describe('createTransport', () => {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
             'retry-after': null,
           },
-          statusCode: 429,
         });
 
         try {
@@ -248,13 +223,10 @@ describe('createTransport', () => {
           );
         }
 
-        setTransportResponse({ statusCode: 200 });
+        setTransportResponse({});
 
-        const eventRes = await transport.send(ERROR_ENVELOPE);
-        expect(eventRes.status).toBe('success');
-
-        const transactionRes = await transport.send(TRANSACTION_ENVELOPE);
-        expect(transactionRes.status).toBe('success');
+        await transport.send(ERROR_ENVELOPE);
+        await transport.send(TRANSACTION_ENVELOPE);
       });
 
       it('back-off using X-Sentry-Rate-Limits with missing categories should lock them all', async () => {
@@ -284,7 +256,6 @@ describe('createTransport', () => {
             'x-sentry-rate-limits': `${retryAfterSeconds}::scope`,
             'retry-after': null,
           },
-          statusCode: 429,
         });
 
         try {
@@ -310,13 +281,10 @@ describe('createTransport', () => {
           );
         }
 
-        setTransportResponse({ statusCode: 200 });
+        setTransportResponse({});
 
-        const eventRes = await transport.send(ERROR_ENVELOPE);
-        expect(eventRes.status).toBe('success');
-
-        const transactionRes = await transport.send(TRANSACTION_ENVELOPE);
-        expect(transactionRes.status).toBe('success');
+        await transport.send(ERROR_ENVELOPE);
+        await transport.send(TRANSACTION_ENVELOPE);
       });
 
       it('back-off using X-Sentry-Rate-Limits should also trigger for 200 responses', async () => {
@@ -340,7 +308,6 @@ describe('createTransport', () => {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
             'retry-after': null,
           },
-          statusCode: 200,
         });
 
         try {

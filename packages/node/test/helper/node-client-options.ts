@@ -6,7 +6,7 @@ import { NodeClientOptions } from '../../src/types';
 export function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> = {}): NodeClientOptions {
   return {
     integrations: [],
-    transport: () => createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 })),
+    transport: () => createTransport({}, _ => resolvedSyncPromise({})),
     stackParser: () => [],
     ...options,
   };

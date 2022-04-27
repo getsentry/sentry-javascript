@@ -65,18 +65,6 @@ describe('NewXHRTransport', () => {
     expect(xhrMock.send).toHaveBeenCalledWith(serializeEnvelope(ERROR_ENVELOPE));
   });
 
-  it('returns the correct response', async () => {
-    const transport = makeXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
-
-    const [res] = await Promise.all([
-      transport.send(ERROR_ENVELOPE),
-      (xhrMock as XMLHttpRequest).onreadystatechange!({} as Event),
-    ]);
-
-    expect(res).toBeDefined();
-    expect(res.status).toEqual('success');
-  });
-
   it('sets rate limit response headers', async () => {
     const transport = makeXHRTransport(DEFAULT_XHR_TRANSPORT_OPTIONS);
 
