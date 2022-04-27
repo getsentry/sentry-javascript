@@ -18,6 +18,21 @@
     }
   ],
   "configurations": [
+    // Debug the ts-node script in the currently active window
+    {
+      "name": "Debug ts-node script (open file)",
+      "type": "pwa-node",
+      "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["ts-node", "-P", "${workspaceFolder}/tsconfig.dev.json", "${file}"],
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**"],
+      "sourceMaps": true,
+      "smartStep": true,
+      "internalConsoleOptions": "openOnSessionStart",
+      "outputCapture": "std"
+    },
     // Run rollup using the config file which is in the currently active tab.
     {
       "name": "Debug rollup (config from open file)",
