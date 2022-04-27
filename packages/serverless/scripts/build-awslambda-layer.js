@@ -95,7 +95,16 @@ async function main() {
       const destPath = isRoot ? destRoot : path.resolve(destModulesRoot, name);
 
       // Scan over the distributable files of the module and symlink each of them.
+
+      // packList returns all files it deems "distributable" from `pkg.cwd`. To find out which files
+      // are "distributable", packlist scans for NPM file configurations in the following order:
+      // 1. if `files` section present in package.json, take everything from there
+      // 2. if `.npmignore` present, take everything except what's ignored there
+      // 3. if `.gitignore` present, take everything except what's ignored there
+      // 4. else take everything (with a few unimportant exceptions)
+      // for more information on the rules see: https://github.com/npm/npm-packlist#readme
       const sourceFiles = await packList({ path: pkg.cwd });
+
       await Promise.all(
         sourceFiles.map(async filename => {
           const sourceFilename = path.resolve(pkg.cwd, filename);
@@ -145,8 +154,14 @@ async function main() {
   const zipFilename = `sentry-node-serverless-${version}.zip`;
 
   try {
-    fs.symlinkSync(path.resolve(destRoot, 'build', 'dist'), path.resolve(destRoot, 'dist'));
-    fs.symlinkSync(path.resolve(destRoot, 'build', 'esm'), path.resolve(destRoot, 'esm'));
+    // This needs to be done to satisfy the NODE_OPTIONS environment variable path that is set in
+    // AWS lambda functions when connecting them to Sentry. On initialization the layer preloads a js
+    // file specified in NODE_OPTIONS to initialize the SDK.
+    // Hence we symlink everything from `build/cjs` to `dist` to make the path work.
+    // This creates duplication but it's not too bad file size wise.
+    fs.symlinkSync(path.resolve(destRoot, 'build', 'cjs'), path.resolve(destRoot, 'dist'));
+    // TODO: I think we don't need this line, check back if it works w/o it.
+    // fs.symlinkSync(path.resolve(destRoot, 'build', 'esm'), path.resolve(destRoot, 'esm'));
   } catch (error) {
     console.error(error);
   }
