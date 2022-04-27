@@ -10,6 +10,7 @@ import deepMerge from 'deepmerge';
 import {
   makeConstToVarPlugin,
   makeNodeResolvePlugin,
+  makeRemoveBlankLinesPlugin,
   makeRemoveESLintCommentsPlugin,
   makeSucrasePlugin,
 } from './plugins/index.js';
@@ -28,6 +29,7 @@ export function makeBaseNPMConfig(options = {}) {
   const sucrasePlugin = makeSucrasePlugin();
   const constToVarPlugin = makeConstToVarPlugin();
   const removeESLintCommentsPlugin = makeRemoveESLintCommentsPlugin();
+  const removeBlankLinesPlugin = makeRemoveBlankLinesPlugin();
 
   // return {
   const config = {
@@ -69,7 +71,7 @@ export function makeBaseNPMConfig(options = {}) {
       interop: esModuleInterop ? 'auto' : 'esModule',
     },
 
-    plugins: [nodeResolvePlugin, sucrasePlugin, constToVarPlugin, removeESLintCommentsPlugin],
+    plugins: [nodeResolvePlugin, sucrasePlugin, constToVarPlugin, removeESLintCommentsPlugin, removeBlankLinesPlugin],
 
     // don't include imported modules from outside the package in the final output
     external: [
