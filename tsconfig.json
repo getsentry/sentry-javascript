@@ -1,10 +1,6 @@
 {
   "extends": "./packages/typescript/tsconfig.json",
 
-  // include scripts here because their TS config isn't package-specific, and they need to be included in a tsconfig
-  // file to be linted
-  "include": ["**/scripts/**/*.ts"],
-
   "compilerOptions": {
     // TODO: turn these on once we switch to only generating types once, using `tsconfig.types.json`
     // "declaration": false,
