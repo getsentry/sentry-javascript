@@ -1,12 +1,13 @@
 import {
   Envelope,
+  EventDropReason,
   InternalBaseTransportOptions,
   Transport,
   TransportRequest,
   TransportRequestExecutor,
-  EventDropReason,
 } from '@sentry/types';
 import {
+  envelopeItemTypeToDataCategory,
   isRateLimited,
   logger,
   makePromiseBuffer,
@@ -16,7 +17,6 @@ import {
   SentryError,
   serializeEnvelope,
   updateRateLimits,
-  envelopeItemTypeToDataCategory,
 } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
@@ -39,7 +39,8 @@ export function createTransport(
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
   function send(envelope: Envelope): PromiseLike<void> {
-    const filteredEnvelopeItems = envelope[1].filter((envelopeItem: Envelope[1][number]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredEnvelopeItems = (envelope[1] as any[]).filter((envelopeItem: Envelope[1][number]) => {
       const envelopeItemType = envelopeItem[0].type;
 
       const itemIsRateLimited = isRateLimited(rateLimits, envelopeItemType);
@@ -57,7 +58,7 @@ export function createTransport(
 
     const filteredEvelope: Envelope = [envelope[0], filteredEnvelopeItems];
 
-    const recordEnvelopeLoss = (reason: EventDropReason) => {
+    const recordEnvelopeLoss = (reason: EventDropReason): void => {
       envelope[1].forEach((envelopeItem: Envelope[1][number]) => {
         const envelopeItemType = envelopeItem[0].type;
         if (options.recordDroppedEvent) {

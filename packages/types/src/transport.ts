@@ -1,5 +1,5 @@
-import { Envelope } from './envelope';
 import { EventDropReason } from './clientreport';
+import { Envelope } from './envelope';
 
 // Used in various places like Client Reports and Rate Limit Categories
 export type DataCategory = 'default' | 'transaction' | 'error' | 'security' | 'attachment' | 'session' | 'internal';

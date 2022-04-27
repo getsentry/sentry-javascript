@@ -33,7 +33,6 @@ export function makeXHRTransport(options: XHRTransportOptions): Transport {
               'x-sentry-rate-limits': xhr.getResponseHeader('X-Sentry-Rate-Limits'),
               'retry-after': xhr.getResponseHeader('Retry-After'),
             },
-            statusCode: xhr.status,
           };
           resolve(response);
         }

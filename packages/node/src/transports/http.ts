@@ -105,7 +105,6 @@ function createRequestExecutor(
             // Drain socket
           });
 
-          const statusCode = res.statusCode ?? 500;
           res.setEncoding('utf8');
 
           // "Key-value pairs of header names and values. Header names are lower-cased."
@@ -118,7 +117,6 @@ function createRequestExecutor(
               'retry-after': retryAfterHeader,
               'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader,
             },
-            statusCode: statusCode,
           });
         },
       );

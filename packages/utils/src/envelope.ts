@@ -1,4 +1,4 @@
-import { Envelope, EnvelopeItemType, DataCategory } from '@sentry/types';
+import { DataCategory, Envelope, EnvelopeItemType } from '@sentry/types';
 
 import { isPrimitive } from './is';
 
@@ -49,6 +49,9 @@ export function serializeEnvelope(envelope: Envelope): string {
   }, serializedHeaders);
 }
 
+/**
+ * TODO: Docs
+ */
 export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCategory {
   const map = {
     session: 'session',

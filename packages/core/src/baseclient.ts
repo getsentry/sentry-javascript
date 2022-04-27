@@ -3,9 +3,11 @@ import { Scope, Session } from '@sentry/hub';
 import {
   Client,
   ClientOptions,
+  DataCategory,
   DsnComponents,
   Envelope,
   Event,
+  EventDropReason,
   EventHint,
   Integration,
   IntegrationClass,
@@ -13,8 +15,6 @@ import {
   Severity,
   SeverityLevel,
   Transport,
-  DataCategory,
-  EventDropReason,
 } from '@sentry/types';
 import {
   checkOrSetAlreadyCaught,
@@ -274,7 +274,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendEvent(event: Event): void {
     if (this._dsn) {
       const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
-      this.sendEnvelope(env);
+      this._sendEnvelope(env);
     }
   }
 
@@ -284,20 +284,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     if (this._dsn) {
       const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-      this.sendEnvelope(env);
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  private sendEnvelope(envelope: Envelope): void {
-    if (this._transport && this._dsn) {
-      this._transport.send(envelope).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      IS_DEBUG_BUILD && logger.error('Transport disabled');
+      this._sendEnvelope(env);
     }
   }
 
@@ -697,6 +684,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const key = `${category}:${reason}`;
     IS_DEBUG_BUILD && logger.log(`Adding outcome: ${key}`);
     this._outcomes[key] = this._outcomes[key] + 1 || 1; // This works because undefined + 1 === NaN
+  }
+
+  /**
+   * @inheritdoc
+   */
+  private _sendEnvelope(envelope: Envelope): void {
+    if (this._transport && this._dsn) {
+      this._transport.send(envelope).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
+      });
+    } else {
+      IS_DEBUG_BUILD && logger.error('Transport disabled');
+    }
   }
 
   /**
