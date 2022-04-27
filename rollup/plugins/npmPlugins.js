@@ -81,3 +81,19 @@ export function makeRemoveESLintCommentsPlugin() {
     ],
   });
 }
+
+/**
+ * Create a plugin to strip multiple consecutive blank lines, with or without whitespace in them. from the output.
+ *
+ * @returns A `rollup-plugin-re` instance.
+ */
+export function makeRemoveBlankLinesPlugin() {
+  return regexReplace({
+    patterns: [
+      {
+        test: /\n(\n\s*)+\n/g,
+        replace: '\n\n',
+      },
+    ],
+  });
+}
