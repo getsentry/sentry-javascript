@@ -14,7 +14,7 @@
     "build:types:watch": "ts-node scripts/build-types-watch.ts",
     "build:npm": "lerna run --parallel build:npm",
     "circularDepCheck": "lerna run --parallel circularDepCheck",
-    "clean": "lerna run --parallel clean && lerna clean --yes",
+    "clean": "lerna run --parallel clean && lerna clean --yes && yarn rimraf eslintcache",
     "codecov": "codecov",
     "fix": "lerna run --parallel fix",
     "link:yarn": "lerna run --stream --concurrency 1 link:yarn",
