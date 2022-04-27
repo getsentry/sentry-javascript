@@ -1,0 +1,6 @@
+// TODO This should eventually end up as the tsconfig for a dev-utils package
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["**/scripts/**/*.ts"],
+}
