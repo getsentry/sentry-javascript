@@ -5,9 +5,7 @@ export type {
   SdkInfo,
   Event,
   EventHint,
-  EventStatus,
   Exception,
-  Response,
   // eslint-disable-next-line deprecation/deprecation
   Severity,
   SeverityLevel,

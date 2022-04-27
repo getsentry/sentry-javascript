@@ -20,7 +20,6 @@ export type {
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint } from './event';
-export type { EventStatus } from './eventstatus';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
@@ -31,7 +30,6 @@ export type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { QueryParams, Request } from './request';
-export type { Response } from './response';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';
 export type { SdkInfo } from './sdkinfo';
