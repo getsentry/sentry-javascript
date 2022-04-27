@@ -78,7 +78,7 @@ However, directly importing from specific files is discouraged.
 
 ## Removing the `API` class from `@sentry/core`
 
-The internal `API` class was removed in favor of the `initAPIDetails` function and the `APIDetails` type. More details can be found in the [PR that deprecated this class](https://github.com/getsentry/sentry-javascript/pull/4281). To migrate, see the following example.
+The internal `API` class was removed in favor of using client options explicitly.
 
 ```js
 // New in v7:
@@ -88,10 +88,10 @@ import {
   getStoreEndpointWithUrlEncodedAuth,
 } from '@sentry/core';
 
-const dsn = initAPIDetails(dsn, metadata, tunnel);
-const dsn = api.dsn;
-const storeEndpoint = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
-const envelopeEndpoint = getStoreEndpointWithUrlEncodedAuth(api.dsn);
+const client = getCurrentHub().getClient();
+const dsn = client.getDsn();
+const options = client.getOptions();
+const envelopeEndpoint = getEnvelopeEndpointWithUrlEncodedAuth(dsn, options.tunnel);
 
 // Before:
 import { API } from '@sentry/core';

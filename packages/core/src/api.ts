@@ -1,31 +1,7 @@
-import { DsnComponents, DsnLike, SdkMetadata } from '@sentry/types';
+import { DsnComponents, DsnLike } from '@sentry/types';
 import { dsnToString, makeDsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
-
-/**
- * Stores details about a Sentry SDK
- */
-export interface APIDetails {
-  /** The DSN as passed to Sentry.init() */
-  initDsn: DsnLike;
-  /** Metadata about the SDK (name, version, etc) for inclusion in envelope headers */
-  metadata: SdkMetadata;
-  /** The internally used Dsn object. */
-  readonly dsn: DsnComponents;
-  /** The envelope tunnel to use. */
-  readonly tunnel?: string;
-}
-
-/** Initializes API Details */
-export function initAPIDetails(dsn: DsnLike, metadata?: SdkMetadata, tunnel?: string): APIDetails {
-  return {
-    initDsn: dsn,
-    metadata: metadata || {},
-    dsn: makeDsn(dsn),
-    tunnel,
-  } as APIDetails;
-}
 
 /** Returns the prefix to construct Sentry ingestion API endpoints. */
 function getBaseApiEndpoint(dsn: DsnComponents): string {
