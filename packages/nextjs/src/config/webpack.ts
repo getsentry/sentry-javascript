@@ -1,6 +1,9 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
+// @ts-ignore (`'@sentry/webpack-plugin' has no exported member 'default'`) The types file in the webpack plugin
+// correctly types it as a CJS module, but misses the fact that we manually add a self-referential `default` property to
+// `module.exports`.
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as os from 'os';

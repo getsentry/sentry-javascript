@@ -1,6 +1,6 @@
 import { test as base } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { generatePage } from './generatePage';
 

@@ -1,7 +1,7 @@
 import { Package } from '@sentry/types';
 import { readdirSync, readFileSync } from 'fs';
-import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
-import path from 'path';
+import * as HtmlWebpackPlugin from 'html-webpack-plugin';
+import * as path from 'path';
 import { Compiler } from 'webpack';
 
 const PACKAGES_DIR = '../../packages';
@@ -108,7 +108,7 @@ class SentryScenarioGenerationPlugin {
         if (useBundle && bundleKey) {
           const useTracingBundle = tracingOnly || this.requiresTracing;
           const bundleName = useTracingBundle ? 'tracing' : 'browser';
-          const bundleObject = createHtmlTagObject('script', {
+          const bundleObject = HtmlWebpackPlugin.createHtmlTagObject('script', {
             src: path.resolve(PACKAGES_DIR, bundleName, BUNDLE_PATHS[bundleName][bundleKey]),
           });
 
