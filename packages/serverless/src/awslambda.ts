@@ -226,7 +226,7 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
-    ignoreSentryErrors: false,
+    ignoreSentryErrors: true,
     ...wrapOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
