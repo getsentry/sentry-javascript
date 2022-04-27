@@ -1,8 +1,12 @@
 /**
+ * Regex Replace plugin docs: https://github.com/jetiny/rollup-plugin-re
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
+// We need both replacement plugins because one handles regex and the other runs both before and after rollup does its
+// bundling work.
+import regexReplace from 'rollup-plugin-re';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
 
@@ -60,4 +64,20 @@ export function makeDebuggerPlugin(hookName) {
       return null;
     },
   };
+}
+
+/**
+ * Create a plugin to strip eslint-style comments from the output.
+ *
+ * @returns A `rollup-plugin-re` instance.
+ */
+export function makeRemoveESLintCommentsPlugin() {
+  return regexReplace({
+    patterns: [
+      {
+        test: /\/[/*] eslint-disable.*\n/g,
+        replace: '',
+      },
+    ],
+  });
 }
