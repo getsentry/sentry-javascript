@@ -1,15 +1,5 @@
 import { Envelope } from './envelope';
 
-export type Outcome =
-  | 'before_send'
-  | 'event_processor'
-  | 'network_error'
-  | 'queue_overflow'
-  | 'ratelimit_backoff'
-  | 'sample_rate';
-
-export type TransportCategory = 'error' | 'transaction' | 'attachment' | 'session';
-
 export type TransportRequest = {
   body: string;
 };

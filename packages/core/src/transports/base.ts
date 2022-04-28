@@ -1,8 +1,8 @@
 import {
+  DataCategory,
   Envelope,
   InternalBaseTransportOptions,
   Transport,
-  TransportCategory,
   TransportRequestExecutor,
 } from '@sentry/types';
 import {
@@ -35,7 +35,7 @@ export function createTransport(
 
   function send(envelope: Envelope): PromiseLike<void> {
     const envCategory = getEnvelopeType(envelope);
-    const category = envCategory === 'event' ? 'error' : (envCategory as TransportCategory);
+    const category = envCategory === 'event' ? 'error' : (envCategory as DataCategory);
 
     // Don't add to buffer if transport is already rate-limited
     if (isRateLimited(rateLimits, category)) {
