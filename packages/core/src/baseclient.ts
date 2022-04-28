@@ -270,7 +270,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendEvent(event: Event): void {
     if (this._dsn) {
       const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
-      this.sendEnvelope(env);
+      this._sendEnvelope(env);
     }
   }
 
@@ -280,20 +280,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     if (this._dsn) {
       const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-      this.sendEnvelope(env);
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public sendEnvelope(env: Envelope): void {
-    if (this._transport && this._dsn) {
-      this._transport.send(env).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      IS_DEBUG_BUILD && logger.error('Transport disabled');
+      this._sendEnvelope(env);
     }
   }
 
@@ -657,6 +644,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return reason;
       },
     );
+  }
+
+  /**
+   * @inheritdoc
+   */
+  private _sendEnvelope(envelope: Envelope): void {
+    if (this._transport && this._dsn) {
+      this._transport.send(envelope).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
+      });
+    } else {
+      IS_DEBUG_BUILD && logger.error('Transport disabled');
+    }
   }
 
   /**
