@@ -34,10 +34,8 @@ describe('NewFetchTransport', () => {
     const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 
     expect(mockFetch).toHaveBeenCalledTimes(0);
-    const res = await transport.send(ERROR_ENVELOPE);
+    await transport.send(ERROR_ENVELOPE);
     expect(mockFetch).toHaveBeenCalledTimes(1);
-
-    expect(res.status).toBe('success');
 
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_FETCH_TRANSPORT_OPTIONS.url, {
       body: serializeEnvelope(ERROR_ENVELOPE),
