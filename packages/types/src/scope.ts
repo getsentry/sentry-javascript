@@ -1,3 +1,4 @@
+import { Attachment, AttachmentOptions } from './attachment';
 import { Breadcrumb } from './breadcrumb';
 import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
@@ -158,4 +159,10 @@ export interface Scope {
    * Clears all currently set Breadcrumbs.
    */
   clearBreadcrumbs(): this;
+
+  addAttachment(pathOrData: string | Uint8Array, options?: AttachmentOptions): this;
+
+  getAttachments(): Attachment[];
+
+  clearAttachments(): this;
 }

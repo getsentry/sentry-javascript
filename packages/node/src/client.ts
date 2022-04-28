@@ -1,7 +1,7 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
-import { logger, resolvedSyncPromise } from '@sentry/utils';
+import { AttachmentItem, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
+import { attachmentItemFromAttachment, logger, resolvedSyncPromise } from '@sentry/utils';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
@@ -149,5 +149,13 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _getAttachments(scope: Scope | undefined): AttachmentItem[] {
+    // TODO: load attachment from path...
+    return (scope?.getAttachments() || []).map(a => attachmentItemFromAttachment(a));
   }
 }

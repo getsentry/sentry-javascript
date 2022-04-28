@@ -1,3 +1,4 @@
+export type { Attachment, AttachmentOptions } from './attachment';
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport } from './clientreport';

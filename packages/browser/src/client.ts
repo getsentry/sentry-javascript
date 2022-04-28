@@ -1,6 +1,6 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
-import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { AttachmentItem, ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
+import { attachmentItemFromAttachment, getGlobalObject, logger } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
@@ -115,11 +115,18 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _sendEvent(event: Event): void {
+  protected _sendEvent(event: Event, attachments: AttachmentItem[]): void {
     const integration = this.getIntegration(Breadcrumbs);
     if (integration) {
       integration.addSentryBreadcrumb(event);
     }
-    super._sendEvent(event);
+    super._sendEvent(event, attachments);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _getAttachments(scope: Scope | undefined): AttachmentItem[] {
+    return (scope?.getAttachments() || []).map(a => attachmentItemFromAttachment(a));
   }
 }

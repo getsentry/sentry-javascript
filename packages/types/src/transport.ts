@@ -12,7 +12,7 @@ export type Outcome =
 export type TransportCategory = 'error' | 'transaction' | 'attachment' | 'session';
 
 export type TransportRequest = {
-  body: string;
+  body: string | Uint8Array;
   category: TransportCategory;
 };
 

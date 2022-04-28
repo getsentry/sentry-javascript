@@ -30,16 +30,28 @@ export function getEnvelopeType<E extends Envelope>(envelope: E): string {
 }
 
 /**
- * Serializes an envelope into a string.
+ * Serializes an envelope.
  */
-export function serializeEnvelope(envelope: Envelope): string {
-  const [headers, items] = envelope;
-  const serializedHeaders = JSON.stringify(headers);
+export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
+  const [, items] = envelope;
 
   // Have to cast items to any here since Envelope is a union type
   // Fixed in Typescript 4.2
   // TODO: Remove any[] cast when we upgrade to TS 4.2
   // https://github.com/microsoft/TypeScript/issues/36390
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hasBinaryAttachment = (items as any[]).some(
+    (item: typeof items[number]) => item[0].type === 'attachment' && item[1] instanceof Uint8Array,
+  );
+
+  return hasBinaryAttachment ? serializeBinaryEnvelope(envelope) : serializeStringEnvelope(envelope);
+}
+
+function serializeStringEnvelope(envelope: Envelope): string {
+  const [headers, items] = envelope;
+  const serializedHeaders = JSON.stringify(headers);
+
+  // TODO: Remove any[] cast when we upgrade to TS 4.2
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (items as any[]).reduce((acc, item: typeof items[number]) => {
     const [itemHeaders, payload] = item;
@@ -47,4 +59,39 @@ export function serializeEnvelope(envelope: Envelope): string {
     const serializedPayload = isPrimitive(payload) ? String(payload) : JSON.stringify(payload);
     return `${acc}\n${JSON.stringify(itemHeaders)}\n${serializedPayload}`;
   }, serializedHeaders);
+}
+
+function serializeBinaryEnvelope(envelope: Envelope): Uint8Array {
+  const encoder = new TextEncoder();
+  const [headers, items] = envelope;
+  const serializedHeaders = JSON.stringify(headers);
+
+  const chunks = [encoder.encode(serializedHeaders)];
+
+  for (const item of items) {
+    const [itemHeaders, payload] = item as typeof items[number];
+    chunks.push(encoder.encode(`\n${JSON.stringify(itemHeaders)}\n`));
+    if (typeof payload === 'string') {
+      chunks.push(encoder.encode(payload));
+    } else if (payload instanceof Uint8Array) {
+      chunks.push(payload);
+    } else {
+      chunks.push(encoder.encode(JSON.stringify(payload)));
+    }
+  }
+
+  return concatBuffers(chunks);
+}
+
+function concatBuffers(buffers: Uint8Array[]): Uint8Array {
+  const totalLength = buffers.reduce((acc, buf) => acc + buf.length, 0);
+
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const buffer of buffers) {
+    merged.set(buffer, offset);
+    offset += buffer.length;
+  }
+
+  return merged;
 }

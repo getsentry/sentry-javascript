@@ -30,7 +30,13 @@ type EventItemHeaders = {
   type: 'event' | 'transaction';
   sample_rates?: [{ id?: TransactionSamplingMethod; rate?: number }];
 };
-type AttachmentItemHeaders = { type: 'attachment'; filename: string };
+type AttachmentItemHeaders = {
+  type: 'attachment';
+  length: number;
+  filename: string;
+  content_type?: string;
+  attachment_type?: string;
+};
 type UserFeedbackItemHeaders = { type: 'user_report' };
 type SessionItemHeaders = { type: 'session' };
 type SessionAggregatesItemHeaders = { type: 'sessions' };
@@ -40,7 +46,7 @@ type ClientReportItemHeaders = { type: 'client_report' };
 // We have to allow this hack for now as we pre-serialize events because we support
 // both store and envelope endpoints.
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event | string>;
-export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, unknown>;
+export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =
   | BaseEnvelopeItem<SessionItemHeaders, Session>
