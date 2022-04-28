@@ -203,10 +203,6 @@ without having to deal with the conversion of events or sessions to envelopes.
 We recommend calling using the `createTransport` function from `@sentry/core` as demonstrated in the example above which, besides creating the `Transport`
 object with your custom logic, will also take care of rate limiting and flushing.
 
-Passing in the factory function instead of an initialized transport provides the advantage that you do not have to take
-care of decoding the URL from your DSN. Essentially, it provides the same abstraction level as in v6
-where you passed in the class instead of an instance.
-
 For a complete v7 transport implementation, take a look at our [browser fetch transport](https://github.com/getsentry/sentry-javascript/blob/ebc938a03d6efe7d0c4bbcb47714e84c9a566a9c/packages/browser/src/transports/fetch.ts#L1-L34).
 
 ## Enum Changes
