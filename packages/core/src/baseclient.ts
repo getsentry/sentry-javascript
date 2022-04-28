@@ -545,7 +545,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return finalEvent.event_id;
       },
       reason => {
-        IS_DEBUG_BUILD && logger.error(reason);
+        IS_DEBUG_BUILD && logger.warn(reason);
         return undefined;
       },
     );

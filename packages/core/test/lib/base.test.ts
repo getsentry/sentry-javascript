@@ -940,13 +940,13 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerWarnSpy = jest.spyOn(logger, 'warn');
 
       client.captureEvent({ message: 'hello' });
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerErrorSpy).toBeCalledWith(new SentryError('`beforeSend` returned `null`, will not send event.'));
+      expect(loggerWarnSpy).toBeCalledWith(new SentryError('`beforeSend` returned `null`, will not send event.'));
     });
 
     test('calls beforeSend and log info about invalid return value', () => {
@@ -958,12 +958,12 @@ describe('BaseClient', () => {
         // @ts-ignore we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
         const client = new TestClient(options);
-        const loggerErrorSpy = jest.spyOn(logger, 'error');
+        const loggerWarnSpy = jest.spyOn(logger, 'warn');
 
         client.captureEvent({ message: 'hello' });
 
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerErrorSpy).toBeCalledWith(
+        expect(loggerWarnSpy).toBeCalledWith(
           new SentryError('`beforeSend` method has to return `null` or a valid event.'),
         );
       }
@@ -1091,7 +1091,7 @@ describe('BaseClient', () => {
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerWarnSpy = jest.spyOn(logger, 'warn');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1099,7 +1099,7 @@ describe('BaseClient', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerErrorSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
+      expect(loggerWarnSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
     });
 
     // TODO(v7): Add back tests with client reports
@@ -1131,7 +1131,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerWarnSpy = jest.spyOn(logger, 'warn');
       const scope = new Scope();
       const exception = new Error('sorry');
       scope.addEventProcessor(() => {
@@ -1147,7 +1147,7 @@ describe('BaseClient', () => {
         },
         originalException: exception,
       });
-      expect(loggerErrorSpy).toBeCalledWith(
+      expect(loggerWarnSpy).toBeCalledWith(
         new SentryError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
         ),
