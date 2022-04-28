@@ -135,7 +135,7 @@ export interface Transport {
 If you rely on a custom transport, you will need to make some adjustments to how it is created when migrating
 to v7. Note that we changed our transports from a class-based to a functional approach, meaning that
 the previously class-based transports are now created via functions. This also means that custom transports
-are now passed by specifying a factory method in the `Sentry.init` options object instead passing the custom
+are now passed by specifying a factory function in the `Sentry.init` options object instead passing the custom
 transport's class.
 
 The following example shows how to create a custom transport in v7 vs. how it was done in v6:
