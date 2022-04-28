@@ -48,7 +48,7 @@ module.exports = {
       },
     },
     {
-      files: ['scenarios/**', 'rollup/**'],
+      files: ['scenarios/**', 'rollup/**/*.{js,ts}'],
       parserOptions: {
         sourceType: 'module',
       },
