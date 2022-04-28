@@ -16,8 +16,8 @@ import {
   Transport,
 } from '@sentry/types';
 import {
-  attachmentItemFromAttachment,
   checkOrSetAlreadyCaught,
+  createAttachmentEnvelopeItem,
   dateTimestampInSeconds,
   isPlainObject,
   isPrimitive,
@@ -659,7 +659,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** */
   protected _getAttachments(scope: Scope | undefined): AttachmentItem[] {
-    return (scope?.getAttachments() || []).map(a => attachmentItemFromAttachment(a));
+    return (scope?.getAttachments() || []).map(a => createAttachmentEnvelopeItem(a));
   }
 
   /**
