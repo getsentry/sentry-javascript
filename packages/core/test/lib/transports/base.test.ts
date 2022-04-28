@@ -51,7 +51,6 @@ describe('createTransport', () => {
       }).toThrow();
     });
 
-    // TODO(v7): Add tests back in and test by using client report logic
     describe('Rate-limiting', () => {
       function setRateLimitTimes(): {
         retryAfterSeconds: number;
