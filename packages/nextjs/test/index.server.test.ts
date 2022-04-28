@@ -16,7 +16,7 @@ const global = getGlobalObject();
 (global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
-const logError = jest.spyOn(logger, 'error');
+const logWarn = jest.spyOn(logger, 'warn');
 
 describe('Server init()', () => {
   afterEach(() => {
@@ -104,7 +104,7 @@ describe('Server init()', () => {
     await SentryNode.flush();
 
     expect(transportSend).not.toHaveBeenCalled();
-    expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    expect(logWarn).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {
