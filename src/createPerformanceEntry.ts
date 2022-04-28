@@ -1,11 +1,4 @@
-type EntryType =
-  | 'element'
-  | 'navigation'
-  | 'resource'
-  | 'mark'
-  | 'measure'
-  | 'paint'
-  | 'longtask';
+import { record } from 'rrweb';
 
 export interface ReplayPerformanceEntry {
   /**
@@ -31,7 +24,7 @@ export interface ReplayPerformanceEntry {
   /**
    * Additional unstructured data to be included
    */
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 interface MemoryInfo {
@@ -116,11 +109,12 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
 }
 
 function createLargestContentfulPaint(
-  entry: PerformanceEntry & { size: number }
+  entry: PerformanceEntry & { size: number; element: Node }
 ) {
   const { duration, entryType, startTime, size } = entry;
 
   const start = getAbsoluteTime(startTime);
+
   return {
     type: entryType,
     name: entryType,
@@ -128,6 +122,8 @@ function createLargestContentfulPaint(
     end: start + duration,
     data: {
       size,
+      // @ts-expect-error Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
+      nodeId: record.mirror.getId(entry.element),
     },
   };
 }
