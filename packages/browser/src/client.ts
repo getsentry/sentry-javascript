@@ -1,10 +1,7 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
-import { IS_DEBUG_BUILD } from './flags';
-import { injectReportDialog, ReportDialogOptions } from './helpers';
 import { Breadcrumbs } from './integrations';
 
 export interface BaseBrowserOptions {
@@ -60,29 +57,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       version: SDK_VERSION,
     };
     super(options);
-  }
-
-  /**
-   * Show a report dialog to the user to send feedback to a specific event.
-   *
-   * @param options Set individual options for the dialog
-   */
-  public showReportDialog(options: ReportDialogOptions = {}): void {
-    // doesn't work without a document (React Native)
-    const document = getGlobalObject<Window>().document;
-    if (!document) {
-      return;
-    }
-
-    if (!this._isEnabled()) {
-      IS_DEBUG_BUILD && logger.error('Trying to call showReportDialog with Sentry Client disabled');
-      return;
-    }
-
-    injectReportDialog({
-      ...options,
-      dsn: options.dsn || this.getDsn(),
-    });
   }
 
   /**

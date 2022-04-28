@@ -1,18 +1,13 @@
-import { captureException, getReportDialogEndpoint, withScope } from '@sentry/core';
+import { captureException, withScope } from '@sentry/core';
 import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
-  getGlobalObject,
   getOriginalFunction,
-  logger,
   markFunctionWrapped,
 } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from './flags';
-
-const global = getGlobalObject<Window>();
 let ignoreOnError: number = 0;
 
 /**
@@ -181,39 +176,4 @@ export interface ReportDialogOptions {
   successMessage?: string;
   /** Callback after reportDialog showed up */
   onLoad?(): void;
-}
-
-/**
- * Injects the Report Dialog script
- * @hidden
- */
-export function injectReportDialog(options: ReportDialogOptions = {}): void {
-  if (!global.document) {
-    return;
-  }
-
-  if (!options.eventId) {
-    IS_DEBUG_BUILD && logger.error('Missing eventId option in showReportDialog call');
-    return;
-  }
-
-  if (!options.dsn) {
-    IS_DEBUG_BUILD && logger.error('Missing dsn option in showReportDialog call');
-    return;
-  }
-
-  const script = global.document.createElement('script');
-  script.async = true;
-  script.src = getReportDialogEndpoint(options.dsn, options);
-
-  if (options.onLoad) {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    script.onload = options.onLoad;
-  }
-
-  const injectionPoint = global.document.head || global.document.body;
-
-  if (injectionPoint) {
-    injectionPoint.appendChild(script);
-  }
 }
