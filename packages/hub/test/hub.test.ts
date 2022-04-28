@@ -52,13 +52,6 @@ describe('Hub', () => {
     expect(hub.getStack()).toHaveLength(1);
   });
 
-  test("don't invoke client sync with wrong func", () => {
-    const hub = new Hub(clientFn);
-    // @ts-ignore we want to able to call private method
-    hub._invokeClient('funca', true);
-    expect(clientFn).not.toHaveBeenCalled();
-  });
-
   test('isOlderThan', () => {
     const hub = new Hub();
     expect(hub.isOlderThan(0)).toBeFalsy();
