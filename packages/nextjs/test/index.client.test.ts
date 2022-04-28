@@ -14,7 +14,7 @@ const global = getGlobalObject();
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
-const logError = jest.spyOn(logger, 'error');
+const logWarn = jest.spyOn(logger, 'warn');
 
 describe('Client init()', () => {
   afterEach(() => {
@@ -75,7 +75,7 @@ describe('Client init()', () => {
 
     expect(transportSend).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();
-    expect(logError).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    expect(logWarn).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
   });
 
   describe('integrations', () => {
