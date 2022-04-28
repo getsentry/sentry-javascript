@@ -56,18 +56,19 @@ export function serializeEnvelope(envelope: Envelope): string {
   }, serializedHeaders);
 }
 
+const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
+  session: 'session',
+  sessions: 'session',
+  attachment: 'attachment',
+  transaction: 'transaction',
+  event: 'error',
+  client_report: 'internal',
+  user_report: 'default',
+};
+
 /**
  * Maps the type of an envelope item to a data category.
  */
 export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCategory {
-  const map = {
-    session: 'session',
-    sessions: 'session',
-    attachment: 'attachment',
-    transaction: 'transaction',
-    event: 'error',
-    client_report: 'internal',
-    user_report: 'default',
-  } as const;
-  return map[type];
+  return ITEM_TYPE_TO_DATA_CATEGORY_MAP[type];
 }
