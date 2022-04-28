@@ -60,6 +60,9 @@ export function factory(): TransformerFactory<SourceFile> {
       // substituted for the subtree rooted at the visited node, or can use the recursive `visitEachChild` function
       // provided by TS to continue traversing the tree.
       function visitor(node: Node): VisitResult<Node> {
+        if (process.version.startsWith('v')) {
+          throw new Error('I got here first');
+        }
         // If we've found a `const` declaration, return a `var` declaration in its place
         if (isVariableDeclarationList(node) && isVarConst(node)) {
           // A declaration list with a `None` flag defaults to using `var`
