@@ -78,15 +78,6 @@ describe('makeNewHttpTransport()', () => {
   });
 
   describe('.send()', () => {
-    it('should correctly return successful server response', async () => {
-      await setupTestServer({ statusCode: SUCCESS });
-
-      const transport = makeNodeTransport({ url: TEST_SERVER_URL });
-      const transportResponse = await transport.send(EVENT_ENVELOPE);
-
-      expect(transportResponse).toEqual(expect.objectContaining({ status: 'success' }));
-    });
-
     it('should correctly send envelope to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, (req, body) => {
         expect(req.method).toBe('POST');
@@ -119,15 +110,28 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
-    it.each([
-      [RATE_LIMIT, 'rate_limit'],
-      [INVALID, 'invalid'],
-      [FAILED, 'failed'],
-    ])('should correctly reject bad server response (status %i)', async (serverStatusCode, expectedStatus) => {
-      await setupTestServer({ statusCode: serverStatusCode });
+    it.each([RATE_LIMIT, INVALID, FAILED])(
+      'should resolve on bad server response (status %i)',
+      async serverStatusCode => {
+        await setupTestServer({ statusCode: serverStatusCode });
+
+        const transport = makeNodeTransport({ url: TEST_SERVER_URL });
+
+        await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
+      },
+    );
+
+    it('should resolve when server responds with rate limit header and status code 200', async () => {
+      await setupTestServer({
+        statusCode: SUCCESS,
+        responseHeaders: {
+          'Retry-After': '2700',
+          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+        },
+      });
 
       const transport = makeNodeTransport({ url: TEST_SERVER_URL });
-      await expect(transport.send(EVENT_ENVELOPE)).rejects.toEqual(expect.objectContaining({ status: expectedStatus }));
+      await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
     });
 
     it('should resolve when server responds with rate limit header and status code 200', async () => {
@@ -140,24 +144,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       const transport = makeNodeTransport({ url: TEST_SERVER_URL });
-      const transportResponse = await transport.send(EVENT_ENVELOPE);
-
-      expect(transportResponse).toEqual(expect.objectContaining({ status: 'success' }));
-    });
-
-    it('should resolve when server responds with rate limit header and status code 200', async () => {
-      await setupTestServer({
-        statusCode: SUCCESS,
-        responseHeaders: {
-          'Retry-After': '2700',
-          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
-        },
-      });
-
-      const transport = makeNodeTransport({ url: TEST_SERVER_URL });
-      const transportResponse = await transport.send(EVENT_ENVELOPE);
-
-      expect(transportResponse).toEqual(expect.objectContaining({ status: 'success' }));
+      await transport.send(EVENT_ENVELOPE);
     });
   });
 
@@ -259,7 +246,6 @@ describe('makeNewHttpTransport()', () => {
           'retry-after': '2700',
           'x-sentry-rate-limits': '60::organization, 2700::organization',
         },
-        statusCode: RATE_LIMIT,
       }),
     );
   });
@@ -283,7 +269,6 @@ describe('makeNewHttpTransport()', () => {
           'retry-after': null,
           'x-sentry-rate-limits': null,
         },
-        statusCode: SUCCESS,
       }),
     );
   });
@@ -311,7 +296,6 @@ describe('makeNewHttpTransport()', () => {
           'retry-after': '2700',
           'x-sentry-rate-limits': '60::organization, 2700::organization',
         },
-        statusCode: SUCCESS,
       }),
     );
   });
@@ -339,7 +323,6 @@ describe('makeNewHttpTransport()', () => {
           'retry-after': '2700',
           'x-sentry-rate-limits': '60::organization, 2700::organization',
         },
-        statusCode: RATE_LIMIT,
       }),
     );
   });
