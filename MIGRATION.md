@@ -102,7 +102,113 @@ const storeEndpoint = api.getStoreEndpointWithUrlEncodedAuth();
 const envelopeEndpoint = api.getEnvelopeEndpointWithUrlEncodedAuth();
 ```
 
-## Enum changes
+## Transport Changes
+
+The `Transport` API was simplified and some functionality (e.g. APIDetails and client reports) was refactored and moved
+to the Client. To send data to Sentry, we switched from the previously used [Store endpoint](https://develop.sentry.dev/sdk/store/) to the [Envelopes endpoint](https://develop.sentry.dev/sdk/envelopes/).
+
+This example shows the new v7 and the v6 Transport API:
+
+```js
+// New in v7:
+export interface Transport {
+  /* Sends an envelope to the Envelope endpoint in Sentry */
+  send(request: Envelope): PromiseLike<void>;
+  /* Waits for all events to be sent or the timeout to expire, whichever comes first */
+  flush(timeout?: number): PromiseLike<boolean>;
+}
+
+// Before:
+export interface Transport {
+  /* Sends the event to the Store endpoint in Sentry */
+  sendEvent(event: Event): PromiseLike<Response>;
+  /* Sends the session to the Envelope endpoint in Sentry */
+  sendSession?(session: Session | SessionAggregates): PromiseLike<Response>;
+  /* Waits for all events to be sent or the timeout to expire, whichever comes first */
+  close(timeout?: number): PromiseLike<boolean>;
+  /* Increment the counter for the specific client outcome */
+  recordLostEvent?(type: Outcome, category: SentryRequestType): void;
+}
+```
+
+### Custom Transports
+If you rely on a custom transport, you will need to make some adjustments to how it is created when migrating
+to v7. Note that we changed our transports from a class-based to a functional approach, meaning that
+the previously class-based transports are now created via functions. This also means that custom transports
+are now passed by specifying a factory method in the `Sentry.init` options object instead passing the custom
+transport's class.
+
+The following example shows how to create a custom transport in v7 vs. how it was done in v6:
+
+```js
+// New in v7:
+import { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import { createTransport } from '@sentry/core';
+
+export function makeMyCustomTransport(options: BaseTransportOptions): Transport {
+  function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+    // this is where your sending logic goes
+    const myCustomRequest = {
+      request.body,
+      url: options.url
+    };
+    return sendMyCustomRequest(myCustomRequest).then(response => ({
+      headers: {
+        'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+        'retry-after': response.headers.get('Retry-After'),
+      },
+    }));
+  }
+
+  // `createTransport` takes care of rate limiting and flushing
+  return createTransport({ bufferSize: options.bufferSize }, makeRequest);
+}
+
+Sentry.init({
+  dsn: '...',
+  transport: makeMyCustomTransport, // this function will be called when the client is initialized
+  ...
+})
+
+
+
+// Before:
+class MyCustomTransport extends BaseTransport {
+  constructor(options: TransportOptions) {
+    // initialize your transport here
+    super(options);
+  }
+
+  public sendEvent(event: Event): PromiseLike<Response> {
+    // this is where your sending logic goes
+    // `url` is decoded from dsn in BaseTransport
+    const myCustomRequest = createMyCustomRequestFromEvent(event, this.url);
+    return sendMyCustomRequest(myCustomRequest).then(() => resolve({status: 'success'}));
+  }
+
+  public sendSession(session: Session): PromiseLike<Response> {...}
+  // ...
+}
+
+Sentry.init({
+  dsn: '...',
+  transport: MyCustomTransport, // the constructor was called when the client was initialized
+  ...
+})
+```
+
+Overall, the new way of transport creation allows you to create your custom sending implementation
+without having to deal with the conversion of events or sessions to envelopes.
+We recommend calling `createTransport` as demonstrated in the example above which, besides creating the `Transport`
+object with your custom logic, will also take care of rate limiting and flushing.
+
+Passing in the factory function instead of an initialized transport provides the advantage that you do not have to take
+care of decoding the URL from your DSN. Essentially, it provides the same abstraction level as in v6
+where you passed in the class instead of an instance.
+
+For a complete v7 transport implementation, take a look at our [browser fetch transport](https://github.com/getsentry/sentry-javascript/blob/ebc938a03d6efe7d0c4bbcb47714e84c9a566a9c/packages/browser/src/transports/fetch.ts#L1-L34).
+
+## Enum Changes
 
 Given that enums have a high bundle-size impact, our long term goal is to eventually remove all enums from the SDK in
 favor of string literals.
