@@ -1,4 +1,4 @@
-import { EventEnvelope, EventItem, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import { EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/types';
 import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
 
 import { createTransport } from '../../../src/transports/base';
@@ -12,6 +12,10 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
   [[{ type: 'transaction' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem],
 );
 
+const transportOptions = {
+  recordDroppedEvent: () => undefined, // noop
+};
+
 describe('createTransport', () => {
   it('flushes the buffer', async () => {
     const mockBuffer: PromiseBuffer<void> = {
@@ -19,7 +23,7 @@ describe('createTransport', () => {
       add: jest.fn(),
       drain: jest.fn(),
     };
-    const transport = createTransport({}, _ => resolvedSyncPromise({}), mockBuffer);
+    const transport = createTransport(transportOptions, _ => resolvedSyncPromise({}), mockBuffer);
     /* eslint-disable @typescript-eslint/unbound-method */
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
     await transport.flush(1000);
@@ -31,7 +35,7 @@ describe('createTransport', () => {
   describe('send', () => {
     it('constructs a request to send to Sentry', async () => {
       expect.assertions(1);
-      const transport = createTransport({}, req => {
+      const transport = createTransport(transportOptions, req => {
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         return resolvedSyncPromise({});
       });
@@ -41,7 +45,7 @@ describe('createTransport', () => {
     it('does throw if request fails', async () => {
       expect.assertions(2);
 
-      const transport = createTransport({}, req => {
+      const transport = createTransport(transportOptions, req => {
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         throw new Error();
       });
@@ -51,8 +55,7 @@ describe('createTransport', () => {
       }).toThrow();
     });
 
-    // TODO(v7): Add tests back in and test by using client report logic
-    describe.skip('Rate-limiting', () => {
+    describe('Rate-limiting', () => {
       function setRateLimitTimes(): {
         retryAfterSeconds: number;
         beforeLimit: number;
@@ -66,265 +69,208 @@ describe('createTransport', () => {
         return { retryAfterSeconds, beforeLimit, withinLimit, afterLimit };
       }
 
-      function createTestTransport(
-        initialTransportResponse: TransportMakeRequestResponse,
-      ): [Transport, (res: TransportMakeRequestResponse) => void] {
+      function createTestTransport(initialTransportResponse: TransportMakeRequestResponse) {
         let transportResponse: TransportMakeRequestResponse = initialTransportResponse;
 
         function setTransportResponse(res: TransportMakeRequestResponse) {
           transportResponse = res;
         }
 
-        const transport = createTransport({}, _ => {
+        const mockRequestExecutor = jest.fn(_ => {
           return resolvedSyncPromise(transportResponse);
         });
 
-        return [transport, setTransportResponse];
+        const mockRecordDroppedEventCallback = jest.fn();
+
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, mockRequestExecutor);
+
+        return [transport, setTransportResponse, mockRequestExecutor, mockRecordDroppedEventCallback] as const;
       }
 
-      it('back-off using Retry-After header', async () => {
+      it('back-off _after_ Retry-After header was received', async () => {
         const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
+        const [transport, setTransportResponse, requestExecutor, recordDroppedEventCallback] = createTestTransport({});
 
-        jest
-          .spyOn(Date, 'now')
-          // 1st event - isRateLimited - FALSE
-          .mockImplementationOnce(() => beforeLimit)
-          // 1st event - updateRateLimits
-          .mockImplementationOnce(() => beforeLimit)
-          // 2nd event - isRateLimited - TRUE
-          .mockImplementationOnce(() => withinLimit)
-          // 3rd event - isRateLimited - FALSE
-          .mockImplementationOnce(() => afterLimit)
-          // 3rd event - updateRateLimits
-          .mockImplementationOnce(() => afterLimit);
+        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
-        const [transport, setTransportResponse] = createTestTransport({
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        setTransportResponse({
           headers: {
             'x-sentry-rate-limits': null,
             'retry-after': `${retryAfterSeconds}`,
           },
         });
 
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
 
-        setTransportResponse({});
-
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
+        // act like were in the rate limited period
+        dateNowSpy.mockImplementation(() => withinLimit);
 
         await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        // act like it's after the rate limited period
+        dateNowSpy.mockImplementation(() => afterLimit);
+
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
       it('back-off using X-Sentry-Rate-Limits with single category', async () => {
         const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
-
-        jest
-          .spyOn(Date, 'now')
-          // 1st event - isRateLimited - FALSE
-          .mockImplementationOnce(() => beforeLimit)
-          // 1st event - updateRateLimits
-          .mockImplementationOnce(() => beforeLimit)
-          // 2nd event - isRateLimited - FALSE (different category)
-          .mockImplementationOnce(() => withinLimit)
-          // 3rd event - isRateLimited - TRUE
-          .mockImplementationOnce(() => withinLimit)
-          // 4th event - isRateLimited - FALSE
-          .mockImplementationOnce(() => afterLimit)
-          // 4th event - updateRateLimits
-          .mockImplementationOnce(() => afterLimit);
-
-        const [transport, setTransportResponse] = createTestTransport({
+        const [transport, setTransportResponse, requestExecutor, recordDroppedEventCallback] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error:scope`,
             'retry-after': null,
           },
         });
 
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
+        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
 
         setTransportResponse({});
 
-        try {
-          await transport.send(TRANSACTION_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
+        // act like were in the rate limited period
+        dateNowSpy.mockImplementation(() => withinLimit);
 
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
+        await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should be sent
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        // act like it's after the rate limited period
+        dateNowSpy.mockImplementation(() => afterLimit);
 
         await transport.send(TRANSACTION_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
       it('back-off using X-Sentry-Rate-Limits with multiple categories', async () => {
         const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
-
-        jest
-          .spyOn(Date, 'now')
-          // 1st event - isRateLimited - FALSE
-          .mockImplementationOnce(() => beforeLimit)
-          // 1st event - updateRateLimits
-          .mockImplementationOnce(() => beforeLimit)
-          // 2nd event - isRateLimited - TRUE (different category)
-          .mockImplementationOnce(() => withinLimit)
-          // 3rd event - isRateLimited - TRUE
-          .mockImplementationOnce(() => withinLimit)
-          // 4th event - isRateLimited - FALSE
-          .mockImplementationOnce(() => afterLimit)
-          // 4th event - updateRateLimits
-          .mockImplementationOnce(() => afterLimit);
-
-        const [transport, setTransportResponse] = createTestTransport({
+        const [transport, setTransportResponse, requestExecutor, recordDroppedEventCallback] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
             'retry-after': null,
           },
         });
 
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
+        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
-
-        try {
-          await transport.send(TRANSACTION_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(
-            `Too many transaction requests, backing off until: ${new Date(afterLimit).toISOString()}`,
-          );
-        }
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
 
         setTransportResponse({});
 
-        await transport.send(ERROR_ENVELOPE);
+        // act like were in the rate limited period
+        dateNowSpy.mockImplementation(() => withinLimit);
+
+        await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        // act like it's after the rate limited period
+        dateNowSpy.mockImplementation(() => afterLimit);
+
         await transport.send(TRANSACTION_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
       it('back-off using X-Sentry-Rate-Limits with missing categories should lock them all', async () => {
         const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
-
-        jest
-          .spyOn(Date, 'now')
-          // 1st event - isRateLimited - false
-          .mockImplementationOnce(() => beforeLimit)
-          // 1st event - updateRateLimits
-          .mockImplementationOnce(() => beforeLimit)
-          // 2nd event - isRateLimited - true (event category)
-          .mockImplementationOnce(() => withinLimit)
-          // 3rd event - isRateLimited - true (transaction category)
-          .mockImplementationOnce(() => withinLimit)
-          // 4th event - isRateLimited - false (event category)
-          .mockImplementationOnce(() => afterLimit)
-          // 4th event - updateRateLimits
-          .mockImplementationOnce(() => afterLimit)
-          // 5th event - isRateLimited - false (transaction category)
-          .mockImplementationOnce(() => afterLimit)
-          // 5th event - updateRateLimits
-          .mockImplementationOnce(() => afterLimit);
-
-        const [transport, setTransportResponse] = createTestTransport({
+        const [transport, setTransportResponse, requestExecutor, recordDroppedEventCallback] = createTestTransport({
           headers: {
             'x-sentry-rate-limits': `${retryAfterSeconds}::scope`,
             'retry-after': null,
           },
         });
 
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
+        const dateNowSpy = jest.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
 
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
-
-        try {
-          await transport.send(TRANSACTION_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(
-            `Too many transaction requests, backing off until: ${new Date(afterLimit).toISOString()}`,
-          );
-        }
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
 
         setTransportResponse({});
 
-        await transport.send(ERROR_ENVELOPE);
+        // act like were in the rate limited period
+        dateNowSpy.mockImplementation(() => withinLimit);
+
+        await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
+
+        // act like it's after the rate limited period
+        dateNowSpy.mockImplementation(() => afterLimit);
+
         await transport.send(TRANSACTION_ENVELOPE);
-      });
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+        requestExecutor.mockClear();
+        recordDroppedEventCallback.mockClear();
 
-      it('back-off using X-Sentry-Rate-Limits should also trigger for 200 responses', async () => {
-        const { retryAfterSeconds, beforeLimit, withinLimit, afterLimit } = setRateLimitTimes();
-
-        jest
-          .spyOn(Date, 'now')
-          // 1st event - isRateLimited - FALSE
-          .mockImplementationOnce(() => beforeLimit)
-          // 1st event - updateRateLimits
-          .mockImplementationOnce(() => beforeLimit)
-          // 2nd event - isRateLimited - TRUE
-          .mockImplementationOnce(() => withinLimit)
-          // 3rd event - isRateLimited - FALSE
-          .mockImplementationOnce(() => afterLimit)
-          // 3rd event - updateRateLimits
-          .mockImplementationOnce(() => afterLimit);
-
-        const [transport] = createTestTransport({
-          headers: {
-            'x-sentry-rate-limits': `${retryAfterSeconds}:error;transaction:scope`,
-            'retry-after': null,
-          },
-        });
-
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(`Too many error requests, backing off until: ${new Date(afterLimit).toISOString()}`);
-        }
-
-        try {
-          await transport.send(TRANSACTION_ENVELOPE);
-        } catch (res) {
-          expect(res.status).toBe('rate_limit');
-          expect(res.reason).toBe(
-            `Too many transaction requests, backing off until: ${new Date(afterLimit).toISOString()}`,
-          );
-        }
+        await transport.send(ERROR_ENVELOPE);
+        expect(requestExecutor).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventCallback).not.toHaveBeenCalled();
       });
     });
   });

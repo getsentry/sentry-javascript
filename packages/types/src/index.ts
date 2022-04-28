@@ -12,6 +12,8 @@ export type {
   ClientReportEnvelope,
   ClientReportItem,
   Envelope,
+  EnvelopeItemType,
+  EnvelopeItem,
   EventEnvelope,
   EventItem,
   SessionEnvelope,

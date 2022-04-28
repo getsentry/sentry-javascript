@@ -7,6 +7,15 @@ import { UserFeedback } from './user';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
+export type EnvelopeItemType =
+  | 'client_report'
+  | 'user_report'
+  | 'session'
+  | 'sessions'
+  | 'transaction'
+  | 'attachment'
+  | 'event';
+
 export type BaseEnvelopeHeaders = {
   [key: string]: unknown;
   dsn?: string;
@@ -15,7 +24,7 @@ export type BaseEnvelopeHeaders = {
 
 export type BaseEnvelopeItemHeaders = {
   [key: string]: unknown;
-  type: string;
+  type: EnvelopeItemType;
   length?: number;
 };
 
@@ -56,3 +65,4 @@ export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
 
 export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope;
+export type EnvelopeItem = Envelope[1][number];

@@ -3,7 +3,7 @@ const Sentry = require('../../../build/cjs');
 let remaining = 2;
 
 function makeDummyTransport() {
-  return Sentry.createTransport({}, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     --remaining;
 
     if (!remaining) {
@@ -14,7 +14,7 @@ function makeDummyTransport() {
     return Promise.resolve({
       status: 'success',
     });
-  })
+  });
 }
 
 Sentry.init({
