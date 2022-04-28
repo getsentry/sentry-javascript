@@ -160,9 +160,20 @@ export interface Scope {
    */
   clearBreadcrumbs(): this;
 
+  /**
+   * Adds an attachment to the scope
+   * @param pathOrData A Uint8Array containing the attachment bytes
+   * @param options Attachment options
+   */
   addAttachment(pathOrData: string | Uint8Array, options?: AttachmentOptions): this;
 
+  /**
+   * Returns an array of attachments on the scope
+   */
   getAttachments(): Attachment[];
 
+  /**
+   * Clears attachments from the scope
+   */
   clearAttachments(): this;
 }

@@ -30,7 +30,7 @@ const GZIP_THRESHOLD = 1024 * 32;
 
 /**
  * Gets a stream from a Uint8Array or string
- * We don't have Readable.from in earlier versions of node
+ * Readable.from was added in node.sj v12.3.0, v10.17.0
  */
 function streamFromBody(body: Uint8Array | string): Readable {
   return new Readable({

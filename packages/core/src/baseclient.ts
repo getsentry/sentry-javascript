@@ -620,7 +620,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        this._sendEvent(processedEvent, this._getAttachments(scope));
+        this._sendEvent(processedEvent, this._attachmentsFromScope(scope));
         return processedEvent;
       })
       .then(null, reason => {
@@ -657,8 +657,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     );
   }
 
-  /** */
-  protected _getAttachments(scope: Scope | undefined): AttachmentItem[] | undefined {
+  /**
+   * Loads attachment items from scope
+   */
+  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentItem[] | undefined {
     return scope?.getAttachments()?.map(a => createAttachmentEnvelopeItem(a));
   }
 
