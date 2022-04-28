@@ -149,9 +149,10 @@ export function makeMyCustomTransport(options: BaseTransportOptions): Transport 
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     // this is where your sending logic goes
     const myCustomRequest = {
-      request.body,
+      body: request.body,
       url: options.url
     };
+    // you define how `sendMyCustomRequest` works
     return sendMyCustomRequest(myCustomRequest).then(response => ({
       headers: {
         'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
@@ -199,7 +200,7 @@ Sentry.init({
 
 Overall, the new way of transport creation allows you to create your custom sending implementation
 without having to deal with the conversion of events or sessions to envelopes.
-We recommend calling `createTransport` as demonstrated in the example above which, besides creating the `Transport`
+We recommend calling using the `createTransport` function from `@sentry/core` as demonstrated in the example above which, besides creating the `Transport`
 object with your custom logic, will also take care of rate limiting and flushing.
 
 Passing in the factory function instead of an initialized transport provides the advantage that you do not have to take
