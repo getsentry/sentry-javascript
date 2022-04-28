@@ -6,3 +6,8 @@
 !/cjs/**/*
 !/esm/**/*
 !/types/**/*
+
+# These paths are necessary for @sentry/serverless AWS Lambda Layer creation
+!/build/cjs/**/*
+!/build/esm/**/*
+!/build/types/**/*

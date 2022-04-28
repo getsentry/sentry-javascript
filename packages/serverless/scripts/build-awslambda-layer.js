@@ -8,7 +8,7 @@ const findUp = require('find-up');
 const packList = require('npm-packlist');
 const readPkg = require('read-pkg');
 
-const serverlessPackage = require('../package.json');
+const serverlessPackageJson = require('../package.json');
 
 if (!process.env.GITHUB_ACTIONS) {
   console.log('Skipping build-awslambda-layer script in local environment.');
@@ -36,7 +36,14 @@ if (!process.env.GITHUB_ACTIONS) {
 // And yet another way is to bundle everything with webpack into a single file. I tried and it seems to be error-prone
 // so I think it's better to have a classic package directory with node_modules file structure.
 
-/** Recursively traverse all the dependencies and collect all the info to the map */
+/**
+ * Recursively traverses all the dependencies of @param pkg and collects all the info to the map
+ * The map ultimately contains @sentry/serverless itself, its direct dependencies and
+ * its transitive dependencies.
+ *
+ * @param cwd       the root directory of the package
+ * @param packages  the map accumulating all packages
+ */
 async function collectPackages(cwd, packages = {}) {
   const packageJson = await readPkg({ cwd });
 
@@ -68,67 +75,89 @@ async function collectPackages(cwd, packages = {}) {
 }
 
 async function main() {
-  const workDir = path.resolve(__dirname, '..'); // packages/serverless directory
-  const distRequirements = path.resolve(workDir, 'build', 'cjs');
-  if (!fs.existsSync(distRequirements)) {
-    console.log(`The path ${distRequirements} must exist.`);
+  const serverlessDir = path.resolve(__dirname, '..'); // packages/serverless directory
+
+  const cjsBuildDir = path.resolve(serverlessDir, 'build', 'cjs');
+  if (!fs.existsSync(cjsBuildDir)) {
+    console.log(`The path ${cjsBuildDir} must exist.`);
     return;
   }
-  const packages = await collectPackages(workDir);
 
-  const dist = path.resolve(workDir, 'dist-awslambda-layer');
+  const packages = await collectPackages(serverlessDir);
+
+  // the build directory of the Lambda layer
+  const layerBuildDir = path.resolve(serverlessDir, 'dist-awslambda-layer');
+
+  // the root directory in which the Lambda layer files + dependencies are copied to
+  // this structure resembles the structure where Lambda expects to find @sentry/serverless
   const destRootRelative = 'nodejs/node_modules/@sentry/serverless';
-  const destRoot = path.resolve(dist, destRootRelative);
-  const destModulesRoot = path.resolve(destRoot, 'node_modules');
+  const destRootDir = path.resolve(layerBuildDir, destRootRelative);
+
+  // this is where all the (transitive) dependencies of @sentry/serverless go
+  const destRootNodeModulesDir = path.resolve(destRootDir, 'node_modules');
 
   try {
     // Setting `force: true` ignores exceptions when paths don't exist.
-    fs.rmSync(destRoot, { force: true, recursive: true, maxRetries: 1 });
-    fs.mkdirSync(destRoot, { recursive: true });
+    fs.rmSync(destRootDir, { force: true, recursive: true, maxRetries: 1 });
+    fs.mkdirSync(destRootDir, { recursive: true });
   } catch (error) {
     // Ignore errors.
   }
 
   await Promise.all(
     Object.entries(packages).map(async ([name, pkg]) => {
-      const isRoot = name == serverlessPackage.name;
-      const destPath = isRoot ? destRoot : path.resolve(destModulesRoot, name);
+      const isServelessPkg = name == serverlessPackageJson.name;
+      const destDir = isServelessPkg ? destRootDir : path.resolve(destRootNodeModulesDir, name);
 
-      // Scan over the distributable files of the module and symlink each of them.
+      // Scan over the "distributable" files of `pkg` and symlink all of them.
+      // `packList` returns all files it deems "distributable" from `pkg.cwd`.
+      // "Distributable" means in this case that the file would end up in the NPM tarball of `pkg`.
+      // To find out which files are distributable, packlist scans for NPM file configurations in the following order:
+      // 1. if `files` section present in package.json, take everything* from there
+      // 2. if `.npmignore` present, take everything* except what's ignored there
+      // 3. if `.gitignore` present, take everything* except what's ignored there
+      // 4. else take everything*
+      // In our case, rule 2 applies.
+      // * everything except certain unimportant files similarly to what `npm pack` does when packing a tarball.
+      // For more information on the rules see: https://github.com/npm/npm-packlist#readme
       const sourceFiles = await packList({ path: pkg.cwd });
+
       await Promise.all(
         sourceFiles.map(async filename => {
-          const sourceFilename = path.resolve(pkg.cwd, filename);
-          const destFilename = path.resolve(destPath, filename);
+          const sourceFilePath = path.resolve(pkg.cwd, filename);
+          const destFilePath = path.resolve(destDir, filename);
 
           try {
-            fs.mkdirSync(path.dirname(destFilename), { recursive: true });
-            fs.symlinkSync(sourceFilename, destFilename);
+            fs.mkdirSync(path.dirname(destFilePath), { recursive: true });
+            fs.symlinkSync(sourceFilePath, destFilePath);
           } catch (error) {
             // Ignore errors.
           }
         }),
       );
 
-      const sourceModulesRoot = path.resolve(pkg.cwd, 'node_modules');
+      // Now we deal with the `pkg`'s dependencies in its local `node_modules` directory
+      const pkgNodeModulesDir = path.resolve(pkg.cwd, 'node_modules');
+
+      // First, check if `pkg` has node modules. If not, we're done with this `pkg`.
       // `fs.constants.F_OK` indicates whether the file is visible to the current process, but it doesn't check
       // its permissions. For more information, refer to https://nodejs.org/api/fs.html#fs_file_access_constants.
       try {
-        fs.accessSync(path.resolve(sourceModulesRoot), fs.constants.F_OK);
+        fs.accessSync(path.resolve(pkgNodeModulesDir), fs.constants.F_OK);
       } catch (error) {
         return;
       }
 
-      // Scan over local node_modules folder of the package and symlink its non-dev dependencies.
-      const sourceModules = fs.readdirSync(sourceModulesRoot);
+      // Then, scan over local node_modules folder of `pkg` and symlink its non-dev dependencies.
+      const pkgNodeModules = fs.readdirSync(pkgNodeModulesDir);
       await Promise.all(
-        sourceModules.map(async sourceModule => {
-          if (!pkg.packageJson.dependencies || !pkg.packageJson.dependencies[sourceModule]) {
+        pkgNodeModules.map(async nodeModule => {
+          if (!pkg.packageJson.dependencies || !pkg.packageJson.dependencies[nodeModule]) {
             return;
           }
 
-          const sourceModulePath = path.resolve(sourceModulesRoot, sourceModule);
-          const destModulePath = path.resolve(destPath, 'node_modules', sourceModule);
+          const sourceModulePath = path.resolve(pkgNodeModulesDir, nodeModule);
+          const destModulePath = path.resolve(destDir, 'node_modules', nodeModule);
 
           try {
             fs.mkdirSync(path.dirname(destModulePath), { recursive: true });
@@ -141,25 +170,32 @@ async function main() {
     }),
   );
 
-  const version = serverlessPackage.version;
+  const version = serverlessPackageJson.version;
   const zipFilename = `sentry-node-serverless-${version}.zip`;
 
+  // link from `./build/cjs` to `./dist`
+  // This needs to be done to satisfy the NODE_OPTIONS environment variable path that is set in
+  // AWS lambda functions when connecting them to Sentry. On initialization, the layer preloads a js
+  // file specified in NODE_OPTIONS to initialize the SDK.
+  // Hence we symlink everything from `.build/cjs` to `.dist`.
+  // This creates duplication but it's not too bad file size wise.
   try {
-    fs.symlinkSync(path.resolve(destRoot, 'build', 'dist'), path.resolve(destRoot, 'dist'));
-    fs.symlinkSync(path.resolve(destRoot, 'build', 'esm'), path.resolve(destRoot, 'esm'));
+    fs.symlinkSync(path.resolve(destRootDir, 'build', 'cjs'), path.resolve(destRootDir, 'dist'));
   } catch (error) {
     console.error(error);
   }
 
+  // remove previously created layer zip
   try {
-    fs.unlinkSync(path.resolve(dist, zipFilename));
+    fs.unlinkSync(path.resolve(layerBuildDir, zipFilename));
   } catch (error) {
     // If the ZIP file hasn't been previously created (e.g. running this script for the first time),
     // `unlinkSync` will try to delete a non-existing file. This error is ignored.
   }
 
+  // create new layer zip
   try {
-    childProcess.execSync(`zip -r ${zipFilename} ${destRootRelative}`, { cwd: dist });
+    childProcess.execSync(`zip -r ${zipFilename} ${destRootRelative}`, { cwd: layerBuildDir });
   } catch (error) {
     // The child process timed out or had non-zero exit code.
     // The error contains the entire result from `childProcess.spawnSync`.
