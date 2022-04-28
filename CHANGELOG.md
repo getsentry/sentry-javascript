@@ -20,6 +20,7 @@
 - chore: Remove tslint from `@sentry-internal/typescript` (#4940)
 - feat: Add client report hook to makeTransport (#5008)
 - ref(build): Switch tsconfig target to es6 (#5005)
+- ref(core): Make event processing log warnings (#5010)
 - fix(hub): Add missing parameter to captureException docstring (#5001)
 - fix(serverless): Adjust v6 Lambda layer hotfix for v7 (#5006)
 - fix(tracing): Adjust sideEffects package.json entry for v7 (#4987)
