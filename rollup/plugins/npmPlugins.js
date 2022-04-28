@@ -97,3 +97,5 @@ export function makeRemoveBlankLinesPlugin() {
     ],
   });
 }
+
+export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.js';
