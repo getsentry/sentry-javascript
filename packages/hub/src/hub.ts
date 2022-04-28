@@ -185,11 +185,18 @@ export class Hub implements HubInterface {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
-    this._invokeClient('captureException', exception, {
-      originalException: exception,
-      syntheticException: new Error('Sentry syntheticException'),
-      ...hint,
-      event_id: eventId,
+    const syntheticException = new Error('Sentry syntheticException');
+    this._withClient((client, scope) => {
+      client.captureException(
+        exception,
+        {
+          originalException: exception,
+          syntheticException,
+          ...hint,
+          event_id: eventId,
+        },
+        scope,
+      );
     });
     return eventId;
   }
@@ -204,11 +211,19 @@ export class Hub implements HubInterface {
     hint?: EventHint,
   ): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
-    this._invokeClient('captureMessage', message, level, {
-      originalException: message,
-      syntheticException: new Error(message),
-      ...hint,
-      event_id: eventId,
+    const syntheticException = new Error(message);
+    this._withClient((client, scope) => {
+      client.captureMessage(
+        message,
+        level,
+        {
+          originalException: message,
+          syntheticException,
+          ...hint,
+          event_id: eventId,
+        },
+        scope,
+      );
     });
     return eventId;
   }
@@ -222,9 +237,8 @@ export class Hub implements HubInterface {
       this._lastEventId = eventId;
     }
 
-    this._invokeClient('captureEvent', event, {
-      ...hint,
-      event_id: eventId,
+    this._withClient((client, scope) => {
+      client.captureEvent(event, { ...hint, event_id: eventId }, scope);
     });
     return eventId;
   }
@@ -446,12 +460,10 @@ export class Hub implements HubInterface {
    * @param method The method to call on the client.
    * @param args Arguments to pass to the client function.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
+  private _withClient(callback: (client: Client, scope: Scope | undefined) => void): void {
     const { scope, client } = this.getStackTop();
-    if (client && client[method]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      (client as any)[method](...args, scope);
+    if (client) {
+      callback(client, scope);
     }
   }
 
