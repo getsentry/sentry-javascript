@@ -1,4 +1,4 @@
-import { Envelope } from '@sentry/types';
+import { DataCategory, Envelope, EnvelopeItem, EnvelopeItemType } from '@sentry/types';
 
 import { isPrimitive } from './is';
 
@@ -22,11 +22,18 @@ export function addItemToEnvelope<E extends Envelope>(envelope: E, newItem: E[1]
 }
 
 /**
- * Get the type of the envelope. Grabs the type from the first envelope item.
+ * Convenience function to loop through the items and item types of an envelope.
+ * (This function was mostly created because working with envelope types is painful at the moment)
  */
-export function getEnvelopeType<E extends Envelope>(envelope: E): string {
-  const [, [[firstItemHeader]]] = envelope;
-  return firstItemHeader.type;
+export function forEachEnvelopeItem<E extends Envelope>(
+  envelope: Envelope,
+  callback: (envelopeItem: E[1][number], envelopeItemType: E[1][number][0]['type']) => void,
+): void {
+  const envelopeItems = envelope[1];
+  envelopeItems.forEach((envelopeItem: EnvelopeItem) => {
+    const envelopeItemType = envelopeItem[0].type;
+    callback(envelopeItem, envelopeItemType);
+  });
 }
 
 /**
@@ -47,4 +54,20 @@ export function serializeEnvelope(envelope: Envelope): string {
     const serializedPayload = isPrimitive(payload) ? String(payload) : JSON.stringify(payload);
     return `${acc}\n${JSON.stringify(itemHeaders)}\n${serializedPayload}`;
   }, serializedHeaders);
+}
+
+/**
+ * Maps the type of an envelope item to a data category.
+ */
+export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCategory {
+  const map = {
+    session: 'session',
+    sessions: 'session',
+    attachment: 'attachment',
+    transaction: 'transaction',
+    event: 'error',
+    client_report: 'internal',
+    user_report: 'default',
+  } as const;
+  return map[type];
 }

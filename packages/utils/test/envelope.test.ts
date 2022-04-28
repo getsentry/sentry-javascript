@@ -1,6 +1,6 @@
 import { EventEnvelope } from '@sentry/types';
 
-import { addItemToEnvelope, createEnvelope, getEnvelopeType, serializeEnvelope } from '../src/envelope';
+import { addItemToEnvelope, createEnvelope, forEachEnvelopeItem, serializeEnvelope } from '../src/envelope';
 import { parseEnvelope } from './testutils';
 
 describe('envelope', () => {
@@ -45,13 +45,27 @@ describe('envelope', () => {
     });
   });
 
-  describe('getEnvelopeType', () => {
-    it('returns the type of the envelope', () => {
-      const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+  describe('forEachEnvelopeItem', () => {
+    it('loops through an envelope', () => {
+      const items: EventEnvelope[1] = [
         [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
-        [{ type: 'attachment', filename: 'me.txt' }, '123456'],
-      ]);
-      expect(getEnvelopeType(env)).toEqual('event');
+        [{ type: 'attachment', filename: 'bar.txt' }, '123456'],
+        [{ type: 'attachment', filename: 'foo.txt' }, '123456'],
+      ];
+
+      const env = createEnvelope<EventEnvelope>(
+        { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
+        items,
+      );
+
+      expect.assertions(6);
+
+      let iteration = 0;
+      forEachEnvelopeItem(env, (item, type) => {
+        expect(item).toBe(items[iteration]);
+        expect(type).toBe(items[iteration][0].type);
+        iteration = iteration + 1;
+      });
     });
   });
 });
