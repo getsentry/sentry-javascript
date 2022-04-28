@@ -1,5 +1,11 @@
-import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { Hub } from '@sentry/types';
+import {
+  getCurrentHub,
+  getIntegrationsToSetup,
+  getReportDialogEndpoint,
+  Hub,
+  initAndBind,
+  Integrations as CoreIntegrations,
+} from '@sentry/core';
 import {
   addInstrumentationHandler,
   getGlobalObject,
@@ -121,9 +127,21 @@ export function init(options: BrowserOptions = {}): void {
  *
  * @param options Everything is optional, we try to fetch all info need from the global scope.
  */
-export function showReportDialog(options: ReportDialogOptions = {}): void {
-  const hub = getCurrentHub();
-  const scope = hub.getScope();
+export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = getCurrentHub()): void {
+  // doesn't work without a document (React Native)
+  const global = getGlobalObject<Window>();
+  if (!global.document) {
+    IS_DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
+    return;
+  }
+
+  const { client, scope } = hub.getStackTop();
+  const dsn = options.dsn || (client && client.getDsn());
+  if (!dsn) {
+    IS_DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
+    return;
+  }
+
   if (scope) {
     options.user = {
       ...scope.getUser(),
@@ -134,9 +152,21 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   if (!options.eventId) {
     options.eventId = hub.lastEventId();
   }
-  const client = hub.getClient<BrowserClient>();
-  if (client) {
-    client.showReportDialog(options);
+
+  const script = global.document.createElement('script');
+  script.async = true;
+  script.src = getReportDialogEndpoint(dsn, options);
+
+  if (options.onLoad) {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    script.onload = options.onLoad;
+  }
+
+  const injectionPoint = global.document.head || global.document.body;
+  if (injectionPoint) {
+    injectionPoint.appendChild(script);
+  } else {
+    IS_DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
   }
 }
 
