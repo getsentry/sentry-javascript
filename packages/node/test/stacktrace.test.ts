@@ -10,12 +10,8 @@
  * @license MIT
  */
 
-import { createStackParser } from '@sentry/utils';
-
 import { parseStackFrames } from '../src/eventbuilder';
-import { nodeStackParser } from '../src/stack-parser';
-
-const stackParser = createStackParser(nodeStackParser);
+import { defaultStackParser as stackParser } from '../src/stack-parser';
 
 function testBasic() {
   return new Error('something went wrong');

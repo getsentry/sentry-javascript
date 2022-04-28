@@ -1,13 +1,13 @@
 import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
 import { SessionStatus } from '@sentry/types';
-import { getGlobalObject, logger, stackParserFromOptions } from '@sentry/utils';
+import { getGlobalObject, logger, stackParserFromStackParserOptions } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
-import { nodeStackParser } from './stack-parser';
+import { defaultStackParser } from './stack-parser';
 import { makeNodeTransport } from './transports';
 import { NodeClientOptions, NodeOptions } from './types';
 
@@ -130,7 +130,7 @@ export function init(options: NodeOptions = {}): void {
   // TODO(v7): Refactor this to reduce the logic above
   const clientOptions: NodeClientOptions = {
     ...options,
-    stackParser: stackParserFromOptions(options.stackParser || [nodeStackParser]),
+    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeNodeTransport,
   };

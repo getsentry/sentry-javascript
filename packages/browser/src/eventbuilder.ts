@@ -14,7 +14,7 @@ import {
 } from '@sentry/utils';
 
 /**
- * This function creates an exception from an TraceKitStackTrace
+ * This function creates an exception from a JavaScript Error
  */
 export function exceptionFromError(stackParser: StackParser, ex: Error): Exception {
   // Get the frames first since Opera can lose the stack if we touch anything else first

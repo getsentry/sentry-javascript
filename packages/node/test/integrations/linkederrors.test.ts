@@ -1,12 +1,9 @@
 import { ExtendedError } from '@sentry/types';
-import { createStackParser } from '@sentry/utils';
 
 import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
-import { nodeStackParser } from '../../src/stack-parser';
+import { defaultStackParser as stackParser } from '../../src/stack-parser';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
-
-const stackParser = createStackParser(nodeStackParser);
 
 let linkedErrors: any;
 
