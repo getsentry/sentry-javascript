@@ -23,6 +23,6 @@
     "sourceMap": true,
     "strict": true,
     "strictBindCallApply": false,
-    "target": "es5"
+    "target": "es6"
   }
 }

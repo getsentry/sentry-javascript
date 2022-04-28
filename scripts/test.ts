@@ -1,4 +1,5 @@
 import { spawnSync } from 'child_process';
+import * as fs from 'fs';
 import { join } from 'path';
 
 function run(cmd: string, cwd: string = '') {
@@ -37,6 +38,7 @@ if (nodeMajorVersion <= 10) {
       '@sentry/gatsby',
       '@sentry/serverless',
       '@sentry/nextjs',
+      '@sentry/angular',
     ];
 
     // This is a hack, to deal the fact that the browser-based tests fail under Node 8, because of a conflict buried
@@ -46,6 +48,12 @@ if (nodeMajorVersion <= 10) {
     // against a single version of node, but in the short run, this at least allows us to not be blocked by the
     // failures.)
     run('rm -rf packages/tracing/test/browser');
+
+    // TODO Pull this out once we switch to sucrase builds
+    // Recompile as es5, so as not to have to fix a compatibility problem that will soon be moot
+    const baseTSConfig = 'packages/typescript/tsconfig.json';
+    fs.writeFileSync(baseTSConfig, String(fs.readFileSync(baseTSConfig)).replace('"target": "es6"', '"target": "es5"'));
+    run(`yarn build:dev ${ignorePackages.map(dep => `--ignore="${dep}"`).join(' ')}`);
   }
   // Node 10
   else {
