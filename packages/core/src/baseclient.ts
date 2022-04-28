@@ -527,7 +527,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param event The Sentry event to send
    */
   // TODO(v7): refactor: get rid of method?
-  protected _sendEvent(event: Event, attachments: AttachmentItem[]): void {
+  protected _sendEvent(event: Event, attachments?: AttachmentItem[]): void {
     this.sendEvent(event, attachments);
   }
 
@@ -658,8 +658,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /** */
-  protected _getAttachments(scope: Scope | undefined): AttachmentItem[] {
-    return (scope?.getAttachments() || []).map(a => createAttachmentEnvelopeItem(a));
+  protected _getAttachments(scope: Scope | undefined): AttachmentItem[] | undefined {
+    return scope?.getAttachments()?.map(a => createAttachmentEnvelopeItem(a));
   }
 
   /**
