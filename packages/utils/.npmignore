@@ -13,3 +13,6 @@
 !/build/cjs/**/*
 !/build/esm/**/*
 !/build/types/**/*
+
+# polyfills for language features and import helpers
+!jsPolyfills/**/*
