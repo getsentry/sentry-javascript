@@ -47,7 +47,7 @@ export function createTransport(
     forEachEnvelopeItem(envelope, (item, type) => {
       const envelopeItemDataCategory = envelopeItemTypeToDataCategory(type);
       if (isRateLimited(rateLimits, envelopeItemDataCategory)) {
-        options.recordDroppedEvent && options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory);
+        options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory);
       } else {
         filteredEnvelopeItems.push(item);
       }
@@ -64,9 +64,7 @@ export function createTransport(
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {
       forEachEnvelopeItem(filteredEnvelope, (_, type) => {
-        if (options.recordDroppedEvent) {
-          options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
-        }
+        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
       });
     };
 

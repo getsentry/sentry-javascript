@@ -79,6 +79,12 @@ const unsafeHttpsModule: HTTPModule = {
     }),
 };
 
+const defaultOptions = {
+  httpModule: unsafeHttpsModule,
+  url: TEST_SERVER_URL,
+  recordDroppedEvent: () => undefined, // noop
+};
+
 describe('makeNewHttpsTransport()', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -95,7 +101,7 @@ describe('makeNewHttpsTransport()', () => {
         expect(body).toBe(SERIALIZED_EVENT_ENVELOPE);
       });
 
-      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      const transport = makeNodeTransport(defaultOptions);
       await transport.send(EVENT_ENVELOPE);
     });
 
@@ -111,8 +117,7 @@ describe('makeNewHttpsTransport()', () => {
       });
 
       const transport = makeNodeTransport({
-        httpModule: unsafeHttpsModule,
-        url: TEST_SERVER_URL,
+        ...defaultOptions,
         headers: {
           'X-Some-Custom-Header-1': 'value1',
           'X-Some-Custom-Header-2': 'value2',
@@ -127,7 +132,7 @@ describe('makeNewHttpsTransport()', () => {
       async serverStatusCode => {
         await setupTestServer({ statusCode: serverStatusCode });
 
-        const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+        const transport = makeNodeTransport(defaultOptions);
         expect(() => {
           expect(transport.send(EVENT_ENVELOPE));
         }).not.toThrow();
@@ -143,7 +148,7 @@ describe('makeNewHttpsTransport()', () => {
         },
       });
 
-      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      const transport = makeNodeTransport(defaultOptions);
       await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
     });
 
@@ -156,7 +161,7 @@ describe('makeNewHttpsTransport()', () => {
         },
       });
 
-      const transport = makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+      const transport = makeNodeTransport(defaultOptions);
       await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
     });
 
@@ -164,6 +169,7 @@ describe('makeNewHttpsTransport()', () => {
       await setupTestServer({ statusCode: SUCCESS });
 
       const transport = makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: TEST_SERVER_URL,
         caCerts: 'some cert',
@@ -184,6 +190,7 @@ describe('makeNewHttpsTransport()', () => {
   describe('proxy', () => {
     it('can be configured through option', () => {
       makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
         proxy: 'https://example.com',
@@ -196,6 +203,7 @@ describe('makeNewHttpsTransport()', () => {
     it('can be configured through env variables option (http)', () => {
       process.env.http_proxy = 'https://example.com';
       makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
@@ -208,6 +216,7 @@ describe('makeNewHttpsTransport()', () => {
     it('can be configured through env variables option (https)', () => {
       process.env.https_proxy = 'https://example.com';
       makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
@@ -220,6 +229,7 @@ describe('makeNewHttpsTransport()', () => {
     it('client options have priority over env variables', () => {
       process.env.https_proxy = 'https://foo.com';
       makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
         proxy: 'https://bar.com',
@@ -233,6 +243,7 @@ describe('makeNewHttpsTransport()', () => {
     it('no_proxy allows for skipping specific hosts', () => {
       process.env.no_proxy = 'sentry.io';
       makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
         proxy: 'https://example.com',
@@ -248,6 +259,7 @@ describe('makeNewHttpsTransport()', () => {
       process.env.no_proxy = 'sentry.io:8989';
 
       makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
@@ -263,6 +275,7 @@ describe('makeNewHttpsTransport()', () => {
       process.env.no_proxy = 'example.com,sentry.io,wat.com:1337';
 
       makeNodeTransport({
+        ...defaultOptions,
         httpModule: unsafeHttpsModule,
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
@@ -283,7 +296,7 @@ describe('makeNewHttpsTransport()', () => {
       },
     });
 
-    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
@@ -306,7 +319,7 @@ describe('makeNewHttpsTransport()', () => {
       statusCode: SUCCESS,
     });
 
-    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
@@ -333,7 +346,7 @@ describe('makeNewHttpsTransport()', () => {
       },
     });
 
-    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
@@ -360,7 +373,7 @@ describe('makeNewHttpsTransport()', () => {
       },
     });
 
-    makeNodeTransport({ httpModule: unsafeHttpsModule, url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({

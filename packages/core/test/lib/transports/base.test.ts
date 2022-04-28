@@ -12,6 +12,10 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
   [[{ type: 'transaction' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem],
 );
 
+const transportOptions = {
+  recordDroppedEvent: () => undefined, // noop
+};
+
 describe('createTransport', () => {
   it('flushes the buffer', async () => {
     const mockBuffer: PromiseBuffer<void> = {
@@ -19,7 +23,7 @@ describe('createTransport', () => {
       add: jest.fn(),
       drain: jest.fn(),
     };
-    const transport = createTransport({}, _ => resolvedSyncPromise({}), mockBuffer);
+    const transport = createTransport(transportOptions, _ => resolvedSyncPromise({}), mockBuffer);
     /* eslint-disable @typescript-eslint/unbound-method */
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
     await transport.flush(1000);
@@ -31,7 +35,7 @@ describe('createTransport', () => {
   describe('send', () => {
     it('constructs a request to send to Sentry', async () => {
       expect.assertions(1);
-      const transport = createTransport({}, req => {
+      const transport = createTransport(transportOptions, req => {
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         return resolvedSyncPromise({});
       });
@@ -41,7 +45,7 @@ describe('createTransport', () => {
     it('does throw if request fails', async () => {
       expect.assertions(2);
 
-      const transport = createTransport({}, req => {
+      const transport = createTransport(transportOptions, req => {
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         throw new Error();
       });

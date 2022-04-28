@@ -62,7 +62,7 @@ export const testOnlyIfNodeVersionAtLeast = (minVersion: number): jest.It => {
 export function getDefaultBrowserClientOptions(options: Partial<ClientOptions> = {}): ClientOptions {
   return {
     integrations: [],
-    transport: () => createTransport({}, _ => resolvedSyncPromise({})),
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],
     ...options,
   };

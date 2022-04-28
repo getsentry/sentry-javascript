@@ -16,7 +16,7 @@ function assertTags(actual, expected) {
 let remaining = 3;
 
 function makeDummyTransport() {
-  return Sentry.createTransport({}, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     --remaining;
 
     if (!remaining) {
@@ -28,7 +28,7 @@ function makeDummyTransport() {
     return Promise.resolve({
       statusCode: 200,
     });
-  })
+  });
 }
 
 Sentry.init({

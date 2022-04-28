@@ -68,6 +68,11 @@ const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
 
 const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE);
 
+const defaultOptions = {
+  url: TEST_SERVER_URL,
+  recordDroppedEvent: () => undefined,
+};
+
 describe('makeNewHttpTransport()', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -84,7 +89,7 @@ describe('makeNewHttpTransport()', () => {
         expect(body).toBe(SERIALIZED_EVENT_ENVELOPE);
       });
 
-      const transport = makeNodeTransport({ url: TEST_SERVER_URL });
+      const transport = makeNodeTransport(defaultOptions);
       await transport.send(EVENT_ENVELOPE);
     });
 
@@ -100,7 +105,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       const transport = makeNodeTransport({
-        url: TEST_SERVER_URL,
+        ...defaultOptions,
         headers: {
           'X-Some-Custom-Header-1': 'value1',
           'X-Some-Custom-Header-2': 'value2',
@@ -115,7 +120,7 @@ describe('makeNewHttpTransport()', () => {
       async serverStatusCode => {
         await setupTestServer({ statusCode: serverStatusCode });
 
-        const transport = makeNodeTransport({ url: TEST_SERVER_URL });
+        const transport = makeNodeTransport(defaultOptions);
 
         await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
       },
@@ -130,7 +135,7 @@ describe('makeNewHttpTransport()', () => {
         },
       });
 
-      const transport = makeNodeTransport({ url: TEST_SERVER_URL });
+      const transport = makeNodeTransport(defaultOptions);
       await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
     });
 
@@ -143,7 +148,7 @@ describe('makeNewHttpTransport()', () => {
         },
       });
 
-      const transport = makeNodeTransport({ url: TEST_SERVER_URL });
+      const transport = makeNodeTransport(defaultOptions);
       await transport.send(EVENT_ENVELOPE);
     });
   });
@@ -151,6 +156,7 @@ describe('makeNewHttpTransport()', () => {
   describe('proxy', () => {
     it('can be configured through option', () => {
       makeNodeTransport({
+        ...defaultOptions,
         url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
         proxy: 'http://example.com',
       });
@@ -162,6 +168,7 @@ describe('makeNewHttpTransport()', () => {
     it('can be configured through env variables option', () => {
       process.env.http_proxy = 'http://example.com';
       makeNodeTransport({
+        ...defaultOptions,
         url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
 
@@ -173,6 +180,7 @@ describe('makeNewHttpTransport()', () => {
     it('client options have priority over env variables', () => {
       process.env.http_proxy = 'http://foo.com';
       makeNodeTransport({
+        ...defaultOptions,
         url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
         proxy: 'http://bar.com',
       });
@@ -185,6 +193,7 @@ describe('makeNewHttpTransport()', () => {
     it('no_proxy allows for skipping specific hosts', () => {
       process.env.no_proxy = 'sentry.io';
       makeNodeTransport({
+        ...defaultOptions,
         url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
         proxy: 'http://example.com',
       });
@@ -199,6 +208,7 @@ describe('makeNewHttpTransport()', () => {
       process.env.no_proxy = 'sentry.io:8989';
 
       makeNodeTransport({
+        ...defaultOptions,
         url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
 
@@ -213,6 +223,7 @@ describe('makeNewHttpTransport()', () => {
       process.env.no_proxy = 'example.com,sentry.io,wat.com:1337';
 
       makeNodeTransport({
+        ...defaultOptions,
         url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
 
@@ -232,7 +243,7 @@ describe('makeNewHttpTransport()', () => {
       },
     });
 
-    makeNodeTransport({ url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
@@ -255,7 +266,7 @@ describe('makeNewHttpTransport()', () => {
       statusCode: SUCCESS,
     });
 
-    makeNodeTransport({ url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
@@ -282,7 +293,7 @@ describe('makeNewHttpTransport()', () => {
       },
     });
 
-    makeNodeTransport({ url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
@@ -309,7 +320,7 @@ describe('makeNewHttpTransport()', () => {
       },
     });
 
-    makeNodeTransport({ url: TEST_SERVER_URL });
+    makeNodeTransport(defaultOptions);
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({

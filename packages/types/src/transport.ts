@@ -16,7 +16,7 @@ export type TransportMakeRequestResponse = {
 
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
-  recordDroppedEvent?: (reason: EventDropReason, dataCategory: DataCategory) => void;
+  recordDroppedEvent: (reason: EventDropReason, dataCategory: DataCategory) => void;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {

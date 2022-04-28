@@ -10,7 +10,7 @@ export function makeFakeTransport(delay: number = 2000) {
   let sendCalled = 0;
   let sentCount = 0;
   const makeTransport = () =>
-    createTransport({}, () => {
+    createTransport({ recordDroppedEvent: () => undefined }, () => {
       sendCalled += 1;
       return new SyncPromise(async res => {
         await sleep(delay);

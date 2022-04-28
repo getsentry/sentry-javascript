@@ -50,5 +50,5 @@ export function makeXHRTransport(options: XHRTransportOptions): Transport {
     });
   }
 
-  return createTransport({ bufferSize: options.bufferSize }, makeRequest);
+  return createTransport(options, makeRequest);
 }
