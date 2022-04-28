@@ -15,7 +15,7 @@ export function makeFakeTransport(delay: number = 2000) {
       return new SyncPromise(async res => {
         await sleep(delay);
         sentCount += 1;
-        res({ statusCode: 200 });
+        res({});
       });
     });
   return { makeTransport, getSendCalled: () => sendCalled, getSentCount: () => sentCount, delay };

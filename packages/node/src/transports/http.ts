@@ -6,7 +6,6 @@ import {
   TransportRequest,
   TransportRequestExecutor,
 } from '@sentry/types';
-import { eventStatusFromHttpCode } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import { Readable, Writable } from 'stream';
@@ -132,9 +131,6 @@ function createRequestExecutor(
             // Drain socket
           });
 
-          const statusCode = res.statusCode ?? 500;
-          const status = eventStatusFromHttpCode(statusCode);
-
           res.setEncoding('utf8');
 
           // "Key-value pairs of header names and values. Header names are lower-cased."
@@ -147,8 +143,6 @@ function createRequestExecutor(
               'retry-after': retryAfterHeader,
               'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader,
             },
-            reason: status,
-            statusCode: statusCode,
           });
         },
       );

@@ -14,7 +14,6 @@ export * from './path';
 export * from './promisebuffer';
 export * from './severity';
 export * from './stacktrace';
-export * from './status';
 export * from './string';
 export * from './supports';
 export * from './syncpromise';

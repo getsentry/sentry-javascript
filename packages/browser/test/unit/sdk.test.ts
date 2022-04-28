@@ -15,7 +15,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 function getDefaultBrowserOptions(options: Partial<BrowserOptions> = {}): BrowserOptions {
   return {
     integrations: [],
-    transport: () => createTransport({}, _ => resolvedSyncPromise({ statusCode: 200 })),
+    transport: () => createTransport({}, _ => resolvedSyncPromise({})),
     stackParser: () => [],
     ...options,
   };

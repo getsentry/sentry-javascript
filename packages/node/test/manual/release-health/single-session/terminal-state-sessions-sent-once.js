@@ -1,9 +1,5 @@
 const Sentry = require('../../../../build/cjs');
-const {
-  assertSessions,
-  constructStrippedSessionObject,
-  validateSessionCountFunction,
-} = require('../test-utils');
+const { assertSessions, constructStrippedSessionObject, validateSessionCountFunction } = require('../test-utils');
 
 const sessionCounts = {
   sessionCounter: 0,
@@ -14,11 +10,13 @@ validateSessionCountFunction(sessionCounts);
 
 function makeDummyTransport() {
   return Sentry.createTransport({}, req => {
-    if (req.category === 'session') {
-      sessionCounts.sessionCounter++;
-      const sessionEnv = req.body.split('\n').map(e => JSON.parse(e));
+    const payload = req.body.split('\n').map(e => JSON.parse(e));
+    const isSessionPayload = payload[1].type === 'session';
 
-      assertSessions(constructStrippedSessionObject(sessionEnv[2]), {
+    if (isSessionPayload) {
+      sessionCounts.sessionCounter++;
+
+      assertSessions(constructStrippedSessionObject(payload[2]), {
         init: true,
         status: 'crashed',
         errors: 1,
@@ -29,7 +27,7 @@ function makeDummyTransport() {
     return Promise.resolve({
       statusCode: 200,
     });
-  })
+  });
 }
 
 Sentry.init({
