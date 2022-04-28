@@ -46,7 +46,7 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
     : new nativeHttpModule.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
-  return createTransport({ bufferSize: options.bufferSize }, requestExecutor);
+  return createTransport(options, requestExecutor);
 }
 
 /**

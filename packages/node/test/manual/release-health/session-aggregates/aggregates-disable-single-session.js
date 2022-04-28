@@ -28,7 +28,7 @@ function assertSessionAggregates(session, expected) {
 }
 
 function makeDummyTransport() {
-  return Sentry.createTransport({}, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     const sessionEnv = req.body.split('\n').map(e => JSON.parse(e));
     assertSessionAggregates(sessionEnv[2], {
       attrs: { release: '1.1' },
@@ -40,7 +40,7 @@ function makeDummyTransport() {
     return Promise.resolve({
       statusCode: 200,
     });
-  })
+  });
 }
 
 Sentry.init({

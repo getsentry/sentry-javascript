@@ -9,7 +9,7 @@ const sessionCounts = {
 validateSessionCountFunction(sessionCounts);
 
 function makeDummyTransport() {
-  return Sentry.createTransport({}, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     const payload = req.body.split('\n').map(e => JSON.parse(e));
     const isSessionPayload = payload[1].type === 'session';
 

@@ -1,20 +1,27 @@
 import {
-  DataCategory,
   Envelope,
+  EnvelopeItem,
+  EventDropReason,
   InternalBaseTransportOptions,
   Transport,
   TransportRequestExecutor,
 } from '@sentry/types';
 import {
-  getEnvelopeType,
+  createEnvelope,
+  envelopeItemTypeToDataCategory,
+  forEachEnvelopeItem,
   isRateLimited,
+  logger,
   makePromiseBuffer,
   PromiseBuffer,
   RateLimits,
   resolvedSyncPromise,
+  SentryError,
   serializeEnvelope,
   updateRateLimits,
 } from '@sentry/utils';
+
+import { IS_DEBUG_BUILD } from '../flags';
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 
@@ -34,22 +41,58 @@ export function createTransport(
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
   function send(envelope: Envelope): PromiseLike<void> {
-    const envCategory = getEnvelopeType(envelope);
-    const category = envCategory === 'event' ? 'error' : (envCategory as DataCategory);
+    const filteredEnvelopeItems: EnvelopeItem[] = [];
 
-    // Don't add to buffer if transport is already rate-limited
-    if (isRateLimited(rateLimits, category)) {
+    // Drop rate limited items from envelope
+    forEachEnvelopeItem(envelope, (item, type) => {
+      const envelopeItemDataCategory = envelopeItemTypeToDataCategory(type);
+      if (isRateLimited(rateLimits, envelopeItemDataCategory)) {
+        options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory);
+      } else {
+        filteredEnvelopeItems.push(item);
+      }
+    });
+
+    // Skip sending if envelope is empty after filtering out rate limited events
+    if (filteredEnvelopeItems.length === 0) {
       return resolvedSyncPromise();
     }
 
-    const requestTask = (): PromiseLike<void> =>
-      makeRequest({ body: serializeEnvelope(envelope) }).then(({ headers }): void => {
-        if (headers) {
-          rateLimits = updateRateLimits(rateLimits, headers);
-        }
-      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as any);
 
-    return buffer.add(requestTask);
+    // Creates client report for each item in an envelope
+    const recordEnvelopeLoss = (reason: EventDropReason): void => {
+      forEachEnvelopeItem(filteredEnvelope, (_, type) => {
+        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
+      });
+    };
+
+    const requestTask = (): PromiseLike<void> =>
+      makeRequest({ body: serializeEnvelope(filteredEnvelope) }).then(
+        ({ headers }): void => {
+          if (headers) {
+            rateLimits = updateRateLimits(rateLimits, headers);
+          }
+        },
+        error => {
+          IS_DEBUG_BUILD && logger.error('Failed while recording event:', error);
+          recordEnvelopeLoss('network_error');
+        },
+      );
+
+    return buffer.add(requestTask).then(
+      result => result,
+      error => {
+        if (error instanceof SentryError) {
+          IS_DEBUG_BUILD && logger.error('Skipped sending event due to full buffer');
+          recordEnvelopeLoss('queue_overflow');
+          return resolvedSyncPromise();
+        } else {
+          throw error;
+        }
+      },
+    );
   }
 
   return {

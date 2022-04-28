@@ -97,7 +97,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
       const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options.tunnel);
-      this._transport = options.transport({ ...options.transportOptions, url });
+      this._transport = options.transport({
+        recordDroppedEvent: () => undefined, // TODO(v7): Provide a proper function instead of noop
+        ...options.transportOptions,
+        url,
+      });
     } else {
       IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
     }

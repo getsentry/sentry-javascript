@@ -30,5 +30,5 @@ export function makeFetchTransport(
     }));
   }
 
-  return createTransport({ bufferSize: options.bufferSize }, makeRequest);
+  return createTransport(options, makeRequest);
 }
