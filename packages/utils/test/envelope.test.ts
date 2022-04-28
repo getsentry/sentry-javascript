@@ -1,6 +1,6 @@
 import { EventEnvelope } from '@sentry/types';
 
-import { addItemToEnvelope, createEnvelope, getEnvelopeType, serializeEnvelope } from '../src/envelope';
+import { addItemToEnvelope, createEnvelope, getEnvelopeType, serializeStringEnvelope } from '../src/envelope';
 import { parseEnvelope } from './testutils';
 
 describe('envelope', () => {
@@ -17,10 +17,10 @@ describe('envelope', () => {
     });
   });
 
-  describe('serializeEnvelope()', () => {
+  describe('serializeStringEnvelope()', () => {
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      expect(serializeEnvelope(env)).toMatchInlineSnapshot(
+      expect(serializeStringEnvelope(env)).toMatchInlineSnapshot(
         '"{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}"',
       );
     });
@@ -29,7 +29,7 @@ describe('envelope', () => {
   describe('addItemToEnvelope()', () => {
     it('adds an item to an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      const parsedEnvelope = parseEnvelope(serializeEnvelope(env));
+      const parsedEnvelope = parseEnvelope(serializeStringEnvelope(env));
       expect(parsedEnvelope).toHaveLength(1);
       expect(parsedEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
 
@@ -37,7 +37,7 @@ describe('envelope', () => {
         { type: 'event' },
         { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' },
       ]);
-      const parsedNewEnvelope = parseEnvelope(serializeEnvelope(newEnv));
+      const parsedNewEnvelope = parseEnvelope(serializeStringEnvelope(newEnv));
       expect(parsedNewEnvelope).toHaveLength(3);
       expect(parsedNewEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
       expect(parsedNewEnvelope[1]).toEqual({ type: 'event' });
@@ -49,7 +49,7 @@ describe('envelope', () => {
     it('returns the type of the envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
         [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
-        [{ type: 'attachment', filename: 'me.txt' }, '123456'],
+        [{ type: 'attachment', filename: 'me.txt', length: 6 }, new Uint8Array(6)],
       ]);
       expect(getEnvelopeType(env)).toEqual('event');
     });

@@ -47,7 +47,10 @@ export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
   return hasBinaryAttachment ? serializeBinaryEnvelope(envelope) : serializeStringEnvelope(envelope);
 }
 
-function serializeStringEnvelope(envelope: Envelope): string {
+/**
+ * Serializes an envelope to a string.
+ */
+export function serializeStringEnvelope(envelope: Envelope): string {
   const [headers, items] = envelope;
   const serializedHeaders = JSON.stringify(headers);
 

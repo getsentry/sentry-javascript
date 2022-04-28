@@ -16,6 +16,7 @@ import {
   Transport,
 } from '@sentry/types';
 import {
+  attachmentItemFromAttachment,
   checkOrSetAlreadyCaught,
   dateTimestampInSeconds,
   isPlainObject,
@@ -656,6 +657,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     );
   }
 
+  /** */
+  protected _getAttachments(scope: Scope | undefined): AttachmentItem[] {
+    return (scope?.getAttachments() || []).map(a => attachmentItemFromAttachment(a));
+  }
+
   /**
    * @inheritDoc
    */
@@ -671,9 +677,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     _level?: Severity | SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
-
-  /** */
-  protected abstract _getAttachments(scope: Scope | undefined): AttachmentItem[];
 }
 
 /**

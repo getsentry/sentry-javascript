@@ -155,7 +155,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    * @inheritDoc
    */
   protected _getAttachments(scope: Scope | undefined): AttachmentItem[] {
-    // TODO: load attachment from path...
+    // TODO: load any attachments from paths...
     return (scope?.getAttachments() || []).map(a => attachmentItemFromAttachment(a));
   }
 }
