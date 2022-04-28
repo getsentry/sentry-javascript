@@ -1,8 +1,9 @@
 export type { Attachment, AttachmentOptions } from './attachment';
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
-export type { ClientReport } from './clientreport';
+export type { ClientReport, EventDropReason } from './clientreport';
 export type { Context, Contexts } from './context';
+export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export type { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
 export type {
@@ -29,7 +30,7 @@ export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
-export type { QueryParams, Request, SentryRequest, SentryRequestType } from './request';
+export type { QueryParams, Request } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';
 export type { SdkInfo } from './sdkinfo';
@@ -62,9 +63,7 @@ export type {
 } from './transaction';
 export type { Thread } from './thread';
 export type {
-  Outcome,
   Transport,
-  TransportCategory,
   TransportRequest,
   TransportMakeRequestResponse,
   InternalBaseTransportOptions,

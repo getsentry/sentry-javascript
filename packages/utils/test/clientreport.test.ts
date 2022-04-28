@@ -6,7 +6,7 @@ import { serializeEnvelope } from '../src/envelope';
 const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
   {
     reason: 'before_send',
-    category: 'event',
+    category: 'error',
     quantity: 30,
   },
   {
@@ -45,7 +45,7 @@ describe('createClientReportEnvelope', () => {
     expect(serializedEnv).toMatchInlineSnapshot(`
       "{\\"dsn\\":\\"https://public@example.com/1\\"}
       {\\"type\\":\\"client_report\\"}
-      {\\"timestamp\\":123456,\\"discarded_events\\":[{\\"reason\\":\\"before_send\\",\\"category\\":\\"event\\",\\"quantity\\":30},{\\"reason\\":\\"network_error\\",\\"category\\":\\"transaction\\",\\"quantity\\":23}]}"
+      {\\"timestamp\\":123456,\\"discarded_events\\":[{\\"reason\\":\\"before_send\\",\\"category\\":\\"error\\",\\"quantity\\":30},{\\"reason\\":\\"network_error\\",\\"category\\":\\"transaction\\",\\"quantity\\":23}]}"
     `);
   });
 });
