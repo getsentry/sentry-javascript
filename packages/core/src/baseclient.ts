@@ -3,12 +3,15 @@ import { Scope, Session } from '@sentry/hub';
 import {
   Client,
   ClientOptions,
+  DataCategory,
   DsnComponents,
   Envelope,
   Event,
+  EventDropReason,
   EventHint,
   Integration,
   IntegrationClass,
+  Outcome,
   SessionAggregates,
   Severity,
   SeverityLevel,
@@ -87,6 +90,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Number of calls being processed */
   protected _numProcessing: number = 0;
 
+  /** Holds flushable  */
+  private _outcomes: { [key: string]: number } = {};
+
   /**
    * Initializes this client instance.
    *
@@ -98,7 +104,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       this._dsn = makeDsn(options.dsn);
       const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options.tunnel);
       this._transport = options.transport({
-        recordDroppedEvent: () => undefined, // TODO(v7): Provide a proper function instead of noop
+        recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
       });
@@ -270,7 +276,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendEvent(event: Event): void {
     if (this._dsn) {
       const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
-      this.sendEnvelope(env);
+      this._sendEnvelope(env);
     }
   }
 
@@ -280,20 +286,26 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     if (this._dsn) {
       const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-      this.sendEnvelope(env);
+      this._sendEnvelope(env);
     }
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
-  public sendEnvelope(env: Envelope): void {
-    if (this._transport && this._dsn) {
-      this._transport.send(env).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      IS_DEBUG_BUILD && logger.error('Transport disabled');
+  public recordDroppedEvent(reason: EventDropReason, category: DataCategory): void {
+    if (this._options.sendClientReports) {
+      // We want to track each category (error, transaction, session) separately
+      // but still keep the distinction between different type of outcomes.
+      // We could use nested maps, but it's much easier to read and type this way.
+      // A correct type for map-based implementation if we want to go that route
+      // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
+      // With typescript 4.1 we could even use template literal types
+      const key = `${reason}:${category}`;
+      IS_DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
+
+      // The following works because undefined + 1 === NaN and NaN is falsy
+      this._outcomes[key] = this._outcomes[key] + 1 || 1;
     }
   }
 
@@ -565,19 +577,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
   protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeSend, sampleRate } = this.getOptions();
-
-    // type RecordLostEvent = NonNullable<Transport['recordLostEvent']>;
-    type RecordLostEventParams = unknown[]; // Parameters<RecordLostEvent>;
-
-    // no-op as new transports don't have client outcomes
-    // TODO(v7): Re-add this functionality
-    function recordLostEvent(_outcome: RecordLostEventParams[0], _category: RecordLostEventParams[1]): void {
-      // if (transport.recordLostEvent) {
-      //   transport.recordLostEvent(outcome, category);
-      // }
-    }
 
     if (!this._isEnabled()) {
       return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.'));
@@ -588,7 +588,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      recordLostEvent('sample_rate', 'event');
+      this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -599,7 +599,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     return this._prepareEvent(event, scope, hint)
       .then(prepared => {
         if (prepared === null) {
-          recordLostEvent('event_processor', event.type || 'event');
+          this.recordDroppedEvent('event_processor', event.type || 'error');
           throw new SentryError('An event processor returned null, will not send event.');
         }
 
@@ -613,7 +613,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          recordLostEvent('before_send', event.type || 'event');
+          this.recordDroppedEvent('before_send', event.type || 'error');
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
@@ -657,6 +657,35 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return reason;
       },
     );
+  }
+
+  /**
+   * @inheritdoc
+   */
+  protected _sendEnvelope(envelope: Envelope): void {
+    if (this._transport && this._dsn) {
+      this._transport.send(envelope).then(null, reason => {
+        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
+      });
+    } else {
+      IS_DEBUG_BUILD && logger.error('Transport disabled');
+    }
+  }
+
+  /**
+   * Clears outcomes on this client and returns them.
+   */
+  protected _clearOutcomes(): Outcome[] {
+    const outcomes = this._outcomes;
+    this._outcomes = {};
+    return Object.keys(outcomes).map(key => {
+      const [reason, category] = key.split(':') as [EventDropReason, DataCategory];
+      return {
+        reason,
+        category,
+        quantity: outcomes[key],
+      };
+    });
   }
 
   /**

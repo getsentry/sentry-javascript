@@ -1,6 +1,6 @@
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
-export type { ClientReport, EventDropReason } from './clientreport';
+export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type { Context, Contexts } from './context';
 export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';

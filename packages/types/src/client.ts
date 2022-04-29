@@ -1,3 +1,5 @@
+import { EventDropReason } from './clientreport';
+import { DataCategory } from './datacategory';
 import { DsnComponents } from './dsn';
 import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
@@ -54,7 +56,8 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined;
 
-  /** Captures a session
+  /**
+   * Captures a session
    *
    * @param session Session to be delivered
    */
@@ -117,4 +120,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** Submits the session to Sentry */
   sendSession(session: Session | SessionAggregates): void;
+
+  /**
+   * Record on the client that an event got dropped (ie, an event that will not be sent to sentry).
+   *
+   * @param reason The reason why the event got dropped.
+   * @param category The data category of the dropped event.
+   */
+  recordDroppedEvent(reason: EventDropReason, category: DataCategory): void;
 }
