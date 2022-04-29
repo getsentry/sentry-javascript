@@ -93,10 +93,8 @@ export function sendReport(url: string, body: string): void {
   if (hasSendBeacon) {
     // Prevent illegal invocations - https://xgwang.me/posts/you-may-not-know-beacon/#it-may-throw-error%2C-be-sure-to-catch
     const sendBeacon = global.navigator.sendBeacon.bind(global.navigator);
-    return sendBeacon(url, body);
-  }
-
-  if (supportsFetch()) {
+    sendBeacon(url, body);
+  } else if (supportsFetch()) {
     const fetch = getNativeFetchImplementation();
     fetch(url, {
       body,
