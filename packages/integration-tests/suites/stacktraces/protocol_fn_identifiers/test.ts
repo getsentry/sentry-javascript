@@ -50,12 +50,15 @@ sentryTest(
   },
 );
 
-sentryTest('should not add any part of the function identifier inside filename', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest(
+  'should not add any part of the function identifier to beginning of filename',
+  async ({ getLocalTestPath, page }) => {
+    const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
-  expect(eventData.exception?.values?.[0].stacktrace?.frames).toMatchObject(
-    Array(7).fill({ filename: expect.stringMatching(/^file:\/?/) }),
-  );
-});
+    expect(eventData.exception?.values?.[0].stacktrace?.frames).toMatchObject(
+      Array(7).fill({ filename: expect.stringMatching(/^file:\/?/) }),
+    );
+  },
+);
