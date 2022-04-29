@@ -59,8 +59,8 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "yarn ts-node scripts/pretest.ts && yarn jest",
+    "test:watch": "yarn ts-node scripts/pretest.ts && yarn jest --watch"
   },
   "volta": {
     "extends": "../../package.json"
