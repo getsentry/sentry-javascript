@@ -294,17 +294,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public recordDroppedEvent(reason: EventDropReason, category: DataCategory): void {
-    // We want to track each category (error, transaction, session) separately
-    // but still keep the distinction between different type of outcomes.
-    // We could use nested maps, but it's much easier to read and type this way.
-    // A correct type for map-based implementation if we want to go that route
-    // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
-    // With typescript 4.1 we could even use template literal types
-    const key = `${reason}:${category}`;
-    IS_DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
+    if (this._options.sendClientReports) {
+      // We want to track each category (error, transaction, session) separately
+      // but still keep the distinction between different type of outcomes.
+      // We could use nested maps, but it's much easier to read and type this way.
+      // A correct type for map-based implementation if we want to go that route
+      // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
+      // With typescript 4.1 we could even use template literal types
+      const key = `${reason}:${category}`;
+      IS_DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
 
-    // The following works because undefined + 1 === NaN and NaN is falsy
-    this._outcomes[key] = this._outcomes[key] + 1 || 1;
+      // The following works because undefined + 1 === NaN and NaN is falsy
+      this._outcomes[key] = this._outcomes[key] + 1 || 1;
+    }
   }
 
   /** Updates existing session based on the provided event */
