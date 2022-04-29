@@ -38,3 +38,12 @@ if (process.env.SUCRASE) {
   // rebuild the packages we're going to test with rollup/sucrase
   run(`yarn build:rollup ${ignorePackages.map(dep => `--ignore="${dep}"`).join(' ')}`);
 }
+// if we're in tsc-land, rebuild using es5 - temporary until switch to sucrase
+else {
+  const baseTSConfigPath = 'packages/typescript/tsconfig.json';
+  fs.writeFileSync(
+    baseTSConfigPath,
+    String(fs.readFileSync(baseTSConfigPath)).replace('"target": "es6"', '"target": "es5"'),
+  );
+  run(`yarn build:dev ${ignorePackages.map(dep => `--ignore="${dep}"`).join(' ')}`);
+}
