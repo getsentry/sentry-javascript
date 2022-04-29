@@ -1061,30 +1061,24 @@ describe('BaseClient', () => {
       expect((TestClient.instance!.event! as any).data).toBe('someRandomThing');
     });
 
-    // TODO(v7): Add back test with client reports
-    // test('beforeSend records dropped events', () => {
-    //   expect.assertions(1);
+    test('beforeSend records dropped events', () => {
+      expect.assertions(1);
 
-    //   const client = new TestClient(
-    //     getDefaultTestClientOptions({
-    //       dsn: PUBLIC_DSN,
-    //       beforeSend() {
-    //         return null;
-    //       },
-    //     }),
-    //   );
-    //   const recordLostEventSpy = jest.fn();
-    //   jest.spyOn(client, 'getTransport').mockImplementationOnce(
-    //     () =>
-    //       ({
-    //         recordLostEvent: recordLostEventSpy,
-    //       } as any as Transport),
-    //   );
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          beforeSend() {
+            return null;
+          },
+        }),
+      );
 
-    //   client.captureEvent({ message: 'hello' }, {});
+      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
-    //   expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'event');
-    // });
+      client.captureEvent({ message: 'hello' }, {});
+
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'error');
+    });
 
     test('eventProcessor can drop the even when it returns null', () => {
       expect.assertions(3);
@@ -1102,28 +1096,21 @@ describe('BaseClient', () => {
       expect(loggerErrorSpy).toBeCalledWith(new SentryError('An event processor returned null, will not send event.'));
     });
 
-    // TODO(v7): Add back tests with client reports
-    // test('eventProcessor records dropped events', () => {
-    //   expect.assertions(1);
+    test('eventProcessor records dropped events', () => {
+      expect.assertions(1);
 
-    //   const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-    //   const client = new TestClient(options);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
 
-    //   const recordLostEventSpy = jest.fn();
-    //   jest.spyOn(client, 'getTransport').mockImplementationOnce(
-    //     () =>
-    //       ({
-    //         recordLostEvent: recordLostEventSpy,
-    //       } as any as Transport),
-    //   );
+      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
-    //   const scope = new Scope();
-    //   scope.addEventProcessor(() => null);
+      const scope = new Scope();
+      scope.addEventProcessor(() => null);
 
-    //   client.captureEvent({ message: 'hello' }, {}, scope);
+      client.captureEvent({ message: 'hello' }, {}, scope);
 
-    //   expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'event');
-    // });
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+    });
 
     test('eventProcessor sends an event and logs when it crashes', () => {
       expect.assertions(3);
@@ -1154,24 +1141,17 @@ describe('BaseClient', () => {
       );
     });
 
-    // TODO(v7): Add back test with client reports
-    // test('records events dropped due to sampleRate', () => {
-    //   expect.assertions(1);
+    test('records events dropped due to sampleRate', () => {
+      expect.assertions(1);
 
-    //   const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
-    //   const client = new TestClient(options);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+      const client = new TestClient(options);
 
-    //   const recordLostEventSpy = jest.fn();
-    //   jest.spyOn(client, 'getTransport').mockImplementationOnce(
-    //     () =>
-    //       ({
-    //         recordLostEvent: recordLostEventSpy,
-    //       } as any as Transport),
-    //   );
+      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
-    //   client.captureEvent({ message: 'hello' }, {});
-    //   expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'event');
-    // });
+      client.captureEvent({ message: 'hello' }, {});
+      expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'error');
+    });
   });
 
   describe('integrations', () => {
@@ -1364,6 +1344,71 @@ describe('BaseClient', () => {
       client.captureSession(session);
 
       expect(TestClient.instance!.session).toBeUndefined();
+    });
+  });
+
+  describe('recordDroppedEvent()/_clearOutcomes()', () => {
+    test('record and return outcomes', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.recordDroppedEvent('ratelimit_backoff', 'error');
+      client.recordDroppedEvent('ratelimit_backoff', 'error');
+      client.recordDroppedEvent('network_error', 'transaction');
+      client.recordDroppedEvent('network_error', 'transaction');
+      client.recordDroppedEvent('before_send', 'session');
+      client.recordDroppedEvent('event_processor', 'attachment');
+      client.recordDroppedEvent('network_error', 'transaction');
+
+      const clearedOutcomes = client._clearOutcomes();
+
+      expect(clearedOutcomes).toEqual(
+        expect.arrayContaining([
+          {
+            reason: 'ratelimit_backoff',
+            category: 'error',
+            quantity: 2,
+          },
+          {
+            reason: 'network_error',
+            category: 'transaction',
+            quantity: 3,
+          },
+          {
+            reason: 'before_send',
+            category: 'session',
+            quantity: 1,
+          },
+          {
+            reason: 'event_processor',
+            category: 'attachment',
+            quantity: 1,
+          },
+        ]),
+      );
+    });
+
+    test('to clear outcomes', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.recordDroppedEvent('ratelimit_backoff', 'error');
+      client.recordDroppedEvent('ratelimit_backoff', 'error');
+      client.recordDroppedEvent('event_processor', 'attachment');
+
+      const clearedOutcomes1 = client._clearOutcomes();
+      expect(clearedOutcomes1.length).toEqual(2);
+
+      const clearedOutcomes2 = client._clearOutcomes();
+      expect(clearedOutcomes2.length).toEqual(0);
+
+      client.recordDroppedEvent('network_error', 'attachment');
+
+      const clearedOutcomes3 = client._clearOutcomes();
+      expect(clearedOutcomes3.length).toEqual(1);
+
+      const clearedOutcomes4 = client._clearOutcomes();
+      expect(clearedOutcomes4.length).toEqual(0);
     });
   });
 });
