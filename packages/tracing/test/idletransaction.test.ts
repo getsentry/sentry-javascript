@@ -163,19 +163,18 @@ describe('IdleTransaction', () => {
     }
   });
 
-  // TODO(v7): Add with client reports
-  // it('should record dropped transactions', async () => {
-  //   const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
+  it('should record dropped transactions', async () => {
+    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
 
-  //   const transport = hub.getClient()!.getTransport!();
+    const client = hub.getClient()!;
 
-  //   const spy = jest.spyOn(transport, 'recordLostEvent');
+    const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
-  //   transaction.initSpanRecorder(10);
-  //   transaction.finish(transaction.startTimestamp + 10);
+    transaction.initSpanRecorder(10);
+    transaction.finish(transaction.startTimestamp + 10);
 
-  //   expect(spy).toHaveBeenCalledWith('sample_rate', 'transaction');
-  // });
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
+  });
 
   describe('_initTimeout', () => {
     it('finishes if no activities are added to the transaction', () => {
