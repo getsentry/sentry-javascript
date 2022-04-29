@@ -1,8 +1,13 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
 import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
+import { createClientReportEnvelope, dsnToString, getGlobalObject, logger, serializeEnvelope } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
+import { IS_DEBUG_BUILD } from './flags';
 import { Breadcrumbs } from './integrations';
+import { sendReport } from './transports/utils';
+
+const globalObject = getGlobalObject<Window>();
 
 export interface BaseBrowserOptions {
   /**
@@ -56,7 +61,16 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       ],
       version: SDK_VERSION,
     };
+
     super(options);
+
+    if (options.sendClientReports && globalObject.document) {
+      globalObject.document.addEventListener('visibilitychange', () => {
+        if (globalObject.document.visibilityState === 'hidden') {
+          this._flushOutcomes();
+        }
+      });
+    }
   }
 
   /**
@@ -95,5 +109,33 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       integration.addSentryBreadcrumb(event);
     }
     super._sendEvent(event);
+  }
+
+  /**
+   * Sends client reports as an envelope.
+   */
+  private _flushOutcomes(): void {
+    const outcomes = this._clearOutcomes();
+
+    if (outcomes.length === 0) {
+      IS_DEBUG_BUILD && logger.log('No outcomes to send');
+      return;
+    }
+
+    if (!this._dsn) {
+      IS_DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
+      return;
+    }
+
+    IS_DEBUG_BUILD && logger.log(`Sending outcomes:\n${JSON.stringify(outcomes, null, 2)}`);
+
+    const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, this._options.tunnel);
+    const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
+
+    try {
+      sendReport(url, serializeEnvelope(envelope));
+    } catch (e) {
+      IS_DEBUG_BUILD && logger.error(e);
+    }
   }
 }
