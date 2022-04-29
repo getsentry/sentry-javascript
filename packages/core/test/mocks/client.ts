@@ -9,6 +9,7 @@ import { createTransport } from '../../src/transports/base';
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
     integrations: [],
+    sendClientReports: true,
     transport: () =>
       createTransport(
         { recordDroppedEvent: () => undefined }, // noop
