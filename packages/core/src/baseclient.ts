@@ -664,8 +664,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * Loads attachment items from scope
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentItem[] | undefined {
-    return scope?.getAttachments()?.map(a => createAttachmentEnvelopeItem(a));
+  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentItem[] {
+    return scope?.getAttachments()?.map(a => createAttachmentEnvelopeItem(a)) || [];
   }
 
   /**

@@ -155,17 +155,19 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentItem[] | undefined {
-    return scope?.getAttachments()?.map(attachment => {
-      let [pathOrData, options] = attachment;
+  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentItem[] {
+    return (
+      scope?.getAttachments()?.map(attachment => {
+        let [pathOrData, options] = attachment;
 
-      if (typeof pathOrData === 'string' && existsSync(pathOrData)) {
-        options = options || {};
-        options.filename = basename(pathOrData);
-        pathOrData = readFileSync(pathOrData);
-      }
+        if (typeof pathOrData === 'string' && existsSync(pathOrData)) {
+          options = options || {};
+          options.filename = basename(pathOrData);
+          pathOrData = readFileSync(pathOrData);
+        }
 
-      return createAttachmentEnvelopeItem([pathOrData, options]);
-    });
+        return createAttachmentEnvelopeItem([pathOrData, options]);
+      }) || []
+    );
   }
 }
