@@ -1,6 +1,12 @@
 import { EventEnvelope } from '@sentry/types';
 
-import { addItemToEnvelope, createEnvelope, forEachEnvelopeItem, serializeStringEnvelope } from '../src/envelope';
+import {
+  addItemToEnvelope,
+  createEnvelope,
+  forEachEnvelopeItem,
+  serializeStringEnvelope,
+  serializeEnvelope,
+} from '../src/envelope';
 import { parseEnvelope } from './testutils';
 
 describe('envelope', () => {
@@ -29,19 +35,19 @@ describe('envelope', () => {
   describe('addItemToEnvelope()', () => {
     it('adds an item to an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      const parsedEnvelope = parseEnvelope(serializeStringEnvelope(env));
-      expect(parsedEnvelope).toHaveLength(1);
-      expect(parsedEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      let [envHeaders, items] = parseEnvelope(serializeEnvelope(env));
+      expect(items).toHaveLength(0);
+      expect(envHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
 
       const newEnv = addItemToEnvelope<EventEnvelope>(env, [
         { type: 'event' },
         { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' },
       ]);
-      const parsedNewEnvelope = parseEnvelope(serializeStringEnvelope(newEnv));
-      expect(parsedNewEnvelope).toHaveLength(3);
-      expect(parsedNewEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
-      expect(parsedNewEnvelope[1]).toEqual({ type: 'event' });
-      expect(parsedNewEnvelope[2]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' });
+
+      [envHeaders, items] = parseEnvelope(serializeEnvelope(newEnv));
+      expect(envHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      expect(items).toHaveLength(1);
+      expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
     });
   });
 
@@ -49,8 +55,8 @@ describe('envelope', () => {
     it('loops through an envelope', () => {
       const items: EventEnvelope[1] = [
         [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
-        [{ type: 'attachment', filename: 'bar.txt', length: 6 }, new Uint8Array(6)],
-        [{ type: 'attachment', filename: 'foo.txt', length: 6 }, new Uint8Array(6)],
+        [{ type: 'attachment', filename: 'bar.txt', length: 6 }, Uint8Array.from([1, 2, 3, 4, 5, 6])],
+        [{ type: 'attachment', filename: 'foo.txt', length: 6 }, Uint8Array.from([7, 8, 9, 10, 11, 12])],
       ];
 
       const env = createEnvelope<EventEnvelope>(
@@ -58,7 +64,7 @@ describe('envelope', () => {
         items,
       );
 
-      expect.assertions(6);
+      expect.assertions(11);
 
       let iteration = 0;
       forEachEnvelopeItem(env, (item, type) => {
@@ -66,6 +72,19 @@ describe('envelope', () => {
         expect(type).toBe(items[iteration][0].type);
         iteration = iteration + 1;
       });
+
+      const [parsedHeaders, parsedItems] = parseEnvelope(serializeEnvelope(env));
+      expect(parsedHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      expect(parsedItems).toHaveLength(3);
+      expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
+      expect(items[1]).toEqual([
+        { type: 'attachment', filename: 'bar.txt', length: 6 },
+        Uint8Array.from([1, 2, 3, 4, 5, 6]),
+      ]);
+      expect(items[2]).toEqual([
+        { type: 'attachment', filename: 'foo.txt', length: 6 },
+        Uint8Array.from([7, 8, 9, 10, 11, 12]),
+      ]);
     });
   });
 });
