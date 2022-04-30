@@ -38,6 +38,10 @@ interface PrismaClient {
   $use: (cb: PrismaMiddleware) => void;
 }
 
+function isValidPrismaClient(possibleClient: unknown): possibleClient is PrismaClient {
+  return possibleClient && !!(possibleClient as PrismaClient)['$use'];
+}
+
 /** Tracing integration for @prisma/client package */
 export class Prisma implements Integration {
   /**
@@ -58,8 +62,14 @@ export class Prisma implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: { client?: PrismaClient } = {}) {
-    this._client = options.client;
+  public constructor(options: { client?: unknown } = {}) {
+    if (isValidPrismaClient(options.client)) {
+      this._client = options.client;
+    } else {
+      logger.warn(
+        `Unsupported Prisma client provided to PrismaIntegration. Provided client: ${JSON.stringify(options.client)}`,
+      );
+    }
   }
 
   /**
@@ -71,7 +81,7 @@ export class Prisma implements Integration {
       return;
     }
 
-    this._client.$use((params: PrismaMiddlewareParams, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
+    this._client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
       const scope = getCurrentHub().getScope();
       const parentSpan = scope?.getSpan();
 

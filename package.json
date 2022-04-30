@@ -85,6 +85,7 @@
     "rimraf": "^3.0.2",
     "rollup": "^2.67.1",
     "rollup-plugin-license": "^2.6.1",
+    "rollup-plugin-re": "^1.0.7",
     "rollup-plugin-terser": "^7.0.2",
     "rollup-plugin-typescript2": "^0.31.2",
     "sinon": "^7.3.2",

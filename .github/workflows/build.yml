@@ -105,45 +105,6 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  # This isn't a full `yarn build` using sucrase - it's just the cache from the normal build, with `build/cjs` and
-  # `build/esm` overwritten by sucrase. This way we don't need to worry about all of the other random stuff which
-  # packages build, because it will already be there.
-  job_build_with_sucrase:
-    name: Sucrase Build
-    needs: [job_install_deps, job_build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
-      - name: Check tsc build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Check sucrase build cache
-        uses: actions/cache@v2
-        id: cache_built_sucrase_packages
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
-      - name: Build packages with sucrase
-        if: steps.cache_built_sucrase_packages.outputs.cache-hit == ''
-        run: 'yarn build:rollup'
-    outputs:
-      # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
-      # `job_build` can't see `job_install_deps` and what it returned)
-      dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
-
   job_size_check:
     name: Size Check
     needs: job_build
@@ -295,6 +256,8 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
         run: |
           [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.x
+          # TODO remove this when we switch to sucrase
+          yarn ts-node scripts/sucrase-test-hack.ts
           yarn test-ci
       - name: Compute test coverage
         uses: codecov/codecov-action@v1
@@ -534,7 +497,7 @@ jobs:
 
   job_unit_test_sucrase:
     name: Sucrase Test (Node ${{ matrix.node }})
-    needs: job_build_with_sucrase
+    needs: job_build
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -554,24 +517,26 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build_with_sucrase.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
+          SUCRASE: true
         run: |
-          [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.x
+          [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.x rollup@2.2.0 @rollup/plugin-node-resolve@10.x rollup-plugin-terser@5.0.0 rollup-plugin-typescript2@0.30.0
+          yarn ts-node scripts/sucrase-test-hack.ts
           yarn test-ci
       - name: Compute test coverage
         uses: codecov/codecov-action@v1
 
   job_nextjs_integration_test_sucrase:
     name: Sucrase Test @sentry/nextjs on (Node ${{ matrix.node }})
-    needs: job_build_with_sucrase
+    needs: job_build
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -591,16 +556,17 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build_with_sucrase.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
+          yarn ts-node scripts/sucrase-test-hack.ts
           cd packages/nextjs
           yarn test:integration
 
@@ -608,7 +574,7 @@ jobs:
   # separate job allows them to run in parallel with the other tests.
   job_ember_tests_sucrase:
     name: Sucrase Test @sentry/ember
-    needs: job_build_with_sucrase
+    needs: job_build
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -634,20 +600,22 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build_with_sucrase.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run Ember tests
-        run: yarn test --scope=@sentry/ember
+        run: |
+          yarn ts-node scripts/sucrase-test-hack.ts
+          yarn test --scope=@sentry/ember
       - name: Compute test coverage
         uses: codecov/codecov-action@v1
 
   job_browser_playwright_tests_sucrase:
     name: Sucrase Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
-    needs: job_build_with_sucrase
+    needs: job_build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -677,24 +645,25 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build_with_sucrase.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
           PW_TRACING_ONLY: ${{ matrix.tracing_only }}
         run: |
+          yarn ts-node scripts/sucrase-test-hack.ts
           cd packages/integration-tests
           yarn run playwright install-deps webkit
           yarn test:ci
 
   job_browser_integration_tests_sucrase:
     name: Sucrase Old Browser Integration Tests (${{ matrix.browser }})
-    needs: job_build_with_sucrase
+    needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
@@ -715,23 +684,24 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build_with_sucrase.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
         run: |
+          yarn ts-node scripts/sucrase-test-hack.ts
           cd packages/browser
           [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
           yarn test:integration
 
   job_browser_build_tests_sucrase:
     name: Sucrase Browser Build Tests
-    needs: job_build_with_sucrase
+    needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: true
@@ -748,14 +718,15 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build_with_sucrase.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run browser build tests
         run: |
+          yarn ts-node scripts/sucrase-test-hack.ts
           cd packages/browser
           yarn test:package
       - name: Run utils build tests
@@ -765,7 +736,7 @@ jobs:
 
   job_node_integration_tests_sucrase:
     name: Sucrase Node SDK Integration Tests (${{ matrix.node }})
-    needs: job_build_with_sucrase
+    needs: job_build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
@@ -785,15 +756,16 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build_with_sucrase.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}-sucrase
+          key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
+          yarn ts-node scripts/sucrase-test-hack.ts
           cd packages/node-integration-tests
           yarn test

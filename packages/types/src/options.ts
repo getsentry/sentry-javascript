@@ -59,7 +59,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   integrations: Integration[];
 
   /**
-   * Transport object that should be used to send events to Sentry
+   * A function that takes transport options and returns the Transport object which is used to send events to Sentry.
+   * The function is invoked internally when the client is initialized.
    */
   transport: (transportOptions: TO) => Transport;
 
@@ -96,7 +97,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    */
   maxBreadcrumbs?: number;
 
-  /** A global sample rate to apply to all events (0 - 1). */
+  /**
+   * A global sample rate to apply to all events.
+   *
+   * 0.0 = 0% chance of a given event being sent (send no events) 1.0 = 100% chance of a given event being sent (send
+   * all events)
+   */
   sampleRate?: number;
 
   /** Maximum number of chars a single value can have before it will be truncated. */
@@ -149,7 +155,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
-   * */
+   */
   _metadata?: SdkMetadata;
 
   /**
@@ -207,7 +213,6 @@ export interface Options<TO extends BaseTransportOptions = BaseTransportOptions>
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.
-   * TODO: We should consider changing this to `boolean | Integration[]`
    */
   defaultIntegrations?: false | Integration[];
 
@@ -219,7 +224,9 @@ export interface Options<TO extends BaseTransportOptions = BaseTransportOptions>
   integrations?: Integration[] | ((integrations: Integration[]) => Integration[]);
 
   /**
-   * Transport object that should be used to send events to Sentry
+   * A function that takes transport options and returns the Transport object which is used to send events to Sentry.
+   * The function is invoked internally during SDK initialization.
+   * By default, the SDK initializes its default transports.
    */
   transport?: (transportOptions: TO) => Transport;
 

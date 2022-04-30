@@ -8,7 +8,13 @@ export type EventDropReason =
   | 'ratelimit_backoff'
   | 'sample_rate';
 
+export type Outcome = {
+  reason: EventDropReason;
+  category: DataCategory;
+  quantity: number;
+};
+
 export type ClientReport = {
   timestamp: number;
-  discarded_events: Array<{ reason: EventDropReason; category: DataCategory; quantity: number }>;
+  discarded_events: Outcome[];
 };
