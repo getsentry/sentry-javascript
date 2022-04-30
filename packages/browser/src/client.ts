@@ -1,5 +1,5 @@
 import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
-import { AttachmentItem, ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
+import { Attachment, ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
 import { createClientReportEnvelope, dsnToString, getGlobalObject, logger, serializeEnvelope } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -103,7 +103,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _sendEvent(event: Event, attachments: AttachmentItem[]): void {
+  protected _sendEvent(event: Event, attachments: Attachment[]): void {
     const integration = this.getIntegration(Breadcrumbs);
     if (integration) {
       integration.addSentryBreadcrumb(event);

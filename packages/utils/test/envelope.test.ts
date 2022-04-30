@@ -1,12 +1,6 @@
 import { EventEnvelope } from '@sentry/types';
 
-import {
-  addItemToEnvelope,
-  createEnvelope,
-  forEachEnvelopeItem,
-  serializeStringEnvelope,
-  serializeEnvelope,
-} from '../src/envelope';
+import { addItemToEnvelope, createEnvelope, forEachEnvelopeItem, serializeEnvelope } from '../src/envelope';
 import { parseEnvelope } from './testutils';
 
 describe('envelope', () => {
@@ -23,12 +17,11 @@ describe('envelope', () => {
     });
   });
 
-  describe('serializeStringEnvelope()', () => {
+  describe('serializeEnvelope()', () => {
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      expect(serializeStringEnvelope(env)).toMatchInlineSnapshot(
-        '"{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}"',
-      );
+      const [headers] = parseEnvelope(serializeEnvelope(env));
+      expect(headers).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
     });
   });
 

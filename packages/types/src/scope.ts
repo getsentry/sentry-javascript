@@ -1,4 +1,4 @@
-import { Attachment, AttachmentOptions } from './attachment';
+import { Attachment } from './attachment';
 import { Breadcrumb } from './breadcrumb';
 import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
@@ -162,10 +162,9 @@ export interface Scope {
 
   /**
    * Adds an attachment to the scope
-   * @param pathOrData A Uint8Array containing the attachment bytes
-   * @param options Attachment options
+   * @param attachment Attachment options
    */
-  addAttachment(pathOrData: string | Uint8Array, options?: AttachmentOptions): this;
+  addAttachment(attachment: Attachment): this;
 
   /**
    * Returns an array of attachments on the scope

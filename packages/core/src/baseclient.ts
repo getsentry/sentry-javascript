@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Scope, Session } from '@sentry/hub';
 import {
-  AttachmentItem,
+  Attachment,
   Client,
   ClientOptions,
   DataCategory,
@@ -19,6 +19,7 @@ import {
   Transport,
 } from '@sentry/types';
 import {
+  addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
   dateTimestampInSeconds,
@@ -275,9 +276,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event, attachments?: AttachmentItem[]): void {
+  public sendEvent(event: Event, attachments?: Attachment[]): void {
     if (this._dsn) {
-      const env = createEventEnvelope(event, this._dsn, attachments, this._options._metadata, this._options.tunnel);
+      const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+
+      for (const attachment of attachments || []) {
+        addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+      }
+
       this._sendEnvelope(env);
     }
   }
@@ -543,7 +549,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param event The Sentry event to send
    */
   // TODO(v7): refactor: get rid of method?
-  protected _sendEvent(event: Event, attachments?: AttachmentItem[]): void {
+  protected _sendEvent(event: Event, attachments?: Attachment[]): void {
     this.sendEvent(event, attachments);
   }
 
@@ -662,10 +668,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * Loads attachment items from scope
+   * Loads attachments from scope
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentItem[] {
-    return scope?.getAttachments()?.map(a => createAttachmentEnvelopeItem(a)) || [];
+  protected _attachmentsFromScope(scope: Scope | undefined): Attachment[] {
+    return scope?.getAttachments() || [];
   }
 
   /**

@@ -1,5 +1,4 @@
 import {
-  AttachmentItem,
   DsnComponents,
   Event,
   EventEnvelope,
@@ -64,7 +63,6 @@ export function createSessionEnvelope(
 export function createEventEnvelope(
   event: Event,
   dsn: DsnComponents,
-  attachments: AttachmentItem[] = [],
   metadata?: SdkMetadata,
   tunnel?: string,
 ): EventEnvelope {
@@ -116,5 +114,5 @@ export function createEventEnvelope(
     },
     event,
   ];
-  return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem, ...attachments]);
+  return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem]);
 }

@@ -2,6 +2,7 @@ import { ClientReport } from '@sentry/types';
 
 import { createClientReportEnvelope } from '../src/clientreport';
 import { serializeEnvelope } from '../src/envelope';
+import { parseEnvelope } from './testutils';
 
 const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
   {
@@ -41,11 +42,21 @@ describe('createClientReportEnvelope', () => {
 
   it('serializes an envelope', () => {
     const env = createClientReportEnvelope(DEFAULT_DISCARDED_EVENTS, MOCK_DSN, 123456);
-    const serializedEnv = serializeEnvelope(env);
-    expect(serializedEnv).toMatchInlineSnapshot(`
-      "{\\"dsn\\":\\"https://public@example.com/1\\"}
-      {\\"type\\":\\"client_report\\"}
-      {\\"timestamp\\":123456,\\"discarded_events\\":[{\\"reason\\":\\"before_send\\",\\"category\\":\\"error\\",\\"quantity\\":30},{\\"reason\\":\\"network_error\\",\\"category\\":\\"transaction\\",\\"quantity\\":23}]}"
-    `);
+
+    const [headers, items] = parseEnvelope(serializeEnvelope(env));
+
+    expect(headers).toEqual({ dsn: 'https://public@example.com/1' });
+    expect(items).toEqual([
+      [
+        { type: 'client_report' },
+        {
+          timestamp: 123456,
+          discarded_events: [
+            { reason: 'before_send', category: 'error', quantity: 30 },
+            { reason: 'network_error', category: 'transaction', quantity: 23 },
+          ],
+        },
+      ],
+    ]);
   });
 });

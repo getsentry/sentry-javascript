@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 import {
   Attachment,
-  AttachmentOptions,
   Breadcrumb,
   CaptureContext,
   Context,
@@ -408,8 +407,8 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public addAttachment(pathOrData: string | Uint8Array, options?: AttachmentOptions): this {
-    this._attachments.push([pathOrData, options]);
+  public addAttachment(attachment: Attachment): this {
+    this._attachments.push(attachment);
     return this;
   }
 

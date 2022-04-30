@@ -1,7 +1,7 @@
-export interface AttachmentOptions {
+export interface Attachment {
+  path?: string;
+  data?: string | Uint8Array;
   filename?: string;
   contentType?: string;
   attachmentType?: string;
 }
-
-export type Attachment = [string | Uint8Array, AttachmentOptions | undefined];

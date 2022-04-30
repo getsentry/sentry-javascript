@@ -1,7 +1,5 @@
 import { Attachment, AttachmentItem, DataCategory, Envelope, EnvelopeItem, EnvelopeItemType } from '@sentry/types';
 
-import { isPrimitive } from './is';
-
 /**
  * Creates an envelope.
  * Make sure to always explicitly provide the generic to this function
@@ -36,61 +34,57 @@ export function forEachEnvelopeItem<E extends Envelope>(
   });
 }
 
+// Cached UTF8 string encoder
+let encoder: TextEncoder | undefined;
+
+function getCachedEncoder(): TextEncoder {
+  if (!encoder) {
+    encoder = new TextEncoder();
+  }
+
+  return encoder;
+}
+
+// Combination of global TextEncoder and Node require('util').TextEncoder
+interface TextEncoderInternal extends TextEncoderCommon {
+  encode(input?: string): Uint8Array;
+}
+
 /**
  * Serializes an envelope.
  */
-export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
-  const [, items] = envelope;
+export function serializeEnvelope(
+  envelope: Envelope,
+  textEncoderOverride?: () => TextEncoderInternal,
+): string | Uint8Array {
+  const textEncoder = textEncoderOverride || getCachedEncoder;
 
-  // Have to cast items to any here since Envelope is a union type
-  // Fixed in Typescript 4.2
-  // TODO: Remove any[] cast when we upgrade to TS 4.2
-  // https://github.com/microsoft/TypeScript/issues/36390
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasBinaryAttachment = (items as any[]).some(
-    (item: typeof items[number]) => item[0].type === 'attachment' && item[1] instanceof Uint8Array,
-  );
+  const [envHeaders, items] = envelope;
 
-  return hasBinaryAttachment ? serializeBinaryEnvelope(envelope) : serializeStringEnvelope(envelope);
-}
+  // Initially we construct our envelope as a string and only convert to binary if we encounter binary data
+  let parts: string | Uint8Array[] = JSON.stringify(envHeaders);
 
-/**
- * Serializes an envelope to a string.
- */
-export function serializeStringEnvelope(envelope: Envelope): string {
-  const [headers, items] = envelope;
-  const serializedHeaders = JSON.stringify(headers);
-
-  // TODO: Remove any[] cast when we upgrade to TS 4.2
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (items as any[]).reduce((acc, item: typeof items[number]) => {
-    const [itemHeaders, payload] = item;
-    // We do not serialize payloads that are primitives
-    const serializedPayload = isPrimitive(payload) ? String(payload) : JSON.stringify(payload);
-    return `${acc}\n${JSON.stringify(itemHeaders)}\n${serializedPayload}`;
-  }, serializedHeaders);
-}
-
-function serializeBinaryEnvelope(envelope: Envelope): Uint8Array {
-  const encoder = new TextEncoder();
-  const [headers, items] = envelope;
-  const serializedHeaders = JSON.stringify(headers);
-
-  const chunks = [encoder.encode(serializedHeaders)];
-
-  for (const item of items) {
-    const [itemHeaders, payload] = item as typeof items[number];
-    chunks.push(encoder.encode(`\n${JSON.stringify(itemHeaders)}\n`));
-    if (typeof payload === 'string') {
-      chunks.push(encoder.encode(payload));
-    } else if (payload instanceof Uint8Array) {
-      chunks.push(payload);
+  function append(next: string | Uint8Array): void {
+    if (typeof parts === 'string') {
+      if (typeof next === 'string') {
+        parts += next;
+      } else {
+        parts = [textEncoder().encode(parts), next];
+      }
     } else {
-      chunks.push(encoder.encode(JSON.stringify(payload)));
+      parts.push(typeof next === 'string' ? textEncoder().encode(next) : next);
     }
   }
 
-  return concatBuffers(chunks);
+  for (const item of items) {
+    const [itemHeaders, payload] = item as typeof items[number];
+    append(`\n${JSON.stringify(itemHeaders)}\n`);
+    append(typeof payload === 'string' || payload instanceof Uint8Array ? payload : JSON.stringify(payload));
+  }
+
+  append('\n');
+
+  return typeof parts === 'string' ? parts : concatBuffers(parts);
 }
 
 function concatBuffers(buffers: Uint8Array[]): Uint8Array {
@@ -110,19 +104,17 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
  * Creates attachment envelope items
  */
 export function createAttachmentEnvelopeItem(attachment: Attachment): AttachmentItem {
-  const [pathOrData, options] = attachment;
-
-  const buffer = typeof pathOrData === 'string' ? new TextEncoder().encode(pathOrData) : pathOrData;
+  const buffer = typeof attachment.data === 'string' ? new TextEncoder().encode(attachment.data) : attachment.data;
 
   return [
     {
       type: 'attachment',
-      length: buffer.length,
-      filename: options?.filename || 'No filename',
-      content_type: options?.contentType,
-      attachment_type: options?.attachmentType,
+      length: buffer?.length || 0,
+      filename: attachment?.filename || 'No filename',
+      content_type: attachment?.contentType,
+      attachment_type: attachment?.attachmentType,
     },
-    buffer,
+    buffer || new Uint8Array(0),
   ];
 }
 

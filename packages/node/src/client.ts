@@ -1,7 +1,7 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { AttachmentItem, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
-import { basename, createAttachmentEnvelopeItem, logger, resolvedSyncPromise } from '@sentry/utils';
+import { Attachment, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
+import { basename, logger, resolvedSyncPromise } from '@sentry/utils';
 import { existsSync, readFileSync } from 'fs';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
@@ -155,18 +155,15 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentItem[] {
+  protected _attachmentsFromScope(scope: Scope | undefined): Attachment[] {
     return (
       scope?.getAttachments()?.map(attachment => {
-        let [pathOrData, options] = attachment;
-
-        if (typeof pathOrData === 'string' && existsSync(pathOrData)) {
-          options = options || {};
-          options.filename = basename(pathOrData);
-          pathOrData = readFileSync(pathOrData);
+        if (attachment.path && existsSync(attachment.path)) {
+          attachment.filename = basename(attachment.path);
+          attachment.data = readFileSync(attachment.path);
         }
 
-        return createAttachmentEnvelopeItem([pathOrData, options]);
+        return attachment;
       }) || []
     );
   }

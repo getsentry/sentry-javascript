@@ -17,6 +17,7 @@ export type TransportMakeRequestResponse = {
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
   recordDroppedEvent: (reason: EventDropReason, dataCategory: DataCategory) => void;
+  serializeEnvelope?: (env: Envelope) => string | Uint8Array;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {
