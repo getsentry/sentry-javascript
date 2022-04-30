@@ -1,4 +1,4 @@
-import { SDK_VERSION } from '@sentry/core';
+import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
 
 import {
   addBreadcrumb,
@@ -23,6 +23,14 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 // eslint-disable-next-line no-var
 declare var global: any;
+
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
+  return {
+    ...original,
+    getReportDialogEndpoint: jest.fn(),
+  };
+});
 
 describe('SentryBrowser', () => {
   const beforeSend = jest.fn();
@@ -74,16 +82,14 @@ describe('SentryBrowser', () => {
   });
 
   describe('showReportDialog', () => {
+    beforeEach(() => {
+      (getReportDialogEndpoint as jest.Mock).mockReset();
+    });
+
     describe('user', () => {
       const EX_USER = { email: 'test@example.com' };
       const options = getDefaultBrowserClientOptions({ dsn });
       const client = new BrowserClient(options);
-      const reportDialogSpy = jest.spyOn(client, 'showReportDialog');
-
-      beforeEach(() => {
-        reportDialogSpy.mockReset();
-      });
-
       it('uses the user on the scope', () => {
         configureScope(scope => {
           scope.setUser(EX_USER);
@@ -92,8 +98,11 @@ describe('SentryBrowser', () => {
 
         showReportDialog();
 
-        expect(reportDialogSpy).toBeCalled();
-        expect(reportDialogSpy.mock.calls[0][0]!.user!.email).toBe(EX_USER.email);
+        expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
+        expect(getReportDialogEndpoint).toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.objectContaining({ user: { email: EX_USER.email } }),
+        );
       });
 
       it('prioritizes options user over scope user', () => {
@@ -105,8 +114,11 @@ describe('SentryBrowser', () => {
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
         showReportDialog({ user: DIALOG_OPTION_USER });
 
-        expect(reportDialogSpy).toBeCalled();
-        expect(reportDialogSpy.mock.calls[0][0]!.user!.email).toBe(DIALOG_OPTION_USER.email);
+        expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
+        expect(getReportDialogEndpoint).toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.objectContaining({ user: { email: DIALOG_OPTION_USER.email } }),
+        );
       });
     });
   });

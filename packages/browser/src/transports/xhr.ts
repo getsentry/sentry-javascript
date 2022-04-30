@@ -21,17 +21,20 @@ export interface XHRTransportOptions extends BaseTransportOptions {
  */
 export function makeXHRTransport(options: XHRTransportOptions): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
-    return new SyncPromise<TransportMakeRequestResponse>((resolve, _reject) => {
+    return new SyncPromise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+
+      xhr.onerror = reject;
 
       xhr.onreadystatechange = (): void => {
         if (xhr.readyState === XHR_READYSTATE_DONE) {
-          resolve({
+          const response = {
             headers: {
               'x-sentry-rate-limits': xhr.getResponseHeader('X-Sentry-Rate-Limits'),
               'retry-after': xhr.getResponseHeader('Retry-After'),
             },
-          });
+          };
+          resolve(response);
         }
       };
 
@@ -47,5 +50,5 @@ export function makeXHRTransport(options: XHRTransportOptions): Transport {
     });
   }
 
-  return createTransport({ bufferSize: options.bufferSize }, makeRequest);
+  return createTransport(options, makeRequest);
 }

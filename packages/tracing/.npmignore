@@ -6,3 +6,10 @@
 !/cjs/**/*
 !/esm/**/*
 !/types/**/*
+
+# These paths are necessary for Node AWS Lambda layer creation
+# This package is a (transitive) dependency of @sentry/serverless and thus it is pulled into
+# the lambda layer zip file.
+!/build/npm/cjs/**/*
+!/build/npm/esm/**/*
+!/build/npm/types/**/*

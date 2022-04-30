@@ -52,6 +52,5 @@ export {
   opera11StackParser,
   winjsStackParser,
 } from './stack-parsers';
-export { injectReportDialog } from './helpers';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
 export { SDK_NAME } from './version';

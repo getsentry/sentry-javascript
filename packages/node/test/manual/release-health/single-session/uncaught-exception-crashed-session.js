@@ -2,7 +2,7 @@ const Sentry = require('../../../../build/cjs');
 const { assertSessions, constructStrippedSessionObject } = require('../test-utils');
 
 function makeDummyTransport() {
-  return Sentry.createTransport({}, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     if (req.category === 'session') {
       sessionCounts.sessionCounter++;
       const sessionEnv = req.body.split('\n').map(e => JSON.parse(e));
@@ -17,7 +17,7 @@ function makeDummyTransport() {
 
     // We need to explicitly exit process early here to allow for 0 exit code
     process.exit(0);
-  })
+  });
 }
 
 Sentry.init({

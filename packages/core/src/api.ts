@@ -53,14 +53,15 @@ export function getReportDialogEndpoint(
     }
 
     if (key === 'user') {
-      if (!dialogOptions.user) {
+      const user = dialogOptions.user;
+      if (!user) {
         continue;
       }
-      if (dialogOptions.user.name) {
-        encodedOptions += `&name=${encodeURIComponent(dialogOptions.user.name)}`;
+      if (user.name) {
+        encodedOptions += `&name=${encodeURIComponent(user.name)}`;
       }
-      if (dialogOptions.user.email) {
-        encodedOptions += `&email=${encodeURIComponent(dialogOptions.user.email)}`;
+      if (user.email) {
+        encodedOptions += `&email=${encodeURIComponent(user.email)}`;
       }
     } else {
       encodedOptions += `&${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`;

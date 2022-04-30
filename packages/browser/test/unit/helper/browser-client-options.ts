@@ -6,7 +6,7 @@ import { BrowserClientOptions } from '../../../src/client';
 export function getDefaultBrowserClientOptions(options: Partial<BrowserClientOptions> = {}): BrowserClientOptions {
   return {
     integrations: [],
-    transport: () => createTransport({}, _ => resolvedSyncPromise({})),
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],
     ...options,
   };

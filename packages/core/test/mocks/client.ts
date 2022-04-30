@@ -13,7 +13,11 @@ import { createTransport } from '../../src/transports/base';
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
     integrations: [],
-    transport: () => createTransport({}, _ => resolvedSyncPromise({})),
+    transport: () =>
+      createTransport(
+        { recordDroppedEvent: () => undefined }, // noop
+        _ => resolvedSyncPromise({}),
+      ),
     stackParser: () => [],
     ...options,
   };
