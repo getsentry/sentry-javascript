@@ -2,6 +2,7 @@ const http = require('http');
 const express = require('express');
 const app = express();
 const Sentry = require('../../../build/cjs');
+const { TextEncoder } = require('util');
 
 // don't log the test errors we're going to throw, so at a quick glance it doesn't look like the test itself has failed
 global.console.error = () => null;
@@ -16,7 +17,7 @@ function assertTags(actual, expected) {
 let remaining = 3;
 
 function makeDummyTransport() {
-  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, req => {
     --remaining;
 
     if (!remaining) {

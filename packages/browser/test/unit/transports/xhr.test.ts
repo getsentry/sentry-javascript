@@ -1,5 +1,6 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { TextEncoder } from 'util';
 
 import { makeXHRTransport, XHRTransportOptions } from '../../../src/transports/xhr';
 
@@ -63,7 +64,7 @@ describe('NewXHRTransport', () => {
     expect(xhrMock.open).toHaveBeenCalledTimes(1);
     expect(xhrMock.open).toHaveBeenCalledWith('POST', DEFAULT_XHR_TRANSPORT_OPTIONS.url);
     expect(xhrMock.send).toHaveBeenCalledTimes(1);
-    expect(xhrMock.send).toHaveBeenCalledWith(serializeEnvelope(ERROR_ENVELOPE));
+    expect(xhrMock.send).toHaveBeenCalledWith(serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()));
   });
 
   it('sets rate limit response headers', async () => {

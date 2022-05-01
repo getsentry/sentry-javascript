@@ -1,4 +1,5 @@
 import { ClientReport } from '@sentry/types';
+import { TextEncoder } from 'util';
 
 import { createClientReportEnvelope } from '../src/clientreport';
 import { serializeEnvelope } from '../src/envelope';
@@ -43,7 +44,7 @@ describe('createClientReportEnvelope', () => {
   it('serializes an envelope', () => {
     const env = createClientReportEnvelope(DEFAULT_DISCARDED_EVENTS, MOCK_DSN, 123456);
 
-    const [headers, items] = parseEnvelope(serializeEnvelope(env));
+    const [headers, items] = parseEnvelope(serializeEnvelope(env, new TextEncoder()));
 
     expect(headers).toEqual({ dsn: 'https://public@example.com/1' });
     expect(items).toEqual([

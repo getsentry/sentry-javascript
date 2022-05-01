@@ -1,4 +1,5 @@
 import { BaseEnvelopeHeaders, BaseEnvelopeItemHeaders, Envelope } from '@sentry/types';
+import { TextDecoder, TextEncoder } from 'util';
 
 export const testOnlyIfNodeVersionAtLeast = (minVersion: number): jest.It => {
   const currentNodeVersion = process.env.NODE_VERSION;
