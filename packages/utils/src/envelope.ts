@@ -68,8 +68,6 @@ export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderI
     append(typeof payload === 'string' || payload instanceof Uint8Array ? payload : JSON.stringify(payload));
   }
 
-  append('\n');
-
   return typeof parts === 'string' ? parts : concatBuffers(parts);
 }
 
