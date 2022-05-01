@@ -34,17 +34,6 @@ export function forEachEnvelopeItem<E extends Envelope>(
   });
 }
 
-// Cached UTF8 string encoder
-let encoder: TextEncoder | undefined;
-
-function getCachedEncoder(): TextEncoder {
-  if (!encoder) {
-    encoder = new TextEncoder();
-  }
-
-  return encoder;
-}
-
 // Combination of global TextEncoder and Node require('util').TextEncoder
 interface TextEncoderInternal extends TextEncoderCommon {
   encode(input?: string): Uint8Array;
@@ -53,11 +42,8 @@ interface TextEncoderInternal extends TextEncoderCommon {
 /**
  * Serializes an envelope.
  */
-export function serializeEnvelope(
-  envelope: Envelope,
-  textEncoderOverride?: () => TextEncoderInternal,
-): string | Uint8Array {
-  const textEncoder = textEncoderOverride || getCachedEncoder;
+export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderInternal): string | Uint8Array {
+  const utf8 = textEncoder || new TextEncoder();
 
   const [envHeaders, items] = envelope;
 
@@ -69,10 +55,10 @@ export function serializeEnvelope(
       if (typeof next === 'string') {
         parts += next;
       } else {
-        parts = [textEncoder().encode(parts), next];
+        parts = [utf8.encode(parts), next];
       }
     } else {
-      parts.push(typeof next === 'string' ? textEncoder().encode(next) : next);
+      parts.push(typeof next === 'string' ? utf8.encode(next) : next);
     }
   }
 
@@ -103,8 +89,12 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
 /**
  * Creates attachment envelope items
  */
-export function createAttachmentEnvelopeItem(attachment: Attachment): AttachmentItem {
-  const buffer = typeof attachment.data === 'string' ? new TextEncoder().encode(attachment.data) : attachment.data;
+export function createAttachmentEnvelopeItem(
+  attachment: Attachment,
+  textEncoder?: TextEncoderInternal,
+): AttachmentItem {
+  const utf8 = textEncoder || new TextEncoder();
+  const buffer = typeof attachment.data === 'string' ? utf8.encode(attachment.data) : attachment.data;
 
   return [
     {

@@ -14,10 +14,15 @@ export type TransportMakeRequestResponse = {
   };
 };
 
+// Combination of global TextEncoder and Node require('util').TextEncoder
+interface TextEncoderInternal extends TextEncoderCommon {
+  encode(input?: string): Uint8Array;
+}
+
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
   recordDroppedEvent: (reason: EventDropReason, dataCategory: DataCategory) => void;
-  serializeEnvelope?: (env: Envelope) => string | Uint8Array;
+  textEncoder?: TextEncoderInternal;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {

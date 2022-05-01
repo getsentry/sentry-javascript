@@ -69,7 +69,7 @@ export function createTransport(
     };
 
     const requestTask = (): PromiseLike<void> =>
-      makeRequest({ body: (options.serializeEnvelope || serializeEnvelope)(filteredEnvelope) }).then(
+      makeRequest({ body: serializeEnvelope(filteredEnvelope, options.textEncoder) }).then(
         ({ headers }): void => {
           if (headers) {
             rateLimits = updateRateLimits(rateLimits, headers);

@@ -6,7 +6,6 @@ import {
   TransportRequest,
   TransportRequestExecutor,
 } from '@sentry/types';
-import { serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import { Readable, Writable } from 'stream';
@@ -46,8 +45,6 @@ function streamFromBody(body: Uint8Array | string): Readable {
  * Creates a Transport that uses native the native 'http' and 'https' modules to send events to Sentry.
  */
 export function makeNodeTransport(options: NodeTransportOptions): Transport {
-  options.serializeEnvelope = s => serializeEnvelope(s, () => new TextEncoder());
-
   const urlSegments = new URL(options.url);
   const isHttps = urlSegments.protocol === 'https:';
 

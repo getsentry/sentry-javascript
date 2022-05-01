@@ -51,11 +51,8 @@ type SessionItemHeaders = { type: 'session' };
 type SessionAggregatesItemHeaders = { type: 'sessions' };
 type ClientReportItemHeaders = { type: 'client_report' };
 
-// TODO(v7): Remove the string union from `Event | string`
-// We have to allow this hack for now as we pre-serialize events because we support
-// both store and envelope endpoints.
-export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event | string>;
-export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, Uint8Array>;
+export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
+export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =
   | BaseEnvelopeItem<SessionItemHeaders, Session>

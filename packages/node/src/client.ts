@@ -3,6 +3,7 @@ import { SessionFlusher } from '@sentry/hub';
 import { Attachment, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { basename, logger, resolvedSyncPromise } from '@sentry/utils';
 import { existsSync, readFileSync } from 'fs';
+import { TextEncoder } from 'util';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
@@ -32,6 +33,11 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
         },
       ],
       version: SDK_VERSION,
+    };
+
+    options.transportOptions = {
+      textEncoder: new TextEncoder(),
+      ...options.transportOptions,
     };
 
     super(options);
