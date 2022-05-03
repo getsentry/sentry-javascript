@@ -18,7 +18,7 @@ import {
 import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
-import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
@@ -30,7 +30,7 @@ export const defaultIntegrations = [
   new GlobalHandlers(),
   new LinkedErrors(),
   new Dedupe(),
-  new UserAgent(),
+  new HttpContext(),
 ];
 
 /**
