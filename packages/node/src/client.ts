@@ -1,6 +1,6 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { Attachment, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
+import { AttachmentWithData, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { basename, logger, resolvedSyncPromise } from '@sentry/utils';
 import { existsSync, readFileSync } from 'fs';
 import { TextEncoder } from 'util';
@@ -35,6 +35,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
       version: SDK_VERSION,
     };
 
+    // Until node supports global TextEncoder in all versions we support, we are forced to pass it from util
     options.transportOptions = {
       textEncoder: new TextEncoder(),
       ...options.transportOptions,
@@ -161,12 +162,24 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): Attachment[] {
+  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentWithData[] {
     return (
       scope?.getAttachments()?.map(attachment => {
-        if (attachment.path && existsSync(attachment.path)) {
-          attachment.filename = attachment.filename || basename(attachment.path);
-          attachment.data = readFileSync(attachment.path);
+        if ('path' in attachment && !('data' in attachment)) {
+          if (existsSync(attachment.path)) {
+            return {
+              filename: attachment.filename || basename(attachment.path),
+              data: readFileSync(attachment.path),
+              contentType: attachment.contentType,
+              attachmentType: attachment.attachmentType,
+            };
+          } else {
+            return {
+              filename: attachment.filename || basename(attachment.path),
+              data: 'Missing attachment - file not found',
+              contentType: 'text/plain',
+            };
+          }
         }
 
         return attachment;

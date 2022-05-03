@@ -1,4 +1,4 @@
-export type { Attachment } from './attachment';
+export type { Attachment, AttachmentWithData } from './attachment';
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';

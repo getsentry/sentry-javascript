@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Scope, Session } from '@sentry/hub';
 import {
-  Attachment,
+  AttachmentWithData,
   Client,
   ClientOptions,
   DataCategory,
@@ -276,7 +276,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event, attachments?: Attachment[]): void {
+  public sendEvent(event: Event, attachments?: AttachmentWithData[]): void {
     if (this._dsn) {
       const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
@@ -549,7 +549,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param event The Sentry event to send
    */
   // TODO(v7): refactor: get rid of method?
-  protected _sendEvent(event: Event, attachments?: Attachment[]): void {
+  protected _sendEvent(event: Event, attachments?: AttachmentWithData[]): void {
     this.sendEvent(event, attachments);
   }
 
@@ -670,8 +670,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * Loads attachments from scope
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): Attachment[] {
-    return scope?.getAttachments() || [];
+  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentWithData[] {
+    return (
+      scope?.getAttachments()?.map(attachment => {
+        if ('path' in attachment || !('data' in attachment)) {
+          throw new SentryError(
+            'This SDK does not support loading attachments from file paths and no data was supplied',
+          );
+        }
+
+        return attachment;
+      }) || []
+    );
   }
 
   /**

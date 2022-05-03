@@ -1,4 +1,11 @@
-import { Attachment, AttachmentItem, DataCategory, Envelope, EnvelopeItem, EnvelopeItemType } from '@sentry/types';
+import {
+  AttachmentItem,
+  AttachmentWithData,
+  DataCategory,
+  Envelope,
+  EnvelopeItem,
+  EnvelopeItemType,
+} from '@sentry/types';
 
 /**
  * Creates an envelope.
@@ -47,16 +54,12 @@ export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderI
 
   const [envHeaders, items] = envelope;
 
-  // Initially we construct our envelope as a string and only convert to binary if we encounter binary data
+  // Initially we construct our envelope as a string and only convert to binary chunks if we encounter binary data
   let parts: string | Uint8Array[] = JSON.stringify(envHeaders);
 
   function append(next: string | Uint8Array): void {
     if (typeof parts === 'string') {
-      if (typeof next === 'string') {
-        parts += next;
-      } else {
-        parts = [utf8.encode(parts), next];
-      }
+      parts = typeof next === 'string' ? parts + next : [utf8.encode(parts), next];
     } else {
       parts.push(typeof next === 'string' ? utf8.encode(next) : next);
     }
@@ -88,21 +91,22 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
  * Creates attachment envelope items
  */
 export function createAttachmentEnvelopeItem(
-  attachment: Attachment,
+  attachment: AttachmentWithData,
   textEncoder?: TextEncoderInternal,
 ): AttachmentItem {
   const utf8 = textEncoder || new TextEncoder();
+
   const buffer = typeof attachment.data === 'string' ? utf8.encode(attachment.data) : attachment.data;
 
   return [
     {
       type: 'attachment',
-      length: buffer?.length || 0,
-      filename: attachment?.filename || 'No filename',
-      content_type: attachment?.contentType,
-      attachment_type: attachment?.attachmentType,
+      length: buffer.length,
+      filename: attachment.filename,
+      content_type: attachment.contentType,
+      attachment_type: attachment.attachmentType,
     },
-    buffer || new Uint8Array(0),
+    buffer,
   ];
 }
 
