@@ -1,10 +1,18 @@
-import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, getCurrentHub, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
 import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
-import { createClientReportEnvelope, dsnToString, getGlobalObject, logger, serializeEnvelope } from '@sentry/utils';
+import {
+  createClientReportEnvelope,
+  dsnToString,
+  getEventDescription,
+  getGlobalObject,
+  logger,
+  serializeEnvelope,
+} from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
 import { Breadcrumbs } from './integrations';
+import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { sendReport } from './transports/utils';
 
 const globalObject = getGlobalObject<Window>();
@@ -104,10 +112,34 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * @inheritDoc
    */
   protected _sendEvent(event: Event): void {
-    const integration = this.getIntegration(Breadcrumbs);
-    if (integration) {
-      integration.addSentryBreadcrumb(event);
+    // We only want to add the sentry event breadcrumb when the user has the breadcrumb integration installed and
+    // activated its`sentry` option.
+    // We also do not want to use the `Breadcrumbs` class here directly, because we do not want it to be included in
+    // bundles, if it is not used by the SDK.
+    // This all sadly is a bit ugly, but we currently don't have a "pre-send" hook on the integrations so we do it this
+    // way for now.
+    const breadcrumbIntegration = this.getIntegrationById(BREADCRUMB_INTEGRATION_ID) as Breadcrumbs | null;
+    if (
+      breadcrumbIntegration &&
+      // We check for definedness of `options`, even though it is not strictly necessary, because that access to
+      // `.sentry` below does not throw, in case users provided their own integration with id "Breadcrumbs" that does
+      // not have an`options` field
+      breadcrumbIntegration.options &&
+      breadcrumbIntegration.options.sentry
+    ) {
+      getCurrentHub().addBreadcrumb(
+        {
+          category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+          event_id: event.event_id,
+          level: event.level,
+          message: getEventDescription(event),
+        },
+        {
+          event,
+        },
+      );
     }
+
     super._sendEvent(event);
   }
 
