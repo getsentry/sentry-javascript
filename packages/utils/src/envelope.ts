@@ -7,6 +7,8 @@ import {
   EnvelopeItemType,
 } from '@sentry/types';
 
+import { dropUndefinedKeys } from './object';
+
 /**
  * Creates an envelope.
  * Make sure to always explicitly provide the generic to this function
@@ -99,13 +101,13 @@ export function createAttachmentEnvelopeItem(
   const buffer = typeof attachment.data === 'string' ? utf8.encode(attachment.data) : attachment.data;
 
   return [
-    {
+    dropUndefinedKeys({
       type: 'attachment',
       length: buffer.length,
       filename: attachment.filename,
       content_type: attachment.contentType,
       attachment_type: attachment.attachmentType,
-    },
+    }),
     buffer,
   ];
 }

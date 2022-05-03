@@ -672,15 +672,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   protected _attachmentsFromScope(scope: Scope | undefined): AttachmentWithData[] {
     return (
-      scope?.getAttachments()?.map(attachment => {
+      scope?.getAttachments()?.reduce((acc, attachment) => {
         if ('path' in attachment || !('data' in attachment)) {
-          throw new SentryError(
-            'This SDK does not support loading attachments from file paths and no data was supplied',
-          );
+          logger.error('This SDK does not support loading attachments from file paths and no data was supplied');
+        } else {
+          acc.push(attachment);
         }
 
-        return attachment;
-      }) || []
+        return acc;
+      }, [] as AttachmentWithData[]) || []
     );
   }
 
