@@ -165,7 +165,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     return (
       scope?.getAttachments()?.map(attachment => {
         if (attachment.path && existsSync(attachment.path)) {
-          attachment.filename = basename(attachment.path);
+          attachment.filename = attachment.filename || basename(attachment.path);
           attachment.data = readFileSync(attachment.path);
         }
 
