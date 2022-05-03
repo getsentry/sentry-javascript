@@ -41,14 +41,14 @@ import { BrowserClient, defaultStackParsers, defaultIntegrations, makeFetchTrans
 import { stackParserFromOptions } from '@sentry/utils';
 
 // New in v7:
-const client = BrowserClient({
+const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: stackParserFromOptions(defaultStackParsers),
   integrations: [...defaultIntegrations],
 });
 
 // Before:
-const client = BrowserClient();
+const client = new BrowserClient();
 ```
 
 Since you now explicitly pass in the dependencies of the client, you can also tree-shake out dependencies that you do not use this way. For example, you can tree-shake out the SDK's default integrations and only use the ones that you want like so:
@@ -58,7 +58,7 @@ import { BrowserClient, defaultStackParsers, Integrations, makeFetchTransport } 
 import { stackParserFromOptions } from '@sentry/utils';
 
 // New in v7:
-const client = BrowserClient({
+const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: stackParserFromOptions(defaultStackParsers),
   integrations: [
