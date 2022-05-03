@@ -5,7 +5,6 @@
 import * as isModule from '../src/is';
 import { normalize } from '../src/normalize';
 import * as stacktraceModule from '../src/stacktrace';
-import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('normalize()', () => {
   describe('acts as a pass-through for simple-cases', () => {
@@ -48,7 +47,7 @@ describe('normalize()', () => {
       });
     });
 
-    testOnlyIfNodeVersionAtLeast(8)('extracts data from `Event` objects', () => {
+    describe('extracts data from `Event` objects', () => {
       const isElement = jest.spyOn(isModule, 'isElement').mockReturnValue(true);
       const getAttribute = () => undefined;
 
