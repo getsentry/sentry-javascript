@@ -21,8 +21,42 @@ describe('envelope', () => {
   describe('serializeEnvelope()', () => {
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      const [headers] = parseEnvelope(serializeEnvelope(env, new TextEncoder()));
+      const serializedEnvelope = serializeEnvelope(env, new TextEncoder());
+      expect(typeof serializedEnvelope).toBe('string');
+
+      const [headers] = parseEnvelope(serializedEnvelope);
       expect(headers).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+    });
+
+    it('serializes an envelope with attachments', () => {
+      const items: EventEnvelope[1] = [
+        [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
+        [{ type: 'attachment', filename: 'bar.txt', length: 6 }, Uint8Array.from([1, 2, 3, 4, 5, 6])],
+        [{ type: 'attachment', filename: 'foo.txt', length: 6 }, Uint8Array.from([7, 8, 9, 10, 11, 12])],
+      ];
+
+      const env = createEnvelope<EventEnvelope>(
+        { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
+        items,
+      );
+
+      expect.assertions(6);
+
+      const serializedEnvelope = serializeEnvelope(env, new TextEncoder());
+      expect(serializedEnvelope).toBeInstanceOf(Uint8Array);
+
+      const [parsedHeaders, parsedItems] = parseEnvelope(serializedEnvelope);
+      expect(parsedHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      expect(parsedItems).toHaveLength(3);
+      expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
+      expect(items[1]).toEqual([
+        { type: 'attachment', filename: 'bar.txt', length: 6 },
+        Uint8Array.from([1, 2, 3, 4, 5, 6]),
+      ]);
+      expect(items[2]).toEqual([
+        { type: 'attachment', filename: 'foo.txt', length: 6 },
+        Uint8Array.from([7, 8, 9, 10, 11, 12]),
+      ]);
     });
   });
 
@@ -58,7 +92,7 @@ describe('envelope', () => {
         items,
       );
 
-      expect.assertions(11);
+      expect.assertions(6);
 
       let iteration = 0;
       forEachEnvelopeItem(env, (item, type) => {
@@ -66,19 +100,6 @@ describe('envelope', () => {
         expect(type).toBe(items[iteration][0].type);
         iteration = iteration + 1;
       });
-
-      const [parsedHeaders, parsedItems] = parseEnvelope(serializeEnvelope(env, new TextEncoder()));
-      expect(parsedHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
-      expect(parsedItems).toHaveLength(3);
-      expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
-      expect(items[1]).toEqual([
-        { type: 'attachment', filename: 'bar.txt', length: 6 },
-        Uint8Array.from([1, 2, 3, 4, 5, 6]),
-      ]);
-      expect(items[2]).toEqual([
-        { type: 'attachment', filename: 'foo.txt', length: 6 },
-        Uint8Array.from([7, 8, 9, 10, 11, 12]),
-      ]);
     });
   });
 });
