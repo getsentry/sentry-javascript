@@ -43,7 +43,7 @@ import { BrowserClient, defaultStackParser, defaultIntegrations, makeFetchTransp
 const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
-  integrations: [...defaultIntegrations],
+  integrations: defaultIntegrations,
 });
 
 // Before:
@@ -53,18 +53,22 @@ const client = new BrowserClient();
 Since you now explicitly pass in the dependencies of the client, you can also tree-shake out dependencies that you do not use this way. For example, you can tree-shake out the SDK's default integrations and only use the ones that you want like so:
 
 ```ts
-import { BrowserClient, defaultStackParser, Integrations, makeFetchTransport } from '@sentry/browser';
+import {
+  BrowserClient,
+  Breadcrumbs,
+  Dedupe,
+  defaultStackParser,
+  GlobalHandlers,
+  Integrations,
+  makeFetchTransport,
+  LinkedErrors,
+} from '@sentry/browser';
 
 // New in v7:
 const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
-  integrations: [
-    new Integrations.Breadcrumbs(),
-    new Integrations.GlobalHandlers(),
-    new Integrations.LinkedErrors(),
-    new Integrations.Dedupe(),
-  ],
+  integrations: [new Breadcrumbs(), new GlobalHandlers(), new LinkedErrors(), new Dedupe()],
 });
 ```
 
