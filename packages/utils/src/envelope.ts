@@ -1,11 +1,4 @@
-import {
-  AttachmentItem,
-  AttachmentWithData,
-  DataCategory,
-  Envelope,
-  EnvelopeItem,
-  EnvelopeItemType,
-} from '@sentry/types';
+import { Attachment, AttachmentItem, DataCategory, Envelope, EnvelopeItem, EnvelopeItemType } from '@sentry/types';
 
 import { dropUndefinedKeys } from './object';
 
@@ -93,7 +86,7 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
  * Creates attachment envelope items
  */
 export function createAttachmentEnvelopeItem(
-  attachment: AttachmentWithData,
+  attachment: Attachment,
   textEncoder?: TextEncoderInternal,
 ): AttachmentItem {
   const utf8 = textEncoder || new TextEncoder();

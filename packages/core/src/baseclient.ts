@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Scope, Session } from '@sentry/hub';
 import {
-  AttachmentWithData,
+  Attachment,
   Client,
   ClientOptions,
   DataCategory,
@@ -285,7 +285,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event, attachments?: AttachmentWithData[]): void {
+  public sendEvent(event: Event, attachments?: Attachment[]): void {
     if (this._dsn) {
       const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
@@ -670,17 +670,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * Loads attachments from scope
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentWithData[] {
+  protected _attachmentsFromScope(scope: Scope | undefined): Attachment[] {
     return (
       scope?.getAttachments()?.reduce((acc, attachment) => {
-        if ('path' in attachment || !('data' in attachment)) {
-          logger.error('This SDK does not support loading attachments from file paths and no data was supplied');
-        } else {
+        if ('data' in attachment) {
           acc.push(attachment);
         }
 
         return acc;
-      }, [] as AttachmentWithData[]) || []
+      }, [] as Attachment[]) || []
     );
   }
 

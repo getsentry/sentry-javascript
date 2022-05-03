@@ -1,6 +1,6 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
-import { AttachmentWithData, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
+import { Attachment, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { basename, logger, resolvedSyncPromise } from '@sentry/utils';
 import { existsSync, readFileSync } from 'fs';
 import { TextEncoder } from 'util';
@@ -162,7 +162,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _attachmentsFromScope(scope: Scope | undefined): AttachmentWithData[] {
+  protected _attachmentsFromScope(scope: Scope | undefined): Attachment[] {
     return (
       scope?.getAttachments()?.map(attachment => {
         if ('path' in attachment && !('data' in attachment)) {
@@ -174,9 +174,12 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
               attachmentType: attachment.attachmentType,
             };
           } else {
+            const msg = `Missing attachment - file not found: ${attachment.path}`;
+            logger.warn(msg);
+
             return {
               filename: attachment.filename || basename(attachment.path),
-              data: 'Missing attachment - file not found',
+              data: msg,
               contentType: 'text/plain',
             };
           }
