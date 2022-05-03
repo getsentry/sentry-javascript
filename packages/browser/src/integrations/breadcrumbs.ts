@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration } from '@sentry/types';
+import { Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
-  getEventDescription,
   getGlobalObject,
   htmlTreeAsString,
   parseUrl,
@@ -22,6 +21,8 @@ interface BreadcrumbsOptions {
   xhr: boolean;
 }
 
+export const BREADCRUMB_INTEGRATION_ID = 'Breadcrumbs';
+
 /**
  * Default Breadcrumbs instrumentations
  * TODO: Deprecated - with v6, this will be renamed to `Instrument`
@@ -30,21 +31,24 @@ export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Breadcrumbs';
+  public static id: string = BREADCRUMB_INTEGRATION_ID;
 
   /**
    * @inheritDoc
    */
   public name: string = Breadcrumbs.id;
 
-  /** JSDoc */
-  private readonly _options: BreadcrumbsOptions;
+  /**
+   * Options of the breadcrumbs integration.
+   */
+  // This field is public, because we use it in the browser client to check if the `sentry` option is enabled.
+  public readonly options: Readonly<BreadcrumbsOptions>;
 
   /**
    * @inheritDoc
    */
   public constructor(options?: Partial<BreadcrumbsOptions>) {
-    this._options = {
+    this.options = {
       console: true,
       dom: true,
       fetch: true,
@@ -56,26 +60,6 @@ export class Breadcrumbs implements Integration {
   }
 
   /**
-   * Create a breadcrumb of `sentry` from the events themselves
-   */
-  public addSentryBreadcrumb(event: Event): void {
-    if (!this._options.sentry) {
-      return;
-    }
-    getCurrentHub().addBreadcrumb(
-      {
-        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
-        event_id: event.event_id,
-        level: event.level,
-        message: getEventDescription(event),
-      },
-      {
-        event,
-      },
-    );
-  }
-
-  /**
    * Instrument browser built-ins w/ breadcrumb capturing
    *  - Console API
    *  - DOM API (click/typing)
@@ -84,19 +68,19 @@ export class Breadcrumbs implements Integration {
    *  - History API
    */
   public setupOnce(): void {
-    if (this._options.console) {
+    if (this.options.console) {
       addInstrumentationHandler('console', _consoleBreadcrumb);
     }
-    if (this._options.dom) {
-      addInstrumentationHandler('dom', _domBreadcrumb(this._options.dom));
+    if (this.options.dom) {
+      addInstrumentationHandler('dom', _domBreadcrumb(this.options.dom));
     }
-    if (this._options.xhr) {
+    if (this.options.xhr) {
       addInstrumentationHandler('xhr', _xhrBreadcrumb);
     }
-    if (this._options.fetch) {
+    if (this.options.fetch) {
       addInstrumentationHandler('fetch', _fetchBreadcrumb);
     }
-    if (this._options.history) {
+    if (this.options.history) {
       addInstrumentationHandler('history', _historyBreadcrumb);
     }
   }
