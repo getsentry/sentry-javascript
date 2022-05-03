@@ -113,7 +113,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    */
   protected _sendEvent(event: Event): void {
     // We only want to add the sentry event breadcrumb when the user has the breadcrumb integration installed and
-    // activated its`sentry` option.
+    // activated its `sentry` option.
     // We also do not want to use the `Breadcrumbs` class here directly, because we do not want it to be included in
     // bundles, if it is not used by the SDK.
     // This all sadly is a bit ugly, but we currently don't have a "pre-send" hook on the integrations so we do it this
