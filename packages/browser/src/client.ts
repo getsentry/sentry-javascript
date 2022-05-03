@@ -103,15 +103,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    event.platform = event.platform || 'javascript';
-    return super._prepareEvent(event, scope, hint);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected _sendEvent(event: Event): void {
+  public sendEvent(event: Event): void {
     // We only want to add the sentry event breadcrumb when the user has the breadcrumb integration installed and
     // activated its `sentry` option.
     // We also do not want to use the `Breadcrumbs` class here directly, because we do not want it to be included in
@@ -140,7 +132,15 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       );
     }
 
-    super._sendEvent(event);
+    super.sendEvent(event);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
+    event.platform = event.platform || 'javascript';
+    return super._prepareEvent(event, scope, hint);
   }
 
   /**
