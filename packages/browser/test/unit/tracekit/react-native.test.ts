@@ -1,9 +1,5 @@
-import { createStackParser } from '@sentry/utils';
-
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { defaultStackParsers } from '../../../src/stack-parsers';
-
-const parser = createStackParser(...defaultStackParsers);
+import { defaultStackParser as parser } from '../../../src/stack-parsers';
 
 describe('Tracekit - React Native Tests', () => {
   it('should parse exceptions for react-native-v8', () => {

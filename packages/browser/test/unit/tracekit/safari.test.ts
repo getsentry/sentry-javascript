@@ -1,9 +1,5 @@
-import { createStackParser } from '@sentry/utils';
-
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { defaultStackParsers } from '../../../src/stack-parsers';
-
-const parser = createStackParser(...defaultStackParsers);
+import { defaultStackParser as parser } from '../../../src/stack-parsers';
 
 describe('Tracekit - Safari Tests', () => {
   it('should parse Safari 6 error', () => {

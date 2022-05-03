@@ -1,12 +1,9 @@
 import { Event as SentryEvent, Exception, ExtendedError } from '@sentry/types';
-import { createStackParser } from '@sentry/utils';
 
 import { BrowserClient } from '../../../src/client';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';
-import { defaultStackParsers } from '../../../src/stack-parsers';
+import { defaultStackParser as parser } from '../../../src/stack-parsers';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
-
-const parser = createStackParser(...defaultStackParsers);
 
 type EventWithException = SentryEvent & {
   exception: {
