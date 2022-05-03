@@ -33,7 +33,8 @@ export {
   setTags,
   setUser,
   startTransaction,
-  Transports,
+  makeFetchTransport,
+  makeXHRTransport,
   withScope,
 } from '@sentry/browser';
 

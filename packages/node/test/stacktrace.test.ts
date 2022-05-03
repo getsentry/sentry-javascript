@@ -10,12 +10,8 @@
  * @license MIT
  */
 
-import { createStackParser } from '@sentry/utils';
-
 import { parseStackFrames } from '../src/eventbuilder';
-import { nodeStackParser } from '../src/stack-parser';
-
-const stackParser = createStackParser(nodeStackParser);
+import { defaultStackParser as stackParser } from '../src/stack-parser';
 
 function testBasic() {
   return new Error('something went wrong');
@@ -36,7 +32,7 @@ describe('Stack parsing', () => {
     const last = frames.length - 1;
     expect(frames[last].filename).toEqual(__filename);
     expect(frames[last].function).toEqual('testBasic');
-    expect(frames[last].lineno).toEqual(21);
+    expect(frames[last].lineno).toEqual(17);
     expect(frames[last].colno).toEqual(10);
   });
 

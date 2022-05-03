@@ -4,7 +4,6 @@ import { Integrations as CoreIntegrations } from '@sentry/core';
 import { getGlobalObject } from '@sentry/utils';
 
 import * as BrowserIntegrations from './integrations';
-import * as Transports from './transports';
 
 let windowIntegrations = {};
 
@@ -20,4 +19,4 @@ const INTEGRATIONS = {
   ...BrowserIntegrations,
 };
 
-export { INTEGRATIONS as Integrations, Transports };
+export { INTEGRATIONS as Integrations };

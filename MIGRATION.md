@@ -32,6 +32,42 @@ import {
 } from '@sentry/minimal';
 ```
 
+## Explicit Client Options
+
+In v7, we've updated the `Client` to have options seperate from the options passed into `Sentry.init`. This means that constructing a client now requires 3 options: `integrations`, `transport` and `stackParser`. These can be customized as you see fit.
+
+```ts
+import { BrowserClient, defaultStackParser, defaultIntegrations, makeFetchTransport } from '@sentry/browser';
+
+// New in v7:
+const client = new BrowserClient({
+  transport: makeFetchTransport,
+  stackParser: defaultStackParser,
+  integrations: [...defaultIntegrations],
+});
+
+// Before:
+const client = new BrowserClient();
+```
+
+Since you now explicitly pass in the dependencies of the client, you can also tree-shake out dependencies that you do not use this way. For example, you can tree-shake out the SDK's default integrations and only use the ones that you want like so:
+
+```ts
+import { BrowserClient, defaultStackParser, Integrations, makeFetchTransport } from '@sentry/browser';
+
+// New in v7:
+const client = new BrowserClient({
+  transport: makeFetchTransport,
+  stackParser: defaultStackParser,
+  integrations: [
+    new Integrations.Breadcrumbs(),
+    new Integrations.GlobalHandlers(),
+    new Integrations.LinkedErrors(),
+    new Integrations.Dedupe(),
+  ],
+});
+```
+
 ## Removal Of Old Platform Integrations From `@sentry/integrations` Package
 
 The following classes will be removed from the `@sentry/integrations` package and can no longer be used:

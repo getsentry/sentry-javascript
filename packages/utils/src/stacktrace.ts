@@ -36,7 +36,7 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
  *
  * If options contains an array of line parsers, it is converted into a parser
  */
-export function stackParserFromOptions(stackParser: StackParser | StackLineParser[]): StackParser {
+export function stackParserFromStackParserOptions(stackParser: StackParser | StackLineParser[]): StackParser {
   if (Array.isArray(stackParser)) {
     return createStackParser(...stackParser);
   }
