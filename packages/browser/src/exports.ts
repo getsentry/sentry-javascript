@@ -41,6 +41,8 @@ export {
   setTags,
   setUser,
   withScope,
+  FunctionToString,
+  InboundFilters,
 } from '@sentry/core';
 
 export { BrowserClient } from './client';
@@ -56,3 +58,4 @@ export {
 } from './stack-parsers';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
 export { SDK_NAME } from './version';
+export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, UserAgent, Dedupe } from './integrations';

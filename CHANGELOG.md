@@ -20,6 +20,7 @@
 - **(breaking)**: ref(node): Remove raven-node backward-compat code (#4942)
 - chore: Remove tslint from `@sentry-internal/typescript` (#4940)
 - feat: Add client report hook to makeTransport (#5008)
+- feat: Export browser integrations individually (#5028)
 - ref(build): Switch tsconfig target to es6 (#5005)
 - ref(core): Make event processing log warnings instead of errors (#5010)
 - fix(hub): Add missing parameter to captureException docstring (#5001)
