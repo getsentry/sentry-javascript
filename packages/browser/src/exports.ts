@@ -44,13 +44,15 @@ export {
 } from '@sentry/core';
 
 export { BrowserClient } from './client';
+export { makeFetchTransport, makeXHRTransport } from './transports';
 export {
-  defaultStackParsers,
-  chromeStackParser,
-  geckoStackParser,
-  opera10StackParser,
-  opera11StackParser,
-  winjsStackParser,
+  defaultStackParser,
+  defaultStackLineParsers,
+  chromeStackLineParser,
+  geckoStackLineParser,
+  opera10StackLineParser,
+  opera11StackLineParser,
+  winjsStackLineParser,
 } from './stack-parsers';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
 export { SDK_NAME } from './version';

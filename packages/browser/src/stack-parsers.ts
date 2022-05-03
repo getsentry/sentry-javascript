@@ -1,4 +1,5 @@
 import { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
+import { createStackParser } from '@sentry/utils';
 
 // global reference to slice
 const UNKNOWN_FUNCTION = '?';
@@ -60,7 +61,7 @@ const chrome: StackLineParserFn = line => {
   return;
 };
 
-export const chromeStackParser: StackLineParser = [CHROME_PRIORITY, chrome];
+export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chrome];
 
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
@@ -96,7 +97,7 @@ const gecko: StackLineParserFn = line => {
   return;
 };
 
-export const geckoStackParser: StackLineParser = [GECKO_PRIORITY, gecko];
+export const geckoStackLineParser: StackLineParser = [GECKO_PRIORITY, gecko];
 
 const winjsRegex =
   /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
@@ -109,7 +110,7 @@ const winjs: StackLineParserFn = line => {
     : undefined;
 };
 
-export const winjsStackParser: StackLineParser = [WINJS_PRIORITY, winjs];
+export const winjsStackLineParser: StackLineParser = [WINJS_PRIORITY, winjs];
 
 const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 
@@ -118,7 +119,7 @@ const opera10: StackLineParserFn = line => {
   return parts ? createFrame(parts[2], parts[3] || UNKNOWN_FUNCTION, +parts[1]) : undefined;
 };
 
-export const opera10StackParser: StackLineParser = [OPERA10_PRIORITY, opera10];
+export const opera10StackLineParser: StackLineParser = [OPERA10_PRIORITY, opera10];
 
 const opera11Regex =
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
@@ -128,9 +129,11 @@ const opera11: StackLineParserFn = line => {
   return parts ? createFrame(parts[5], parts[3] || parts[4] || UNKNOWN_FUNCTION, +parts[1], +parts[2]) : undefined;
 };
 
-export const opera11StackParser: StackLineParser = [OPERA11_PRIORITY, opera11];
+export const opera11StackLineParser: StackLineParser = [OPERA11_PRIORITY, opera11];
 
-export const defaultStackParsers = [chromeStackParser, geckoStackParser, winjsStackParser];
+export const defaultStackLineParsers = [chromeStackLineParser, geckoStackLineParser, winjsStackLineParser];
+
+export const defaultStackParser = createStackParser(...defaultStackLineParsers);
 
 /**
  * Safari web extensions, starting version unknown, can produce "frames-only" stacktraces.

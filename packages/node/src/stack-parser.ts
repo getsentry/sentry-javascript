@@ -1,5 +1,5 @@
 import { StackLineParser, StackLineParserFn } from '@sentry/types';
-import { basename, dirname } from '@sentry/utils';
+import { basename, createStackParser, dirname } from '@sentry/utils';
 
 /** Gets the module */
 function getModule(filename: string | undefined): string | undefined {
@@ -114,4 +114,6 @@ const node: StackLineParserFn = (line: string) => {
   };
 };
 
-export const nodeStackParser: StackLineParser = [90, node];
+export const nodeStackLineParser: StackLineParser = [90, node];
+
+export const defaultStackParser = createStackParser(nodeStackLineParser);

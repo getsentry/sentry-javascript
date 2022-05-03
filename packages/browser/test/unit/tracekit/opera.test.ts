@@ -1,10 +1,10 @@
 import { createStackParser } from '@sentry/utils';
 
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { defaultStackParsers, opera10StackParser, opera11StackParser } from '../../../src/stack-parsers';
+import { defaultStackParser, opera10StackLineParser, opera11StackLineParser } from '../../../src/stack-parsers';
 
-const operaParser = createStackParser(opera10StackParser, opera11StackParser);
-const chromiumParser = createStackParser(...defaultStackParsers);
+const operaParser = createStackParser(opera10StackLineParser, opera11StackLineParser);
+const chromiumParser = defaultStackParser;
 
 describe('Tracekit - Opera Tests', () => {
   it('should parse Opera 10 error', () => {

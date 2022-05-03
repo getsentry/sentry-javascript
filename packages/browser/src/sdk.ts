@@ -11,7 +11,7 @@ import {
   getGlobalObject,
   logger,
   resolvedSyncPromise,
-  stackParserFromOptions,
+  stackParserFromStackParserOptions,
   supportsFetch,
 } from '@sentry/utils';
 
@@ -19,7 +19,7 @@ import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
-import { defaultStackParsers } from './stack-parsers';
+import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
 export const defaultIntegrations = [
@@ -110,7 +110,7 @@ export function init(options: BrowserOptions = {}): void {
 
   const clientOptions: BrowserClientOptions = {
     ...options,
-    stackParser: stackParserFromOptions(options.stackParser || defaultStackParsers),
+    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || (supportsFetch() ? makeFetchTransport : makeXHRTransport),
   };

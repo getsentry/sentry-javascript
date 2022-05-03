@@ -43,10 +43,11 @@ export {
 } from '@sentry/core';
 
 export { NodeClient } from './client';
+export { makeNodeTransport } from './transports';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';
 export { deepReadDirSync } from './utils';
 export { SDK_NAME } from './version';
-export { nodeStackParser } from './stack-parser';
+export { defaultStackParser } from './stack-parser';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
@@ -54,14 +55,13 @@ import * as domain from 'domain';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
-import * as Transports from './transports';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
   ...NodeIntegrations,
 };
 
-export { INTEGRATIONS as Integrations, Transports, Handlers };
+export { INTEGRATIONS as Integrations, Handlers };
 
 // We need to patch domain on the global __SENTRY__ object to make it work for node in cross-platform packages like
 // @sentry/hub. If we don't do this, browser bundlers will have troubles resolving `require('domain')`.
