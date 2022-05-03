@@ -1,7 +1,6 @@
 import { initAndBind, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
 import { Integration } from '@sentry/types';
-import { createStackParser } from '@sentry/utils';
 import * as domain from 'domain';
 
 import {
@@ -17,10 +16,8 @@ import {
   Scope,
 } from '../src';
 import { ContextLines, LinkedErrors } from '../src/integrations';
-import { nodeStackParser } from '../src/stack-parser';
+import { defaultStackParser } from '../src/stack-parser';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
-
-const stackParser = createStackParser(nodeStackParser);
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
@@ -99,7 +96,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
-        stackParser,
+        stackParser: defaultStackParser,
       });
       const client = new NodeClient(options);
       getCurrentHub().bindClient(client);
@@ -123,7 +120,7 @@ describe('SentryNode', () => {
     test('capture an exception', done => {
       expect.assertions(6);
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
           expect(event.tags).toEqual({ test: '1' });
           expect(event.exception).not.toBeUndefined();
@@ -150,7 +147,7 @@ describe('SentryNode', () => {
     test('capture a string exception', done => {
       expect.assertions(6);
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
           expect(event.tags).toEqual({ test: '1' });
           expect(event.exception).not.toBeUndefined();
@@ -177,7 +174,7 @@ describe('SentryNode', () => {
     test('capture an exception with pre/post context', done => {
       expect.assertions(10);
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
           expect(event.tags).toEqual({ test: '1' });
           expect(event.exception).not.toBeUndefined();
@@ -208,7 +205,7 @@ describe('SentryNode', () => {
     test('capture a linked exception with pre/post context', done => {
       expect.assertions(15);
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         integrations: [new ContextLines(), new LinkedErrors()],
         beforeSend: (event: Event) => {
           expect(event.exception).not.toBeUndefined();
@@ -248,7 +245,7 @@ describe('SentryNode', () => {
     test('capture a message', done => {
       expect.assertions(2);
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test');
           expect(event.exception).toBeUndefined();
@@ -264,7 +261,7 @@ describe('SentryNode', () => {
     test('capture an event', done => {
       expect.assertions(2);
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test event');
           expect(event.exception).toBeUndefined();
@@ -281,7 +278,7 @@ describe('SentryNode', () => {
       const d = domain.create();
 
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
           expect(event.message).toBe('test domain');
           expect(event.exception).toBeUndefined();
@@ -302,7 +299,7 @@ describe('SentryNode', () => {
     test('stacktrace order', done => {
       expect.assertions(1);
       const options = getDefaultNodeClientOptions({
-        stackParser,
+        stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
           expect(
             event.exception!.values![0].stacktrace!.frames![event.exception!.values![0].stacktrace!.frames!.length - 1]
