@@ -546,15 +546,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * Sends the passed event
-   * @param event The Sentry event to send
-   */
-  // TODO(v7): refactor: get rid of method?
-  protected _sendEvent(event: Event): void {
-    this.sendEvent(event);
-  }
-
-  /**
    * Processes the event and logs an error in case of rejection
    * @param event
    * @param hint
@@ -631,7 +622,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        this._sendEvent(processedEvent);
+        this.sendEvent(processedEvent);
         return processedEvent;
       })
       .then(null, reason => {
