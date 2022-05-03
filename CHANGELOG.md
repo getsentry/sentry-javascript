@@ -6,6 +6,7 @@
 
 ## 7.0.0-beta.0
 
+- **(breaking)**: ref: Make it easier to use stackParser (#5015)
 - **(breaking)**: ref: Switch to new transports (#4943)
 - **(breaking)**: ref: Delete store endpoint code (#4969)
 - **(breaking)**: chore: set ignoreSentryErrors to true (#4994)
