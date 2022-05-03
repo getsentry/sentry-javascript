@@ -28,6 +28,7 @@ export { initAndBind } from './sdk';
 export { createTransport } from './transports/base';
 export { SDK_VERSION } from './version';
 export { getIntegrationsToSetup } from './integration';
+export { FunctionToString, InboundFilters } from './integrations';
 
 import * as Integrations from './integrations';
 
