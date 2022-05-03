@@ -259,6 +259,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
+   * Gets an installed integration by its `id`.
+   *
+   * @returns The installed integration or `undefined` if no integration with that `id` was installed.
+   */
+  public getIntegrationById(integrationId: string): Integration | undefined {
+    return this._integrations[integrationId];
+  }
+
+  /**
    * @inheritDoc
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
