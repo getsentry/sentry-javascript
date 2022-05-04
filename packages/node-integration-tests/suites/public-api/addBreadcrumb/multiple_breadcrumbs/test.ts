@@ -10,7 +10,7 @@ test('should add multiple breadcrumbs', async () => {
       {
         category: 'foo',
         message: 'bar',
-        level: 'critical',
+        level: 'fatal',
       },
       {
         category: 'qux',

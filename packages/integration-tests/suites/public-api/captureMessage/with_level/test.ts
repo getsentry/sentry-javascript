@@ -7,7 +7,7 @@ import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 sentryTest('should capture with different severity levels', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 7, { url });
+  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 6, { url });
 
   expect(events[0].message).toBe('debug_message');
   expect(events[0].level).toBe('debug');
@@ -24,9 +24,6 @@ sentryTest('should capture with different severity levels', async ({ getLocalTes
   expect(events[4].message).toBe('fatal_message');
   expect(events[4].level).toBe('fatal');
 
-  expect(events[5].message).toBe('critical_message');
-  expect(events[5].level).toBe('critical');
-
-  expect(events[6].message).toBe('log_message');
-  expect(events[6].level).toBe('log');
+  expect(events[5].message).toBe('log_message');
+  expect(events[5].level).toBe('log');
 });
