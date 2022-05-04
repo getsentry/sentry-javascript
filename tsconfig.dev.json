@@ -6,5 +6,12 @@
 
   "compilerOptions": {
     "types": ["node", "jest"],
+
+    // Setting `commonjs` here is necessary so ts-node will convert everything to CJS, which is all that will run on
+    // older versions of Node. See https://github.com/TypeStrong/ts-node#commonjs-vs-native-ecmascript-modules.
+    "module": "commonjs",
+
+    // This lets us use any package in our scripts, no matter how it's set up, using normal `import` syntax
+    "esModuleInterop": true,
   }
 }
