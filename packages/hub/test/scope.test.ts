@@ -85,8 +85,8 @@ describe('Scope', () => {
 
     test('setLevel', () => {
       const scope = new Scope();
-      scope.setLevel('critical');
-      expect((scope as any)._level).toEqual('critical');
+      scope.setLevel('fatal');
+      expect((scope as any)._level).toEqual('fatal');
     });
 
     test('setTransactionName', () => {
@@ -137,8 +137,8 @@ describe('Scope', () => {
 
     test('chaining', () => {
       const scope = new Scope();
-      scope.setLevel('critical').setUser({ id: '1' });
-      expect((scope as any)._level).toEqual('critical');
+      scope.setLevel('fatal').setUser({ id: '1' });
+      expect((scope as any)._level).toEqual('fatal');
       expect((scope as any)._user).toEqual({ id: '1' });
     });
   });
@@ -296,7 +296,7 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setLevel('warning');
       const event: Event = {};
-      event.level = 'critical';
+      event.level = 'fatal';
       return scope.applyToEvent(event).then(processedEvent => {
         expect(processedEvent!.level).toEqual('warning');
       });
