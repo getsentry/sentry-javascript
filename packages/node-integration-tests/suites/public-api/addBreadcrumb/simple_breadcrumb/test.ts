@@ -10,7 +10,7 @@ test('should add a simple breadcrumb', async () => {
       {
         category: 'foo',
         message: 'bar',
-        level: 'critical',
+        level: 'fatal',
       },
     ],
   });
