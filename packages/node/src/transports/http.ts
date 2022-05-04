@@ -106,8 +106,11 @@ function createRequestExecutor(
       let bodyStream = streamFromBody(request.body);
 
       if (request.body.length > GZIP_THRESHOLD) {
-        options.headers = options.headers || {};
-        options.headers['Content-Encoding'] = 'gzip';
+        options.headers = {
+          ...options.headers,
+          'content-encoding': 'gzip',
+        };
+
         bodyStream = bodyStream.pipe(createGzip());
       }
 
