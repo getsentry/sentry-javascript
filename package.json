@@ -72,6 +72,7 @@
     "codecov": "^3.6.5",
     "deepmerge": "^4.2.2",
     "eslint": "7.32.0",
+    "fs-extra": "^10.1.0",
     "jest": "^27.5.1",
     "jest-environment-node": "^27.5.1",
     "jsdom": "^19.0.0",
