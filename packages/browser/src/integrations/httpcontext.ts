@@ -4,24 +4,24 @@ import { getGlobalObject } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 
-/** UserAgent */
-export class UserAgent implements Integration {
+/** HttpContext integration collects information about HTTP request headers */
+export class HttpContext implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'UserAgent';
+  public static id: string = 'HttpContext';
 
   /**
    * @inheritDoc
    */
-  public name: string = UserAgent.id;
+  public name: string = HttpContext.id;
 
   /**
    * @inheritDoc
    */
   public setupOnce(): void {
     addGlobalEventProcessor((event: Event) => {
-      if (getCurrentHub().getIntegration(UserAgent)) {
+      if (getCurrentHub().getIntegration(HttpContext)) {
         // if none of the information we want exists, don't bother
         if (!global.navigator && !global.location && !global.document) {
           return event;
