@@ -281,8 +281,9 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
   [#4919](https://github.com/getsentry/sentry-javascript/pull/4919)). `Backend` was an unnecessary abstraction which is
   not present in other Sentry SDKs. For the sake of reducing complexity, increasing consistency with other Sentry SDKs and
   decreasing bundle-size, `Backend` was removed.
-- Remove support for Opera browser pre v15
-- Rename `UserAgent` integration to `HttpContext` (see [#5027](https://github.com/getsentry/sentry-javascript/pull/5027))
+- Remove support for Opera browser pre v15.
+- Rename `UserAgent` integration to `HttpContext`. (see [#5027](https://github.com/getsentry/sentry-javascript/pull/5027))
+- Remove `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages.
 
 ## Sentry Angular SDK Changes
 
