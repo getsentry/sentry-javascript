@@ -3,7 +3,7 @@
 The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.
 Below we will outline all the breaking changes you should consider when upgrading.
 
-TL;DR if you copy & pasted the basic examples from our docs:
+**TL;DR** If you only use basic features of Sentry, or you simply copy & pasted the setup examples from our docs, here's what changed for you:
 - Our CDN bundles are now ES6 - you will need to [reconfigure your script tags](#renaming-of-cdn-bundles) if you want to keep supporting ES5 and IE11 on the new SDK version.
 - Distributed CommonJS files will be ES6. Use a transpiler if you need to support old node versions.
 - We bumped the TypeScript version we generate our types with to 3.8.3. Please check if your TypeScript projects using TypeScript version 3.7 or lower still compile. Otherwise, upgrade your TypeScript version.
