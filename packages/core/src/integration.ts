@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, Options } from '@sentry/types';
+import { Integration, Options, ClientOptions } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
@@ -60,14 +60,14 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
  * @param integrations array of integration instances
  * @param withDefault should enable default integrations
  */
-export function setupIntegrations(integrations: Integration[]): IntegrationIndex {
+export function setupIntegrations(integrations: Integration[], clientOptions: ClientOptions): IntegrationIndex {
   const integrationIndex: IntegrationIndex = {};
 
   integrations.forEach(integration => {
     integrationIndex[integration.name] = integration;
 
     if (installedIntegrations.indexOf(integration.name) === -1) {
-      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub, clientOptions);
       installedIntegrations.push(integration.name);
       IS_DEBUG_BUILD && logger.log(`Integration installed: ${integration.name}`);
     }

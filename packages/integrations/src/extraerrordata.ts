@@ -1,4 +1,4 @@
-import { Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
+import { ClientOptions, Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
 import { isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
@@ -6,6 +6,7 @@ import { IS_DEBUG_BUILD } from './flags';
 /** JSDoc */
 interface ExtraErrorDataOptions {
   depth?: number;
+  maxBreadth?: number;
 }
 
 /** Patch toString calls to return proper name for wrapped functions */
@@ -27,10 +28,7 @@ export class ExtraErrorData implements Integration {
    * @inheritDoc
    */
   public constructor(options?: ExtraErrorDataOptions) {
-    this._options = {
-      depth: 3,
-      ...options,
-    };
+    this._options = options || {};
   }
 
   /**
@@ -38,18 +36,25 @@ export class ExtraErrorData implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
-      const self = getCurrentHub().getIntegration(ExtraErrorData);
+      const hub = getCurrentHub();
+      const self = hub.getIntegration(ExtraErrorData);
       if (!self) {
         return event;
       }
-      return self.enhanceEventWithErrorData(event, hint);
+
+      const client = hub.getClient();
+      return self.enhanceEventWithErrorData(event, hint, client ? client.getOptions() : undefined);
     });
   }
 
   /**
    * Attaches extracted information from the Error object to extra field in the Event
    */
-  public enhanceEventWithErrorData(event: Event, hint?: EventHint): Event {
+  public enhanceEventWithErrorData(
+    event: Event,
+    hint: EventHint | undefined,
+    clientOptions: ClientOptions | undefined,
+  ): Event {
     if (!hint || !hint.originalException || !isError(hint.originalException)) {
       return event;
     }
@@ -62,7 +67,11 @@ export class ExtraErrorData implements Integration {
         ...event.contexts,
       };
 
-      const normalizedErrorData = normalize(errorData, this._options.depth);
+      const normalizedErrorData = normalize(
+        errorData,
+        (clientOptions && clientOptions.normalizeDepth) ?? this._options.depth ?? 3,
+        (clientOptions && clientOptions.normalizeMaxBreadth) ?? this._options.maxBreadth ?? 1000,
+      );
       if (isPlainObject(normalizedErrorData)) {
         contexts = {
           ...event.contexts,
