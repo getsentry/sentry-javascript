@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["test/**/*"],
+
+  "compilerOptions": {
+    // should include all types from `./tsconfig.json` plus types for all test frameworks used
+    "types": ["node", "jest"],
+
+    // other package-specific, test-specific options
+
+    // `es2020` is the recommended `lib` and `target` for Node 14
+    // see https://github.com/tsconfig/bases/blob/main/bases/node14.json
+    "lib": ["dom", "es2020"],
+    "target": "es2020",
+
+    // so we don't have to worry about how libraries we use export things
+    "esModuleInterop": true
+  }
+}

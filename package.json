@@ -31,6 +31,7 @@
     "packages/angular",
     "packages/browser",
     "packages/core",
+    "packages/dev-utils",
     "packages/ember",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
