@@ -291,6 +291,7 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
 - Rename `UserAgent` integration to `HttpContext`. (see [#5027](https://github.com/getsentry/sentry-javascript/pull/5027))
 - Remove `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages.
 - Removed `eventStatusFromHttpCode` to save on bundle size.
+- Replace `BrowserTracing` `maxTransactionDuration` option with `finalTimeout` option
 
 ## Sentry Angular SDK Changes
 
