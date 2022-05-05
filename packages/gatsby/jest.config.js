@@ -3,5 +3,5 @@ const baseConfig = require('../../jest/jest.config.js');
 module.exports = {
   ...baseConfig,
   setupFiles: ['<rootDir>/test/setEnvVars.ts'],
-  testEnvironment: '../browser/jest.env.js',
+  testEnvironment: 'jsdom',
 };

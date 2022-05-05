@@ -7,6 +7,7 @@ import { makeXHRTransport, XHRTransportOptions } from '../../../src/transports/x
 const DEFAULT_XHR_TRANSPORT_OPTIONS: XHRTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
+  textEncoder: new TextEncoder(),
 };
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [

@@ -40,6 +40,7 @@ describe('SentryBrowser', () => {
       beforeSend,
       dsn,
       transport: makeSimpleTransport,
+      autoSessionTracking: false,
     });
   });
 
@@ -218,20 +219,20 @@ describe('SentryBrowser', () => {
 describe('SentryBrowser initialization', () => {
   it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
-    init({ dsn });
+    init({ dsn, autoSessionTracking: false });
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBe('foobar');
     delete global.SENTRY_RELEASE;
   });
 
   it('should use initialScope', () => {
-    init({ dsn, initialScope: { tags: { a: 'b' } } });
+    init({ dsn, initialScope: { tags: { a: 'b' } }, autoSessionTracking: false });
     expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should use initialScope Scope', () => {
     const scope = new Scope();
     scope.setTags({ a: 'b' });
-    init({ dsn, initialScope: scope });
+    init({ dsn, initialScope: scope, autoSessionTracking: false });
     expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
@@ -242,19 +243,20 @@ describe('SentryBrowser initialization', () => {
         scope.setTags({ a: 'b' });
         return scope;
       },
+      autoSessionTracking: false,
     });
     expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {
     // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
-    init({ dsn });
+    init({ dsn, autoSessionTracking: false });
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBeUndefined();
   });
 
   describe('SDK metadata', () => {
     it('should set SDK data when Sentry.init() is called', () => {
-      init({ dsn });
+      init({ dsn, autoSessionTracking: false });
 
       const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
 
@@ -265,7 +267,7 @@ describe('SentryBrowser initialization', () => {
     });
 
     it('should set SDK data when instantiating a client directly', () => {
-      const options = getDefaultBrowserClientOptions({ dsn });
+      const options = getDefaultBrowserClientOptions({ dsn, autoSessionTracking: false });
       const client = new BrowserClient(options);
 
       const sdkData = client.getOptions()._metadata?.sdk as any;
@@ -281,6 +283,7 @@ describe('SentryBrowser initialization', () => {
     it("shouldn't overwrite SDK data that's already there", () => {
       init({
         dsn,
+        autoSessionTracking: false,
         // this would normally be set by the wrapper SDK in init()
         _metadata: {
           sdk: {

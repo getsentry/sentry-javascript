@@ -8,6 +8,7 @@ import { FetchImpl } from '../../../src/transports/utils';
 const DEFAULT_FETCH_TRANSPORT_OPTIONS: FetchTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
+  textEncoder: new TextEncoder(),
 };
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
