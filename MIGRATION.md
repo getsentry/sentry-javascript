@@ -3,6 +3,13 @@
 The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.
 Below we will outline all the breaking changes you should consider when upgrading.
 
+**TL;DR** If you only use basic features of Sentry, or you simply copy & pasted the setup examples from our docs, here's what changed for you:
+- Our CDN bundles are now ES6 - you will need to [reconfigure your script tags](#renaming-of-cdn-bundles) if you want to keep supporting ES5 and IE11 on the new SDK version.
+- Distributed CommonJS files will be ES6. Use a transpiler if you need to support old node versions.
+- We bumped the TypeScript version we generate our types with to 3.8.3. Please check if your TypeScript projects using TypeScript version 3.7 or lower still compile. Otherwise, upgrade your TypeScript version.
+- `whitelistUrls` and `blacklistUrls` have been renamed to `allowUrls` and `denyUrls` in the `Sentry.init()` options.
+- The `UserAgent` integration is now called `HttpContext`.
+
 ## Dropping Support for Node.js v6
 
 Node.js version 6 has reached end of life in April 2019. For Sentry JavaScript SDK version 7, we will no longer be supporting version 6 of Node.js.
@@ -252,7 +259,6 @@ favor of string literals.
 
 ### Removed Enums
 * The previously deprecated enum `Status` was removed (see [#4891](https://github.com/getsentry/sentry-javascript/pull/4891)).
-  [This example](#status) explains how to migrate.
 * The previously deprecated internal-only enum `RequestSessionStatus` was removed (see
   [#4889](https://github.com/getsentry/sentry-javascript/pull/4889)) in favor of string literals.
 * The previously deprecated internal-only enum `SessionStatus` was removed (see
@@ -284,6 +290,7 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
 - Remove support for Opera browser pre v15.
 - Rename `UserAgent` integration to `HttpContext`. (see [#5027](https://github.com/getsentry/sentry-javascript/pull/5027))
 - Remove `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages.
+- Removed `eventStatusFromHttpCode` to save on bundle size.
 
 ## Sentry Angular SDK Changes
 
