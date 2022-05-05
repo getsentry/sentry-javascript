@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import {
-  AttachmentOptions,
+  Attachment,
   Breadcrumb,
   CaptureContext,
   Context,
@@ -87,7 +87,7 @@ export class Scope implements ScopeInterface {
   protected _requestSession?: RequestSession;
 
   /** Attachments */
-  protected _attachments: AttachmentOptions[] = [];
+  protected _attachments: Attachment[] = [];
 
   /**
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
@@ -407,7 +407,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public addAttachment(attachment: AttachmentOptions): this {
+  public addAttachment(attachment: Attachment): this {
     this._attachments.push(attachment);
     return this;
   }
@@ -415,7 +415,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public getAttachments(): AttachmentOptions[] {
+  public getAttachments(): Attachment[] {
     return this._attachments;
   }
 

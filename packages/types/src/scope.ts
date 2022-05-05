@@ -1,4 +1,4 @@
-import { AttachmentOptions } from './attachment';
+import { Attachment } from './attachment';
 import { Breadcrumb } from './breadcrumb';
 import { Context, Contexts } from './context';
 import { EventProcessor } from './eventprocessor';
@@ -164,12 +164,12 @@ export interface Scope {
    * Adds an attachment to the scope
    * @param attachment Attachment options
    */
-  addAttachment(attachment: AttachmentOptions): this;
+  addAttachment(attachment: Attachment): this;
 
   /**
    * Returns an array of attachments on the scope
    */
-  getAttachments(): AttachmentOptions[];
+  getAttachments(): Attachment[];
 
   /**
    * Clears attachments from the scope
