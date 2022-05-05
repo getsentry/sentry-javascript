@@ -50,7 +50,7 @@ export {
   close,
   wrap,
 } from '@sentry/browser';
-export { SDK_NAME, SDK_VERSION } from '@sentry/browser';
+export { SDK_VERSION } from '@sentry/browser';
 
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
 import { getGlobalObject } from '@sentry/utils';
