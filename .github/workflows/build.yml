@@ -12,6 +12,8 @@ on:
         required: false
 
 env:
+  DEFAULT_NODE_VERSION: '16'
+
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
@@ -45,6 +47,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
         # so no need to reinstall them
       - name: Compute dependency cache key
@@ -74,6 +78,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -118,7 +124,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12'
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -149,6 +155,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -174,6 +182,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -200,6 +210,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -367,7 +379,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: '16'
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -406,6 +418,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
@@ -438,7 +452,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: '16'
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
