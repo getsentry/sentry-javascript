@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ExtendedError, WrappedFunction } from '@sentry/types';
+import { WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
@@ -92,50 +92,37 @@ export function urlEncode(object: { [key: string]: any }): string {
 }
 
 /**
- * Transforms any object into an object literal with all its attributes
- * attached to it.
+ * Transforms any `Error` or `Event` into a plain object with all of their enumerable properties, and some of their
+ * non-enumerable properties attached.
  *
  * @param value Initial source that we have to transform in order for it to be usable by the serializer
+ * @returns An Event or Error turned into an object - or the value argurment itself, when value is neither an Event nor
+ *  an Error.
  */
-export function convertToPlainObject(value: unknown): {
-  [key: string]: unknown;
-} {
-  let newObj = value as {
-    [key: string]: unknown;
-  };
-
+export function convertToPlainObject<V extends unknown>(value: V): Record<string, unknown> | V {
   if (isError(value)) {
-    newObj = {
+    return {
       message: value.message,
       name: value.name,
       stack: value.stack,
-      ...getOwnProperties(value as ExtendedError),
+      ...getOwnProperties(value),
     };
   } else if (isEvent(value)) {
-    /**
-     * Event-like interface that's usable in browser and node
-     */
-    interface SimpleEvent {
-      [key: string]: unknown;
-      type: string;
-      target?: unknown;
-      currentTarget?: unknown;
-    }
-
-    const event = value as SimpleEvent;
-
-    newObj = {
-      type: event.type,
-      target: serializeEventTarget(event.target),
-      currentTarget: serializeEventTarget(event.currentTarget),
-      ...getOwnProperties(event),
+    const newObj: Record<string, unknown> = {
+      type: value.type,
+      target: serializeEventTarget(value.target),
+      currentTarget: serializeEventTarget(value.currentTarget),
+      ...getOwnProperties(value),
     };
 
     if (typeof CustomEvent !== 'undefined' && isInstanceOf(value, CustomEvent)) {
-      newObj.detail = event.detail;
+      newObj.detail = value.detail;
     }
+
+    return newObj;
+  } else {
+    return value;
   }
-  return newObj;
 }
 
 /** Creates a string representation of the target of an `Event` object */
@@ -148,14 +135,18 @@ function serializeEventTarget(target: unknown): string {
 }
 
 /** Filters out all but an object's own properties */
-function getOwnProperties(obj: { [key: string]: unknown }): { [key: string]: unknown } {
-  const extractedProps: { [key: string]: unknown } = {};
-  for (const property in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, property)) {
-      extractedProps[property] = obj[property];
+function getOwnProperties(obj: unknown): { [key: string]: unknown } {
+  if (typeof obj === 'object' && obj !== null) {
+    const extractedProps: { [key: string]: unknown } = {};
+    for (const property in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, property)) {
+        extractedProps[property] = (obj as Record<string, unknown>)[property];
+      }
     }
+    return extractedProps;
+  } else {
+    return {};
   }
-  return extractedProps;
 }
 
 /**
@@ -163,8 +154,7 @@ function getOwnProperties(obj: { [key: string]: unknown }): { [key: string]: unk
  * and truncated list that will be used inside the event message.
  * eg. `Non-error exception captured with keys: foo, bar, baz`
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function extractExceptionKeysForMessage(exception: any, maxLength: number = 40): string {
+export function extractExceptionKeysForMessage(exception: Record<string, unknown>, maxLength: number = 40): string {
   const keys = Object.keys(convertToPlainObject(exception));
   keys.sort();
 
