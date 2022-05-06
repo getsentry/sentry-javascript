@@ -31,6 +31,7 @@ describe('React Router v6', () => {
     const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, finish: mockFinish });
 
     reactRouterV6Instrumentation(
+      React.useEffect,
       useLocation,
       useNavigationType,
       createRoutesFromChildren,
