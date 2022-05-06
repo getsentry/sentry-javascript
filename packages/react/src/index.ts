@@ -6,3 +6,4 @@ export { ErrorBoundary, withErrorBoundary } from './errorboundary';
 export { createReduxEnhancer } from './redux';
 export { reactRouterV3Instrumentation } from './reactrouterv3';
 export { reactRouterV4Instrumentation, reactRouterV5Instrumentation, withSentryRouting } from './reactrouter';
+export { reactRouterV6Instrumentation, withSentryV6 } from './reactrouterv6';
