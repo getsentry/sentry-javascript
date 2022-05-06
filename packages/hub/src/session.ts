@@ -10,14 +10,20 @@ export function makeSession(context?: Omit<SessionContext, 'started' | 'status'>
   // Both timestamp and started are in seconds since the UNIX epoch.
   const startingTime = timestampInSeconds();
 
-  const basicSession = {
+  const basicSession: Session = {
+    errors: 0,
+    sid: uuid4(),
     timestamp: startingTime,
     started: startingTime,
+    duration: 0,
+    status: 'ok',
+    init: true,
+    ignoreDuration: false,
   };
 
   return {
     ...basicSession,
-    ...(context ? updateSession(basicSession, context) : undefined),
+    ...(context ? updateSession(basicSession, context) : {}),
   };
 }
 
@@ -97,7 +103,7 @@ export function closeSession(session: Session, status?: Exclude<SessionStatus, '
   let context = {};
   if (status) {
     context = { status };
-  } else if (session === 'ok') {
+  } else if (session.status === 'ok') {
     context = { status: 'exited' };
   }
 
@@ -133,7 +139,7 @@ export function sessionToJSON(session: Session): {
     status: session.status || 'ok',
     errors: session.errors || 0,
     did: typeof session.did === 'number' || typeof session.did === 'string' ? `${session.did}` : undefined,
-    duration: session.duration || 0,
+    duration: session.duration,
     attrs: {
       release: session.release,
       environment: session.environment,

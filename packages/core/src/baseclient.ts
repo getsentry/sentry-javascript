@@ -200,10 +200,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     } else {
       this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
-      // TODO this does not have any consequence b/c we don't write the update after the session change
+
+      // TODO(v7) this does not have any consequence b/c we don't write the update after the session change
       // disabling for now
       // session.update({ init: false });
-      updateSession(ses);
+      // updateSession(session, { init: false });
     }
   }
 

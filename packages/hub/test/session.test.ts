@@ -112,7 +112,7 @@ describe('Session', () => {
       const updatedSession = updateSession(session, { status: 'crashed' });
       expect(updatedSession.status).toEqual('crashed');
 
-      const closedSession = closeSession(session, 'abnormal');
+      const closedSession = closeSession(session, 'crashed');
       expect(closedSession.status).toEqual('crashed');
     });
   });
