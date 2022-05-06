@@ -1,15 +1,15 @@
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import {
+  createRoutesFromChildren,
   matchPath,
+  matchRoutes,
   MemoryRouter,
-  Routes,
+  Navigate,
   Route,
+  Routes,
   useLocation,
   useNavigationType,
-  createRoutesFromChildren,
-  matchRoutes,
-  Navigate,
 } from 'react-router-6';
 
 import { reactRouterV6Instrumentation } from '../src';
