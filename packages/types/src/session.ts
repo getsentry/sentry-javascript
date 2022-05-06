@@ -1,34 +1,5 @@
 import { User } from './user';
 
-/**
- * @inheritdoc
- */
-export interface Session extends SessionContext {
-  /** JSDoc */
-  update(context?: SessionContext): void;
-
-  /** JSDoc */
-  close(status?: SessionStatus): void;
-
-  /** JSDoc */
-  toJSON(): {
-    init: boolean;
-    sid: string;
-    did?: string;
-    timestamp: string;
-    started: string;
-    duration?: number;
-    status: SessionStatus;
-    errors: number;
-    attrs?: {
-      release?: string;
-      environment?: string;
-      user_agent?: string;
-      ip_address?: string;
-    };
-  };
-}
-
 export interface RequestSession {
   status?: RequestSessionStatus;
 }
@@ -36,7 +7,7 @@ export interface RequestSession {
 /**
  * Session Context
  */
-export interface SessionContext {
+export interface Session {
   sid?: string;
   did?: string;
   init?: boolean;
@@ -54,6 +25,8 @@ export interface SessionContext {
   user?: User | null;
   ignoreDuration?: boolean;
 }
+
+export type SessionContext = Partial<Session>;
 
 export type SessionStatus = 'ok' | 'exited' | 'crashed' | 'abnormal';
 export type RequestSessionStatus = 'ok' | 'errored' | 'crashed';

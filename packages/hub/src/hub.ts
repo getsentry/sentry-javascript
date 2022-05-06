@@ -12,6 +12,7 @@ import {
   Integration,
   IntegrationClass,
   Primitive,
+  Session,
   SessionContext,
   Severity,
   SeverityLevel,
@@ -31,7 +32,7 @@ import {
 
 import { IS_DEBUG_BUILD } from './flags';
 import { Scope } from './scope';
-import { Session } from './session';
+import { closeSession, makeSession, updateSession } from './session';
 
 /**
  * API compatibility version of this hub.
@@ -395,7 +396,8 @@ export class Hub implements HubInterface {
     const scope = layer && layer.scope;
     const session = scope && scope.getSession();
     if (session) {
-      session.close();
+      const closedSession = closeSession(session);
+      scope && scope.setSession(closedSession);
     }
     this._sendSessionUpdate();
 
@@ -416,7 +418,7 @@ export class Hub implements HubInterface {
     const global = getGlobalObject<{ navigator?: { userAgent?: string } }>();
     const { userAgent } = global.navigator || {};
 
-    const session = new Session({
+    const session = makeSession({
       release,
       environment,
       ...(scope && { user: scope.getUser() }),
@@ -426,9 +428,10 @@ export class Hub implements HubInterface {
 
     if (scope) {
       // End existing session if there's one
-      const currentSession = scope.getSession && scope.getSession();
+      const currentSession = scope.getSession && (scope.getSession() as Session);
       if (currentSession && currentSession.status === 'ok') {
-        currentSession.update({ status: 'exited' });
+        const updatedSession = updateSession({ status: 'exited' });
+        scope.setSession(updatedSession);
       }
       this.endSession();
 

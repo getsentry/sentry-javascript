@@ -13,6 +13,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  Session,
 } from '@sentry/types';
 
 export type { BrowserOptions } from './client';
@@ -31,7 +32,6 @@ export {
   Hub,
   makeMain,
   Scope,
-  Session,
   startTransaction,
   SDK_VERSION,
   setContext,

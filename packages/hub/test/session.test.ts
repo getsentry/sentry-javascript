@@ -1,11 +1,11 @@
 import { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-
-import { Session } from '../src/session';
+import { closeSession, makeSession, sessionToJSON, updateSession } from '../src/session';
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {
-    const session = new Session().toJSON();
+    const newSession = makeSession();
+    const session = sessionToJSON(newSession);
 
     // Grab current year to check if we are converting from sec -> ms correctly
     const currentYear = new Date(timestampInSeconds() * 1000).toISOString().slice(0, 4);
@@ -82,37 +82,38 @@ describe('Session', () => {
       // the out variable in a test explicitly refers to it.
       const DEFAULT_OUT = { duration: expect.any(Number), timestamp: expect.any(String) };
 
-      const session = new Session();
-      const initSessionProps = session.toJSON();
+      const session = makeSession();
+      const initSessionProps = sessionToJSON(session);
 
-      session.update(test[1]);
-      expect(session.toJSON()).toEqual({ ...initSessionProps, ...DEFAULT_OUT, ...test[2] });
+      const updatedSession = updateSession(session, test[1]);
+      const updatedSessionProps = sessionToJSON(updatedSession);
+      expect(updatedSessionProps).toEqual({ ...initSessionProps, ...DEFAULT_OUT, ...test[2] });
     });
   });
 
   describe('close', () => {
     it('exits a normal session', () => {
-      const session = new Session();
+      const session = makeSession();
       expect(session.status).toEqual('ok');
-      session.close();
-      expect(session.status).toEqual('exited');
+      const closedSession = closeSession(session);
+      expect(closedSession.status).toEqual('exited');
     });
 
     it('updates session status when give status', () => {
-      const session = new Session();
+      const session = makeSession();
       expect(session.status).toEqual('ok');
 
-      session.close('abnormal');
-      expect(session.status).toEqual('abnormal');
+      const closedSession = closeSession(session, 'abnormal');
+      expect(closedSession.status).toEqual('abnormal');
     });
 
     it('only changes status ok to exited', () => {
-      const session = new Session();
-      session.update({ status: 'crashed' });
-      expect(session.status).toEqual('crashed');
+      const session = makeSession();
+      const updatedSession = updateSession(session, { status: 'crashed' });
+      expect(updatedSession.status).toEqual('crashed');
 
-      session.close();
-      expect(session.status).toEqual('crashed');
+      const closedSession = closeSession(session, 'abnormal');
+      expect(closedSession.status).toEqual('crashed');
     });
   });
 });

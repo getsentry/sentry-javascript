@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Scope, Session } from '@sentry/hub';
+import { Scope, updateSession } from '@sentry/hub';
 import {
   Client,
   ClientOptions,
@@ -12,6 +12,7 @@ import {
   Integration,
   IntegrationClass,
   Outcome,
+  Session,
   SessionAggregates,
   Severity,
   SeverityLevel,
@@ -199,7 +200,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     } else {
       this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
-      session.update({ init: false });
+      // TODO this does not have any consequence b/c we don't write the update after the session change
+      // disabling for now
+      // session.update({ init: false });
+      updateSession(ses);
     }
   }
 
@@ -343,11 +347,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
 
     if (shouldUpdateAndSend) {
-      session.update({
+      const updatedSession = updateSession(session, {
         ...(crashed && { status: 'crashed' }),
         errors: session.errors || Number(errored || crashed),
       });
-      this.captureSession(session);
+      this.captureSession(updatedSession);
     }
   }
 

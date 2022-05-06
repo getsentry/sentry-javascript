@@ -13,6 +13,7 @@ import {
   RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
+  Session,
   Severity,
   SeverityLevel,
   Span,
@@ -29,7 +30,7 @@ import {
 } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
-import { Session } from './session';
+import { updateSession } from './session';
 
 /**
  * Absolute maximum number of breadcrumbs added to an event.
@@ -136,7 +137,7 @@ export class Scope implements ScopeInterface {
   public setUser(user: User | null): this {
     this._user = user || {};
     if (this._session) {
-      this._session.update({ user });
+      this._session = updateSession(this._session, { user });
     }
     this._notifyScopeListeners();
     return this;

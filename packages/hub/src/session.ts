@@ -1,136 +1,144 @@
-import { Session as SessionInterface, SessionContext, SessionStatus } from '@sentry/types';
+import { Session, SessionContext, SessionStatus } from '@sentry/types';
 import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 /**
- * @inheritdoc
+ * TODO jsdoc
+ * @param context
+ * @returns
  */
-export class Session implements SessionInterface {
-  public userAgent?: string;
-  public errors: number = 0;
-  public release?: string;
-  public sid: string = uuid4();
-  public did?: string;
-  public timestamp: number;
-  public started: number;
-  public duration?: number = 0;
-  public status: SessionStatus = 'ok';
-  public environment?: string;
-  public ipAddress?: string;
-  public init: boolean = true;
-  public ignoreDuration: boolean = false;
+export function makeSession(context?: Omit<SessionContext, 'started' | 'status'>): Session {
+  // Both timestamp and started are in seconds since the UNIX epoch.
+  const startingTime = timestampInSeconds();
 
-  public constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
-    // Both timestamp and started are in seconds since the UNIX epoch.
-    const startingTime = timestampInSeconds();
-    this.timestamp = startingTime;
-    this.started = startingTime;
-    if (context) {
-      this.update(context);
+  const basicSession = {
+    timestamp: startingTime,
+    started: startingTime,
+  };
+
+  return {
+    ...basicSession,
+    ...(context ? updateSession(basicSession, context) : undefined),
+  };
+}
+
+/**
+ * TODO jsdoc
+ * @param session
+ * @param context
+ * @returns
+ */
+// eslint-disable-next-line complexity
+export function updateSession(originalSession: Session, context: SessionContext = {}): Session {
+  const session = { ...originalSession };
+
+  if (context.user) {
+    if (!session.ipAddress && context.user.ip_address) {
+      session.ipAddress = context.user.ip_address;
+    }
+
+    if (!session.did && !context.did) {
+      session.did = context.user.id || context.user.email || context.user.username;
     }
   }
 
-  /** JSDoc */
-  // eslint-disable-next-line complexity
-  public update(context: SessionContext = {}): void {
-    if (context.user) {
-      if (!this.ipAddress && context.user.ip_address) {
-        this.ipAddress = context.user.ip_address;
-      }
+  session.timestamp = context.timestamp || timestampInSeconds();
 
-      if (!this.did && !context.did) {
-        this.did = context.user.id || context.user.email || context.user.username;
-      }
-    }
-
-    this.timestamp = context.timestamp || timestampInSeconds();
-    if (context.ignoreDuration) {
-      this.ignoreDuration = context.ignoreDuration;
-    }
-    if (context.sid) {
-      // Good enough uuid validation. — Kamil
-      this.sid = context.sid.length === 32 ? context.sid : uuid4();
-    }
-    if (context.init !== undefined) {
-      this.init = context.init;
-    }
-    if (!this.did && context.did) {
-      this.did = `${context.did}`;
-    }
-    if (typeof context.started === 'number') {
-      this.started = context.started;
-    }
-    if (this.ignoreDuration) {
-      this.duration = undefined;
-    } else if (typeof context.duration === 'number') {
-      this.duration = context.duration;
-    } else {
-      const duration = this.timestamp - this.started;
-      this.duration = duration >= 0 ? duration : 0;
-    }
-    if (context.release) {
-      this.release = context.release;
-    }
-    if (context.environment) {
-      this.environment = context.environment;
-    }
-    if (!this.ipAddress && context.ipAddress) {
-      this.ipAddress = context.ipAddress;
-    }
-    if (!this.userAgent && context.userAgent) {
-      this.userAgent = context.userAgent;
-    }
-    if (typeof context.errors === 'number') {
-      this.errors = context.errors;
-    }
-    if (context.status) {
-      this.status = context.status;
-    }
+  if (context.ignoreDuration) {
+    session.ignoreDuration = context.ignoreDuration;
+  }
+  if (context.sid) {
+    // Good enough uuid validation. — Kamil
+    session.sid = context.sid.length === 32 ? context.sid : uuid4();
+  }
+  if (context.init !== undefined) {
+    session.init = context.init;
+  }
+  if (!session.did && context.did) {
+    session.did = `${context.did}`;
+  }
+  if (typeof context.started === 'number') {
+    session.started = context.started;
+  }
+  if (session.ignoreDuration) {
+    session.duration = undefined;
+  } else if (typeof context.duration === 'number') {
+    session.duration = context.duration;
+  } else {
+    const duration = session.timestamp - (session.started || 0);
+    session.duration = duration >= 0 ? duration : 0;
+  }
+  if (context.release) {
+    session.release = context.release;
+  }
+  if (context.environment) {
+    session.environment = context.environment;
+  }
+  if (!session.ipAddress && context.ipAddress) {
+    session.ipAddress = context.ipAddress;
+  }
+  if (!session.userAgent && context.userAgent) {
+    session.userAgent = context.userAgent;
+  }
+  if (typeof context.errors === 'number') {
+    session.errors = context.errors;
+  }
+  if (context.status) {
+    session.status = context.status;
   }
 
-  /** JSDoc */
-  public close(status?: Exclude<SessionStatus, 'ok'>): void {
-    if (status) {
-      this.update({ status });
-    } else if (this.status === 'ok') {
-      this.update({ status: 'exited' });
-    } else {
-      this.update();
-    }
+  return session;
+}
+
+/**
+ * TODO doc
+ * @param status
+ */
+export function closeSession(session: Session, status?: Exclude<SessionStatus, 'ok'>): Session {
+  let context = {};
+  if (status) {
+    context = { status };
+  } else if (session === 'ok') {
+    context = { status: 'exited' };
   }
 
-  /** JSDoc */
-  public toJSON(): {
-    init: boolean;
-    sid: string;
-    did?: string;
-    timestamp: string;
-    started: string;
-    duration?: number;
-    status: SessionStatus;
-    errors: number;
-    attrs?: {
-      release?: string;
-      environment?: string;
-      user_agent?: string;
-      ip_address?: string;
-    };
-  } {
-    return dropUndefinedKeys({
-      sid: `${this.sid}`,
-      init: this.init,
-      // Make sure that sec is converted to ms for date constructor
-      started: new Date(this.started * 1000).toISOString(),
-      timestamp: new Date(this.timestamp * 1000).toISOString(),
-      status: this.status,
-      errors: this.errors,
-      did: typeof this.did === 'number' || typeof this.did === 'string' ? `${this.did}` : undefined,
-      duration: this.duration,
-      attrs: {
-        release: this.release,
-        environment: this.environment,
-        ip_address: this.ipAddress,
-        user_agent: this.userAgent,
-      },
-    });
-  }
+  return updateSession(session, context);
+}
+
+/**
+ * TODO doc
+ * @returns
+ */
+export function sessionToJSON(session: Session): {
+  init: boolean;
+  sid: string;
+  did?: string;
+  timestamp: string;
+  started: string;
+  duration?: number;
+  status: SessionStatus;
+  errors: number;
+  attrs?: {
+    release?: string;
+    environment?: string;
+    user_agent?: string;
+    ip_address?: string;
+  };
+} {
+  return dropUndefinedKeys({
+    sid: `${session.sid}`,
+    init: session.init !== undefined ? session.init : true,
+    // Make sure that sec is converted to ms for date constructor
+    started: new Date((session.started || 0) * 1000).toISOString(),
+    timestamp: new Date((session.timestamp || 0) * 1000).toISOString(),
+    status: session.status || 'ok',
+    errors: session.errors || 0,
+    did: typeof session.did === 'number' || typeof session.did === 'string' ? `${session.did}` : undefined,
+    duration: session.duration || 0,
+    attrs: {
+      release: session.release,
+      environment: session.environment,
+      ip_address: session.ipAddress,
+      user_agent: session.userAgent,
+    },
+  });
 }
