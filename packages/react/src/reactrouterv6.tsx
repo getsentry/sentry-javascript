@@ -27,19 +27,13 @@ type UseNavigationType = () => Action;
 type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObject[];
 type MatchRoutes = (routes: RouteObject[], location: Location) => RouteMatch[];
 
-interface ReactRouterV6InstrumentationOptions {
-  customStartTransaction: (context: TransactionContext) => Transaction | undefined;
-  useLocation: UseLocation;
-  useNavigationType: UseNavigationType;
-  createRoutesFromChildren: CreateRoutesFromChildren;
-  matchRoutes: MatchRoutes;
-  startTransactionOnLocationChange?: boolean;
-  startTransactionOnPageLoad?: boolean;
-}
-
-const instrumentationOptions: Partial<ReactRouterV6InstrumentationOptions> = {
-  customStartTransaction: () => undefined,
-};
+let _useLocation: UseLocation;
+let _useNavigationType: UseNavigationType;
+let _createRoutesFromChildren: CreateRoutesFromChildren;
+let _matchRoutes: MatchRoutes;
+let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
+let _startTransactionOnLocationChange: boolean;
+let _startTransactionOnPageLoad: boolean;
 
 export function reactRouterV6Instrumentation(
   useLocation: UseLocation,
@@ -52,14 +46,14 @@ export function reactRouterV6Instrumentation(
     startTransactionOnPageLoad = true,
     startTransactionOnLocationChange = true,
   ): void => {
-    instrumentationOptions.useLocation = useLocation;
-    instrumentationOptions.useNavigationType = useNavigationType;
-    instrumentationOptions.matchRoutes = matchRoutes;
-    instrumentationOptions.createRoutesFromChildren = createRoutesFromChildren;
+    _useLocation = useLocation;
+    _useNavigationType = useNavigationType;
+    _matchRoutes = matchRoutes;
+    _createRoutesFromChildren = createRoutesFromChildren;
 
-    instrumentationOptions.customStartTransaction = customStartTransaction;
-    instrumentationOptions.startTransactionOnLocationChange = startTransactionOnLocationChange;
-    instrumentationOptions.startTransactionOnPageLoad = startTransactionOnPageLoad;
+    _customStartTransaction = customStartTransaction;
+    _startTransactionOnLocationChange = startTransactionOnLocationChange;
+    _startTransactionOnPageLoad = startTransactionOnPageLoad;
   };
 }
 
@@ -85,17 +79,14 @@ const SENTRY_TAGS = {
 };
 
 export function withSentryV6<P extends Record<string, any>, R extends React.ComponentType<P>>(Routes: R): R {
-  const { useLocation, useNavigationType, createRoutesFromChildren, matchRoutes, customStartTransaction } =
-    instrumentationOptions;
-
-  if (!useLocation || !useNavigationType || !createRoutesFromChildren || !matchRoutes || !customStartTransaction) {
+  if (!_useLocation || !_useNavigationType || !_createRoutesFromChildren || !_matchRoutes || !_customStartTransaction) {
     // Log warning?
     return Routes;
   }
 
   const SentryRoutes: React.FC<P> = (props: P) => {
-    const location = useLocation();
-    const navigationType = useNavigationType();
+    const location = _useLocation();
+    const navigationType = _useNavigationType();
     const isBaseLocation = React.useRef<boolean>(false);
     const activeTransaction = React.useRef<Transaction>();
     const routes = React.useRef<RouteObject[]>([]);
@@ -103,19 +94,21 @@ export function withSentryV6<P extends Record<string, any>, R extends React.Comp
     React.useEffect(() => {
       // Performance concern:
       // This is repeated when <Routes /> is rendered.
-      routes.current = createRoutesFromChildren(props.children);
+      routes.current = _createRoutesFromChildren(props.children);
     }, [props.children]);
 
     React.useEffect(() => {
-      const transactionName = getTransactionName(routes.current, location, matchRoutes);
+      if (_startTransactionOnPageLoad) {
+        const transactionName = getTransactionName(routes.current, location, _matchRoutes);
 
-      isBaseLocation.current = true;
+        isBaseLocation.current = true;
 
-      activeTransaction.current = customStartTransaction({
-        name: transactionName,
-        op: 'pageload',
-        tags: SENTRY_TAGS,
-      });
+        activeTransaction.current = _customStartTransaction({
+          name: transactionName,
+          op: 'pageload',
+          tags: SENTRY_TAGS,
+        });
+      }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -128,14 +121,14 @@ export function withSentryV6<P extends Record<string, any>, R extends React.Comp
         return;
       }
 
-      if (navigationType === 'PUSH' || navigationType === 'POP') {
+      if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP')) {
         if (activeTransaction.current) {
           activeTransaction.current.finish();
         }
 
-        const transactionName = getTransactionName(routes.current, location, matchRoutes);
+        const transactionName = getTransactionName(routes.current, location, _matchRoutes);
 
-        activeTransaction.current = customStartTransaction({
+        activeTransaction.current = _customStartTransaction({
           name: transactionName,
           op: 'navigation',
           tags: SENTRY_TAGS,
@@ -154,5 +147,3 @@ export function withSentryV6<P extends Record<string, any>, R extends React.Comp
   // will break advanced type inference done by react router params:
   return SentryRoutes;
 }
-
-export default SentryRoutes;
