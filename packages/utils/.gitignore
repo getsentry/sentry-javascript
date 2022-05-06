@@ -1,0 +1,3 @@
+# symlinks to the folders in `build`, needed for tests
+cjs
+esm
