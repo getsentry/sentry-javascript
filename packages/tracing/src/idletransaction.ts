@@ -1,13 +1,14 @@
+/* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 
-import { FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { Span, SpanRecorder } from './span';
 import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
+export const DEFAULT_FINAL_TIMEOUT = 30000;
 export const HEARTBEAT_INTERVAL = 5000;
 
 /**
@@ -17,7 +18,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   public constructor(
     private readonly _pushActivity: (id: string) => void,
     private readonly _popActivity: (id: string) => void,
-    public transactionSpanId: string = '',
+    public transactionSpanId: string,
     maxlen?: number,
   ) {
     super(maxlen);
@@ -69,25 +70,28 @@ export class IdleTransaction extends Transaction {
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
   /**
-   * If a transaction is created and no activities are added, we want to make sure that
-   * it times out properly. This is cleared and not used when activities are added.
+   * Timer that tracks Transaction idleTimeout
    */
-  private _initTimeout: ReturnType<typeof setTimeout> | undefined;
+  private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
-    private readonly _idleHub?: Hub,
+    private readonly _idleHub: Hub,
     /**
-     * The time to wait in ms until the idle transaction will be finished.
-     * @default 1000
+     * The time to wait in ms until the idle transaction will be finished. This timer is started each time
+     * there are no active spans on this transaction.
      */
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
+    /**
+     * The final value in ms that a transaction cannot exceed
+     */
+    private readonly _finalTimeout: number = DEFAULT_FINAL_TIMEOUT,
     // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
   ) {
     super(transactionContext, _idleHub);
 
-    if (_idleHub && _onScope) {
+    if (_onScope) {
       // There should only be one active transaction on the scope
       clearActiveTransaction(_idleHub);
 
@@ -97,11 +101,13 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this._initTimeout = setTimeout(() => {
+    this._startIdleTimeout();
+    setTimeout(() => {
       if (!this._finished) {
+        this.setStatus('deadline_exceeded');
         this.finish();
       }
-    }, this._idleTimeout);
+    }, this._finalTimeout);
   }
 
   /** {@inheritDoc} */
@@ -194,14 +200,33 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
+   * Cancels the existing idletimeout, if there is one
+   */
+  private _cancelIdleTimeout(): void {
+    if (this._idleTimeoutID) {
+      clearTimeout(this._idleTimeoutID);
+      this._idleTimeoutID = undefined;
+    }
+  }
+
+  /**
+   * Creates an idletimeout
+   */
+  private _startIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
+    this._cancelIdleTimeout();
+    this._idleTimeoutID = setTimeout(() => {
+      if (!this._finished && Object.keys(this.activities).length === 0) {
+        this.finish(endTimestamp);
+      }
+    }, this._idleTimeout);
+  }
+
+  /**
    * Start tracking a specific activity.
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    if (this._initTimeout) {
-      clearTimeout(this._initTimeout);
-      this._initTimeout = undefined;
-    }
+    this._cancelIdleTimeout();
     IS_DEBUG_BUILD && logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
     IS_DEBUG_BUILD && logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
@@ -220,17 +245,10 @@ export class IdleTransaction extends Transaction {
     }
 
     if (Object.keys(this.activities).length === 0) {
-      const timeout = this._idleTimeout;
       // We need to add the timeout here to have the real endtimestamp of the transaction
       // Remember timestampWithMs is in seconds, timeout is in ms
-      const end = timestampWithMs() + timeout / 1000;
-
-      setTimeout(() => {
-        if (!this._finished) {
-          this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[1]);
-          this.finish(end);
-        }
-      }, timeout);
+      const endTimestamp = timestampWithMs() + this._idleTimeout / 1000;
+      this._startIdleTimeout(endTimestamp);
     }
   }
 
@@ -257,7 +275,6 @@ export class IdleTransaction extends Transaction {
     if (this._heartbeatCounter >= 3) {
       IS_DEBUG_BUILD && logger.log('[Tracing] Transaction finished because of no change for 3 heart beats');
       this.setStatus('deadline_exceeded');
-      this.setTag(FINISH_REASON_TAG, IDLE_TRANSACTION_FINISH_REASONS[0]);
       this.finish();
     } else {
       this._pingHeartbeat();
@@ -278,14 +295,12 @@ export class IdleTransaction extends Transaction {
 /**
  * Reset transaction on scope to `undefined`
  */
-function clearActiveTransaction(hub?: Hub): void {
-  if (hub) {
-    const scope = hub.getScope();
-    if (scope) {
-      const transaction = scope.getTransaction();
-      if (transaction) {
-        scope.setSpan(undefined);
-      }
+function clearActiveTransaction(hub: Hub): void {
+  const scope = hub.getScope();
+  if (scope) {
+    const transaction = scope.getTransaction();
+    if (transaction) {
+      scope.setSpan(undefined);
     }
   }
 }

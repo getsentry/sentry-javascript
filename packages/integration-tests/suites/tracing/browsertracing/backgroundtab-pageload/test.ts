@@ -17,6 +17,5 @@ sentryTest('should finish pageload transaction when the page goes background', a
   expect(pageloadTransaction.contexts?.trace.status).toBe('cancelled');
   expect(pageloadTransaction.contexts?.trace.tags).toMatchObject({
     visibilitychange: 'document.hidden',
-    finishReason: 'documentHidden',
   });
 });
