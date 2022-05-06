@@ -36,5 +36,5 @@ sentryTest('should finish a custom transaction when the page goes background', a
   expect(id_before).toBe(id_after);
   expect(name_after).toBe(name_before);
   expect(status_after).toBe('cancelled');
-  expect(tags_after).toStrictEqual({ finishReason: 'documentHidden', visibilitychange: 'document.hidden' });
+  expect(tags_after).toStrictEqual({ visibilitychange: 'document.hidden' });
 });
