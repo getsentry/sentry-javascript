@@ -2,7 +2,7 @@ import { Primitive } from '@sentry/types';
 
 import { isError, isEvent, isNaN, isSyntheticEvent } from './is';
 import { memoBuilder, MemoFunc } from './memo';
-import { convertToPlainObject } from './object';
+import { addNonEnumerableProperty, convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
@@ -33,8 +33,18 @@ type ObjOrArray<T> = { [key: string]: T };
  */
 export function normalize(input: unknown, depth: number = +Infinity, maxProperties: number = +Infinity): any {
   try {
-    // since we're at the outermost level, there is no key
-    return visit('', input, depth, maxProperties);
+    // since we're at the outermost level, we don't provide a key
+    const output = visit('', input, depth, maxProperties);
+
+    if (typeof output === 'object' && output !== null) {
+      // We add a non-enumerable property to mark the returned object as "already" normalized.
+      // The visit will skip normalizing the object if it sees this property.
+      // We use this as a mechanism to be able to overwrite the `normalizeDepth` option on the client - for example in
+      // the ExtraErrorData integration.
+      addNonEnumerableProperty(output, '__sentry_normalized__', true);
+    }
+
+    return output;
   } catch (err) {
     return { ERROR: `**non-serializable** (${err})` };
   }
@@ -107,6 +117,12 @@ function visit(
   // If we've already visited this branch, bail out, as it's circular reference. If not, note that we're seeing it now.
   if (memoize(value)) {
     return '[Circular ~]';
+  }
+
+  // Do not normalize objects that we know have already been normalized.
+  // This MUST be below the circ-ref check otherwise we might accidentally cirmumvent it.
+  if ((value as ObjOrArray<unknown>)['__sentry_normalized__']) {
+    return value as ObjOrArray<unknown>;
   }
 
   // At this point we know we either have an object or an array, we haven't seen it before, and we're going to recurse
