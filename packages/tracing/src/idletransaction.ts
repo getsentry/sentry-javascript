@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
+import { logger, timestampWithMs } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
 import { Span, SpanRecorder } from './span';
@@ -10,8 +10,6 @@ import { Transaction } from './transaction';
 export const DEFAULT_IDLE_TIMEOUT = 1000;
 export const DEFAULT_FINAL_TIMEOUT = 30000;
 export const HEARTBEAT_INTERVAL = 5000;
-
-const global = getGlobalObject<Window>();
 
 /**
  * @inheritDoc
@@ -72,15 +70,16 @@ export class IdleTransaction extends Transaction {
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
   /**
-   * Timer that tracks a
+   * Timer that tracks Transaction idleTimeout
    */
-  private _idleTimeoutID: ReturnType<typeof global.setTimeout> | undefined;
+  private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     transactionContext: TransactionContext,
     private readonly _idleHub: Hub,
     /**
-     * The time to wait in ms until the idle transaction will be finished.
+     * The time to wait in ms until the idle transaction will be finished. This timer is started each time
+     * there are no active spans on this transaction.
      */
     private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
     /**
@@ -103,7 +102,7 @@ export class IdleTransaction extends Transaction {
     }
 
     this._startIdleTimeout();
-    global.setTimeout(() => {
+    setTimeout(() => {
       if (!this._finished) {
         this.setStatus('deadline_exceeded');
         this.finish();
@@ -114,7 +113,6 @@ export class IdleTransaction extends Transaction {
   /** {@inheritDoc} */
   public finish(endTimestamp: number = timestampWithMs()): string | undefined {
     this._finished = true;
-    this._cancelIdleTimeout();
     this.activities = {};
 
     if (this.spanRecorder) {
@@ -206,7 +204,7 @@ export class IdleTransaction extends Transaction {
    */
   private _cancelIdleTimeout(): void {
     if (this._idleTimeoutID) {
-      global.clearTimeout(this._idleTimeoutID);
+      clearTimeout(this._idleTimeoutID);
       this._idleTimeoutID = undefined;
     }
   }
@@ -216,7 +214,7 @@ export class IdleTransaction extends Transaction {
    */
   private _startIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
     this._cancelIdleTimeout();
-    this._idleTimeoutID = global.setTimeout(() => {
+    this._idleTimeoutID = setTimeout(() => {
       if (!this._finished && Object.keys(this.activities).length === 0) {
         this.finish(endTimestamp);
       }
@@ -288,7 +286,7 @@ export class IdleTransaction extends Transaction {
    */
   private _pingHeartbeat(): void {
     IS_DEBUG_BUILD && logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
-    global.setTimeout(() => {
+    setTimeout(() => {
       this._beat();
     }, HEARTBEAT_INTERVAL);
   }
@@ -297,14 +295,12 @@ export class IdleTransaction extends Transaction {
 /**
  * Reset transaction on scope to `undefined`
  */
-function clearActiveTransaction(hub?: Hub): void {
-  if (hub) {
-    const scope = hub.getScope();
-    if (scope) {
-      const transaction = scope.getTransaction();
-      if (transaction) {
-        scope.setSpan(undefined);
-      }
+function clearActiveTransaction(hub: Hub): void {
+  const scope = hub.getScope();
+  if (scope) {
+    const transaction = scope.getTransaction();
+    if (transaction) {
+      scope.setSpan(undefined);
     }
   }
 }
