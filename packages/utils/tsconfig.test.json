@@ -5,8 +5,10 @@
 
   "compilerOptions": {
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
 
     // other package-specific, test-specific options
+    // this is necessary in order to be able to handle the buildPolyfills `originals.js` which is used for testing
+    "allowJs": true
   }
 }
