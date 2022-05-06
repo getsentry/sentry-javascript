@@ -25,7 +25,7 @@ interface RouteMatch<ParamKey extends string = string> {
 type UseLocation = () => Location;
 type UseNavigationType = () => Action;
 type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObject[];
-type MatchRoutes = (routes: RouteObject[], location: Location) => RouteMatch[];
+type MatchRoutes = (routes: RouteObject[], location: Location) => RouteMatch[] | null;
 
 let _useLocation: UseLocation;
 let _useNavigationType: UseNavigationType;
@@ -64,10 +64,12 @@ const getTransactionName = (routes: RouteObject[], location: Location, matchRout
 
   const branches = matchRoutes(routes, location);
 
-  // eslint-disable-next-line @typescript-eslint/prefer-for-of
-  for (let x = 0; x < branches.length; x++) {
-    if (branches[x].route && branches[x].route.path) {
-      return branches[x].route.path || location.pathname;
+  if (branches) {
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    for (let x = 0; x < branches.length; x++) {
+      if (branches[x].route && branches[x].route.path && branches[x].pathname === location.pathname) {
+        return branches[x].route.path || location.pathname;
+      }
     }
   }
 
@@ -98,10 +100,10 @@ export function withSentryV6<P extends Record<string, any>, R extends React.Comp
     }, [props.children]);
 
     React.useEffect(() => {
+      isBaseLocation.current = true;
+
       if (_startTransactionOnPageLoad) {
         const transactionName = getTransactionName(routes.current, location, _matchRoutes);
-
-        isBaseLocation.current = true;
 
         activeTransaction.current = _customStartTransaction({
           name: transactionName,
@@ -135,6 +137,8 @@ export function withSentryV6<P extends Record<string, any>, R extends React.Comp
         });
       }
     }, [navigationType, location, isBaseLocation]);
+
+    isBaseLocation.current = false;
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params:
