@@ -16,5 +16,8 @@
     "lib": ["dom", "es2020"],
     "module": "commonjs",
     "target": "es2020",
+
+    // so we don't have to worry about how libraries we use export things
+    "esModuleInterop": true
   }
 }
