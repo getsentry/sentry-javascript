@@ -9,6 +9,12 @@
 
     // other package-specific, test-specific options
     // this is necessary in order to be able to handle the buildPolyfills `originals.js` which is used for testing
-    "allowJs": true
+    "allowJs": true,
+
+    // `es2020` is the recommended `lib` and `target` for Node 14
+    // see https://github.com/tsconfig/bases/blob/main/bases/node14.json
+    "lib": ["dom", "es2020"],
+    "module": "commonjs",
+    "target": "es2020",
   }
 }
