@@ -1,6 +1,6 @@
 import { Primitive } from '@sentry/types';
 
-import { isError, isEvent, isNaN, isSyntheticEvent } from './is';
+import { isNaN, isSyntheticEvent } from './is';
 import { memoBuilder, MemoFunc } from './memo';
 import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
@@ -117,7 +117,7 @@ function visit(
 
   // Before we begin, convert`Error` and`Event` instances into plain objects, since some of each of their relevant
   // properties are non-enumerable and otherwise would get missed.
-  const visitable = (isError(value) || isEvent(value) ? convertToPlainObject(value) : value) as ObjOrArray<unknown>;
+  const visitable = convertToPlainObject(value as ObjOrArray<unknown>);
 
   for (const visitKey in visitable) {
     // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
