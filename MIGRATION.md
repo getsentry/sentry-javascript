@@ -292,6 +292,32 @@ changes in v7. They will be removed in the next major release which is why we st
 corresponding string literals. Here's how to adjust [`Severity`](#severity-severitylevel-and-severitylevels) and
 [`SpanStatus`](#spanstatus).
 
+## Session Changes
+
+Note: These changes are not relevant for the majority of Sentry users but if you are building an
+SDK on top of the Javascript SDK, you might need to make some adaptions.
+The internal `Session` class was refactored and replaced with a more functional approach in
+[#5054](https://github.com/getsentry/sentry-javascript/pull/5054).
+Instead of the class, we now export a `Session` interface from `@sentry/types` and three utility functions
+to create and update a `Session` object from `@sentry/hub`.
+This short example shows what has changed and how to deal with the new functions:
+
+```js
+// New in v7:
+import { makeSession, updateSession, closeSession } from '@sentry/hub';
+
+const session = makeSession({ release: 'v1.0' });
+updateSession(session, { environment: 'prod' });
+closeSession(session, 'ok');
+
+// Before:
+import { Session } from '@sentry/hub';
+
+const session = new Session({ release: 'v1.0' });
+session.update({ environment: 'prod' });
+session.close('ok');
+```
+
 ## General API Changes
 
 For our efforts to reduce bundle size of the SDK we had to remove and refactor parts of the package which introduced a few changes to the API:
@@ -313,8 +339,11 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
 - Rename `UserAgent` integration to `HttpContext`. (see [#5027](https://github.com/getsentry/sentry-javascript/pull/5027))
 - Remove `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages.
 - Removed `eventStatusFromHttpCode` to save on bundle size.
+<<<<<<< HEAD
 - Replace `BrowserTracing` `maxTransactionDuration` option with `finalTimeout` option
 - Replace `Session` class with a session object and functions (see [#5054](https://github.com/getsentry/sentry-javascript/pull/5054)).
+=======
+>>>>>>> 5c81e32c4 (Add "Session Changes" section to Migration docs)
 
 ## Sentry Angular SDK Changes
 
