@@ -1,10 +1,11 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
-import { FetchTransportOptions, makeFetchTransport } from '../../../src/transports/fetch';
+import { makeFetchTransport } from '../../../src/transports/fetch';
 import { FetchImpl } from '../../../src/transports/utils';
+import { BrowserTransportOptions } from '../../../src/transports/types';
 
-const DEFAULT_FETCH_TRANSPORT_OPTIONS: FetchTransportOptions = {
+const DEFAULT_FETCH_TRANSPORT_OPTIONS: BrowserTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
 };
@@ -83,7 +84,7 @@ describe('NewFetchTransport', () => {
     };
 
     const transport = makeFetchTransport(
-      { ...DEFAULT_FETCH_TRANSPORT_OPTIONS, requestOptions: REQUEST_OPTIONS },
+      { ...DEFAULT_FETCH_TRANSPORT_OPTIONS, fetchOptions: REQUEST_OPTIONS },
       mockFetch,
     );
 
