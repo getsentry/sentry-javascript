@@ -133,7 +133,7 @@ export function closeSession(session: Session, status?: Exclude<SessionStatus, '
  *
  * @returns a JSON object of the passed session
  */
-export function sessionToJSON(session: Session): SerializedSession {
+function sessionToJSON(session: Session): SerializedSession {
   return dropUndefinedKeys({
     sid: `${session.sid}`,
     init: session.init !== undefined ? session.init : true,

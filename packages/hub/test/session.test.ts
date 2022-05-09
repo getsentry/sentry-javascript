@@ -1,12 +1,12 @@
 import { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 
-import { closeSession, makeSession, sessionToJSON, updateSession } from '../src/session';
+import { closeSession, makeSession, updateSession } from '../src/session';
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {
     const newSession = makeSession();
-    const session = sessionToJSON(newSession);
+    const session = newSession.toJSON();
 
     // Grab current year to check if we are converting from sec -> ms correctly
     const currentYear = new Date(timestampInSeconds() * 1000).toISOString().slice(0, 4);
@@ -84,10 +84,10 @@ describe('Session', () => {
       const DEFAULT_OUT = { duration: expect.any(Number), timestamp: expect.any(String) };
 
       const session = makeSession();
-      const initSessionProps = sessionToJSON(session);
+      const initSessionProps = session.toJSON();
 
       updateSession(session, test[1]);
-      const updatedSessionProps = sessionToJSON(session);
+      const updatedSessionProps = session.toJSON();
 
       expect(updatedSessionProps).toEqual({ ...initSessionProps, ...DEFAULT_OUT, ...test[2] });
     });
