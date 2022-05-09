@@ -99,7 +99,23 @@ export function urlEncode(object: { [key: string]: any }): string {
  * @returns An Event or Error turned into an object - or the value argurment itself, when value is neither an Event nor
  *  an Error.
  */
-export function convertToPlainObject<V extends unknown>(value: V): Record<string, unknown> | V {
+export function convertToPlainObject<V extends unknown>(
+  value: V,
+):
+  | {
+      [ownProps: string]: unknown;
+      type: string;
+      target: string;
+      currentTarget: string;
+      detail?: unknown;
+    }
+  | {
+      [ownProps: string]: unknown;
+      message: string;
+      name: string;
+      stack?: string;
+    }
+  | V {
   if (isError(value)) {
     return {
       message: value.message,
@@ -108,7 +124,13 @@ export function convertToPlainObject<V extends unknown>(value: V): Record<string
       ...getOwnProperties(value),
     };
   } else if (isEvent(value)) {
-    const newObj: Record<string, unknown> = {
+    const newObj: {
+      [ownProps: string]: unknown;
+      type: string;
+      target: string;
+      currentTarget: string;
+      detail?: unknown;
+    } = {
       type: value.type,
       target: serializeEventTarget(value.target),
       currentTarget: serializeEventTarget(value.currentTarget),
