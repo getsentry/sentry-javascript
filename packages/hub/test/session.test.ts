@@ -1,5 +1,6 @@
 import { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
+
 import { closeSession, makeSession, sessionToJSON, updateSession } from '../src/session';
 
 describe('Session', () => {
