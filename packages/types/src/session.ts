@@ -7,6 +7,7 @@ export interface RequestSession {
 /**
  * Session Context
  */
+// TODO: make properties required that were set by ctor
 export interface Session {
   sid?: string;
   did?: string;
@@ -24,6 +25,13 @@ export interface Session {
   errors?: number;
   user?: User | null;
   ignoreDuration?: boolean;
+
+  /**
+   * Overrides default JSON serialization of the Session because
+   * the Sentry servers expect a slightly different schema of a session
+   * which is described in the interface @see SerializedSession in this file.
+   */
+  toJSON(): SerializedSession;
 }
 
 export type SessionContext = Partial<Session>;
@@ -59,4 +67,21 @@ export interface AggregationCounts {
   errored?: number;
   exited?: number;
   crashed?: number;
+}
+
+export interface SerializedSession {
+  init: boolean;
+  sid: string;
+  did?: string;
+  timestamp: string;
+  started: string;
+  duration?: number;
+  status: SessionStatus;
+  errors: number;
+  attrs?: {
+    release?: string;
+    environment?: string;
+    user_agent?: string;
+    ip_address?: string;
+  };
 }

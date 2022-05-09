@@ -200,11 +200,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     } else {
       this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
-
-      // TODO(v7) this does not have any consequence b/c we don't write the update after the session change
-      // disabling for now
-      // session.update({ init: false });
-      // updateSession(session, { init: false });
+      updateSession(session, { init: false });
     }
   }
 
@@ -348,11 +344,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
 
     if (shouldUpdateAndSend) {
-      const updatedSession = updateSession(session, {
+      updateSession(session, {
         ...(crashed && { status: 'crashed' }),
         errors: session.errors || Number(errored || crashed),
       });
-      this.captureSession(updatedSession);
+      this.captureSession(session);
     }
   }
 

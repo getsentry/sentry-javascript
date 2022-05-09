@@ -137,7 +137,7 @@ export class Scope implements ScopeInterface {
   public setUser(user: User | null): this {
     this._user = user || {};
     if (this._session) {
-      this._session = updateSession(this._session, { user });
+      updateSession(this._session, { user });
     }
     this._notifyScopeListeners();
     return this;

@@ -1,16 +1,20 @@
 import { Session, SessionContext, SessionStatus } from '@sentry/types';
+import { SerializedSession } from '@sentry/types/build/types/session';
 import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 /**
- * TODO jsdoc
- * @param context
- * @returns
+ * Creates a new `Session` object by setting certain default parameters. If optional @param context
+ * is passed, the passed properties are applied to the session object.
+ *
+ * @param context (optional) additional properties to be applied to the returned session object
+ *
+ * @returns a new `Session` object
  */
 export function makeSession(context?: Omit<SessionContext, 'started' | 'status'>): Session {
   // Both timestamp and started are in seconds since the UNIX epoch.
   const startingTime = timestampInSeconds();
 
-  const basicSession: Session = {
+  const session: Session = {
     errors: 0,
     sid: uuid4(),
     timestamp: startingTime,
@@ -19,24 +23,29 @@ export function makeSession(context?: Omit<SessionContext, 'started' | 'status'>
     status: 'ok',
     init: true,
     ignoreDuration: false,
+    toJSON: () => sessionToJSON(session),
   };
 
-  return {
-    ...basicSession,
-    ...(context ? updateSession(basicSession, context) : {}),
-  };
+  if (context) {
+    updateSession(session, context);
+  }
+
+  return session;
 }
 
 /**
- * TODO jsdoc
- * @param session
- * @param context
- * @returns
+ * Updates a session object with the properties passed in the context.
+ *
+ * Note that this function mutates the passed object and returns void.
+ * (Had to do this instead of returning a new and updated session because closing and sending a session
+ * makes an update to the session after it was passed to the sending logic.
+ * @see BaseClient.captureSession )
+ *
+ * @param session the `Session` to update
+ * @param context the `SessionContext` holding the properties that should be updated in @param session
  */
 // eslint-disable-next-line complexity
-export function updateSession(originalSession: Session, context: SessionContext = {}): Session {
-  const session = { ...originalSession };
-
+export function updateSession(session: Session, context: SessionContext = {}): void {
   if (context.user) {
     if (!session.ipAddress && context.user.ip_address) {
       session.ipAddress = context.user.ip_address;
@@ -91,15 +100,20 @@ export function updateSession(originalSession: Session, context: SessionContext 
   if (context.status) {
     session.status = context.status;
   }
-
-  return session;
 }
 
 /**
- * TODO doc
- * @param status
+ * Closes a session by setting its status and updating the session object with it.
+ * Internally calls `updateSession` to update the passed session object.
+ *
+ * Note that this function mutates the passed session (@see updateSession for explanation).
+ *
+ * @param session the `Session` object to be closed
+ * @param status the `SessionStatus` with which the session was closed. If you don't pass a status,
+ *               this function will keep the previously set status, unless it was `'ok'` in which case
+ *               it is changed to `'exited'`.
  */
-export function closeSession(session: Session, status?: Exclude<SessionStatus, 'ok'>): Session {
+export function closeSession(session: Session, status?: Exclude<SessionStatus, 'ok'>): void {
   let context = {};
   if (status) {
     context = { status };
@@ -107,29 +121,19 @@ export function closeSession(session: Session, status?: Exclude<SessionStatus, '
     context = { status: 'exited' };
   }
 
-  return updateSession(session, context);
+  updateSession(session, context);
 }
 
 /**
- * TODO doc
- * @returns
+ * Serializes a passed session object to a JSON object with a slightly different structure.
+ * This is necessary because the Sentry backend requires a slightly different schema of a session
+ * than the one the JS SDKs use internally.
+ *
+ * @param session the session to be converted
+ *
+ * @returns a JSON object of the passed session
  */
-export function sessionToJSON(session: Session): {
-  init: boolean;
-  sid: string;
-  did?: string;
-  timestamp: string;
-  started: string;
-  duration?: number;
-  status: SessionStatus;
-  errors: number;
-  attrs?: {
-    release?: string;
-    environment?: string;
-    user_agent?: string;
-    ip_address?: string;
-  };
-} {
+export function sessionToJSON(session: Session): SerializedSession {
   return dropUndefinedKeys({
     sid: `${session.sid}`,
     init: session.init !== undefined ? session.init : true,

@@ -396,8 +396,7 @@ export class Hub implements HubInterface {
     const scope = layer && layer.scope;
     const session = scope && scope.getSession();
     if (session) {
-      const closedSession = closeSession(session);
-      scope && scope.setSession(closedSession);
+      closeSession(session);
     }
     this._sendSessionUpdate();
 
@@ -430,8 +429,7 @@ export class Hub implements HubInterface {
       // End existing session if there's one
       const currentSession = scope.getSession && (scope.getSession() as Session);
       if (currentSession && currentSession.status === 'ok') {
-        const updatedSession = updateSession({ status: 'exited' });
-        scope.setSession(updatedSession);
+        updateSession(currentSession, { status: 'exited' });
       }
       this.endSession();
 

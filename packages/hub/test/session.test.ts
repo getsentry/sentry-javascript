@@ -85,8 +85,9 @@ describe('Session', () => {
       const session = makeSession();
       const initSessionProps = sessionToJSON(session);
 
-      const updatedSession = updateSession(session, test[1]);
-      const updatedSessionProps = sessionToJSON(updatedSession);
+      updateSession(session, test[1]);
+      const updatedSessionProps = sessionToJSON(session);
+
       expect(updatedSessionProps).toEqual({ ...initSessionProps, ...DEFAULT_OUT, ...test[2] });
     });
   });
@@ -95,25 +96,26 @@ describe('Session', () => {
     it('exits a normal session', () => {
       const session = makeSession();
       expect(session.status).toEqual('ok');
-      const closedSession = closeSession(session);
-      expect(closedSession.status).toEqual('exited');
+
+      closeSession(session);
+      expect(session.status).toEqual('exited');
     });
 
     it('updates session status when give status', () => {
       const session = makeSession();
       expect(session.status).toEqual('ok');
 
-      const closedSession = closeSession(session, 'abnormal');
-      expect(closedSession.status).toEqual('abnormal');
+      closeSession(session, 'abnormal');
+      expect(session.status).toEqual('abnormal');
     });
 
     it('only changes status ok to exited', () => {
       const session = makeSession();
-      const updatedSession = updateSession(session, { status: 'crashed' });
-      expect(updatedSession.status).toEqual('crashed');
+      updateSession(session, { status: 'crashed' });
+      expect(session.status).toEqual('crashed');
 
-      const closedSession = closeSession(session, 'crashed');
-      expect(closedSession.status).toEqual('crashed');
+      closeSession(session, 'crashed');
+      expect(session.status).toEqual('crashed');
     });
   });
 });
