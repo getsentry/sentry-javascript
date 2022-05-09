@@ -9,22 +9,22 @@ export interface RequestSession {
  */
 // TODO: make properties required that were set by ctor
 export interface Session {
-  sid?: string;
+  sid: string;
   did?: string;
-  init?: boolean;
+  init: boolean;
   // seconds since the UNIX epoch
-  timestamp?: number;
+  timestamp: number;
   // seconds since the UNIX epoch
-  started?: number;
+  started: number;
   duration?: number;
-  status?: SessionStatus;
+  status: SessionStatus;
   release?: string;
   environment?: string;
   userAgent?: string;
   ipAddress?: string;
-  errors?: number;
+  errors: number;
   user?: User | null;
-  ignoreDuration?: boolean;
+  ignoreDuration: boolean;
 
   /**
    * Overrides default JSON serialization of the Session because

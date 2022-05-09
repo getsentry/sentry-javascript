@@ -15,13 +15,13 @@ export function makeSession(context?: Omit<SessionContext, 'started' | 'status'>
   const startingTime = timestampInSeconds();
 
   const session: Session = {
-    errors: 0,
     sid: uuid4(),
+    init: true,
     timestamp: startingTime,
     started: startingTime,
     duration: 0,
     status: 'ok',
-    init: true,
+    errors: 0,
     ignoreDuration: false,
     toJSON: () => sessionToJSON(session),
   };
@@ -79,7 +79,7 @@ export function updateSession(session: Session, context: SessionContext = {}): v
   } else if (typeof context.duration === 'number') {
     session.duration = context.duration;
   } else {
-    const duration = session.timestamp - (session.started || 0);
+    const duration = session.timestamp - session.started;
     session.duration = duration >= 0 ? duration : 0;
   }
   if (context.release) {
@@ -138,10 +138,10 @@ export function sessionToJSON(session: Session): SerializedSession {
     sid: `${session.sid}`,
     init: session.init !== undefined ? session.init : true,
     // Make sure that sec is converted to ms for date constructor
-    started: new Date((session.started || 0) * 1000).toISOString(),
-    timestamp: new Date((session.timestamp || 0) * 1000).toISOString(),
-    status: session.status || 'ok',
-    errors: session.errors || 0,
+    started: new Date(session.started * 1000).toISOString(),
+    timestamp: new Date(session.timestamp * 1000).toISOString(),
+    status: session.status,
+    errors: session.errors,
     did: typeof session.did === 'number' || typeof session.did === 'string' ? `${session.did}` : undefined,
     duration: session.duration,
     attrs: {
