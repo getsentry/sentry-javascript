@@ -4,10 +4,6 @@ export interface RequestSession {
   status?: RequestSessionStatus;
 }
 
-/**
- * Session Context
- */
-// TODO: make properties required that were set by ctor
 export interface Session {
   sid: string;
   did?: string;
@@ -30,6 +26,8 @@ export interface Session {
    * Overrides default JSON serialization of the Session because
    * the Sentry servers expect a slightly different schema of a session
    * which is described in the interface @see SerializedSession in this file.
+   *
+   * @return a Sentry-backend conforming JSON object of the session
    */
   toJSON(): SerializedSession;
 }
