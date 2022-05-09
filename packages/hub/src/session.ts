@@ -136,7 +136,7 @@ export function closeSession(session: Session, status?: Exclude<SessionStatus, '
 function sessionToJSON(session: Session): SerializedSession {
   return dropUndefinedKeys({
     sid: `${session.sid}`,
-    init: session.init !== undefined ? session.init : true,
+    init: session.init,
     // Make sure that sec is converted to ms for date constructor
     started: new Date(session.started * 1000).toISOString(),
     timestamp: new Date(session.timestamp * 1000).toISOString(),
