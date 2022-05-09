@@ -4,6 +4,7 @@
 
 import * as isModule from '../src/is';
 import { normalize } from '../src/normalize';
+import { addNonEnumerableProperty } from '../src/object';
 import * as stacktraceModule from '../src/stacktrace';
 
 describe('normalize()', () => {
@@ -502,6 +503,54 @@ describe('normalize()', () => {
       foo: '[SyntheticEvent]',
       baz: '[NaN]',
       qux: '[Function: qux]',
+    });
+  });
+
+  describe.only('skips normalizing objects marked with a non-enumerable property __sentry_skip_normalization__', () => {
+    test('by leaving non-serializable values intact', () => {
+      const someFun = () => undefined;
+      const alreadyNormalizedObj = {
+        nan: NaN,
+        fun: someFun,
+      };
+
+      addNonEnumerableProperty(alreadyNormalizedObj, '__sentry_skip_normalization__', true);
+
+      const result = normalize(alreadyNormalizedObj);
+      expect(result).toEqual({
+        nan: NaN,
+        fun: someFun,
+      });
+    });
+
+    test('by ignoring normalization depth', () => {
+      const alreadyNormalizedObj = {
+        three: {
+          more: {
+            layers: '!',
+          },
+        },
+      };
+
+      addNonEnumerableProperty(alreadyNormalizedObj, '__sentry_skip_normalization__', true);
+
+      const obj = {
+        foo: {
+          bar: {
+            baz: alreadyNormalizedObj,
+            boo: {
+              bam: {
+                pow: 'poof',
+              },
+            },
+          },
+        },
+      };
+
+      const result = normalize(obj, 4);
+
+      expect(result?.foo?.bar?.baz?.three?.more?.layers).toBe('!');
+      expect(result?.foo?.bar?.boo?.bam?.pow).not.toBe('poof');
     });
   });
 });
