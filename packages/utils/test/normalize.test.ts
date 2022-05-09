@@ -506,7 +506,7 @@ describe('normalize()', () => {
     });
   });
 
-  describe.only('skips normalizing objects marked with a non-enumerable property __sentry_skip_normalization__', () => {
+  describe('skips normalizing objects marked with a non-enumerable property __sentry_skip_normalization__', () => {
     test('by leaving non-serializable values intact', () => {
       const someFun = () => undefined;
       const alreadyNormalizedObj = {
