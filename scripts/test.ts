@@ -28,6 +28,17 @@ const NODE_8_LEGACY_DEPENDENCIES = [
 ];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x'];
 
+type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
+
+type JSONObject = {
+  [key: string]: JSONValue;
+};
+type JSONArray = Array<JSONValue>;
+
+interface TSConfigJSON extends JSONObject {
+  compilerOptions: { lib: string[]; target: string };
+}
+
 /**
  * Run the given shell command, piping the shell process's `stdin`, `stdout`, and `stderr` to that of the current
  * process. Returns contents of `stdout`.
@@ -52,7 +63,7 @@ function installLegacyDeps(legacyDeps: string[] = []): void {
  * it to a `var` solves this by making it redeclarable.
  *
  */
-function addTransformer(): void {
+function addJestTransformer(): void {
   // Though newer `ts-jest` versions support transformers written in TS, the legacy version does not.
   run('yarn tsc --skipLibCheck jest/transformers/constReplacer.ts');
 
@@ -82,6 +93,34 @@ function addTransformer(): void {
 }
 
 /**
+ * Modify a json file on disk.
+ *
+ * @param filepath The path to the file to be modified
+ * @param transformer A function which takes the JSON data as input and returns a mutated version. It may mutate the
+ * JSON data in place, but it isn't required to do so.
+ */
+export function modifyJSONFile(filepath: string, transformer: (json: JSONObject) => JSONObject): void {
+  const fileContents = fs
+    .readFileSync(filepath)
+    .toString()
+    // get rid of comments, which the `jsonc` format allows, but which will crash `JSON.parse`
+    .replace(/\/\/.*\n/g, '');
+  const json = JSON.parse(fileContents);
+  const newJSON = transformer(json);
+  fs.writeFileSync(filepath, JSON.stringify(newJSON, null, 2));
+}
+
+const es6ifyTestTSConfig = (pkg: string): void => {
+  const filepath = `packages/${pkg}/tsconfig.test.json`;
+  const transformer = (json: JSONObject): JSONObject => {
+    const tsconfig = json as TSConfigJSON;
+    tsconfig.compilerOptions.target = 'es6';
+    return json;
+  };
+  modifyJSONFile(filepath, transformer);
+};
+
+/**
  * Skip tests which don't apply to Node and therefore don't need to run in older Node versions.
  *
  * TODO We're foreced to skip these tests for compatibility reasons (right now this function only gets called in Node
@@ -107,15 +146,22 @@ function runTests(): void {
   if (CURRENT_NODE_VERSION === '8') {
     installLegacyDeps(NODE_8_LEGACY_DEPENDENCIES);
     // Inject a `const`-to-`var` transformer, in order to stop Node 8 from complaining when we shadow `global`
-    addTransformer();
+    addJestTransformer();
     // TODO Right now, this just skips incompatible tests, but it could be skipping more (hence the aspirational name),
     // and not just in Node 8. See `skipNonNodeTests`'s docstring.
     skipNonNodeTests();
+    es6ifyTestTSConfig('utils');
     runWithIgnores(NODE_8_SKIP_TESTS_PACKAGES);
   }
   //
   else if (CURRENT_NODE_VERSION === '10') {
     installLegacyDeps(NODE_10_LEGACY_DEPENDENCIES);
+    es6ifyTestTSConfig('utils');
+    runWithIgnores(DEFAULT_SKIP_TESTS_PACKAGES);
+  }
+  //
+  else if (CURRENT_NODE_VERSION === '12') {
+    es6ifyTestTSConfig('utils');
     runWithIgnores(DEFAULT_SKIP_TESTS_PACKAGES);
   }
   //

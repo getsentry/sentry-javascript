@@ -59,6 +59,10 @@ export function makeBaseNPMConfig(options = {}) {
       //     });
       externalLiveBindings: false,
 
+      // Don't call `Object.freeze` on the results of `import * as someModule from '...'`
+      // (We don't need it, so why waste the bytes?)
+      freeze: false,
+
       // Equivalent to `esModuleInterop` in tsconfig.
       // Controls whether rollup emits helpers to handle special cases where turning
       //     `import * as dogs from 'dogs'`
