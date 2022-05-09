@@ -1,5 +1,5 @@
-import { Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
-import { isError, isPlainObject, logger, normalize } from '@sentry/utils';
+import { Contexts, Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
+import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
 
@@ -53,23 +53,22 @@ export class ExtraErrorData implements Integration {
     if (!hint || !hint.originalException || !isError(hint.originalException)) {
       return event;
     }
-    const name = (hint.originalException as ExtendedError).name || hint.originalException.constructor.name;
+    const exceptionName = (hint.originalException as ExtendedError).name || hint.originalException.constructor.name;
 
     const errorData = this._extractErrorData(hint.originalException as ExtendedError);
 
     if (errorData) {
-      let contexts = {
+      const contexts: Contexts = {
         ...event.contexts,
       };
 
       const normalizedErrorData = normalize(errorData, this._options.depth);
+
       if (isPlainObject(normalizedErrorData)) {
-        contexts = {
-          ...event.contexts,
-          [name]: {
-            ...normalizedErrorData,
-          },
-        };
+        // We mark the error data as "already normalized" here, because we don't want other normalization procedures to
+        // potentially truncate the data we just already normalized, with a certain depth setting.
+        addNonEnumerableProperty(normalizedErrorData, '__sentry_skip_normalization__', true);
+        contexts[exceptionName] = normalizedErrorData;
       }
 
       return {
