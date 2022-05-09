@@ -45,7 +45,7 @@
     "build:ngc:watch": "ng build --prod --watch",
     "build:npm": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage",
+    "clean": "rimraf build coverage sentry-angular-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
