@@ -98,17 +98,11 @@ function visit(
     return stringified;
   }
 
-  // From here on, we can assert that `value` is either an object or an array!
+  // From here on, we can assert that `value` is either an object or an array.
 
-  // If we've already visited this branch, bail out, as it's circular reference. If not, note that we're seeing it now.
-  if (memoize(value)) {
-    return '[Circular ~]';
-  }
-
-  // Do not normalize objects that we know have already been normalized. This MUST be below the circ-ref check otherwise
-  // we might somehow accidentally produce circular references by skipping normalization.
-  // As a general rule, the "__sentry_skip_normalization__" property should only be used sparingly and only should only
-  // be set on objects that have already been normalized.
+  // Do not normalize objects that we know have already been normalized. As a general rule, the
+  // "__sentry_skip_normalization__" property should only be used sparingly and only should only be set on objects that
+  // have already been normalized.
   if ((value as ObjOrArray<unknown>)['__sentry_skip_normalization__']) {
     return value as ObjOrArray<unknown>;
   }
@@ -117,6 +111,11 @@ function visit(
   if (depth === 0) {
     // At this point we know `serialized` is a string of the form `"[object XXXX]"`. Clean it up so it's just `"[XXXX]"`.
     return stringified.replace('object ', '');
+  }
+
+  // If we've already visited this branch, bail out, as it's circular reference. If not, note that we're seeing it now.
+  if (memoize(value)) {
+    return '[Circular ~]';
   }
 
   // At this point we know we either have an object or an array, we haven't seen it before, and we're going to recurse
