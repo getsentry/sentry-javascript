@@ -6,8 +6,8 @@ export type {
   Event,
   EventHint,
   Exception,
-  // eslint-disable-next-line deprecation/deprecation
   Session,
+  // eslint-disable-next-line deprecation/deprecation
   Severity,
   SeverityLevel,
   StackFrame,
