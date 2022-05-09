@@ -24,6 +24,7 @@
 - ref(build): Switch tsconfig target to es6 (#5005)
 - ref(core): Make event processing log warnings instead of errors (#5010)
 - fix(hub): Add missing parameter to captureException docstring (#5001)
+- fix(nextjs): Update webpack-plugin and change how cli binary is detected (#4988)
 - fix(serverless): Adjust v6 Lambda layer hotfix for v7 (#5006)
 - fix(tracing): Adjust sideEffects package.json entry for v7 (#4987)
 - feat(tracing): Add GB unit to device memory tag value (#4935)
