@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
-import { Primitive } from '@sentry/types';
+import { PolymorphicEvent, Primitive } from '@sentry/types';
 
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const objectToString = Object.prototype.toString;
@@ -101,7 +101,7 @@ export function isPlainObject(wat: unknown): wat is Record<string, unknown> {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isEvent(wat: unknown): boolean {
+export function isEvent(wat: unknown): wat is PolymorphicEvent {
   return typeof Event !== 'undefined' && isInstanceOf(wat, Event);
 }
 
