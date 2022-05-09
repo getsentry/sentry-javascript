@@ -218,8 +218,6 @@ Sentry.init({
   ...
 })
 
-
-
 // Before:
 class MyCustomTransport extends BaseTransport {
   constructor(options: TransportOptions) {
@@ -251,6 +249,30 @@ We recommend calling using the `createTransport` function from `@sentry/core` as
 object with your custom logic, will also take care of rate limiting and flushing.
 
 For a complete v7 transport implementation, take a look at our [browser fetch transport](https://github.com/getsentry/sentry-javascript/blob/ebc938a03d6efe7d0c4bbcb47714e84c9a566a9c/packages/browser/src/transports/fetch.ts#L1-L34).
+
+### Node Transport Changes
+
+To clean up the options interface, we now require users to pass down transport related options under the `transportOptions` key. The options that
+were changed were `caCerts`, `httpProxy`, and `httpsProxy`. In addition, `httpProxy` and `httpsProxy` were unified to a single option under
+the `transportOptions` key, `proxy`.
+
+```ts
+// New in v7:
+Sentry.init({
+  dsn: '...',
+  transportOptions: {
+    caCerts: getMyCaCert(),
+    proxy: 'http://example.com',
+  },
+});
+
+// Before:
+Sentry.init({
+  dsn: '...',
+  caCerts: getMyCaCert(),
+  httpsProxy: 'http://example.com',
+})
+```
 
 ## Enum Changes
 
