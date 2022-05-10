@@ -332,5 +332,9 @@ export function getWebpackPluginOptions(
  * ref: https://github.com/vercel/nft/issues/203
  */
 function ensureCLIBinaryExists(): boolean {
-  return eval("fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))");
+  // Give `eval` a new name, so that minifiers don't recognize it. (If they do, they'll refuse to mangle anything in the
+  // same scope as the `eval` call, because they have no way to know if the `eval`-ed code references the names which
+  // would otherwise be mangled. See https://rollupjs.org/guide/en/#avoiding-eval.)
+  const safeEval = eval;
+  return safeEval("fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))");
 }

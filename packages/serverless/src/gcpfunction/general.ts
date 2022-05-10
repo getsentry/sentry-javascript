@@ -1,6 +1,6 @@
 import { Scope } from '@sentry/node';
 import { Context as SentryContext } from '@sentry/types';
-import { Request, Response } from 'express'; // eslint-disable-line import/no-extraneous-dependencies
+import type { Request, Response } from 'express';
 import { hostname } from 'os';
 
 export interface HttpFunction {
