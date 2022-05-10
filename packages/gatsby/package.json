@@ -35,7 +35,7 @@
     "react": "^18.0.0"
   },
   "scripts": {
-    "build": "run-p build:cjs build:esm build:types build:plugin",
+    "build": "run-p build:rollup build:types build:plugin",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-s build",
     "build:es5": "yarn build:cjs # *** backwards compatibility - remove in v7 ***",
