@@ -357,7 +357,7 @@ function ensureCLIBinaryExists(): boolean {
   // debugger;
   // // return safeFunc();
   // return true;
-  return fs.existsSync(path.join(require.resolve('@sentry/nextjs'), '../../cli/sentry-cli'));
+  return fs.existsSync(path.join(require.resolve(['@sentry', 'cli'].join('/')), '../../sentry-cli'));
 }
 
 // function evalWithScope<T>(scope: unknown): T {
