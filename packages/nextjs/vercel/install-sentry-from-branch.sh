@@ -27,13 +27,8 @@ yarn --prod false
 
 echo " "
 echo "BUILDING SDK"
-# Types are required for any type of build to succeed
-yarn build:types
-# We need to build es5 versions because `next.config.js` calls `require` on the SDK (to get `withSentryConfig`) and
-# therefore it looks for `cjs/index.js`
-yarn build:cjs
-# We need to build esm versions because that's what `next` actually uses when it builds the app
-yarn build:esm
+# build types, cjs, and esm
+yarn build:dev
 
 # Set all packages in the repo to point to their siblings as file dependencies. That way, when we install the local copy
 # of @sentry/nextjs, it'll pull the local copy of each of its @sentry/* dependents. This mimics what Lerna does with
