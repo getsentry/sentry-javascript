@@ -155,4 +155,28 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.error).toEqual(13 * 1000);
     expect(updatedRateLimits.all).toBeUndefined();
   });
+
+  test('should apply a global rate limit of 60s when no headers are provided on a 429 status code', () => {
+    const rateLimits: RateLimits = {};
+    const headers = {};
+    const updatedRateLimits = updateRateLimits(rateLimits, { statusCode: 429, headers }, 0);
+    expect(updatedRateLimits.all).toBe(60_000);
+  });
+
+  test('should not apply a global rate limit specific headers are provided on a 429 status code', () => {
+    const rateLimits: RateLimits = {};
+    const headers = {
+      'x-sentry-rate-limits': '13:error',
+    };
+    const updatedRateLimits = updateRateLimits(rateLimits, { statusCode: 429, headers }, 0);
+    expect(updatedRateLimits.error).toEqual(13 * 1000);
+    expect(updatedRateLimits.all).toBeUndefined();
+  });
+
+  test('should not apply a default rate limit on a non-429 status code', () => {
+    const rateLimits: RateLimits = {};
+    const headers = {};
+    const updatedRateLimits = updateRateLimits(rateLimits, { statusCode: 200, headers }, 0);
+    expect(updatedRateLimits).toEqual(rateLimits);
+  });
 });
