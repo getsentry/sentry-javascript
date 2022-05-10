@@ -318,8 +318,10 @@ export function wrapHandler<TEvent, TResult>(
       transaction.finish();
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
+        // logging regardless of ignoreSentryErrors makes it possible to detect issues with sentry
+        // using logs; otherwise, things like oversized payloads fail completely silently.
+        logger.error(e)
         if (options.ignoreSentryErrors && e instanceof SentryError) {
-          IS_DEBUG_BUILD && logger.error(e);
           return;
         }
         throw e;
