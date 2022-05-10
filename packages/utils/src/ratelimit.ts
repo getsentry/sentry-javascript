@@ -1,3 +1,5 @@
+import { TransportMakeRequestResponse } from '@sentry/types';
+
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;
 
@@ -43,13 +45,10 @@ export function isRateLimited(limits: RateLimits, category: string, now: number 
  */
 export function updateRateLimits(
   limits: RateLimits,
-  newRateLimitParameters: {
-    statusCode?: number;
-    headers?: Record<string, string | null | undefined>;
-  },
+  newRateLimitParameters: TransportMakeRequestResponse,
   now: number = Date.now(),
 ): RateLimits {
-  const { statusCode, headers = {} } = newRateLimitParameters;
+  const { statusCode, headers } = newRateLimitParameters;
 
   const updatedRateLimits: RateLimits = {
     ...limits,
@@ -57,8 +56,8 @@ export function updateRateLimits(
 
   // "The name is case-insensitive."
   // https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-  const rateLimitHeader = headers['x-sentry-rate-limits'];
-  const retryAfterHeader = headers['retry-after'];
+  const rateLimitHeader = headers && headers['x-sentry-rate-limits'];
+  const retryAfterHeader = headers && headers['retry-after'];
 
   if (rateLimitHeader) {
     /**
