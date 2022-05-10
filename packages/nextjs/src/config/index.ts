@@ -1,6 +1,10 @@
 import { ExportedNextConfig, NextConfigFunction, NextConfigObject, SentryWebpackPluginOptions } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
+if (process.argv.includes('build')) {
+  process.env.SENTRY_BUILD_PHASE = 'true';
+}
+
 /**
  * Add Sentry options to the config to be exported from the user's `next.config.js` file.
  *
