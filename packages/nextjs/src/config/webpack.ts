@@ -357,7 +357,8 @@ function ensureCLIBinaryExists(): boolean {
   // debugger;
   // // return safeFunc();
   // return true;
-  return fs.existsSync(path.join(require.resolve(['@sentry', 'cli'].join('/')), '../../sentry-cli'));
+  const safeRequireResolve = require.resolve;
+  return fs.existsSync(path.join(safeRequireResolve(['@sentry', 'cli'].join('/')), '../../sentry-cli'));
 }
 
 // function evalWithScope<T>(scope: unknown): T {
