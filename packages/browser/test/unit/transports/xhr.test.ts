@@ -1,9 +1,10 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
-import { makeXHRTransport, XHRTransportOptions } from '../../../src/transports/xhr';
+import { BrowserTransportOptions } from '../../../src/transports/types';
+import { makeXHRTransport } from '../../../src/transports/xhr';
 
-const DEFAULT_XHR_TRANSPORT_OPTIONS: XHRTransportOptions = {
+const DEFAULT_XHR_TRANSPORT_OPTIONS: BrowserTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
 };
@@ -82,7 +83,7 @@ describe('NewXHRTransport', () => {
       keepalive: 'true',
       referrer: 'http://example.org',
     };
-    const options: XHRTransportOptions = {
+    const options: BrowserTransportOptions = {
       ...DEFAULT_XHR_TRANSPORT_OPTIONS,
       headers,
     };
