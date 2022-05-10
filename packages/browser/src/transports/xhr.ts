@@ -1,6 +1,8 @@
 import { createTransport } from '@sentry/core';
-import { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
+
+import { BrowserTransportOptions } from './types';
 
 /**
  * The DONE ready state for XmlHttpRequest
@@ -12,14 +14,10 @@ import { SyncPromise } from '@sentry/utils';
  */
 const XHR_READYSTATE_DONE = 4;
 
-export interface XHRTransportOptions extends BaseTransportOptions {
-  headers?: { [key: string]: string };
-}
-
 /**
  * Creates a Transport that uses the XMLHttpRequest API to send events to Sentry.
  */
-export function makeXHRTransport(options: XHRTransportOptions): Transport {
+export function makeXHRTransport(options: BrowserTransportOptions): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     return new SyncPromise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
