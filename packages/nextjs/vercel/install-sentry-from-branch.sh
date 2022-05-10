@@ -53,7 +53,7 @@ PACKAGE_NAMES=$(ls $PACKAGES_DIR)
 for package in ${PACKAGE_NAMES[@]}; do
   # Within a given package.json file, search for each of the other packages in turn, and if found, make the replacement
   for package_dep in ${PACKAGE_NAMES[@]}; do
-    sed -Ei /"@sentry\/${package_dep}"/s/"[0-9]+\.[0-9]+\.[0-9]+"/"file:${ESCAPED_PACKAGES_DIR}\/${package_dep}"/ ${PACKAGES_DIR}/${package}/package.json
+    sed -Ei /"@sentry\/${package_dep}"/s/"[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)\.[0-9]+)?"/"file:${ESCAPED_PACKAGES_DIR}\/${package_dep}"/ ${PACKAGES_DIR}/${package}/package.json
   done
 done
 
