@@ -42,7 +42,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage .rpt2_cache",
+    "clean": "rimraf build coverage .rpt2_cache sentry-integrations-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",

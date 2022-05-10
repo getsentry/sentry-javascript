@@ -14,6 +14,7 @@
     "typescript": "3.8.3"
   },
   "scripts": {
+    "clean": "yarn rimraf sentry-internal-typescript-*.tgz",
     "link:yarn": "yarn link",
     "build:npm": "npm pack"
   },
