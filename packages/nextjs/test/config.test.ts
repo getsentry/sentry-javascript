@@ -796,7 +796,7 @@ describe('Sentry webpack plugin config', () => {
     });
   });
 
-  it('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {
+  it.only('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {
     const clientFinalNextConfig = materializeFinalNextConfig({
       ...userNextConfig,
       sentry: { disableClientWebpackPlugin: true },
