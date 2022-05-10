@@ -335,28 +335,29 @@ function ensureCLIBinaryExists(): boolean {
   // Give `eval` a new name, so that minifiers don't recognize it. (If they do, they'll refuse to mangle anything in the
   // same scope as the `eval` call, because they have no way to know if the `eval`-ed code references the names which
   // would otherwise be mangled. See https://rollupjs.org/guide/en/#avoiding-eval.)
-  const safeEval = eval;
-  // `eval("fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))")`
-  // // return safeEval(
-  // //   "const fs = require('fs'); fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))",
-  // // );
-  // const safeFunc = new Function('() => true');
-  // // const safeFunc = new Function("() => fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))");
-  // const result = safeFunc();
-  // console.log(result);
-  // @ts-ignore asasd
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/typedef
-  function blah(fs, path, require) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/typedef
-    // return fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'));
-    return "fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))";
-  }
-  // const x = blah(fs, path, require);
-  const y = safeEval('blah(fs, path, require)');
-  console.log(y);
-  debugger;
-  // return safeFunc();
-  return true;
+  // const safeEval = eval;
+  // // `eval("fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))")`
+  // // // return safeEval(
+  // // //   "const fs = require('fs'); fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))",
+  // // // );
+  // // const safeFunc = new Function('() => true');
+  // // // const safeFunc = new Function("() => fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))");
+  // // const result = safeFunc();
+  // // console.log(result);
+  // // @ts-ignore asasd
+  // // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/typedef
+  // function blah(fs, path, require) {
+  //   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/typedef
+  //   // return fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'));
+  //   return "fs.existsSync(path.join(require.resolve('@sentry/cli'), '../../sentry-cli'))";
+  // }
+  // // const x = blah(fs, path, require);
+  // const y = safeEval('blah(fs, path, require)');
+  // console.log(y);
+  // debugger;
+  // // return safeFunc();
+  // return true;
+  return fs.existsSync(path.join(require.resolve('@sentry/nextjs'), '../../cli/sentry-cli'));
 }
 
 // function evalWithScope<T>(scope: unknown): T {
