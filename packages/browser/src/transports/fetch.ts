@@ -23,6 +23,7 @@ export function makeFetchTransport(
     };
 
     return nativeFetch(options.url, requestOptions).then(response => ({
+      statusCode: response.status,
       headers: {
         'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
         'retry-after': response.headers.get('Retry-After'),

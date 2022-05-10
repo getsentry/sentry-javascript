@@ -72,7 +72,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'retry-after': '42',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.all).toEqual(42 * 1000);
   });
 
@@ -81,7 +81,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'x-sentry-rate-limits': '13:error',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.error).toEqual(13 * 1000);
   });
 
@@ -90,7 +90,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'x-sentry-rate-limits': '13:error;transaction',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.error).toEqual(13 * 1000);
     expect(updatedRateLimits.transaction).toEqual(13 * 1000);
   });
@@ -100,7 +100,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'x-sentry-rate-limits': '13:error,15:transaction',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.error).toEqual(13 * 1000);
     expect(updatedRateLimits.transaction).toEqual(15 * 1000);
   });
@@ -110,7 +110,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'x-sentry-rate-limits': '13:error,15:transaction;error',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.error).toEqual(15 * 1000);
     expect(updatedRateLimits.transaction).toEqual(15 * 1000);
   });
@@ -120,7 +120,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'x-sentry-rate-limits': '13',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.all).toEqual(13 * 1000);
   });
 
@@ -129,7 +129,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'x-sentry-rate-limits': 'x',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.all).toEqual(60 * 1000);
   });
 
@@ -140,7 +140,7 @@ describe('updateRateLimits()', () => {
     const headers = {
       'x-sentry-rate-limits': '13:transaction',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.error).toEqual(1337);
     expect(updatedRateLimits.transaction).toEqual(13 * 1000);
   });
@@ -151,7 +151,7 @@ describe('updateRateLimits()', () => {
       'retry-after': '42',
       'x-sentry-rate-limits': '13:error',
     };
-    const updatedRateLimits = updateRateLimits(rateLimits, headers, 0);
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
     expect(updatedRateLimits.error).toEqual(13 * 1000);
     expect(updatedRateLimits.all).toBeUndefined();
   });

@@ -28,13 +28,13 @@ export function makeXHRTransport(options: XHRTransportOptions): Transport {
 
       xhr.onreadystatechange = (): void => {
         if (xhr.readyState === XHR_READYSTATE_DONE) {
-          const response = {
+          resolve({
+            statusCode: xhr.status,
             headers: {
               'x-sentry-rate-limits': xhr.getResponseHeader('X-Sentry-Rate-Limits'),
               'retry-after': xhr.getResponseHeader('Retry-After'),
             },
-          };
-          resolve(response);
+          });
         }
       };
 
