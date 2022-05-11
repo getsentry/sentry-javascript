@@ -45,6 +45,7 @@
     "packages/node",
     "packages/node-integration-tests",
     "packages/react",
+    "packages/remix",
     "packages/serverless",
     "packages/tracing",
     "packages/types",
