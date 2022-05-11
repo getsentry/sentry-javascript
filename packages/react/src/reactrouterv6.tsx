@@ -1,3 +1,6 @@
+// Inspired from Donnie McNeal's solution:
+// https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
+
 import { Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
