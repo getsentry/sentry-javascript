@@ -447,7 +447,7 @@ export class Hub implements HubInterface {
     const { scope, client } = this.getStackTop();
     if (!scope) return;
 
-    const session = scope.getSession && scope.getSession();
+    const session = scope.getSession();
     if (session) {
       if (client && client.captureSession) {
         client.captureSession(session);
