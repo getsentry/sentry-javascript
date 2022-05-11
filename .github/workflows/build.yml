@@ -27,7 +27,7 @@ env:
     ${{ github.workspace }}/packages/**/esm
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
-    ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
+    ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/**
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
@@ -207,7 +207,7 @@ jobs:
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/tracing/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/**
     outputs:
       # this needs to be passed on
       dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
