@@ -180,7 +180,7 @@ jobs:
     needs: job_build
     runs-on: ubuntu-latest
     # Build artifacts are only needed for releasing workflow.
-    if: startsWith(github.ref, 'refs/heads/release/')
+    #if: startsWith(github.ref, 'refs/heads/release/')  # TODO: ENABLE AGAIN !!!!!!!!!!!!!!!!!!!!!!!!!! XXXXXXXXXX @@@@@@@@@@@@@@@@@@@@@@
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
