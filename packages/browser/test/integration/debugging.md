@@ -12,10 +12,10 @@ These tests are hard to debug, because the testing system is somewhat complex, s
 - `suites.yourTestFile.js`:
   - Use `it.only` to only run the single test you're interested in.
 
-- Repo-level `rollup.config.js`:
+- Repo-level `rollup/bundleHelpers.js`:
   - Comment out all bundle variants except whichever one `run.js` is turning into `artifacts/sdk.js`.
 
-- Browser-package-level `rollup.config.js`:
+- Browser-package-level `rollup.bundle.config.js`:
   - Build only one of `es5` and `es6`.
 
 - Run `build:bundle:watch` in a separate terminal tab, so that when you add `console.log`s to the SDK, they get picked up.
