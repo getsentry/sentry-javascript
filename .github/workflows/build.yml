@@ -109,17 +109,14 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-
-
-
   job_build_aws_lambda_layer:
     name: Build AWS Lambda Layer
     needs: job_build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v3
-      with:
-        name: ${{ env.HEAD_COMMIT }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.HEAD_COMMIT }}
       - run: |
           echo "Preparing directory containing Node SDK Lambda Layer"
           echo "#########  1  ##########"
@@ -149,16 +146,6 @@ jobs:
         with:
           artifact_name: ${{ github.sha }}
           zip_file_name: sentry-python-serverless-${{ env.SDK_VERSION }}.zip
-
-
-
-
-
-
-
-
-
-
 
   # job_size_check:
   #   name: Size Check
