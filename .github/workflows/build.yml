@@ -92,14 +92,6 @@ jobs:
         # this file) to a constant and skip rebuilding all of the packages each time CI runs.
         if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
-        # We are performing a `prepublishOnly` step manually because build workflow is not responsible for publishing
-        # the actual release. It only creates artifacts which then are uploaded and used by another workflow.
-        # Because of that, any `prepublishOnly` script is skipped and files it produces are not included in the tarball.
-        # We also cannot use `prepare` script which would be more suited, because it's run only before `pack` is called,
-        # and it's done from a `release` workflow and not here.
-      - name: Run prepublishOnly script
-        if: startsWith(github.ref, 'refs/heads/release/')
-        run: yarn prepublishOnly
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
