@@ -100,7 +100,7 @@ export function makeTerserPlugin() {
  */
 export function makeTSPlugin(jsVersion) {
   const baseTSPluginOptions = {
-    tsconfig: 'tsconfig.esm.json',
+    tsconfig: 'tsconfig.json',
     tsconfigOverride: {
       compilerOptions: {
         declaration: false,
