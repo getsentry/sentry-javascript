@@ -110,6 +110,8 @@ jobs:
     needs: job_build
     timeout-minutes: 15
     runs-on: ubuntu-latest
+    # Size Check will error out outside of the context of a PR
+    if: ${{ github.event_name == 'pull_request' }}
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
