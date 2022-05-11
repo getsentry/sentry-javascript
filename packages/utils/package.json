@@ -27,12 +27,10 @@
   "scripts": {
     "build": "run-p build:rollup build:types",
     "build:dev": "run-s build",
-    "build:esm": "tsc -p tsconfig.esm.json",
     "build:rollup": "yarn ts-node scripts/buildRollup.ts",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:rollup:watch build:types:watch",
     "build:dev:watch": "run-s build:watch",
-    "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
