@@ -27,7 +27,7 @@ env:
     ${{ github.workspace }}/packages/**/esm
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
-    ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+    ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
@@ -182,7 +182,7 @@ jobs:
     # Build artifacts are only needed for releasing workflow.
     #if: startsWith(github.ref, 'refs/heads/release/')  # TODO: ENABLE AGAIN !!!!!!!!!!!!!!!!!!!!!!!!!! XXXXXXXXXX @@@@@@@@@@@@@@@@@@@@@@
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -207,17 +207,19 @@ jobs:
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/tracing/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/**
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
 
   job_build_aws_lambda_layer:
     name: Build AWS Lambda Layer
     needs: job_artifacts
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v1
+        with:
+          node-version: '12'
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
