@@ -70,13 +70,11 @@ export function createTransport(
 
     const requestTask = (): PromiseLike<void> =>
       makeRequest({ body: serializeEnvelope(filteredEnvelope) }).then(
-        ({ headers }): void => {
-          if (headers) {
-            rateLimits = updateRateLimits(rateLimits, headers);
-          }
+        response => {
+          rateLimits = updateRateLimits(rateLimits, response);
         },
         error => {
-          IS_DEBUG_BUILD && logger.error('Failed while recording event:', error);
+          IS_DEBUG_BUILD && logger.error('Failed while sending event:', error);
           recordEnvelopeLoss('network_error');
         },
       );
