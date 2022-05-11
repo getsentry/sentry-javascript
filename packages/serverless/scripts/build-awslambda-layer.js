@@ -2,7 +2,6 @@
 const path = require('path');
 const process = require('process');
 const fs = require('fs');
-const childProcess = require('child_process');
 
 const findUp = require('find-up');
 const packList = require('npm-packlist');
@@ -15,21 +14,17 @@ if (!process.env.GITHUB_ACTIONS) {
   process.exit(0);
 }
 
-// AWS Lambda layer are being uploaded as zip archive, whose content is then being unpacked to the /opt
-// directory in the lambda environment.
-//
-// So this script does the following: it builds a 'dist-awslambda-layer/nodejs/node_modules/@sentry/serverless'
+// This script does the following: it builds a 'dist-awslambda-layer/nodejs/node_modules/@sentry/serverless'
 // directory with a special index.js and with all necessary @sentry packages symlinked as node_modules.
-// Then, this directory is compressed with zip.
 //
 // The tricky part about it is that one cannot just symlink the entire package directories into node_modules because
-// all the src/ contents and other unnecessary files will end up in the zip archive. So, we need to symlink only
-// individual files from package and it must be only those of them that are distributable.
+// all the src/ contents and other unnecessary files will end up in the 'dist-awslambda-layer' directory.
+// So, we need to symlink only individual files from package and it must be only those of them that are distributable.
 // There exists a `npm-packlist` library for such purpose. So we need to traverse all the dependencies,
 // execute `npm-packlist` on them and symlink the files into 'dist-awslambda-layer/.../@sentry/serverless/node_modules'.
 // I didn't find any way to achieve this goal using standard command-line tools so I have to write this script.
 //
-// Another, and much simpler way to assemble such zip bundle is install all the dependencies from npm registry and
+// Another, and much simpler way to assemble such output directory is install all the dependencies from npm registry and
 // just bundle the entire node_modules.
 // It's easier and looks more stable but it's inconvenient if one wants build a zip bundle out of current source tree.
 //
@@ -141,9 +136,6 @@ async function main() {
     }),
   );
 
-  const version = serverlessPackage.version;
-  const zipFilename = `sentry-node-serverless-${version}.zip`;
-
   try {
     fs.symlinkSync(path.resolve(destRoot, 'build', 'dist'), path.resolve(destRoot, 'dist'));
     fs.symlinkSync(path.resolve(destRoot, 'build', 'esm'), path.resolve(destRoot, 'esm'));
@@ -151,20 +143,6 @@ async function main() {
     console.error(error);
   }
 
-  try {
-    fs.unlinkSync(path.resolve(dist, zipFilename));
-  } catch (error) {
-    // If the ZIP file hasn't been previously created (e.g. running this script for the first time),
-    // `unlinkSync` will try to delete a non-existing file. This error is ignored.
-  }
-
-  try {
-    childProcess.execSync(`zip -r ${zipFilename} ${destRootRelative}`, { cwd: dist });
-  } catch (error) {
-    // The child process timed out or had non-zero exit code.
-    // The error contains the entire result from `childProcess.spawnSync`.
-    console.log(error);
-  }
 }
 
 main().then(
