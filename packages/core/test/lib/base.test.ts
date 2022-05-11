@@ -1,4 +1,4 @@
-import { Hub, Scope, Session } from '@sentry/hub';
+import { Hub, makeSession, Scope } from '@sentry/hub';
 import { Event, Span } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
@@ -1327,7 +1327,7 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      const session = new Session({ release: 'test' });
+      const session = makeSession({ release: 'test' });
 
       client.captureSession(session);
 
@@ -1339,7 +1339,7 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ enabled: false, dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      const session = new Session({ release: 'test' });
+      const session = makeSession({ release: 'test' });
 
       client.captureSession(session);
 

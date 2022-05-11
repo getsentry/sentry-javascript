@@ -1,59 +1,38 @@
 import { User } from './user';
 
-/**
- * @inheritdoc
- */
-export interface Session extends SessionContext {
-  /** JSDoc */
-  update(context?: SessionContext): void;
-
-  /** JSDoc */
-  close(status?: SessionStatus): void;
-
-  /** JSDoc */
-  toJSON(): {
-    init: boolean;
-    sid: string;
-    did?: string;
-    timestamp: string;
-    started: string;
-    duration?: number;
-    status: SessionStatus;
-    errors: number;
-    attrs?: {
-      release?: string;
-      environment?: string;
-      user_agent?: string;
-      ip_address?: string;
-    };
-  };
-}
-
 export interface RequestSession {
   status?: RequestSessionStatus;
 }
 
-/**
- * Session Context
- */
-export interface SessionContext {
-  sid?: string;
+export interface Session {
+  sid: string;
   did?: string;
-  init?: boolean;
+  init: boolean;
   // seconds since the UNIX epoch
-  timestamp?: number;
+  timestamp: number;
   // seconds since the UNIX epoch
-  started?: number;
+  started: number;
   duration?: number;
-  status?: SessionStatus;
+  status: SessionStatus;
   release?: string;
   environment?: string;
   userAgent?: string;
   ipAddress?: string;
-  errors?: number;
+  errors: number;
   user?: User | null;
-  ignoreDuration?: boolean;
+  ignoreDuration: boolean;
+
+  /**
+   * Overrides default JSON serialization of the Session because
+   * the Sentry servers expect a slightly different schema of a session
+   * which is described in the interface @see SerializedSession in this file.
+   *
+   * @return a Sentry-backend conforming JSON object of the session
+   */
+  toJSON(): SerializedSession;
 }
+
+export type SessionContext = Partial<Session>;
 
 export type SessionStatus = 'ok' | 'exited' | 'crashed' | 'abnormal';
 export type RequestSessionStatus = 'ok' | 'errored' | 'crashed';
@@ -86,4 +65,21 @@ export interface AggregationCounts {
   errored?: number;
   exited?: number;
   crashed?: number;
+}
+
+export interface SerializedSession {
+  init: boolean;
+  sid: string;
+  did?: string;
+  timestamp: string;
+  started: string;
+  duration?: number;
+  status: SessionStatus;
+  errors: number;
+  attrs?: {
+    release?: string;
+    environment?: string;
+    user_agent?: string;
+    ip_address?: string;
+  };
 }

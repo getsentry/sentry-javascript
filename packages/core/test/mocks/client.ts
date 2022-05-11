@@ -1,5 +1,4 @@
-import { Session } from '@sentry/hub';
-import { ClientOptions, Event, Integration, Outcome, Severity, SeverityLevel } from '@sentry/types';
+import { ClientOptions, Event, Integration, Outcome, Session, Severity, SeverityLevel } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
