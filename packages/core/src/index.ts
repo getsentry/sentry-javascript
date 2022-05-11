@@ -20,7 +20,6 @@ export {
   Hub,
   makeMain,
   Scope,
-  Session,
 } from '@sentry/hub';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
