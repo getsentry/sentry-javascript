@@ -84,7 +84,7 @@ const SENTRY_TAGS = {
   'routing.instrumentation': 'react-router-v6',
 };
 
-export function withSentryV6<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
+export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
   if (
     !_useEffect ||
     !_useLocation ||

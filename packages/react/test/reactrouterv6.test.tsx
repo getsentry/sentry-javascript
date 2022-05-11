@@ -13,7 +13,7 @@ import {
 } from 'react-router-6';
 
 import { reactRouterV6Instrumentation } from '../src';
-import { withSentryV6 } from '../src/reactrouterv6';
+import { withSentryReactRouterV6Routing } from '../src/reactrouterv6';
 
 describe('React Router v6', () => {
   function createInstrumentation(_opts?: {
@@ -42,7 +42,7 @@ describe('React Router v6', () => {
 
   it('starts a pageload transaction', () => {
     const [mockStartTransaction] = createInstrumentation();
-    const SentryRoutes = withSentryV6(Routes);
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -62,7 +62,7 @@ describe('React Router v6', () => {
 
   it('skips pageload transaction with `startTransactionOnPageLoad: false`', () => {
     const [mockStartTransaction] = createInstrumentation({ startTransactionOnPageLoad: false });
-    const SentryRoutes = withSentryV6(Routes);
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -77,7 +77,7 @@ describe('React Router v6', () => {
 
   it('skips navigation transaction, with `startTransactionOnLocationChange: false`', () => {
     const [mockStartTransaction] = createInstrumentation({ startTransactionOnLocationChange: false });
-    const SentryRoutes = withSentryV6(Routes);
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -98,7 +98,7 @@ describe('React Router v6', () => {
 
   it('starts a navigation transaction', () => {
     const [mockStartTransaction] = createInstrumentation();
-    const SentryRoutes = withSentryV6(Routes);
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -119,7 +119,7 @@ describe('React Router v6', () => {
 
   it('works with nested routes', () => {
     const [mockStartTransaction] = createInstrumentation();
-    const SentryRoutes = withSentryV6(Routes);
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -142,7 +142,7 @@ describe('React Router v6', () => {
 
   it('works with original paths', () => {
     const [mockStartTransaction] = createInstrumentation();
-    const SentryRoutes = withSentryV6(Routes);
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
     render(
       <MemoryRouter initialEntries={['/']}>
