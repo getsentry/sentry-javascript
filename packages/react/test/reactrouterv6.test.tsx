@@ -162,4 +162,29 @@ describe('React Router v6', () => {
       tags: { 'routing.instrumentation': 'react-router-v6' },
     });
   });
+
+  it('works with paths with multiple parameters', () => {
+    const [mockStartTransaction] = createInstrumentation();
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <SentryRoutes>
+          <Route path="/stores" element={<div>Stores</div>}>
+            <Route path="/stores/:storeId" element={<div>Store</div>}>
+              <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
+            </Route>
+          </Route>
+          <Route path="/" element={<Navigate to="/stores/foo/products/234" />} />
+        </SentryRoutes>
+      </MemoryRouter>,
+    );
+
+    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/stores/:storeId/products/:productId',
+      op: 'navigation',
+      tags: { 'routing.instrumentation': 'react-router-v6' },
+    });
+  });
 });
