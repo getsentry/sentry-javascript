@@ -427,7 +427,7 @@ export class Hub implements HubInterface {
 
     if (scope) {
       // End existing session if there's one
-      const currentSession = scope.getSession && (scope.getSession() as Session);
+      const currentSession = scope.getSession && scope.getSession();
       if (currentSession && currentSession.status === 'ok') {
         updateSession(currentSession, { status: 'exited' });
       }

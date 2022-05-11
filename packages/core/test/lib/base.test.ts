@@ -1,5 +1,4 @@
-import { Hub, Scope } from '@sentry/hub';
-import { makeSession } from '@sentry/hub/src/session';
+import { Hub, Scope, makeSession } from '@sentry/hub';
 import { Event, Span } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
