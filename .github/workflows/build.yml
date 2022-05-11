@@ -233,7 +233,7 @@ jobs:
           ls -alh ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
 
           mkdir dist-serverless
-          copy ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/* dist-serverless/
+          cp -r ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/* dist-serverless/
 
           echo "Saving SDK_VERSION for later"
           export SDK_VERSION=$(cat packages/core/src/version.ts | cut -f5 -d' ' | tr -d "'" | tr -d ";")

@@ -12,6 +12,7 @@ scratch/
 *.pyc
 *.tsbuildinfo
 scenarios/*/dist/
+dist-serverless/
 
 # logs
 yarn-error.log
