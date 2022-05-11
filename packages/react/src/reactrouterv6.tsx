@@ -112,10 +112,8 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       isBaseLocation = true;
 
       if (_startTransactionOnPageLoad) {
-        const transactionName = getTransactionName(routes, location, _matchRoutes);
-
         activeTransaction = _customStartTransaction({
-          name: transactionName,
+          name: getTransactionName(routes, location, _matchRoutes),
           op: 'pageload',
           tags: SENTRY_TAGS,
         });
@@ -137,10 +135,8 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
           activeTransaction.finish();
         }
 
-        const transactionName = getTransactionName(routes, location, _matchRoutes);
-
         activeTransaction = _customStartTransaction({
-          name: transactionName,
+          name: getTransactionName(routes, location, _matchRoutes),
           op: 'navigation',
           tags: SENTRY_TAGS,
         });
