@@ -99,6 +99,17 @@ jobs:
       - name: Run prepublishOnly script
         if: startsWith(github.ref, 'refs/heads/release/')
         run: yarn prepublishOnly
+      - run: |
+          echo "Checking directories"
+          echo "### 0 ###"
+          ls -alh
+          echo "### 1 ###"
+          ls -alh packages/
+          echo "### 2 ###"
+          ls -alh packages/serverless/
+          echo "### 3 ###"
+          ls -alh packages/serverless/dist-awslambda-layer/
+
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.HEAD_COMMIT }}
