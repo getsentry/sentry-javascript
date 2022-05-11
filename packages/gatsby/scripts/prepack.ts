@@ -12,14 +12,19 @@ export function prepack(buildDir: string): boolean {
   // copy package-specific assets to build dir
   return PACKAGE_ASSETS.every(asset => {
     const assetPath = path.resolve(asset);
+    const destinationPath = path.resolve(buildDir, asset);
     try {
       if (!fs.existsSync(assetPath)) {
-        console.error(`Asset ${asset} does not exist.`);
+        console.error(`\nERROR: Asset '${asset}' does not exist.`);
         return false;
       }
-      fs.copyFileSync(assetPath, path.resolve(buildDir, asset));
+      console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
+      fs.copyFileSync(assetPath, destinationPath);
     } catch (error) {
-      console.error(`Error while copying ${asset} to ${buildDir}`);
+      console.error(
+        `\nERROR: Error while copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}:\n`,
+        error,
+      );
       return false;
     }
     return true;
