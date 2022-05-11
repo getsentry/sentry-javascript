@@ -45,11 +45,9 @@ export function isRateLimited(limits: RateLimits, category: string, now: number 
  */
 export function updateRateLimits(
   limits: RateLimits,
-  newRateLimitParameters: TransportMakeRequestResponse,
+  { statusCode, headers }: TransportMakeRequestResponse,
   now: number = Date.now(),
 ): RateLimits {
-  const { statusCode, headers } = newRateLimitParameters;
-
   const updatedRateLimits: RateLimits = {
     ...limits,
   };
