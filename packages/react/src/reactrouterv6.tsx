@@ -1,4 +1,5 @@
 import { Transaction, TransactionContext } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
 
@@ -28,6 +29,8 @@ type UseNavigationType = () => Action;
 type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObject[];
 type MatchRoutes = (routes: RouteObject[], location: Location) => RouteMatch[] | null;
 
+let activeTransaction: Transaction | undefined;
+
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
 let _useNavigationType: UseNavigationType;
@@ -35,7 +38,20 @@ let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
 let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let _startTransactionOnLocationChange: boolean;
-let _startTransactionOnPageLoad: boolean;
+
+const global = getGlobalObject<Window>();
+
+const SENTRY_TAGS = {
+  'routing.instrumentation': 'react-router-v6',
+};
+
+function getInitPathName(): string | undefined {
+  if (global && global.location) {
+    return global.location.pathname;
+  }
+
+  return undefined;
+}
 
 export function reactRouterV6Instrumentation(
   useEffect: UseEffect,
@@ -49,6 +65,15 @@ export function reactRouterV6Instrumentation(
     startTransactionOnPageLoad = true,
     startTransactionOnLocationChange = true,
   ): void => {
+    const initPathName = getInitPathName();
+    if (startTransactionOnPageLoad && initPathName) {
+      activeTransaction = customStartTransaction({
+        name: initPathName,
+        op: 'pageload',
+        tags: SENTRY_TAGS,
+      });
+    }
+
     _useEffect = useEffect;
     _useLocation = useLocation;
     _useNavigationType = useNavigationType;
@@ -57,7 +82,6 @@ export function reactRouterV6Instrumentation(
 
     _customStartTransaction = customStartTransaction;
     _startTransactionOnLocationChange = startTransactionOnLocationChange;
-    _startTransactionOnPageLoad = startTransactionOnPageLoad;
   };
 }
 
@@ -80,10 +104,6 @@ const getTransactionName = (routes: RouteObject[], location: Location, matchRout
   return location.pathname;
 };
 
-const SENTRY_TAGS = {
-  'routing.instrumentation': 'react-router-v6',
-};
-
 export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
   if (
     !_useEffect ||
@@ -98,7 +118,6 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
   }
 
   let isBaseLocation: boolean = false;
-  let activeTransaction: Transaction | undefined;
   let routes: RouteObject[];
 
   const SentryRoutes: React.FC<P> = (props: P) => {
@@ -111,13 +130,10 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       routes = _createRoutesFromChildren(props.children);
       isBaseLocation = true;
 
-      if (_startTransactionOnPageLoad) {
-        activeTransaction = _customStartTransaction({
-          name: getTransactionName(routes, location, _matchRoutes),
-          op: 'pageload',
-          tags: SENTRY_TAGS,
-        });
+      if (activeTransaction) {
+        activeTransaction.setName(getTransactionName(routes, location, _matchRoutes));
       }
+
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.children]);
 
