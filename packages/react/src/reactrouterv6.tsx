@@ -1,8 +1,9 @@
 import { Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
 
+import { IS_DEBUG_BUILD } from './flags';
 import { Action, Location } from './types';
 
 interface RouteObject {
@@ -113,7 +114,9 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     !_matchRoutes ||
     !_customStartTransaction
   ) {
-    // Log warning?
+    IS_DEBUG_BUILD &&
+      logger.warn('reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.');
+
     return Routes;
   }
 
