@@ -127,6 +127,8 @@ jobs:
           echo "Preparing directory containing Node SDK Lambda Layer"
           echo "#########  1  ##########"
           ls -alh dist-serverless/
+          echo "SDK_VERSION=${{ env.SDK_VERSION }}"
+          echo "SDK_VERSION=${{ env.SDK_VERSION }}" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v3
         with:
