@@ -175,44 +175,12 @@ jobs:
   #     - name: Run madge
   #       run: yarn circularDepCheck
 
-  # job_artifacts:
-  #   name: Upload Artifacts
-  #   needs: job_build
-  #   runs-on: ubuntu-latest
-  #   # Build artifacts are only needed for releasing workflow.
-  #   if: startsWith(github.ref, 'refs/heads/release/')
-  #   steps:
-  #     - name: Check out current commit (${{ github.sha }})
-  #       uses: actions/checkout@v2
-  #     - name: Set up Node
-  #       uses: actions/setup-node@v1
-  #     - name: Check dependency cache
-  #       uses: actions/cache@v2
-  #       with:
-  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
-  #     - name: Check build cache
-  #       uses: actions/cache@v2
-  #       with:
-  #         path: ${{ env.CACHED_BUILD_PATHS }}
-  #         key: ${{ env.BUILD_CACHE_KEY }}
-  #     - name: Pack
-  #       run: yarn build:npm
-  #     - name: Archive artifacts
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: ${{ github.sha }}
-  #         path: |
-  #           ${{ github.workspace }}/packages/browser/build/bundles/**
-  #           ${{ github.workspace }}/packages/integrations/build/bundles/**
-  #           ${{ github.workspace }}/packages/tracing/build/bundles/**
-  #           ${{ github.workspace }}/packages/**/*.tgz
-  #           ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
-
-  job_build_aws_lambda_layer:
-    name: Build AWS Lambda Layer
+  job_artifacts:
+    name: Upload Artifacts
     needs: job_build
     runs-on: ubuntu-latest
+    # Build artifacts are only needed for releasing workflow.
+    if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
@@ -228,8 +196,33 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Pack
+        run: yarn build:npm
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/packages/browser/build/bundles/**
+            ${{ github.workspace }}/packages/integrations/build/bundles/**
+            ${{ github.workspace }}/packages/tracing/build/bundles/**
+            ${{ github.workspace }}/packages/**/*.tgz
+            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/**
+
+  job_build_aws_lambda_layer:
+    name: Build AWS Lambda Layer
+    needs: job_artifacts
+    runs-on: ubuntu-latest
+    steps:
       - run: |
           echo "Preparing directory containing Node SDK Lambda Layer"
+          echo "#########  1  ##########"
+          ls -alh ${{ github.workspace }}/
+          echo "#########  2  ##########"
+          ls -alh ${{ github.workspace }}/packages/
+          echo "#########  3  ##########"
+          ls -alh ${{ github.workspace }}/packages/serverless/
+          echo "#########  4  ##########"
           ls -alh ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
 
           mkdir dist-serverless
