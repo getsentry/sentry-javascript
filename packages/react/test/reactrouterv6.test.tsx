@@ -140,7 +140,7 @@ describe('React Router v6', () => {
     });
   });
 
-  it('works with original paths', () => {
+  it('works with paramaterized paths', () => {
     const [mockStartTransaction] = createInstrumentation();
     const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
