@@ -29,7 +29,6 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
@@ -91,7 +90,7 @@ jobs:
         # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
         # this file) to a constant and skip rebuilding all of the packages each time CI runs.
         if: steps.cache_built_packages.outputs.cache-hit == ''
-        run: yarn build
+        run: yarn build:dev # TODO: !!!! REMOVE `:dev` again !!!!
         # We are performing a `prepublishOnly` step manually because build workflow is not responsible for publishing
         # the actual release. It only creates artifacts which then are uploaded and used by another workflow.
         # Because of that, any `prepublishOnly` script is skipped and files it produces are not included in the tarball.
@@ -100,395 +99,451 @@ jobs:
       - name: Run prepublishOnly script
         if: startsWith(github.ref, 'refs/heads/release/')
         run: yarn prepublishOnly
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.HEAD_COMMIT }}
+          path: |
+            packages/serverless/dist-awslambda-layer/*
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  job_size_check:
-    name: Size Check
-    needs: job_build
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '12'
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Check bundle sizes
-        uses: getsentry/size-limit-action@v4
-        # Don't run size check on release branches - at that point, we're already committed
-        if: ${{ !startsWith(github.ref, 'refs/heads/release/') }}
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          skip_step: build
 
-  job_lint:
-    name: Lint
-    needs: job_build
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run linter
-        run: yarn lint
 
-  job_circular_dep_check:
-    name: Circular Dependency Check
-    needs: job_build
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run madge
-        run: yarn circularDepCheck
 
-  job_artifacts:
-    name: Upload Artifacts
+  job_build_aws_lambda_layer:
+    name: Build AWS Lambda Layer
     needs: job_build
     runs-on: ubuntu-latest
-    # Build artifacts are only needed for releasing workflow.
-    if: startsWith(github.ref, 'refs/heads/release/')
     steps:
-      - name: Check out current commit (${{ github.sha }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Pack
-        run: yarn build:npm
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+    - uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.HEAD_COMMIT }}
+      - run: |
+          echo "Preparing directory containing Node SDK Lambda Layer"
+          echo "#########  1  ##########"
+          ls -alh ${{ github.workspace }}/
+          echo "#########  2  ##########"
+          ls -alh ${{ github.workspace }}/packages/
+          echo "#########  3  ##########"
+          ls -alh ${{ github.workspace }}/packages/serverless/
+          echo "#########  4  ##########"
+          ls -alh ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
+
+          mkdir dist-serverless
+          cp -r ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/* dist-serverless/
+
+          echo "Saving SDK_VERSION for later"
+          export SDK_VERSION=$(cat packages/core/src/version.ts | cut -f5 -d' ' | tr -d "'" | tr -d ";")
+          echo "SDK_VERSION=$SDK_VERSION"
+          echo "SDK_VERSION=$SDK_VERSION" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ github.sha }}
           path: |
-            ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/integrations/build/bundles/**
-            ${{ github.workspace }}/packages/tracing/build/bundles/**
-            ${{ github.workspace }}/packages/**/*.tgz
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+            dist-serverless/*
 
-  job_unit_test:
-    name: Test (Node ${{ matrix.node }})
-    needs: job_build
-    continue-on-error: true
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [8, 10, 12, 14, 16]
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
+      - uses: getsentry/action-build-aws-lambda-extension@v1
         with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node }}
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run tests
-        env:
-          NODE_VERSION: ${{ matrix.node }}
-        run: |
-          [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.x
-          yarn test-ci
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v1
+          artifact_name: ${{ github.sha }}
+          zip_file_name: sentry-python-serverless-${{ env.SDK_VERSION }}.zip
 
-  job_nextjs_integration_test:
-    name: Test @sentry/nextjs on (Node ${{ matrix.node }})
-    needs: job_build
-    continue-on-error: true
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [10, 12, 14, 16]
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node }}
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run tests
-        env:
-          NODE_VERSION: ${{ matrix.node }}
-        run: |
-          cd packages/nextjs
-          yarn test:integration
 
-  # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
-  # separate job allows them to run in parallel with the other tests.
-  job_ember_tests:
-    name: Test @sentry/ember
-    needs: job_build
-    continue-on-error: true
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-        # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
-        # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
-        # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
-        # well, we can pull it out.
-          fetch-depth: 0
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          # The only danger with Ember in terms of Node versions is that the build tool, ember-cli, won't work if Node
-          # is too old. Since Oct 2019, Node 10 has been the oldest version supported by ember-cli, so test against
-          # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
-          # tests in our Node matrix above.
-          node-version: '10'
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run Ember tests
-        run: yarn test --scope=@sentry/ember
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v1
 
-  job_browser_playwright_tests:
-    name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
-    needs: job_build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        bundle:
-          - esm
-          - cjs
-          - bundle_es5
-          - bundle_es5_min
-          - bundle_es6
-          - bundle_es6_min
-        tracing_only:
-          - true
-          - false
-        exclude:
-          # `tracing_only` only makes a difference for bundles - tests of the esm and cjs builds always include the
-          # tracing tests
-          - bundle: esm
-            tracing_only: false
-          - bundle: cjs
-            tracing_only: false
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '16'
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run Playwright tests
-        env:
-          PW_BUNDLE: ${{ matrix.bundle }}
-          PW_TRACING_ONLY: ${{ matrix.tracing_only }}
-        run: |
-          cd packages/integration-tests
-          yarn run playwright install-deps webkit
-          yarn test:ci
 
-  job_browser_integration_tests:
-    name: Old Browser Integration Tests (${{ matrix.browser }})
-    needs: job_build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true
-    strategy:
-      matrix:
-        browser:
-          - ChromeHeadless
-          - FirefoxHeadless
-          - WebkitHeadless
-    steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run integration tests
-        env:
-          KARMA_BROWSER: ${{ matrix.browser }}
-        run: |
-          cd packages/browser
-          [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
-          yarn test:integration
 
-  job_browser_build_tests:
-    name: Browser Build Tests
-    needs: job_build
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: true
-    steps:
-      - name: Check out current commit (${ env.HEAD_COMMIT }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '16'
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run browser build tests
-        run: |
-          cd packages/browser
-          yarn test:package
-      - name: Run utils build tests
-        run: |
-          cd packages/utils
-          yarn test:package
 
-  job_node_integration_tests:
-    name: Node SDK Integration Tests (${{ matrix.node }})
-    needs: job_build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true
-    strategy:
-      matrix:
-        node: [10, 12, 14, 16]
-    steps:
-      - name: Check out current commit (${{ github.sha }})
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node }}
-      - name: Check dependency cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run integration tests
-        env:
-          NODE_VERSION: ${{ matrix.node }}
-        run: |
-          cd packages/node-integration-tests
-          yarn test
+
+
+
+
+
+  # job_size_check:
+  #   name: Size Check
+  #   needs: job_build
+  #   timeout-minutes: 15
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: '12'
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Check bundle sizes
+  #       uses: getsentry/size-limit-action@v4
+  #       # Don't run size check on release branches - at that point, we're already committed
+  #       if: ${{ !startsWith(github.ref, 'refs/heads/release/') }}
+  #       with:
+  #         github_token: ${{ secrets.GITHUB_TOKEN }}
+  #         skip_step: build
+
+  # job_lint:
+  #   name: Lint
+  #   needs: job_build
+  #   timeout-minutes: 10
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run linter
+  #       run: yarn lint
+
+  # job_circular_dep_check:
+  #   name: Circular Dependency Check
+  #   needs: job_build
+  #   timeout-minutes: 10
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run madge
+  #       run: yarn circularDepCheck
+
+  # job_artifacts:
+  #   name: Upload Artifacts
+  #   needs: job_build
+  #   runs-on: ubuntu-latest
+  #   # Build artifacts are only needed for releasing workflow.
+  #   if: startsWith(github.ref, 'refs/heads/release/')
+  #   steps:
+  #     - name: Check out current commit (${{ github.sha }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Pack
+  #       run: yarn build:npm
+  #     - name: Archive artifacts
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: ${{ github.sha }}
+  #         path: |
+  #           ${{ github.workspace }}/packages/browser/build/bundles/**
+  #           ${{ github.workspace }}/packages/integrations/build/bundles/**
+  #           ${{ github.workspace }}/packages/tracing/build/bundles/**
+  #           ${{ github.workspace }}/packages/**/*.tgz
+  #           ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+
+  # job_unit_test:
+  #   name: Test (Node ${{ matrix.node }})
+  #   needs: job_build
+  #   continue-on-error: true
+  #   timeout-minutes: 30
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       node: [8, 10, 12, 14, 16]
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: ${{ matrix.node }}
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run tests
+  #       env:
+  #         NODE_VERSION: ${{ matrix.node }}
+  #       run: |
+  #         [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.x
+  #         yarn test-ci
+  #     - name: Compute test coverage
+  #       uses: codecov/codecov-action@v1
+
+  # job_nextjs_integration_test:
+  #   name: Test @sentry/nextjs on (Node ${{ matrix.node }})
+  #   needs: job_build
+  #   continue-on-error: true
+  #   timeout-minutes: 30
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       node: [10, 12, 14, 16]
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: ${{ matrix.node }}
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run tests
+  #       env:
+  #         NODE_VERSION: ${{ matrix.node }}
+  #       run: |
+  #         cd packages/nextjs
+  #         yarn test:integration
+
+  # # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
+  # # separate job allows them to run in parallel with the other tests.
+  # job_ember_tests:
+  #   name: Test @sentry/ember
+  #   needs: job_build
+  #   continue-on-error: true
+  #   timeout-minutes: 30
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #         # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
+  #         # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
+  #         # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
+  #         # well, we can pull it out.
+  #         fetch-depth: 0
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         # The only danger with Ember in terms of Node versions is that the build tool, ember-cli, won't work if Node
+  #         # is too old. Since Oct 2019, Node 10 has been the oldest version supported by ember-cli, so test against
+  #         # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
+  #         # tests in our Node matrix above.
+  #         node-version: '10'
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run Ember tests
+  #       run: yarn test --scope=@sentry/ember
+  #     - name: Compute test coverage
+  #       uses: codecov/codecov-action@v1
+
+  # job_browser_playwright_tests:
+  #   name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
+  #   needs: job_build
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       bundle:
+  #         - esm
+  #         - cjs
+  #         - bundle_es5
+  #         - bundle_es5_min
+  #         - bundle_es6
+  #         - bundle_es6_min
+  #       tracing_only:
+  #         - true
+  #         - false
+  #       exclude:
+  #         # `tracing_only` only makes a difference for bundles - tests of the esm and cjs builds always include the
+  #         # tracing tests
+  #         - bundle: esm
+  #           tracing_only: false
+  #         - bundle: cjs
+  #           tracing_only: false
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: '16'
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run Playwright tests
+  #       env:
+  #         PW_BUNDLE: ${{ matrix.bundle }}
+  #         PW_TRACING_ONLY: ${{ matrix.tracing_only }}
+  #       run: |
+  #         cd packages/integration-tests
+  #         yarn run playwright install-deps webkit
+  #         yarn test:ci
+
+  # job_browser_integration_tests:
+  #   name: Old Browser Integration Tests (${{ matrix.browser }})
+  #   needs: job_build
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 10
+  #   continue-on-error: true
+  #   strategy:
+  #     matrix:
+  #       browser:
+  #         - ChromeHeadless
+  #         - FirefoxHeadless
+  #         - WebkitHeadless
+  #   steps:
+  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run integration tests
+  #       env:
+  #         KARMA_BROWSER: ${{ matrix.browser }}
+  #       run: |
+  #         cd packages/browser
+  #         [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
+  #         yarn test:integration
+
+  # job_browser_build_tests:
+  #   name: Browser Build Tests
+  #   needs: job_build
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 5
+  #   continue-on-error: true
+  #   steps:
+  #     - name: Check out current commit (${ env.HEAD_COMMIT }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: '16'
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run browser build tests
+  #       run: |
+  #         cd packages/browser
+  #         yarn test:package
+  #     - name: Run utils build tests
+  #       run: |
+  #         cd packages/utils
+  #         yarn test:package
+
+  # job_node_integration_tests:
+  #   name: Node SDK Integration Tests (${{ matrix.node }})
+  #   needs: job_build
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 10
+  #   continue-on-error: true
+  #   strategy:
+  #     matrix:
+  #       node: [10, 12, 14, 16]
+  #   steps:
+  #     - name: Check out current commit (${{ github.sha }})
+  #       uses: actions/checkout@v2
+  #       with:
+  #         ref: ${{ env.HEAD_COMMIT }}
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: ${{ matrix.node }}
+  #     - name: Check dependency cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
+  #     - name: Check build cache
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ${{ env.CACHED_BUILD_PATHS }}
+  #         key: ${{ env.BUILD_CACHE_KEY }}
+  #     - name: Run integration tests
+  #       env:
+  #         NODE_VERSION: ${{ matrix.node }}
+  #       run: |
+  #         cd packages/node-integration-tests
+  #         yarn test
