@@ -100,16 +100,10 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/release/')
         run: yarn prepublishOnly
       - run: |
-          echo "Checking directories"
-          echo "### 0 ###"
-          ls -alh
-          echo "### 1 ###"
-          ls -alh packages/
-          echo "### 2 ###"
-          ls -alh packages/serverless/
-          echo "### 3 ###"
-          ls -alh packages/serverless/dist-awslambda-layer/
-
+          echo "Saving SDK_VERSION for later"
+          export SDK_VERSION=$(cat packages/core/src/version.ts | cut -f5 -d' ' | tr -d "'" | tr -d ";")
+          echo "SDK_VERSION=$SDK_VERSION"
+          echo "SDK_VERSION=$SDK_VERSION" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.HEAD_COMMIT }}
@@ -128,35 +122,22 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ${{ env.HEAD_COMMIT }}
+          path: dist-serverless/
       - run: |
           echo "Preparing directory containing Node SDK Lambda Layer"
           echo "#########  1  ##########"
-          ls -alh ${{ github.workspace }}/
-          echo "#########  2  ##########"
-          ls -alh ${{ github.workspace }}/packages/
-          echo "#########  3  ##########"
-          ls -alh ${{ github.workspace }}/packages/serverless/
-          echo "#########  4  ##########"
-          ls -alh ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/
-
-          mkdir dist-serverless
-          cp -r ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/* dist-serverless/
-
-          echo "Saving SDK_VERSION for later"
-          export SDK_VERSION=$(cat packages/core/src/version.ts | cut -f5 -d' ' | tr -d "'" | tr -d ";")
-          echo "SDK_VERSION=$SDK_VERSION"
-          echo "SDK_VERSION=$SDK_VERSION" >> $GITHUB_ENV
+          ls -alh dist-serverless/
 
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.sha }}
+          name: ${{ env.HEAD_COMMIT }}
           path: |
             dist-serverless/*
 
       - uses: getsentry/action-build-aws-lambda-extension@v1
         with:
-          artifact_name: ${{ github.sha }}
-          zip_file_name: sentry-python-serverless-${{ env.SDK_VERSION }}.zip
+          artifact_name: ${{ env.HEAD_COMMIT }}
+          zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
 
   # job_size_check:
   #   name: Size Check
