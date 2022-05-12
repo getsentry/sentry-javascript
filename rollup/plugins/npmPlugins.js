@@ -58,7 +58,7 @@ export function makeConstToVarPlugin() {
 export function makeDebuggerPlugin(hookName) {
   return {
     name: 'debugger-plugin',
-    [hookName]: () => {
+    [hookName]: (..._args) => {
       // eslint-disable-next-line no-debugger
       debugger;
       return null;
