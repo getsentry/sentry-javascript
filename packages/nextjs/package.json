@@ -25,10 +25,10 @@
     "@sentry/tracing": "7.0.0-beta.0",
     "@sentry/utils": "7.0.0-beta.0",
     "@sentry/webpack-plugin": "1.18.9",
+    "@sentry/types": "7.0.0-beta.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/types": "7.0.0-beta.0",
     "@types/webpack": "^4.41.31",
     "next": "10.1.3"
   },
