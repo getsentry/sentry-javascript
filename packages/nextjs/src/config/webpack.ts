@@ -29,7 +29,7 @@ export { SentryWebpackPlugin };
  * Sets:
  *   - `devtool`, to ensure high-quality sourcemaps are generated
  *   - `entry`, to include user's sentry config files (where `Sentry.init` is called) in the build
- *   - `plugins`, to add SentryWebpackPlugin (TODO: optional)
+ *   - `plugins`, to add SentryWebpackPlugin
  *
  * @param userNextConfig The user's existing nextjs config, as passed to `withSentryConfig`
  * @param userSentryWebpackPluginOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
