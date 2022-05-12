@@ -12,6 +12,7 @@ scratch/
 *.pyc
 *.tsbuildinfo
 scenarios/*/dist/
+dist-serverless/
 # transpiled transformers
 jest/transformers/*.js
 # node tarballs
@@ -26,6 +27,7 @@ local.log
 # ide
 .idea
 *.sublime-*
+.vscode/
 
 # misc
 .DS_Store
