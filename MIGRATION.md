@@ -340,6 +340,7 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
 - Remove `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages.
 - Removed `eventStatusFromHttpCode` to save on bundle size.
 - Replace `BrowserTracing` `maxTransactionDuration` option with `finalTimeout` option
+- Removed `ignoreSentryErrors` option from AWS lambda SDK. Errors originating from the SDK will now *always* be caught internally.
 
 ## Sentry Angular SDK Changes
 

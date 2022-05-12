@@ -54,7 +54,6 @@ export interface WrapperOptions {
    * @default false
    */
   captureAllSettledReasons: boolean;
-  ignoreSentryErrors: boolean;
 }
 
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
@@ -226,7 +225,6 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
-    ignoreSentryErrors: true,
     ...wrapOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
