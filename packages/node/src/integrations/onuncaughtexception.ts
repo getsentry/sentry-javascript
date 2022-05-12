@@ -7,7 +7,7 @@ import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
-/** Global Promise Rejection handler */
+/** Global Exception handler */
 export class OnUncaughtException implements Integration {
   /**
    * @inheritDoc
