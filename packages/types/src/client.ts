@@ -97,7 +97,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   flush(timeout?: number): PromiseLike<boolean>;
 
-  /** Returns an array of installed integrations on the client. */
+  /** Returns the client's instance of the given integration class, it any. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
   /** This is an internal function to setup all integrations that should run on the client */
