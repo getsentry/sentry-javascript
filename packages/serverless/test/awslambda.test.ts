@@ -306,6 +306,21 @@ describe('AWSLambda', () => {
         expect(Sentry.flush).toBeCalled();
       }
     });
+
+    test('should not throw when flush rejects', async () => {
+      const handler: Handler = async () => {
+        // Friendly handler with no errors :)
+        return 'some string';
+      };
+
+      const wrappedHandler = wrapHandler(handler);
+
+      jest.spyOn(Sentry, 'flush').mockImplementationOnce(async () => {
+        throw new Error();
+      });
+
+      await expect(wrappedHandler(fakeEvent, fakeContext, fakeCallback)).resolves.toBe('some string');
+    });
   });
 
   describe('wrapHandler() on async handler with a callback method (aka incorrect usage)', () => {
