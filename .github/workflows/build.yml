@@ -17,7 +17,6 @@ env:
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/**/node_modules
-    ${{ github.workspace }}/dist-serverless
     ~/.cache/ms-playwright/
     ~/.cache/mongodb-binaries/
 
@@ -31,6 +30,7 @@ env:
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/gatsby/*.d.ts
     ${{ github.workspace }}/packages/core/src/version.ts
+    ${{ github.workspace }}/dist-serverless
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
