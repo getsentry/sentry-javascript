@@ -26,9 +26,11 @@
     "@types/express": "^4.17.1"
   },
   "scripts": {
-    "build": "run-p build:rollup build:types build:bundle && ts-node ../../scripts/prepack.ts --bundles #necessary for integration tests",
+    "build": "run-p build:rollup build:types build:bundle && yarn build:extras #necessary for integration tests",
     "build:bundle": "rollup --config rollup.bundle.config.js",
     "build:dev": "run-p build:rollup build:types",
+    "build:extras": "yarn build:prepack",
+    "build:prepack": "ts-node ../../scripts/prepack.ts --bundles",
     "build:rollup": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:rollup:watch build:bundle:watch build:types:watch",
