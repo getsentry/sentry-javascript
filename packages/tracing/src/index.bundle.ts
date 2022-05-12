@@ -75,10 +75,10 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations };
-// Though in this case exporting this separately in addition to exporting it as part of `Sentry.Integrations` doesn't
-// gain us any bundle size advantage (we're making the bundle here, not the user, and we can't leave anything out of
-// ours), it does bring the API for using the integration in line with that recommended for users bundling Sentry
-// themselves.
+// Though in this case exporting `BrowserTracing` separately (in addition to exporting it as part of
+// `Sentry.Integrations`) doesn't gain us any bundle size advantage (we're making the bundle here, not the user, and we
+// can't leave anything out of ours), it does bring the API for using the integration in line with that recommended for
+// users bundling Sentry themselves.
 export { BrowserTracing };
 
 // We are patching the global object with our hub extension methods
