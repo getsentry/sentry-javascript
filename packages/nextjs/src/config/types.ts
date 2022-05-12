@@ -22,15 +22,15 @@ export type NextConfigFunctionWithSentry = (
 ) => NextConfigObjectWithSentry;
 
 export type NextConfigObject = {
-  // custom webpack options
+  // Custom webpack options
   webpack?: WebpackConfigFunction;
-  // whether to build serverless functions for all pages, not just API routes
+  // Whether to build serverless functions for all pages, not just API routes. Removed in nextjs 12+.
   target?: 'server' | 'experimental-serverless-trace';
-  // the output directory for the built app (defaults to ".next")
+  // The output directory for the built app (defaults to ".next")
   distDir?: string;
-  // the root at which the nextjs app will be served (defaults to "/")
+  // The root at which the nextjs app will be served (defaults to "/")
   basePath?: string;
-  // config which will be available at runtime
+  // Config which will be available at runtime
   publicRuntimeConfig?: { [key: string]: unknown };
 };
 
@@ -39,6 +39,9 @@ export type UserSentryOptions = {
   // the plugin to be enabled, even in situations where it's not recommended.
   disableServerWebpackPlugin?: boolean;
   disableClientWebpackPlugin?: boolean;
+
+  // Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
+  // JS files
   hideSourceMaps?: boolean;
 
   // Force webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when targeting
@@ -64,9 +67,8 @@ export type NextConfigFunction = (phase: string, defaults: { defaultConfig: Next
  * Webpack config
  */
 
-// the format for providing custom webpack config in your nextjs options
+// The two possible formats for providing custom webpack config in `next.config.js`
 export type WebpackConfigFunction = (config: WebpackConfigObject, options: BuildContext) => WebpackConfigObject;
-
 export type WebpackConfigObject = {
   devtool?: string;
   plugins?: Array<WebpackPluginInstance | SentryWebpackPlugin>;
@@ -81,7 +83,7 @@ export type WebpackConfigObject = {
     rules: Array<WebpackModuleRule>;
   };
 } & {
-  // other webpack options
+  // Other webpack options
   [key: string]: unknown;
 };
 
