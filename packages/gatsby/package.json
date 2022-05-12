@@ -22,6 +22,7 @@
   "dependencies": {
     "@sentry/react": "7.0.0-beta.0",
     "@sentry/tracing": "7.0.0-beta.0",
+    "@sentry/types": "7.0.0-beta.0",
     "@sentry/utils": "7.0.0-beta.0",
     "@sentry/webpack-plugin": "1.18.9"
   },
@@ -30,7 +31,6 @@
     "react": "15.x || 16.x || 17.x || 18.x"
   },
   "devDependencies": {
-    "@sentry/types": "7.0.0-beta.0",
     "@testing-library/react": "^13.0.0",
     "react": "^18.0.0"
   },
