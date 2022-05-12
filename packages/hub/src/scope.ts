@@ -441,11 +441,10 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Applies the current context and fingerprint to the event.
-   * Note that breadcrumbs will be added by the client.
-   * Also if the event has already breadcrumbs on it, we do not merge them.
+   * Applies data from the scope to the event and runs all event processors on it.
+   *
    * @param event Event
-   * @param hint May contain additional information about the original exception.
+   * @param hint Object containing additional information about the original exception, for use by the event processors.
    * @hidden
    */
   public applyToEvent(event: Event, hint: EventHint = {}): PromiseLike<Event | null> {
