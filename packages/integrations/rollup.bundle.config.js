@@ -16,6 +16,7 @@ const baseBundleConfig = makeBaseBundleConfig({
 });
 
 // TODO We only need `commonjs` for localforage (used in the offline plugin). Once that's fixed, this can come out.
+// CommonJS plugin docs: https://github.com/rollup/plugins/tree/master/packages/commonjs
 baseBundleConfig.plugins = insertAt(baseBundleConfig.plugins, -2, commonjs());
 
 // this makes non-minified, minified, and minified-with-debug-logging versions of each bundle
