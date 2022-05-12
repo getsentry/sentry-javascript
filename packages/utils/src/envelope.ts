@@ -41,12 +41,15 @@ interface TextEncoderInternal extends TextEncoderCommon {
   encode(input?: string): Uint8Array;
 }
 
+function encodeUTF8(input: string, textEncoder?: TextEncoderInternal): Uint8Array {
+  const utf8 = textEncoder || new TextEncoder();
+  return utf8.encode(input);
+}
+
 /**
  * Serializes an envelope.
  */
 export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderInternal): string | Uint8Array {
-  const utf8 = textEncoder || new TextEncoder();
-
   const [envHeaders, items] = envelope;
 
   // Initially we construct our envelope as a string and only convert to binary chunks if we encounter binary data
@@ -54,9 +57,9 @@ export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderI
 
   function append(next: string | Uint8Array): void {
     if (typeof parts === 'string') {
-      parts = typeof next === 'string' ? parts + next : [utf8.encode(parts), next];
+      parts = typeof next === 'string' ? parts + next : [encodeUTF8(parts, textEncoder), next];
     } else {
-      parts.push(typeof next === 'string' ? utf8.encode(next) : next);
+      parts.push(typeof next === 'string' ? encodeUTF8(next, textEncoder) : next);
     }
   }
 

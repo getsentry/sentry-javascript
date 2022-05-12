@@ -1,5 +1,5 @@
 import { Session } from '@sentry/hub';
-import { ClientOptions, Event, Integration, Outcome, Severity, SeverityLevel } from '@sentry/types';
+import { ClientOptions, Event, Integration, Outcome, Severity, SeverityLevel, EventHint } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
@@ -68,10 +68,10 @@ export class TestClient extends BaseClient<TestClientOptions> {
     return resolvedSyncPromise({ message, level });
   }
 
-  public sendEvent(event: Event): void {
+  public sendEvent(event: Event, hint?: EventHint): void {
     this.event = event;
     if (this._options.enableSend) {
-      super.sendEvent(event);
+      super.sendEvent(event, hint);
       return;
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions

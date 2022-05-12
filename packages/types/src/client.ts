@@ -116,7 +116,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   ): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
-  sendEvent(event: Event): void;
+  sendEvent(event: Event, hint?: EventHint): void;
 
   /** Submits the session to Sentry */
   sendSession(session: Session | SessionAggregates): void;

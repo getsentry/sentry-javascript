@@ -1,6 +1,6 @@
 import { initAndBind, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
-import { Attachment, Integration } from '@sentry/types';
+import { Integration, EventHint } from '@sentry/types';
 import * as domain from 'domain';
 
 import {
@@ -76,7 +76,7 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.SpyInstance<void, [Event, Attachment[]?]>;
+    let s: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -107,7 +107,7 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.SpyInstance<void, [Event, Attachment[]?]>;
+    let s: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));

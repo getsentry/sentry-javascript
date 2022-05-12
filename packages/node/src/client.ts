@@ -138,12 +138,12 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
+  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'node';
     if (this.getOptions().serverName) {
       event.server_name = this.getOptions().serverName;
     }
-    return super._prepareEvent(event, scope, hint);
+    return super._prepareEvent(event, hint, scope);
   }
 
   /**

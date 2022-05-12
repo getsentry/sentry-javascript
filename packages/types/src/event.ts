@@ -1,3 +1,4 @@
+import { Attachment } from './attachment';
 import { Breadcrumb } from './breadcrumb';
 import { Contexts } from './context';
 import { DebugMeta } from './debugMeta';
@@ -56,5 +57,6 @@ export interface EventHint {
   captureContext?: CaptureContext;
   syntheticException?: Error | null;
   originalException?: Error | string | null;
+  attachments?: Attachment[];
   data?: any;
 }
