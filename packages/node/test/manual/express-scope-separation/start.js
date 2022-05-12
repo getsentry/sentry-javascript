@@ -2,13 +2,14 @@ const http = require('http');
 const express = require('express');
 const app = express();
 const Sentry = require('../../../build/cjs');
+const { colorize } = require('../colorize');
 
 // don't log the test errors we're going to throw, so at a quick glance it doesn't look like the test itself has failed
 global.console.error = () => null;
 
 function assertTags(actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    console.error('FAILED: Scope contains incorrect tags');
+    console.log(colorize('FAILED: Scope contains incorrect tags\n', 'red'));
     process.exit(1);
   }
 }
@@ -20,7 +21,7 @@ function makeDummyTransport() {
     --remaining;
 
     if (!remaining) {
-      console.error('SUCCESS: All scopes contain correct tags');
+      console.log(colorize('PASSED: All scopes contain correct tags\n', 'green'));
       server.close();
       process.exit(0);
     }
