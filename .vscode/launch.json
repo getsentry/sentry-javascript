@@ -2,13 +2,17 @@
   // Use IntelliSense to learn about possible Node.js debug attributes.
   // Hover to view descriptions of existing attributes.
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  // For available variables, visit: https://code.visualstudio.com/docs/editor/variables-reference
   "version": "0.2.0",
   "inputs": [
     {
+      // Get the name of the package containing the file in the active tab.
       "id": "getPackageName",
       "type": "command",
       "command": "shellCommand.execute",
       "args": {
+        // Get the current file's absolute path, chop off everything up to and including the repo's `packages`
+        // directory, then split on `/` and take the first entry
         "command": "echo '${file}' | sed s/'.*sentry-javascript\\/packages\\/'// | grep --extended-regexp --only-matching --max-count 1 '[^\\/]+' | head -1",
         "cwd": "${workspaceFolder}",
         // normally `input` commands bring up a selector for the user, but given that there should only be one
