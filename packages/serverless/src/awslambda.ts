@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isString, logger, SentryError } from '@sentry/utils';
+import { isString, logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -318,11 +318,7 @@ export function wrapHandler<TEvent, TResult>(
       transaction.finish();
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
-        if (options.ignoreSentryErrors && e instanceof SentryError) {
-          IS_DEBUG_BUILD && logger.error(e);
-          return;
-        }
-        throw e;
+        IS_DEBUG_BUILD && logger.error(e);
       });
     }
     return rv;
