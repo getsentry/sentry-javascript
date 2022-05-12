@@ -1,5 +1,3 @@
-import { setPrototypeOf } from './polyfill';
-
 /** An error emitted by Sentry SDKs and related utilities. */
 export class SentryError extends Error {
   /** Display name of this error instance. */
@@ -9,6 +7,6 @@ export class SentryError extends Error {
     super(message);
 
     this.name = new.target.prototype.constructor.name;
-    setPrototypeOf(this, new.target.prototype);
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
