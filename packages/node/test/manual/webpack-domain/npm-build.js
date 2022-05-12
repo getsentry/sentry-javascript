@@ -39,7 +39,7 @@ webpack(
 
 function runTests() {
   try {
-    execSync('node ' + path.resolve(__dirname, 'dist', 'bundle.js'));
+    execSync('node ' + path.resolve(__dirname, 'dist', 'bundle.js'), { stdio: 'inherit' });
   } catch (_) {
     process.exit(1);
   }
