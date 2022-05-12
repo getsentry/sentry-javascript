@@ -4,6 +4,24 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.0.0-beta.1
+
+- **(breaking)** ref: Remove critical severity (#5032)
+- **(breaking)** ref: Delete unneeded SDK_NAME (#5040)
+- **(breaking)** ref(browser): Rename UserAgent integration to HttpContext (#5027)
+- **(breaking)** ref(hub): Convert Session class to object and functions (#5054)
+- **(breaking)** ref(node): Explicitly pass down node transport options (#5057)
+- **(breaking)** ref(tracing): Reset IdleTimeout based on activities count (#5044)
+- ref(browser): Unify BrowserTransportOptions (#5058)
+- feat(build): Vendor polyfills injected during build (#5051)
+- ref(core): Log warning on NOK transport response (#5091)
+- fix(integrations): Mark ExtraErrorData as already normalized (#5053)
+- feat(react): Add react-router-v6 integration (#5042)
+- fix(tracing): Remove isInstanceOf check in Hub constructor (#5046)
+- fix(utils): Consider 429 responses in transports (#5062)
+- ref(utils): Clean up dangerous type casts in object helper file (#5047)
+- ref(utils): Add logic to enable skipping of normalization (#5052)
+
 ## 7.0.0-beta.0
 
 - **(breaking)**: ref: Make it easier to use stackParser (#5015)
