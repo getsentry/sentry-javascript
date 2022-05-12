@@ -4,7 +4,6 @@
     "build": "node ./scripts/verify-packages-versions.js && lerna run --stream --concurrency 1 --sort build",
     "build:bundle": "lerna run --parallel build:bundle",
     "build:dev": "lerna run --stream --concurrency 1 --sort build:dev",
-    "build:dev:filter": "lerna run --stream --concurrency 1 --sort build:dev --include-filtered-dependencies --include-filtered-dependents --scope",
     "build:rollup": "lerna run --stream --concurrency 1 --sort build:rollup",
     "build:types": "lerna run --stream --concurrency 1 --sort build:types",
     "build:watch": "lerna run --parallel build:watch",
