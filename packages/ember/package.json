@@ -20,7 +20,6 @@
     "build": "ember build --environment=production",
     "build:npm": "ember ts:precompile && npm pack && ember ts:clean",
     "clean": "yarn rimraf sentry-ember-*.tgz",
-    "link:yarn": "yarn link",
     "lint": "npm-run-all --aggregate-output --continue-on-error --parallel lint:*",
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint . --cache --cache-location '../../eslintcache/'",
