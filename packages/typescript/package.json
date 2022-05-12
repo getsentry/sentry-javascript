@@ -15,7 +15,6 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-typescript-*.tgz",
-    "link:yarn": "yarn link",
     "build:npm": "npm pack"
   },
   "volta": {

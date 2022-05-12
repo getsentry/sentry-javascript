@@ -15,7 +15,7 @@
     "clean": "lerna run --parallel clean && lerna clean --yes && yarn rimraf eslintcache",
     "codecov": "codecov",
     "fix": "lerna run --parallel fix",
-    "link:yarn": "lerna run --stream --concurrency 1 link:yarn",
+    "link:yarn": "lerna exec --parallel yarn link",
     "lint": "lerna run --parallel lint",
     "lint:eslint": "lerna run --parallel lint:eslint",
     "prepublishOnly": "lerna run --stream --concurrency 1 prepublishOnly",

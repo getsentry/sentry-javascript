@@ -42,7 +42,6 @@
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
-    "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
