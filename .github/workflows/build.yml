@@ -147,7 +147,7 @@ jobs:
         run: |
           echo "Preparing directory containing Node SDK Lambda Layer"
           echo "#########  0  ##########"
-          ls -R
+          ls -alh
           echo "#########  1  ##########"
           ls -R dist-serverless/
           export SDK_VERSION=$(cat dist-serverless/version)
