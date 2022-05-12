@@ -50,15 +50,44 @@ export function makeConstToVarPlugin() {
 /**
  * Create a plugin which can be used to pause the build process at the given hook.
  *
- * Hooks can be found here: https://rollupjs.org/guide/en/#build-hooks
+ * Hooks can be found here: https://rollupjs.org/guide/en/#build-hooks.
  *
  * @param hookName The name of the hook at which to pause.
  * @returns A plugin which inserts a debugger statement in the phase represented by the given hook
+ *
+ * For convenience, here are pre-built debuggers for every hook:
+ *
+ *  makeDebuggerPlugin('buildStart'),
+ *  makeDebuggerPlugin('options'),
+ *  makeDebuggerPlugin('resolveId'),
+ *  makeDebuggerPlugin('resolveDynamicImport'),
+ *  makeDebuggerPlugin('load'),
+ *  makeDebuggerPlugin('transform'),
+ *  makeDebuggerPlugin('shouldTransformCachedModule'),
+ *  makeDebuggerPlugin('moduleParsed'),
+ *  makeDebuggerPlugin('buildEnd'),
+ *  makeDebuggerPlugin('watchChange'),
+ *  makeDebuggerPlugin('closeWatcher'),
+ *  makeDebuggerPlugin('outputOptions'),
+ *  makeDebuggerPlugin('renderStart'),
+ *  makeDebuggerPlugin('banner'),
+ *  makeDebuggerPlugin('footer'),
+ *  makeDebuggerPlugin('intro'),
+ *  makeDebuggerPlugin('outro'),
+ *  makeDebuggerPlugin('augmentChunkHash'),
+ *  makeDebuggerPlugin('renderDynamicImport'),
+ *  makeDebuggerPlugin('resolveFileUrl'),
+ *  makeDebuggerPlugin('resolveImportMeta'),
+ *  makeDebuggerPlugin('renderChunk'),
+ *  makeDebuggerPlugin('renderError'),
+ *  makeDebuggerPlugin('generateBundle'),
+ *  makeDebuggerPlugin('writeBundle'),
+ *  makeDebuggerPlugin('closeBundle'),
  */
 export function makeDebuggerPlugin(hookName) {
   return {
     name: 'debugger-plugin',
-    [hookName]: () => {
+    [hookName]: (..._args) => {
       // eslint-disable-next-line no-debugger
       debugger;
       return null;
