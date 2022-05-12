@@ -104,11 +104,13 @@ jobs:
           export SDK_VERSION=$(cat packages/core/src/version.ts | cut -f5 -d' ' | tr -d "'" | tr -d ";")
           echo "SDK_VERSION=$SDK_VERSION"
           echo "SDK_VERSION=$SDK_VERSION" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.HEAD_COMMIT }}
-          path: |
-            packages/serverless/dist-awslambda-layer/*
+      - run: |
+          ls -alh packages/serverless/dist-awslambda-layer/*
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{ env.HEAD_COMMIT }}
+      #     path: |
+      #       packages/serverless/dist-awslambda-layer/*
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -119,11 +121,30 @@ jobs:
     needs: job_build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+        uses: actions/checkout@v2
         with:
-          name: ${{ env.HEAD_COMMIT }}
-          path: dist-serverless/
-      - run: |
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12'
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      # - uses: actions/download-artifact@v3
+      #   with:
+      #     name: ${{ env.HEAD_COMMIT }}
+      #     path: dist-serverless/
+      - name: Prepare Lambda Layer Directory
+        run: |
           echo "Preparing directory containing Node SDK Lambda Layer"
           echo "#########  1  ##########"
           ls -alh dist-serverless/
