@@ -1,7 +1,7 @@
 import { IS_DEBUG_BUILD } from './flags';
 import { logger } from './logger';
 
-export type AllowedBaggageKeys = 'environment' | 'release'; // TODO: Add remaining allowed baggage keys | 'transaction' | 'userid' | 'usersegment';
+export type AllowedBaggageKeys = 'environment' | 'release' | 'userid' | 'transaction' | 'usersegment';
 export type BaggageObj = Partial<Record<AllowedBaggageKeys, string> & Record<string, string>>;
 
 /**
