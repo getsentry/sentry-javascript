@@ -41,6 +41,7 @@
     "build": "yarn build:ngc",
     "build:ngc": "ng build --prod",
     "build:dev": "run-s build",
+    "build:extras": "yarn build",
     "build:watch": "run-p build:ngc:watch",
     "build:ngc:watch": "ng build --prod --watch",
     "build:npm": "npm pack ./build",
