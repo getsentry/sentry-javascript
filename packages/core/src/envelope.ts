@@ -10,7 +10,7 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
-import { createEnvelope, dsnToString } from '@sentry/utils';
+import { createBaggage, createEnvelope, dsnToString, serializeBaggage } from '@sentry/utils';
 
 /** Extract sdk info from from the API metadata */
 function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
@@ -101,9 +101,12 @@ export function createEventEnvelope(
   // TODO: This is NOT part of the hack - DO NOT DELETE
   delete event.sdkProcessingMetadata;
 
+  const baggage = createBaggage({ environment: event.environment, release: event.release });
+
   const envelopeHeaders = {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
+    baggage: serializeBaggage(baggage),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
   };
