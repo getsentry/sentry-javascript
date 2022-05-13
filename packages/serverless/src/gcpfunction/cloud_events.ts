@@ -61,11 +61,11 @@ function _wrapCloudEventFunction(
       transaction.finish();
 
       void flush(options.flushTimeout)
-        .then(() => {
-          callback(...args);
-        })
         .then(null, e => {
           IS_DEBUG_BUILD && logger.error(e);
+        })
+        .then(() => {
+          callback(...args);
         });
     });
 
