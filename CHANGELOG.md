@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.0.0-beta.2
+
+- fix(build): Fix express import in `gcpfunction` (#5097)
+- fix(ember): Export sha hashes of injected scripts (#5089)
+- ref(serverless): Do not throw on flush error (#5090)
+
 ## 7.0.0-beta.1
 
 - **(breaking)** ref: Remove critical severity (#5032)
