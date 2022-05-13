@@ -103,8 +103,9 @@ jobs:
       - name: Save SDK version for later
         run: |
           echo "Saving SDK_VERSION for later"
-          export SDK_VERSION=$(cat packages/core/src/version.ts | cut -f5 -d' ' | tr -d "'" | tr -d ";")
-          echo $SDK_VERSION > dist-serverless/version
+          cat packages/core/src/version.ts | awk -F"'" '{print $2}' > dist-serverless/version
+          [ -z $(cat dist-serverless/version) ] && echo "Version extraction failed" && exit 1
+
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -533,8 +534,7 @@ jobs:
       - name: Get SDK version
         run: |
           export SDK_VERSION=$(cat dist-serverless/version)
-          echo "SDK_VERSION=$SDK_VERSION"
-          echo "SDK_VERSION=$SDK_VERSION" >> $GITHUB_ENV
+          echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.HEAD_COMMIT }}
