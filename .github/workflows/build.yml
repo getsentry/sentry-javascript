@@ -24,15 +24,16 @@ env:
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
+  # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
   CACHED_BUILD_PATHS: |
-    ${{ github.workspace }}/packages/**/build
-    ${{ github.workspace }}/packages/**/cjs
-    ${{ github.workspace }}/packages/**/esm
+    ${{ github.workspace }}/packages/*/build
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/gatsby/*.d.ts
     ${{ github.workspace }}/packages/core/src/version.ts
     ${{ github.workspace }}/dist-serverless
+    ${{ github.workspace }}/packages/utils/cjs
+    ${{ github.workspace }}/packages/utils/esm
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
