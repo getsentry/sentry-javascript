@@ -104,7 +104,7 @@ jobs:
         run: |
           echo "Saving SDK_VERSION for later"
           cat packages/core/src/version.ts | awk -F"'" '{print $2}' > dist-serverless/version
-          [ -z $(cat dist-serverless/version) ] && echo "Version extraction failed" && exit 1
+          [ ! -z $(cat dist-serverless/version) ] && echo SDK_VERSION=$(cat dist-serverless/version) || (echo "Version extraction failed" && exit 1)
 
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
