@@ -1,4 +1,5 @@
 /**
+ * CommonJS plugin docs: https://github.com/rollup/plugins/tree/master/packages/commonjs
  * License plugin docs: https://github.com/mjeanroy/rollup-plugin-license
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
  * Resolve plugin docs: https://github.com/rollup/plugins/tree/master/packages/node-resolve
@@ -7,6 +8,7 @@
  * Typescript plugin docs: https://github.com/ezolenko/rollup-plugin-typescript2
  */
 
+import commonjs from '@rollup/plugin-commonjs';
 import deepMerge from 'deepmerge';
 import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';
@@ -146,6 +148,7 @@ export function makeTSPlugin(jsVersion) {
   return plugin;
 }
 
-// We don't pass this plugin any options, so no need to wrap it in another factory function, as `resolve` is itself
-// already a factory function.
+// We don't pass these plugins any options which need to be calculated or changed by us, so no need to wrap them in
+// another factory function, as they are themselves already factory functions.
 export { resolve as makeNodeResolvePlugin };
+export { commonjs as makeCommonJSPlugin };
