@@ -31,7 +31,6 @@ env:
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/gatsby/*.d.ts
     ${{ github.workspace }}/packages/core/src/version.ts
-    ${{ github.workspace }}/dist-serverless
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
@@ -142,8 +141,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.HEAD_COMMIT }}
-          path: |
-            dist-serverless/*
+          path: packages/serverless/build/dist-serverless/*
       - name: Create and upload final zip file
         uses: getsentry/action-build-aws-lambda-extension@v1
         with:
