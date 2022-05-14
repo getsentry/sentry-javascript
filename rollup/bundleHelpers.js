@@ -2,8 +2,6 @@
  * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
  */
 
-import assert from 'assert';
-
 import deepMerge from 'deepmerge';
 
 import {
@@ -17,7 +15,7 @@ import {
   makeTerserPlugin,
   makeTSPlugin,
 } from './plugins/index.js';
-import { getLastElement, insertAt } from './utils.js';
+import { mergePlugins } from './utils';
 
 export function makeBaseBundleConfig(options) {
   const { input, isAddOn, jsVersion, licenseTitle, outputFileBase } = options;
@@ -95,7 +93,10 @@ export function makeBaseBundleConfig(options) {
     treeshake: 'smallest',
   };
 
-  return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig);
+  return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig, {
+    // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
+    customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
+  });
 }
 
 /**
@@ -108,16 +109,9 @@ export function makeBaseBundleConfig(options) {
  * @returns An array of versions of that config
  */
 export function makeBundleConfigVariants(baseConfig) {
-  const { plugins: baseConfigPlugins } = baseConfig;
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
   const terserPlugin = makeTerserPlugin();
-
-  // The license plugin has to be last, so it ends up after terser. Otherwise, terser will remove the license banner.
-  assert(
-    getLastElement(baseConfigPlugins).name === 'rollup-plugin-license',
-    `Last plugin in given options should be \`rollup-plugin-license\`. Found ${getLastElement(baseConfigPlugins).name}`,
-  );
 
   // The additional options to use for each variant we're going to create
   const variantSpecificConfigs = [
@@ -125,7 +119,7 @@ export function makeBundleConfigVariants(baseConfig) {
       output: {
         file: `${baseConfig.output.file}.js`,
       },
-      plugins: insertAt(baseConfigPlugins, -2, includeDebuggingPlugin),
+      plugins: [includeDebuggingPlugin],
     },
     // This variant isn't particularly helpful for an SDK user, as it strips logging while making no other minification
     // changes, so by default we don't create it. It is however very useful when debugging rollup's treeshaking, so it's
@@ -133,27 +127,27 @@ export function makeBundleConfigVariants(baseConfig) {
     // {
     //   output: { file: `${baseConfig.output.file}.no-debug.js`,
     //   },
-    //   plugins: insertAt(plugins, -2, stripDebuggingPlugin),
+    //   plugins: [stripDebuggingPlugin],
     // },
     {
       output: {
         file: `${baseConfig.output.file}.min.js`,
       },
-      plugins: insertAt(baseConfigPlugins, -2, stripDebuggingPlugin, terserPlugin),
+      plugins: [stripDebuggingPlugin, terserPlugin],
     },
     {
       output: {
         file: `${baseConfig.output.file}.debug.min.js`,
       },
-      plugins: insertAt(baseConfigPlugins, -2, includeDebuggingPlugin, terserPlugin),
+      plugins: [terserPlugin],
     },
   ];
 
   return variantSpecificConfigs.map(variant =>
     deepMerge(baseConfig, variant, {
-      // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
-      // just overwritten by the second value
-      arrayMerge: (first, second) => second,
+      // Merge the plugin arrays and make sure the end result is in the correct order. Everything else can use the
+      // default merge strategy.
+      customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
     }),
   );
 }
