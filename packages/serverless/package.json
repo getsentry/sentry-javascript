@@ -40,6 +40,7 @@
   "scripts": {
     "build": "run-p build:rollup build:types && yarn build:extras",
     "build:awslambda-layer": "node scripts/build-awslambda-layer.js",
+    "build:bundle": "yarn ts-node ../../scripts/ensure-bundle-deps.ts && yarn rollup --config rollup.bundle.config.js",
     "build:dev": "run-p build:rollup build:types",
     "build:extras": "yarn build:awslambda-layer",
     "build:rollup": "rollup -c rollup.npm.config.js",
@@ -48,7 +49,7 @@
     "build:dev:watch": "run-s build:watch",
     "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
