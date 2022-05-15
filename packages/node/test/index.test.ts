@@ -1,6 +1,6 @@
 import { initAndBind, SDK_VERSION } from '@sentry/core';
 import { getMainCarrier } from '@sentry/hub';
-import { Integration, EventHint } from '@sentry/types';
+import { EventHint, Integration } from '@sentry/types';
 import * as domain from 'domain';
 
 import {
