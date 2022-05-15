@@ -1,4 +1,3 @@
-import { SentryError } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Callback, Handler } from 'aws-lambda';
@@ -178,44 +177,6 @@ describe('AWSLambda', () => {
       expect(Sentry.captureException).toHaveBeenNthCalledWith(2, error2);
       expect(Sentry.captureException).toBeCalledTimes(2);
     });
-
-    test('ignoreSentryErrors - with successful handler', async () => {
-      const sentryError = new SentryError('HTTP Error (429)');
-      jest.spyOn(Sentry, 'flush').mockRejectedValueOnce(sentryError);
-
-      const handledError = new Error('handled error, and we want to monitor it');
-      const expectedSuccessStatus = { status: 'success', reason: 'we handled error, so success' };
-      const handler = () => {
-        Sentry.captureException(handledError);
-        return Promise.resolve(expectedSuccessStatus);
-      };
-      const wrappedHandlerWithoutIgnoringSentryErrors = wrapHandler(handler, { ignoreSentryErrors: false });
-      const wrappedHandlerWithIgnoringSentryErrors = wrapHandler(handler, { ignoreSentryErrors: true });
-
-      await expect(wrappedHandlerWithoutIgnoringSentryErrors(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(
-        sentryError,
-      );
-      await expect(wrappedHandlerWithIgnoringSentryErrors(fakeEvent, fakeContext, fakeCallback)).resolves.toBe(
-        expectedSuccessStatus,
-      );
-    });
-
-    test('ignoreSentryErrors - with failed handler', async () => {
-      const sentryError = new SentryError('HTTP Error (429)');
-      jest.spyOn(Sentry, 'flush').mockRejectedValueOnce(sentryError);
-
-      const criticalUnhandledError = new Error('critical unhandled error ');
-      const handler = () => Promise.reject(criticalUnhandledError);
-      const wrappedHandlerWithoutIgnoringSentryErrors = wrapHandler(handler, { ignoreSentryErrors: false });
-      const wrappedHandlerWithIgnoringSentryErrors = wrapHandler(handler, { ignoreSentryErrors: true });
-
-      await expect(wrappedHandlerWithoutIgnoringSentryErrors(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(
-        sentryError,
-      );
-      await expect(wrappedHandlerWithIgnoringSentryErrors(fakeEvent, fakeContext, fakeCallback)).rejects.toThrow(
-        criticalUnhandledError,
-      );
-    });
   });
 
   describe('wrapHandler() on sync handler', () => {
@@ -344,6 +305,21 @@ describe('AWSLambda', () => {
         expect(Sentry.fakeTransaction.finish).toBeCalled();
         expect(Sentry.flush).toBeCalled();
       }
+    });
+
+    test('should not throw when flush rejects', async () => {
+      const handler: Handler = async () => {
+        // Friendly handler with no errors :)
+        return 'some string';
+      };
+
+      const wrappedHandler = wrapHandler(handler);
+
+      jest.spyOn(Sentry, 'flush').mockImplementationOnce(async () => {
+        throw new Error();
+      });
+
+      await expect(wrappedHandler(fakeEvent, fakeContext, fakeCallback)).resolves.toBe('some string');
     });
   });
 

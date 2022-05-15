@@ -1,9 +1,20 @@
 'use strict';
 const fs = require('fs');
+const crypto = require('crypto');
 
 function readSnippet(fileName) {
-  return `<script>${fs.readFileSync(`${__dirname}/vendor/${fileName}`, 'utf8')}</script>`;
+  return fs.readFileSync(`${__dirname}/vendor/${fileName}`, 'utf8');
 }
+
+function hashSha256base64(string) {
+  return crypto.createHash('sha256').update(string).digest('base64');
+}
+
+const initialLoadHeadSnippet = readSnippet('initial-load-head.js');
+const initialLoadBodySnippet = readSnippet('initial-load-body.js');
+
+const initialLoadHeadSnippetHash = hashSha256base64(initialLoadHeadSnippet);
+const initialLoadBodySnippetHash = hashSha256base64(initialLoadBodySnippet);
 
 module.exports = {
   name: require('./package').name,
@@ -24,16 +35,18 @@ module.exports = {
 
   contentFor(type, config) {
     const addonConfig = config['@sentry/ember'] || {};
-
     const { disablePerformance, disableInitialLoadInstrumentation } = addonConfig;
+
     if (disablePerformance || disableInitialLoadInstrumentation) {
       return;
     }
+
     if (type === 'head') {
-      return readSnippet('initial-load-head.js');
-    }
-    if (type === 'body-footer') {
-      return readSnippet('initial-load-body.js');
+      return `<script type="text/javascript">${initialLoadHeadSnippet}</script>`;
+    } else if (type === 'body-footer') {
+      return `<script type="text/javascript">${initialLoadBodySnippet}</script>`;
     }
   },
+
+  injectedScriptHashes: [initialLoadHeadSnippetHash, initialLoadBodySnippetHash],
 };

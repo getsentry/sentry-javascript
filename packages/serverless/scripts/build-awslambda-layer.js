@@ -2,7 +2,6 @@
 const path = require('path');
 const process = require('process');
 const fs = require('fs');
-const childProcess = require('child_process');
 
 const findUp = require('find-up');
 const packList = require('npm-packlist');
@@ -75,6 +74,7 @@ async function collectPackages(cwd, packages = {}) {
 }
 
 async function main() {
+  const baseDir = path.resolve(__dirname, '../../../')
   const serverlessDir = path.resolve(__dirname, '..'); // packages/serverless directory
 
   const cjsBuildDir = path.resolve(serverlessDir, 'build', 'cjs');
@@ -86,7 +86,7 @@ async function main() {
   const packages = await collectPackages(serverlessDir);
 
   // the build directory of the Lambda layer
-  const layerBuildDir = path.resolve(serverlessDir, 'dist-awslambda-layer');
+  const layerBuildDir = path.resolve(baseDir, 'dist-serverless');
 
   // the root directory in which the Lambda layer files + dependencies are copied to
   // this structure resembles the structure where Lambda expects to find @sentry/serverless
@@ -170,9 +170,6 @@ async function main() {
     }),
   );
 
-  const version = serverlessPackageJson.version;
-  const zipFilename = `sentry-node-serverless-${version}.zip`;
-
   // link from `./build/cjs` to `./dist`
   // This needs to be done to satisfy the NODE_OPTIONS environment variable path that is set in
   // AWS lambda functions when connecting them to Sentry. On initialization, the layer preloads a js
@@ -183,23 +180,6 @@ async function main() {
     fs.symlinkSync(path.resolve(destRootDir, 'build', 'cjs'), path.resolve(destRootDir, 'dist'));
   } catch (error) {
     console.error(error);
-  }
-
-  // remove previously created layer zip
-  try {
-    fs.unlinkSync(path.resolve(layerBuildDir, zipFilename));
-  } catch (error) {
-    // If the ZIP file hasn't been previously created (e.g. running this script for the first time),
-    // `unlinkSync` will try to delete a non-existing file. This error is ignored.
-  }
-
-  // create new layer zip
-  try {
-    childProcess.execSync(`zip -r ${zipFilename} ${destRootRelative}`, { cwd: layerBuildDir });
-  } catch (error) {
-    // The child process timed out or had non-zero exit code.
-    // The error contains the entire result from `childProcess.spawnSync`.
-    console.log(error);
   }
 }
 

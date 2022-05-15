@@ -4,14 +4,16 @@ packages/*/package-lock.json
 package-lock.json
 
 # build and test
+# SDK builds
 build/
-packages/*/cjs/
-packages/*/esm/
+# various integration test builds
+dist/
 coverage/
 scratch/
+*.d.ts
+*.js.map
 *.pyc
 *.tsbuildinfo
-scenarios/*/dist/
 # transpiled transformers
 jest/transformers/*.js
 # node tarballs
@@ -44,5 +46,3 @@ tmp.js
 # eslint
 .eslintcache
 eslintcache/*
-
-*.d.ts

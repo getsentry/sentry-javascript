@@ -91,11 +91,11 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       transaction.finish();
 
       void flush(options.flushTimeout)
-        .then(() => {
-          _end.call(this, chunk, encoding, cb);
-        })
         .then(null, e => {
           IS_DEBUG_BUILD && logger.error(e);
+        })
+        .then(() => {
+          _end.call(this, chunk, encoding, cb);
         });
     };
 

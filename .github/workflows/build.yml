@@ -31,7 +31,8 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
+    ${{ github.workspace }}/packages/core/src/version.ts
+    ${{ github.workspace }}/dist-serverless
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
@@ -99,6 +100,12 @@ jobs:
         # this file) to a constant and skip rebuilding all of the packages each time CI runs.
         if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
+      - name: Save SDK version for later
+        run: |
+          echo "Saving SDK_VERSION for later"
+          cat packages/core/src/version.ts | awk -F"'" '{print $2}' > dist-serverless/version
+          [ ! -z $(cat dist-serverless/version) ] && echo SDK_VERSION=$(cat dist-serverless/version) || (echo "Version extraction failed" && exit 1)
+
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -228,7 +235,6 @@ jobs:
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/tracing/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
-            ${{ github.workspace }}/packages/serverless/dist-awslambda-layer/*.zip
 
   job_unit_test:
     name: Test (Node ${{ matrix.node }})
@@ -315,10 +321,10 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
-        # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
-        # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
-        # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
-        # well, we can pull it out.
+          # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
+          # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
+          # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
+          # well, we can pull it out.
           fetch-depth: 0
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -501,3 +507,40 @@ jobs:
         run: |
           cd packages/node-integration-tests
           yarn test
+
+  job_build_aws_lambda_layer:
+    name: Build AWS Lambda Layer
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Get SDK version
+        run: |
+          export SDK_VERSION=$(cat dist-serverless/version)
+          echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.HEAD_COMMIT }}
+          path: |
+            dist-serverless/*
+      - uses: getsentry/action-build-aws-lambda-extension@v1
+        with:
+          artifact_name: ${{ env.HEAD_COMMIT }}
+          zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip

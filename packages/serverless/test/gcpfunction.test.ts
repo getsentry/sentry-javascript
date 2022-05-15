@@ -148,6 +148,34 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
     });
+
+    test('should not throw when flush rejects', async () => {
+      expect.assertions(2);
+
+      const handler: HttpFunction = async (_req, res) => {
+        res.statusCode = 200;
+        res.end();
+      };
+
+      const wrappedHandler = wrapHttpFunction(handler);
+
+      const request = {
+        method: 'POST',
+        url: '/path?q=query',
+        headers: { host: 'hostname', 'content-type': 'application/json' },
+        body: { foo: 'bar' },
+      } as Request;
+
+      const mockEnd = jest.fn();
+      const response = { end: mockEnd } as unknown as Response;
+
+      jest.spyOn(Sentry, 'flush').mockImplementationOnce(async () => {
+        throw new Error();
+      });
+
+      await expect(wrappedHandler(request, response)).resolves.toBeUndefined();
+      expect(mockEnd).toHaveBeenCalledTimes(1);
+    });
   });
 
   test('wrapHttpFunction request data', async () => {
