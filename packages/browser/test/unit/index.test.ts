@@ -40,7 +40,6 @@ describe('SentryBrowser', () => {
       beforeSend,
       dsn,
       transport: makeSimpleTransport,
-      //
     });
   });
 
@@ -282,7 +281,6 @@ describe('SentryBrowser initialization', () => {
     it("shouldn't overwrite SDK data that's already there", () => {
       init({
         dsn,
-
         // this would normally be set by the wrapper SDK in init()
         _metadata: {
           sdk: {
