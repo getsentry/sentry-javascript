@@ -4,6 +4,51 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.0.0-beta.1
+
+- **(breaking)** ref: Remove critical severity (#5032)
+- **(breaking)** ref: Delete unneeded SDK_NAME (#5040)
+- **(breaking)** ref(browser): Rename UserAgent integration to HttpContext (#5027)
+- **(breaking)** ref(hub): Convert Session class to object and functions (#5054)
+- **(breaking)** ref(node): Explicitly pass down node transport options (#5057)
+- **(breaking)** ref(tracing): Reset IdleTimeout based on activities count (#5044)
+- ref(browser): Unify BrowserTransportOptions (#5058)
+- feat(build): Vendor polyfills injected during build (#5051)
+- ref(core): Log warning on NOK transport response (#5091)
+- fix(integrations): Mark ExtraErrorData as already normalized (#5053)
+- feat(react): Add react-router-v6 integration (#5042)
+- fix(tracing): Remove isInstanceOf check in Hub constructor (#5046)
+- fix(utils): Consider 429 responses in transports (#5062)
+- ref(utils): Clean up dangerous type casts in object helper file (#5047)
+- ref(utils): Add logic to enable skipping of normalization (#5052)
+
+## 7.0.0-beta.0
+
+- **(breaking)**: ref: Make it easier to use stackParser (#5015)
+- **(breaking)**: ref: Switch to new transports (#4943)
+- **(breaking)**: ref: Delete store endpoint code (#4969)
+- **(breaking)**: chore: set ignoreSentryErrors to true (#4994)
+- **(breaking)**: fix(angular): Use Angular compiler to compile @sentry/angular (#4641)
+- **(breaking)**: ref(browser): Remove showReportDialog on browser client (#4973)
+- **(breaking)**: ref(build): Rename CDN bundles to be es6 per default (#4958)
+- **(breaking)**: feat(core): Introduce separate client options (#4927)
+- **(breaking)**: ref(core): Delete API Details (#4999)
+- **(breaking)**: feat(hub): Remove _invokeClient (#4972)
+- **(breaking)**: ref(minimal): Delete @sentry/minimal (#4971)
+- **(breaking)**: ref(node): Remove raven-node backward-compat code (#4942)
+- chore: Remove tslint from `@sentry-internal/typescript` (#4940)
+- feat: Add client report hook to makeTransport (#5008)
+- feat: Export browser integrations individually (#5028)
+- ref(build): Switch tsconfig target to es6 (#5005)
+- ref(core): Make event processing log warnings instead of errors (#5010)
+- fix(hub): Add missing parameter to captureException docstring (#5001)
+- fix(nextjs): Update webpack-plugin and change how cli binary is detected (#4988)
+- fix(serverless): Adjust v6 Lambda layer hotfix for v7 (#5006)
+- fix(tracing): Adjust sideEffects package.json entry for v7 (#4987)
+- feat(tracing): Add GB unit to device memory tag value (#4935)
+- feat(tracing): Add Prisma ORM integration. (#4931)
+- ref(utils): Remove forget async utility function (#4941)
+
 ## 7.0.0-alpha.1
 
 - **(breaking)** ref: Inject Transports into Client (#4921)

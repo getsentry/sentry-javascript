@@ -1,3 +1,5 @@
+import { TransportMakeRequestResponse } from '@sentry/types';
+
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;
 
@@ -43,7 +45,7 @@ export function isRateLimited(limits: RateLimits, category: string, now: number 
  */
 export function updateRateLimits(
   limits: RateLimits,
-  headers: Record<string, string | null | undefined>,
+  { statusCode, headers }: TransportMakeRequestResponse,
   now: number = Date.now(),
 ): RateLimits {
   const updatedRateLimits: RateLimits = {
@@ -52,8 +54,8 @@ export function updateRateLimits(
 
   // "The name is case-insensitive."
   // https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
-  const rateLimitHeader = headers['x-sentry-rate-limits'];
-  const retryAfterHeader = headers['retry-after'];
+  const rateLimitHeader = headers && headers['x-sentry-rate-limits'];
+  const retryAfterHeader = headers && headers['retry-after'];
 
   if (rateLimitHeader) {
     /**
@@ -69,19 +71,21 @@ export function updateRateLimits(
      *     <reason_code> is an arbitrary string like "org_quota" - ignored by SDK
      */
     for (const limit of rateLimitHeader.trim().split(',')) {
-      const parameters = limit.split(':', 2);
-      const headerDelay = parseInt(parameters[0], 10);
+      const [retryAfter, categories] = limit.split(':', 2);
+      const headerDelay = parseInt(retryAfter, 10);
       const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
-      if (!parameters[1]) {
+      if (!categories) {
         updatedRateLimits.all = now + delay;
       } else {
-        for (const category of parameters[1].split(';')) {
+        for (const category of categories.split(';')) {
           updatedRateLimits[category] = now + delay;
         }
       }
     }
   } else if (retryAfterHeader) {
     updatedRateLimits.all = now + parseRetryAfterHeader(retryAfterHeader, now);
+  } else if (statusCode === 429) {
+    updatedRateLimits.all = now + 60 * 1000;
   }
 
   return updatedRateLimits;

@@ -4,8 +4,8 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
 import { startIdleTransaction } from '../hubextensions';
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../idletransaction';
-import { extractTraceparentData, secToMs } from '../utils';
+import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
+import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { MetricsInstrumentation } from './metrics';
 import {
@@ -15,18 +15,28 @@ import {
 } from './request';
 import { instrumentRoutingWithDefaults } from './router';
 
-export const DEFAULT_MAX_TRANSACTION_DURATION_SECONDS = 600;
-
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   /**
-   * The time to wait in ms until the transaction will be finished. The transaction will use the end timestamp of
-   * the last finished span as the endtime for the transaction.
+   * The time to wait in ms until the transaction will be finished during an idle state. An idle state is defined
+   * by a moment where there are no in-progress spans.
+   *
+   * The transaction will use the end timestamp of the last finished span as the endtime for the transaction.
+   * If there are still active spans when this the `idleTimeout` is set, the `idleTimeout` will get reset.
    * Time is in ms.
    *
    * Default: 1000
    */
   idleTimeout: number;
+
+  /**
+   * The max duration for a transaction. If a transaction duration hits the `finalTimeout` value, it
+   * will be finished.
+   * Time is in ms.
+   *
+   * Default: 30000
+   */
+  finalTimeout: number;
 
   /**
    * Flag to enable/disable creation of `navigation` transaction on history changes.
@@ -41,15 +51,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Default: true
    */
   startTransactionOnPageLoad: boolean;
-
-  /**
-   * The maximum duration of a transaction before it will be marked as "deadline_exceeded".
-   * If you never want to mark a transaction set it to 0.
-   * Time is in seconds.
-   *
-   * Default: 600
-   */
-  maxTransactionDuration: number;
 
   /**
    * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
@@ -94,8 +95,8 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
 const DEFAULT_BROWSER_TRACING_OPTIONS = {
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
+  finalTimeout: DEFAULT_FINAL_TIMEOUT,
   markBackgroundTransactions: true,
-  maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
@@ -129,14 +130,10 @@ export class BrowserTracing implements Integration {
 
   private readonly _emitOptionsWarning?: boolean;
 
-  /** Store configured idle timeout so that it can be added as a tag to transactions */
-  private _configuredIdleTimeout: BrowserTracingOptions['idleTimeout'] | undefined = undefined;
-
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     let tracingOrigins = defaultRequestInstrumentationOptions.tracingOrigins;
     // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
     if (_options) {
-      this._configuredIdleTimeout = _options.idleTimeout;
       if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins) && _options.tracingOrigins.length !== 0) {
         tracingOrigins = _options.tracingOrigins;
       } else {
@@ -205,7 +202,7 @@ export class BrowserTracing implements Integration {
     }
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const { beforeNavigate, idleTimeout, maxTransactionDuration } = this.options;
+    const { beforeNavigate, idleTimeout, finalTimeout } = this.options;
 
     const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
 
@@ -233,15 +230,13 @@ export class BrowserTracing implements Integration {
       hub,
       finalContext,
       idleTimeout,
+      finalTimeout,
       true,
       { location }, // for use in the tracesSampler
     );
-    idleTransaction.registerBeforeFinishCallback((transaction, endTimestamp) => {
+    idleTransaction.registerBeforeFinishCallback(transaction => {
       this._metrics.addPerformanceEntries(transaction);
-      adjustTransactionDuration(secToMs(maxTransactionDuration), transaction, endTimestamp);
     });
-
-    idleTransaction.setTag('idleTimeout', this._configuredIdleTimeout);
 
     return idleTransaction as Transaction;
   }
@@ -265,14 +260,4 @@ export function getHeaderContext(): Partial<TransactionContext> | undefined {
 export function getMetaContent(metaName: string): string | null {
   const el = getGlobalObject<Window>().document.querySelector(`meta[name=${metaName}]`);
   return el ? el.getAttribute('content') : null;
-}
-
-/** Adjusts transaction value based on max transaction duration */
-function adjustTransactionDuration(maxDuration: number, transaction: IdleTransaction, endTimestamp: number): void {
-  const diff = endTimestamp - transaction.startTimestamp;
-  const isOutdatedTransaction = endTimestamp && (diff > maxDuration || diff < 0);
-  if (isOutdatedTransaction) {
-    transaction.setStatus('deadline_exceeded');
-    transaction.setTag('maxTransactionDurationExceeded', 'true');
-  }
 }

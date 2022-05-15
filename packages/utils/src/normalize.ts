@@ -1,6 +1,6 @@
 import { Primitive } from '@sentry/types';
 
-import { isError, isEvent, isNaN, isSyntheticEvent } from './is';
+import { isNaN, isSyntheticEvent } from './is';
 import { memoBuilder, MemoFunc } from './memo';
 import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
@@ -33,7 +33,7 @@ type ObjOrArray<T> = { [key: string]: T };
  */
 export function normalize(input: unknown, depth: number = +Infinity, maxProperties: number = +Infinity): any {
   try {
-    // since we're at the outermost level, there is no key
+    // since we're at the outermost level, we don't provide a key
     return visit('', input, depth, maxProperties);
   } catch (err) {
     return { ERROR: `**non-serializable** (${err})` };
@@ -98,6 +98,15 @@ function visit(
     return stringified;
   }
 
+  // From here on, we can assert that `value` is either an object or an array.
+
+  // Do not normalize objects that we know have already been normalized. As a general rule, the
+  // "__sentry_skip_normalization__" property should only be used sparingly and only should only be set on objects that
+  // have already been normalized.
+  if ((value as ObjOrArray<unknown>)['__sentry_skip_normalization__']) {
+    return value as ObjOrArray<unknown>;
+  }
+
   // We're also done if we've reached the max depth
   if (depth === 0) {
     // At this point we know `serialized` is a string of the form `"[object XXXX]"`. Clean it up so it's just `"[XXXX]"`.
@@ -117,7 +126,7 @@ function visit(
 
   // Before we begin, convert`Error` and`Event` instances into plain objects, since some of each of their relevant
   // properties are non-enumerable and otherwise would get missed.
-  const visitable = (isError(value) || isEvent(value) ? convertToPlainObject(value) : value) as ObjOrArray<unknown>;
+  const visitable = convertToPlainObject(value as ObjOrArray<unknown>);
 
   for (const visitKey in visitable) {
     // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.

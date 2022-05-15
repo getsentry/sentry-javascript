@@ -7,6 +7,7 @@ export type TransportRequest = {
 };
 
 export type TransportMakeRequestResponse = {
+  statusCode?: number;
   headers?: {
     [key: string]: string | null;
     'x-sentry-rate-limits': string | null;

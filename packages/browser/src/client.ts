@@ -13,6 +13,7 @@ import { eventFromException, eventFromMessage } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
 import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
+import { BrowserTransportOptions } from './transports/types';
 import { sendReport } from './transports/utils';
 
 const globalObject = getGlobalObject<Window>();
@@ -37,13 +38,13 @@ export interface BaseBrowserOptions {
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.
  */
-export interface BrowserOptions extends Options, BaseBrowserOptions {}
+export interface BrowserOptions extends Options<BrowserTransportOptions>, BaseBrowserOptions {}
 
 /**
  * Configuration options for the Sentry Browser SDK Client class
  * @see BrowserClient for more information.
  */
-export interface BrowserClientOptions extends ClientOptions, BaseBrowserOptions {}
+export interface BrowserClientOptions extends ClientOptions<BrowserTransportOptions>, BaseBrowserOptions {}
 
 /**
  * The Sentry Browser SDK Client.

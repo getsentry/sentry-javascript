@@ -142,6 +142,7 @@ function createRequestExecutor(
           const rateLimitsHeader = res.headers['x-sentry-rate-limits'] ?? null;
 
           resolve({
+            statusCode: res.statusCode,
             headers: {
               'retry-after': retryAfterHeader,
               'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader,

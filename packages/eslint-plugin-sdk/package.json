@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/eslint-plugin-sdk",
-  "version": "7.0.0-alpha.1",
+  "version": "7.0.0-beta.0",
   "description": "Official Sentry SDK eslint plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-plugin-sdk",
@@ -25,7 +25,7 @@
     "mocha": "^6.2.0"
   },
   "scripts": {
-    "link:yarn": "yarn link",
+    "clean": "yarn rimraf sentry-internal-eslint-plugin-sdk-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.js\"",

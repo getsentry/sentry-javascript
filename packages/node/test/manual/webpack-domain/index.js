@@ -1,5 +1,7 @@
 const Sentry = require('../../../build/cjs');
+const { colorize } = require('../colorize');
 const { TextEncoder } = require('util');
+
 let remaining = 2;
 
 function makeDummyTransport() {
@@ -7,7 +9,7 @@ function makeDummyTransport() {
     --remaining;
 
     if (!remaining) {
-      console.error('SUCCESS: Webpack Node Domain test OK!');
+      console.log(colorize('PASSED: Webpack Node Domain test OK!\n', 'green'));
       process.exit(0);
     }
 
@@ -23,13 +25,13 @@ Sentry.init({
   beforeSend(event) {
     if (event.message === 'inside') {
       if (event.tags.a !== 'x' && event.tags.b !== 'c') {
-        console.error('FAILED: Scope contains incorrect tags');
+        console.log(colorize('FAILED: Scope contains incorrect tags\n', 'red'));
         process.exit(1);
       }
     }
     if (event.message === 'outside') {
       if (event.tags.a !== 'b') {
-        console.error('FAILED: Scope contains incorrect tags');
+        console.log(colorize('FAILED: Scope contains incorrect tags\n', 'red'));
         process.exit(1);
       }
     }

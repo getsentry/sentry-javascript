@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { getMainCarrier, Hub } from '@sentry/hub';
 import {
   ClientOptions,
@@ -196,14 +197,15 @@ function _startTransaction(
 export function startIdleTransaction(
   hub: Hub,
   transactionContext: TransactionContext,
-  idleTimeout?: number,
+  idleTimeout: number,
+  finalTimeout: number,
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
-  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, onScope);
+  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, onScope);
   transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,

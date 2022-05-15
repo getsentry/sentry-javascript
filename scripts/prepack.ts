@@ -19,54 +19,47 @@ const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
 const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pkgJson: { [key: string]: unknown } = require(path.resolve('package.json'));
+
 // check if build dir exists
-try {
-  if (!fs.existsSync(path.resolve(buildDir))) {
-    console.error(`Directory ${buildDir} DOES NOT exist`);
-    console.error("This script should only be executed after you've run `yarn build`.");
-    process.exit(1);
-  }
-} catch (error) {
-  console.error(`Error while looking up directory ${buildDir}`);
+if (!fs.existsSync(path.resolve(buildDir))) {
+  console.error(`\nERROR: Directory '${buildDir}' does not exist in ${pkgJson.name}.`);
+  console.error("This script should only be executed after you've run `yarn build`.");
   process.exit(1);
 }
 
 // copy non-code assets to build dir
 ASSETS.forEach(asset => {
   const assetPath = path.resolve(asset);
-  try {
-    if (!fs.existsSync(assetPath)) {
-      console.error(`Asset ${asset} does not exist.`);
-      process.exit(1);
-    }
-    const destinationPath = path.resolve(buildDir, path.basename(asset));
-    console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
-    fs.copyFileSync(assetPath, destinationPath);
-  } catch (error) {
-    console.error(`Error while copying ${asset} to ${buildDir}`);
+  if (!fs.existsSync(assetPath)) {
+    console.error(`\nERROR: Asset '${asset}' does not exist.`);
     process.exit(1);
   }
+  const destinationPath = path.resolve(buildDir, path.basename(asset));
+  console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
+  fs.copyFileSync(assetPath, destinationPath);
 });
 
 // package.json modifications
-const packageJsonPath = path.resolve(buildDir, 'package.json');
+const newPackageJsonPath = path.resolve(buildDir, 'package.json');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pkgJson: { [key: string]: unknown } = require(packageJsonPath);
+const newPkgJson: { [key: string]: unknown } = require(newPackageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
-ENTRY_POINTS.filter(entryPoint => pkgJson[entryPoint]).forEach(entryPoint => {
-  pkgJson[entryPoint] = (pkgJson[entryPoint] as string).replace(`${buildDir}/`, '');
+ENTRY_POINTS.filter(entryPoint => newPkgJson[entryPoint]).forEach(entryPoint => {
+  newPkgJson[entryPoint] = (newPkgJson[entryPoint] as string).replace(`${buildDir}/`, '');
 });
 
-delete pkgJson.scripts;
-delete pkgJson.volta;
-delete pkgJson.jest;
+delete newPkgJson.scripts;
+delete newPkgJson.volta;
+delete newPkgJson.jest;
 
 // write modified package.json to file (pretty-printed with 2 spaces)
 try {
-  fs.writeFileSync(packageJsonPath, JSON.stringify(pkgJson, null, 2));
+  fs.writeFileSync(newPackageJsonPath, JSON.stringify(newPkgJson, null, 2));
 } catch (error) {
-  console.error('Error while writing package.json to disk');
+  console.error(`\nERROR: Error while writing modified 'package.json' to disk in ${pkgJson.name}:\n`, error);
   process.exit(1);
 }
 
@@ -78,26 +71,28 @@ async function runPackagePrepack(packagePrepackPath: string): Promise<void> {
       process.exit(1);
     }
   } else {
-    console.error(`Could not find a prepack function in ${packagePrepackPath}.`);
+    console.error(`\nERROR: Could not find a \`prepack\` function in './scripts/prepack.ts' in ${pkgJson.name}.`);
     console.error(
-      'Make sure, your package-specific prepack script exports `function prepack(buildDir: string): boolean`.',
+      'Make sure your package-specific prepack script exports `function prepack(buildDir: string): boolean`.',
     );
     process.exit(1);
   }
 }
 
 // execute package specific settings
-// 1. check if a package called `<package-root>/scripts/prepack.ts` exitsts
+// 1. check if a script called `<package-root>/scripts/prepack.ts` exists
 // if yes, 2.) execute that script for things that are package-specific
-void (async () => {
+async function runPackageSpecificScripts(): Promise<void> {
   const packagePrepackPath = path.resolve('scripts', 'prepack.ts');
   try {
     if (fs.existsSync(packagePrepackPath)) {
       await runPackagePrepack(packagePrepackPath);
     }
   } catch (error) {
-    console.error(`Error while trying to access ${packagePrepackPath.toString()}`);
+    console.error(`\nERROR: Error while trying to load and run ./scripts/prepack.ts in ${pkgJson.name}:\n`, error);
     process.exit(1);
   }
   console.log(`\nSuccessfully finished prepack commands for ${pkgJson.name}\n`);
-})();
+}
+
+void runPackageSpecificScripts();

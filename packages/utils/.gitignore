@@ -1,0 +1,6 @@
+# symlinks to the folders in `build`, needed for tests
+cjs
+esm
+
+# needed so we can test our versions of polyfills against Sucrase and Rollup's originals
+!test/buildPolyfills/originals.d.ts

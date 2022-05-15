@@ -3,6 +3,13 @@
 The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.
 Below we will outline all the breaking changes you should consider when upgrading.
 
+**TL;DR** If you only use basic features of Sentry, or you simply copy & pasted the setup examples from our docs, here's what changed for you:
+- Our CDN bundles are now ES6 - you will need to [reconfigure your script tags](#renaming-of-cdn-bundles) if you want to keep supporting ES5 and IE11 on the new SDK version.
+- Distributed CommonJS files will be ES6. Use a transpiler if you need to support old node versions.
+- We bumped the TypeScript version we generate our types with to 3.8.3. Please check if your TypeScript projects using TypeScript version 3.7 or lower still compile. Otherwise, upgrade your TypeScript version.
+- `whitelistUrls` and `blacklistUrls` have been renamed to `allowUrls` and `denyUrls` in the `Sentry.init()` options.
+- The `UserAgent` integration is now called `HttpContext`.
+
 ## Dropping Support for Node.js v6
 
 Node.js version 6 has reached end of life in April 2019. For Sentry JavaScript SDK version 7, we will no longer be supporting version 6 of Node.js.
@@ -43,7 +50,7 @@ import { BrowserClient, defaultStackParser, defaultIntegrations, makeFetchTransp
 const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
-  integrations: [...defaultIntegrations],
+  integrations: defaultIntegrations,
 });
 
 // Before:
@@ -53,18 +60,22 @@ const client = new BrowserClient();
 Since you now explicitly pass in the dependencies of the client, you can also tree-shake out dependencies that you do not use this way. For example, you can tree-shake out the SDK's default integrations and only use the ones that you want like so:
 
 ```ts
-import { BrowserClient, defaultStackParser, Integrations, makeFetchTransport } from '@sentry/browser';
+import {
+  BrowserClient,
+  Breadcrumbs,
+  Dedupe,
+  defaultStackParser,
+  GlobalHandlers,
+  Integrations,
+  makeFetchTransport,
+  LinkedErrors,
+} from '@sentry/browser';
 
 // New in v7:
 const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
-  integrations: [
-    new Integrations.Breadcrumbs(),
-    new Integrations.GlobalHandlers(),
-    new Integrations.LinkedErrors(),
-    new Integrations.Dedupe(),
-  ],
+  integrations: [new Breadcrumbs(), new GlobalHandlers(), new LinkedErrors(), new Dedupe()],
 });
 ```
 
@@ -207,8 +218,6 @@ Sentry.init({
   ...
 })
 
-
-
 // Before:
 class MyCustomTransport extends BaseTransport {
   constructor(options: TransportOptions) {
@@ -241,6 +250,30 @@ object with your custom logic, will also take care of rate limiting and flushing
 
 For a complete v7 transport implementation, take a look at our [browser fetch transport](https://github.com/getsentry/sentry-javascript/blob/ebc938a03d6efe7d0c4bbcb47714e84c9a566a9c/packages/browser/src/transports/fetch.ts#L1-L34).
 
+### Node Transport Changes
+
+To clean up the options interface, we now require users to pass down transport related options under the `transportOptions` key. The options that
+were changed were `caCerts`, `httpProxy`, and `httpsProxy`. In addition, `httpProxy` and `httpsProxy` were unified to a single option under
+the `transportOptions` key, `proxy`.
+
+```ts
+// New in v7:
+Sentry.init({
+  dsn: '...',
+  transportOptions: {
+    caCerts: getMyCaCert(),
+    proxy: 'http://example.com',
+  },
+});
+
+// Before:
+Sentry.init({
+  dsn: '...',
+  caCerts: getMyCaCert(),
+  httpsProxy: 'http://example.com',
+})
+```
+
 ## Enum Changes
 
 Given that enums have a high bundle-size impact, our long term goal is to eventually remove all enums from the SDK in
@@ -248,7 +281,6 @@ favor of string literals.
 
 ### Removed Enums
 * The previously deprecated enum `Status` was removed (see [#4891](https://github.com/getsentry/sentry-javascript/pull/4891)).
-  [This example](#status) explains how to migrate.
 * The previously deprecated internal-only enum `RequestSessionStatus` was removed (see
   [#4889](https://github.com/getsentry/sentry-javascript/pull/4889)) in favor of string literals.
 * The previously deprecated internal-only enum `SessionStatus` was removed (see
@@ -260,6 +292,32 @@ changes in v7. They will be removed in the next major release which is why we st
 corresponding string literals. Here's how to adjust [`Severity`](#severity-severitylevel-and-severitylevels) and
 [`SpanStatus`](#spanstatus).
 
+## Session Changes
+
+Note: These changes are not relevant for the majority of Sentry users but if you are building an
+SDK on top of the Javascript SDK, you might need to make some adaptions.
+The internal `Session` class was refactored and replaced with a more functional approach in
+[#5054](https://github.com/getsentry/sentry-javascript/pull/5054).
+Instead of the class, we now export a `Session` interface from `@sentry/types` and three utility functions
+to create and update a `Session` object from `@sentry/hub`.
+This short example shows what has changed and how to deal with the new functions:
+
+```js
+// New in v7:
+import { makeSession, updateSession, closeSession } from '@sentry/hub';
+
+const session = makeSession({ release: 'v1.0' });
+updateSession(session, { environment: 'prod' });
+closeSession(session, 'ok');
+
+// Before:
+import { Session } from '@sentry/hub';
+
+const session = new Session({ release: 'v1.0' });
+session.update({ environment: 'prod' });
+session.close('ok');
+```
+
 ## General API Changes
 
 For our efforts to reduce bundle size of the SDK we had to remove and refactor parts of the package which introduced a few changes to the API:
@@ -269,6 +327,7 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
 - Remove deprecated `whitelistUrls` and `blacklistUrls` options from `Sentry.init`. They have been superseded by `allowUrls` and `denyUrls` specifically. See [our docs page on inclusive language](https://develop.sentry.dev/inclusion/) for more details.
 - Gatsby SDK: Remove `Sentry` from `window` object.
 - Remove deprecated `Status`, `SessionStatus`, and `RequestSessionStatus` enums. These were only part of an internal API. If you are using these enums, we encourage you to to look at [b177690d](https://github.com/getsentry/sentry-javascript/commit/b177690d89640aef2587039113c614672c07d2be), [5fc3147d](https://github.com/getsentry/sentry-javascript/commit/5fc3147dfaaf1a856d5923e4ba409479e87273be), and [f99bdd16](https://github.com/getsentry/sentry-javascript/commit/f99bdd16539bf6fac14eccf1a974a4988d586b28) to to see the changes we've made to our code as result. We generally recommend using string literals instead of the removed enums.
+- Remove 'critical' severity.
 - Remove deprecated `getActiveDomain` method and `DomainAsCarrier` type from `@sentry/hub`.
 - Rename `registerRequestInstrumentation` to `instrumentOutgoingRequests` in `@sentry/tracing`.
 - Remove `Backend` and port its functionality into `Client` (see
@@ -276,7 +335,11 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
   [#4919](https://github.com/getsentry/sentry-javascript/pull/4919)). `Backend` was an unnecessary abstraction which is
   not present in other Sentry SDKs. For the sake of reducing complexity, increasing consistency with other Sentry SDKs and
   decreasing bundle-size, `Backend` was removed.
-- Remove support for Opera browser pre v15
+- Remove support for Opera browser pre v15.
+- Rename `UserAgent` integration to `HttpContext`. (see [#5027](https://github.com/getsentry/sentry-javascript/pull/5027))
+- Remove `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages.
+- Removed `eventStatusFromHttpCode` to save on bundle size.
+- Replace `BrowserTracing` `maxTransactionDuration` option with `finalTimeout` option
 
 ## Sentry Angular SDK Changes
 

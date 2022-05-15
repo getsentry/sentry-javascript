@@ -292,10 +292,7 @@ describe('makeNewHttpsTransport()', () => {
   it('should register TransportRequestExecutor that returns the correct object from server response (rate limit)', async () => {
     await setupTestServer({
       statusCode: RATE_LIMIT,
-      responseHeaders: {
-        'Retry-After': '2700',
-        'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
-      },
+      responseHeaders: {},
     });
 
     makeNodeTransport(defaultOptions);
@@ -308,10 +305,7 @@ describe('makeNewHttpsTransport()', () => {
 
     await expect(executorResult).resolves.toEqual(
       expect.objectContaining({
-        headers: {
-          'retry-after': '2700',
-          'x-sentry-rate-limits': '60::organization, 2700::organization',
-        },
+        statusCode: RATE_LIMIT,
       }),
     );
   });
@@ -331,6 +325,7 @@ describe('makeNewHttpsTransport()', () => {
 
     await expect(executorResult).resolves.toEqual(
       expect.objectContaining({
+        statusCode: SUCCESS,
         headers: {
           'retry-after': null,
           'x-sentry-rate-limits': null,
@@ -358,6 +353,7 @@ describe('makeNewHttpsTransport()', () => {
 
     await expect(executorResult).resolves.toEqual(
       expect.objectContaining({
+        statusCode: SUCCESS,
         headers: {
           'retry-after': '2700',
           'x-sentry-rate-limits': '60::organization, 2700::organization',
@@ -385,6 +381,7 @@ describe('makeNewHttpsTransport()', () => {
 
     await expect(executorResult).resolves.toEqual(
       expect.objectContaining({
+        statusCode: RATE_LIMIT,
         headers: {
           'retry-after': '2700',
           'x-sentry-rate-limits': '60::organization, 2700::organization',

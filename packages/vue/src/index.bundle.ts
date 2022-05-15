@@ -43,7 +43,6 @@ export {
   makeFetchTransport,
   makeXHRTransport,
   withScope,
-  SDK_NAME,
   SDK_VERSION,
 } from '@sentry/browser';
 

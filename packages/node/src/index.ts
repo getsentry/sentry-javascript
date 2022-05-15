@@ -6,6 +6,7 @@ export type {
   Event,
   EventHint,
   Exception,
+  Session,
   // eslint-disable-next-line deprecation/deprecation
   Severity,
   SeverityLevel,
@@ -30,7 +31,6 @@ export {
   Hub,
   makeMain,
   Scope,
-  Session,
   startTransaction,
   SDK_VERSION,
   setContext,
@@ -46,7 +46,6 @@ export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export { defaultIntegrations, init, lastEventId, flush, close, getSentryRelease } from './sdk';
 export { deepReadDirSync } from './utils';
-export { SDK_NAME } from './version';
 export { defaultStackParser } from './stack-parser';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';

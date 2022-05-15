@@ -70,13 +70,16 @@ export function createTransport(
 
     const requestTask = (): PromiseLike<void> =>
       makeRequest({ body: serializeEnvelope(filteredEnvelope, options.textEncoder) }).then(
-        ({ headers }): void => {
-          if (headers) {
-            rateLimits = updateRateLimits(rateLimits, headers);
+        response => {
+          // We don't want to throw on NOK responses, but we want to at least log them
+          if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode >= 300)) {
+            IS_DEBUG_BUILD && logger.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
           }
+
+          rateLimits = updateRateLimits(rateLimits, response);
         },
         error => {
-          IS_DEBUG_BUILD && logger.error('Failed while recording event:', error);
+          IS_DEBUG_BUILD && logger.error('Failed while sending event:', error);
           recordEnvelopeLoss('network_error');
         },
       );

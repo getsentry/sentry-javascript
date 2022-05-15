@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["**/*.ts"],
+  "include": ["utils/**/*.ts"],
 
   "compilerOptions": {
     // package-specific options

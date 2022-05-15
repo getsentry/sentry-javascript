@@ -6,7 +6,6 @@ import { JSDOM } from 'jsdom';
 import {
   BrowserTracing,
   BrowserTracingOptions,
-  DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
   getHeaderContext,
   getMetaContent,
 } from '../../src/browser/browsertracing';
@@ -14,8 +13,8 @@ import { MetricsInstrumentation } from '../../src/browser/metrics';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
-import { DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
-import { getActiveTransaction, secToMs } from '../../src/utils';
+import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
+import { getActiveTransaction } from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
@@ -85,8 +84,8 @@ describe('BrowserTracing', () => {
 
     expect(browserTracing.options).toEqual({
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
+      finalTimeout: DEFAULT_FINAL_TIMEOUT,
       markBackgroundTransactions: true,
-      maxTransactionDuration: DEFAULT_MAX_TRANSACTION_DURATION_SECONDS,
       routingInstrumentation: instrumentRoutingWithDefaults,
       startTransactionOnLocationChange: true,
       startTransactionOnPageLoad: true,
@@ -229,6 +228,7 @@ describe('BrowserTracing', () => {
           parentSampled: true,
         }),
         expect.any(Number),
+        expect.any(Number),
         expect.any(Boolean),
         expect.any(Object),
       );
@@ -247,8 +247,6 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
         expect(mockFinish).toHaveBeenCalledTimes(1);
-
-        expect(transaction.tags).toEqual({ finishReason: 'idleTimeout', idleTimeout: undefined });
       });
 
       it('can be a custom value', () => {
@@ -263,44 +261,6 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(2000);
         expect(mockFinish).toHaveBeenCalledTimes(1);
-
-        expect(transaction.tags).toEqual({ finishReason: 'idleTimeout', idleTimeout: 2000 });
-      });
-    });
-
-    describe('maxTransactionDuration', () => {
-      it('cancels a transaction if exceeded', () => {
-        createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS) + 1);
-
-        expect(transaction.status).toBe('deadline_exceeded');
-        expect(transaction.tags.maxTransactionDurationExceeded).toBeDefined();
-      });
-
-      it('does not cancel a transaction if not exceeded', () => {
-        createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish(transaction.startTimestamp + secToMs(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS));
-
-        expect(transaction.status).toBe(undefined);
-        expect(transaction.tags.maxTransactionDurationExceeded).not.toBeDefined();
-      });
-
-      it('can have a custom value', () => {
-        const customMaxTransactionDuration = 700;
-        // Test to make sure default duration is less than tested custom value.
-        expect(DEFAULT_MAX_TRANSACTION_DURATION_SECONDS < customMaxTransactionDuration).toBe(true);
-        createBrowserTracing(true, {
-          maxTransactionDuration: customMaxTransactionDuration,
-          routingInstrumentation: customInstrumentRouting,
-        });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
-
-        transaction.finish(transaction.startTimestamp + secToMs(customMaxTransactionDuration));
-
-        expect(transaction.status).toBe(undefined);
-        expect(transaction.tags.maxTransactionDurationExceeded).not.toBeDefined();
       });
     });
   });

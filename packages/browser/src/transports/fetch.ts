@@ -1,17 +1,14 @@
 import { createTransport } from '@sentry/core';
-import { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 
+import { BrowserTransportOptions } from './types';
 import { FetchImpl, getNativeFetchImplementation } from './utils';
-
-export interface FetchTransportOptions extends BaseTransportOptions {
-  requestOptions?: RequestInit;
-}
 
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
 export function makeFetchTransport(
-  options: FetchTransportOptions,
+  options: BrowserTransportOptions,
   nativeFetch: FetchImpl = getNativeFetchImplementation(),
 ): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
@@ -19,10 +16,12 @@ export function makeFetchTransport(
       body: request.body,
       method: 'POST',
       referrerPolicy: 'origin',
-      ...options.requestOptions,
+      headers: options.headers,
+      ...options.fetchOptions,
     };
 
     return nativeFetch(options.url, requestOptions).then(response => ({
+      statusCode: response.status,
       headers: {
         'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
         'retry-after': response.headers.get('Retry-After'),

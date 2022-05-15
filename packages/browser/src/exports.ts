@@ -13,6 +13,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  Session,
 } from '@sentry/types';
 
 export type { BrowserOptions } from './client';
@@ -31,7 +32,6 @@ export {
   Hub,
   makeMain,
   Scope,
-  Session,
   startTransaction,
   SDK_VERSION,
   setContext,
@@ -41,6 +41,8 @@ export {
   setTags,
   setUser,
   withScope,
+  FunctionToString,
+  InboundFilters,
 } from '@sentry/core';
 
 export { BrowserClient } from './client';
@@ -55,4 +57,4 @@ export {
   winjsStackLineParser,
 } from './stack-parsers';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
-export { SDK_NAME } from './version';
+export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
