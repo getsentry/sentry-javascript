@@ -92,9 +92,7 @@ export function createAttachmentEnvelopeItem(
   attachment: Attachment,
   textEncoder?: TextEncoderInternal,
 ): AttachmentItem {
-  const utf8 = textEncoder || new TextEncoder();
-
-  const buffer = typeof attachment.data === 'string' ? utf8.encode(attachment.data) : attachment.data;
+  const buffer = typeof attachment.data === 'string' ? encodeUTF8(attachment.data, textEncoder) : attachment.data;
 
   return [
     dropUndefinedKeys({

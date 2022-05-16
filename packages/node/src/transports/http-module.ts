@@ -20,7 +20,7 @@ export interface HTTPModuleRequestIncomingMessage {
  * Some transports work in a special Javascript environment where http.IncomingMessage is not available.
  */
 export interface HTTPModuleClientRequest {
-  end(chunk: string): void;
+  end(chunk: string | Uint8Array): void;
   on(event: 'error', listener: () => void): void;
 }
 

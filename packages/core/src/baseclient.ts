@@ -131,7 +131,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this._process(
       this.eventFromException(exception, hint)
-        .then(event => this._captureEvent(event, hint || {}, scope))
+        .then(event => this._captureEvent(event, hint, scope))
         .then(result => {
           eventId = result;
         }),
@@ -158,7 +158,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this._process(
       promisedEvent
-        .then(event => this._captureEvent(event, hint || {}, scope))
+        .then(event => this._captureEvent(event, hint, scope))
         .then(result => {
           eventId = result;
         }),
@@ -180,7 +180,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
-      this._captureEvent(event, hint || {}, scope).then(result => {
+      this._captureEvent(event, hint, scope).then(result => {
         eventId = result;
       }),
     );
@@ -285,11 +285,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event, hint?: EventHint): void {
+  public sendEvent(event: Event, hint: EventHint = {}): void {
     if (this._dsn) {
       const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
-      for (const attachment of hint?.attachments || []) {
+      for (const attachment of hint.attachments || []) {
         addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment, this._options.transportOptions?.textEncoder));
       }
 
@@ -433,7 +433,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (finalScope) {
       // Collect attachments from the hint and scope
-      const attachments = [...(hint?.attachments || []), ...finalScope.getAttachments()];
+      const attachments = [...(hint.attachments || []), ...finalScope.getAttachments()];
 
       if (attachments.length) {
         hint.attachments = attachments;
@@ -566,7 +566,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param hint
    * @param scope
    */
-  protected _captureEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<string | undefined> {
+  protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
     return this._processEvent(event, hint, scope).then(
       finalEvent => {
         return finalEvent.event_id;
