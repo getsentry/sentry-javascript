@@ -1,4 +1,4 @@
-import { act,render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
 import { matchPath, Route, Router, Switch } from 'react-router-5';
@@ -58,7 +58,9 @@ describe('React Router v5', () => {
       </Router>,
     );
 
-    history.push('/about');
+    act(() => {
+      history.push('/about');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/about',
@@ -66,7 +68,9 @@ describe('React Router v5', () => {
       tags: { 'routing.instrumentation': 'react-router-v5' },
     });
 
-    history.push('/features');
+    act(() => {
+      history.push('/features');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(3);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/features',
@@ -101,7 +105,9 @@ describe('React Router v5', () => {
       </Router>,
     );
 
-    history.replace('hello');
+    act(() => {
+      history.replace('hello');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(1);
   });
 
@@ -118,7 +124,9 @@ describe('React Router v5', () => {
     );
     expect(mockStartTransaction).toHaveBeenCalledTimes(1);
 
-    history.push('/features');
+    act(() => {
+      history.push('/features');
+    });
     expect(mockFinish).toHaveBeenCalledTimes(1);
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
   });
@@ -238,7 +246,9 @@ describe('React Router v5', () => {
       </Router>,
     );
 
-    history.push('/organizations/1234/v1/758');
+    act(() => {
+      history.push('/organizations/1234/v1/758');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/:orgid/v1/:teamid',
@@ -246,7 +256,9 @@ describe('React Router v5', () => {
       tags: { 'routing.instrumentation': 'react-router-v5' },
     });
 
-    history.push('/organizations/1234');
+    act(() => {
+      history.push('/organizations/1234');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(3);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/:orgid',
