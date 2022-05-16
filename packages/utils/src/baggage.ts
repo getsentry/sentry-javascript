@@ -1,3 +1,6 @@
+import { IS_DEBUG_BUILD } from './flags';
+import { logger } from './logger';
+
 export type AllowedBaggageKeys = 'environment' | 'release'; // TODO: Add remaining allowed baggage keys | 'transaction' | 'userid' | 'usersegment';
 export type BaggageObj = Partial<Record<AllowedBaggageKeys, string> & Record<string, string>>;
 
@@ -34,7 +37,7 @@ export function createBaggage(initItems: BaggageObj, baggageString: string = '')
   return [{ ...initItems }, baggageString];
 }
 
-/** Add a value to baggage */
+/** Get a value from baggage */
 export function getBaggageValue(baggage: Baggage, key: keyof BaggageObj): BaggageObj[keyof BaggageObj] {
   return baggage[0][key];
 }
@@ -46,17 +49,23 @@ export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: 
 
 /** Serialize a baggage object */
 export function serializeBaggage(baggage: Baggage): string {
-  return Object.keys(baggage[0]).reduce((prev, key) => {
-    const val = baggage[0][key as keyof BaggageObj] as string;
+  return Object.keys(baggage[0]).reduce((prev, key: keyof BaggageObj) => {
+    const val = baggage[0][key] as string;
     const baggageEntry = `${SENTRY_BAGGAGE_KEY_PREFIX}${encodeURIComponent(key)}=${encodeURIComponent(val)}`;
     const newVal = prev === '' ? baggageEntry : `${prev},${baggageEntry}`;
-    return newVal.length > MAX_BAGGAGE_STRING_LENGTH ? prev : newVal;
+    if (newVal.length > MAX_BAGGAGE_STRING_LENGTH) {
+      IS_DEBUG_BUILD &&
+        logger.warn(`Not adding key: ${key} with val: ${val} to baggage due to exceeding baggage size limits.`);
+      return prev;
+    } else {
+      return newVal;
+    }
   }, baggage[1]);
 }
 
 /** Parse a baggage header to a string */
-export function parseBaggageString(baggageString: string): Baggage {
-  return baggageString.split(',').reduce(
+export function parseBaggageString(inputBaggageString: string): Baggage {
+  return inputBaggageString.split(',').reduce(
     ([baggageObj, baggageString], curr) => {
       const [key, val] = curr.split('=');
       if (SENTRY_BAGGAGE_KEY_PREFIX_REGEX.test(key)) {
