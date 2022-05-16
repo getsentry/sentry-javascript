@@ -124,11 +124,6 @@ jobs:
         # this file) to a constant and skip rebuilding all of the packages each time CI runs.
         if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
-      - name: Save SDK version for later
-        run: |
-          echo "Saving SDK_VERSION for later"
-          cat packages/core/src/version.ts | awk -F"'" '{print $2}' > dist-serverless/version
-          [ ! -z $(cat dist-serverless/version) ] && echo SDK_VERSION=$(cat dist-serverless/version) || (echo "Version extraction failed" && exit 1)
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -158,8 +153,10 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Get SDK version
+        # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
+        # equivalent of using >> rather than >.)
         run: |
-          export SDK_VERSION=$(cat dist-serverless/version)
+          export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
           echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
       - uses: actions/upload-artifact@v3
         with:
