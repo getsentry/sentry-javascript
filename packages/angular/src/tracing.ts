@@ -1,6 +1,6 @@
 import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
 import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
-import { getCurrentHub } from '@sentry/browser';
+import { getActiveTransaction } from '@sentry/hub';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
 import { Observable, Subscription } from 'rxjs';
@@ -37,22 +37,6 @@ export function routingInstrumentation(
 }
 
 export const instrumentAngularRouting = routingInstrumentation;
-
-/**
- * Grabs active transaction off scope
- */
-export function getActiveTransaction(): Transaction | undefined {
-  const currentHub = getCurrentHub();
-
-  if (currentHub) {
-    const scope = currentHub.getScope();
-    if (scope) {
-      return scope.getTransaction();
-    }
-  }
-
-  return undefined;
-}
 
 /**
  * Angular's Service responsible for hooking into Angular Router and tracking current navigation process.
@@ -239,3 +223,5 @@ export function TraceMethodDecorator(): MethodDecorator {
     return descriptor;
   };
 }
+
+export { getActiveTransaction };

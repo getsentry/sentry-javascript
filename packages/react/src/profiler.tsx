@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getCurrentHub, Hub } from '@sentry/browser';
-import { Span, Transaction } from '@sentry/types';
+import { getActiveTransaction } from '@sentry/hub';
+import { Span } from '@sentry/types';
 import { timestampWithMs } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -194,15 +194,3 @@ function useProfiler(
 }
 
 export { withProfiler, Profiler, useProfiler };
-
-/** Grabs active transaction off scope */
-export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
-  if (hub) {
-    const scope = hub.getScope();
-    if (scope) {
-      return scope.getTransaction() as T | undefined;
-    }
-  }
-
-  return undefined;
-}

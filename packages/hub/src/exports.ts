@@ -8,6 +8,7 @@ import {
   Primitive,
   Severity,
   SeverityLevel,
+  Transaction,
   TransactionContext,
   User,
 } from '@sentry/types';
@@ -178,4 +179,12 @@ export function startTransaction(
   customSamplingContext?: CustomSamplingContext,
 ): ReturnType<Hub['startTransaction']> {
   return getCurrentHub().startTransaction({ ...context }, customSamplingContext);
+}
+
+/**
+ * Grabs active transaction off scope
+ */
+export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
+  const scope = hub.getScope();
+  return scope && (scope.getTransaction() as T | undefined);
 }

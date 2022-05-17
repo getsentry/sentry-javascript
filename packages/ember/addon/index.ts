@@ -4,6 +4,7 @@ import { macroCondition, isDevelopingApp, getOwnConfig } from '@embroider/macros
 import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
+import { getActiveTransaction } from '@sentry/hub';
 import { timestampWithMs } from '@sentry/utils';
 import { GlobalConfig, OwnConfig } from './types';
 import { getGlobalObject } from '@sentry/utils';
@@ -63,10 +64,6 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
   }
 }
 
-export const getActiveTransaction = () => {
-  return Sentry.getCurrentHub()?.getScope()?.getTransaction();
-};
-
 export const instrumentRoutePerformance = (BaseRoute: any) => {
   const instrumentFunction = async (op: string, description: string, fn: Function, args: any) => {
     const startTimestamp = timestampWithMs();
@@ -115,6 +112,8 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
     },
   }[BaseRoute.name];
 };
+
+export { getActiveTransaction };
 
 export * from '@sentry/browser';
 

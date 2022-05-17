@@ -10,6 +10,7 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
+  getActiveTransaction,
   startTransaction,
   setContext,
   setExtra,

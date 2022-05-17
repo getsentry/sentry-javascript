@@ -1,5 +1,5 @@
-import { getCurrentHub } from '@sentry/browser';
-import { Span, Transaction } from '@sentry/types';
+import { getActiveTransaction } from '@sentry/hub';
+import { Span } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { formatComponentName } from './components';
@@ -28,11 +28,6 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   mount: ['beforeMount', 'mounted'],
   update: ['beforeUpdate', 'updated'],
 };
-
-/** Grabs active transaction off scope, if any */
-function getActiveTransaction(): Transaction | undefined {
-  return getCurrentHub().getScope()?.getTransaction();
-}
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */
 function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void {

@@ -1,5 +1,5 @@
-import { getCurrentHub, Hub } from '@sentry/hub';
-import { Options, Transaction } from '@sentry/types';
+import { getActiveTransaction, getCurrentHub } from '@sentry/hub';
+import { Options } from '@sentry/types';
 
 /**
  * The `extractTraceparentData` function and `TRACEPARENT_REGEXP` constant used
@@ -28,13 +28,6 @@ export function hasTracingEnabled(
   return !!options && ('tracesSampleRate' in options || 'tracesSampler' in options);
 }
 
-/** Grabs active transaction off scope, if any */
-export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
-  const hub = maybeHub || getCurrentHub();
-  const scope = hub.getScope();
-  return scope && (scope.getTransaction() as T | undefined);
-}
-
 /**
  * Converts from milliseconds to seconds
  * @param time time in ms
@@ -53,3 +46,5 @@ export function secToMs(time: number): number {
 
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
 export { stripUrlQueryAndFragment } from '@sentry/utils';
+
+export { getActiveTransaction };
