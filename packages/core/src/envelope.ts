@@ -11,7 +11,14 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
-import { BaggageObj, createBaggage, createEnvelope, dsnToString, serializeBaggage } from '@sentry/utils';
+import {
+  BaggageObj,
+  createBaggage,
+  createEnvelope,
+  dsnToString,
+  dropUndefinedKeys,
+  serializeBaggage,
+} from '@sentry/utils';
 
 /** Extract sdk info from from the API metadata */
 function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
@@ -110,18 +117,20 @@ export function createEventEnvelope(
   };
 
   if (eventType === 'transaction') {
-    const baggage = createBaggage({
-      environment: event.environment,
-      release: event.release,
-      transaction: event.transaction,
-      userid: event.user && event.user.id,
-      // TODO user.segment currently doesn't exist explicitly in interface User (just as a record key)
-      usersegment: event.user && event.user.segment,
-    } as BaggageObj);
+    const baggage = dropUndefinedKeys(
+      createBaggage({
+        environment: event.environment && event.environment,
+        release: event.release,
+        transaction: event.transaction,
+        userid: event.user && event.user.id,
+        // TODO user.segment currently doesn't exist explicitly in interface User (just as a record key)
+        usersegment: event.user && event.user.segment,
+      } as BaggageObj),
+    );
 
     envelopeHeaders = {
       ...envelopeHeaders,
-      baggage: serializeBaggage(baggage),
+      ...(Object.keys(baggage[0]).length > 0 && { baggage: serializeBaggage(baggage) }),
     };
   }
 
