@@ -58,7 +58,9 @@ describe('React Router V3', () => {
     instrumentation(mockStartTransaction);
     render(<Router history={history}>{routes}</Router>);
 
-    history.push('/about');
+    act(() => {
+      history.push('/about');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/about',
@@ -66,7 +68,9 @@ describe('React Router V3', () => {
       tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
     });
 
-    history.push('/features');
+    act(() => {
+      history.push('/features');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(3);
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/features',
@@ -87,7 +91,9 @@ describe('React Router V3', () => {
     instrumentation(mockStartTransaction);
     render(<Router history={history}>{routes}</Router>);
 
-    history.replace('hello');
+    act(() => {
+      history.replace('hello');
+    });
     expect(mockStartTransaction).toHaveBeenCalledTimes(1);
   });
 
@@ -98,7 +104,9 @@ describe('React Router V3', () => {
     render(<Router history={history}>{routes}</Router>);
     expect(mockStartTransaction).toHaveBeenCalledTimes(1);
 
-    history.push('/features');
+    act(() => {
+      history.push('/features');
+    });
     expect(mockFinish).toHaveBeenCalledTimes(1);
     expect(mockStartTransaction).toHaveBeenCalledTimes(2);
   });
