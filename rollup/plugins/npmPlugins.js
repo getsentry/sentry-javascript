@@ -104,7 +104,7 @@ export function makeRemoveESLintCommentsPlugin() {
   return regexReplace({
     patterns: [
       {
-        test: /\/[/*] eslint-disable.*\n/g,
+        test: /\/[/*] eslint-.*\n/g,
         replace: '',
       },
     ],
