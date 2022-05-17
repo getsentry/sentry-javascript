@@ -15,8 +15,8 @@ import {
   BaggageObj,
   createBaggage,
   createEnvelope,
-  dsnToString,
   dropUndefinedKeys,
+  dsnToString,
   serializeBaggage,
 } from '@sentry/utils';
 

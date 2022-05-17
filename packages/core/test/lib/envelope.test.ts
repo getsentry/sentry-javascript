@@ -1,11 +1,12 @@
-import { createEventEnvelope } from '../../src/envelope';
 import { DsnComponents, Event } from '@sentry/types';
+
+import { createEventEnvelope } from '../../src/envelope';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io' };
 
 describe('createEventEnvelope', () => {
   describe('baggage header', () => {
-    it(`doesn't add baggage header if event is not a transaction`, () => {
+    it("doesn't add baggage header if event is not a transaction", () => {
       const event: Event = {};
       const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
 
@@ -13,7 +14,7 @@ describe('createEventEnvelope', () => {
       expect(envelopeHeaders.baggage).toBeUndefined();
     });
 
-    it(`doesn't add baggage header if no baggage data is available`, () => {
+    it("doesn't add baggage header if no baggage data is available", () => {
       const event: Event = {
         type: 'transaction',
       };
