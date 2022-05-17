@@ -119,11 +119,11 @@ export function createEventEnvelope(
   if (eventType === 'transaction') {
     const baggage = dropUndefinedKeys(
       createBaggage({
-        environment: event.environment && event.environment,
+        environment: event.environment,
         release: event.release,
         transaction: event.transaction,
         userid: event.user && event.user.id,
-        // TODO user.segment currently doesn't exist explicitly in interface User (just as a record key)
+        // user.segment currently doesn't exist explicitly in interface User (just as a record key)
         usersegment: event.user && event.user.segment,
       } as BaggageObj),
     );
