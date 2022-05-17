@@ -281,7 +281,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [8, 10, 12, 14, 16]
+        node: [8, 10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
@@ -318,7 +318,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [10, 12, 14, 16]
+        node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ env.HEAD_COMMIT }})
         uses: actions/checkout@v2
@@ -518,7 +518,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        node: [10, 12, 14, 16]
+        node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ github.sha }})
         uses: actions/checkout@v2
