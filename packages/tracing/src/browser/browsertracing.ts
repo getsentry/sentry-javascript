@@ -7,7 +7,7 @@ import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { MetricsInstrumentation } from './metrics';
+import { addPerformanceEntries, startTrackingWebVitals } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -126,8 +126,6 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
-  private readonly _metrics: MetricsInstrumentation;
-
   private readonly _emitOptionsWarning?: boolean;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
@@ -148,7 +146,7 @@ export class BrowserTracing implements Integration {
     };
 
     const { _metricOptions } = this.options;
-    this._metrics = new MetricsInstrumentation(_metricOptions && _metricOptions._reportAllChanges);
+    startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
   }
 
   /**
@@ -235,7 +233,11 @@ export class BrowserTracing implements Integration {
       { location }, // for use in the tracesSampler
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
-      this._metrics.addPerformanceEntries(transaction);
+      addPerformanceEntries(transaction);
+      transaction.setTag(
+        'sentry_reportAllChanges',
+        Boolean(this.options._metricOptions && this.options._metricOptions._reportAllChanges),
+      );
     });
 
     return idleTransaction as Transaction;

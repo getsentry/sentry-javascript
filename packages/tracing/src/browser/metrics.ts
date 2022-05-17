@@ -1,10 +1,8 @@
 /* eslint-disable max-lines */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Measurements, SpanContext } from '@sentry/types';
+import { Measurements, Span, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
-import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
 import { getCLS, LayoutShift } from './web-vitals/getCLS';
@@ -15,275 +13,225 @@ import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals
 
 const global = getGlobalObject<Window>();
 
-/** Class tracking metrics  */
-export class MetricsInstrumentation {
-  private _measurements: Measurements = {};
+function getBrowserPerformanceAPI(): false | Performance {
+  return !isNodeEnv() && global && global.document && global.performance;
+}
 
-  private _performanceCursor: number = 0;
-  private _lcpEntry: LargestContentfulPaint | undefined;
-  private _clsEntry: LayoutShift | undefined;
+let _performanceCursor: number = 0;
 
-  public constructor(private _reportAllChanges: boolean = false) {
-    if (!isNodeEnv() && global && global.performance && global.document) {
-      if (global.performance.mark) {
-        global.performance.mark('sentry-tracing-init');
-      }
+let _measurements: Measurements = {};
+let _lcpEntry: LargestContentfulPaint | undefined;
+let _clsEntry: LayoutShift | undefined;
 
-      this._trackCLS();
-      this._trackLCP();
-      this._trackFID();
+/**
+ * Start tracking web vitals
+ */
+export function startTrackingWebVitals(reportAllChanges: boolean = false): void {
+  const performance = getBrowserPerformanceAPI();
+  if (performance && browserPerformanceTimeOrigin) {
+    if (performance.mark) {
+      global.performance.mark('sentry-tracing-init');
     }
-  }
-
-  /** Add performance related spans to a transaction */
-  public addPerformanceEntries(transaction: Transaction): void {
-    if (!global || !global.performance || !global.performance.getEntries || !browserPerformanceTimeOrigin) {
-      // Gatekeeper if performance API not available
-      return;
-    }
-
-    IS_DEBUG_BUILD && logger.log('[Tracing] Adding & adjusting spans using Performance API');
-
-    const timeOrigin = msToSec(browserPerformanceTimeOrigin);
-
-    let responseStartTimestamp: number | undefined;
-    let requestStartTimestamp: number | undefined;
-
-    global.performance
-      .getEntries()
-      .slice(this._performanceCursor)
-      .forEach((entry: Record<string, any>) => {
-        const startTime = msToSec(entry.startTime as number);
-        const duration = msToSec(entry.duration as number);
-
-        if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
-          return;
-        }
-
-        switch (entry.entryType) {
-          case 'navigation': {
-            addNavigationSpans(transaction, entry, timeOrigin);
-            responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
-            requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
-            break;
-          }
-          case 'mark':
-          case 'paint':
-          case 'measure': {
-            const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
-            // capture web vitals
-
-            const firstHidden = getVisibilityWatcher();
-            // Only report if the page wasn't hidden prior to the web vital.
-            const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
-
-            if (entry.name === 'first-paint' && shouldRecord) {
-              IS_DEBUG_BUILD && logger.log('[Measurements] Adding FP');
-              this._measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
-              this._measurements['mark.fp'] = { value: startTimestamp, unit: 'second' };
-            }
-
-            if (entry.name === 'first-contentful-paint' && shouldRecord) {
-              IS_DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
-              this._measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
-              this._measurements['mark.fcp'] = { value: startTimestamp, unit: 'second' };
-            }
-
-            break;
-          }
-          case 'resource': {
-            const resourceName = (entry.name as string).replace(global.location.origin, '');
-            addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
-            break;
-          }
-          default:
-          // Ignore other entry types.
-        }
-      });
-
-    this._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
-
-    this._trackNavigator(transaction);
-
-    // Measurements are only available for pageload transactions
-    if (transaction.op === 'pageload') {
-      // normalize applicable web vital values to be relative to transaction.startTimestamp
-
-      const timeOrigin = msToSec(browserPerformanceTimeOrigin);
-
-      // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
-      // start of the response in milliseconds
-      if (typeof responseStartTimestamp === 'number') {
-        IS_DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
-        this._measurements['ttfb'] = {
-          value: (responseStartTimestamp - transaction.startTimestamp) * 1000,
-          unit: 'millisecond',
-        };
-
-        if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
-          // Capture the time spent making the request and receiving the first byte of the response.
-          // This is the time between the start of the request and the start of the response in milliseconds.
-          this._measurements['ttfb.requestTime'] = {
-            value: (responseStartTimestamp - requestStartTimestamp) * 1000,
-            unit: 'second',
-          };
-        }
-      }
-
-      ['fcp', 'fp', 'lcp'].forEach(name => {
-        if (!this._measurements[name] || timeOrigin >= transaction.startTimestamp) {
-          return;
-        }
-
-        // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
-        // Unfortunately, timeOrigin is not captured within the transaction span data, so these web vitals will need
-        // to be adjusted to be relative to transaction.startTimestamp.
-
-        const oldValue = this._measurements[name].value;
-        const measurementTimestamp = timeOrigin + msToSec(oldValue);
-        // normalizedValue should be in milliseconds
-        const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
-
-        const delta = normalizedValue - oldValue;
-        IS_DEBUG_BUILD &&
-          logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
-
-        this._measurements[name].value = normalizedValue;
-      });
-
-      if (this._measurements['mark.fid'] && this._measurements['fid']) {
-        // create span for FID
-
-        _startChild(transaction, {
-          description: 'first input delay',
-          endTimestamp: this._measurements['mark.fid'].value + msToSec(this._measurements['fid'].value),
-          op: 'web.vitals',
-          startTimestamp: this._measurements['mark.fid'].value,
-        });
-      }
-
-      // If FCP is not recorded we should not record the cls value
-      // according to the new definition of CLS.
-      if (!('fcp' in this._measurements)) {
-        delete this._measurements.cls;
-      }
-
-      Object.keys(this._measurements).forEach(measurementName => {
-        transaction.setMeasurement(
-          measurementName,
-          this._measurements[measurementName].value,
-          this._measurements[measurementName].unit,
-        );
-      });
-
-      tagMetricInfo(transaction, this._lcpEntry, this._clsEntry);
-      transaction.setTag('sentry_reportAllChanges', this._reportAllChanges);
-    }
-  }
-
-  /**
-   * Capture the information of the user agent.
-   */
-  private _trackNavigator(transaction: Transaction): void {
-    const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
-    if (!navigator) {
-      return;
-    }
-
-    // track network connectivity
-    const connection = navigator.connection;
-    if (connection) {
-      if (connection.effectiveType) {
-        transaction.setTag('effectiveConnectionType', connection.effectiveType);
-      }
-
-      if (connection.type) {
-        transaction.setTag('connectionType', connection.type);
-      }
-
-      if (isMeasurementValue(connection.rtt)) {
-        this._measurements['connection.rtt'] = { value: connection.rtt, unit: 'millisecond' };
-      }
-
-      if (isMeasurementValue(connection.downlink)) {
-        this._measurements['connection.downlink'] = { value: connection.downlink, unit: '' }; // unit is empty string for now, while relay doesn't support download speed units
-      }
-    }
-
-    if (isMeasurementValue(navigator.deviceMemory)) {
-      transaction.setTag('deviceMemory', `${navigator.deviceMemory} GB`);
-    }
-
-    if (isMeasurementValue(navigator.hardwareConcurrency)) {
-      transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
-    }
-  }
-
-  /** Starts tracking the Cumulative Layout Shift on the current page. */
-  private _trackCLS(): void {
-    // See:
-    // https://web.dev/evolving-cls/
-    // https://web.dev/cls-web-tooling/
-    getCLS(metric => {
-      const entry = metric.entries.pop();
-      if (!entry) {
-        return;
-      }
-
-      IS_DEBUG_BUILD && logger.log('[Measurements] Adding CLS');
-      this._measurements['cls'] = { value: metric.value, unit: 'millisecond' };
-      this._clsEntry = entry as LayoutShift;
-    });
-  }
-
-  /** Starts tracking the Largest Contentful Paint on the current page. */
-  private _trackLCP(): void {
-    getLCP(metric => {
-      const entry = metric.entries.pop();
-      if (!entry) {
-        return;
-      }
-
-      const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
-      const startTime = msToSec(entry.startTime);
-      IS_DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
-      this._measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
-      this._measurements['mark.lcp'] = { value: timeOrigin + startTime, unit: 'second' };
-      this._lcpEntry = entry as LargestContentfulPaint;
-    }, this._reportAllChanges);
-  }
-
-  /** Starts tracking the First Input Delay on the current page. */
-  private _trackFID(): void {
-    getFID(metric => {
-      const entry = metric.entries.pop();
-      if (!entry) {
-        return;
-      }
-
-      const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
-      const startTime = msToSec(entry.startTime);
-      IS_DEBUG_BUILD && logger.log('[Measurements] Adding FID');
-      this._measurements['fid'] = { value: metric.value, unit: 'millisecond' };
-      this._measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
-    });
+    _trackCLS();
+    _trackLCP(reportAllChanges);
+    _trackFID();
   }
 }
 
-/** Instrument navigation entries */
-function addNavigationSpans(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  ['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'].forEach(event => {
-    addPerformanceNavigationTiming(transaction, entry, event, timeOrigin);
+/** Starts tracking the Cumulative Layout Shift on the current page. */
+function _trackCLS(): void {
+  // See:
+  // https://web.dev/evolving-cls/
+  // https://web.dev/cls-web-tooling/
+  getCLS(metric => {
+    const entry = metric.entries.pop();
+    if (!entry) {
+      return;
+    }
+
+    IS_DEBUG_BUILD && logger.log('[Measurements] Adding CLS');
+    _measurements['cls'] = { value: metric.value, unit: 'millisecond' };
+    _clsEntry = entry as LayoutShift;
   });
-  addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'TLS/SSL', 'connectEnd');
-  addPerformanceNavigationTiming(transaction, entry, 'fetch', timeOrigin, 'cache', 'domainLookupStart');
-  addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin, 'DNS');
-  addRequest(transaction, entry, timeOrigin);
+}
+
+/** Starts tracking the Largest Contentful Paint on the current page. */
+function _trackLCP(reportAllChanges: boolean): void {
+  getLCP(metric => {
+    const entry = metric.entries.pop();
+    if (!entry) {
+      return;
+    }
+
+    const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
+    const startTime = msToSec(entry.startTime);
+    IS_DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
+    _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
+    _measurements['mark.lcp'] = { value: timeOrigin + startTime, unit: 'second' };
+    _lcpEntry = entry as LargestContentfulPaint;
+  }, reportAllChanges);
+}
+
+/** Starts tracking the First Input Delay on the current page. */
+function _trackFID(): void {
+  getFID(metric => {
+    const entry = metric.entries.pop();
+    if (!entry) {
+      return;
+    }
+
+    const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
+    const startTime = msToSec(entry.startTime);
+    IS_DEBUG_BUILD && logger.log('[Measurements] Adding FID');
+    _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
+    _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
+  });
+}
+
+/** Add performance related spans to a transaction */
+export function addPerformanceEntries(transaction: Transaction): void {
+  const performance = getBrowserPerformanceAPI();
+  if (!performance || !global.performance.getEntries || !browserPerformanceTimeOrigin) {
+    // Gatekeeper if performance API not available
+    return;
+  }
+
+  IS_DEBUG_BUILD && logger.log('[Tracing] Adding & adjusting spans using Performance API');
+  const timeOrigin = msToSec(browserPerformanceTimeOrigin);
+
+  const performanceEntries = performance.getEntries();
+
+  let responseStartTimestamp: number | undefined;
+  let requestStartTimestamp: number | undefined;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
+    const startTime = msToSec(entry.startTime);
+    const duration = msToSec(entry.duration);
+
+    if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
+      return;
+    }
+
+    switch (entry.entryType) {
+      case 'navigation': {
+        _addNavigationSpans(transaction, entry, timeOrigin);
+        responseStartTimestamp = timeOrigin + msToSec(entry.responseStart);
+        requestStartTimestamp = timeOrigin + msToSec(entry.requestStart);
+        break;
+      }
+      case 'mark':
+      case 'paint':
+      case 'measure': {
+        const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
+
+        // capture web vitals
+        const firstHidden = getVisibilityWatcher();
+        // Only report if the page wasn't hidden prior to the web vital.
+        const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
+
+        if (entry.name === 'first-paint' && shouldRecord) {
+          IS_DEBUG_BUILD && logger.log('[Measurements] Adding FP');
+          _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
+          _measurements['mark.fp'] = { value: startTimestamp, unit: 'second' };
+        }
+        if (entry.name === 'first-contentful-paint' && shouldRecord) {
+          IS_DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
+          _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
+          _measurements['mark.fcp'] = { value: startTimestamp, unit: 'second' };
+        }
+        break;
+      }
+      case 'resource': {
+        const resourceName = (entry.name as string).replace(global.location.origin, '');
+        _addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
+        break;
+      }
+      default:
+      // Ignore other entry types.
+    }
+  });
+
+  _performanceCursor = Math.max(performanceEntries.length - 1, 0);
+
+  _trackNavigator(transaction);
+
+  // Measurements are only available for pageload transactions
+  if (transaction.op === 'pageload') {
+    // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
+    // start of the response in milliseconds
+    if (typeof responseStartTimestamp === 'number') {
+      IS_DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
+      _measurements['ttfb'] = {
+        value: (responseStartTimestamp - transaction.startTimestamp) * 1000,
+        unit: 'millisecond',
+      };
+
+      if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
+        // Capture the time spent making the request and receiving the first byte of the response.
+        // This is the time between the start of the request and the start of the response in milliseconds.
+        _measurements['ttfb.requestTime'] = {
+          value: (responseStartTimestamp - requestStartTimestamp) * 1000,
+          unit: 'second',
+        };
+      }
+    }
+
+    ['fcp', 'fp', 'lcp'].forEach(name => {
+      if (!_measurements[name] || timeOrigin >= transaction.startTimestamp) {
+        return;
+      }
+      // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
+      // Unfortunately, timeOrigin is not captured within the transaction span data, so these web vitals will need
+      // to be adjusted to be relative to transaction.startTimestamp.
+      const oldValue = _measurements[name].value;
+      const measurementTimestamp = timeOrigin + msToSec(oldValue);
+
+      // normalizedValue should be in milliseconds
+      const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
+      const delta = normalizedValue - oldValue;
+
+      IS_DEBUG_BUILD &&
+        logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
+      _measurements[name].value = normalizedValue;
+    });
+
+    if (_measurements['mark.fid'] && _measurements['fid']) {
+      // create span for FID
+      _startChild(transaction, {
+        description: 'first input delay',
+        endTimestamp: _measurements['mark.fid'].value + msToSec(_measurements['fid'].value),
+        op: 'web.vitals',
+        startTimestamp: _measurements['mark.fid'].value,
+      });
+    }
+
+    // If FCP is not recorded we should not record the cls value
+    // according to the new definition of CLS.
+    if (!('fcp' in _measurements)) {
+      delete _measurements.cls;
+    }
+
+    Object.keys(_measurements).forEach(measurementName => {
+      transaction.setMeasurement(
+        measurementName,
+        _measurements[measurementName].value,
+        _measurements[measurementName].unit,
+      );
+    });
+
+    _tagMetricInfo(transaction);
+  }
+
+  _lcpEntry = undefined;
+  _clsEntry = undefined;
+  _measurements = {};
 }
 
 /** Create measure related spans */
 function addMeasureSpans(
   transaction: Transaction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entry: Record<string, any>,
   startTime: number,
   duration: number,
@@ -302,6 +250,59 @@ function addMeasureSpans(
   return measureStartTimestamp;
 }
 
+/** Instrument navigation entries */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _addNavigationSpans(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
+  ['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'].forEach(event => {
+    _addPerformanceNavigationTiming(transaction, entry, event, timeOrigin);
+  });
+  _addPerformanceNavigationTiming(transaction, entry, 'secureConnection', timeOrigin, 'TLS/SSL', 'connectEnd');
+  _addPerformanceNavigationTiming(transaction, entry, 'fetch', timeOrigin, 'cache', 'domainLookupStart');
+  _addPerformanceNavigationTiming(transaction, entry, 'domainLookup', timeOrigin, 'DNS');
+  _addRequest(transaction, entry, timeOrigin);
+}
+
+/** Create performance navigation related spans */
+function _addPerformanceNavigationTiming(
+  transaction: Transaction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  entry: Record<string, any>,
+  event: string,
+  timeOrigin: number,
+  description?: string,
+  eventEnd?: string,
+): void {
+  const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
+  const start = entry[`${event}Start`] as number | undefined;
+  if (!start || !end) {
+    return;
+  }
+  _startChild(transaction, {
+    op: 'browser',
+    description: description ?? event,
+    startTimestamp: timeOrigin + msToSec(start),
+    endTimestamp: timeOrigin + msToSec(end),
+  });
+}
+
+/** Create request and response related spans */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
+  _startChild(transaction, {
+    op: 'browser',
+    description: 'request',
+    startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
+    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+  });
+
+  _startChild(transaction, {
+    op: 'browser',
+    description: 'response',
+    startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+  });
+}
+
 export interface ResourceEntry extends Record<string, unknown> {
   initiatorType?: string;
   transferSize?: number;
@@ -310,7 +311,7 @@ export interface ResourceEntry extends Record<string, unknown> {
 }
 
 /** Create resource-related spans */
-export function addResourceSpans(
+export function _addResourceSpans(
   transaction: Transaction,
   entry: ResourceEntry,
   resourceName: string,
@@ -324,6 +325,7 @@ export function addResourceSpans(
     return;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: Record<string, any> = {};
   if ('transferSize' in entry) {
     data['Transfer Size'] = entry.transferSize;
@@ -347,43 +349,49 @@ export function addResourceSpans(
   });
 }
 
-/** Create performance navigation related spans */
-function addPerformanceNavigationTiming(
-  transaction: Transaction,
-  entry: Record<string, any>,
-  event: string,
-  timeOrigin: number,
-  description?: string,
-  eventEnd?: string,
-): void {
-  const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
-  const start = entry[`${event}Start`] as number | undefined;
-  if (!start || !end) {
+/**
+ * Capture the information of the user agent.
+ */
+function _trackNavigator(transaction: Transaction): void {
+  const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
+  if (!navigator) {
     return;
   }
-  _startChild(transaction, {
-    op: 'browser',
-    description: description ?? event,
-    startTimestamp: timeOrigin + msToSec(start),
-    endTimestamp: timeOrigin + msToSec(end),
-  });
+
+  // track network connectivity
+  const connection = navigator.connection;
+  if (connection) {
+    if (connection.effectiveType) {
+      transaction.setTag('effectiveConnectionType', connection.effectiveType);
+    }
+
+    if (connection.type) {
+      transaction.setTag('connectionType', connection.type);
+    }
+
+    if (isMeasurementValue(connection.rtt)) {
+      _measurements['connection.rtt'] = { value: connection.rtt, unit: 'millisecond' };
+    }
+
+    if (isMeasurementValue(connection.downlink)) {
+      _measurements['connection.downlink'] = { value: connection.downlink, unit: '' }; // unit is empty string for now, while relay doesn't support download speed units
+    }
+  }
+
+  if (isMeasurementValue(navigator.deviceMemory)) {
+    transaction.setTag('deviceMemory', `${navigator.deviceMemory} GB`);
+  }
+
+  if (isMeasurementValue(navigator.hardwareConcurrency)) {
+    transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
+  }
 }
 
-/** Create request and response related spans */
-function addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  _startChild(transaction, {
-    op: 'browser',
-    description: 'request',
-    startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
-
-  _startChild(transaction, {
-    op: 'browser',
-    description: 'response',
-    startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
+/**
+ * Checks if a given value is a valid measurement value.
+ */
+function isMeasurementValue(value: unknown): value is number {
+  return typeof value === 'number' && isFinite(value);
 }
 
 /**
@@ -402,44 +410,33 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
   });
 }
 
-/**
- * Checks if a given value is a valid measurement value.
- */
-function isMeasurementValue(value: unknown): value is number {
-  return typeof value === 'number' && isFinite(value);
-}
-
 /** Add LCP / CLS data to transaction to allow debugging */
-function tagMetricInfo(
-  transaction: Transaction,
-  lcpEntry: MetricsInstrumentation['_lcpEntry'],
-  clsEntry: MetricsInstrumentation['_clsEntry'],
-): void {
-  if (lcpEntry) {
+function _tagMetricInfo(transaction: Transaction): void {
+  if (_lcpEntry) {
     IS_DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
 
     // Capture Properties of the LCP element that contributes to the LCP.
 
-    if (lcpEntry.element) {
-      transaction.setTag('lcp.element', htmlTreeAsString(lcpEntry.element));
+    if (_lcpEntry.element) {
+      transaction.setTag('lcp.element', htmlTreeAsString(_lcpEntry.element));
     }
 
-    if (lcpEntry.id) {
-      transaction.setTag('lcp.id', lcpEntry.id);
+    if (_lcpEntry.id) {
+      transaction.setTag('lcp.id', _lcpEntry.id);
     }
 
-    if (lcpEntry.url) {
+    if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
-      transaction.setTag('lcp.url', lcpEntry.url.trim().slice(0, 200));
+      transaction.setTag('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
-    transaction.setTag('lcp.size', lcpEntry.size);
+    transaction.setTag('lcp.size', _lcpEntry.size);
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
-  if (clsEntry && clsEntry.sources) {
+  if (_clsEntry && _clsEntry.sources) {
     IS_DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
-    clsEntry.sources.forEach((source, index) =>
+    _clsEntry.sources.forEach((source, index) =>
       transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
   }
