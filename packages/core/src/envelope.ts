@@ -117,8 +117,8 @@ export function createEventEnvelope(
   };
 
   if (eventType === 'transaction') {
-    const baggage = dropUndefinedKeys(
-      createBaggage({
+    const baggage = createBaggage(
+      dropUndefinedKeys({
         environment: event.environment,
         release: event.release,
         transaction: event.transaction,
@@ -127,7 +127,6 @@ export function createEventEnvelope(
         usersegment: event.user && event.user.segment,
       } as BaggageObj),
     );
-
     envelopeHeaders = {
       ...envelopeHeaders,
       ...(Object.keys(baggage[0]).length > 0 && { baggage: serializeBaggage(baggage) }),
