@@ -11,6 +11,9 @@ import {
   makeIsDebugBuildPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
+  makeRemoveBlankLinesPlugin,
+  makeRemoveESLintCommentsPlugin,
+  makeSucrasePlugin,
   makeTerserPlugin,
   makeTSPlugin,
 } from './plugins/index.js';
@@ -20,6 +23,9 @@ export function makeBaseBundleConfig(options) {
   const { input, isAddOn, jsVersion, licenseTitle, outputFileBase } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
+  const sucrasePlugin = makeSucrasePlugin();
+  const removeBlankLinesPlugin = makeRemoveBlankLinesPlugin();
+  const removeESLintCommentsPlugin = makeRemoveESLintCommentsPlugin();
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
@@ -75,7 +81,17 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [tsPlugin, markAsBrowserBuildPlugin, nodeResolvePlugin, licensePlugin],
+    plugins:
+      jsVersion === 'es5'
+        ? [tsPlugin, markAsBrowserBuildPlugin, nodeResolvePlugin, licensePlugin]
+        : [
+            sucrasePlugin,
+            removeBlankLinesPlugin,
+            removeESLintCommentsPlugin,
+            markAsBrowserBuildPlugin,
+            nodeResolvePlugin,
+            licensePlugin,
+          ],
     treeshake: 'smallest',
   };
 
