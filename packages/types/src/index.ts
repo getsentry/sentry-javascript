@@ -40,6 +40,7 @@ export type { SdkMetadata } from './sdkmetadata';
 export type {
   SessionAggregates,
   AggregationCounts,
+  SerializedSession,
   Session,
   SessionContext,
   SessionStatus,
