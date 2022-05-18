@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  Attachment,
   Breadcrumb,
   CaptureContext,
   Context,
@@ -86,6 +87,9 @@ export class Scope implements ScopeInterface {
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
 
+  /** Attachments */
+  protected _attachments: Attachment[] = [];
+
   /**
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
    * sent to Sentry
@@ -111,6 +115,7 @@ export class Scope implements ScopeInterface {
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
       newScope._requestSession = scope._requestSession;
+      newScope._attachments = [...scope._attachments];
     }
     return newScope;
   }
@@ -366,6 +371,7 @@ export class Scope implements ScopeInterface {
     this._span = undefined;
     this._session = undefined;
     this._notifyScopeListeners();
+    this._attachments = [];
     return this;
   }
 
@@ -396,6 +402,29 @@ export class Scope implements ScopeInterface {
   public clearBreadcrumbs(): this {
     this._breadcrumbs = [];
     this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public addAttachment(attachment: Attachment): this {
+    this._attachments.push(attachment);
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getAttachments(): Attachment[] {
+    return this._attachments;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public clearAttachments(): this {
+    this._attachments = [];
     return this;
   }
 

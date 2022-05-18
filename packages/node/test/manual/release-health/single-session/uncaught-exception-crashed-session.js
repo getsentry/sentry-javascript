@@ -1,11 +1,15 @@
 const Sentry = require('../../../../build/cjs');
 const { assertSessions, constructStrippedSessionObject } = require('../test-utils');
+const { TextEncoder } = require('util');
 
 function makeDummyTransport() {
-  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, req => {
     if (req.category === 'session') {
       sessionCounts.sessionCounter++;
-      const sessionEnv = req.body.split('\n').map(e => JSON.parse(e));
+      const sessionEnv = req.body
+        .split('\n')
+        .filter(l => !!l)
+        .map(e => JSON.parse(e));
 
       assertSessions(constructStrippedSessionObject(sessionEnv[2]), {
         init: true,

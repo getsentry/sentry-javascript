@@ -1,5 +1,6 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { TextEncoder } from 'util';
 
 import { makeFetchTransport } from '../../../src/transports/fetch';
 import { BrowserTransportOptions } from '../../../src/transports/types';
@@ -8,6 +9,7 @@ import { FetchImpl } from '../../../src/transports/utils';
 const DEFAULT_FETCH_TRANSPORT_OPTIONS: BrowserTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
+  textEncoder: new TextEncoder(),
 };
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
@@ -40,7 +42,7 @@ describe('NewFetchTransport', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_FETCH_TRANSPORT_OPTIONS.url, {
-      body: serializeEnvelope(ERROR_ENVELOPE),
+      body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
       method: 'POST',
       referrerPolicy: 'origin',
     });
@@ -90,7 +92,7 @@ describe('NewFetchTransport', () => {
 
     await transport.send(ERROR_ENVELOPE);
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_FETCH_TRANSPORT_OPTIONS.url, {
-      body: serializeEnvelope(ERROR_ENVELOPE),
+      body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
       method: 'POST',
       ...REQUEST_OPTIONS,
     });

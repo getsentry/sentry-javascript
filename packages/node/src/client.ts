@@ -2,6 +2,7 @@ import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
+import { TextEncoder } from 'util';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import { IS_DEBUG_BUILD } from './flags';
@@ -31,6 +32,12 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
         },
       ],
       version: SDK_VERSION,
+    };
+
+    // Until node supports global TextEncoder in all versions we support, we are forced to pass it from util
+    options.transportOptions = {
+      textEncoder: new TextEncoder(),
+      ...options.transportOptions,
     };
 
     super(options);
@@ -131,12 +138,12 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
+  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'node';
     if (this.getOptions().serverName) {
       event.server_name = this.getOptions().serverName;
     }
-    return super._prepareEvent(event, scope, hint);
+    return super._prepareEvent(event, hint, scope);
   }
 
   /**

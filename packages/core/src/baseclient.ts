@@ -19,7 +19,9 @@ import {
   Transport,
 } from '@sentry/types';
 import {
+  addItemToEnvelope,
   checkOrSetAlreadyCaught,
+  createAttachmentEnvelopeItem,
   dateTimestampInSeconds,
   isPlainObject,
   isPrimitive,
@@ -283,9 +285,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event): void {
+  public sendEvent(event: Event, hint: EventHint = {}): void {
     if (this._dsn) {
       const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+
+      for (const attachment of hint.attachments || []) {
+        addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment, this._options.transportOptions?.textEncoder));
+      }
+
       this._sendEnvelope(env);
     }
   }
@@ -401,11 +408,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
+  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = this.getOptions();
     const prepared: Event = {
       ...event,
-      event_id: event.event_id || (hint && hint.event_id ? hint.event_id : uuid4()),
+      event_id: event.event_id || hint.event_id || uuid4(),
       timestamp: event.timestamp || dateTimestampInSeconds(),
     };
 
@@ -415,7 +422,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // If we have scope given to us, use it as the base for further modifications.
     // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
     let finalScope = scope;
-    if (hint && hint.captureContext) {
+    if (hint.captureContext) {
       finalScope = Scope.clone(finalScope).update(hint.captureContext);
     }
 
@@ -425,6 +432,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (finalScope) {
+      // Collect attachments from the hint and scope
+      const attachments = [...(hint.attachments || []), ...finalScope.getAttachments()];
+
+      if (attachments.length) {
+        hint.attachments = attachments;
+      }
+
       // In case we have a hub we reassign it.
       result = finalScope.applyToEvent(prepared, hint);
     }
@@ -552,7 +566,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param hint
    * @param scope
    */
-  protected _captureEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<string | undefined> {
+  protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
     return this._processEvent(event, hint, scope).then(
       finalEvent => {
         return finalEvent.event_id;
@@ -577,7 +591,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param scope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
+  protected _processEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event> {
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
@@ -597,14 +611,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       );
     }
 
-    return this._prepareEvent(event, scope, hint)
+    return this._prepareEvent(event, hint, scope)
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', event.type || 'error');
           throw new SentryError('An event processor returned null, will not send event.');
         }
 
-        const isInternalException = hint && hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+        const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
         if (isInternalException || isTransaction || !beforeSend) {
           return prepared;
         }
@@ -623,7 +637,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        this.sendEvent(processedEvent);
+        this.sendEvent(processedEvent, hint);
         return processedEvent;
       })
       .then(null, reason => {

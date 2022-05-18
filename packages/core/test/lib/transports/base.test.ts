@@ -1,5 +1,6 @@
 import { EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/types';
 import { createEnvelope, PromiseBuffer, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
+import { TextEncoder } from 'util';
 
 import { createTransport } from '../../../src/transports/base';
 
@@ -14,6 +15,7 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
 
 const transportOptions = {
   recordDroppedEvent: () => undefined, // noop
+  textEncoder: new TextEncoder(),
 };
 
 describe('createTransport', () => {
@@ -36,7 +38,7 @@ describe('createTransport', () => {
     it('constructs a request to send to Sentry', async () => {
       expect.assertions(1);
       const transport = createTransport(transportOptions, req => {
-        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
+        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()));
         return resolvedSyncPromise({});
       });
       await transport.send(ERROR_ENVELOPE);
@@ -46,7 +48,7 @@ describe('createTransport', () => {
       expect.assertions(2);
 
       const transport = createTransport(transportOptions, req => {
-        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
+        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()));
         throw new Error();
       });
 
@@ -82,7 +84,10 @@ describe('createTransport', () => {
 
         const mockRecordDroppedEventCallback = jest.fn();
 
-        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, mockRequestExecutor);
+        const transport = createTransport(
+          { recordDroppedEvent: mockRecordDroppedEventCallback, textEncoder: new TextEncoder() },
+          mockRequestExecutor,
+        );
 
         return [transport, setTransportResponse, mockRequestExecutor, mockRecordDroppedEventCallback] as const;
       }

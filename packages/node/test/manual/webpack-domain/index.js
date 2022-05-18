@@ -1,10 +1,11 @@
 const Sentry = require('../../../build/cjs');
 const { colorize } = require('../colorize');
+const { TextEncoder } = require('util');
 
 let remaining = 2;
 
 function makeDummyTransport() {
-  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, req => {
     --remaining;
 
     if (!remaining) {

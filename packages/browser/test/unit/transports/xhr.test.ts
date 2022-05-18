@@ -1,5 +1,6 @@
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { TextEncoder } from 'util';
 
 import { BrowserTransportOptions } from '../../../src/transports/types';
 import { makeXHRTransport } from '../../../src/transports/xhr';
@@ -7,6 +8,7 @@ import { makeXHRTransport } from '../../../src/transports/xhr';
 const DEFAULT_XHR_TRANSPORT_OPTIONS: BrowserTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
+  textEncoder: new TextEncoder(),
 };
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
@@ -64,7 +66,7 @@ describe('NewXHRTransport', () => {
     expect(xhrMock.open).toHaveBeenCalledTimes(1);
     expect(xhrMock.open).toHaveBeenCalledWith('POST', DEFAULT_XHR_TRANSPORT_OPTIONS.url);
     expect(xhrMock.send).toHaveBeenCalledTimes(1);
-    expect(xhrMock.send).toHaveBeenCalledWith(serializeEnvelope(ERROR_ENVELOPE));
+    expect(xhrMock.send).toHaveBeenCalledWith(serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()));
   });
 
   it('sets rate limit response headers', async () => {
