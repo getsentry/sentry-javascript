@@ -618,7 +618,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           throw new SentryError('`beforeSend` returned `null`, will not send event.');
         }
 
-        const session = scope && scope.getSession && scope.getSession();
+        const session = scope && scope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }

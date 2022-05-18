@@ -1,7 +1,7 @@
 import { IS_DEBUG_BUILD } from './flags';
 import { logger } from './logger';
 
-export type AllowedBaggageKeys = 'environment' | 'release'; // TODO: Add remaining allowed baggage keys | 'transaction' | 'userid' | 'usersegment';
+export type AllowedBaggageKeys = 'environment' | 'release' | 'userid' | 'transaction' | 'usersegment';
 export type BaggageObj = Partial<Record<AllowedBaggageKeys, string> & Record<string, string>>;
 
 /**
@@ -45,6 +45,11 @@ export function getBaggageValue(baggage: Baggage, key: keyof BaggageObj): Baggag
 /** Add a value to baggage */
 export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: BaggageObj[keyof BaggageObj]): void {
   baggage[0][key] = value;
+}
+
+/** Check if the baggage object (i.e. the first element in the tuple) is empty */
+export function isBaggageEmpty(baggage: Baggage): boolean {
+  return Object.keys(baggage[0]).length === 0;
 }
 
 /** Serialize a baggage object */
