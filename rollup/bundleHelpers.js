@@ -2,10 +2,13 @@
  * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
  */
 
+import { builtinModules } from 'module';
+
 import deepMerge from 'deepmerge';
 
 import {
   makeBrowserBuildPlugin,
+  makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
@@ -28,6 +31,11 @@ export function makeBaseBundleConfig(options) {
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
 
+  // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
+  // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
+  // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
+  const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
+
   // used by `@sentry/browser`, `@sentry/tracing`, and `@sentry/vue` (bundles which are a full SDK in and of themselves)
   const standAloneBundleConfig = {
     output: {
@@ -35,6 +43,7 @@ export function makeBaseBundleConfig(options) {
       name: 'Sentry',
     },
     context: 'window',
+    plugins: [markAsBrowserBuildPlugin],
   };
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
@@ -67,6 +76,17 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
+    plugins: [markAsBrowserBuildPlugin],
+  };
+
+  // used by `@sentry/serverless`, when creating the lambda layer
+  const nodeBundleConfig = {
+    output: {
+      format: 'cjs',
+    },
+    plugins: [commonJSPlugin],
+    // Don't bundle any of Node's core modules
+    external: builtinModules,
   };
 
   // used by all bundles
@@ -81,21 +101,15 @@ export function makeBaseBundleConfig(options) {
     },
     plugins:
       jsVersion === 'es5'
-        ? [tsPlugin, markAsBrowserBuildPlugin, nodeResolvePlugin, licensePlugin]
-        : [
-            sucrasePlugin,
-            removeBlankLinesPlugin,
-            removeESLintCommentsPlugin,
-            markAsBrowserBuildPlugin,
-            nodeResolvePlugin,
-            licensePlugin,
-          ],
+        ? [tsPlugin, nodeResolvePlugin, licensePlugin]
+        : [sucrasePlugin, removeBlankLinesPlugin, removeESLintCommentsPlugin, nodeResolvePlugin, licensePlugin],
     treeshake: 'smallest',
   };
 
   const bundleTypeConfigMap = {
     standalone: standAloneBundleConfig,
     addon: addOnBundleConfig,
+    node: nodeBundleConfig,
   };
 
   return deepMerge(sharedBundleConfig, bundleTypeConfigMap[bundleType], {
