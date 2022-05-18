@@ -136,7 +136,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.HEAD_COMMIT }}
-          path: packages/serverless/build/dist-serverless/*
+          path: packages/serverless/build/aws/*
       - name: Create and upload final zip file
         uses: getsentry/action-build-aws-lambda-extension@v1
         with:

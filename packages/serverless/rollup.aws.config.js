@@ -2,10 +2,10 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/ind
 
 const baseBundleConfig = makeBaseBundleConfig({
   bundleType: 'node',
-  input: 'src/index.awslambda.ts',
+  entrypoints: ['src/index.awslambda.ts'],
   jsVersion: 'es6',
   licenseTitle: '@sentry/serverless',
-  outputFileBase: 'dist-serverless/nodejs/node_modules/@sentry/serverless/build/cjs/index',
+  outputFileBase: () => 'aws/dist-serverless/nodejs/node_modules/@sentry/serverless/build/cjs/index',
 });
 
 export default makeBundleConfigVariants(
