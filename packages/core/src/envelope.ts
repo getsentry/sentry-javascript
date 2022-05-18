@@ -12,7 +12,6 @@ import {
   SessionItem,
 } from '@sentry/types';
 import {
-  Baggage,
   BaggageObj,
   createBaggage,
   createEnvelope,
