@@ -21,7 +21,7 @@ import {
 import { mergePlugins } from './utils';
 
 export function makeBaseBundleConfig(options) {
-  const { bundleType, input, jsVersion, licenseTitle, outputFileBase } = options;
+  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -91,10 +91,11 @@ export function makeBaseBundleConfig(options) {
 
   // used by all bundles
   const sharedBundleConfig = {
-    input,
+    input: entrypoints,
     output: {
       // a file extension will be added to this base value when we specify either a minified or non-minified build
-      file: `build/${outputFileBase}`,
+      entryFileNames: outputFileBase,
+      dir: 'build',
       sourcemap: true,
       strict: false,
       esModule: false,
@@ -136,7 +137,7 @@ export function makeBundleConfigVariants(baseConfig) {
   const variantSpecificConfigs = [
     {
       output: {
-        file: `${baseConfig.output.file}.js`,
+        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.js`,
       },
       plugins: [includeDebuggingPlugin],
     },
@@ -150,13 +151,13 @@ export function makeBundleConfigVariants(baseConfig) {
     // },
     {
       output: {
-        file: `${baseConfig.output.file}.min.js`,
+        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
       },
       plugins: [stripDebuggingPlugin, terserPlugin],
     },
     {
       output: {
-        file: `${baseConfig.output.file}.debug.min.js`,
+        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
       },
       plugins: [terserPlugin],
     },
