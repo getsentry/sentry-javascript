@@ -11,13 +11,14 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
-import { isBaggageEmpty } from '@sentry/utils';
 import {
+  Baggage,
   BaggageObj,
   createBaggage,
   createEnvelope,
   dropUndefinedKeys,
   dsnToString,
+  isBaggageEmpty,
   serializeBaggage,
 } from '@sentry/utils';
 
@@ -110,29 +111,7 @@ export function createEventEnvelope(
   // TODO: This is NOT part of the hack - DO NOT DELETE
   delete event.sdkProcessingMetadata;
 
-  let envelopeHeaders: EventEnvelopeHeaders = {
-    event_id: event.event_id as string,
-    sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && { dsn: dsnToString(dsn) }),
-  };
-
-  if (eventType === 'transaction') {
-    const baggage = createBaggage(
-      dropUndefinedKeys({
-        environment: event.environment,
-        release: event.release,
-        transaction: event.transaction,
-        userid: event.user && event.user.id,
-        // user.segment currently doesn't exist explicitly in interface User (just as a record key)
-        usersegment: event.user && event.user.segment,
-      } as BaggageObj),
-    );
-    envelopeHeaders = {
-      ...envelopeHeaders,
-      ...(isBaggageEmpty(baggage) && { baggage: serializeBaggage(baggage) }),
-    };
-  }
+  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
 
   const eventItem: EventItem = [
     {
@@ -142,4 +121,32 @@ export function createEventEnvelope(
     event,
   ];
   return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem]);
+}
+
+function createEventEnvelopeHeaders(
+  event: Event,
+  sdkInfo: SdkInfo | undefined,
+  tunnel: string | undefined,
+  dsn: DsnComponents,
+): EventEnvelopeHeaders {
+  const baggage =
+    event.type === 'transaction' &&
+    createBaggage(
+      dropUndefinedKeys({
+        environment: event.environment,
+        release: event.release,
+        transaction: event.transaction,
+        userid: event.user && event.user.id,
+        // user.segment currently doesn't exist explicitly in interface User (just as a record key)
+        usersegment: event.user && event.user.segment,
+      } as BaggageObj),
+    );
+
+  return {
+    event_id: event.event_id as string,
+    sent_at: new Date().toISOString(),
+    ...(sdkInfo && { sdk: sdkInfo }),
+    ...(!!tunnel && { dsn: dsnToString(dsn) }),
+    ...(baggage && !isBaggageEmpty(baggage) && { baggage: serializeBaggage(baggage) }),
+  };
 }
