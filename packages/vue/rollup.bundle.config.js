@@ -2,10 +2,10 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/ind
 
 const baseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
-  input: 'src/index.bundle.ts',
+  entrypoints: ['src/index.bundle.ts'],
   jsVersion: 'es6',
   licenseTitle: '@sentry/vue',
-  outputFileBase: 'bundle.vue',
+  outputFileBase: () => 'bundle.vue',
 });
 
 export default makeBundleConfigVariants(baseBundleConfig);
