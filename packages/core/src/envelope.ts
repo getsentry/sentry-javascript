@@ -11,6 +11,7 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
+import { isBaggageEmpty } from '@sentry/utils';
 import {
   BaggageObj,
   createBaggage,
@@ -129,7 +130,7 @@ export function createEventEnvelope(
     );
     envelopeHeaders = {
       ...envelopeHeaders,
-      ...(Object.keys(baggage[0]).length > 0 && { baggage: serializeBaggage(baggage) }),
+      ...(isBaggageEmpty(baggage) && { baggage: serializeBaggage(baggage) }),
     };
   }
 

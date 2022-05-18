@@ -47,6 +47,11 @@ export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: 
   baggage[0][key] = value;
 }
 
+/** Check if the baggage object (i.e. the first element in the tuple) is empty */
+export function isBaggageEmpty(baggage: Baggage): boolean {
+  return Object.keys(baggage[0]).length > 0;
+}
+
 /** Serialize a baggage object */
 export function serializeBaggage(baggage: Baggage): string {
   return Object.keys(baggage[0]).reduce((prev, key: keyof BaggageObj) => {
