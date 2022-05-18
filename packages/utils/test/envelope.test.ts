@@ -1,4 +1,5 @@
 import { EventEnvelope } from '@sentry/types';
+import { TextEncoder } from 'util';
 
 import { addItemToEnvelope, createEnvelope, forEachEnvelopeItem, serializeEnvelope } from '../src/envelope';
 import { parseEnvelope } from './testutils';
@@ -20,28 +21,61 @@ describe('envelope', () => {
   describe('serializeEnvelope()', () => {
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      expect(serializeEnvelope(env)).toMatchInlineSnapshot(
-        '"{\\"event_id\\":\\"aa3ff046696b4bc6b609ce6d28fde9e2\\",\\"sent_at\\":\\"123\\"}"',
+      const serializedEnvelope = serializeEnvelope(env, new TextEncoder());
+      expect(typeof serializedEnvelope).toBe('string');
+
+      const [headers] = parseEnvelope(serializedEnvelope);
+      expect(headers).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+    });
+
+    it('serializes an envelope with attachments', () => {
+      const items: EventEnvelope[1] = [
+        [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
+        [{ type: 'attachment', filename: 'bar.txt', length: 6 }, Uint8Array.from([1, 2, 3, 4, 5, 6])],
+        [{ type: 'attachment', filename: 'foo.txt', length: 6 }, Uint8Array.from([7, 8, 9, 10, 11, 12])],
+      ];
+
+      const env = createEnvelope<EventEnvelope>(
+        { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
+        items,
       );
+
+      expect.assertions(6);
+
+      const serializedEnvelope = serializeEnvelope(env, new TextEncoder());
+      expect(serializedEnvelope).toBeInstanceOf(Uint8Array);
+
+      const [parsedHeaders, parsedItems] = parseEnvelope(serializedEnvelope);
+      expect(parsedHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      expect(parsedItems).toHaveLength(3);
+      expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
+      expect(items[1]).toEqual([
+        { type: 'attachment', filename: 'bar.txt', length: 6 },
+        Uint8Array.from([1, 2, 3, 4, 5, 6]),
+      ]);
+      expect(items[2]).toEqual([
+        { type: 'attachment', filename: 'foo.txt', length: 6 },
+        Uint8Array.from([7, 8, 9, 10, 11, 12]),
+      ]);
     });
   });
 
   describe('addItemToEnvelope()', () => {
     it('adds an item to an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      const parsedEnvelope = parseEnvelope(serializeEnvelope(env));
-      expect(parsedEnvelope).toHaveLength(1);
-      expect(parsedEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      let [envHeaders, items] = parseEnvelope(serializeEnvelope(env, new TextEncoder()));
+      expect(items).toHaveLength(0);
+      expect(envHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
 
       const newEnv = addItemToEnvelope<EventEnvelope>(env, [
         { type: 'event' },
         { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' },
       ]);
-      const parsedNewEnvelope = parseEnvelope(serializeEnvelope(newEnv));
-      expect(parsedNewEnvelope).toHaveLength(3);
-      expect(parsedNewEnvelope[0]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
-      expect(parsedNewEnvelope[1]).toEqual({ type: 'event' });
-      expect(parsedNewEnvelope[2]).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' });
+
+      [envHeaders, items] = parseEnvelope(serializeEnvelope(newEnv, new TextEncoder()));
+      expect(envHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
+      expect(items).toHaveLength(1);
+      expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
     });
   });
 
@@ -49,8 +83,8 @@ describe('envelope', () => {
     it('loops through an envelope', () => {
       const items: EventEnvelope[1] = [
         [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
-        [{ type: 'attachment', filename: 'bar.txt' }, '123456'],
-        [{ type: 'attachment', filename: 'foo.txt' }, '123456'],
+        [{ type: 'attachment', filename: 'bar.txt', length: 6 }, Uint8Array.from([1, 2, 3, 4, 5, 6])],
+        [{ type: 'attachment', filename: 'foo.txt', length: 6 }, Uint8Array.from([7, 8, 9, 10, 11, 12])],
       ];
 
       const env = createEnvelope<EventEnvelope>(

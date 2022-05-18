@@ -3,6 +3,7 @@ import {
   CaptureContext,
   CustomSamplingContext,
   Event,
+  EventHint,
   Extra,
   Extras,
   Primitive,
@@ -59,8 +60,8 @@ export function captureMessage(
  * @param event The event to send to Sentry.
  * @returns The generated eventId.
  */
-export function captureEvent(event: Event): ReturnType<Hub['captureEvent']> {
-  return getCurrentHub().captureEvent(event);
+export function captureEvent(event: Event, hint?: EventHint): ReturnType<Hub['captureEvent']> {
+  return getCurrentHub().captureEvent(event, hint);
 }
 
 /**

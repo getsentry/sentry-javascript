@@ -86,7 +86,7 @@ export function getNativeFetchImplementation(): FetchImpl {
  * @param url report endpoint
  * @param body report payload
  */
-export function sendReport(url: string, body: string): void {
+export function sendReport(url: string, body: string | Uint8Array): void {
   const isRealNavigator = Object.prototype.toString.call(global && global.navigator) === '[object Navigator]';
   const hasSendBeacon = isRealNavigator && typeof global.navigator.sendBeacon === 'function';
 

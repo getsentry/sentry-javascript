@@ -1,6 +1,6 @@
-import { DataCategory, Envelope, EnvelopeItem, EnvelopeItemType } from '@sentry/types';
+import { Attachment, AttachmentItem, DataCategory, Envelope, EnvelopeItem, EnvelopeItemType } from '@sentry/types';
 
-import { isPrimitive } from './is';
+import { dropUndefinedKeys } from './object';
 
 /**
  * Creates an envelope.
@@ -36,24 +36,74 @@ export function forEachEnvelopeItem<E extends Envelope>(
   });
 }
 
-/**
- * Serializes an envelope into a string.
- */
-export function serializeEnvelope(envelope: Envelope): string {
-  const [headers, items] = envelope;
-  const serializedHeaders = JSON.stringify(headers);
+// Combination of global TextEncoder and Node require('util').TextEncoder
+interface TextEncoderInternal extends TextEncoderCommon {
+  encode(input?: string): Uint8Array;
+}
 
-  // Have to cast items to any here since Envelope is a union type
-  // Fixed in Typescript 4.2
-  // TODO: Remove any[] cast when we upgrade to TS 4.2
-  // https://github.com/microsoft/TypeScript/issues/36390
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (items as any[]).reduce((acc, item: typeof items[number]) => {
-    const [itemHeaders, payload] = item;
-    // We do not serialize payloads that are primitives
-    const serializedPayload = isPrimitive(payload) ? String(payload) : JSON.stringify(payload);
-    return `${acc}\n${JSON.stringify(itemHeaders)}\n${serializedPayload}`;
-  }, serializedHeaders);
+function encodeUTF8(input: string, textEncoder?: TextEncoderInternal): Uint8Array {
+  const utf8 = textEncoder || new TextEncoder();
+  return utf8.encode(input);
+}
+
+/**
+ * Serializes an envelope.
+ */
+export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderInternal): string | Uint8Array {
+  const [envHeaders, items] = envelope;
+
+  // Initially we construct our envelope as a string and only convert to binary chunks if we encounter binary data
+  let parts: string | Uint8Array[] = JSON.stringify(envHeaders);
+
+  function append(next: string | Uint8Array): void {
+    if (typeof parts === 'string') {
+      parts = typeof next === 'string' ? parts + next : [encodeUTF8(parts, textEncoder), next];
+    } else {
+      parts.push(typeof next === 'string' ? encodeUTF8(next, textEncoder) : next);
+    }
+  }
+
+  for (const item of items) {
+    const [itemHeaders, payload] = item as typeof items[number];
+    append(`\n${JSON.stringify(itemHeaders)}\n`);
+    append(typeof payload === 'string' || payload instanceof Uint8Array ? payload : JSON.stringify(payload));
+  }
+
+  return typeof parts === 'string' ? parts : concatBuffers(parts);
+}
+
+function concatBuffers(buffers: Uint8Array[]): Uint8Array {
+  const totalLength = buffers.reduce((acc, buf) => acc + buf.length, 0);
+
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const buffer of buffers) {
+    merged.set(buffer, offset);
+    offset += buffer.length;
+  }
+
+  return merged;
+}
+
+/**
+ * Creates attachment envelope items
+ */
+export function createAttachmentEnvelopeItem(
+  attachment: Attachment,
+  textEncoder?: TextEncoderInternal,
+): AttachmentItem {
+  const buffer = typeof attachment.data === 'string' ? encodeUTF8(attachment.data, textEncoder) : attachment.data;
+
+  return [
+    dropUndefinedKeys({
+      type: 'attachment',
+      length: buffer.length,
+      filename: attachment.filename,
+      content_type: attachment.contentType,
+      attachment_type: attachment.attachmentType,
+    }),
+    buffer,
+  ];
 }
 
 const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {

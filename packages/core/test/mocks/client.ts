@@ -1,5 +1,6 @@
-import { ClientOptions, Event, Integration, Outcome, Session, Severity, SeverityLevel } from '@sentry/types';
+import { ClientOptions, Event, EventHint, Integration, Outcome, Session, Severity, SeverityLevel } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
+import { TextEncoder } from 'util';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
@@ -9,9 +10,13 @@ export function getDefaultTestClientOptions(options: Partial<TestClientOptions> 
   return {
     integrations: [],
     sendClientReports: true,
+    transportOptions: { textEncoder: new TextEncoder() },
     transport: () =>
       createTransport(
-        { recordDroppedEvent: () => undefined }, // noop
+        {
+          recordDroppedEvent: () => undefined,
+          textEncoder: new TextEncoder(),
+        }, // noop
         _ => resolvedSyncPromise({}),
       ),
     stackParser: () => [],
@@ -62,10 +67,10 @@ export class TestClient extends BaseClient<TestClientOptions> {
     return resolvedSyncPromise({ message, level });
   }
 
-  public sendEvent(event: Event): void {
+  public sendEvent(event: Event, hint?: EventHint): void {
     this.event = event;
     if (this._options.enableSend) {
-      super.sendEvent(event);
+      super.sendEvent(event, hint);
       return;
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions

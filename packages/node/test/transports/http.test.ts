@@ -2,6 +2,7 @@ import { createTransport } from '@sentry/core';
 import { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
+import { TextEncoder } from 'util';
 
 import { makeNodeTransport } from '../../src/transports';
 
@@ -66,11 +67,12 @@ const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
 ]);
 
-const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE);
+const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE, new TextEncoder());
 
 const defaultOptions = {
   url: TEST_SERVER_URL,
   recordDroppedEvent: () => undefined,
+  textEncoder: new TextEncoder(),
 };
 
 describe('makeNewHttpTransport()', () => {
@@ -244,7 +246,7 @@ describe('makeNewHttpTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE),
+      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
       category: 'error',
     });
 
@@ -264,7 +266,7 @@ describe('makeNewHttpTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE),
+      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
       category: 'error',
     });
 
@@ -292,7 +294,7 @@ describe('makeNewHttpTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE),
+      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
       category: 'error',
     });
 
@@ -320,7 +322,7 @@ describe('makeNewHttpTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE),
+      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
       category: 'error',
     });
 

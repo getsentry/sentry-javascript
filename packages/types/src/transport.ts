@@ -3,7 +3,7 @@ import { DataCategory } from './datacategory';
 import { Envelope } from './envelope';
 
 export type TransportRequest = {
-  body: string;
+  body: string | Uint8Array;
 };
 
 export type TransportMakeRequestResponse = {
@@ -15,9 +15,15 @@ export type TransportMakeRequestResponse = {
   };
 };
 
+// Combination of global TextEncoder and Node require('util').TextEncoder
+interface TextEncoderInternal extends TextEncoderCommon {
+  encode(input?: string): Uint8Array;
+}
+
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
   recordDroppedEvent: (reason: EventDropReason, dataCategory: DataCategory) => void;
+  textEncoder?: TextEncoderInternal;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {
