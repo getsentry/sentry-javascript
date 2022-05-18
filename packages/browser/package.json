@@ -44,7 +44,7 @@
   },
   "scripts": {
     "build": "run-p build:rollup build:bundle build:types",
-    "build:bundle": "rollup --config rollup.bundle.config.js",
+    "build:bundle": "yarn ts-node ../../scripts/ensure-bundle-deps.ts && yarn rollup --config rollup.bundle.config.js",
     "build:dev": "run-p build:rollup build:types",
     "build:rollup": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
