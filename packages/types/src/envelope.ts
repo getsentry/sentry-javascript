@@ -59,7 +59,7 @@ export type SessionItem =
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 
-export type EventEnvelopeHeaders = { event_id: string; sent_at: string; baggage?: string };
+export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: string };
 type SessionEnvelopeHeaders = { sent_at: string };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 

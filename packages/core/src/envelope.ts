@@ -146,6 +146,6 @@ function createEventEnvelopeHeaders(
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(baggage && !isBaggageEmpty(baggage) && { baggage: serializeBaggage(baggage) }),
+    ...(baggage && !isBaggageEmpty(baggage) && { trace: serializeBaggage(baggage) }),
   };
 }
