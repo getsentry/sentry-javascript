@@ -1,5 +1,5 @@
 import { Page, Request } from '@playwright/test';
-import { Event } from '@sentry/types';
+import { Event, EventEnvelopeHeaders } from '@sentry/types';
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
@@ -9,6 +9,14 @@ const envelopeRequestParser = (request: Request | null): Event => {
 
   // Third row of the envelop is the event payload.
   return envelope.split('\n').map(line => JSON.parse(line))[2];
+};
+
+export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  // First row of the envelop is the event payload.
+  return envelope.split('\n').map(line => JSON.parse(line))[0];
 };
 
 /**
@@ -122,10 +130,11 @@ async function getMultipleSentryEnvelopeRequests<T>(
     url?: string;
     timeout?: number;
   },
+  requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
 ): Promise<T[]> {
   // TODO: This is not currently checking the type of envelope, just casting for now.
   // We can update this to include optional type-guarding when we have types for Envelope.
-  return getMultipleRequests(page, count, envelopeUrlRegex, envelopeRequestParser, options) as Promise<T[]>;
+  return getMultipleRequests(page, count, envelopeUrlRegex, requestParser, options) as Promise<T[]>;
 }
 
 /**
@@ -136,8 +145,12 @@ async function getMultipleSentryEnvelopeRequests<T>(
  * @param {string} [url]
  * @return {*}  {Promise<T>}
  */
-async function getFirstSentryEnvelopeRequest<T>(page: Page, url?: string): Promise<T> {
-  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }))[0];
+async function getFirstSentryEnvelopeRequest<T>(
+  page: Page,
+  url?: string,
+  requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
+): Promise<T> {
+  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser))[0];
 }
 
 /**

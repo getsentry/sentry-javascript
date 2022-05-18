@@ -1,4 +1,11 @@
-import { createBaggage, getBaggageValue, parseBaggageString, serializeBaggage, setBaggageValue } from '../src/baggage';
+import {
+  createBaggage,
+  getBaggageValue,
+  isBaggageEmpty,
+  parseBaggageString,
+  serializeBaggage,
+  setBaggageValue,
+} from '../src/baggage';
 
 describe('Baggage', () => {
   describe('createBaggage', () => {
@@ -87,6 +94,15 @@ describe('Baggage', () => {
       ],
     ])('%s', (_: string, baggageString, baggage) => {
       expect(parseBaggageString(baggageString)).toEqual(baggage);
+    });
+  });
+
+  describe('isBaggageEmpty', () => {
+    it.each([
+      ['returns true if the modifyable part of baggage is empty', createBaggage({}), true],
+      ['returns false if the modifyable part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
+    ])('%s', (_: string, baggage, outcome) => {
+      expect(isBaggageEmpty(baggage)).toEqual(outcome);
     });
   });
 });

@@ -15,6 +15,7 @@ export type {
   EnvelopeItemType,
   EnvelopeItem,
   EventEnvelope,
+  EventEnvelopeHeaders,
   EventItem,
   SessionEnvelope,
   SessionItem,

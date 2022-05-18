@@ -23,3 +23,4 @@ export * from './env';
 export * from './envelope';
 export * from './clientreport';
 export * from './ratelimit';
+export * from './baggage';
