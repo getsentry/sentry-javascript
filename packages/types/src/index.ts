@@ -46,6 +46,7 @@ export type {
   RequestSession,
   RequestSessionStatus,
   SessionFlusherLike,
+  SerializedSession,
 } from './session';
 
 // eslint-disable-next-line deprecation/deprecation
