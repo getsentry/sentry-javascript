@@ -15,6 +15,7 @@ import {
   makeRemoveESLintCommentsPlugin,
   makeSucrasePlugin,
 } from './plugins/index.js';
+import { mergePlugins } from './utils';
 
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
@@ -24,6 +25,7 @@ export function makeBaseNPMConfig(options = {}) {
     esModuleInterop = false,
     externals: packageSpecificExternals = [],
     hasBundles = false,
+    packageSpecificConfig = {},
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -33,7 +35,7 @@ export function makeBaseNPMConfig(options = {}) {
   const removeBlankLinesPlugin = makeRemoveBlankLinesPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
 
-  return {
+  const defaultBaseConfig = {
     input: entrypoints,
 
     output: {
@@ -100,6 +102,11 @@ export function makeBaseNPMConfig(options = {}) {
     // treeshake: 'smallest',
     treeshake: false,
   };
+
+  return deepMerge(defaultBaseConfig, packageSpecificConfig, {
+    // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
+    customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
+  });
 }
 
 export function makeNPMConfigVariants(baseConfig) {
