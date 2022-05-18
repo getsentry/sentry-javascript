@@ -8,8 +8,8 @@ const file = process.env.INTEGRATION_FILE;
 const jsVersion = process.env.JS_VERSION;
 
 const baseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'addon',
   input: `src/${file}`,
-  isAddOn: true,
   jsVersion,
   licenseTitle: '@sentry/integrations',
   outputFileBase: `bundles/${file.replace('.ts', '')}${jsVersion === 'ES5' ? '.es5' : ''}`,

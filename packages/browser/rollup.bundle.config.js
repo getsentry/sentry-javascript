@@ -4,8 +4,8 @@ const builds = [];
 
 ['es5', 'es6'].forEach(jsVersion => {
   const baseBundleConfig = makeBaseBundleConfig({
+    bundleType: 'standalone',
     input: 'src/index.ts',
-    isAddOn: false,
     jsVersion,
     licenseTitle: '@sentry/browser',
     outputFileBase: `bundles/bundle${jsVersion === 'es5' ? '.es5' : ''}`,

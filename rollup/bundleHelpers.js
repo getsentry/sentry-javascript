@@ -18,7 +18,7 @@ import {
 import { mergePlugins } from './utils';
 
 export function makeBaseBundleConfig(options) {
-  const { input, isAddOn, jsVersion, licenseTitle, outputFileBase } = options;
+  const { bundleType, input, jsVersion, licenseTitle, outputFileBase } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -93,7 +93,12 @@ export function makeBaseBundleConfig(options) {
     treeshake: 'smallest',
   };
 
-  return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig, {
+  const bundleTypeConfigMap = {
+    standalone: standAloneBundleConfig,
+    addon: addOnBundleConfig,
+  };
+
+  return deepMerge(sharedBundleConfig, bundleTypeConfigMap[bundleType], {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
     customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
   });
