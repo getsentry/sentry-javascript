@@ -23,12 +23,17 @@ import typescript from 'rollup-plugin-typescript2';
 export function makeLicensePlugin(title) {
   const commitHash = require('child_process').execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
-  return license({
+  const plugin = license({
     banner: {
       content: `/*! <%= data.title %> <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
       data: { title },
     },
   });
+
+  // give it a nicer name for later, when we'll need to sort the plugins
+  plugin.name = 'license';
+
+  return plugin;
 }
 
 /**
@@ -125,7 +130,7 @@ export function makeTSPlugin(jsVersion) {
     // verbosity: 0,
   };
 
-  return typescript(
+  const plugin = typescript(
     deepMerge(baseTSPluginOptions, {
       tsconfigOverride: {
         compilerOptions: {
@@ -134,6 +139,11 @@ export function makeTSPlugin(jsVersion) {
       },
     }),
   );
+
+  // give it a nicer name for later, when we'll need to sort the plugins
+  plugin.name = 'typescript';
+
+  return plugin;
 }
 
 // We don't pass this plugin any options, so no need to wrap it in another factory function, as `resolve` is itself
