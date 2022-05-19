@@ -1,3 +1,4 @@
+import { BAGGAGE_HEADER_NAME, serializeBaggage } from '@sentry/utils';
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
@@ -75,6 +76,16 @@ export interface XHRData {
   startTimestamp: number;
   endTimestamp?: number;
 }
+
+type PolymorphicRequestHeaders =
+  | Record<string, string>
+  | Array<[string, string]>
+  // the below is not preicsely the Header type used in Request, but it'll pass duck-typing
+  | {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: any;
+      append: (key: string, value: string) => void;
+    };
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
@@ -179,25 +190,40 @@ export function fetchCallback(
     const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
-    let headers = options.headers;
-    if (isInstanceOf(request, Request)) {
-      headers = (request as Request).headers;
-    }
-    if (headers) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (typeof headers.append === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        headers.append('sentry-trace', span.toTraceparent());
-      } else if (Array.isArray(headers)) {
-        headers = [...headers, ['sentry-trace', span.toTraceparent()]];
-      } else {
-        headers = { ...headers, 'sentry-trace': span.toTraceparent() };
-      }
-    } else {
-      headers = { 'sentry-trace': span.toTraceparent() };
-    }
-    options.headers = headers;
+    options.headers = addTracingHeaders(request, span, options);
   }
+}
+
+function addTracingHeaders(
+  request: string | Request,
+  span: Span,
+  options: { [key: string]: any },
+): PolymorphicRequestHeaders {
+  let headers = options.headers;
+
+  if (isInstanceOf(request, Request)) {
+    headers = (request as Request).headers;
+  }
+  // TODO do we have to merge third-party-created added baggage headers with the ones we got form incoming req?
+  // const baggageContent = (request as Request).headers.get(BAGGAGE_HEADER_NAME) || '';
+  const baggageContent = serializeBaggageFromSpan(span);
+
+  if (headers) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (typeof headers.append === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      headers.append('sentry-trace', span.toTraceparent());
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      headers.append(BAGGAGE_HEADER_NAME, baggageContent);
+    } else if (Array.isArray(headers)) {
+      headers = [...headers, ['sentry-trace', span.toTraceparent()], [BAGGAGE_HEADER_NAME, baggageContent]];
+    } else {
+      headers = { ...headers, 'sentry-trace': span.toTraceparent(), baggage: baggageContent };
+    }
+  } else {
+    headers = { 'sentry-trace': span.toTraceparent(), baggage: baggageContent };
+  }
+  return headers;
 }
 
 /**
@@ -254,9 +280,15 @@ export function xhrCallback(
     if (handlerData.xhr.setRequestHeader) {
       try {
         handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
+        handlerData.xhr.setRequestHeader(BAGGAGE_HEADER_NAME, serializeBaggageFromSpan(span));
       } catch (_) {
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
       }
     }
   }
+}
+
+function serializeBaggageFromSpan(span: Span): string {
+  const baggage = span.getBaggage();
+  return (baggage && serializeBaggage(baggage)) || '';
 }

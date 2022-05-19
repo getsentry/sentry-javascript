@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { Baggage, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 /**
@@ -296,6 +296,13 @@ export class Span implements SpanInterface {
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       trace_id: this.traceId,
     });
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public getBaggage(): Baggage | undefined {
+    return this.transaction && this.transaction.metadata.baggage;
   }
 
   /**

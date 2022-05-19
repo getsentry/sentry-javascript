@@ -1,3 +1,4 @@
+import { Baggage } from './baggage';
 import { Primitive } from './misc';
 import { Transaction } from './transaction';
 
@@ -174,4 +175,7 @@ export interface Span extends SpanContext {
     timestamp?: number;
     trace_id: string;
   };
+
+  /** return the baggage for dynamic sampling and trace propagation */
+  getBaggage(): Baggage | undefined;
 }

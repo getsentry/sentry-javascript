@@ -8,7 +8,14 @@ import {
   startTransaction,
 } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { addExceptionMechanism, fill, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  fill,
+  isString,
+  logger,
+  parseBaggageString,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
 import { default as createNextServer } from 'next';
@@ -252,6 +259,9 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             IS_DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
+          const baggage =
+            nextReq.headers && isString(nextReq.headers.baggage) && parseBaggageString(nextReq.headers.baggage);
+
           // pull off query string, if any
           const reqPath = stripUrlQueryAndFragment(nextReq.url);
 
@@ -265,6 +275,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
               op: 'http.server',
               metadata: { requestPath: reqPath },
               ...traceparentData,
+              ...(baggage && { metadata: { baggage: baggage } }),
             },
             // Extra context passed to the `tracesSampler` (Note: We're combining `nextReq` and `req` this way in order
             // to not break people's `tracesSampler` functions, even though the format of `nextReq` has changed (see
