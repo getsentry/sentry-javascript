@@ -6,9 +6,14 @@
 
 ## 7.0.0-beta.2
 
+- feat: Add attachments API (#5004)
+- feat(core): Send Baggage in Envelope Header (#5104)
 - fix(build): Fix express import in `gcpfunction` (#5097)
+- ref(build): Use sucrase for es6 bundles (#5111)
 - fix(ember): Export sha hashes of injected scripts (#5089)
 - ref(serverless): Do not throw on flush error (#5090)
+- ref(serverless): Point DSN to relay in lambda extension (#5126)
+- feat(utils): Introduce Baggage API (#5066)
 
 ## 7.0.0-beta.1
 
