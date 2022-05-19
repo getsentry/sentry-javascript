@@ -52,6 +52,11 @@ export function isBaggageEmpty(baggage: Baggage): boolean {
   return Object.keys(baggage[0]).length === 0;
 }
 
+/** Returns Sentry specific baggage values */
+export function getSentryBaggageItems(baggage: Baggage): BaggageObj {
+  return baggage[0];
+}
+
 /** Serialize a baggage object */
 export function serializeBaggage(baggage: Baggage): string {
   return Object.keys(baggage[0]).reduce((prev, key: keyof BaggageObj) => {

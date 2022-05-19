@@ -12,13 +12,12 @@ import {
   SessionItem,
 } from '@sentry/types';
 import {
-  BaggageObj,
   createBaggage,
   createEnvelope,
   dropUndefinedKeys,
   dsnToString,
+  getSentryBaggageItems,
   isBaggageEmpty,
-  serializeBaggage,
 } from '@sentry/utils';
 
 /** Extract sdk info from from the API metadata */
@@ -138,7 +137,7 @@ function createEventEnvelopeHeaders(
         userid: event.user && event.user.id,
         // user.segment currently doesn't exist explicitly in interface User (just as a record key)
         usersegment: event.user && event.user.segment,
-      } as BaggageObj),
+      }),
     );
 
   return {
@@ -146,6 +145,6 @@ function createEventEnvelopeHeaders(
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(baggage && !isBaggageEmpty(baggage) && { trace: serializeBaggage(baggage) }),
+    ...(baggage && !isBaggageEmpty(baggage) && { trace: getSentryBaggageItems(baggage) }),
   };
 }

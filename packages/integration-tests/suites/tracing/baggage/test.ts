@@ -10,7 +10,10 @@ sentryTest('should send baggage data in transaction envelope header', async ({ g
   const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
 
   expect(envHeader.trace).toBeDefined();
-  expect(envHeader.trace).toEqual(
-    'sentry-environment=production,sentry-transaction=testTransactionBaggage,sentry-userid=user123,sentry-usersegment=segmentB',
-  );
+  expect(envHeader.trace).toEqual({
+    environment: 'production',
+    transaction: 'testTransactionBaggage',
+    userid: 'user123',
+    usersegment: 'segmentB',
+  });
 });
