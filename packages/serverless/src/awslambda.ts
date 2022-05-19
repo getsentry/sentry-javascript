@@ -79,7 +79,7 @@ export function init(options: Sentry.NodeOptions = {}): void {
     version: Sentry.SDK_VERSION,
   };
 
-  options.dsn = extensionRelayDSN(options.dsn)
+  options.dsn = extensionRelayDSN(options.dsn);
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
