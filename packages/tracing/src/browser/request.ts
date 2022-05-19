@@ -1,8 +1,13 @@
+/* eslint-disable max-lines */
+import { Baggage } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
+  createBaggage,
+  getThirdPartyBaggage,
   isInstanceOf,
   isMatchingPattern,
+  parseBaggageString,
   serializeBaggage,
 } from '@sentry/utils';
 
@@ -76,6 +81,7 @@ export interface XHRData {
     };
     __sentry_xhr_span_id__?: string;
     setRequestHeader?: (key: string, val: string) => void;
+    getRequestHeader?: (key: string) => string;
     __sentry_own_request__?: boolean;
   };
   startTimestamp: number;
@@ -90,6 +96,7 @@ type PolymorphicRequestHeaders =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       [key: string]: any;
       append: (key: string, value: string) => void;
+      get: (key: string) => string;
     };
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
@@ -209,9 +216,7 @@ function addTracingHeaders(
   if (isInstanceOf(request, Request)) {
     headers = (request as Request).headers;
   }
-  // TODO do we have to merge third-party-created added baggage headers with the ones we got form incoming req?
-  // const baggageContent = (request as Request).headers.get(BAGGAGE_HEADER_NAME) || '';
-  const baggageContent = serializeBaggageFromSpan(span);
+  const incomingBaggage = span.getBaggage();
 
   if (headers) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -219,14 +224,24 @@ function addTracingHeaders(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       headers.append('sentry-trace', span.toTraceparent());
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      headers.append(BAGGAGE_HEADER_NAME, baggageContent);
+      headers.append(BAGGAGE_HEADER_NAME, mergeAndSerializeBaggage(incomingBaggage, headers.get(BAGGAGE_HEADER_NAME)));
     } else if (Array.isArray(headers)) {
-      headers = [...headers, ['sentry-trace', span.toTraceparent()], [BAGGAGE_HEADER_NAME, baggageContent]];
+      const [, headerBaggageString] = headers.find(([key, _]) => key === BAGGAGE_HEADER_NAME);
+      headers = [
+        ...headers,
+        ['sentry-trace', span.toTraceparent()],
+        [BAGGAGE_HEADER_NAME, mergeAndSerializeBaggage(incomingBaggage, headerBaggageString)],
+      ];
     } else {
-      headers = { ...headers, 'sentry-trace': span.toTraceparent(), baggage: baggageContent };
+      headers = {
+        ...headers,
+        'sentry-trace': span.toTraceparent(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        baggage: mergeAndSerializeBaggage(incomingBaggage, headers.baggage),
+      };
     }
   } else {
-    headers = { 'sentry-trace': span.toTraceparent(), baggage: baggageContent };
+    headers = { 'sentry-trace': span.toTraceparent(), baggage: mergeAndSerializeBaggage(incomingBaggage) };
   }
   return headers;
 }
@@ -285,7 +300,14 @@ export function xhrCallback(
     if (handlerData.xhr.setRequestHeader) {
       try {
         handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
-        handlerData.xhr.setRequestHeader(BAGGAGE_HEADER_NAME, serializeBaggageFromSpan(span));
+
+        const headerBaggageString =
+          handlerData.xhr.getRequestHeader && handlerData.xhr.getRequestHeader(BAGGAGE_HEADER_NAME);
+
+        handlerData.xhr.setRequestHeader(
+          BAGGAGE_HEADER_NAME,
+          mergeAndSerializeBaggage(span.getBaggage(), headerBaggageString),
+        );
       } catch (_) {
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
       }
@@ -293,7 +315,29 @@ export function xhrCallback(
   }
 }
 
-function serializeBaggageFromSpan(span: Span): string {
-  const baggage = span.getBaggage();
-  return (baggage && serializeBaggage(baggage)) || '';
+/**
+ * Merges the baggage header we saved from the incoming request (or meta tag) with
+ * a possibly created or modified baggage header by a third party that's been added
+ * to the outgoing request header.
+ *
+ * In case @param headerBaggage exists, we can safely add the the 3rd party part of @param headerBaggage
+ * with our @param incomingBaggage. This is possible because if we modified anything beforehand,
+ * it would only affect parts of the sentry baggage (@see Baggage interface).
+ *
+ * @param incomingBaggage the baggage header of the incoming request that might contain sentry entries
+ * @param headerBaggageString possibly existing baggage header string added from a third party to request headers
+ *
+ * @return a merged and serialized baggage string to be propagated with the outgoing request
+ */
+function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggageString?: string): string {
+  if (!incomingBaggage && !headerBaggageString) {
+    return '';
+  }
+
+  const headerBaggage = (headerBaggageString && parseBaggageString(headerBaggageString)) || undefined;
+  const thirdPartyHeaderBaggage = headerBaggage && getThirdPartyBaggage(headerBaggage);
+
+  const finalBaggage = createBaggage((incomingBaggage && incomingBaggage[0]) || {}, thirdPartyHeaderBaggage || '');
+
+  return serializeBaggage(finalBaggage);
 }

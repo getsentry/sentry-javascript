@@ -41,6 +41,14 @@ export function getSentryBaggageItems(baggage: Baggage): BaggageObj {
   return baggage[0];
 }
 
+/**
+ * Returns 3rd party baggage string of @param baggage
+ * @param baggage
+ */
+export function getThirdPartyBaggage(baggage: Baggage): string {
+  return baggage[1];
+}
+
 /** Serialize a baggage object */
 export function serializeBaggage(baggage: Baggage): string {
   return Object.keys(baggage[0]).reduce((prev, key: keyof BaggageObj) => {
