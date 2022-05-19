@@ -31,6 +31,7 @@ type ObjOrArray<T> = { [key: string]: T };
  * object in the normallized output..
  * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normalization.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalize(input: unknown, depth: number = +Infinity, maxProperties: number = +Infinity): any {
   try {
     // since we're at the outermost level, we don't provide a key
@@ -42,6 +43,7 @@ export function normalize(input: unknown, depth: number = +Infinity, maxProperti
 
 /** JSDoc */
 export function normalizeToSize<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   object: { [key: string]: any },
   // Default Node.js REPL depth
   depth: number = 3,
@@ -241,6 +243,7 @@ function utf8Length(value: string): number {
 }
 
 /** Calculates bytes size of input object */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function jsonSize(value: any): number {
   return utf8Length(JSON.stringify(value));
 }
