@@ -136,6 +136,7 @@ jobs:
         run: |
           file scripts/print-version.ts
           export SDK_VERSION=$(yarn --silent ts-node scripts/print-version.ts)
+          echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
       - name: Upload artifacts for zipping action
         uses: actions/upload-artifact@v3
         with:
