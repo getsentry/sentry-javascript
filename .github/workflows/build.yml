@@ -144,6 +144,7 @@ jobs:
         with:
           artifact_name: ${{ env.HEAD_COMMIT }}
           zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
+          preserve_symlinks: true
 
   job_size_check:
     name: Size Check
