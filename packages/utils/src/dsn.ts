@@ -108,7 +108,6 @@ export function makeDsn(from: DsnLike): DsnComponents {
   return components;
 }
 
-
 /**
  * Changes a Dsn to point to the `relay` server running in the Lambda Extension.
  *
