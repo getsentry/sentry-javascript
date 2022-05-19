@@ -436,7 +436,7 @@ export class Scope implements ScopeInterface {
    * @param hint May contain additional information about the original exception.
    * @hidden
    */
-  public applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null> {
+  public applyToEvent(event: Event, hint: EventHint): PromiseLike<Event | null> {
     if (this._extra && Object.keys(this._extra).length) {
       event.extra = { ...this._extra, ...event.extra };
     }
@@ -491,7 +491,7 @@ export class Scope implements ScopeInterface {
   protected _notifyEventProcessors(
     processors: EventProcessor[],
     event: Event | null,
-    hint?: EventHint,
+    hint: EventHint,
     index: number = 0,
   ): PromiseLike<Event | null> {
     return new SyncPromise<Event | null>((resolve, reject) => {
