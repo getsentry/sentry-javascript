@@ -11,14 +11,7 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
-import {
-  createBaggage,
-  createEnvelope,
-  dropUndefinedKeys,
-  dsnToString,
-  getSentryBaggageItems,
-  isBaggageEmpty,
-} from '@sentry/utils';
+import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
 
 /** Extract sdk info from from the API metadata */
 function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
@@ -127,24 +120,28 @@ function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn: DsnComponents,
 ): EventEnvelopeHeaders {
-  const baggage =
-    event.type === 'transaction' &&
-    createBaggage(
-      dropUndefinedKeys({
-        environment: event.environment,
-        release: event.release,
-        transaction: event.transaction,
-        userid: event.user && event.user.id,
-        // user.segment currently doesn't exist explicitly in interface User (just as a record key)
-        usersegment: event.user && event.user.segment,
-      }),
-    );
-
   return {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(baggage && !isBaggageEmpty(baggage) && { trace: getSentryBaggageItems(baggage) }),
+    ...(event.type === 'transaction' && {
+      // TODO: Grab this from baggage
+      trace: dropUndefinedKeys({
+        // Trace context must be defined for transactions
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        trace_id: event.contexts!.trace.trace_id,
+        environment: event.environment,
+        release: event.release,
+        transaction: event.transaction,
+        user:
+          event.user &&
+          dropUndefinedKeys({
+            id: event.user.id,
+            segment: event.user.segment,
+          }),
+        public_key: dsn.publicKey,
+      }),
+    }),
   };
 }
