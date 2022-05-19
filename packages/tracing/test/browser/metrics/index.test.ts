@@ -1,50 +1,38 @@
-import { Span, Transaction } from '../../src';
-import { _startChild, _addResourceSpans, MetricsInstrumentation, ResourceEntry } from '../../src/browser/metrics';
-import { addDOMPropertiesToGlobal } from '../testutils';
+import { Transaction } from '../../../src';
+import { _addResourceSpans, _addMeasureSpans, ResourceEntry } from '../../../src/browser/metrics';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, no-var
-declare var global: any;
-
-describe('_startChild()', () => {
-  it('creates a span with given properties', () => {
-    const transaction = new Transaction({ name: 'test' });
-    const span = _startChild(transaction, {
-      description: 'evaluation',
-      op: 'script',
-    });
-
-    expect(span).toBeInstanceOf(Span);
-    expect(span.description).toBe('evaluation');
-    expect(span.op).toBe('script');
+describe('_addMeasureSpans', () => {
+  const transaction = new Transaction({ op: 'pageload', name: '/' });
+  beforeEach(() => {
+    transaction.startChild = jest.fn();
   });
 
-  it('adjusts the start timestamp if child span starts before transaction', () => {
-    const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
-    const span = _startChild(transaction, {
-      description: 'script.js',
-      op: 'resource',
-      startTimestamp: 100,
+  it('adds measure spans to a transaction', () => {
+    const entry: Omit<PerformanceMeasure, 'toJSON'> = {
+      entryType: 'measure',
+      name: 'measure-1',
+      duration: 10,
+      startTime: 12,
+    };
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = 356;
+
+    expect(transaction.startChild).toHaveBeenCalledTimes(0);
+    _addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
+    expect(transaction.startChild).toHaveBeenCalledTimes(1);
+    expect(transaction.startChild).toHaveBeenLastCalledWith({
+      description: 'measure-1',
+      startTimestamp: timeOrigin + startTime,
+      endTimestamp: timeOrigin + startTime + duration,
+      op: 'measure',
     });
-
-    expect(transaction.startTimestamp).toEqual(span.startTimestamp);
-    expect(transaction.startTimestamp).toEqual(100);
-  });
-
-  it('does not adjust start timestamp if child span starts after transaction', () => {
-    const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
-    const span = _startChild(transaction, {
-      description: 'script.js',
-      op: 'resource',
-      startTimestamp: 150,
-    });
-
-    expect(transaction.startTimestamp).not.toEqual(span.startTimestamp);
-    expect(transaction.startTimestamp).toEqual(123);
   });
 });
 
 describe('_addResourceSpans', () => {
-  const transaction = new Transaction({ name: 'hello' });
+  const transaction = new Transaction({ op: 'pageload', name: '/' });
   beforeEach(() => {
     transaction.startChild = jest.fn();
   });
@@ -169,54 +157,3 @@ describe('_addResourceSpans', () => {
     );
   });
 });
-
-// TODO: Add these tests back
-// describe('MetricsInstrumentation', () => {
-//   afterEach(() => {
-//     jest.clearAllMocks();
-//   });
-
-//   it('does not initialize trackers when on node', () => {
-//     const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
-//       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
-//     );
-
-//     new MetricsInstrumentation();
-
-//     trackers.forEach(tracker => expect(tracker).not.toBeCalled());
-//   });
-
-//   it('initializes trackers when not on node and `global.performance` and `global.document` are available.', () => {
-//     addDOMPropertiesToGlobal(['performance', 'document', 'addEventListener', 'window']);
-
-//     const backup = global.process;
-//     global.process = undefined;
-
-//     const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
-//       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
-//     );
-//     new MetricsInstrumentation();
-//     global.process = backup;
-
-//     trackers.forEach(tracker => expect(tracker).toBeCalled());
-//   });
-
-//   it('does not initialize trackers when not on node but `global.document` is not available (in worker)', () => {
-//     // window not necessary for this test, but it is here to exercise that it is absence of document that is checked
-//     addDOMPropertiesToGlobal(['performance', 'addEventListener', 'window']);
-
-//     const processBackup = global.process;
-//     global.process = undefined;
-//     const documentBackup = global.document;
-//     global.document = undefined;
-
-//     const trackers = ['_trackCLS', '_trackLCP', '_trackFID'].map(tracker =>
-//       jest.spyOn(MetricsInstrumentation.prototype as any, tracker),
-//     );
-//     new MetricsInstrumentation();
-//     global.process = processBackup;
-//     global.document = documentBackup;
-
-//     trackers.forEach(tracker => expect(tracker).not.toBeCalled());
-//   });
-// });

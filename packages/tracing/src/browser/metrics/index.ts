@@ -1,15 +1,16 @@
 /* eslint-disable max-lines */
-import { Measurements, Span, SpanContext } from '@sentry/types';
+import { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../flags';
-import { Transaction } from '../transaction';
-import { msToSec } from '../utils';
-import { getCLS, LayoutShift } from './web-vitals/getCLS';
-import { getFID } from './web-vitals/getFID';
-import { getLCP, LargestContentfulPaint } from './web-vitals/getLCP';
-import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
-import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals/types';
+import { IS_DEBUG_BUILD } from '../../flags';
+import { Transaction } from '../../transaction';
+import { msToSec } from '../../utils';
+import { getCLS, LayoutShift } from '../web-vitals/getCLS';
+import { getFID } from '../web-vitals/getFID';
+import { getLCP, LargestContentfulPaint } from '../web-vitals/getLCP';
+import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
+import { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
+import { _startChild, isMeasurementValue } from './utils';
 
 const global = getGlobalObject<Window>();
 
@@ -123,7 +124,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
       case 'mark':
       case 'paint':
       case 'measure': {
-        const startTimestamp = addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
+        const startTimestamp = _addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
@@ -229,7 +230,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
 }
 
 /** Create measure related spans */
-function addMeasureSpans(
+export function _addMeasureSpans(
   transaction: Transaction,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entry: Record<string, any>,
@@ -385,29 +386,6 @@ function _trackNavigator(transaction: Transaction): void {
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
     transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
   }
-}
-
-/**
- * Checks if a given value is a valid measurement value.
- */
-function isMeasurementValue(value: unknown): value is number {
-  return typeof value === 'number' && isFinite(value);
-}
-
-/**
- * Helper function to start child on transactions. This function will make sure that the transaction will
- * use the start timestamp of the created child span if it is earlier than the transactions actual
- * start timestamp.
- */
-export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }: SpanContext): Span {
-  if (startTimestamp && transaction.startTimestamp > startTimestamp) {
-    transaction.startTimestamp = startTimestamp;
-  }
-
-  return transaction.startChild({
-    startTimestamp,
-    ...ctx,
-  });
 }
 
 /** Add LCP / CLS data to transaction to allow debugging */
