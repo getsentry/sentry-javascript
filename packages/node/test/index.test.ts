@@ -16,7 +16,7 @@ import {
   Scope,
 } from '../src';
 import { ContextLines, LinkedErrors } from '../src/integrations';
-import { defaultStackParser } from '../src/stack-parser';
+import { defaultStackParser } from '../src/sdk';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 jest.mock('@sentry/core', () => {

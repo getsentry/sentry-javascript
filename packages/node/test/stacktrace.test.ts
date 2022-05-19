@@ -11,7 +11,7 @@
  */
 
 import { parseStackFrames } from '../src/eventbuilder';
-import { defaultStackParser as stackParser } from '../src/stack-parser';
+import { defaultStackParser as stackParser } from '../src/sdk';
 
 function testBasic() {
   return new Error('something went wrong');
