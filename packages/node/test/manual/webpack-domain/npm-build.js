@@ -2,6 +2,11 @@ const path = require('path');
 const webpack = require('webpack');
 const { execSync } = require('child_process');
 
+// Webpack test does not work in Node 18 and above.
+if (Number(process.versions.node.split('.')[0]) >= 18) {
+  return;
+}
+
 // prettier-ignore
 webpack(
   {
@@ -13,7 +18,7 @@ webpack(
     target: 'node',
     mode: 'development',
   },
-  function(err, stats) {
+  function (err, stats) {
     if (err) {
       console.error(err.stack || err);
       if (err.details) {
