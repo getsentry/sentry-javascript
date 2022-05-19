@@ -49,7 +49,7 @@ export class ExtraErrorData implements Integration {
   /**
    * Attaches extracted information from the Error object to extra field in the Event
    */
-  public enhanceEventWithErrorData(event: Event, hint: EventHint): Event {
+  public enhanceEventWithErrorData(event: Event, hint: EventHint = {}): Event {
     if (!hint.originalException || !isError(hint.originalException)) {
       return event;
     }
