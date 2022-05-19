@@ -1,5 +1,4 @@
-import { BAGGAGE_HEADER_NAME, serializeBaggage } from '@sentry/utils';
-import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
+import { addInstrumentationHandler, BAGGAGE_HEADER_NAME, isInstanceOf, isMatchingPattern,serializeBaggage  } from '@sentry/utils';
 
 import { Span } from '../span';
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
