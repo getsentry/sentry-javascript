@@ -15,6 +15,7 @@ import {
   makeRemoveESLintCommentsPlugin,
   makeSucrasePlugin,
 } from './plugins/index.js';
+import { mergePlugins } from './utils';
 
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
@@ -22,8 +23,8 @@ export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
     esModuleInterop = false,
-    externals: packageSpecificExternals = [],
     hasBundles = false,
+    packageSpecificConfig = {},
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -33,7 +34,7 @@ export function makeBaseNPMConfig(options = {}) {
   const removeBlankLinesPlugin = makeRemoveBlankLinesPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
 
-  return {
+  const defaultBaseConfig = {
     input: entrypoints,
 
     output: {
@@ -91,7 +92,6 @@ export function makeBaseNPMConfig(options = {}) {
       ...Object.keys(packageDotJSON.dependencies || {}),
       ...Object.keys(packageDotJSON.devDependencies || {}),
       ...Object.keys(packageDotJSON.peerDependencies || {}),
-      ...packageSpecificExternals,
     ],
 
     // TODO `'smallest'` will get rid of `isDebugBuild()` by evaluating it and inlining the result and then treeshaking
@@ -100,6 +100,11 @@ export function makeBaseNPMConfig(options = {}) {
     // treeshake: 'smallest',
     treeshake: false,
   };
+
+  return deepMerge(defaultBaseConfig, packageSpecificConfig, {
+    // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
+    customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
+  });
 }
 
 export function makeNPMConfigVariants(baseConfig) {
