@@ -1,4 +1,5 @@
 /**
+ * CommonJS plugin docs: https://github.com/rollup/plugins/tree/master/packages/commonjs
  * License plugin docs: https://github.com/mjeanroy/rollup-plugin-license
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
  * Resolve plugin docs: https://github.com/rollup/plugins/tree/master/packages/node-resolve
@@ -7,6 +8,7 @@
  * Typescript plugin docs: https://github.com/ezolenko/rollup-plugin-typescript2
  */
 
+import commonjs from '@rollup/plugin-commonjs';
 import deepMerge from 'deepmerge';
 import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';
@@ -23,12 +25,17 @@ import typescript from 'rollup-plugin-typescript2';
 export function makeLicensePlugin(title) {
   const commitHash = require('child_process').execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
-  return license({
+  const plugin = license({
     banner: {
       content: `/*! <%= data.title %> <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
       data: { title },
     },
   });
+
+  // give it a nicer name for later, when we'll need to sort the plugins
+  plugin.name = 'license';
+
+  return plugin;
 }
 
 /**
@@ -125,7 +132,7 @@ export function makeTSPlugin(jsVersion) {
     // verbosity: 0,
   };
 
-  return typescript(
+  const plugin = typescript(
     deepMerge(baseTSPluginOptions, {
       tsconfigOverride: {
         compilerOptions: {
@@ -134,8 +141,14 @@ export function makeTSPlugin(jsVersion) {
       },
     }),
   );
+
+  // give it a nicer name for later, when we'll need to sort the plugins
+  plugin.name = 'typescript';
+
+  return plugin;
 }
 
-// We don't pass this plugin any options, so no need to wrap it in another factory function, as `resolve` is itself
-// already a factory function.
+// We don't pass these plugins any options which need to be calculated or changed by us, so no need to wrap them in
+// another factory function, as they are themselves already factory functions.
 export { resolve as makeNodeResolvePlugin };
+export { commonjs as makeCommonJSPlugin };
