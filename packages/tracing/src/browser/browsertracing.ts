@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, logger, parseBaggageString } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
 import { startIdleTransaction } from '../hubextensions';
@@ -204,7 +204,7 @@ export class BrowserTracing implements Integration {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, finalTimeout } = this.options;
 
-    const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
+    const parentContextFromHeader = context.op === 'pageload' ? extractTraceDataFromMetaTags() : undefined;
 
     const expandedContext = {
       ...context,
@@ -251,6 +251,28 @@ export function getHeaderContext(): Partial<TransactionContext> | undefined {
   const header = getMetaContent('sentry-trace');
   if (header) {
     return extractTraceparentData(header);
+  }
+
+  return undefined;
+}
+
+/**
+ * Gets transaction context data from `sentry-trace` and `baggage` <meta> tags.
+ * @returns Transaction context data or undefined neither tag exists or has valid data
+ */
+export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | undefined {
+  const sentrytraceValue = getMetaContent('sentry-trace');
+  const baggageValue = getMetaContent('baggage');
+
+  const sentrytraceData = sentrytraceValue ? extractTraceparentData(sentrytraceValue) : undefined;
+  const baggage = baggageValue ? parseBaggageString(baggageValue) : undefined;
+
+  // TODO more extensive checks for baggage validity/emptyness?
+  if (sentrytraceData || baggage) {
+    return {
+      ...sentrytraceData,
+      ...(baggage && { metadata: { baggage } }),
+    };
   }
 
   return undefined;
