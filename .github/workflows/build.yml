@@ -101,12 +101,6 @@ jobs:
         # this file) to a constant and skip rebuilding all of the packages each time CI runs.
         if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
-      - name: Check for symlink
-        run: |
-          echo "--------------------"
-          ls -laR packages/serverless/build/aws/dist-serverless/
-          echo " XXX dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
-          echo "--------------------"
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -136,31 +130,17 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Get SDK version
-        # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
-        # equivalent of using >> rather than >.)
         run: |
           export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
           echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
-      # - name: Upload artifacts for zipping action
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: ${{ env.HEAD_COMMIT }}
-      #     path: packages/serverless/build/aws/*
       - name: Move dist-serverless to root directory (requirement for zipping action)
         run: |
           mv ./packages/serverless/build/aws/dist-serverless .
-      - name: Check for symlink
-        run: |
-          echo "--------------------"
-          ls -laR dist-serverless/
-          echo " XXX packages/serverless/build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
-          echo "--------------------"
       - name: Create and upload final zip file
         uses: getsentry/action-build-aws-lambda-extension@v1
         with:
           artifact_name: ${{ env.HEAD_COMMIT }}
           zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
-          preserve_symlinks: true
           build_cache_path: ${{ env.CACHED_BUILD_PATHS }}
           build_cache_key: ${{ env.BUILD_CACHE_KEY }}
 
