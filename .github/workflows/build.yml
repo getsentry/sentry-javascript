@@ -141,17 +141,20 @@ jobs:
         run: |
           export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
           echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
-      - name: Check for symlink
-        run: |
-          echo "--------------------"
-          ls -laR packages/serverless/build/aws/dist-serverless/
-          echo " XXX packages/serverless/build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
-          echo "--------------------"
       # - name: Upload artifacts for zipping action
       #   uses: actions/upload-artifact@v3
       #   with:
       #     name: ${{ env.HEAD_COMMIT }}
       #     path: packages/serverless/build/aws/*
+      - name: Move dist-serverless to root directory (requirement for zipping action)
+        run: |
+          mv -r ./packages/serverless/build/aws/dist-serverless .
+      - name: Check for symlink
+        run: |
+          echo "--------------------"
+          ls -laR dist-serverless/
+          echo " XXX packages/serverless/build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
+          echo "--------------------"
       - name: Create and upload final zip file
         uses: getsentry/action-build-aws-lambda-extension@v1
         with:
