@@ -103,7 +103,7 @@ jobs:
       - name: Check for symlink
         run: |
           echo "--------------------"
-          ls -laR dist-serverless/
+          ls -laR packages/serverless/build/aws/dist-serverless/
           echo " XXX dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
           echo "--------------------"
     outputs:
@@ -143,8 +143,8 @@ jobs:
       - name: Check for symlink
         run: |
           echo "--------------------"
-          ls -laR dist-serverless/
-          echo " XXX dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
+          ls -laR packages/serverless/build/aws/dist-serverless/
+          echo " XXX packages/serverless/build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
           echo "--------------------"
       - name: Upload artifacts for zipping action
         uses: actions/upload-artifact@v3
