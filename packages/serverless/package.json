@@ -38,8 +38,9 @@
     "read-pkg": "^5.2.0"
   },
   "scripts": {
-    "build": "run-p build:rollup build:types && yarn build:extras",
-    "build:awslambda-layer": "yarn ts-node ../../scripts/ensure-bundle-deps.ts && yarn rollup --config rollup.aws.config.js",
+    "build": "run-p build:rollup build:types build:bundle && yarn build:extras",
+    "build:awslambda-layer": "echo 'WARNING: AWS lambda layer build emporarily moved to \\`build:bundle\\`.'",
+    "build:bundle": "yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:rollup build:types",
     "build:extras": "yarn build:awslambda-layer",
     "build:rollup": "rollup -c rollup.npm.config.js",
