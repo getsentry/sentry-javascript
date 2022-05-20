@@ -20,6 +20,8 @@ import {
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
+const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
+
 export function makeBaseBundleConfig(options) {
   const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig } = options;
 
@@ -128,46 +130,45 @@ export function makeBaseBundleConfig(options) {
  * @param baseConfig The rollup config shared by the entire package
  * @returns An array of versions of that config
  */
-export function makeBundleConfigVariants(baseConfig) {
+export function makeBundleConfigVariants(baseConfig, options = {}) {
+  const { variants = BUNDLE_VARIANTS } = options;
+
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
   const terserPlugin = makeTerserPlugin();
 
-  // The additional options to use for each variant we're going to create
-  const variantSpecificConfigs = [
-    {
+  // The additional options to use for each variant we're going to create.
+  const variantSpecificConfigMap = {
+    '.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.js`,
       },
       plugins: [includeDebuggingPlugin],
     },
-    // This variant isn't particularly helpful for an SDK user, as it strips logging while making no other minification
-    // changes, so by default we don't create it. It is however very useful when debugging rollup's treeshaking, so it's
-    // left here for that purpose.
-    // {
-    //   output: { file: `${baseConfig.output.file}.no-debug.js`,
-    //   },
-    //   plugins: [stripDebuggingPlugin],
-    // },
-    {
+
+    '.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
       },
       plugins: [stripDebuggingPlugin, terserPlugin],
     },
-    {
+
+    '.debug.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
       },
       plugins: [terserPlugin],
     },
-  ];
+  };
 
-  return variantSpecificConfigs.map(variant =>
-    deepMerge(baseConfig, variant, {
+  return variants.map(variant => {
+    if (!BUNDLE_VARIANTS.includes(variant)) {
+      throw new Error(`Unknown bundle variant requested: ${variant}`);
+    }
+    return deepMerge(baseConfig, variantSpecificConfigMap[variant], {
       // Merge the plugin arrays and make sure the end result is in the correct order. Everything else can use the
       // default merge strategy.
       customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
-    }),
-  );
+    });
+  });
 }
