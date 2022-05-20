@@ -148,7 +148,7 @@ jobs:
       #     path: packages/serverless/build/aws/*
       - name: Move dist-serverless to root directory (requirement for zipping action)
         run: |
-          mv -r ./packages/serverless/build/aws/dist-serverless .
+          mv ./packages/serverless/build/aws/dist-serverless .
       - name: Check for symlink
         run: |
           echo "--------------------"
