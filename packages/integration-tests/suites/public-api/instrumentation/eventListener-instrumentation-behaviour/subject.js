@@ -19,5 +19,5 @@ class EventHandlerClass {
 const eventListener2 = new EventHandlerClass();
 
 // Attach event listener twice
-window.addEventListener('click', eventListener2, { passive: true, capture: false });
-window.addEventListener('click', eventListener2, { passive: true, capture: false });
+window.addEventListener('click', eventListener2);
+window.addEventListener('click', eventListener2);
