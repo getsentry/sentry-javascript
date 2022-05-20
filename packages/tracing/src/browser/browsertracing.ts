@@ -243,20 +243,6 @@ export class BrowserTracing implements Integration {
 }
 
 /**
- * Gets transaction context from a sentry-trace meta.
- *
- * @returns Transaction context data from the header or undefined if there's no header or the header is malformed
- */
-export function getHeaderContext(): Partial<TransactionContext> | undefined {
-  const header = getMetaContent('sentry-trace');
-  if (header) {
-    return extractTraceparentData(header);
-  }
-
-  return undefined;
-}
-
-/**
  * Gets transaction context data from `sentry-trace` and `baggage` <meta> tags.
  * @returns Transaction context data or undefined neither tag exists or has valid data
  */
