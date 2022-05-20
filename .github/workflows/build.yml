@@ -134,8 +134,8 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  job_build_aws_lambda_layer:
-    name: Build AWS Lambda Layer
+  job_pack_aws_lambda_layer:
+    name: Pack and Upload AWS Lambda Layer
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     steps:
