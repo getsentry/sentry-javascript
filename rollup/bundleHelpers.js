@@ -2,12 +2,13 @@
  * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
  */
 
-import assert from 'assert';
+import { builtinModules } from 'module';
 
 import deepMerge from 'deepmerge';
 
 import {
   makeBrowserBuildPlugin,
+  makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
@@ -17,10 +18,10 @@ import {
   makeTerserPlugin,
   makeTSPlugin,
 } from './plugins/index.js';
-import { getLastElement, insertAt } from './utils.js';
+import { mergePlugins } from './utils';
 
 export function makeBaseBundleConfig(options) {
-  const { input, isAddOn, jsVersion, licenseTitle, outputFileBase } = options;
+  const { bundleType, input, jsVersion, licenseTitle, outputFileBase } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -30,6 +31,11 @@ export function makeBaseBundleConfig(options) {
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
 
+  // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
+  // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
+  // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
+  const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
+
   // used by `@sentry/browser`, `@sentry/tracing`, and `@sentry/vue` (bundles which are a full SDK in and of themselves)
   const standAloneBundleConfig = {
     output: {
@@ -37,6 +43,7 @@ export function makeBaseBundleConfig(options) {
       name: 'Sentry',
     },
     context: 'window',
+    plugins: [markAsBrowserBuildPlugin],
   };
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
@@ -69,6 +76,17 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
+    plugins: [markAsBrowserBuildPlugin],
+  };
+
+  // used by `@sentry/serverless`, when creating the lambda layer
+  const nodeBundleConfig = {
+    output: {
+      format: 'cjs',
+    },
+    plugins: [commonJSPlugin],
+    // Don't bundle any of Node's core modules
+    external: builtinModules,
   };
 
   // used by all bundles
@@ -83,19 +101,21 @@ export function makeBaseBundleConfig(options) {
     },
     plugins:
       jsVersion === 'es5'
-        ? [tsPlugin, markAsBrowserBuildPlugin, nodeResolvePlugin, licensePlugin]
-        : [
-            sucrasePlugin,
-            removeBlankLinesPlugin,
-            removeESLintCommentsPlugin,
-            markAsBrowserBuildPlugin,
-            nodeResolvePlugin,
-            licensePlugin,
-          ],
+        ? [tsPlugin, nodeResolvePlugin, licensePlugin]
+        : [sucrasePlugin, removeBlankLinesPlugin, removeESLintCommentsPlugin, nodeResolvePlugin, licensePlugin],
     treeshake: 'smallest',
   };
 
-  return deepMerge(sharedBundleConfig, isAddOn ? addOnBundleConfig : standAloneBundleConfig);
+  const bundleTypeConfigMap = {
+    standalone: standAloneBundleConfig,
+    addon: addOnBundleConfig,
+    node: nodeBundleConfig,
+  };
+
+  return deepMerge(sharedBundleConfig, bundleTypeConfigMap[bundleType], {
+    // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
+    customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
+  });
 }
 
 /**
@@ -108,16 +128,9 @@ export function makeBaseBundleConfig(options) {
  * @returns An array of versions of that config
  */
 export function makeBundleConfigVariants(baseConfig) {
-  const { plugins: baseConfigPlugins } = baseConfig;
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
   const terserPlugin = makeTerserPlugin();
-
-  // The license plugin has to be last, so it ends up after terser. Otherwise, terser will remove the license banner.
-  assert(
-    getLastElement(baseConfigPlugins).name === 'rollup-plugin-license',
-    `Last plugin in given options should be \`rollup-plugin-license\`. Found ${getLastElement(baseConfigPlugins).name}`,
-  );
 
   // The additional options to use for each variant we're going to create
   const variantSpecificConfigs = [
@@ -125,7 +138,7 @@ export function makeBundleConfigVariants(baseConfig) {
       output: {
         file: `${baseConfig.output.file}.js`,
       },
-      plugins: insertAt(baseConfigPlugins, -2, includeDebuggingPlugin),
+      plugins: [includeDebuggingPlugin],
     },
     // This variant isn't particularly helpful for an SDK user, as it strips logging while making no other minification
     // changes, so by default we don't create it. It is however very useful when debugging rollup's treeshaking, so it's
@@ -133,27 +146,27 @@ export function makeBundleConfigVariants(baseConfig) {
     // {
     //   output: { file: `${baseConfig.output.file}.no-debug.js`,
     //   },
-    //   plugins: insertAt(plugins, -2, stripDebuggingPlugin),
+    //   plugins: [stripDebuggingPlugin],
     // },
     {
       output: {
         file: `${baseConfig.output.file}.min.js`,
       },
-      plugins: insertAt(baseConfigPlugins, -2, stripDebuggingPlugin, terserPlugin),
+      plugins: [stripDebuggingPlugin, terserPlugin],
     },
     {
       output: {
         file: `${baseConfig.output.file}.debug.min.js`,
       },
-      plugins: insertAt(baseConfigPlugins, -2, includeDebuggingPlugin, terserPlugin),
+      plugins: [terserPlugin],
     },
   ];
 
   return variantSpecificConfigs.map(variant =>
     deepMerge(baseConfig, variant, {
-      // this makes it so that instead of concatenating the `plugin` properties of the two objects, the first value is
-      // just overwritten by the second value
-      arrayMerge: (first, second) => second,
+      // Merge the plugin arrays and make sure the end result is in the correct order. Everything else can use the
+      // default merge strategy.
+      customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
     }),
   );
 }
