@@ -102,15 +102,7 @@ jobs:
         run: yarn build
       - name: Check for symlink
         run: |
-          echo "--------------------"
-          cd packages/serverless/build/aws/
-          ls -l dist-serverless/nodejs/node_modules/@sentry/serverless/dist
-          echo "--------------------"
-          zip -r -y ${{ github.workspace }}/testzip.zip .
-          echo "--------------------"
-          cd ${{ github.workspace }}
-          unzip testzip.zip
-          echo "--------------------"
+          echo "--------- this should be a symlink -----------"
           ls -l dist-serverless/nodejs/node_modules/@sentry/serverless/dist
           echo "--------------------"
     outputs:
@@ -147,6 +139,11 @@ jobs:
         run: |
           export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
           echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
+      - name: Check for symlink
+        run: |
+          echo "--------- this should be a symlink -----------"
+          ls -l dist-serverless/nodejs/node_modules/@sentry/serverless/dist
+          echo "--------------------"
       - name: Upload artifacts for zipping action
         uses: actions/upload-artifact@v3
         with:
