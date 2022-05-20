@@ -109,7 +109,9 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggag
   const headerBaggage = (headerBaggageString && parseBaggageString(headerBaggageString)) || undefined;
   const thirdPartyHeaderBaggage = headerBaggage && getThirdPartyBaggage(headerBaggage);
 
-  const finalBaggage = createBaggage((incomingBaggage && incomingBaggage[0]) || {}, thirdPartyHeaderBaggage || '');
-
+  const finalBaggage = createBaggage(
+    (incomingBaggage && incomingBaggage[0]) || {},
+    thirdPartyHeaderBaggage || (incomingBaggage && incomingBaggage[1]) || '',
+  );
   return serializeBaggage(finalBaggage);
 }
