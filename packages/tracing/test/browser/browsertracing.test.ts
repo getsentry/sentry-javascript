@@ -377,13 +377,13 @@ describe('BrowserTracing', () => {
 
         expect(headerContext).toBeDefined();
         expect(headerContext?.metadata?.baggage).toBeDefined();
-        const baggage = headerContext?.metadata?.baggage!;
-        expect(baggage[0]).toBeDefined();
-        expect(baggage[0]).toEqual({
+        const baggage = headerContext?.metadata?.baggage;
+        expect(baggage && baggage[0]).toBeDefined();
+        expect(baggage && baggage[0]).toEqual({
           release: '2.1.12',
         } as BaggageObj);
-        expect(baggage[1]).toBeDefined();
-        expect(baggage[1]).toEqual('foo=bar');
+        expect(baggage && baggage[1]).toBeDefined();
+        expect(baggage && baggage[1]).toEqual('foo=bar');
       });
 
       it('returns undefined if the sentry-trace header is malformed', () => {
@@ -402,10 +402,9 @@ describe('BrowserTracing', () => {
         // TODO currently this creates invalid baggage. This must be adressed in a follow-up PR
         expect(headerContext).toBeDefined();
         expect(headerContext?.metadata?.baggage).toBeDefined();
-        const baggage = headerContext?.metadata?.baggage!;
-        expect(baggage[0]).toBeDefined();
-        //expect(baggage[0]).toEqual);
-        expect(baggage[1]).toBeDefined();
+        const baggage = headerContext?.metadata?.baggage;
+        expect(baggage && baggage[0]).toBeDefined();
+        expect(baggage && baggage[1]).toBeDefined();
       });
 
       it("returns undefined if the header isn't there", () => {
