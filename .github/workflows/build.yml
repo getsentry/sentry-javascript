@@ -100,6 +100,19 @@ jobs:
         # this file) to a constant and skip rebuilding all of the packages each time CI runs.
         if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
+      - name: Check for symlink
+        run: |
+          echo "--------------------"
+          cd packages/serverless/build/aws/
+          ls -l dist-serverless/nodejs/node_modules/@sentry/serverless/dist
+          echo "--------------------"
+          zip -r -y ${{ github.workspace }}/testzip.zip .
+          echo "--------------------"
+          cd ${{ github.workspace }}
+          unzip testzip.zip
+          echo "--------------------"
+          ls -l dist-serverless/nodejs/node_modules/@sentry/serverless/dist
+          echo "--------------------"
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -107,8 +120,6 @@ jobs:
 
   job_pack_aws_lambda_layer:
     name: Pack and Upload AWS Lambda Layer
-    # only upload the zipped layer file if we're about to release
-    # if: startsWith(github.ref, 'refs/heads/release/')
     needs: job_build
     runs-on: ubuntu-latest
     steps:
