@@ -33,6 +33,7 @@ env:
     ${{ github.workspace }}/packages/core/src/version.ts
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
+    ${{ github.workspace }}/packages/serverless
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
@@ -146,17 +147,19 @@ jobs:
           ls -laR packages/serverless/build/aws/dist-serverless/
           echo " XXX packages/serverless/build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/dist should be a symlink"
           echo "--------------------"
-      - name: Upload artifacts for zipping action
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.HEAD_COMMIT }}
-          path: packages/serverless/build/aws/*
+      # - name: Upload artifacts for zipping action
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{ env.HEAD_COMMIT }}
+      #     path: packages/serverless/build/aws/*
       - name: Create and upload final zip file
         uses: getsentry/action-build-aws-lambda-extension@v1
         with:
           artifact_name: ${{ env.HEAD_COMMIT }}
           zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
           preserve_symlinks: true
+          build_cache_path: ${{ env.CACHED_BUILD_PATHS }}
+          build_cache_key: ${{ env.BUILD_CACHE_KEY }}
 
   # job_size_check:
   #   name: Size Check
