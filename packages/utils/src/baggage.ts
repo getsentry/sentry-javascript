@@ -86,3 +86,30 @@ export function parseBaggageString(inputBaggageString: string): Baggage {
     [{}, ''],
   );
 }
+
+/**
+ * Merges the baggage header we saved from the incoming request (or meta tag) with
+ * a possibly created or modified baggage header by a third party that's been added
+ * to the outgoing request header.
+ *
+ * In case @param headerBaggage exists, we can safely add the the 3rd party part of @param headerBaggage
+ * with our @param incomingBaggage. This is possible because if we modified anything beforehand,
+ * it would only affect parts of the sentry baggage (@see Baggage interface).
+ *
+ * @param incomingBaggage the baggage header of the incoming request that might contain sentry entries
+ * @param headerBaggageString possibly existing baggage header string added from a third party to request headers
+ *
+ * @return a merged and serialized baggage string to be propagated with the outgoing request
+ */
+export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggageString?: string): string {
+  if (!incomingBaggage && !headerBaggageString) {
+    return '';
+  }
+
+  const headerBaggage = (headerBaggageString && parseBaggageString(headerBaggageString)) || undefined;
+  const thirdPartyHeaderBaggage = headerBaggage && getThirdPartyBaggage(headerBaggage);
+
+  const finalBaggage = createBaggage((incomingBaggage && incomingBaggage[0]) || {}, thirdPartyHeaderBaggage || '');
+
+  return serializeBaggage(finalBaggage);
+}
