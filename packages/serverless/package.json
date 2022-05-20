@@ -39,7 +39,7 @@
   },
   "scripts": {
     "build": "run-p build:rollup build:types && yarn build:extras",
-    "build:awslambda-layer": "node scripts/build-awslambda-layer.js",
+    "build:awslambda-layer": "yarn ts-node ../../scripts/ensure-bundle-deps.ts && yarn rollup --config rollup.aws.config.js",
     "build:dev": "run-p build:rollup build:types",
     "build:extras": "yarn build:awslambda-layer",
     "build:rollup": "rollup -c rollup.npm.config.js",
