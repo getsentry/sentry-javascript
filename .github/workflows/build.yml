@@ -1,9 +1,9 @@
 name: 'Build & Test'
 on:
   push:
-    # branches:
-    #   - master
-    #   - release/**
+    branches:
+      - master
+      - release/**
   pull_request:
   workflow_dispatch:
     inputs:
@@ -135,28 +135,16 @@ jobs:
         run: |
           export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
           echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
-<<<<<<< HEAD
       - name: Move dist-serverless to root directory (requirement for zipping action)
         run: |
           mv ./packages/serverless/build/aws/dist-serverless .
-=======
-      - name: Upload artifacts for zipping action
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.HEAD_COMMIT }}
-          path: packages/serverless/build/aws/*
->>>>>>> 50bb5e37866827d759dd9d76abf7069d4195354a
       - name: Create and upload final zip file
         uses: getsentry/action-build-aws-lambda-extension@v1
         with:
           artifact_name: ${{ env.HEAD_COMMIT }}
           zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
-<<<<<<< HEAD
           build_cache_paths: ${{ env.CACHED_BUILD_PATHS }}
           build_cache_key: ${{ env.BUILD_CACHE_KEY }}
-=======
-          preserve_symlinks: true
->>>>>>> 50bb5e37866827d759dd9d76abf7069d4195354a
 
   job_size_check:
     name: Size Check
