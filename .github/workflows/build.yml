@@ -106,48 +106,45 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  #
-  # Deactivated for now. This needs to be reactivated if the new Sentry Lambda Extension is deployed to production.
-  #
-  # job_pack_aws_lambda_layer:
-  #   name: Pack and Upload AWS Lambda Layer
-  #   needs: job_build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Check out current commit (${{ env.HEAD_COMMIT }})
-  #       uses: actions/checkout@v2
-  #       with:
-  #         ref: ${{ env.HEAD_COMMIT }}
-  #     - name: Set up Node
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: ${{ env.DEFAULT_NODE_VERSION }}
-  #     - name: Check dependency cache
-  #       uses: actions/cache@v2
-  #       with:
-  #         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-  #         key: ${{ needs.job_build.outputs.dependency_cache_key }}
-  #     - name: Check build cache
-  #       uses: actions/cache@v2
-  #       with:
-  #         path: ${{ env.CACHED_BUILD_PATHS }}
-  #         key: ${{ env.BUILD_CACHE_KEY }}
-  #     - name: Get SDK version
-  #       # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
-  #       # equivalent of using >> rather than >.)
-  #       run: |
-  #         export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
-  #         echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
-  #     - name: Move dist-serverless to root directory (requirement for zipping action)
-  #       run: |
-  #         mv ./packages/serverless/build/aws/dist-serverless .
-  #     - name: Create and upload final zip file
-  #       uses: getsentry/action-build-aws-lambda-extension@v1
-  #       with:
-  #         artifact_name: ${{ env.HEAD_COMMIT }}
-  #         zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
-  #         build_cache_paths: ${{ env.CACHED_BUILD_PATHS }}
-  #         build_cache_key: ${{ env.BUILD_CACHE_KEY }}
+  job_pack_aws_lambda_layer:
+    name: Pack and Upload AWS Lambda Layer
+    needs: job_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Get SDK version
+        # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
+        # equivalent of using >> rather than >.)
+        run: |
+          export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
+          echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
+      - name: Move dist-serverless to root directory (requirement for zipping action)
+        run: |
+          mv ./packages/serverless/build/aws/dist-serverless .
+      - name: Create and upload final zip file
+        uses: getsentry/action-build-aws-lambda-extension@v1
+        with:
+          artifact_name: ${{ env.HEAD_COMMIT }}
+          zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
+          build_cache_paths: ${{ env.CACHED_BUILD_PATHS }}
+          build_cache_key: ${{ env.BUILD_CACHE_KEY }}
 
   job_size_check:
     name: Size Check
