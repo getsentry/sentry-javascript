@@ -30,8 +30,8 @@ sentryTest.skip(
 
     const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
 
-    expect(envHeader.baggage).toBeDefined();
-    expect(envHeader.baggage).toEqual('{version:2.1.12}');
+    expect(envHeader.trace).toBeDefined();
+    expect(envHeader.trace).toEqual('{version:2.1.12}');
   },
 );
 
