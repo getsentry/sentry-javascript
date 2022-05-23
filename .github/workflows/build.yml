@@ -106,16 +106,11 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-<<<<<<< HEAD
   #
   # Deactivated for now. This needs to be reactivated if the new Sentry Lambda Extension is deployed to production.
   #
   # job_pack_aws_lambda_layer:
   #   name: Pack and Upload AWS Lambda Layer
-=======
-  # job_build_aws_lambda_layer:
-  #   name: Build AWS Lambda Layer
->>>>>>> 7.x
   #   needs: job_build
   #   runs-on: ubuntu-latest
   #   steps:
@@ -138,7 +133,6 @@ jobs:
   #         path: ${{ env.CACHED_BUILD_PATHS }}
   #         key: ${{ env.BUILD_CACHE_KEY }}
   #     - name: Get SDK version
-<<<<<<< HEAD
   #       # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
   #       # equivalent of using >> rather than >.)
   #       run: |
@@ -154,20 +148,6 @@ jobs:
   #         zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
   #         build_cache_paths: ${{ env.CACHED_BUILD_PATHS }}
   #         build_cache_key: ${{ env.BUILD_CACHE_KEY }}
-=======
-  #       run: |
-  #         export SDK_VERSION=$(cat dist-serverless/version)
-  #         echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
-  #     - uses: actions/upload-artifact@v3
-  #       with:
-  #         name: ${{ env.HEAD_COMMIT }}
-  #         path: |
-  #           dist-serverless/*
-  #     - uses: getsentry/action-build-aws-lambda-extension@v1
-  #       with:
-  #         artifact_name: ${{ env.HEAD_COMMIT }}
-  #         zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
->>>>>>> 7.x
 
   job_size_check:
     name: Size Check
