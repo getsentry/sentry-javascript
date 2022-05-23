@@ -10,7 +10,6 @@ import {
   extractTraceDataFromMetaTags,
   getMetaContent,
 } from '../../src/browser/browsertracing';
-import { MetricsInstrumentation } from '../../src/browser/metrics';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
@@ -508,31 +507,6 @@ describe('BrowserTracing', () => {
           transactionContext: expect.objectContaining({ op: 'navigation' }),
         }),
       );
-    });
-  });
-
-  describe('metrics', () => {
-    beforeEach(() => {
-      // @ts-ignore mock clear
-      MetricsInstrumentation.mockClear();
-    });
-
-    it('creates metrics instrumentation', () => {
-      createBrowserTracing(true, {});
-
-      expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(undefined);
-    });
-
-    it('creates metrics instrumentation with custom options', () => {
-      createBrowserTracing(true, {
-        _metricOptions: {
-          _reportAllChanges: true,
-        },
-      });
-
-      expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(true);
     });
   });
 });
