@@ -1,5 +1,5 @@
 import { Transaction } from '../../../src';
-import { _addResourceSpans, _addMeasureSpans, ResourceEntry } from '../../../src/browser/metrics';
+import { _addMeasureSpans, _addResourceSpans, ResourceEntry } from '../../../src/browser/metrics';
 
 describe('_addMeasureSpans', () => {
   const transaction = new Transaction({ op: 'pageload', name: '/' });
@@ -19,9 +19,12 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = 356;
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transaction.startChild).toHaveBeenCalledTimes(0);
     _addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transaction.startChild).toHaveBeenLastCalledWith({
       description: 'measure-1',
       startTimestamp: timeOrigin + startTime,
