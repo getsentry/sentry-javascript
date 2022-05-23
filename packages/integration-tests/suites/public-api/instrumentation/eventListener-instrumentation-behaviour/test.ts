@@ -6,29 +6,20 @@ sentryTest('should attach the same event listener only once', async ({ getLocalT
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const testCompletionPromise = new Promise<void>(resolve => {
-    let eventListener1Calls = 0;
-    let eventListener2Calls = 0;
-
-    page.on('console', async msg => {
-      const msgText = msg.text();
-
-      if (msgText === 'eventListener1') {
-        eventListener1Calls = eventListener1Calls + 1;
-      } else if (msgText === 'eventListener2') {
-        eventListener2Calls = eventListener2Calls + 1;
-      } else if (msgText === 'done') {
-        expect(eventListener1Calls).toBe(2);
-        expect(eventListener2Calls).toBe(2);
-        resolve();
-      }
-    });
+  let testCallback1Calls = 0;
+  await page.exposeFunction('testCallback1', () => {
+    testCallback1Calls = testCallback1Calls + 1;
   });
 
-  // Trigger event listeners twice and signal completion afterwards
-  await page.evaluate('document.body.click()');
-  await page.evaluate('document.body.click()');
-  await page.evaluate('console.log("done")');
+  let testCallback2Calls = 0;
+  await page.exposeFunction('testCallback2', () => {
+    testCallback2Calls = testCallback2Calls + 1;
+  });
 
-  return testCompletionPromise;
+  // Trigger event listeners twice
+  await page.evaluate('document.body.click()');
+  await page.evaluate('document.body.click()');
+
+  expect(testCallback1Calls).toBe(2);
+  expect(testCallback2Calls).toBe(2);
 });
