@@ -11,7 +11,7 @@ import { UserFeedback } from './user';
 // Based on https://github.com/getsentry/relay/blob/b23b8d3b2360a54aaa4d19ecae0231201f31df5e/relay-sampling/src/lib.rs#L685-L707
 export type EventTraceContext = {
   trace_id: Transaction['traceId'];
-  public_key?: DsnComponents['publicKey'];
+  public_key: DsnComponents['publicKey'];
   release?: string;
   user?: {
     id?: string;

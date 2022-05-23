@@ -130,7 +130,7 @@ function createEventEnvelopeHeaders(
       trace: dropUndefinedKeys({
         // Trace context must be defined for transactions
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        trace_id: event.contexts!.trace.trace_id,
+        trace_id: event.contexts!.trace.trace_id as string,
         environment: event.environment,
         release: event.release,
         transaction: event.transaction,
