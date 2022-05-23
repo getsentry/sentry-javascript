@@ -2,6 +2,7 @@ import {
   createBaggage,
   getBaggageValue,
   isBaggageEmpty,
+  mergeAndSerializeBaggage,
   parseBaggageString,
   serializeBaggage,
   setBaggageValue,
@@ -103,6 +104,29 @@ describe('Baggage', () => {
       ['returns false if the modifyable part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
     ])('%s', (_: string, baggage, outcome) => {
       expect(isBaggageEmpty(baggage)).toEqual(outcome);
+    });
+  });
+
+  describe('mergeAndSerializeBaggage', () => {
+    it.each([
+      [
+        'returns original baggage when there is no additional baggage',
+        createBaggage({ release: '1.1.1', userid: '1234' }, 'foo=bar'),
+        undefined,
+        'foo=bar,sentry-release=1.1.1,sentry-userid=1234',
+      ],
+      [
+        'returns merged baggage when there is a 3rd party header added',
+        createBaggage({ release: '1.1.1', userid: '1234' }, 'foo=bar'),
+        'bar=baz,key=value',
+        'bar=baz,key=value,sentry-release=1.1.1,sentry-userid=1234',
+      ],
+      ['returns merged baggage original baggage is empty', createBaggage({}), 'bar=baz,key=value', 'bar=baz,key=value'],
+      ['returns empty string when original and 3rd party baggage are empty', createBaggage({}), '', ''],
+      ['returns merged baggage original baggage is undefined', undefined, 'bar=baz,key=value', 'bar=baz,key=value'],
+      ['returns empty string when both params are undefined', undefined, undefined, ''],
+    ])('%s', (_: string, baggage, headerBaggageString, outcome) => {
+      expect(mergeAndSerializeBaggage(baggage, headerBaggageString)).toEqual(outcome);
     });
   });
 });
