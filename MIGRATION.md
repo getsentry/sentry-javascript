@@ -10,6 +10,8 @@ Below we will outline all the breaking changes you should consider when upgradin
 - We bumped the TypeScript version we generate our types with to 3.8.3. Please check if your TypeScript projects using TypeScript version 3.7 or lower still compile. Otherwise, upgrade your TypeScript version.
 - `whitelistUrls` and `blacklistUrls` have been renamed to `allowUrls` and `denyUrls` in the `Sentry.init()` options.
 - The `UserAgent` integration is now called `HttpContext`.
+- If you are using Performance Monitoring and with tracing enabled, you might have to [make adjustments to
+your server's CORS settings](#-propagation-of-baggage-header)
 
 ## Dropping Support for Node.js v6
 
@@ -318,6 +320,13 @@ const session = new Session({ release: 'v1.0' });
 session.update({ environment: 'prod' });
 session.close('ok');
 ```
+
+## Propagation of Baggage Header
+
+We introduced a new way of propagating tracing and transaction-related information between services. This
+change adds the [`baggage` HTTP header](https://www.w3.org/TR/baggage/) to outgoing requests if the instrumentation of requests is enabled. Since this adds a header to your HTTP requests, you might need
+to adjust your Server's CORS settings to allow this additional header. Take a look at the [Sentry docs](https://docs.sentry.io/platforms/javascript/performance/connect-services/#navigation-and-other-xhr-requests)
+for more in-depth instructions what to change.
 
 ## General API Changes
 

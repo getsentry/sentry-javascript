@@ -86,6 +86,43 @@ describe('tracing', () => {
 
     expect(sentryTraceHeader).not.toBeDefined();
   });
+
+  it('attaches the baggage header to outgoing non-sentry requests', async () => {
+    nock('http://dogs.are.great').get('/').reply(200);
+
+    createTransactionOnScope();
+
+    const request = http.get('http://dogs.are.great/');
+    const baggageHeader = request.getHeader('baggage') as string;
+
+    expect(baggageHeader).toBeDefined();
+    // this might change once we actually add our baggage data to the header
+    expect(baggageHeader).toEqual('');
+  });
+
+  it('propagates 3rd party baggage header data to outgoing non-sentry requests', async () => {
+    nock('http://dogs.are.great').get('/').reply(200);
+
+    createTransactionOnScope();
+
+    const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
+    const baggageHeader = request.getHeader('baggage') as string;
+
+    expect(baggageHeader).toBeDefined();
+    // this might change once we actually add our baggage data to the header
+    expect(baggageHeader).toEqual('dog=great');
+  });
+
+  it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {
+    nock('http://squirrelchasers.ingest.sentry.io').get('/api/12312012/store/').reply(200);
+
+    createTransactionOnScope();
+
+    const request = http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
+    const baggage = request.getHeader('baggage');
+
+    expect(baggage).not.toBeDefined();
+  });
 });
 
 describe('default protocols', () => {

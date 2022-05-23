@@ -229,6 +229,40 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     });
 
+    test('incoming trace headers are correctly parsed and used', async () => {
+      expect.assertions(1);
+
+      fakeEvent.headers = {
+        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+        baggage: 'sentry-release=2.12.1,maisey=silly,charlie=goofy',
+      };
+
+      const handler: Handler = (_event, _context, callback) => {
+        expect(Sentry.startTransaction).toBeCalledWith(
+          expect.objectContaining({
+            parentSpanId: '1121201211212012',
+            parentSampled: false,
+            op: 'awslambda.handler',
+            name: 'functionName',
+            traceId: '12312012123120121231201212312012',
+            metadata: {
+              baggage: [
+                {
+                  release: '2.12.1',
+                },
+                'maisey=silly,charlie=goofy',
+              ],
+            },
+          }),
+        );
+
+        callback(undefined, { its: 'fine' });
+      };
+
+      const wrappedHandler = wrapHandler(handler);
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+    });
+
     test('capture error', async () => {
       expect.assertions(10);
 

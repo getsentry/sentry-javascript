@@ -1,5 +1,4 @@
-import { DsnComponents, Event } from '@sentry/types';
-import { EventTraceContext } from '@sentry/types/build/types/envelope';
+import { DsnComponents, Event, EventTraceContext } from '@sentry/types';
 
 import { createEventEnvelope } from '../../src/envelope';
 
