@@ -15,6 +15,7 @@ scratch/
 *.pyc
 *.tsbuildinfo
 dist-serverless/
+sentry-node-serverless-*.zip
 # transpiled transformers
 jest/transformers/*.js
 # node tarballs
