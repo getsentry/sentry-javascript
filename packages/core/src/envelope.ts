@@ -125,23 +125,25 @@ function createEventEnvelopeHeaders(
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(event.type === 'transaction' && {
-      // TODO: Grab this from baggage
-      trace: dropUndefinedKeys({
-        // Trace context must be defined for transactions
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        trace_id: event.contexts!.trace.trace_id as string,
-        environment: event.environment,
-        release: event.release,
-        transaction: event.transaction,
-        user:
-          event.user &&
-          dropUndefinedKeys({
-            id: event.user.id,
-            segment: event.user.segment,
-          }),
-        public_key: dsn.publicKey,
+    ...(event.type === 'transaction' &&
+      event.contexts &&
+      event.contexts.trace && {
+        // TODO: Grab this from baggage
+        trace: dropUndefinedKeys({
+          // Trace context must be defined for transactions
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          trace_id: event.contexts!.trace.trace_id as string,
+          environment: event.environment,
+          release: event.release,
+          transaction: event.transaction,
+          user:
+            event.user &&
+            dropUndefinedKeys({
+              id: event.user.id,
+              segment: event.user.segment,
+            }),
+          public_key: dsn.publicKey,
+        }),
       }),
-    }),
   };
 }
