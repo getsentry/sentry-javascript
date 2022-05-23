@@ -6,9 +6,16 @@
 
 ## 7.0.0-beta.2
 
+- **(breaking)** feat(tracing): Add empty baggage header propagation to outgoing requests (#5133)
+- feat: Add attachments API (#5004)
+- feat(core): Send Baggage in Envelope Header (#5104)
+- feat(utils): Introduce Baggage API (#5066)
 - fix(build): Fix express import in `gcpfunction` (#5097)
 - fix(ember): Export sha hashes of injected scripts (#5089)
+- ref(build): Use sucrase for es6 bundles (#5111)
 - ref(serverless): Do not throw on flush error (#5090)
+- ref(serverless): Point DSN to relay in lambda extension (#5126)
+- ref(tracing): Rename baggage env header to trace (#5128)
 
 ## 7.0.0-beta.1
 
