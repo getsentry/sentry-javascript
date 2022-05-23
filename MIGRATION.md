@@ -327,6 +327,7 @@ We introduced a new way of propagating tracing and transaction-related informati
 change adds the [`baggage` HTTP header](https://www.w3.org/TR/baggage/) to outgoing requests if the instrumentation of requests is enabled. Since this adds a header to your HTTP requests, you might need
 to adjust your Server's CORS settings to allow this additional header. Take a look at the [Sentry docs](https://docs.sentry.io/platforms/javascript/performance/connect-services/#navigation-and-other-xhr-requests)
 for more in-depth instructions what to change.
+
 ## General API Changes
 
 For our efforts to reduce bundle size of the SDK we had to remove and refactor parts of the package which introduced a few changes to the API:
