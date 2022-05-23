@@ -19,6 +19,7 @@ export type {
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
+  EventTraceContext,
   SessionEnvelope,
   SessionItem,
   UserFeedbackItem,
