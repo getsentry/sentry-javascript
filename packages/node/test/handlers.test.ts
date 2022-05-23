@@ -2,7 +2,7 @@ import * as sentryCore from '@sentry/core';
 import * as sentryHub from '@sentry/hub';
 import { Hub } from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
-import { Runtime } from '@sentry/types';
+import { Baggage, Runtime } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 import * as net from 'net';
@@ -368,6 +368,41 @@ describe('tracingHandler', () => {
     expect(transaction.traceId).toEqual('12312012123120121231201212312012');
     expect(transaction.parentSpanId).toEqual('1121201211212012');
     expect(transaction.sampled).toEqual(false);
+    expect(transaction.metadata?.baggage).toBeUndefined();
+  });
+
+  it("pulls parent's data from tracing and baggage headers on the request", () => {
+    req.headers = {
+      'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+      baggage: 'sentry-version=1.0,sentry-environment=production',
+    };
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = (res as any).__sentry_transaction;
+
+    // since we have no tracesSampler defined, the default behavior (inherit if possible) applies
+    expect(transaction.traceId).toEqual('12312012123120121231201212312012');
+    expect(transaction.parentSpanId).toEqual('1121201211212012');
+    expect(transaction.sampled).toEqual(false);
+    expect(transaction.metadata?.baggage).toBeDefined();
+    expect(transaction.metadata?.baggage).toEqual([{ version: '1.0', environment: 'production' }, ''] as Baggage);
+  });
+
+  it("pulls parent's baggage (sentry + third party entries) headers on the request", () => {
+    req.headers = {
+      baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
+    };
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = (res as any).__sentry_transaction;
+
+    expect(transaction.metadata?.baggage).toBeDefined();
+    expect(transaction.metadata?.baggage).toEqual([
+      { version: '1.0', environment: 'production' },
+      'dogs=great,cats=boring',
+    ] as Baggage);
   });
 
   it('extracts request data for sampling context', () => {

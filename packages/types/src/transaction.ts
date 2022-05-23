@@ -1,6 +1,6 @@
+import { Baggage } from './baggage';
 import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import { Span, SpanContext } from './span';
-
 /**
  * Interface holding Transaction-specific properties
  */
@@ -131,11 +131,8 @@ export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'c
 export interface TransactionMetadata {
   transactionSampling?: { rate?: number; method: TransactionSamplingMethod };
 
-  /** The two halves (sentry and third-party) of a transaction's tracestate header, used for dynamic sampling */
-  tracestate?: {
-    sentry?: string;
-    thirdparty?: string;
-  };
+  /** The baggage object of a transaction's baggage header, used for dynamic sampling  */
+  baggage?: Baggage;
 
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
   requestPath?: string;

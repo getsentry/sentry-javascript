@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, Span } from '@sentry/types';
-import { fill, logger, parseSemver } from '@sentry/utils';
+import { fill, logger, mergeAndSerializeBaggage, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
@@ -123,7 +123,14 @@ function _createWrappedRequestMethodFactory(
             logger.log(
               `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
             );
-          requestOptions.headers = { ...requestOptions.headers, 'sentry-trace': sentryTraceHeader };
+
+          const headerBaggageString = requestOptions.headers && (requestOptions.headers.baggage as string);
+
+          requestOptions.headers = {
+            ...requestOptions.headers,
+            'sentry-trace': sentryTraceHeader,
+            baggage: mergeAndSerializeBaggage(span.getBaggage(), headerBaggageString),
+          };
         }
       }
 

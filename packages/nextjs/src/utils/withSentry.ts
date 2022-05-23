@@ -1,7 +1,14 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { addExceptionMechanism, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  isString,
+  logger,
+  objectify,
+  parseBaggageString,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
@@ -48,6 +55,8 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
             IS_DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
+          const baggage = req.headers && isString(req.headers.baggage) && parseBaggageString(req.headers.baggage);
+
           const url = `${req.url}`;
           // pull off query string, if any
           let reqPath = stripUrlQueryAndFragment(url);
@@ -66,6 +75,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
+              ...(baggage && { metadata: { baggage: baggage } }),
             },
             // extra context passed to the `tracesSampler`
             { request: req },
