@@ -1,35 +1,62 @@
 import { DsnComponents, Event } from '@sentry/types';
+import { EventTraceContext } from '@sentry/types/build/types/envelope';
 
 import { createEventEnvelope } from '../../src/envelope';
 
-const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io' };
+const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
 
 describe('createEventEnvelope', () => {
-  describe('baggage header', () => {
-    it("doesn't add baggage header if event is not a transaction", () => {
+  describe('trace header', () => {
+    it("doesn't add trace header if event is not a transaction", () => {
       const event: Event = {};
       const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
 
       expect(envelopeHeaders).toBeDefined();
-      expect(envelopeHeaders.baggage).toBeUndefined();
+      expect(envelopeHeaders.trace).toBeUndefined();
     });
 
-    it("doesn't add baggage header if no baggage data is available", () => {
+    it('adds minimal trace data if event is a transaction and no other baggage-related data is available', () => {
       const event: Event = {
         type: 'transaction',
+        contexts: {
+          trace: {
+            trace_id: '1234',
+          },
+        },
       };
       const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
 
       expect(envelopeHeaders).toBeDefined();
-      expect(envelopeHeaders.baggage).toBeUndefined();
+      expect(envelopeHeaders.trace).toEqual({ trace_id: '1234', public_key: 'pubKey123' });
     });
 
-    const testTable: Array<[string, Event, string]> = [
-      ['adds only baggage item', { type: 'transaction', release: '1.0.0' }, 'sentry-release=1.0.0'],
+    const testTable: Array<[string, Event, EventTraceContext]> = [
+      [
+        'adds only baggage item',
+        {
+          type: 'transaction',
+          release: '1.0.0',
+          contexts: {
+            trace: {
+              trace_id: '1234',
+            },
+          },
+        },
+        { release: '1.0.0', trace_id: '1234', public_key: 'pubKey123' },
+      ],
       [
         'adds two baggage items',
-        { type: 'transaction', release: '1.0.0', environment: 'prod' },
-        'sentry-environment=prod,sentry-release=1.0.0',
+        {
+          type: 'transaction',
+          release: '1.0.0',
+          environment: 'prod',
+          contexts: {
+            trace: {
+              trace_id: '1234',
+            },
+          },
+        },
+        { release: '1.0.0', environment: 'prod', trace_id: '1234', public_key: 'pubKey123' },
       ],
       [
         'adds all baggageitems',
@@ -39,16 +66,28 @@ describe('createEventEnvelope', () => {
           environment: 'prod',
           user: { id: 'bob', segment: 'segmentA' },
           transaction: 'TX',
+          contexts: {
+            trace: {
+              trace_id: '1234',
+            },
+          },
         },
-        'sentry-environment=prod,sentry-release=1.0.0,sentry-transaction=TX,sentry-userid=bob,sentry-usersegment=segmentA',
+        {
+          release: '1.0.0',
+          environment: 'prod',
+          user: { id: 'bob', segment: 'segmentA' },
+          transaction: 'TX',
+          trace_id: '1234',
+          public_key: 'pubKey123',
+        },
       ],
     ];
-    it.each(testTable)('%s', (_: string, event, serializedBaggage) => {
+    it.each(testTable)('%s', (_: string, event, trace) => {
       const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
 
       expect(envelopeHeaders).toBeDefined();
-      expect(envelopeHeaders.baggage).toBeDefined();
-      expect(envelopeHeaders.baggage).toEqual(serializedBaggage);
+      expect(envelopeHeaders.trace).toBeDefined();
+      expect(envelopeHeaders.trace).toEqual(trace);
     });
   });
 });
