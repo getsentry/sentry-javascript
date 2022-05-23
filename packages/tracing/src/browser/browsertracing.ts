@@ -256,7 +256,7 @@ export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | un
   // TODO more extensive checks for baggage validity/emptyness?
   if (sentrytraceData || baggage) {
     return {
-      ...sentrytraceData,
+      ...(sentrytraceData && { sentrytraceData }),
       ...(baggage && { metadata: { baggage } }),
     };
   }
