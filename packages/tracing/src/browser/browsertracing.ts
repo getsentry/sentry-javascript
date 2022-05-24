@@ -268,6 +268,13 @@ export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | un
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | null {
-  const el = getGlobalObject<Window>().document.querySelector(`meta[name=${metaName}]`);
-  return el ? el.getAttribute('content') : null;
+  const globalObject = getGlobalObject<Window>();
+
+  // DOM/querySelector is not available in all environments
+  if (globalObject.document && globalObject.document.querySelector) {
+    const el = globalObject.document.querySelector(`meta[name=${metaName}]`);
+    return el ? el.getAttribute('content') : null;
+  } else {
+    return null;
+  }
 }
