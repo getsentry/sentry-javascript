@@ -2,9 +2,6 @@ import { WrappedFunction } from '@sentry/types';
 
 import { getGlobalObject, getGlobalSingleton } from './global';
 
-// TODO: Implement different loggers for different environments
-const global = getGlobalObject<Window | NodeJS.Global>();
-
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
 
@@ -26,13 +23,13 @@ interface Logger extends LoggerConsoleMethods {
  * @returns The results of the callback
  */
 export function consoleSandbox<T>(callback: () => T): T {
-  const global = getGlobalObject<Window>();
+  const globalObject = getGlobalObject<Window>();
 
-  if (!('console' in global)) {
+  if (!('console' in globalObject)) {
     return callback();
   }
 
-  const originalConsole = global.console as Console & Record<string, unknown>;
+  const originalConsole = globalObject.console as Console & Record<string, unknown>;
   const wrappedLevels: Partial<LoggerConsoleMethods> = {};
 
   // Restore all wrapped console methods
@@ -40,7 +37,7 @@ export function consoleSandbox<T>(callback: () => T): T {
     // TODO(v7): Remove this check as it's only needed for Node 6
     const originalWrappedFunc =
       originalConsole[level] && (originalConsole[level] as WrappedFunction).__sentry_original__;
-    if (level in global.console && originalWrappedFunc) {
+    if (level in globalObject.console && originalWrappedFunc) {
       wrappedLevels[level] = originalConsole[level] as LoggerConsoleMethods[typeof level];
       originalConsole[level] = originalWrappedFunc as Console[typeof level];
     }
@@ -57,6 +54,9 @@ export function consoleSandbox<T>(callback: () => T): T {
 }
 
 function makeLogger(): Logger {
+  // TODO: Implement different loggers for different environments
+  const globalObject = getGlobalObject<Window | NodeJS.Global>();
+
   let enabled = false;
   const logger: Partial<Logger> = {
     enable: () => {
@@ -73,7 +73,7 @@ function makeLogger(): Logger {
       logger[name] = (...args: any[]) => {
         if (enabled) {
           consoleSandbox(() => {
-            global.console[name](`${PREFIX}[${name}]:`, ...args);
+            globalObject.console[name](`${PREFIX}[${name}]:`, ...args);
           });
         }
       };
