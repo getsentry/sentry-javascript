@@ -1,7 +1,6 @@
 import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../flags';
 import { domainify, getActiveDomain, proxyFunction } from '../utils';
 import {
   CloudEventFunction,
@@ -62,7 +61,7 @@ function _wrapCloudEventFunction(
 
       void flush(options.flushTimeout)
         .then(null, e => {
-          IS_DEBUG_BUILD && logger.error(e);
+          __DEBUG_BUILD__ && logger.error(e);
         })
         .then(() => {
           callback(...args);

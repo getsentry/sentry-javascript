@@ -61,16 +61,14 @@ Pro tip: If any of your breakpoints are in code run by multiple tests, and you r
 
 ## Debug Build Flags
 
-Throughout the codebase, you will find debug flags like `IS_DEBUG_BUILD` guarding various code sections.
+Throughout the codebase, you will find debug flags like `__DEBUG_BUILD__` guarding various code sections.
 These flags serve two purposes:
 
 1. They enable us to remove debug code for our production browser bundles.
 2. Enable users to tree-shake Sentry debug code for their production builds.
 
-These debug flags need to be declared in each package individually and must not be imported across package boundaries, because some build tools have trouble tree-shaking imported guards.
-As a convention, we define debug flags in a `flags.ts` file in the root of a package's `src` folder.
-The `flags.ts` file will contain "magic strings" like `__SENTRY_DEBUG__` that may get replaced with actual values during our, or the user's build process.
-Take care when introducing new flags - they must not throw if they are not replaced.
+Flags will be replaced with booleans for our browser bundles, or with statements that do not throw for cjs and esm bundles.
+Take care when introducing new flags - they must be disarmed in our build scripts!
 
 ## Linting
 

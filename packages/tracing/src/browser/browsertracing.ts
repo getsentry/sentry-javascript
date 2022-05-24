@@ -2,7 +2,6 @@ import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, parseBaggageString } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../flags';
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
@@ -137,7 +136,7 @@ export class BrowserTracing implements Integration {
       if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins) && _options.tracingOrigins.length !== 0) {
         tracingOrigins = _options.tracingOrigins;
       } else {
-        IS_DEBUG_BUILD && (this._emitOptionsWarning = true);
+        __DEBUG_BUILD__ && (this._emitOptionsWarning = true);
       }
     }
 
@@ -158,11 +157,11 @@ export class BrowserTracing implements Integration {
     this._getCurrentHub = getCurrentHub;
 
     if (this._emitOptionsWarning) {
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.warn(
           '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
         );
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.warn(
           `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentationOptions.tracingOrigins}`,
         );
@@ -196,7 +195,7 @@ export class BrowserTracing implements Integration {
   /** Create routing idle transaction. */
   private _createRouteTransaction(context: TransactionContext): Transaction | undefined {
     if (!this._getCurrentHub) {
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.warn(`[Tracing] Did not create ${context.op} transaction because _getCurrentHub is invalid.`);
       return undefined;
     }
@@ -218,10 +217,11 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     if (finalContext.sampled === false) {
-      IS_DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
+      __DEBUG_BUILD__ &&
+        logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
 
-    IS_DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
+    __DEBUG_BUILD__ && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
 
     const hub = this._getCurrentHub();
     const { location } = getGlobalObject() as WindowOrWorkerGlobalScope & { location: Location };

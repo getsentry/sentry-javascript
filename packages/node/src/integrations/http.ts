@@ -4,7 +4,6 @@ import { fill, logger, mergeAndSerializeBaggage, parseSemver } from '@sentry/uti
 import * as http from 'http';
 import * as https from 'https';
 
-import { IS_DEBUG_BUILD } from '../flags';
 import {
   cleanSpanDescription,
   extractUrl,
@@ -119,7 +118,7 @@ function _createWrappedRequestMethodFactory(
           });
 
           const sentryTraceHeader = span.toTraceparent();
-          IS_DEBUG_BUILD &&
+          __DEBUG_BUILD__ &&
             logger.log(
               `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
             );

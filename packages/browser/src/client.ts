@@ -10,7 +10,6 @@ import {
 } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
-import { IS_DEBUG_BUILD } from './flags';
 import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { BrowserTransportOptions } from './transports/types';
@@ -151,16 +150,16 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     const outcomes = this._clearOutcomes();
 
     if (outcomes.length === 0) {
-      IS_DEBUG_BUILD && logger.log('No outcomes to send');
+      __DEBUG_BUILD__ && logger.log('No outcomes to send');
       return;
     }
 
     if (!this._dsn) {
-      IS_DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
+      __DEBUG_BUILD__ && logger.log('No dsn provided, will not send outcomes');
       return;
     }
 
-    IS_DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
+    __DEBUG_BUILD__ && logger.log('Sending outcomes:', outcomes);
 
     const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, this._options.tunnel);
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
@@ -168,7 +167,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     try {
       sendReport(url, serializeEnvelope(envelope));
     } catch (e) {
-      IS_DEBUG_BUILD && logger.error(e);
+      __DEBUG_BUILD__ && logger.error(e);
     }
   }
 }

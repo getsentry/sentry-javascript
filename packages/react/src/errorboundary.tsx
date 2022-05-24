@@ -3,8 +3,6 @@ import { logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
-import { IS_DEBUG_BUILD } from './flags';
-
 export function isAtLeastReact17(version: string): boolean {
   const major = version.match(/^([^.]+)/);
   return major !== null && parseInt(major[0]) >= 17;
@@ -144,7 +142,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       if (fallback) {
-        IS_DEBUG_BUILD && logger.warn('fallback did not produce a valid ReactElement');
+        __DEBUG_BUILD__ && logger.warn('fallback did not produce a valid ReactElement');
       }
 
       // Fail gracefully if no fallback provided or is not valid

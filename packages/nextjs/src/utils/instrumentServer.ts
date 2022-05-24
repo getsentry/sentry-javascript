@@ -22,8 +22,6 @@ import { default as createNextServer } from 'next';
 import * as querystring from 'querystring';
 import * as url from 'url';
 
-import { IS_DEBUG_BUILD } from '../flags';
-
 const { parseRequest } = Handlers;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -256,7 +254,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           let traceparentData;
           if (nextReq.headers && isString(nextReq.headers['sentry-trace'])) {
             traceparentData = extractTraceparentData(nextReq.headers['sentry-trace']);
-            IS_DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+            __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
           const baggage =

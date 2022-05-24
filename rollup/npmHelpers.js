@@ -14,6 +14,7 @@ import {
   makeRemoveBlankLinesPlugin,
   makeRemoveESLintCommentsPlugin,
   makeSucrasePlugin,
+  makeDebugBuildStatementReplacePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -33,6 +34,7 @@ export function makeBaseNPMConfig(options = {}) {
   const removeESLintCommentsPlugin = makeRemoveESLintCommentsPlugin();
   const removeBlankLinesPlugin = makeRemoveBlankLinesPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
+  const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -84,6 +86,7 @@ export function makeBaseNPMConfig(options = {}) {
       removeESLintCommentsPlugin,
       removeBlankLinesPlugin,
       extractPolyfillsPlugin,
+      debugBuildStatementReplacePlugin,
     ],
 
     // don't include imported modules from outside the package in the final output

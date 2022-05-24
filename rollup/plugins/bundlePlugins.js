@@ -46,10 +46,10 @@ export function makeLicensePlugin(title) {
  */
 export function makeIsDebugBuildPlugin(includeDebugging) {
   return replace({
-    // __SENTRY_DEBUG__ should be save to replace in any case, so no checks for assignments necessary
+    // __DEBUG_BUILD__ should be save to replace in any case, so no checks for assignments necessary
     preventAssignment: false,
     values: {
-      __SENTRY_DEBUG__: includeDebugging,
+      __DEBUG_BUILD__: includeDebugging,
     },
   });
 }

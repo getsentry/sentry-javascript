@@ -12,6 +12,7 @@ module.exports = {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.test.json',
     },
+    __DEBUG_BUILD__: true,
   },
   testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/'],
 };

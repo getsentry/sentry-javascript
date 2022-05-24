@@ -1,8 +1,6 @@
 import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../../flags';
-
 type Method =
   | 'all'
   | 'get'
@@ -81,7 +79,7 @@ export class Express implements Integration {
    */
   public setupOnce(): void {
     if (!this._router) {
-      IS_DEBUG_BUILD && logger.error('ExpressIntegration is missing an Express instance');
+      __DEBUG_BUILD__ && logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
     instrumentMiddlewares(this._router, this._methods);

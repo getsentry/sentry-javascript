@@ -127,4 +127,16 @@ export function makeRemoveBlankLinesPlugin() {
   });
 }
 
+/**
+ * TODO
+ */
+export function makeDebugBuildStatementReplacePlugin() {
+  return replace({
+    preventAssignment: false,
+    values: {
+      __DEBUG_BUILD__: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
+    },
+  });
+}
+
 export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.js';

@@ -10,7 +10,6 @@ build/
 dist/
 coverage/
 scratch/
-*.d.ts
 *.js.map
 *.pyc
 *.tsbuildinfo
