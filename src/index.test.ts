@@ -56,6 +56,7 @@ const mockRecord = rrweb.record as RecordMock;
 
 jest.useFakeTimers();
 
+// TODO: tests for our breadcrumbs / spans
 describe('SentryReplay', () => {
   let replay: SentryReplay;
   type MockSendReplayRequest = jest.MockedFunction<
@@ -119,8 +120,6 @@ describe('SentryReplay', () => {
       started: BASE_TIMESTAMP,
     });
     expect(replay.session.id).toBeDefined();
-    expect(replay.session.spanId).toBeDefined();
-    expect(replay.session.traceId).toBeDefined();
   });
 
   it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
@@ -194,10 +193,12 @@ describe('SentryReplay', () => {
     const regex = new RegExp(
       'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
     );
-    expect(replay.sendReplayRequest).toHaveBeenCalledWith(
-      expect.stringMatching(regex),
-      [TEST_EVENT]
-    );
+    expect(replay.sendReplayRequest).toHaveBeenCalledWith({
+      endpoint: expect.stringMatching(regex),
+      events: [TEST_EVENT],
+      replaySpans: [],
+      breadcrumbs: [],
+    });
 
     // Session's last activity should be updated
     expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
@@ -209,7 +210,6 @@ describe('SentryReplay', () => {
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
     mockRecord._emitter(TEST_EVENT);
-
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
     jest.advanceTimersByTime(ELAPSED);
@@ -219,10 +219,12 @@ describe('SentryReplay', () => {
     const regex = new RegExp(
       'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
     );
-    expect(replay.sendReplayRequest).toHaveBeenCalledWith(
-      expect.stringMatching(regex),
-      [TEST_EVENT]
-    );
+    expect(replay.sendReplayRequest).toHaveBeenCalledWith({
+      endpoint: expect.stringMatching(regex),
+      events: [TEST_EVENT],
+      replaySpans: [],
+      breadcrumbs: [],
+    });
 
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);
@@ -267,8 +269,6 @@ describe('SentryReplay', () => {
     const initialSession = replay.session;
 
     expect(initialSession.id).toBeDefined();
-    expect(initialSession.spanId).toBeDefined();
-    expect(initialSession.traceId).toBeDefined();
 
     // Idle for 15 minutes
     jest.advanceTimersByTime(15 * 60000);

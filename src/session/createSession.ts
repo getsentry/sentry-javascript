@@ -1,9 +1,9 @@
-import * as Sentry from '@sentry/browser';
-
 import { logger } from '@/util/logger';
 import { saveSession } from './saveSession';
 import type { ReplaySession } from './types';
 import { ROOT_REPLAY_NAME } from './constants';
+import { getCurrentHub } from '@sentry/browser';
+import { uuid4 } from '@sentry/utils';
 
 interface CreateSessionParams {
   /**
@@ -21,29 +21,21 @@ export function createSession({
   stickySession = false,
 }: CreateSessionParams): ReplaySession {
   const currentDate = new Date().getTime();
-
-  // Create root replay event, this is where attachments will be saved
-  const transaction = Sentry.getCurrentHub().startTransaction({
-    name: ROOT_REPLAY_NAME,
-    tags: {
-      isReplayRoot: 'yes',
-    },
-  });
-
-  // We have to finish the transaction to get an event ID to be able to
-  // upload an attachment for that event
-  // @ts-expect-error This returns an eventId (string), but is not typed as such
-  const id: string = transaction.finish();
-
-  logger.log(`Creating new session: ${id}`);
+  const hub = getCurrentHub();
 
   const session = {
-    id,
-    spanId: transaction.spanId,
-    traceId: transaction.traceId,
+    id: uuid4(),
     started: currentDate,
     lastActivity: currentDate,
   };
+  hub.captureEvent(
+    {
+      message: ROOT_REPLAY_NAME,
+    },
+    { event_id: session.id }
+  );
+
+  logger.log(`Creating new session: ${session.id}`);
 
   if (stickySession) {
     saveSession(session);

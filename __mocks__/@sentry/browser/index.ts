@@ -1,10 +1,6 @@
-const startTransaction = jest.fn(() => ({
-  traceId: 'trace_id',
-  spanId: 'span_id',
-  finish: jest.fn(() => 'transaction_id'),
-}));
+const captureEvent = jest.fn();
 const getCurrentHub = jest.fn(() => ({
-  startTransaction,
+  captureEvent,
 }));
 
 const addGlobalEventProcessor = jest.fn();

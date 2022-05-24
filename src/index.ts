@@ -1,11 +1,6 @@
 import * as Sentry from '@sentry/browser';
-import {
-  DsnComponents,
-  Event,
-  Integration,
-  Scope,
-  Transaction,
-} from '@sentry/types';
+import { uuid4 } from '@sentry/utils';
+import { DsnComponents, Event, Integration, Breadcrumb } from '@sentry/types';
 
 import { record } from 'rrweb';
 import type { eventWithTime } from 'rrweb/typings/types';
@@ -23,9 +18,12 @@ import {
 } from './session/constants';
 import { getSession } from './session/getSession';
 import { updateSessionActivity } from './session/updateSessionActivity';
+import { ReplaySpan } from './types';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
+import { captureEvent } from '@sentry/browser';
+import addInstrumentationListeners from './addInstrumentationListeners';
 
 type RRWebEvent = eventWithTime;
 type RRWebOptions = Parameters<typeof record>[0];
@@ -54,6 +52,13 @@ interface SentryReplayConfiguration extends PluginOptions {
   rrwebConfig?: RRWebOptions;
 }
 
+interface ReplayRequest {
+  endpoint: string;
+  events: RRWebEvent[];
+  replaySpans: ReplaySpan[];
+  breadcrumbs: Breadcrumb[];
+}
+
 export class SentryReplay implements Integration {
   /**
    * @inheritDoc
@@ -73,13 +78,6 @@ export class SentryReplay implements Integration {
   public performanceEvents: PerformanceEntry[] = [];
 
   /**
-   * A Sentry Transaction that should capture every incremental rrweb update,
-   * but *not* the attachments themselves. This is currently used to capture
-   * breadcrumbs and maybe other spans (e.g. network requests)
-   */
-  replayEvent: Transaction | undefined;
-
-  /**
    * Options to pass to `rrweb.record()`
    */
   readonly rrwebRecordOptions: RRWebOptions;
@@ -91,11 +89,14 @@ export class SentryReplay implements Integration {
    */
   private timeout: number;
 
+  private breadcrumbs: Breadcrumb[] = [];
+
   /**
    * The timestamp of the first event since the last flush.
    * This is used to determine if the maximum allowed time has passed before we should flush events again.
    */
   private initialEventTimestampSinceFlush: number | null = null;
+  public replaySpans: ReplaySpan[] = [];
 
   private performanceObserver: PerformanceObserver | null = null;
 
@@ -147,6 +148,11 @@ export class SentryReplay implements Integration {
   }
 
   setup() {
+    const hub = Sentry.getCurrentHub();
+    const { scope } = hub.getStackTop();
+
+    addInstrumentationListeners(scope, this);
+
     this.loadSession({ expiry: SESSION_IDLE_DURATION });
 
     // If there is no session, then something bad has happened - can't continue
@@ -165,9 +171,6 @@ export class SentryReplay implements Integration {
       event.tags = { ...event.tags, replayId: this.session.id };
       return event;
     });
-
-    // not fully initialized and the event will not get properly sent to Sentry
-    this.createReplayEvent();
 
     record({
       ...this.rrwebRecordOptions,
@@ -363,36 +366,17 @@ export class SentryReplay implements Integration {
   }
 
   /**
-   * This is our pseudo replay event disguised as a transaction. It will be
-   * used to store performance entries and breadcrumbs for every incremental
-   * replay event.
-   **/
-  createReplayEvent() {
-    logger.log('CreateReplayEvent rootReplayId', this.session.id);
-    this.replayEvent = Sentry.getCurrentHub().startTransaction({
-      name: REPLAY_EVENT_NAME,
-      parentSpanId: this.session.spanId,
-      traceId: this.session.traceId,
-      tags: {
-        replayId: this.session.id,
-      },
-    });
-    Sentry.configureScope((scope: Scope) => scope.setSpan(this.replayEvent));
-    return this.replayEvent;
-  }
-
-  /**
    * Create a span for each performance entry. The parent transaction is `this.replayEvent`.
    */
   createPerformanceSpans(entries: ReplayPerformanceEntry[]) {
     entries.forEach(({ type, start, end, name, data }) => {
-      const span = this.replayEvent?.startChild({
+      this.replaySpans.push({
         op: type,
         description: name,
         startTimestamp: start,
+        endTimestamp: end,
         data,
       });
-      span.finish(end);
     });
   }
 
@@ -414,7 +398,6 @@ export class SentryReplay implements Integration {
       // @ts-expect-error memory doesn't exist on type Performance as the API is non-standard
       entryEvents.push(createMemoryEntry(window.performance.memory));
     }
-    // This current implementation is to create spans on the transaction referenced in `this.replayEvent`
     this.createPerformanceSpans(entryEvents);
   }
 
@@ -458,18 +441,20 @@ export class SentryReplay implements Integration {
       console.error(new Error('[Sentry]: No transaction, no replay'));
       return;
     }
+    // TEMP: keep sending a replay event just for the duration
+    captureEvent({
+      message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
+      tags: {
+        replayId: this.session.id,
+      },
+    });
 
+    this.addPerformanceEntries();
     this.sendReplay(this.session.id);
+
     this.initialEventTimestampSinceFlush = null;
     // TBD: Alternatively we could update this after every rrweb event
     this.session.lastActivity = new Date().getTime();
-
-    // include performance entries
-    this.addPerformanceEntries();
-
-    // Close out existing replay event and create a new one
-    this.replayEvent?.setStatus('ok').finish();
-    this.createReplayEvent();
   }
 
   /**
@@ -482,8 +467,17 @@ export class SentryReplay implements Integration {
   /**
    * Send replay attachment using either `sendBeacon()` or `fetch()`
    */
-  async sendReplayRequest(endpoint: string, events: RRWebEvent[]) {
-    const stringifiedPayload = JSON.stringify({ events });
+  async sendReplayRequest({
+    endpoint,
+    events,
+    replaySpans,
+    breadcrumbs,
+  }: ReplayRequest) {
+    const stringifiedPayload = JSON.stringify({
+      recording: events,
+      replaySpans: replaySpans,
+      breadcrumbs: breadcrumbs,
+    });
     const formData = new FormData();
     formData.append(
       'rrweb',
@@ -519,6 +513,10 @@ export class SentryReplay implements Integration {
     // events member so that we do not lose new events while uploading
     // attachment.
     const events = this.events;
+    const replaySpans = this.replaySpans;
+    const breadcrumbs = this.breadcrumbs;
+    this.replaySpans = [];
+    this.breadcrumbs = [];
     this.events = [];
 
     const client = Sentry.getCurrentHub().getClient();
@@ -528,7 +526,12 @@ export class SentryReplay implements Integration {
     );
 
     try {
-      await this.sendReplayRequest(endpoint, events);
+      await this.sendReplayRequest({
+        endpoint,
+        events,
+        replaySpans,
+        breadcrumbs,
+      });
       return true;
     } catch (ex) {
       // we have to catch this otherwise it throws an infinite loop in Sentry

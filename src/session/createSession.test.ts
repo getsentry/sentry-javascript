@@ -1,10 +1,18 @@
 import * as Sentry from '@sentry/browser';
-
 import { createSession } from './createSession';
 import { saveSession } from './saveSession';
 
-jest.mock('@sentry/browser');
+type captureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
+
 jest.mock('./saveSession');
+jest.mock('@sentry/browser');
+
+jest.mock('@sentry/utils', () => {
+  return {
+    ...(jest.requireActual('@sentry/utils') as { string: unknown }),
+    uuid4: jest.fn(() => 'test_session_id'),
+  };
+});
 
 beforeAll(() => {
   window.sessionStorage.clear();
@@ -12,40 +20,40 @@ beforeAll(() => {
 
 it('creates a new session with no sticky sessions', function () {
   const newSession = createSession({ stickySession: false });
-
-  expect(Sentry.getCurrentHub().startTransaction).toHaveBeenCalledWith({
-    name: 'sentry-replay',
-    tags: { isReplayRoot: 'yes' },
-  });
+  expect(Sentry.getCurrentHub().captureEvent).toHaveBeenCalledWith(
+    { message: 'sentry-replay' },
+    { event_id: 'test_session_id' }
+  );
 
   expect(saveSession).not.toHaveBeenCalled();
 
-  expect(newSession.id).toBe('transaction_id');
-  expect(newSession.traceId).toBe('trace_id');
-  expect(newSession.spanId).toBe('span_id');
+  expect(newSession.id).toBe('test_session_id');
   expect(newSession.started).toBeGreaterThan(0);
   expect(newSession.lastActivity).toEqual(newSession.started);
+
+  const captureEventMock = Sentry.getCurrentHub()
+    .captureEvent as captureEventMockType;
+  captureEventMock.mockReset();
 });
 
 it('creates a new session with sticky sessions', function () {
   const newSession = createSession({ stickySession: true });
-
-  expect(Sentry.getCurrentHub().startTransaction).toHaveBeenCalledWith({
-    name: 'sentry-replay',
-    tags: { isReplayRoot: 'yes' },
-  });
+  expect(Sentry.getCurrentHub().captureEvent).toHaveBeenCalledWith(
+    { message: 'sentry-replay' },
+    { event_id: 'test_session_id' }
+  );
 
   expect(saveSession).toHaveBeenCalledWith({
-    id: 'transaction_id',
-    traceId: 'trace_id',
-    spanId: 'span_id',
+    id: 'test_session_id',
     started: expect.any(Number),
     lastActivity: expect.any(Number),
   });
 
-  expect(newSession.id).toBe('transaction_id');
-  expect(newSession.traceId).toBe('trace_id');
-  expect(newSession.spanId).toBe('span_id');
+  expect(newSession.id).toBe('test_session_id');
   expect(newSession.started).toBeGreaterThan(0);
   expect(newSession.lastActivity).toEqual(newSession.started);
+  const captureMock = Sentry.getCurrentHub()
+    .captureEvent as captureEventMockType;
+
+  captureMock.mockReset();
 });
