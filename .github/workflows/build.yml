@@ -38,6 +38,28 @@ env:
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
 jobs:
+  job_get_metadata:
+    name: Get Metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+          # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
+          # also its parents, so that we can pull the commit message from the head commit of the PR
+          fetch-depth: 2
+      - name: Get metadata
+        id: get_metadata
+        # We need to try a number of different options for finding the head commit, because each kind of trigger event
+        # stores it in a different location
+        run: |
+          COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || env.HEAD_COMMIT }})
+          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
+          echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
+    outputs:
+      commit_label: "${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}"
+
   job_install_deps:
     name: Install Dependencies
     runs-on: ubuntu-latest
