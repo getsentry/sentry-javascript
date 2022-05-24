@@ -67,7 +67,7 @@ These flags serve two purposes:
 1. They enable us to remove debug code for our production browser bundles.
 2. Enable users to tree-shake Sentry debug code for their production builds.
 
-Flags will be replaced with booleans for our browser bundles, or with statements that do not throw for cjs and esm bundles.
+Flags will be replaced with booleans for our browser bundles. In cjs and esm builds, they will be replaced by statements that do not throw.
 Take care when introducing new flags - they must be disarmed in our build scripts!
 
 ## Linting

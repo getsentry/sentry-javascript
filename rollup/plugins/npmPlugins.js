@@ -128,7 +128,11 @@ export function makeRemoveBlankLinesPlugin() {
 }
 
 /**
- * TODO
+ * Creates a plugin to replace all instances of "__DEBUG_BUILD__" with a safe statement that
+ * a) evaluates to `true`
+ * b) can easily be modified by bundlers to evaluate to false, facilitating the treeshaking of logger code.
+ *
+ * @returns A `@rollup/plugin-replace` instance.
  */
 export function makeDebugBuildStatementReplacePlugin() {
   return replace({
