@@ -136,12 +136,10 @@ function createEventEnvelopeHeaders(
           environment: event.environment,
           release: event.release,
           transaction: event.transaction,
-          user:
-            event.user &&
-            dropUndefinedKeys({
-              id: event.user.id,
-              segment: event.user.segment,
-            }),
+          user: event.user && {
+            id: event.user.id,
+            segment: event.user.segment,
+          },
           public_key: dsn.publicKey,
         }),
       }),
