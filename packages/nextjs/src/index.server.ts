@@ -41,7 +41,7 @@ const isVercel = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
-  if (options.debug) {
+  if (__DEBUG_BUILD__ && options.debug) {
     logger.enable();
   }
 

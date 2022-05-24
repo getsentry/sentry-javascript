@@ -64,9 +64,10 @@ export class Prisma implements Integration {
     if (isValidPrismaClient(options.client)) {
       this._client = options.client;
     } else {
-      logger.warn(
-        `Unsupported Prisma client provided to PrismaIntegration. Provided client: ${JSON.stringify(options.client)}`,
-      );
+      __DEBUG_BUILD__ &&
+        logger.warn(
+          `Unsupported Prisma client provided to PrismaIntegration. Provided client: ${JSON.stringify(options.client)}`,
+        );
     }
   }
 

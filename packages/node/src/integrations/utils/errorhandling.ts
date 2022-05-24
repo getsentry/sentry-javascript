@@ -30,6 +30,8 @@ export function logAndExitProcess(error: Error): void {
       }
       global.process.exit(1);
     },
-    error => logger.error(error),
+    error => {
+      __DEBUG_BUILD__ && logger.error(error);
+    },
   );
 }

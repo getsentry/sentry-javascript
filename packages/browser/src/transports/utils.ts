@@ -99,6 +99,8 @@ export function sendReport(url: string, body: string | Uint8Array): void {
       method: 'POST',
       credentials: 'omit',
       keepalive: true,
-    }).then(null, error => logger.error(error));
+    }).then(null, error => {
+      __DEBUG_BUILD__ && logger.error(error);
+    });
   }
 }
