@@ -208,7 +208,13 @@ function _wrapEventTarget(target: string): void {
     ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
       try {
         if (typeof fn.handleEvent === 'function') {
-          fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
+          // ESlint disable explanation:
+          //  First, it is generally safe to call `wrap` with an unbound function. Furthermore, using `.bind()` would
+          //  introduce a bug here, because bind returns a new function that doesn't have our
+          //  flags(like __sentry_original__) attached. `wrap` checks for those flags to avoid unnecessary wrapping.
+          //  Without those flags, every call to addEventListener wraps the function again, causing a memory leak.
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          fn.handleEvent = wrap(fn.handleEvent, {
             mechanism: {
               data: {
                 function: 'handleEvent',
