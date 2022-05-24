@@ -157,7 +157,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
       },
-      plugins: [makeIsDebugBuildPlugin, terserPlugin],
+      plugins: [includeDebuggingPlugin, terserPlugin],
     },
   };
 
