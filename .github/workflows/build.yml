@@ -62,10 +62,11 @@ jobs:
 
   job_install_deps:
     name: Install Dependencies
+    needs: job_get_metadata
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: "Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})"
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -92,11 +93,11 @@ jobs:
 
   job_build:
     name: Build
-    needs: job_install_deps
+    needs: [ job_get_metadata, job_install_deps ]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -172,13 +173,13 @@ jobs:
 
   job_size_check:
     name: Size Check
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-latest
     # Size Check will error out outside of the context of a PR
     if: ${{ github.event_name == 'pull_request' }}
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -206,11 +207,11 @@ jobs:
 
   job_lint:
     name: Lint
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -233,11 +234,11 @@ jobs:
 
   job_circular_dep_check:
     name: Circular Dependency Check
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -260,12 +261,12 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     # Build artifacts are only needed for releasing workflow.
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -297,7 +298,7 @@ jobs:
 
   job_unit_test:
     name: Test (Node ${{ matrix.node }})
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -305,7 +306,7 @@ jobs:
       matrix:
         node: [8, 10, 12, 14, 16, 18]
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -334,7 +335,7 @@ jobs:
 
   job_nextjs_integration_test:
     name: Test @sentry/nextjs on (Node ${{ matrix.node }})
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -342,7 +343,7 @@ jobs:
       matrix:
         node: [10, 12, 14, 16, 18]
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -371,12 +372,12 @@ jobs:
   # separate job allows them to run in parallel with the other tests.
   job_ember_tests:
     name: Test @sentry/ember
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -410,7 +411,7 @@ jobs:
 
   job_browser_playwright_tests:
     name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -432,7 +433,7 @@ jobs:
           - bundle: cjs
             tracing_only: false
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -461,7 +462,7 @@ jobs:
 
   job_browser_integration_tests:
     name: Old Browser Integration Tests (${{ matrix.browser }})
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
@@ -472,7 +473,7 @@ jobs:
           - FirefoxHeadless
           - WebkitHeadless
     steps:
-      - name: Check out current commit (${{ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -500,12 +501,12 @@ jobs:
 
   job_browser_build_tests:
     name: Browser Build Tests
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: true
     steps:
-      - name: Check out current commit (${ env.HEAD_COMMIT }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -534,7 +535,7 @@ jobs:
 
   job_node_integration_tests:
     name: Node SDK Integration Tests (${{ matrix.node }})
-    needs: job_build
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
@@ -542,7 +543,7 @@ jobs:
       matrix:
         node: [10, 12, 14, 16, 18]
     steps:
-      - name: Check out current commit (${{ github.sha }})
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
