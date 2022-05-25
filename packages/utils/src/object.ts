@@ -208,11 +208,12 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
  * Works recursively on objects and arrays.
  */
 export function dropUndefinedKeys<T>(val: T): T {
+  // This function just proxies `_dropUndefinedKeys` to keep the `memoBuilder` out of this function's API
   return _dropUndefinedKeys(val, memoBuilder());
 }
 
 function _dropUndefinedKeys<T>(val: T, memo: MemoFunc): T {
-  const [memoize] = memo;
+  const [memoize] = memo; // we don't need unmemoize because we don't need to visit nodes twice
 
   if (isPlainObject(val)) {
     if (memoize(val)) {
