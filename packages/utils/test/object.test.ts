@@ -199,6 +199,47 @@ describe('dropUndefinedKeys()', () => {
       },
     });
   });
+
+  test('objects with circular reference', () => {
+    const dog: any = {
+      food: undefined,
+    };
+
+    const human = {
+      brain: undefined,
+      pets: dog,
+    };
+
+    const rat = {
+      scares: human,
+      weight: '4kg',
+    };
+
+    dog.chases = rat;
+
+    expect(dropUndefinedKeys(human)).toStrictEqual({
+      pets: {
+        chases: rat,
+      },
+    });
+  });
+
+  test('arrays with circular reference', () => {
+    const egg: any[] = [];
+
+    const chicken = {
+      food: undefined,
+      weight: '1kg',
+      lays: egg,
+    };
+
+    egg[0] = chicken;
+
+    expect(dropUndefinedKeys(chicken)).toStrictEqual({
+      lays: egg,
+      weight: '1kg',
+    });
+  });
 });
 
 describe('objectify()', () => {
