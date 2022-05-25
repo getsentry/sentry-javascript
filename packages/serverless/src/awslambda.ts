@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { extensionRelayDSN, isString, logger } from '@sentry/utils';
+import { extensionRelayDSN, isString, logger, parseBaggageString } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -288,10 +288,17 @@ export function wrapHandler<TEvent, TResult>(
     if (eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])) {
       traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace']);
     }
+
+    const baggage =
+      eventWithHeaders.headers &&
+      isString(eventWithHeaders.headers.baggage) &&
+      parseBaggageString(eventWithHeaders.headers.baggage);
+
     const transaction = startTransaction({
       name: context.functionName,
       op: 'awslambda.handler',
       ...traceparentData,
+      ...(baggage && { metadata: { baggage: baggage } }),
     });
 
     const hub = getCurrentHub();

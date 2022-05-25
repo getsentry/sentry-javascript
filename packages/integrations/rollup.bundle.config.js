@@ -8,11 +8,11 @@ const file = process.env.INTEGRATION_FILE;
 const jsVersion = process.env.JS_VERSION;
 
 const baseBundleConfig = makeBaseBundleConfig({
-  input: `src/${file}`,
-  isAddOn: true,
+  bundleType: 'addon',
+  entrypoints: [`src/${file}`],
   jsVersion,
   licenseTitle: '@sentry/integrations',
-  outputFileBase: `bundles/${file.replace('.ts', '')}${jsVersion === 'ES5' ? '.es5' : ''}`,
+  outputFileBase: ({ name: entrypoint }) => `bundles/${entrypoint}${jsVersion === 'ES5' ? '.es5' : ''}`,
 });
 
 // TODO We only need `commonjs` for localforage (used in the offline plugin). Once that's fixed, this can come out.

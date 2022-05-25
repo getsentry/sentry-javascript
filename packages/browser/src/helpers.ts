@@ -32,7 +32,8 @@ export function ignoreNextOnError(): void {
  * Instruments the given function and sends an event to Sentry every time the
  * function throws an exception.
  *
- * @param fn A function to wrap.
+ * @param fn A function to wrap. It is generally safe to pass an unbound function, because the returned wrapper always
+ * has a correct `this` context.
  * @returns The wrapped function.
  * @hidden
  */
@@ -75,8 +76,8 @@ export function wrap(
   }
 
   /* eslint-disable prefer-rest-params */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sentryWrapped: WrappedFunction = function (this: any): void {
+  // It is important that `sentryWrapped` is not an arrow function to preserve the context of `this`
+  const sentryWrapped: WrappedFunction = function (this: unknown): void {
     const args = Array.prototype.slice.call(arguments);
 
     try {

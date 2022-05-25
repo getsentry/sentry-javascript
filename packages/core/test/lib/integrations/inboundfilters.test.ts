@@ -180,16 +180,16 @@ describe('InboundFilters', () => {
   describe('_isSentryError', () => {
     it('should work as expected', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(MESSAGE_EVENT);
-      expect(eventProcessor(EXCEPTION_EVENT)).toBe(EXCEPTION_EVENT);
-      expect(eventProcessor(SENTRY_EVENT)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(MESSAGE_EVENT);
+      expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(EXCEPTION_EVENT);
+      expect(eventProcessor(SENTRY_EVENT, {})).toBe(null);
     });
 
     it('should be configurable', () => {
       const eventProcessor = createInboundFiltersEventProcessor({ ignoreInternal: false });
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(MESSAGE_EVENT);
-      expect(eventProcessor(EXCEPTION_EVENT)).toBe(EXCEPTION_EVENT);
-      expect(eventProcessor(SENTRY_EVENT)).toBe(SENTRY_EVENT);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(MESSAGE_EVENT);
+      expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(EXCEPTION_EVENT);
+      expect(eventProcessor(SENTRY_EVENT, {})).toBe(SENTRY_EVENT);
     });
   });
 
@@ -198,29 +198,29 @@ describe('InboundFilters', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         ignoreErrors: ['capture'],
       });
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(null);
     });
 
     it('string filter with exact match', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         ignoreErrors: ['captureMessage'],
       });
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(null);
     });
 
     it('regexp filter with partial match', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         ignoreErrors: [/capture/],
       });
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(null);
     });
 
     it('regexp filter with exact match', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         ignoreErrors: [/^captureMessage$/],
       });
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(null);
-      expect(eventProcessor(MESSAGE_EVENT_2)).toBe(MESSAGE_EVENT_2);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT_2, {})).toBe(MESSAGE_EVENT_2);
     });
 
     it('prefers message when both message and exception are available', () => {
@@ -231,20 +231,20 @@ describe('InboundFilters', () => {
         ...EXCEPTION_EVENT,
         ...MESSAGE_EVENT,
       };
-      expect(eventProcessor(event)).toBe(null);
+      expect(eventProcessor(event, {})).toBe(null);
     });
 
     it('can use multiple filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         ignoreErrors: ['captureMessage', /SyntaxError/],
       });
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(null);
-      expect(eventProcessor(EXCEPTION_EVENT)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(null);
+      expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
     });
 
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
-      expect(eventProcessor(SCRIPT_ERROR_EVENT)).toBe(null);
+      expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
     });
 
     describe('on exception', () => {
@@ -252,21 +252,21 @@ describe('InboundFilters', () => {
         const eventProcessor = createInboundFiltersEventProcessor({
           ignoreErrors: ['SyntaxError: unidentified ? at line 1337'],
         });
-        expect(eventProcessor(EXCEPTION_EVENT)).toBe(null);
+        expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
       });
 
       it('can match on exception value', () => {
         const eventProcessor = createInboundFiltersEventProcessor({
           ignoreErrors: [/unidentified \?/],
         });
-        expect(eventProcessor(EXCEPTION_EVENT)).toBe(null);
+        expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
       });
 
       it('can match on exception type', () => {
         const eventProcessor = createInboundFiltersEventProcessor({
           ignoreErrors: [/^SyntaxError/],
         });
-        expect(eventProcessor(EXCEPTION_EVENT)).toBe(null);
+        expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
       });
     });
   });
@@ -276,7 +276,7 @@ describe('InboundFilters', () => {
       const eventProcessorDeny = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io'],
       });
-      expect(eventProcessorDeny(MESSAGE_EVENT_WITH_STACKTRACE)).toBe(null);
+      expect(eventProcessorDeny(MESSAGE_EVENT_WITH_STACKTRACE, {})).toBe(null);
     });
 
     it('should allow denyUrls to take precedence', () => {
@@ -284,70 +284,70 @@ describe('InboundFilters', () => {
         allowUrls: ['https://awesome-analytics.io'],
         denyUrls: ['https://awesome-analytics.io'],
       });
-      expect(eventProcessorBoth(MESSAGE_EVENT_WITH_STACKTRACE)).toBe(null);
+      expect(eventProcessorBoth(MESSAGE_EVENT_WITH_STACKTRACE, {})).toBe(null);
     });
 
     it('should filter captured message based on its stack trace using regexp filter', () => {
       const eventProcessorDeny = createInboundFiltersEventProcessor({
         denyUrls: [/awesome-analytics\.io/],
       });
-      expect(eventProcessorDeny(MESSAGE_EVENT_WITH_STACKTRACE)).toBe(null);
+      expect(eventProcessorDeny(MESSAGE_EVENT_WITH_STACKTRACE, {})).toBe(null);
     });
 
     it('should not filter captured messages with no stacktraces', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io'],
       });
-      expect(eventProcessor(MESSAGE_EVENT)).toBe(MESSAGE_EVENT);
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(MESSAGE_EVENT);
     });
 
     it('should filter captured exception based on its stack trace using string filter', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io'],
       });
-      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES)).toBe(null);
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES, {})).toBe(null);
     });
 
     it('should filter captured exception based on its stack trace using regexp filter', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: [/awesome-analytics\.io/],
       });
-      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES)).toBe(null);
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES, {})).toBe(null);
     });
 
     it("should not filter events that don't match the filtered values", () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['some-other-domain.com'],
       });
-      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES)).toBe(EXCEPTION_EVENT_WITH_FRAMES);
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES, {})).toBe(EXCEPTION_EVENT_WITH_FRAMES);
     });
 
     it('should be able to use multiple filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['some-other-domain.com', /awesome-analytics\.io/],
       });
-      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES)).toBe(null);
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_FRAMES, {})).toBe(null);
     });
 
     it('should not fail with malformed event event', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io'],
       });
-      expect(eventProcessor(MALFORMED_EVENT)).toBe(MALFORMED_EVENT);
+      expect(eventProcessor(MALFORMED_EVENT, {})).toBe(MALFORMED_EVENT);
     });
 
     it('should search for script names when there is an anonymous callback at the last frame', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io/some/file.js'],
       });
-      expect(eventProcessor(MESSAGE_EVENT_WITH_ANON_LAST_FRAME)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT_WITH_ANON_LAST_FRAME, {})).toBe(null);
     });
 
     it('should search for script names when the last frame is from native code', () => {
       const eventProcessor = createInboundFiltersEventProcessor({
         denyUrls: ['https://awesome-analytics.io/some/file.js'],
       });
-      expect(eventProcessor(MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME)).toBe(null);
+      expect(eventProcessor(MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME, {})).toBe(null);
     });
   });
 });

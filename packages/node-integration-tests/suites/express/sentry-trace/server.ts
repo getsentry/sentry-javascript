@@ -6,7 +6,7 @@ import http from 'http';
 
 const app = express();
 
-export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string } };
+export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string; baggage: string } };
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

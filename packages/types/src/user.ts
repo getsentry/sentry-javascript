@@ -5,6 +5,7 @@ export interface User {
   ip_address?: string;
   email?: string;
   username?: string;
+  segment?: string;
 }
 
 export interface UserFeedback {

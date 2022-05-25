@@ -1,13 +1,13 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, logger, parseBaggageString } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { MetricsInstrumentation } from './metrics';
+import { addPerformanceEntries, startTrackingWebVitals } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -126,8 +126,6 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
-  private readonly _metrics: MetricsInstrumentation;
-
   private readonly _emitOptionsWarning?: boolean;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
@@ -148,7 +146,7 @@ export class BrowserTracing implements Integration {
     };
 
     const { _metricOptions } = this.options;
-    this._metrics = new MetricsInstrumentation(_metricOptions && _metricOptions._reportAllChanges);
+    startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
   }
 
   /**
@@ -204,7 +202,7 @@ export class BrowserTracing implements Integration {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, finalTimeout } = this.options;
 
-    const parentContextFromHeader = context.op === 'pageload' ? getHeaderContext() : undefined;
+    const parentContextFromHeader = context.op === 'pageload' ? extractTraceDataFromMetaTags() : undefined;
 
     const expandedContext = {
       ...context,
@@ -235,7 +233,11 @@ export class BrowserTracing implements Integration {
       { location }, // for use in the tracesSampler
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
-      this._metrics.addPerformanceEntries(transaction);
+      addPerformanceEntries(transaction);
+      transaction.setTag(
+        'sentry_reportAllChanges',
+        Boolean(this.options._metricOptions && this.options._metricOptions._reportAllChanges),
+      );
     });
 
     return idleTransaction as Transaction;
@@ -243,14 +245,22 @@ export class BrowserTracing implements Integration {
 }
 
 /**
- * Gets transaction context from a sentry-trace meta.
- *
- * @returns Transaction context data from the header or undefined if there's no header or the header is malformed
+ * Gets transaction context data from `sentry-trace` and `baggage` <meta> tags.
+ * @returns Transaction context data or undefined neither tag exists or has valid data
  */
-export function getHeaderContext(): Partial<TransactionContext> | undefined {
-  const header = getMetaContent('sentry-trace');
-  if (header) {
-    return extractTraceparentData(header);
+export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | undefined {
+  const sentrytraceValue = getMetaContent('sentry-trace');
+  const baggageValue = getMetaContent('baggage');
+
+  const sentrytraceData = sentrytraceValue ? extractTraceparentData(sentrytraceValue) : undefined;
+  const baggage = baggageValue ? parseBaggageString(baggageValue) : undefined;
+
+  // TODO more extensive checks for baggage validity/emptyness?
+  if (sentrytraceData || baggage) {
+    return {
+      ...(sentrytraceData && sentrytraceData),
+      ...(baggage && { metadata: { baggage } }),
+    };
   }
 
   return undefined;
@@ -258,6 +268,13 @@ export function getHeaderContext(): Partial<TransactionContext> | undefined {
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | null {
-  const el = getGlobalObject<Window>().document.querySelector(`meta[name=${metaName}]`);
-  return el ? el.getAttribute('content') : null;
+  const globalObject = getGlobalObject<Window>();
+
+  // DOM/querySelector is not available in all environments
+  if (globalObject.document && globalObject.document.querySelector) {
+    const el = globalObject.document.querySelector(`meta[name=${metaName}]`);
+    return el ? el.getAttribute('content') : null;
+  } else {
+    return null;
+  }
 }

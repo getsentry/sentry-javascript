@@ -1,15 +1,15 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
+import { BaggageObj } from '@sentry/types';
 import { getGlobalObject, InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import {
   BrowserTracing,
   BrowserTracingOptions,
-  getHeaderContext,
+  extractTraceDataFromMetaTags,
   getMetaContent,
 } from '../../src/browser/browsertracing';
-import { MetricsInstrumentation } from '../../src/browser/metrics';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
@@ -215,7 +215,8 @@ describe('BrowserTracing', () => {
     it('sets transaction context from sentry-trace header', () => {
       const name = 'sentry-trace';
       const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
-      document.head.innerHTML = `<meta name="${name}" content="${content}">`;
+      document.head.innerHTML =
+        `<meta name="${name}" content="${content}">` + '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
       const startIdleTransaction = jest.spyOn(hubExtensions, 'startIdleTransaction');
 
       createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
@@ -226,6 +227,9 @@ describe('BrowserTracing', () => {
           traceId: '126de09502ae4e0fb26c6967190756a4',
           parentSpanId: 'b6e54397b12a2a0f',
           parentSampled: true,
+          metadata: {
+            baggage: [{ release: '2.1.14' }, 'foo=bar'],
+          },
         }),
         expect.any(Number),
         expect.any(Number),
@@ -322,7 +326,7 @@ describe('BrowserTracing', () => {
     });
   });
 
-  describe('sentry-trace <meta> element', () => {
+  describe('sentry-trace and baggage <meta> elements', () => {
     describe('getMetaContent', () => {
       it('finds the specified tag and extracts the value', () => {
         const name = 'sentry-trace';
@@ -352,12 +356,12 @@ describe('BrowserTracing', () => {
       });
     });
 
-    describe('getHeaderContext', () => {
+    describe('extractTraceDataFromMetaTags()', () => {
       it('correctly parses a valid sentry-trace meta header', () => {
         document.head.innerHTML =
           '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">';
 
-        const headerContext = getHeaderContext();
+        const headerContext = extractTraceDataFromMetaTags();
 
         expect(headerContext).toBeDefined();
         expect(headerContext!.traceId).toEqual('12312012123120121231201212312012');
@@ -365,54 +369,93 @@ describe('BrowserTracing', () => {
         expect(headerContext!.parentSampled).toEqual(false);
       });
 
-      it('returns undefined if the header is malformed', () => {
+      it('correctly parses a valid baggage meta header', () => {
+        document.head.innerHTML = '<meta name="baggage" content="sentry-release=2.1.12,foo=bar">';
+
+        const headerContext = extractTraceDataFromMetaTags();
+
+        expect(headerContext).toBeDefined();
+        expect(headerContext?.metadata?.baggage).toBeDefined();
+        const baggage = headerContext?.metadata?.baggage;
+        expect(baggage && baggage[0]).toBeDefined();
+        expect(baggage && baggage[0]).toEqual({
+          release: '2.1.12',
+        } as BaggageObj);
+        expect(baggage && baggage[1]).toBeDefined();
+        expect(baggage && baggage[1]).toEqual('foo=bar');
+      });
+
+      it('returns undefined if the sentry-trace header is malformed', () => {
         document.head.innerHTML = '<meta name="sentry-trace" content="12312012-112120121-0">';
 
-        const headerContext = getHeaderContext();
+        const headerContext = extractTraceDataFromMetaTags();
 
         expect(headerContext).toBeUndefined();
+      });
+
+      it('does not crash if the baggage header is malformed', () => {
+        document.head.innerHTML = '<meta name="baggage" content="sentry-relase:2.1.13;foo-bar">';
+
+        const headerContext = extractTraceDataFromMetaTags();
+
+        // TODO currently this creates invalid baggage. This must be adressed in a follow-up PR
+        expect(headerContext).toBeDefined();
+        expect(headerContext?.metadata?.baggage).toBeDefined();
+        const baggage = headerContext?.metadata?.baggage;
+        expect(baggage && baggage[0]).toBeDefined();
+        expect(baggage && baggage[1]).toBeDefined();
       });
 
       it("returns undefined if the header isn't there", () => {
         document.head.innerHTML = '<meta name="dogs" content="12312012123120121231201212312012-1121201211212012-0">';
 
-        const headerContext = getHeaderContext();
+        const headerContext = extractTraceDataFromMetaTags();
 
         expect(headerContext).toBeUndefined();
       });
     });
 
     describe('using the data', () => {
-      it('uses the data for pageload transactions', () => {
+      it('uses the tracing data for pageload transactions', () => {
         // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
         document.head.innerHTML =
-          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">';
+          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
+          '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
 
         // pageload transactions are created as part of the BrowserTracing integration's initialization
         createBrowserTracing(true);
         const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const baggage = transaction.getBaggage()!;
 
         expect(transaction).toBeDefined();
         expect(transaction.op).toBe('pageload');
         expect(transaction.traceId).toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toEqual('1121201211212012');
         expect(transaction.sampled).toBe(false);
+        expect(baggage).toBeDefined();
+        expect(baggage[0]).toBeDefined();
+        expect(baggage[0]).toEqual({ release: '2.1.14' });
+        expect(baggage[1]).toBeDefined();
+        expect(baggage[1]).toEqual('foo=bar');
       });
 
       it('ignores the data for navigation transactions', () => {
         mockChangeHistory = () => undefined;
         document.head.innerHTML =
-          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">';
+          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
+          '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
 
         createBrowserTracing(true);
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const baggage = transaction.getBaggage()!;
 
         expect(transaction).toBeDefined();
         expect(transaction.op).toBe('navigation');
         expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toBeUndefined();
+        expect(baggage).toBeUndefined();
       });
     });
   });
@@ -464,31 +507,6 @@ describe('BrowserTracing', () => {
           transactionContext: expect.objectContaining({ op: 'navigation' }),
         }),
       );
-    });
-  });
-
-  describe('metrics', () => {
-    beforeEach(() => {
-      // @ts-ignore mock clear
-      MetricsInstrumentation.mockClear();
-    });
-
-    it('creates metrics instrumentation', () => {
-      createBrowserTracing(true, {});
-
-      expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(undefined);
-    });
-
-    it('creates metrics instrumentation with custom options', () => {
-      createBrowserTracing(true, {
-        _metricOptions: {
-          _reportAllChanges: true,
-        },
-      });
-
-      expect(MetricsInstrumentation).toHaveBeenCalledTimes(1);
-      expect(MetricsInstrumentation).toHaveBeenLastCalledWith(true);
     });
   });
 });

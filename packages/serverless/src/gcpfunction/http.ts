@@ -1,6 +1,6 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
-import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { isString, logger, parseBaggageString, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../flags';
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
@@ -56,10 +56,17 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     if (reqWithHeaders.headers && isString(reqWithHeaders.headers['sentry-trace'])) {
       traceparentData = extractTraceparentData(reqWithHeaders.headers['sentry-trace']);
     }
+
+    const baggage =
+      reqWithHeaders.headers &&
+      isString(reqWithHeaders.headers.baggage) &&
+      parseBaggageString(reqWithHeaders.headers.baggage);
+
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,
       op: 'gcp.function.http',
       ...traceparentData,
+      ...(baggage && { metadata: { baggage: baggage } }),
     });
 
     // getCurrentHub() is expected to use current active domain as a carrier

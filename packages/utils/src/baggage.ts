@@ -1,23 +1,7 @@
+import { Baggage, BaggageObj } from '@sentry/types';
+
 import { IS_DEBUG_BUILD } from './flags';
 import { logger } from './logger';
-
-export type AllowedBaggageKeys = 'environment' | 'release' | 'userid' | 'transaction' | 'usersegment';
-export type BaggageObj = Partial<Record<AllowedBaggageKeys, string> & Record<string, string>>;
-
-/**
- * The baggage data structure represents key,value pairs based on the baggage
- * spec: https://www.w3.org/TR/baggage
- *
- * It is expected that users interact with baggage using the helpers methods:
- * `createBaggage`, `getBaggageValue`, and `setBaggageValue`.
- *
- * Internally, the baggage data structure is a tuple of length 2, separating baggage values
- * based on if they are related to Sentry or not. If the baggage values are
- * set/used by sentry, they will be stored in an object to be easily accessed.
- * If they are not, they are kept as a string to be only accessed when serialized
- * at baggage propagation time.
- */
-export type Baggage = [BaggageObj, string];
 
 export const BAGGAGE_HEADER_NAME = 'baggage';
 
@@ -50,6 +34,19 @@ export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: 
 /** Check if the baggage object (i.e. the first element in the tuple) is empty */
 export function isBaggageEmpty(baggage: Baggage): boolean {
   return Object.keys(baggage[0]).length === 0;
+}
+
+/** Returns Sentry specific baggage values */
+export function getSentryBaggageItems(baggage: Baggage): BaggageObj {
+  return baggage[0];
+}
+
+/**
+ * Returns 3rd party baggage string of @param baggage
+ * @param baggage
+ */
+export function getThirdPartyBaggage(baggage: Baggage): string {
+  return baggage[1];
 }
 
 /** Serialize a baggage object */
@@ -88,4 +85,33 @@ export function parseBaggageString(inputBaggageString: string): Baggage {
     },
     [{}, ''],
   );
+}
+
+/**
+ * Merges the baggage header we saved from the incoming request (or meta tag) with
+ * a possibly created or modified baggage header by a third party that's been added
+ * to the outgoing request header.
+ *
+ * In case @param headerBaggageString exists, we can safely add the the 3rd party part of @param headerBaggage
+ * with our @param incomingBaggage. This is possible because if we modified anything beforehand,
+ * it would only affect parts of the sentry baggage (@see Baggage interface).
+ *
+ * @param incomingBaggage the baggage header of the incoming request that might contain sentry entries
+ * @param headerBaggageString possibly existing baggage header string added from a third party to request headers
+ *
+ * @return a merged and serialized baggage string to be propagated with the outgoing request
+ */
+export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggageString?: string): string {
+  if (!incomingBaggage && !headerBaggageString) {
+    return '';
+  }
+
+  const headerBaggage = (headerBaggageString && parseBaggageString(headerBaggageString)) || undefined;
+  const thirdPartyHeaderBaggage = headerBaggage && getThirdPartyBaggage(headerBaggage);
+
+  const finalBaggage = createBaggage(
+    (incomingBaggage && incomingBaggage[0]) || {},
+    thirdPartyHeaderBaggage || (incomingBaggage && incomingBaggage[1]) || '',
+  );
+  return serializeBaggage(finalBaggage);
 }

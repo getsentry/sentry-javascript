@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test';
-import { Event } from '@sentry/types';
+import { Event, EventEnvelopeHeaders } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'should create a pageload transaction based on `sentry-trace` <meta>',
@@ -18,6 +18,20 @@ sentryTest(
     });
 
     expect(eventData.spans?.length).toBeGreaterThan(0);
+  },
+);
+
+// TODO this we can't really test until we actually propagate sentry- entries in baggage
+// skipping for now but this must be adjusted later on
+sentryTest.skip(
+  'should pick up `baggage` <meta> tag and propagate the content in transaction',
+  async ({ getLocalTestPath, page }) => {
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
+
+    expect(envHeader.trace).toBeDefined();
+    expect(envHeader.trace).toEqual('{version:2.1.12}');
   },
 );
 

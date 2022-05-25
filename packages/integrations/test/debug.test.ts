@@ -27,7 +27,7 @@ describe('Debug integration setup should register an event processor that', () =
 
     const captureEventProcessor = (eventProcessor: EventProcessor) => {
       const testEvent = { event_id: 'some event' };
-      void eventProcessor(testEvent);
+      void eventProcessor(testEvent, {});
       expect(mockConsoleLog).toHaveBeenCalledTimes(1);
       expect(mockConsoleLog).toBeCalledWith(testEvent);
     };
@@ -55,7 +55,7 @@ describe('Debug integration setup should register an event processor that', () =
 
     const captureEventProcessor = (eventProcessor: EventProcessor) => {
       const testEvent = { event_id: 'some event' };
-      void eventProcessor(testEvent);
+      void eventProcessor(testEvent, {});
       expect(mockConsoleLog).toHaveBeenCalledTimes(1);
       expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEvent, null, 2));
     };

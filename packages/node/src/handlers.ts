@@ -8,6 +8,7 @@ import {
   isString,
   logger,
   normalize,
+  parseBaggageString,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -61,16 +62,16 @@ export function tracingHandler(): (
     next: (error?: any) => void,
   ): void {
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
-    let traceparentData;
-    if (req.headers && isString(req.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(req.headers['sentry-trace']);
-    }
+    const traceparentData =
+      req.headers && isString(req.headers['sentry-trace']) && extractTraceparentData(req.headers['sentry-trace']);
+    const baggage = req.headers && isString(req.headers.baggage) && parseBaggageString(req.headers.baggage);
 
     const transaction = startTransaction(
       {
         name: extractExpressTransactionName(req, { path: true, method: true }),
         op: 'http.server',
         ...traceparentData,
+        ...(baggage && { metadata: { baggage: baggage } }),
       },
       // extra context passed to the tracesSampler
       { request: extractRequestData(req) },

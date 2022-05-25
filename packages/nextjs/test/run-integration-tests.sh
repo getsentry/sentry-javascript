@@ -78,6 +78,19 @@ for NEXTJS_VERSION in 10 11 12; do
       WEBPACK_VERSION=5 ||
       WEBPACK_VERSION=4
 
+    # Node v18 only with Webpack 5 and above
+    # https://github.com/webpack/webpack/issues/14532#issuecomment-947513562
+    # Context: https://github.com/vercel/next.js/issues/30078#issuecomment-947338268
+    if [ "$NODE_MAJOR" -gt "17" ] && [ "$WEBPACK_VERSION" -eq "4" ]; then
+      echo "[nextjs$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
+      exit 0
+    fi
+    if [ "$NODE_MAJOR" -gt "17" ] && [ "$NEXTJS_VERSION" -eq "10" ]; then
+      echo "[nextjs$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
+      exit 0
+    fi
+
+
     # next 10 defaults to webpack 4 and next 11 defaults to webpack 5, but each can use either based on settings
     if [ "$NEXTJS_VERSION" -eq "10" ]; then
       sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next10.config.template >next.config.js

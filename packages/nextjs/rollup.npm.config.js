@@ -7,6 +7,6 @@ export default makeNPMConfigVariants(
     entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/utils/instrumentServer.ts'],
     // prevent this nextjs code from ending up in our built package (this doesn't happen automatially because the name
     // doesn't match an SDK dependency)
-    externals: ['next/router'],
+    packageSpecificConfig: { external: ['next/router'] },
   }),
 );
