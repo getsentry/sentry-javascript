@@ -12,6 +12,7 @@
 - ref(build): Use rollup to build AWS lambda layer (#5146)
 - ref(core): Actually ensure attachments are added to the envelope (#5159)
 - ref(core): Make hint callback argument non-optional (#5141)
+- feat(nextjs): Make tracing package treeshakable (#5166)
 
 ## 7.0.0-beta.2
 
