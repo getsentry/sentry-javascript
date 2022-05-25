@@ -380,7 +380,22 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     }),
   ];
 
-  if (isTesting() && Sentry.getCurrentHub()?.getIntegration(tracing.Integrations.BrowserTracing)) {
+  class FakeBrowserTracingClass {
+    static id = tracing.BROWSER_TRACING_INTEGRATION_ID;
+    public name = FakeBrowserTracingClass.id;
+    setupOnce() {
+      // noop - We're just faking  this class for a lookup
+    }
+  }
+
+  if (
+    isTesting() &&
+    Sentry.getCurrentHub()?.getIntegration(
+      // This is a temporary hack because the BrowserTracing integration cannot have a static `id` field for tree
+      // shaking reasons. However, `getIntegration` needs that field.
+      FakeBrowserTracingClass,
+    )
+  ) {
     // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
     return;
   }
