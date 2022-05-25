@@ -19,7 +19,7 @@ describe('LinkedErrors', () => {
       const event = {
         message: 'foo',
       };
-      return linkedErrors._handler(stackParser, event).then((result: any) => {
+      return linkedErrors._handler(stackParser, event, {}).then((result: any) => {
         expect(spy.mock.calls.length).toEqual(0);
         expect(result).toEqual(event);
       });
@@ -36,7 +36,7 @@ describe('LinkedErrors', () => {
         .eventFromException(one)
         .then(eventFromException => {
           event = eventFromException;
-          return linkedErrors._handler(stackParser, eventFromException);
+          return linkedErrors._handler(stackParser, eventFromException, {});
         })
         .then(result => {
           expect(spy.mock.calls.length).toEqual(0);

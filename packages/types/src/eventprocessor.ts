@@ -8,5 +8,5 @@ import { Event, EventHint } from './event';
  */
 export interface EventProcessor {
   id?: string; // This field can't be named "name" because functions already have this field natively
-  (event: Event, hint?: EventHint): PromiseLike<Event | null> | Event | null;
+  (event: Event, hint: EventHint): PromiseLike<Event | null> | Event | null;
 }
