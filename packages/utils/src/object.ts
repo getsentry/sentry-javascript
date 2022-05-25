@@ -206,6 +206,8 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
 /**
  * Given any object, return the new object with removed keys that value was `undefined`.
  * Works recursively on objects and arrays.
+ *
+ * Attention: This function keeps circular references in the returned object.
  */
 export function dropUndefinedKeys<T>(val: T): T {
   // This function just proxies `_dropUndefinedKeys` to keep the `memoBuilder` out of this function's API
