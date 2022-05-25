@@ -202,7 +202,7 @@ function processEventListeners(): void {
 function processEvents(): void {
   eventProcessors.forEach(processor => {
     events.forEach(event => {
-      processor(event) as Event | null;
+      processor(event, {}) as Event | null;
     });
   });
 }

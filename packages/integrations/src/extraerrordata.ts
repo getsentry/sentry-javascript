@@ -37,7 +37,7 @@ export class ExtraErrorData implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor((event: Event, hint?: EventHint) => {
+    addGlobalEventProcessor((event: Event, hint: EventHint) => {
       const self = getCurrentHub().getIntegration(ExtraErrorData);
       if (!self) {
         return event;
@@ -49,8 +49,8 @@ export class ExtraErrorData implements Integration {
   /**
    * Attaches extracted information from the Error object to extra field in the Event
    */
-  public enhanceEventWithErrorData(event: Event, hint?: EventHint): Event {
-    if (!hint || !hint.originalException || !isError(hint.originalException)) {
+  public enhanceEventWithErrorData(event: Event, hint: EventHint = {}): Event {
+    if (!hint.originalException || !isError(hint.originalException)) {
       return event;
     }
     const exceptionName = (hint.originalException as ExtendedError).name || hint.originalException.constructor.name;

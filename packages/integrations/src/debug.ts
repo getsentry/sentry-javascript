@@ -37,7 +37,7 @@ export class Debug implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor((event: Event, hint?: EventHint) => {
+    addGlobalEventProcessor((event: Event, hint: EventHint) => {
       const self = getCurrentHub().getIntegration(Debug);
       if (self) {
         if (self._options.debugger) {
@@ -49,12 +49,12 @@ export class Debug implements Integration {
         consoleSandbox(() => {
           if (self._options.stringify) {
             console.log(JSON.stringify(event, null, 2));
-            if (hint) {
+            if (Object.keys(hint).length) {
               console.log(JSON.stringify(hint, null, 2));
             }
           } else {
             console.log(event);
-            if (hint) {
+            if (Object.keys(hint).length) {
               console.log(hint);
             }
           }

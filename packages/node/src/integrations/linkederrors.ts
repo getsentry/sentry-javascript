@@ -43,7 +43,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: Event, hint?: EventHint) => {
+    addGlobalEventProcessor(async (event: Event, hint: EventHint) => {
       const hub = getCurrentHub();
       const self = hub.getIntegration(LinkedErrors);
       const client = hub.getClient<NodeClient>();
@@ -57,8 +57,8 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  private _handler(stackParser: StackParser, event: Event, hint?: EventHint): PromiseLike<Event> {
-    if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
+  private _handler(stackParser: StackParser, event: Event, hint: EventHint): PromiseLike<Event> {
+    if (!event.exception || !event.exception.values || !isInstanceOf(hint.originalException, Error)) {
       return resolvedSyncPromise(event);
     }
 
