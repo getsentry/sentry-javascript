@@ -22,3 +22,16 @@ export class TestIntegration implements Integration {
     });
   }
 }
+
+export class AddAttachmentTestIntegration implements Integration {
+  public static id: string = 'AddAttachmentTestIntegration';
+
+  public name: string = 'AddAttachmentTestIntegration';
+
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    addGlobalEventProcessor((event, hint) => {
+      hint.attachments = [...(hint.attachments || []), { filename: 'integration.file', data: 'great content!' }];
+      return event;
+    });
+  }
+}
