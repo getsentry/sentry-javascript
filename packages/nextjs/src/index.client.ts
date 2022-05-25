@@ -1,4 +1,4 @@
-import { configureScope, init as reactInit, Integrations as BrowserIntegrations } from '@sentry/react';
+import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
 
@@ -10,12 +10,8 @@ import { addIntegration, UserIntegrations } from './utils/userIntegrations';
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
 
-export const Integrations = { ...BrowserIntegrations, BrowserTracing };
+export { Integrations };
 
-// This is already exported as part of `Integrations` above (and for the moment will remain so for
-// backwards compatibility), but that interferes with treeshaking, so we also export it separately
-// here.
-//
 // Previously we expected users to import `BrowserTracing` like this:
 //
 // import { Integrations } from '@sentry/nextjs';
@@ -28,16 +24,23 @@ export const Integrations = { ...BrowserIntegrations, BrowserTracing };
 // const instance = new BrowserTracing();
 export { BrowserTracing };
 
+// Treeshakable guard to remove all code related to tracing
+declare const __SENTRY_TRACING__: boolean;
+
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
   buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
 
-  // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set
-  const integrations =
-    options.tracesSampleRate === undefined && options.tracesSampler === undefined
-      ? options.integrations
-      : createClientIntegrations(options.integrations);
+  let integrations = options.integrations;
+
+  // Guard below evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false"
+  if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
+    // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set
+    if (options.tracesSampleRate !== undefined || options.tracesSampler !== undefined) {
+      integrations = createClientIntegrations(options.integrations);
+    }
+  }
 
   reactInit({
     ...options,
@@ -53,12 +56,12 @@ export function init(options: NextjsOptions): void {
   });
 }
 
-const defaultBrowserTracingIntegration = new BrowserTracing({
-  tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
-  routingInstrumentation: nextRouterInstrumentation,
-});
-
 function createClientIntegrations(integrations?: UserIntegrations): UserIntegrations {
+  const defaultBrowserTracingIntegration = new BrowserTracing({
+    tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+    routingInstrumentation: nextRouterInstrumentation,
+  });
+
   if (integrations) {
     return addIntegration(defaultBrowserTracingIntegration, integrations, {
       BrowserTracing: { keyPath: 'options.routingInstrumentation', value: nextRouterInstrumentation },

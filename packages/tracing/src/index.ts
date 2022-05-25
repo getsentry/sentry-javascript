@@ -22,7 +22,7 @@ export { Integrations };
 // const instance = new BrowserTracing();
 //
 // For an example of of the new usage of BrowserTracing, see @sentry/nextjs index.client.ts
-export { BrowserTracing } from './browser';
+export { BrowserTracing, BROWSER_TRACING_INTEGRATION_ID } from './browser';
 
 export { Span, spanStatusfromHttpCode } from './span';
 // eslint-disable-next-line deprecation/deprecation
@@ -32,8 +32,14 @@ export { instrumentOutgoingRequests, defaultRequestInstrumentationOptions } from
 export { IdleTransaction } from './idletransaction';
 export { startIdleTransaction } from './hubextensions';
 
-// We are patching the global object with our hub extension methods
-addExtensionMethods();
+// Treeshakable guard to remove all code related to tracing
+declare const __SENTRY_TRACING__: boolean;
+
+// Guard for tree
+if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
+  // We are patching the global object with our hub extension methods
+  addExtensionMethods();
+}
 
 export { addExtensionMethods };
 

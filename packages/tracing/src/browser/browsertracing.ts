@@ -15,6 +15,8 @@ import {
 } from './request';
 import { instrumentRoutingWithDefaults } from './router';
 
+export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
+
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   /**
@@ -111,10 +113,10 @@ const DEFAULT_BROWSER_TRACING_OPTIONS = {
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
  */
 export class BrowserTracing implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'BrowserTracing';
+  // This class currently doesn't have a static id field like the other classes, because it prevented @sentry/tracing
+  // from being treeshaken. Tree shaking does not like static fields because they behave like side effects.
+  // TODO: Come up with a better plan, than using static fields on integration classes, and use that plan on all
+  // integrations.
 
   /** Browser Tracing integration options */
   public options: BrowserTracingOptions;
@@ -122,7 +124,7 @@ export class BrowserTracing implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = BrowserTracing.id;
+  public name: string = BROWSER_TRACING_INTEGRATION_ID;
 
   private _getCurrentHub?: () => Hub;
 
