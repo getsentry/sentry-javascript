@@ -17,7 +17,9 @@ describe('index', () => {
           return;
         }
 
-        expect(Integrations[key as keyof typeof Integrations].id).toStrictEqual(expect.any(String));
+        expect(Integrations[key as keyof Omit<typeof Integrations, 'BrowserTracing'>].id).toStrictEqual(
+          expect.any(String),
+        );
       });
     });
 
