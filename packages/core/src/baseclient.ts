@@ -287,10 +287,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public sendEvent(event: Event, hint: EventHint = {}): void {
     if (this._dsn) {
-      const env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+      let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
       for (const attachment of hint.attachments || []) {
-        addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment, this._options.transportOptions?.textEncoder));
+        env = addItemToEnvelope(
+          env,
+          createAttachmentEnvelopeItem(attachment, this._options.transportOptions?.textEncoder),
+        );
       }
 
       this._sendEnvelope(env);
