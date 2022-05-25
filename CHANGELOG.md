@@ -6,13 +6,13 @@
 
 ## 7.0.0-rc.0
 
+- **(breaking)** feat(nextjs): Make tracing package treeshakable (#5166)
 - fix(browser): Fix memory leak in `addEventListener` instrumentation (#5147)
 - fix(tracing): Don't use `querySelector` when not available (#5160)
 - fix(utils): Fix infinite recursion in `dropUndefinedKeys` (#5163)
 - ref(build): Use rollup to build AWS lambda layer (#5146)
 - ref(core): Actually ensure attachments are added to the envelope (#5159)
 - ref(core): Make hint callback argument non-optional (#5141)
-- feat(nextjs): Make tracing package treeshakable (#5166)
 
 ## 7.0.0-beta.2
 
