@@ -30,10 +30,7 @@ export class AddAttachmentTestIntegration implements Integration {
 
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     addGlobalEventProcessor((event, hint) => {
-      if (hint) {
-        hint.attachments = [...(hint?.attachments || []), { filename: 'integration.file', data: 'great content!' }];
-      }
-
+      hint.attachments = [...(hint.attachments || []), { filename: 'integration.file', data: 'great content!' }];
       return event;
     });
   }

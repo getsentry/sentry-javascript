@@ -26,10 +26,7 @@ describe('Hint', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
         beforeSend: (event, hint) => {
-          if (hint) {
-            hint.attachments = [...(hint?.attachments || []), { filename: 'another.file', data: 'more text' }];
-          }
-
+          hint.attachments = [...(hint.attachments || []), { filename: 'another.file', data: 'more text' }];
           return event;
         },
       });
@@ -47,10 +44,7 @@ describe('Hint', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
         beforeSend: (event, hint) => {
-          if (hint) {
-            hint.attachments = [...(hint?.attachments || []), { filename: 'another.file', data: 'more text' }];
-          }
-
+          hint.attachments = [...(hint.attachments || []), { filename: 'another.file', data: 'more text' }];
           return event;
         },
       });
