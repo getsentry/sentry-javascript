@@ -12,7 +12,7 @@ expect.extend({
     received: jest.Mocked<SentryReplay>,
     expected: ReplaySession
   ) {
-    const pass = this.equals(received.session, expected);
+    const pass = this.equals(received.session.id, expected.id);
 
     const options = {
       isNot: this.isNot,

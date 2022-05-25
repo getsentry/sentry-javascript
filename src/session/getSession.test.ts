@@ -13,6 +13,7 @@ jest.mock('@sentry/utils', () => {
 function createMockSession(when: number = new Date().getTime()) {
   return {
     id: 'test_session_id',
+    sequenceId: 0,
     lastActivity: when,
     started: when,
   };
@@ -38,6 +39,7 @@ it('creates a non-sticky session when one does not exist', function () {
 
   expect(session).toEqual({
     id: 'test_session_id',
+    sequenceId: 0,
     lastActivity: expect.any(Number),
     started: expect.any(Number),
   });
@@ -67,6 +69,7 @@ it('creates a sticky session when one does not exist', function () {
 
   expect(session).toEqual({
     id: 'test_session_id',
+    sequenceId: 0,
     lastActivity: expect.any(Number),
     started: expect.any(Number),
   });
@@ -74,28 +77,7 @@ it('creates a sticky session when one does not exist', function () {
   // Should not have anything in storage
   expect(FetchSession.fetchSession()).toEqual({
     id: 'test_session_id',
-    lastActivity: expect.any(Number),
-    started: expect.any(Number),
-  });
-});
-
-it('creates a sticky session when one does not exist', function () {
-  expect(FetchSession.fetchSession()).toBe(null);
-
-  const session = getSession({ expiry: 900000, stickySession: true });
-
-  expect(FetchSession.fetchSession).toHaveBeenCalled();
-  expect(CreateSession.createSession).toHaveBeenCalled();
-
-  expect(session).toEqual({
-    id: 'test_session_id',
-    lastActivity: expect.any(Number),
-    started: expect.any(Number),
-  });
-
-  // Should not have anything in storage
-  expect(FetchSession.fetchSession()).toEqual({
-    id: 'test_session_id',
+    sequenceId: 0,
     lastActivity: expect.any(Number),
     started: expect.any(Number),
   });
@@ -112,6 +94,7 @@ it('fetches an existing sticky session', function () {
 
   expect(session).toEqual({
     id: 'test_session_id',
+    sequenceId: 0,
     lastActivity: now,
     started: now,
   });
@@ -129,4 +112,5 @@ it('fetches an expired sticky session', function () {
   expect(session.id).toBe('test_session_id');
   expect(session.lastActivity).toBeGreaterThanOrEqual(now);
   expect(session.started).toBeGreaterThanOrEqual(now);
+  expect(session.sequenceId).toBe(0);
 });

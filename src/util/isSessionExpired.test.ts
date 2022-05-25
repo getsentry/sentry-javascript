@@ -7,6 +7,7 @@ function createSession(extra?: Record<string, any>) {
     traceId: 'trace',
     started: 0,
     lastActivity: 0,
+    sequenceId: 0,
     ...extra,
   };
 }

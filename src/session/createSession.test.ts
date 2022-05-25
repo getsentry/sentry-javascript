@@ -21,7 +21,7 @@ beforeAll(() => {
 it('creates a new session with no sticky sessions', function () {
   const newSession = createSession({ stickySession: false });
   expect(Sentry.getCurrentHub().captureEvent).toHaveBeenCalledWith(
-    { message: 'sentry-replay' },
+    { message: 'sentry-replay', tags: { sequenceId: 0 } },
     { event_id: 'test_session_id' }
   );
 
@@ -39,12 +39,13 @@ it('creates a new session with no sticky sessions', function () {
 it('creates a new session with sticky sessions', function () {
   const newSession = createSession({ stickySession: true });
   expect(Sentry.getCurrentHub().captureEvent).toHaveBeenCalledWith(
-    { message: 'sentry-replay' },
+    { message: 'sentry-replay', tags: { sequenceId: 0 } },
     { event_id: 'test_session_id' }
   );
 
   expect(saveSession).toHaveBeenCalledWith({
     id: 'test_session_id',
+    sequenceId: 0,
     started: expect.any(Number),
     lastActivity: expect.any(Number),
   });

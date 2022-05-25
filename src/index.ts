@@ -22,12 +22,12 @@ import { ReplaySpan } from './types';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
+import { saveSession } from './session/saveSession';
 import { captureEvent } from '@sentry/browser';
 import addInstrumentationListeners from './addInstrumentationListeners';
 
 type RRWebEvent = eventWithTime;
 type RRWebOptions = Parameters<typeof record>[0];
-
 interface PluginOptions {
   /**
    * The amount of time to wait before sending a replay
@@ -446,6 +446,7 @@ export class SentryReplay implements Integration {
       message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
       tags: {
         replayId: this.session.id,
+        sequenceId: this.session.sequenceId++,
       },
     });
 

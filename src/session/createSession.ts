@@ -27,10 +27,12 @@ export function createSession({
     id: uuid4(),
     started: currentDate,
     lastActivity: currentDate,
+    sequenceId: 0,
   };
   hub.captureEvent(
     {
       message: ROOT_REPLAY_NAME,
+      tags: { sequenceId: session.sequenceId },
     },
     { event_id: session.id }
   );
