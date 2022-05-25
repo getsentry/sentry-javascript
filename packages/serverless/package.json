@@ -9,9 +9,9 @@
   "engines": {
     "node": ">=10"
   },
-  "main": "build/cjs/index.js",
-  "module": "build/esm/index.js",
-  "types": "build/types/index.d.ts",
+  "main": "build/npm/cjs/index.js",
+  "module": "build/npm/esm/index.js",
+  "types": "build/npm/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -38,8 +38,9 @@
     "read-pkg": "^5.2.0"
   },
   "scripts": {
-    "build": "run-p build:rollup build:types && yarn build:extras",
-    "build:awslambda-layer": "node scripts/build-awslambda-layer.js",
+    "build": "run-p build:rollup build:types build:bundle && yarn build:extras",
+    "build:awslambda-layer": "echo 'WARNING: AWS lambda layer build emporarily moved to \\`build:bundle\\`.'",
+    "build:bundle": "yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:rollup build:types",
     "build:extras": "yarn build:awslambda-layer",
     "build:rollup": "rollup -c rollup.npm.config.js",
@@ -48,7 +49,7 @@
     "build:dev:watch": "run-s build:watch",
     "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",

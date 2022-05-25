@@ -7,7 +7,10 @@ import * as util from 'util';
 /**
  * Ensure that `build:bundle` has all of the dependencies it needs to run. Works at both the repo and package level.
  */
-async function ensureBundleBuildPrereqs(options: { dependencies: string[]; maxRetries?: number }): Promise<void> {
+export async function ensureBundleBuildPrereqs(options: {
+  dependencies: string[];
+  maxRetries?: number;
+}): Promise<void> {
   const { maxRetries = 12, dependencies } = options;
 
   const {
