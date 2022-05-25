@@ -113,8 +113,8 @@ const DEFAULT_BROWSER_TRACING_OPTIONS = {
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
  */
 export class BrowserTracing implements Integration {
-  // This class currently doesn't have a static id field like the other classes, because it prevented @sentry/tracing
-  // from being treeshaken. Tree shaking does not like static fields because they behave like side effects.
+  // This class currently doesn't have a static `id` field like the other integration classes, because it prevented
+  // @sentry/tracing from being treeshaken. Tree shakers do not like static fields, because they behave like side effects.
   // TODO: Come up with a better plan, than using static fields on integration classes, and use that plan on all
   // integrations.
 
