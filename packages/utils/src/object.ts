@@ -4,6 +4,7 @@ import { WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
+import { memoBuilder, MemoFunc } from './memo';
 import { truncate } from './string';
 
 /**
@@ -205,20 +206,37 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
 /**
  * Given any object, return the new object with removed keys that value was `undefined`.
  * Works recursively on objects and arrays.
+ *
+ * Attention: This function keeps circular references in the returned object.
  */
 export function dropUndefinedKeys<T>(val: T): T {
+  // This function just proxies `_dropUndefinedKeys` to keep the `memoBuilder` out of this function's API
+  return _dropUndefinedKeys(val, memoBuilder());
+}
+
+function _dropUndefinedKeys<T>(val: T, memo: MemoFunc): T {
+  const [memoize] = memo; // we don't need unmemoize because we don't need to visit nodes twice
+
   if (isPlainObject(val)) {
+    if (memoize(val)) {
+      return val;
+    }
     const rv: { [key: string]: any } = {};
     for (const key of Object.keys(val)) {
       if (typeof val[key] !== 'undefined') {
-        rv[key] = dropUndefinedKeys(val[key]);
+        rv[key] = _dropUndefinedKeys(val[key], memo);
       }
     }
     return rv as T;
   }
 
   if (Array.isArray(val)) {
-    return (val as any[]).map(dropUndefinedKeys) as any;
+    if (memoize(val)) {
+      return val;
+    }
+    return (val as any[]).map(item => {
+      return _dropUndefinedKeys(item, memo);
+    }) as any;
   }
 
   return val;
