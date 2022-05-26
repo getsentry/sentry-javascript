@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "declaration": false,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noEmitOnError": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": "./worker/src",
+    "outDir": "./src/worker",
+    "target": "es5",
+    "paths": {
+      "@": ["worker/src"],
+      "@/*": ["worker/src/*"],
+    }
+  },
+  "include": [
+    "./worker/src/worker.ts",
+  ],
+  "exclude": ["node_modules"]
+}
