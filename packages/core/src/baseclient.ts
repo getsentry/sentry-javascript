@@ -506,6 +506,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (event.contexts && event.contexts.trace) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       normalized.contexts.trace = event.contexts.trace;
+
+      // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
+      if (event.contexts.trace.data) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        normalized.contexts.trace.data = normalize(event.contexts.trace.data, depth, maxBreadth);
+      }
     }
 
     normalized.sdkProcessingMetadata = { ...normalized.sdkProcessingMetadata, baseClientNormalized: true };
