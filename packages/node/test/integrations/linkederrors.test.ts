@@ -2,7 +2,7 @@ import { ExtendedError } from '@sentry/types';
 
 import { Event, NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
-import { defaultStackParser as stackParser } from '../../src/stack-parser';
+import { defaultStackParser as stackParser } from '../../src/sdk';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 let linkedErrors: any;

@@ -1,13 +1,14 @@
 import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
-import { SessionStatus } from '@sentry/types';
-import { getGlobalObject, logger, stackParserFromStackParserOptions } from '@sentry/utils';
+import { SessionStatus, StackParser } from '@sentry/types';
+import { createStackParser, getGlobalObject, logger, stackParserFromStackParserOptions } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
 import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
-import { defaultStackParser } from './stack-parser';
+import { getModule } from './module';
+import { nodeStackLineParser } from './stack-parser';
 import { makeNodeTransport } from './transports';
 import { NodeClientOptions, NodeOptions } from './types';
 
@@ -231,6 +232,9 @@ export function getSentryRelease(fallback?: string): string | undefined {
     fallback
   );
 }
+
+/** Node.js stack parser */
+export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(getModule));
 
 /**
  * Enable automatic Session Tracking for the node process.
