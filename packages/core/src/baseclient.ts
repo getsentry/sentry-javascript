@@ -518,7 +518,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (event.spans) {
       normalized.spans = event.spans.map(span => {
         // We cannot use the spread operator on span here because that overwrites the `toJSON` method
-        span.data = normalize(span.data, depth, maxBreadth);
+        if (span.data) {
+          span.data = normalize(span.data, depth, maxBreadth);
+        }
         return span;
       });
     }
