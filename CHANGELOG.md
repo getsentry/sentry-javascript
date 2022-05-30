@@ -4,109 +4,110 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.0.0-rc.0
+## 7.0.0
 
-- **(breaking)** feat(nextjs): Make tracing package treeshakable (#5166)
-- fix(browser): Fix memory leak in `addEventListener` instrumentation (#5147)
-- fix(tracing): Don't use `querySelector` when not available (#5160)
-- fix(utils): Fix infinite recursion in `dropUndefinedKeys` (#5163)
-- ref(build): Use rollup to build AWS lambda layer (#5146)
-- ref(core): Actually ensure attachments are added to the envelope (#5159)
-- ref(core): Make hint callback argument non-optional (#5141)
+Version 7 of the Sentry JavaScript SDK brings a variety of features and fixes including bundle size and performance improvements, brand new integrations, support for the attachments API, and key bug fixes.
 
-## 7.0.0-beta.2
+This release does not change or remove any top level public API methods (`captureException`, `captureMessage`), and only requires changes to certain configuration options or custom clients/integrations/transports.
 
-- **(breaking)** feat(tracing): Add empty baggage header propagation to outgoing requests (#5133)
-- feat: Add attachments API (#5004)
-- feat(core): Send Baggage in Envelope Header (#5104)
-- feat(utils): Introduce Baggage API (#5066)
-- fix(build): Fix express import in `gcpfunction` (#5097)
-- fix(ember): Export sha hashes of injected scripts (#5089)
-- ref(build): Use sucrase for es6 bundles (#5111)
-- ref(serverless): Do not throw on flush error (#5090)
-- ref(serverless): Point DSN to relay in lambda extension (#5126)
-- ref(tracing): Rename baggage env header to trace (#5128)
+**Note: The v7 version of the JavaScript SDK requires a self-hosted version of Sentry 20.6.0 or higher. If you are using a version of [self-hosted Sentry](https://develop.sentry.dev/self-hosted/) (aka onpremise) older than `20.6.0` then you will need to [upgrade](https://develop.sentry.dev/self-hosted/releases/).**
 
-## 7.0.0-beta.1
+For detailed overview of all the changes, please see our [v7 migration guide](./MIGRATION.md#upgrading-from-6x-to-7x).
 
-- **(breaking)** ref: Remove critical severity (#5032)
-- **(breaking)** ref: Delete unneeded SDK_NAME (#5040)
-- **(breaking)** ref(browser): Rename UserAgent integration to HttpContext (#5027)
-- **(breaking)** ref(hub): Convert Session class to object and functions (#5054)
-- **(breaking)** ref(node): Explicitly pass down node transport options (#5057)
-- **(breaking)** ref(tracing): Reset IdleTimeout based on activities count (#5044)
-- ref(browser): Unify BrowserTransportOptions (#5058)
-- feat(build): Vendor polyfills injected during build (#5051)
-- ref(core): Log warning on NOK transport response (#5091)
-- fix(integrations): Mark ExtraErrorData as already normalized (#5053)
-- feat(react): Add react-router-v6 integration (#5042)
-- fix(tracing): Remove isInstanceOf check in Hub constructor (#5046)
-- fix(utils): Consider 429 responses in transports (#5062)
-- ref(utils): Clean up dangerous type casts in object helper file (#5047)
-- ref(utils): Add logic to enable skipping of normalization (#5052)
+### Breaking Changes
 
-## 7.0.0-beta.0
+If you are a regular consumer of the Sentry JavaScript SDK you only need to focus on the general items. The internal breaking changes are aimed at libraries that build on top of and extend the JavaScript SDK (like [`@sentry/electron`](https://github.com/getsentry/sentry-electron/) or [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native/)).
 
-- **(breaking)**: ref: Make it easier to use stackParser (#5015)
-- **(breaking)**: ref: Switch to new transports (#4943)
-- **(breaking)**: ref: Delete store endpoint code (#4969)
-- **(breaking)**: chore: set ignoreSentryErrors to true (#4994)
-- **(breaking)**: fix(angular): Use Angular compiler to compile @sentry/angular (#4641)
-- **(breaking)**: ref(browser): Remove showReportDialog on browser client (#4973)
-- **(breaking)**: ref(build): Rename CDN bundles to be es6 per default (#4958)
-- **(breaking)**: feat(core): Introduce separate client options (#4927)
-- **(breaking)**: ref(core): Delete API Details (#4999)
-- **(breaking)**: feat(hub): Remove _invokeClient (#4972)
-- **(breaking)**: ref(minimal): Delete @sentry/minimal (#4971)
-- **(breaking)**: ref(node): Remove raven-node backward-compat code (#4942)
-- chore: Remove tslint from `@sentry-internal/typescript` (#4940)
-- feat: Add client report hook to makeTransport (#5008)
-- feat: Export browser integrations individually (#5028)
-- ref(build): Switch tsconfig target to es6 (#5005)
-- ref(core): Make event processing log warnings instead of errors (#5010)
-- fix(hub): Add missing parameter to captureException docstring (#5001)
-- fix(nextjs): Update webpack-plugin and change how cli binary is detected (#4988)
-- fix(serverless): Adjust v6 Lambda layer hotfix for v7 (#5006)
-- fix(tracing): Adjust sideEffects package.json entry for v7 (#4987)
-- feat(tracing): Add GB unit to device memory tag value (#4935)
+#### General
+
+- [Updated CommonJS distributions to use ES6 by default](./MIGRATION.md#moving-to-es6-for-commonjs-files). If you need to support Internet Explorer 11 or old Node.js versions, we recommend using a preprocessing tool like [Babel](https://babeljs.io/) to convert Sentry packages to ES5. (#5005)
+- Default `bundle.min.js` to ES6 instead of ES5. [ES5 bundles are still available at `bundle.es5.min.js`](./MIGRATION.md#renaming-of-cdn-bundles). (#4958)
+- Updated build system to use TypeScript 3.8.3 (#4895)
+- Deprecated `Severity` enum for bundle size reasons. [Please use string literals instead](./MIGRATION.md#severity-severitylevel-and-severitylevels). (#4926)
+- Removed `critical` Severity level. (#5032)
+- `whitelistUrls` and `blacklistUrls` have been renamed to `allowUrls` and `denyUrls` in the `Sentry.init()` options. (#4850)
+- `BaseClient` and it's child classes now require `transport`, `stackParser`, and `integrations` to be [explicitly passed in](./MIGRATION.md#explicit-client-options). This was done to improve tree-shakability. (#4927)
+- Updated package distribution structure and stopped distributing CDN bundles through `@sentry/*` npm packages. [See details in our migration docs.](./MIGRATION.md#restructuring-of-package-content). (#4900) (#4901)
+- [Simplified `Transport` API](./MIGRATION.md#transport-changes). This means [custom transports will have to be adjusted accordingly.](./MIGRATION.md#custom-transports).
+- Updated how [Node Transport Options are passed down](./MIGRATION.md#node-transport-changes).
+- Start propogating [`baggage` HTTP header](https://www.w3.org/TR/baggage/) alongside `sentry-trace` header to [propogate additional tracing related information.](./MIGRATION.md#propagation-of-baggage-header). (#5133)
+- Renamed `registerRequestInstrumentation` export to `instrumentOutgoingRequests` in `@sentry/tracing`. (#4859)
+- Renamed `UserAgent` integration to `HttpContext`. (#5027)
+- Replaced `BrowserTracing` integration's `maxTransactionDuration` option with `finalTimeout` option in the `@sentry/tracing` package and reset `idleTimeout` based on activities count. This should improve accuracy of web-vitals like LCP by 20-30%. (#5044)
+- [Updated `@sentry/angular` to be compiled by the angular compiler](./MIGRATION.md#sentry-angular-sdk-changes). (#4641)
+- Made tracing package treeshakable (#5166)
+
+- Removed support for [Node v6](./MIGRATION.md#dropping-support-for-nodejs-v6). (#4851)
+- Removed `@sentry/minimal` package in favour of using [`@sentry/hub`](./MIGRATION.md#removal-of-sentryminimal). (#4971)
+- Removed support for Opera browser pre v15 (#4923)
+- Removed `ignoreSentryErrors` option from AWS lambda SDK. Errors originating from the SDK will now *always* be caught internally. (#4994)
+- Removed `Integrations.BrowserTracing` export from `@sentry/nextjs`. Please import `BrowserTracing` from `@sentry/nextjs` directly.
+- Removed static `id` property from `BrowserTracing` integration.
+- Removed `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages. (#5040)
+- Removed `Angular`, `Ember`, and `Vue` integrations from `@sentry/integrations` [in favour of the explicit framework packages: `@sentry/angular`, `@sentry/ember`, and `@sentry/vue`](./MIGRATION.md#removal-of-old-platform-integrations-from-sentryintegrations-package). (#4893)
+- Removed [enums `Status`, `RequestSessionStatus`, and `SessionStatus`.](./MIGRATION.md#removed-enums). Deprecated [enums `SpanStatus` and `Severity`](./MIGRATION.md#deprecated-enums). This was done to save on bundle size. (#4891) (#4889) (#4890)
+- Removed support for deprecated `@sentry/apm` package. (#4845)
+- Removed deprecated `user` field from DSN interface. `publicKey` should be used instead. (#4864)
+- Removed deprecated `getActiveDomain` method and `DomainAsCarrier` type from `@sentry/hub`. (#4858)
+- Removed `eventStatusFromHttpCode` to save on bundle size.
+- Removed usage of deprecated `event.stacktrace` field. (#4885)
+- Removed raven-node backward-compat code (#4942)
+- Removed `showReportDialog` method on `BrowserClient` (#4973)
+- Removed deprecated `startSpan` and `child` methods (#4849)
+- Removed deprecated `frameContextLines` options (#4884)
+- Removed `Sentry` from window in the Gatsby SDK (#4857)
+
+#### Internal
+
+- Removed support for the store endpoint (#4969)
+- Made hint callback argument non-optional (#5141)
+- Switched to using new transports internally (#4943)
+- [Removed `API` class from `@sentry/core`.](./MIGRATION.md#removing-the-api-class-from-sentrycore). (#4848)
+- [Refactored `Session` class to use a more functional approach.](./MIGRATION.md#session-changes). (#5054)
+- Removed `Backend` class in favour of moving functionality into the `Client` class (for more details, see [#4911](https://github.com/getsentry/sentry-javascript/pull/4911) and [#4919](https://github.com/getsentry/sentry-javascript/pull/4919)).
+- Removed forget async utility function (#4941)
+- Removed tslint from `@sentry-internal/typescript` (#4940)
+- Removed `_invokeClient` function from `@sentry/hub` (#4972)
+- Removed top level eventbuilder exports (#4887)
+
+#### Features
+
 - feat(tracing): Add Prisma ORM integration. (#4931)
-- ref(utils): Remove forget async utility function (#4941)
+- feat(react): Add react-router-v6 integration (#5042)
+- feat: Add attachments API (#5004)
 
-## 7.0.0-alpha.1
-
-- **(breaking)** ref: Inject Transports into Client (#4921)
-- **(breaking)** ref: Port functionality from `Backend` to `Client` (#4911)
-- **(breaking)** ref: Delete `Backend` classes (#4919)
-- **(breaking)** ref(browser): Remove stack parser support for Opera pre v15 (#4923)
-- **(breaking)** ref(various): Remove usage of deprecated `event.stacktrace` (#4885)
 - feat: Add `name` field to `EventProcessor` (#4932)
 - feat: Expose configurable stack parser (#4902)
-- ref(build): Turn on `isolatedModules` TS option (#4896)
 - feat(tracing): Make `setMeasurement` public API (#4933)
-- ref(tracing): Update `setMeasurements` to only set a single measurement (#4920)
-- ref(types): Stop using `Severity` enum (#4926)
+- feat(tracing): Add GB unit to device memory tag value (#4935)
+- feat: Export browser integrations individually (#5028)
+- feat(utils): Introduce Baggage API (#5066)
+- feat(core): Send Baggage in Envelope Header (#5104)
 
-## 7.0.0-alpha.0
+#### Fixes
 
-- **(breaking)** ref: Drop support for Node 6 (#4851)
-- **(breaking)** ref(bundles): Stop publishing CDN bundles on npm (#4901)
-- **(breaking)** ref(build): Rename `dist` directories to `cjs` (#4900)
-- **(breaking)** ref(build): Update to TypeScript 3.8.3 (#4895)
-- **(breaking)** ref(browser): Remove top level eventbuilder exports (#4887)
-- **(breaking)** ref(core): Remove `whitelistUrls`/`blacklistUrls` (#4850)
-- **(breaking)** ref(core): Delete `API` class (#4848)
-- **(breaking)** ref(gatsby): Remove `Sentry` from window (#4857)
-- **(breaking)** ref(hub): Remove `setTransaction` scope method (#4865)
-- **(breaking)** ref(hub): Remove `getActiveDomain` (#4858)
-- **(breaking)** ref(integrations): Remove old `angular`, `ember`, and `vue` integrations (#4893)
-- **(breaking)** ref(node): Remove deprecated `frameContextLines` (#4884)
-- **(breaking)** ref(tracing): Rename `registerRequestInstrumentation` -> `instrumentOutgoingRequests` (#4859)
-- **(breaking)** ref(tracing): Delete deprecated `startSpan` and `child` methods (#4849)
-- **(breaking)** ref(tracing): Remove references to `@sentry/apm` (#4845)
-- **(breaking)** ref(types): Delete `SessionStatus` enum (#4890)
-- **(breaking)** ref(types): Delete `RequestSessionStatus` enum (#4889)
-- **(breaking)** ref(types): Remove deprecated `user` dsn field (#4864)
-- **(breaking)** ref(types): Delete `Status` enum (#4891)
+- fix(browser): Fix memory leak in `addEventListener` instrumentation (#5147)
+- fix(build): Fix express import in `gcpfunction` (#5097)
+- fix(ember): Export sha hashes of injected scripts (#5089)
+- fix(hub): Add missing parameter to captureException docstring (#5001)
+- fix(integrations): Mark ExtraErrorData as already normalized (#5053)
+- fix(serverless): Adjust v6 Lambda layer hotfix for v7 (#5006)
+- fix(tracing): Adjust sideEffects package.json entry for v7 (#4987)
+- fix(tracing): Remove isInstanceOf check in Hub constructor (#5046)
+- fix(tracing): Don't use `querySelector` when not available (#5160)
+- fix(nextjs): Update webpack-plugin and change how cli binary is detected. This should reduce bundle size of NextJS applications. (#4988)
+- fix(utils): Fix infinite recursion in `dropUndefinedKeys` (#5163)
+
+#### Misc
+
+- feat(build): Vendor polyfills injected during build (#5051)
+- ref(build): Use rollup to build AWS lambda layer (#5146)
+- ref(core): Make event processing log warnings instead of errors (#5010)
+- ref(node): Allow node stack parser to work in browser context (#5135)
+- ref(serverless): Point DSN to relay in lambda extension (#5126)
+- ref(serverless): Do not throw on flush error (#5090)
+- ref(utils): Clean up dangerous type casts in object helper file (#5047)
+- ref(utils): Add logic to enable skipping of normalization (#5052)
 
 ## 6.19.7
 
