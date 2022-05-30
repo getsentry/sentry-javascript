@@ -1,3 +1,5 @@
+import './globals';
+
 export type { Attachment } from './attachment';
 export type { AllowedBaggageKeys, Baggage, BaggageObj } from './baggage';
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
