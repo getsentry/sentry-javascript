@@ -69,6 +69,9 @@ If you are a regular consumer of the Sentry JavaScript SDK you only need to focu
 - Removed tslint from `@sentry-internal/typescript` (#4940)
 - Removed `_invokeClient` function from `@sentry/hub` (#4972)
 - Removed top level eventbuilder exports (#4887)
+- Added baggage API helpers in `@sentry/utils` (#5066)
+
+### Other Changes
 
 #### Features
 
@@ -81,7 +84,6 @@ If you are a regular consumer of the Sentry JavaScript SDK you only need to focu
 - feat(tracing): Make `setMeasurement` public API (#4933)
 - feat(tracing): Add GB unit to device memory tag value (#4935)
 - feat: Export browser integrations individually (#5028)
-- feat(utils): Introduce Baggage API (#5066)
 - feat(core): Send Baggage in Envelope Header (#5104)
 
 #### Fixes
