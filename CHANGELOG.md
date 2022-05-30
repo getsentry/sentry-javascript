@@ -36,7 +36,6 @@ If you are a regular consumer of the Sentry JavaScript SDK you only need to focu
 - Replaced `BrowserTracing` integration's `maxTransactionDuration` option with `finalTimeout` option in the `@sentry/tracing` package and reset `idleTimeout` based on activities count. This should improve accuracy of web-vitals like LCP by 20-30%. (#5044)
 - [Updated `@sentry/angular` to be compiled by the angular compiler](./MIGRATION.md#sentry-angular-sdk-changes). (#4641)
 - Made tracing package treeshakable (#5166)
-
 - Removed support for [Node v6](./MIGRATION.md#dropping-support-for-nodejs-v6). (#4851)
 - Removed `@sentry/minimal` package in favour of using [`@sentry/hub`](./MIGRATION.md#removal-of-sentryminimal). (#4971)
 - Removed support for Opera browser pre v15 (#4923)
@@ -78,7 +77,6 @@ If you are a regular consumer of the Sentry JavaScript SDK you only need to focu
 - feat(tracing): Add Prisma ORM integration. (#4931)
 - feat(react): Add react-router-v6 integration (#5042)
 - feat: Add attachments API (#5004)
-
 - feat: Add `name` field to `EventProcessor` (#4932)
 - feat: Expose configurable stack parser (#4902)
 - feat(tracing): Make `setMeasurement` public API (#4933)
