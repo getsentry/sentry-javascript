@@ -17,6 +17,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/cli": "^1.73.0",
     "@sentry/core": "6.19.7",
     "@sentry/hub": "6.19.7",
     "@sentry/integrations": "6.19.7",
