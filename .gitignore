@@ -8,6 +8,7 @@ package-lock.json
 build/
 # various integration test builds
 dist/
+esm/
 coverage/
 scratch/
 *.d.ts
