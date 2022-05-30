@@ -58,6 +58,9 @@ export class OnUncaughtException implements Integration {
     return (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
       const client = getCurrentHub().getClient<NodeClient>();
+      // in order to honour Node's original behavior on uncaught exceptions, we should not
+      // exit the process if the app added its own 'uncaughtException' listener
+      const shouldExitProcess: boolean = global.process.listenerCount('uncaughtException') === 1;
 
       if (this._options.onFatalError) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -83,23 +86,23 @@ export class OnUncaughtException implements Integration {
               originalException: error,
               data: { mechanism: { handled: false, type: 'onuncaughtexception' } },
             });
-            if (!calledFatalError) {
+            if (!calledFatalError && shouldExitProcess) {
               calledFatalError = true;
               onFatalError(error);
             }
           });
         } else {
-          if (!calledFatalError) {
+          if (!calledFatalError && shouldExitProcess) {
             calledFatalError = true;
             onFatalError(error);
           }
         }
-      } else if (calledFatalError) {
+      } else if (calledFatalError && shouldExitProcess) {
         // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
         IS_DEBUG_BUILD &&
           logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
         logAndExitProcess(error);
-      } else if (!caughtSecondError) {
+      } else if (!caughtSecondError && shouldExitProcess) {
         // two cases for how we can hit this branch:
         //   - capturing of first error blew up and we just caught the exception from that
         //     - quit trying to capture, proceed with shutdown

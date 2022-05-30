@@ -70,6 +70,10 @@ export class OnUnhandledRejection implements Integration {
       'or by rejecting a promise which was not handled with .catch().' +
       ' The promise rejected with the reason:';
 
+    // in order to honour Node's original behavior on unhandled rejections, we should not
+    // exit the process if the app added its own 'unhandledRejection' listener
+    const shouldExitProcess: boolean = global.process.listenerCount('unhandledRejection') === 1;
+
     /* eslint-disable no-console */
     if (this._options.mode === 'warn') {
       consoleSandbox(() => {
@@ -81,7 +85,9 @@ export class OnUnhandledRejection implements Integration {
       consoleSandbox(() => {
         console.warn(rejectionWarning);
       });
-      logAndExitProcess(reason);
+      if (shouldExitProcess) {
+        logAndExitProcess(reason);
+      }
     }
     /* eslint-enable no-console */
   }
