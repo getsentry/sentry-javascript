@@ -353,6 +353,7 @@ For our efforts to reduce bundle size of the SDK we had to remove and refactor p
 - Removed `ignoreSentryErrors` option from AWS lambda SDK. Errors originating from the SDK will now *always* be caught internally.
 - Removed `Integrations.BrowserTracing` export from `@sentry/nextjs`. Please import `BrowserTracing` from `@sentry/nextjs` directly.
 - Removed static `id` property from `BrowserTracing` integration.
+- Removed usage of deprecated `event.stacktrace` field
 
 ## Sentry Angular SDK Changes
 
