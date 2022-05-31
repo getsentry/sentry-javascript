@@ -8,6 +8,18 @@ import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
+interface OnUncaughtExceptionOptions {
+  /**
+   * This is called when an uncaught error would cause the process to exit.
+   *
+   * @param firstError Uncaught error causing the process to exit
+   * @param secondError Will be set if the handler was called multiple times. This can happen either because
+   * `onFatalError` itself threw, or because an independent error happened somewhere else while `onFatalError`
+   * was running.
+   */
+  onFatalError?(firstError: Error, secondError?: Error): void;
+}
+
 /** Global Promise Rejection handler */
 export class OnUncaughtException implements Integration {
   /**
@@ -28,16 +40,7 @@ export class OnUncaughtException implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(
-    private readonly _options: {
-      /**
-       * Default onFatalError handler
-       * @param firstError Error that has been thrown
-       * @param secondError If this was called multiple times this will be set
-       */
-      onFatalError?(firstError: Error, secondError?: Error): void;
-    } = {},
-  ) {}
+  public constructor(private readonly _options: OnUncaughtExceptionOptions = {}) {}
   /**
    * @inheritDoc
    */
