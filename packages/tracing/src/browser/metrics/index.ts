@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { Measurements } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, isNodeEnv, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from '../../flags';
 import { Transaction } from '../../transaction';
@@ -14,8 +14,8 @@ import { _startChild, isMeasurementValue } from './utils';
 
 const global = getGlobalObject<Window>();
 
-function getBrowserPerformanceAPI(): false | Performance {
-  return !isNodeEnv() && global && global.document && global.performance;
+function getBrowserPerformanceAPI(): Performance | undefined {
+  return global && global.document && global.performance;
 }
 
 let _performanceCursor: number = 0;
