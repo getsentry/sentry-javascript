@@ -59,6 +59,25 @@ it('creates a non-sticky session, regardless of session existing in sessionStora
   expect(session).toBeDefined();
 });
 
+it('creates a non-sticky session, when one is expired', function () {
+  const session = getSession({
+    expiry: 1000,
+    stickySession: false,
+    currentSession: {
+      id: 'old_session_id',
+      lastActivity: new Date().getTime() - 1001,
+      started: new Date().getTime() - 1001,
+      sequenceId: 0,
+    },
+  });
+
+  expect(FetchSession.fetchSession).not.toHaveBeenCalled();
+  expect(CreateSession.createSession).toHaveBeenCalled();
+
+  expect(session).toBeDefined();
+  expect(session.id).not.toBe('old_session_id');
+});
+
 it('creates a sticky session when one does not exist', function () {
   expect(FetchSession.fetchSession()).toBe(null);
 
@@ -112,5 +131,24 @@ it('fetches an expired sticky session', function () {
   expect(session.id).toBe('test_session_id');
   expect(session.lastActivity).toBeGreaterThanOrEqual(now);
   expect(session.started).toBeGreaterThanOrEqual(now);
+  expect(session.sequenceId).toBe(0);
+});
+
+it('fetches a non-expired non-sticky session', function () {
+  const session = getSession({
+    expiry: 1000,
+    stickySession: false,
+    currentSession: {
+      id: 'test_session_id_2',
+      lastActivity: +new Date() - 500,
+      started: +new Date() - 500,
+      sequenceId: 0,
+    },
+  });
+
+  expect(FetchSession.fetchSession).not.toHaveBeenCalled();
+  expect(CreateSession.createSession).not.toHaveBeenCalled();
+
+  expect(session.id).toBe('test_session_id_2');
   expect(session.sequenceId).toBe(0);
 });

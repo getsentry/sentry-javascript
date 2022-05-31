@@ -258,6 +258,10 @@ export class SentryReplay implements Integration {
     this.removeListeners();
   }
 
+  clearSession() {
+    this.session = null;
+  }
+
   /**
    * Loads a session from storage, or creates a new one
    */
@@ -265,7 +269,15 @@ export class SentryReplay implements Integration {
     this.session = getSession({
       expiry,
       stickySession: this.options.stickySession,
+      currentSession: this.session,
     });
+  }
+
+  updateSession(session: Partial<ReplaySession>) {
+    this.session = {
+      ...this.session,
+      ...session,
+    };
   }
 
   addListeners() {
@@ -349,9 +361,11 @@ export class SentryReplay implements Integration {
     // Update with current timestamp as the last session activity
     // Only updating session on visibility change to be conservative about
     // writing to session storage. This could be changed in the future.
-    updateSessionActivity({
-      stickySession: this.options.stickySession,
-    });
+    this.updateSession(
+      updateSessionActivity({
+        stickySession: this.options.stickySession,
+      })
+    );
 
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
@@ -412,6 +426,10 @@ export class SentryReplay implements Integration {
    * Returns true if session is not expired, false otherwise.
    */
   checkAndHandleExpiredSession(expiry: number = SESSION_IDLE_DURATION) {
+    // if (!this.options.stickySession) {
+    // return;
+    // }
+
     const oldSessionId = this.session.id;
 
     // This will create a new session if expired, based on expiry length

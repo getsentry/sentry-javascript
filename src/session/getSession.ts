@@ -2,6 +2,7 @@ import { isSessionExpired } from '@/util/isSessionExpired';
 import { logger } from '@/util/logger';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
+import { ReplaySession } from './types';
 
 interface GetSessionParams {
   /**
@@ -12,13 +13,22 @@ interface GetSessionParams {
    * Should save session to sessionStorage?
    */
   stickySession: boolean;
+
+  /**
+   * The current session (e.g. if stickySession is off)
+   */
+  currentSession?: ReplaySession;
 }
 
 /**
  * Get or create a session
  */
-export function getSession({ expiry, stickySession }: GetSessionParams) {
-  const session = stickySession && fetchSession();
+export function getSession({
+  expiry,
+  currentSession,
+  stickySession,
+}: GetSessionParams) {
+  const session = stickySession ? fetchSession() : currentSession;
 
   if (session) {
     // If there is a session, check if it is valid (e.g. "last activity" time should be within the "session idle time")
