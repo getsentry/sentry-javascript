@@ -1,3 +1,5 @@
+import { record } from 'rrweb';
+
 import { SentryReplay } from '@';
 import { Scope } from '@sentry/hub';
 import { addInstrumentationHandler, htmlTreeAsString } from '@sentry/utils';
@@ -51,8 +53,8 @@ function domCallback(handlerData: any) {
     category: `ui.${handlerData.name}`,
     message: target,
     data: {
-      // @ts-expect-error Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
-      nodeId: targetNode ? record.mirror.getId(targetNode) : undefined,
+      // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
+      nodeId: targetNode ? record.mirror.getId(targetNode as any) : undefined,
     },
   });
 }

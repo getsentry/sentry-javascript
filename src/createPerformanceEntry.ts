@@ -122,8 +122,8 @@ function createLargestContentfulPaint(
     end: start + duration,
     data: {
       size,
-      // @ts-expect-error Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
-      nodeId: record.mirror.getId(entry.element),
+      // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
+      nodeId: record.mirror.getId(entry.element as any),
     },
   };
 }
