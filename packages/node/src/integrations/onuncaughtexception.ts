@@ -35,7 +35,7 @@ export class OnUncaughtException implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly handler: (error: Error) => void = this._makeErrorHandler();
+  public readonly handler: (error: Error) => void = this._makeErrorHandler().bind(this);
 
   /**
    * @inheritDoc
@@ -45,7 +45,7 @@ export class OnUncaughtException implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    global.process.on('uncaughtException', this.handler.bind(this));
+    global.process.on('uncaughtException', this.handler);
   }
 
   /**
@@ -61,9 +61,26 @@ export class OnUncaughtException implements Integration {
     return (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
       const client = getCurrentHub().getClient<NodeClient>();
-      // in order to honour Node's original behavior on uncaught exceptions, we should not
-      // exit the process if the app added its own 'uncaughtException' listener
-      const shouldExitProcess: boolean = global.process.listenerCount('uncaughtException') === 1;
+
+      // Attaching a listener to `uncaughtException` will prevent the node process from exiting. We generally do not
+      // want to alter this behaviour so we check for other listeners that users may have attached themselves and adjust
+      // exit behaviour of the SDK accordingly:
+      // - If other listeners are attached, do not exit.
+      // - If the only listener attached is ours, exit.
+      const userProvidedListenersCount = global.process
+        .listeners('uncaughtException')
+        .reduce<number>((acc, listener) => {
+          if (
+            listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
+            listener === this.handler // filter the handler we registered ourselves)
+          ) {
+            return acc;
+          } else {
+            return acc + 1;
+          }
+        }, 0);
+
+      const shouldExitProcess: boolean = userProvidedListenersCount === 0;
 
       if (this._options.onFatalError) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
