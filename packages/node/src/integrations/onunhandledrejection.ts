@@ -4,7 +4,16 @@ import { consoleSandbox } from '@sentry/utils';
 
 import { logAndExitProcess } from './utils/errorhandling';
 
-type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
+interface OnUnhandledRejectionOptions {
+  // TODO(v8): Evaluate whether we should mimic nodes default behaviour for this integration and/or remove the mode option.
+  // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
+  // falling back to current behaviour when that's not available.
+  /**
+   * Option deciding what to do after capturing unhandledRejection,
+   * that mimicks behavior of node's --unhandled-rejection flag. Default: `'warn'`
+   */
+  mode: 'none' | 'warn' | 'strict';
+}
 
 /** Global Promise Rejection handler */
 export class OnUnhandledRejection implements Integration {
@@ -18,18 +27,17 @@ export class OnUnhandledRejection implements Integration {
    */
   public name: string = OnUnhandledRejection.id;
 
+  private readonly _options: OnUnhandledRejectionOptions;
+
   /**
    * @inheritDoc
    */
-  public constructor(
-    private readonly _options: {
-      /**
-       * Option deciding what to do after capturing unhandledRejection,
-       * that mimicks behavior of node's --unhandled-rejection flag.
-       */
-      mode: UnhandledRejectionMode;
-    } = { mode: 'warn' },
-  ) {}
+  public constructor(options: Partial<OnUnhandledRejectionOptions> = {}) {
+    this._options = {
+      mode: 'warn',
+      ...options,
+    };
+  }
 
   /**
    * @inheritDoc
@@ -70,10 +78,6 @@ export class OnUnhandledRejection implements Integration {
       'or by rejecting a promise which was not handled with .catch().' +
       ' The promise rejected with the reason:';
 
-    // in order to honour Node's original behavior on unhandled rejections, we should not
-    // exit the process if the app added its own 'unhandledRejection' listener
-    const shouldExitProcess: boolean = global.process.listenerCount('unhandledRejection') === 1;
-
     /* eslint-disable no-console */
     if (this._options.mode === 'warn') {
       consoleSandbox(() => {
@@ -85,9 +89,7 @@ export class OnUnhandledRejection implements Integration {
       consoleSandbox(() => {
         console.warn(rejectionWarning);
       });
-      if (shouldExitProcess) {
-        logAndExitProcess(reason);
-      }
+      logAndExitProcess(reason);
     }
     /* eslint-enable no-console */
   }
