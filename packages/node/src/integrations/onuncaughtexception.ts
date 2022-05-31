@@ -9,6 +9,16 @@ import { logAndExitProcess } from './utils/errorhandling';
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
 interface OnUncaughtExceptionOptions {
+  // TODO(v8): Evaluate whether we should switch the default behaviour here.
+  // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
+  // falling back to current behaviour when that's not available.
+  /**
+   * Whether the SDK should mimic native behaviour when a global error occurs. Default: `false`.
+   * - `false`: The SDK will exit the process on all uncaught errors.
+   * - `true`: The SDK will only exit the process when there are no other 'uncaughtException' handlers attached.
+   */
+  mimicNativeBehaviour: boolean;
+
   /**
    * This is called when an uncaught error would cause the process to exit.
    *
@@ -37,10 +47,18 @@ export class OnUncaughtException implements Integration {
    */
   public readonly handler: (error: Error) => void = this._makeErrorHandler().bind(this);
 
+  private readonly _options: OnUncaughtExceptionOptions;
+
   /**
    * @inheritDoc
    */
-  public constructor(private readonly _options: OnUncaughtExceptionOptions = {}) {}
+  public constructor(options: Partial<OnUncaughtExceptionOptions> = {}) {
+    this._options = {
+      mimicNativeBehaviour: false,
+      ...options,
+    };
+  }
+
   /**
    * @inheritDoc
    */
@@ -80,7 +98,7 @@ export class OnUncaughtException implements Integration {
           }
         }, 0);
 
-      const shouldExitProcess: boolean = userProvidedListenersCount === 0;
+      const shouldExitProcess: boolean = !this._options.mimicNativeBehaviour || userProvidedListenersCount === 0;
 
       if (this._options.onFatalError) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
