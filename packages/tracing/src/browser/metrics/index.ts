@@ -15,7 +15,7 @@ import { _startChild, isMeasurementValue } from './utils';
 const global = getGlobalObject<Window>();
 
 function getBrowserPerformanceAPI(): Performance | undefined {
-  return global && global.document && global.performance;
+  return global && global.addEventListener && global.performance;
 }
 
 let _performanceCursor: number = 0;
