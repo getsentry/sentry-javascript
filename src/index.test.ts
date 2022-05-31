@@ -34,7 +34,8 @@ import {
   VISIBILITY_CHANGE_TIMEOUT,
 } from '@/session/constants';
 import { BASE_TIMESTAMP } from '@test';
-import type { RRWebEvent } from '@/types';
+import { ReplaySpan, RRWebEvent } from '@/types';
+import { Breadcrumbs } from '@sentry/browser/types/integrations';
 
 type RecordAdditionalProperties = {
   takeFullSnapshot: jest.Mock;
@@ -303,5 +304,66 @@ describe('SentryReplay', () => {
     expect(replay).not.toHaveSameSession(initialSession);
 
     mockSendReplayRequest.mockReset();
+  });
+
+  it('fails to upload data on first call and retries after five seconds, sending successfully', async () => {
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    // fail the first request and pass the second one
+    mockSendReplayRequest.mockImplementationOnce(() => {
+      throw new Error('Something bad happened');
+    });
+    mockSendReplayRequest.mockImplementationOnce(() => {
+      return Promise.resolve();
+    });
+    mockRecord._emitter(TEST_EVENT);
+    jest.advanceTimersToNextTimer();
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+
+    const regex = new RegExp(
+      'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
+    );
+
+    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(2);
+
+    const replayRequestPayload = {
+      endpoint: expect.stringMatching(regex),
+      events: [TEST_EVENT],
+      replaySpans: <ReplaySpan[]>[],
+      breadcrumbs: <Breadcrumbs[]>[],
+    };
+
+    const replayRequestPayloadTwo = {
+      ...replayRequestPayload,
+      // since we log an error on retry, a console breadcrumb gets added to the subsequent sentReplayRequest call
+      breadcrumbs: [
+        {
+          category: 'console',
+          data: {
+            arguments: [Error('Something bad happened')],
+            logger: 'console',
+          },
+          level: 'error',
+          message: 'Error: Something bad happened',
+          timestamp: expect.any(Number),
+          type: 'default',
+        },
+      ],
+    };
+
+    expect(replay.sendReplayRequest).toHaveBeenNthCalledWith(
+      1,
+      replayRequestPayload
+    );
+    expect(replay.sendReplayRequest).toHaveBeenNthCalledWith(
+      2,
+      replayRequestPayloadTwo
+    );
+
+    // No activity has occurred, session's last activity should remain the same
+    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);
+    expect(replay.session.sequenceId).toBe(1);
+
+    // events array should be empty
+    expect(replay.events).toHaveLength(0);
   });
 });
