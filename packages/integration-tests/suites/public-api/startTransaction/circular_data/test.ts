@@ -13,7 +13,7 @@ sentryTest('should be able to handle circular data', async ({ getLocalTestPath, 
 
   expect(eventData.contexts).toMatchObject({
     trace: {
-      data: { lays: { contains: { lays: { contains: '[Circular ~]' } } } },
+      data: { lays: { contains: '[Circular ~]' } },
     },
   });
 
