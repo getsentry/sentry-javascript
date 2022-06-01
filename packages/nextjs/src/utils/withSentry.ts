@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub, parseRequest, startTransaction } from '@sentry/node';
+import { addRequestDataToEvent, captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import {
@@ -41,7 +41,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, req));
+        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
 
         if (hasTracingEnabled()) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)

@@ -233,7 +233,7 @@ export function extractRequestData(
 /**
  * Options deciding what parts of the request to use when enhancing an event
  */
-export interface ParseRequestOptions {
+export interface AddRequestDataToEventOptions {
   ip?: boolean;
   request?: boolean | string[];
   serverName?: boolean;
@@ -250,7 +250,11 @@ export interface ParseRequestOptions {
  * @param options object containing flags to enable functionality
  * @hidden
  */
-export function parseRequest(event: Event, req: ExpressRequest, options?: ParseRequestOptions): Event {
+export function addRequestDataToEvent(
+  event: Event,
+  req: ExpressRequest,
+  options?: AddRequestDataToEventOptions,
+): Event {
   // eslint-disable-next-line no-param-reassign
   options = {
     ip: false,

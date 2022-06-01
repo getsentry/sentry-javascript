@@ -3,6 +3,8 @@ import { captureException, getCurrentHub, startTransaction, withScope } from '@s
 import { Event, ExtractedNodeRequestData, Span } from '@sentry/types';
 import {
   addExpressReqToTransaction,
+  addRequestDataToEvent,
+  AddRequestDataToEventOptions,
   ExpressRequest as _ExpressRequest,
   extractExpressTransactionName,
   extractRequestData as _extractRequestData,
@@ -10,8 +12,6 @@ import {
   isString,
   logger,
   parseBaggageString,
-  parseRequest as _parseRequest,
-  ParseRequestOptions as _ParseRequestOptions,
 } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -74,7 +74,7 @@ export function tracingHandler(): (
   };
 }
 
-export type RequestHandlerOptions = ParseRequestOptions & {
+export type RequestHandlerOptions = AddRequestDataToEventOptions & {
   flushTimeout?: number;
 };
 
@@ -126,7 +126,7 @@ export function requestHandler(
       const currentHub = getCurrentHub();
 
       currentHub.configureScope(scope => {
-        scope.addEventProcessor((event: Event) => parseRequest(event, req, options));
+        scope.addEventProcessor((event: Event) => addRequestDataToEvent(event, req, options));
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
@@ -247,9 +247,9 @@ export function errorHandler(options?: {
 // TODO (v8 / #5190): Remove this
 /**
  * Options deciding what parts of the request to use when enhancing an event
- * @deprecated `Handlers.ParseRequestOptions` is deprecated. Use `ParseRequestOptions` in `@sentry/utils` instead.
+ * @deprecated `Handlers.ParseRequestOptions` is deprecated. Use `AddRequestDataToEventOptions` in `@sentry/utils` instead.
  */
-export type ParseRequestOptions = _ParseRequestOptions;
+export type ParseRequestOptions = AddRequestDataToEventOptions;
 
 // TODO (v8 / #5190): Remove this
 /**
@@ -258,12 +258,12 @@ export type ParseRequestOptions = _ParseRequestOptions;
  * @param event Will be mutated and enriched with req data
  * @param req Request object
  * @param options object containing flags to enable functionality
- * @deprecated `Handlers.parseRequest` is deprecated. Use `parseRequest` in `@sentry/utils` instead.
+ * @deprecated `Handlers.parseRequest` is deprecated. Use `addRequestDataToEvent` in `@sentry/utils` instead.
  * @hidden
  */
 // eslint-disable-next-line deprecation/deprecation
 export function parseRequest(event: Event, req: ExpressRequest, options?: ParseRequestOptions): Event {
-  return _parseRequest(event, req, options);
+  return addRequestDataToEvent(event, req, options);
 }
 
 // TODO (v8 / #5190): Remove this
