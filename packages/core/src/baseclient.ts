@@ -517,7 +517,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // event.spans[].data may contain circular/dangerous data so we need to normalize it
     if (event.spans) {
       normalized.spans = event.spans.map(span => {
-        // We cannot use the spread operator on span here because that overwrites the `toJSON` method
+        // We cannot use the spread operator here because `toJSON` on `span` is non-enumerable
         if (span.data) {
           span.data = normalize(span.data, depth, maxBreadth);
         }
