@@ -182,11 +182,6 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
   scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
   scope.setTag('url', `awslambda:///${context.functionName}`);
 
-  scope.setContext('runtime', {
-    name: 'node',
-    version: global.process.version,
-  });
-
   scope.setContext('aws.lambda', {
     aws_request_id: context.awsRequestId,
     function_name: context.functionName,
