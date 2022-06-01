@@ -10,4 +10,4 @@ declare global {
 }
 
 // We need this empty export because of --isolatedModules
-export {};
+export type {};
