@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
+import { captureException, flush, getCurrentHub, parseRequest, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import {
@@ -11,8 +11,6 @@ import {
 } from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
-
-const { parseRequest } = Handlers;
 
 // This is the same as the `NextApiHandler` type, except instead of having a return type of `void | Promise<void>`, it's
 // only `Promise<void>`, because wrapped handlers are always async

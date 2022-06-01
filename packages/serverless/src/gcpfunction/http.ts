@@ -1,17 +1,21 @@
-import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
+import {
+  captureException,
+  flush,
+  getCurrentHub,
+  parseRequest,
+  parseRequestOptions,
+  startTransaction,
+} from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { isString, logger, parseBaggageString, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
 
-type ParseRequestOptions = Handlers.ParseRequestOptions;
-
 export interface HttpFunctionWrapperOptions extends WrapperOptions {
   parseRequestOptions: ParseRequestOptions;
 }
 
-const { parseRequest } = Handlers;
 
 /**
  * Wraps an HTTP function handler adding it error capture and tracing capabilities.

@@ -4,7 +4,7 @@ import {
   configureScope,
   deepReadDirSync,
   getCurrentHub,
-  Handlers,
+  parseRequest,
   startTransaction,
 } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
@@ -21,8 +21,6 @@ import * as http from 'http';
 import { default as createNextServer } from 'next';
 import * as querystring from 'querystring';
 import * as url from 'url';
-
-const { parseRequest } = Handlers;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
