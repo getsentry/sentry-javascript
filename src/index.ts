@@ -154,7 +154,7 @@ export class SentryReplay implements Integration {
 
   setup() {
     const hub = Sentry.getCurrentHub();
-    const { scope } = hub.getStackTop();
+    const scope = hub.getScope();
 
     addInstrumentationListeners(scope, this);
 

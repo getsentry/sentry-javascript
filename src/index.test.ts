@@ -25,7 +25,6 @@ jest.mock('rrweb', () => {
 });
 
 import * as Sentry from '@sentry/browser';
-import '@sentry/tracing';
 import * as rrweb from 'rrweb';
 
 import { SentryReplay } from '@';

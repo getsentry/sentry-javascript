@@ -17,10 +17,7 @@ const config: RollupOptions = {
       format: 'esm',
     },
   ],
-  external: [
-    ...Object.keys(pkg.dependencies || {}),
-    ...Object.keys(pkg.peerDependencies || {}),
-  ],
+  external: [...Object.keys(pkg.dependencies || {})],
   plugins: [
     typescript(),
     replace({

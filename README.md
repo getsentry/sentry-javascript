@@ -13,13 +13,13 @@ To install the stable version:
 with npm:
 
 ```shell
-npm install --save @sentry/browser @sentry/replay @sentry/tracing rrweb
+npm install --save @sentry/browser @sentry/replay
 ```
 
 with yarn:
 
 ```shell
-yarn add @sentry/replay @sentry/browser @sentry/replay @sentry/tracing rrweb
+yarn add @sentry/replay @sentry/browser @sentry/replay
 ```
 
 ## Setup
@@ -31,7 +31,6 @@ See the rrweb documentation for advice on configuring these values.
 ```javascript
 import * as Sentry from '@sentry/browser';
 import { SentryReplay } from '@sentry/replay';
-import '@sentry/tracing';
 
 Sentry.init({
   dsn: '__DSN__',
