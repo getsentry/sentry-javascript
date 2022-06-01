@@ -30,11 +30,11 @@ export function makeBaseNPMConfig(options = {}) {
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
+  const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const constToVarPlugin = makeConstToVarPlugin();
   const removeESLintCommentsPlugin = makeRemoveESLintCommentsPlugin();
   const removeBlankLinesPlugin = makeRemoveBlankLinesPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
-  const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -82,11 +82,11 @@ export function makeBaseNPMConfig(options = {}) {
     plugins: [
       nodeResolvePlugin,
       sucrasePlugin,
+      debugBuildStatementReplacePlugin,
       constToVarPlugin,
       removeESLintCommentsPlugin,
       removeBlankLinesPlugin,
       extractPolyfillsPlugin,
-      debugBuildStatementReplacePlugin,
     ],
 
     // don't include imported modules from outside the package in the final output
