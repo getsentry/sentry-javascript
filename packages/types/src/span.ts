@@ -178,6 +178,4 @@ export interface Span extends SpanContext {
 
   /** return the baggage for dynamic sampling and trace propagation */
   getBaggage(): Baggage | undefined;
-
-  //_getBaggageWithSentryValues(baggage: Baggage): Baggage;
 }
