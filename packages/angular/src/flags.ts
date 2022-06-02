@@ -3,7 +3,8 @@
  * for users.
  *
  * We define "magic strings" like `__SENTRY_DEBUG__` that may get replaced with actual values during our, or the user's
- * build process. Take care when introducing new flags - they must not throw if they are not replaced.
+ * build process. Take care when introducing new flags - they must not throw if they are not replaced. See the Debug
+ * Build Flags section in CONTRIBUTING.md.
  */
 
 declare const __SENTRY_DEBUG__: boolean;

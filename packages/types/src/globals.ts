@@ -1,8 +1,13 @@
 /*
- * This file defines flags and constants that can be modified during compile time in order to facilitate tree shaking
- * for users.
+ * This file adds variables to the global namespace when it's loaded. We do this in order to be able to use flags and
+ * constants to facilitate tree shaking for users without having to import them, since the imports can confuse some
+ * tree-shaking algorithms.
  *
- * "Magic strings" like `__DEBUG_BUILD__` must be replaced with actual values or safe statements during our build process.
+ * "Magic strings" like `__DEBUG_BUILD__` are declared here, but only replaced with actual values during our build
+ * process.
+ *
+ * See https://www.typescriptlang.org/docs/handbook/declaration-files/templates/global-modifying-module-d-ts.html and
+ * the Debug Build Flags section in CONTRIBUTING.md.
  */
 
 declare global {

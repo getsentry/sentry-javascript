@@ -51,7 +51,7 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
     values: {
       // Flags in current package
       __DEBUG_BUILD__: includeDebugging,
-      // Flags in dependencies
+      // Flags in built monorepo dependencies, from which the bundle pulls
       __SENTRY_DEBUG__: includeDebugging,
     },
   });
