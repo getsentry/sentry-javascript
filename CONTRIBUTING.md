@@ -61,14 +61,12 @@ Pro tip: If any of your breakpoints are in code run by multiple tests, and you r
 
 ## Debug Build Flags
 
-Throughout the codebase, you will find debug flags like `__DEBUG_BUILD__` guarding various code sections.
-These flags serve two purposes:
+Throughout the codebase, you will find the `__DEBUG_BUILD__` flag guarding various code sections. This flag serves two purposes:
 
-1. They enable us to remove debug code for our production browser bundles.
-2. Enable users to tree-shake Sentry debug code for their production builds.
+1. It enables us to remove debug code from our minified CDN bundles during build, by replacing the flag with `false` before tree-shaking occurs.
+2. It enables users to remove Sentry debug code from their production bundles during their own build. When we build our npm packages, we replace the flag with `(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)`. If the user does nothing, this evaluates to `true` and logging is included. But if the user runs their own replacement during build (again replacing the flag with `false`), the build will tree-shake the logging away, just as our bundle builds do.
 
-Flags will be replaced with booleans for our browser bundles. In cjs and esm builds, they will be replaced by statements that do not throw.
-Take care when introducing new flags - they must be disarmed in our build scripts!
+Note that the replacement flag, `__SENTRY_DEBUG__`, is different from the original flag . This is necessary because the replacement plugin runs twice, at two different stages of the build, and we don't want to run a replacement on our replacement (as would happen if we reused `__DEBUG_BUILD__`).
 
 ## Linting
 
