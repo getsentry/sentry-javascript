@@ -40,7 +40,7 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
     http.get('http://dogs.are.great/');
 
@@ -55,7 +55,7 @@ describe('tracing', () => {
     nock('http://squirrelchasers.ingest.sentry.io').get('/api/12312012/store/').reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
 

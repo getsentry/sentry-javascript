@@ -1,11 +1,11 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain, Scope } from '@sentry/hub';
+import { BaseTransportOptions, ClientOptions } from '@sentry/types';
 import { createBaggage, getSentryBaggageItems, getThirdPartyBaggage, isSentryBaggageEmpty } from '@sentry/utils';
 
 import { Span, Transaction } from '../src';
 import { TRACEPARENT_REGEXP } from '../src/utils';
 import { getDefaultBrowserClientOptions } from './testutils';
-import { BaseTransportOptions, ClientOptions } from '@sentry/types';
 
 describe('Span', () => {
   let hub: Hub;
@@ -395,7 +395,7 @@ describe('Span', () => {
 
   describe('getBaggage and _getBaggageWithSentryValues', () => {
     beforeEach(() => {
-      hub.getClient()!!.getOptions = () => {
+      hub.getClient()!.getOptions = () => {
         return {
           release: '1.0.1',
           environment: 'production',
@@ -412,7 +412,7 @@ describe('Span', () => {
         hub,
       );
 
-      const hubSpy = jest.spyOn(hub.getClient()!!, 'getOptions');
+      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
       const span = transaction.startChild();
 
@@ -433,7 +433,7 @@ describe('Span', () => {
         hub,
       );
 
-      const hubSpy = jest.spyOn(hub.getClient()!!, 'getOptions');
+      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
       const span = transaction.startChild();
 
