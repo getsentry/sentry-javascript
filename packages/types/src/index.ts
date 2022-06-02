@@ -29,7 +29,7 @@ export type { Event, EventHint } from './event';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
-import './globals';
+export type {} from './globals';
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass } from './integration';
 export type { Mechanism } from './mechanism';
