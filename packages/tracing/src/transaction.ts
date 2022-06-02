@@ -17,12 +17,12 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   public metadata: TransactionMetadata;
 
-  private _measurements: Measurements = {};
-
   /**
    * The reference to the current hub.
    */
-  private readonly _hub: Hub;
+  protected readonly _hub: Hub;
+
+  private _measurements: Measurements = {};
 
   private _trimEnd?: boolean;
 

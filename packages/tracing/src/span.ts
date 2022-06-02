@@ -1,6 +1,15 @@
 /* eslint-disable max-lines */
-import { Baggage, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
-import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
+import { getCurrentHub } from '@sentry/hub';
+import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import {
+  createBaggage,
+  dropUndefinedKeys,
+  isBaggageEmpty,
+  isSentryBaggageEmpty,
+  setBaggageValue,
+  timestampWithMs,
+  uuid4,
+} from '@sentry/utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -302,7 +311,14 @@ export class Span implements SpanInterface {
    * @inheritdoc
    */
   public getBaggage(): Baggage | undefined {
-    return this.transaction && this.transaction.metadata.baggage;
+    const existingBaggage = this.transaction && this.transaction.metadata.baggage;
+
+    const finalBaggage =
+      !existingBaggage || isSentryBaggageEmpty(existingBaggage)
+        ? this._getBaggageWithSentryValues(existingBaggage)
+        : existingBaggage;
+
+    return isBaggageEmpty(finalBaggage) ? undefined : finalBaggage;
   }
 
   /**
@@ -333,6 +349,24 @@ export class Span implements SpanInterface {
       timestamp: this.endTimestamp,
       trace_id: this.traceId,
     });
+  }
+
+  /**
+   *
+   * @param baggage
+   * @returns
+   */
+  private _getBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const hub: Hub = ((this.transaction as any) && (this.transaction as any)._hub) || getCurrentHub();
+    const client = hub.getClient();
+
+    const { environment, release } = (client && client.getOptions()) || {};
+
+    environment && setBaggageValue(baggage, 'environment', environment);
+    release && setBaggageValue(baggage, 'release', release);
+
+    return baggage;
   }
 }
 

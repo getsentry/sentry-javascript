@@ -1,7 +1,7 @@
 import {
   createBaggage,
   getBaggageValue,
-  isBaggageEmpty,
+  isSentryBaggageEmpty,
   mergeAndSerializeBaggage,
   parseBaggageString,
   serializeBaggage,
@@ -98,12 +98,12 @@ describe('Baggage', () => {
     });
   });
 
-  describe('isBaggageEmpty', () => {
+  describe('isSentryBaggageEmpty', () => {
     it.each([
       ['returns true if the modifyable part of baggage is empty', createBaggage({}), true],
       ['returns false if the modifyable part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
     ])('%s', (_: string, baggage, outcome) => {
-      expect(isBaggageEmpty(baggage)).toEqual(outcome);
+      expect(isSentryBaggageEmpty(baggage)).toEqual(outcome);
     });
   });
 
