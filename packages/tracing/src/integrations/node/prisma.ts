@@ -2,8 +2,6 @@ import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { isThenable, logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../../flags';
-
 type PrismaAction =
   | 'findUnique'
   | 'findMany'
@@ -66,9 +64,10 @@ export class Prisma implements Integration {
     if (isValidPrismaClient(options.client)) {
       this._client = options.client;
     } else {
-      logger.warn(
-        `Unsupported Prisma client provided to PrismaIntegration. Provided client: ${JSON.stringify(options.client)}`,
-      );
+      __DEBUG_BUILD__ &&
+        logger.warn(
+          `Unsupported Prisma client provided to PrismaIntegration. Provided client: ${JSON.stringify(options.client)}`,
+        );
     }
   }
 
@@ -77,7 +76,7 @@ export class Prisma implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._client) {
-      IS_DEBUG_BUILD && logger.error('PrismaIntegration is missing a Prisma Client Instance');
+      __DEBUG_BUILD__ && logger.error('PrismaIntegration is missing a Prisma Client Instance');
       return;
     }
 

@@ -1,6 +1,5 @@
 import { Baggage, BaggageObj } from '@sentry/types';
 
-import { IS_DEBUG_BUILD } from './flags';
 import { logger } from './logger';
 
 export const BAGGAGE_HEADER_NAME = 'baggage';
@@ -56,7 +55,7 @@ export function serializeBaggage(baggage: Baggage): string {
     const baggageEntry = `${SENTRY_BAGGAGE_KEY_PREFIX}${encodeURIComponent(key)}=${encodeURIComponent(val)}`;
     const newVal = prev === '' ? baggageEntry : `${prev},${baggageEntry}`;
     if (newVal.length > MAX_BAGGAGE_STRING_LENGTH) {
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.warn(`Not adding key: ${key} with val: ${val} to baggage due to exceeding baggage size limits.`);
       return prev;
     } else {

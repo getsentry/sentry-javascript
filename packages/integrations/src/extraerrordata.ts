@@ -1,8 +1,6 @@
 import { Contexts, Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
 import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from './flags';
-
 /** JSDoc */
 interface ExtraErrorDataOptions {
   depth?: number;
@@ -121,7 +119,7 @@ export class ExtraErrorData implements Integration {
 
       return extraErrorInfo;
     } catch (oO) {
-      IS_DEBUG_BUILD && logger.error('Unable to extract extra data from the Error object:', oO);
+      __DEBUG_BUILD__ && logger.error('Unable to extract extra data from the Error object:', oO);
     }
 
     return null;

@@ -22,7 +22,6 @@ import { performance } from 'perf_hooks';
 import { types } from 'util';
 
 import { AWSServices } from './awsservices';
-import { IS_DEBUG_BUILD } from './flags';
 import { serverlessEventProcessor } from './utils';
 
 export * from '@sentry/node';
@@ -126,7 +125,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   const handlerDesc = basename(handlerPath);
   const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
   if (!match) {
-    IS_DEBUG_BUILD && logger.error(`Bad handler ${handlerDesc}`);
+    __DEBUG_BUILD__ && logger.error(`Bad handler ${handlerDesc}`);
     return;
   }
 
@@ -137,7 +136,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
     obj = tryRequire(taskRoot, handlerDir, handlerMod);
   } catch (e) {
-    IS_DEBUG_BUILD && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
+    __DEBUG_BUILD__ && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
     return;
   }
 
@@ -149,11 +148,11 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     functionName = name;
   });
   if (!obj) {
-    IS_DEBUG_BUILD && logger.error(`${handlerPath} is undefined or not exported`);
+    __DEBUG_BUILD__ && logger.error(`${handlerPath} is undefined or not exported`);
     return;
   }
   if (typeof obj !== 'function') {
-    IS_DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
+    __DEBUG_BUILD__ && logger.error(`${handlerPath} is not a function`);
     return;
   }
 
@@ -325,7 +324,7 @@ export function wrapHandler<TEvent, TResult>(
       transaction.finish();
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
-        IS_DEBUG_BUILD && logger.error(e);
+        __DEBUG_BUILD__ && logger.error(e);
       });
     }
     return rv;

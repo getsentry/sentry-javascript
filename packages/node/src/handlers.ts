@@ -18,7 +18,6 @@ import * as os from 'os';
 import * as url from 'url';
 
 import { NodeClient } from './client';
-import { IS_DEBUG_BUILD } from './flags';
 import { flush, isAutoSessionTrackingEnabled } from './sdk';
 
 export interface ExpressRequest {
@@ -413,7 +412,7 @@ export function requestHandler(
             _end.call(this, chunk, encoding, cb);
           })
           .then(null, e => {
-            IS_DEBUG_BUILD && logger.error(e);
+            __DEBUG_BUILD__ && logger.error(e);
             _end.call(this, chunk, encoding, cb);
           });
       };

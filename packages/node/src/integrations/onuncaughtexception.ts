@@ -3,7 +3,6 @@ import { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { NodeClient } from '../client';
-import { IS_DEBUG_BUILD } from '../flags';
 import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
@@ -96,7 +95,7 @@ export class OnUncaughtException implements Integration {
         }
       } else if (calledFatalError) {
         // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
-        IS_DEBUG_BUILD &&
+        __DEBUG_BUILD__ &&
           logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
         logAndExitProcess(error);
       } else if (!caughtSecondError) {

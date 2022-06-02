@@ -5,7 +5,6 @@ import { createStackParser, getGlobalObject, logger, stackParserFromStackParserO
 import * as domain from 'domain';
 
 import { NodeClient } from './client';
-import { IS_DEBUG_BUILD } from './flags';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { getModule } from './module';
 import { nodeStackLineParser } from './stack-parser';
@@ -165,7 +164,7 @@ export async function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  IS_DEBUG_BUILD && logger.warn('Cannot flush events. No client defined.');
+  __DEBUG_BUILD__ && logger.warn('Cannot flush events. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -182,7 +181,7 @@ export async function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  IS_DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
+  __DEBUG_BUILD__ && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
 }
 

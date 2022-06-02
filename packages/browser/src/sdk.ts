@@ -16,7 +16,6 @@ import {
 } from '@sentry/utils';
 
 import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
-import { IS_DEBUG_BUILD } from './flags';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
 import { defaultStackParser } from './stack-parsers';
@@ -131,14 +130,14 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
   // doesn't work without a document (React Native)
   const global = getGlobalObject<Window>();
   if (!global.document) {
-    IS_DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
+    __DEBUG_BUILD__ && logger.error('Global document not defined in showReportDialog call');
     return;
   }
 
   const { client, scope } = hub.getStackTop();
   const dsn = options.dsn || (client && client.getDsn());
   if (!dsn) {
-    IS_DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
+    __DEBUG_BUILD__ && logger.error('DSN not configured for showReportDialog call');
     return;
   }
 
@@ -166,7 +165,7 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
   if (injectionPoint) {
     injectionPoint.appendChild(script);
   } else {
-    IS_DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
+    __DEBUG_BUILD__ && logger.error('Not injecting report dialog. No injection point found in HTML');
   }
 }
 
@@ -208,7 +207,7 @@ export function flush(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  IS_DEBUG_BUILD && logger.warn('Cannot flush events. No client defined.');
+  __DEBUG_BUILD__ && logger.warn('Cannot flush events. No client defined.');
   return resolvedSyncPromise(false);
 }
 
@@ -225,7 +224,7 @@ export function close(timeout?: number): PromiseLike<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  IS_DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
+  __DEBUG_BUILD__ && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return resolvedSyncPromise(false);
 }
 
@@ -254,7 +253,8 @@ function startSessionTracking(): void {
   const document = window.document;
 
   if (typeof document === 'undefined') {
-    IS_DEBUG_BUILD && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
+    __DEBUG_BUILD__ &&
+      logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
     return;
   }
 

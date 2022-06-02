@@ -1,4 +1,3 @@
-import { IS_DEBUG_BUILD } from './flags';
 import { getGlobalObject } from './global';
 import { logger } from './logger';
 
@@ -113,7 +112,7 @@ export function supportsNativeFetch(): boolean {
       }
       doc.head.removeChild(sandbox);
     } catch (err) {
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
     }
   }

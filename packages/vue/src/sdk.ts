@@ -3,7 +3,6 @@ import { getGlobalObject, logger } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
-import { IS_DEBUG_BUILD } from './flags';
 import { createTracingMixins } from './tracing';
 import { Options, TracingOptions, Vue } from './types';
 
@@ -42,7 +41,7 @@ export function init(
   browserInit(options);
 
   if (!options.Vue && !options.app) {
-    IS_DEBUG_BUILD &&
+    __DEBUG_BUILD__ &&
       logger.warn(
         'Misconfigured SDK. Vue specific errors will not be captured.\n' +
           'Update your `Sentry.init` call with an appropriate config option:\n' +

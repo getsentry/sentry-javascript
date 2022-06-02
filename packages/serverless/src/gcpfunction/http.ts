@@ -2,7 +2,6 @@ import { captureException, flush, getCurrentHub, Handlers, startTransaction } fr
 import { extractTraceparentData } from '@sentry/tracing';
 import { isString, logger, parseBaggageString, stripUrlQueryAndFragment } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../flags';
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
 
@@ -99,7 +98,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
 
       void flush(options.flushTimeout)
         .then(null, e => {
-          IS_DEBUG_BUILD && logger.error(e);
+          __DEBUG_BUILD__ && logger.error(e);
         })
         .then(() => {
           _end.call(this, chunk, encoding, cb);
