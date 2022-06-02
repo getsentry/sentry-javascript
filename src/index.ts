@@ -168,8 +168,8 @@ export class SentryReplay implements Integration {
     // Tag all (non replay) events that get sent to Sentry with the current
     // replay ID so that we can reference them later in the UI
     Sentry.addGlobalEventProcessor((event: Event) => {
-      // Do not apply replayId to the root transaction
-      if (event.transaction === ROOT_REPLAY_NAME) {
+      // Do not apply replayId to the root event
+      if (event.message === ROOT_REPLAY_NAME) {
         return event;
       }
 
@@ -426,10 +426,6 @@ export class SentryReplay implements Integration {
    * Returns true if session is not expired, false otherwise.
    */
   checkAndHandleExpiredSession(expiry: number = SESSION_IDLE_DURATION) {
-    // if (!this.options.stickySession) {
-    // return;
-    // }
-
     const oldSessionId = this.session.id;
 
     // This will create a new session if expired, based on expiry length
