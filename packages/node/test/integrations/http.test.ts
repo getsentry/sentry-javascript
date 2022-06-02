@@ -21,6 +21,8 @@ describe('tracing', () => {
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
       integrations: [new HttpIntegration({ tracing: true })],
+      release: '1.0.0',
+      environment: 'production',
     });
     const hub = new Hub(new NodeClient(options));
     addExtensionMethods();
@@ -96,8 +98,7 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
-    // this might change once we actually add our baggage data to the header
-    expect(baggageHeader).toEqual('');
+    expect(baggageHeader).toEqual('sentry-environment=production,sentry-release=1.0.0');
   });
 
   it('propagates 3rd party baggage header data to outgoing non-sentry requests', async () => {
@@ -109,8 +110,7 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
-    // this might change once we actually add our baggage data to the header
-    expect(baggageHeader).toEqual('dog=great');
+    expect(baggageHeader).toEqual('dog=great,sentry-environment=production,sentry-release=1.0.0');
   });
 
   it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {
