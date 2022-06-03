@@ -424,11 +424,11 @@ describe('Span', () => {
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
 
-    test('add Sentry baggage data to baggage if Sentry content is empty', () => {
+    test('add Sentry baggage data to baggage if Sentry content is empty and baggage is mutable', () => {
       const transaction = new Transaction(
         {
           name: 'tx',
-          metadata: { baggage: createBaggage({}, '') },
+          metadata: { baggage: createBaggage({}, '', false) },
         },
         hub,
       );

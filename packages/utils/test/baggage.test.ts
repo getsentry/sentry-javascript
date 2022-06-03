@@ -1,8 +1,14 @@
+import { Baggage } from '@sentry/types';
+
 import {
   createBaggage,
+  freezeBaggage,
   getBaggageValue,
+  isBaggageEmpty,
+  isBaggageFrozen,
   isSentryBaggageEmpty,
   mergeAndSerializeBaggage,
+  parseAndFreezeBaggageIfNecessary,
   parseBaggageString,
   serializeBaggage,
   setBaggageValue,
@@ -11,14 +17,22 @@ import {
 describe('Baggage', () => {
   describe('createBaggage', () => {
     it.each([
-      ['creates an empty baggage instance', {}, [{}, '']],
+      ['creates an empty baggage instance', {}, [{}, '', false]],
       [
         'creates a baggage instance with initial values',
         { environment: 'production', anyKey: 'anyValue' },
-        [{ environment: 'production', anyKey: 'anyValue' }, ''],
+        [{ environment: 'production', anyKey: 'anyValue' }, '', false],
       ],
     ])('%s', (_: string, input, output) => {
       expect(createBaggage(input)).toEqual(output);
+    });
+
+    it('creates a baggage instance and marks it immutable if explicitly specified', () => {
+      expect(createBaggage({ environment: 'production', anyKey: 'anyValue' }, '', true)).toEqual([
+        { environment: 'production', anyKey: 'anyValue' },
+        '',
+        true,
+      ]);
     });
   });
 
@@ -40,6 +54,12 @@ describe('Baggage', () => {
     it.each([
       ['sets a baggage item', createBaggage({}), 'environment', 'production'],
       ['overwrites a baggage item', createBaggage({ environment: 'development' }), 'environment', 'production'],
+      [
+        'does not set a value if the passed baggage item is immutable',
+        createBaggage({ environment: 'development' }, '', true),
+        'environment',
+        'development',
+      ],
     ])('%s', (_: string, baggage, key, value) => {
       setBaggageValue(baggage, key, value);
       expect(getBaggageValue(baggage, key)).toEqual(value);
@@ -98,10 +118,21 @@ describe('Baggage', () => {
     });
   });
 
+  describe('isBaggageEmpty', () => {
+    it.each([
+      ['returns true if the entire baggage tuple is empty', createBaggage({}), true],
+      ['returns false if the Sentry part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
+      ['returns false if the 3rd party part of baggage is not empty', createBaggage({}, 'foo=bar'), false],
+      ['returns false if both parts of baggage are not empty', createBaggage({ release: '10.0.2' }, 'foo=bar'), false],
+    ])('%s', (_: string, baggage, outcome) => {
+      expect(isBaggageEmpty(baggage)).toEqual(outcome);
+    });
+  });
+
   describe('isSentryBaggageEmpty', () => {
     it.each([
-      ['returns true if the modifyable part of baggage is empty', createBaggage({}), true],
-      ['returns false if the modifyable part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
+      ['returns true if the Sentry part of baggage is empty', createBaggage({}), true],
+      ['returns false if the Sentry part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
     ])('%s', (_: string, baggage, outcome) => {
       expect(isSentryBaggageEmpty(baggage)).toEqual(outcome);
     });
@@ -127,6 +158,72 @@ describe('Baggage', () => {
       ['returns empty string when both params are undefined', undefined, undefined, ''],
     ])('%s', (_: string, baggage, headerBaggageString, outcome) => {
       expect(mergeAndSerializeBaggage(baggage, headerBaggageString)).toEqual(outcome);
+    });
+  });
+
+  describe('parseAndFreezeBaggageIfNecessary', () => {
+    it.each([
+      [
+        'returns an empty, mutable baggage object if both params are undefined',
+        undefined,
+        undefined,
+        [{}, '', false] as Baggage,
+      ],
+      [
+        'returns an empty, immutable baggage object if sentry-trace header data is defined',
+        undefined,
+        {},
+        [{}, '', true] as Baggage,
+      ],
+      [
+        'returns an empty, immutable baggage object if sentry-trace header data is a string',
+        undefined,
+        '123',
+        [{}, '', true] as Baggage,
+      ],
+      [
+        'returns a non-empty, mutable baggage object if sentry-trace is not defined and only 3rd party baggage items are passed',
+        'foo=bar',
+        undefined,
+        [{}, 'foo=bar', false] as Baggage,
+      ],
+      [
+        'returns a non-empty, immutable baggage object if sentry-trace is not defined and Sentry baggage items are passed',
+        'sentry-environment=production,foo=bar',
+        undefined,
+        [{ environment: 'production' }, 'foo=bar', true] as Baggage,
+      ],
+      [
+        'returns a non-empty, immutable baggage object if sentry-trace is defined',
+        'foo=bar',
+        {},
+        [{}, 'foo=bar', true] as Baggage,
+      ],
+    ])(
+      '%s',
+      (_: string, baggageString: string | undefined, sentryTraceData: any | string | undefined, result: Baggage) => {
+        expect(parseAndFreezeBaggageIfNecessary(baggageString, sentryTraceData)).toEqual(result);
+      },
+    );
+  });
+
+  describe('isBaggageFrozen', () => {
+    it.each([
+      ['returns true if the baggage was set immutable', true],
+      ['returns false if the baggage was set mutable', false],
+    ])('%s', (_: string, outcome) => {
+      const baggage: Baggage = [{}, '', outcome];
+      expect(isBaggageFrozen(baggage)).toEqual(outcome);
+    });
+  });
+
+  describe('freezeBaggage', () => {
+    it.each([
+      ['sets baggage immutable', [{}, '', false] as Baggage],
+      ['does not do anything when baggage is already immutable', [{}, '', true] as Baggage],
+    ])('%s', (_: string, baggage: Baggage) => {
+      freezeBaggage(baggage);
+      expect(baggage[2]).toEqual(true);
     });
   });
 });

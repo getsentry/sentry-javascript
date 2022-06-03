@@ -7,7 +7,6 @@ import {
   logger,
   objectify,
   parseAndFreezeBaggageIfNecessary,
-  parseBaggageString,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
