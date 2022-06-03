@@ -287,7 +287,7 @@ export function wrapHandler<TEvent, TResult>(
     }
 
     const rawBaggageString =
-      eventWithHeaders.headers && isString(eventWithHeaders.headers.baggage) && eventWithHeaders.headers.baggege;
+      eventWithHeaders.headers && isString(eventWithHeaders.headers.baggage) && eventWithHeaders.headers.baggage;
     const baggage = parseAndFreezeBaggageIfNecessary(rawBaggageString, traceparentData);
 
     const transaction = startTransaction({

@@ -110,7 +110,11 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapHttpFunction(handler);
       await handleHttp(wrappedHandler);
-      expect(Sentry.startTransaction).toBeCalledWith({ name: 'POST /path', op: 'gcp.function.http' });
+      expect(Sentry.startTransaction).toBeCalledWith({
+        name: 'POST /path',
+        op: 'gcp.function.http',
+        metadata: { baggage: [{}, '', false] },
+      });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
@@ -147,6 +151,7 @@ describe('GCPFunction', () => {
                 release: '2.12.1',
               },
               'maisey=silly,charlie=goofy',
+              true,
             ],
           },
         }),
@@ -173,6 +178,7 @@ describe('GCPFunction', () => {
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
+        metadata: { baggage: [{}, '', true] },
       });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
