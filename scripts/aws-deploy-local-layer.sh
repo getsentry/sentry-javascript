@@ -37,12 +37,28 @@ echo "Done copying Lambda layer in ./packages/serverless/build/aws/dist-serverle
 # is building the Lambda layer in production!
 # see: https://github.com/getsentry/action-build-aws-lambda-extension/blob/main/action.yml#L23-L40
 
-# Adding Sentry Lambda extension to Lambda layer
-echo "Adding Sentry Lambda extension to Lambda layer in ./dist-serverless..."
+echo "Downloading relay..."
+mkdir -p dist-serverless/relay
+# curl -0 --silent \
+#     --output dist-serverless/relay/relay \
+#     "$(curl -s https://release-registry.services.sentry.io/apps/relay/latest | jq -r .files.\"relay-Linux-x86_64\".url)"
+cp /Users/antonpirker/code/relay/target/x86_64-unknown-linux-gnu/release/relay dist-serverless/relay/ # REMOVE THIS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+chmod +x dist-serverless/relay/relay
+echo "Done downloading relay."
+
+echo "Creating start script..."
 mkdir -p dist-serverless/extensions
-curl -0 --silent --output dist-serverless/extensions/sentry-lambda-extension $(curl -s https://release-registry.services.sentry.io/apps/sentry-lambda-extension/latest | jq -r .files.\"sentry-lambda-extension\".url)
+cat > dist-serverless/extensions/sentry-lambda-extension << EOT
+#!/bin/bash
+set -euo pipefail
+exec /opt/relay/relay run \
+    --mode=proxy \
+    --shutdown-timeout=2 \
+    --upstream-dsn="\$SENTRY_DSN" \
+    --aws-runtime-api="\$AWS_LAMBDA_RUNTIME_API"
+EOT
 chmod +x dist-serverless/extensions/sentry-lambda-extension
-echo "Done adding Sentry Lambda extension to Lambda layer in ./dist-serverless."
+echo "Done creating start script."
 
 # Zip Lambda layer and included Lambda extension
 echo "Zipping Lambda layer and included Lambda extension..."
