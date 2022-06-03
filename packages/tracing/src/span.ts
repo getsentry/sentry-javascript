@@ -315,6 +315,8 @@ export class Span implements SpanInterface {
   public getBaggage(): Baggage | undefined {
     const existingBaggage = this.transaction && this.transaction.metadata.baggage;
 
+    // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
+    // empty and not yet set immutable
     const finalBaggage =
       !existingBaggage || (!isBaggageFrozen(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
         ? this._getBaggageWithSentryValues(existingBaggage)
