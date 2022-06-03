@@ -19,7 +19,7 @@ test('Should assign `baggage` header which contains 3rd party trace baggage data
   });
 });
 
-test('Should assign `baggage` header which contains sentry trace baggage data to an outgoing request.', async () => {
+test('Should not overwrite baggage if the incoming request already has Sentry baggage data.', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
@@ -35,7 +35,7 @@ test('Should assign `baggage` header which contains sentry trace baggage data to
   });
 });
 
-test('Should assign `baggage` header which contains sentry and 3rd party trace baggage data to an outgoing request.', async () => {
+test('Should pass along sentry and 3rd party trace baggage data from an incoming to an outgoing request.', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
