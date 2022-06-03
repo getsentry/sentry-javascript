@@ -130,7 +130,6 @@ describe('GoogleCloudGrpc tracing', () => {
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
         op: 'gcloud.grpc.pubsub',
         description: 'unary call publish',
-        metadata: { baggage: [{}, '', false] },
       });
       await pubsub.close();
     });
