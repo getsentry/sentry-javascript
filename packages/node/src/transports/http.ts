@@ -105,12 +105,10 @@ function createRequestExecutor(
     return new Promise((resolve, reject) => {
       let body = streamFromBody(request.body);
 
-      if (request.body.length > GZIP_THRESHOLD) {
-        options.headers = {
-          ...options.headers,
-          'content-encoding': 'gzip',
-        };
+      const headers: Record<string, string> = { ...options.headers };
 
+      if (request.body.length > GZIP_THRESHOLD) {
+        headers['content-encoding'] = 'gzip';
         body = body.pipe(createGzip());
       }
 
@@ -118,7 +116,7 @@ function createRequestExecutor(
         {
           method: 'POST',
           agent,
-          headers: options.headers,
+          headers,
           hostname,
           path: `${pathname}${search}`,
           port,
