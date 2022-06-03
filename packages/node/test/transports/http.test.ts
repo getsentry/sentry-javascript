@@ -42,8 +42,6 @@ function setupTestServer(
 
     const stream = req.headers['content-encoding'] === 'gzip' ? req.pipe(createGunzip({})) : req;
 
-    stream.on('error', () => {});
-
     stream.on('data', data => {
       chunks.push(data);
     });
