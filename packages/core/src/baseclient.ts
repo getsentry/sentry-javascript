@@ -476,7 +476,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return null;
     }
 
-    const normalized = {
+    const normalized: Event = {
       ...event,
       ...(event.breadcrumbs && {
         breadcrumbs: event.breadcrumbs.map(b => ({
@@ -496,6 +496,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         extra: normalize(event.extra, depth, maxBreadth),
       }),
     };
+
     // event.contexts.trace stores information about a Transaction. Similarly,
     // event.spans[] stores information about child Spans. Given that a
     // Transaction is conceptually a Span, normalization should apply to both
@@ -504,8 +505,24 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // so this block overwrites the normalized event to add back the original
     // Transaction information prior to normalization.
     if (event.contexts && event.contexts.trace) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      normalized.contexts = {};
       normalized.contexts.trace = event.contexts.trace;
+
+      // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
+      if (event.contexts.trace.data) {
+        normalized.contexts.trace.data = normalize(event.contexts.trace.data, depth, maxBreadth);
+      }
+    }
+
+    // event.spans[].data may contain circular/dangerous data so we need to normalize it
+    if (event.spans) {
+      normalized.spans = event.spans.map(span => {
+        // We cannot use the spread operator here because `toJSON` on `span` is non-enumerable
+        if (span.data) {
+          span.data = normalize(span.data, depth, maxBreadth);
+        }
+        return span;
+      });
     }
 
     normalized.sdkProcessingMetadata = { ...normalized.sdkProcessingMetadata, baseClientNormalized: true };
