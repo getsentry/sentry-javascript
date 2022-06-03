@@ -309,6 +309,11 @@ describe('SentryReplay', () => {
 
   it('fails to upload data on first call and retries after five seconds, sending successfully', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    // Suppress console.errors
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    const mockConsole = console.error as jest.MockedFunction<
+      typeof console.error
+    >;
     // fail the first request and pass the second one
     mockSendReplayRequest.mockImplementationOnce(() => {
       throw new Error('Something bad happened');
@@ -316,7 +321,11 @@ describe('SentryReplay', () => {
     mockSendReplayRequest.mockImplementationOnce(() => {
       return Promise.resolve();
     });
+
     mockRecord._emitter(TEST_EVENT);
+    // Reset console.error mock to minimize the amount of time we are hiding
+    // console messages in case an error happens after
+    mockConsole.mockClear();
     jest.advanceTimersToNextTimer();
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
@@ -333,31 +342,14 @@ describe('SentryReplay', () => {
       breadcrumbs: <Breadcrumbs[]>[],
     };
 
-    const replayRequestPayloadTwo = {
-      ...replayRequestPayload,
-      // since we log an error on retry, a console breadcrumb gets added to the subsequent sentReplayRequest call
-      breadcrumbs: [
-        {
-          category: 'console',
-          data: {
-            arguments: [Error('Something bad happened')],
-            logger: 'console',
-          },
-          level: 'error',
-          message: 'Error: Something bad happened',
-          timestamp: expect.any(Number),
-          type: 'default',
-        },
-      ],
-    };
-
     expect(replay.sendReplayRequest).toHaveBeenNthCalledWith(
       1,
       replayRequestPayload
     );
+
     expect(replay.sendReplayRequest).toHaveBeenNthCalledWith(
       2,
-      replayRequestPayloadTwo
+      replayRequestPayload
     );
 
     // No activity has occurred, session's last activity should remain the same

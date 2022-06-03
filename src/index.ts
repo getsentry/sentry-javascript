@@ -31,6 +31,9 @@ import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
 import { handleDom, handleScope, handleFetch, handleXhr } from './coreHandlers';
 
+
+type AddReplayEventCallback = () => boolean;
+
 interface PluginOptions {
   /**
    * The amount of time to wait before sending a replay
@@ -174,73 +177,85 @@ export class SentryReplay implements Integration {
     record({
       ...this.rrwebRecordOptions,
       emit: (event: RRWebEvent, isCheckout?: boolean) => {
-        // We want to batch uploads of replay events. Save events only if
-        // `<uploadMinDelay>` milliseconds have elapsed since the last event
-        // *OR* if `<uploadMaxDelay>` milliseconds have elapsed.
+        this.addReplayEvent(() => {
+          // We need to clear existing events on a checkout, otherwise they are
+          // incremental event updates and should be appended
+          if (isCheckout) {
+            this.events = [event];
+          } else {
+            this.events.push(event);
+          }
 
-        const now = new Date().getTime();
+          // This event type is a fullsnapshot, we should save immediately when this occurs
+          // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
+          if (event.type === 2) {
+            // A fullsnapshot happens on initial load and if we need to start a
+            // new replay due to idle timeout. In the latter case, a new session *should* have been started
+            // before triggering a new checkout
+            return true;
+          }
 
-        // Timestamp of the first replay event since the last flush, this gets
-        // reset when we finish the replay event
-        if (!this.initialEventTimestampSinceFlush) {
-          this.initialEventTimestampSinceFlush = now;
-        }
-
-        // Do not finish the replay event if we receive a new replay event
-        if (this.timeout) {
-          window.clearTimeout(this.timeout);
-        }
-
-        // If this is false, it means session is expired, create and a new session and wait for checkout
-        if (!this.checkAndHandleExpiredSession()) {
-          logger.error(
-            new Error('Received replay event after session expired.')
-          );
-
-          return;
-        }
-
-        // We need to clear existing events on a checkout, otherwise they are
-        // incremental event updates and should be appended
-        if (isCheckout) {
-          this.events = [event];
-        } else {
-          this.events.push(event);
-        }
-
-        // This event type is a fullsnapshot, we should save immediately when this occurs
-        // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
-        if (event.type === 2) {
-          // A fullsnapshot happens on initial load and if we need to start a
-          // new replay due to idle timeout. In the latter case, a new session *should* have been started
-          // before triggering a new checkout
-          this.finishReplayEvent();
-          return;
-        }
-
-        const uploadMaxDelayExceeded = isExpired(
-          this.initialEventTimestampSinceFlush,
-          this.options.uploadMaxDelay,
-          now
-        );
-
-        // If `uploadMaxDelayExceeded` is true, then we should finish the replay event immediately,
-        // Otherwise schedule it to be finished in `this.options.uploadMinDelay`
-        if (uploadMaxDelayExceeded) {
-          logger.log('replay max delay exceeded, finishing replay event');
-          this.finishReplayEvent();
-          return;
-        }
-
-        // Set timer to finish replay event and send replay attachment to
-        // Sentry. Will be cancelled if an event happens before `uploadMinDelay`
-        // elapses.
-        this.timeout = window.setTimeout(() => {
-          logger.log('replay timeout exceeded, finishing replay event');
-          this.finishReplayEvent();
-        }, this.options.uploadMinDelay);
+          return false;
+        });
       },
     });
+  }
+
+  /**
+   * We want to batch uploads of replay events. Save events only if
+   * `<uploadMinDelay>` milliseconds have elapsed since the last event
+   * *OR* if `<uploadMaxDelay>` milliseconds have elapsed.
+   *
+   * Accepts a callback to perform side-effects and returns a boolean value if we
+   * should flush events immediately
+   */
+  addReplayEvent(cb: AddReplayEventCallback) {
+    const now = new Date().getTime();
+
+    // Timestamp of the first replay event since the last flush, this gets
+    // reset when we finish the replay event
+    if (!this.initialEventTimestampSinceFlush) {
+      this.initialEventTimestampSinceFlush = now;
+    }
+
+    // Do not finish the replay event if we receive a new replay event
+    if (this.timeout) {
+      window.clearTimeout(this.timeout);
+    }
+
+    // If this is false, it means session is expired, create and a new session and wait for checkout
+    if (!this.checkAndHandleExpiredSession()) {
+      logger.error(new Error('Received replay event after session expired.'));
+
+      return;
+    }
+
+    if (cb() === true) {
+      this.finishReplayEvent();
+      return;
+    }
+
+    const uploadMaxDelayExceeded = isExpired(
+      this.initialEventTimestampSinceFlush,
+      this.options.uploadMaxDelay,
+      now
+    );
+
+    // If `uploadMaxDelayExceeded` is true, then we should finish the replay event immediately,
+    // Otherwise schedule it to be finished in `this.options.uploadMinDelay`
+    if (uploadMaxDelayExceeded) {
+      logger.log('replay max delay exceeded, finishing replay event');
+      this.finishReplayEvent();
+      return;
+    }
+
+    // Set timer to finish replay event and send replay attachment to
+    // Sentry. Will be cancelled if an event happens before `uploadMinDelay`
+    // elapses.
+    this.timeout = window.setTimeout(() => {
+      logger.log('replay timeout exceeded, finishing replay event');
+      this.finishReplayEvent();
+    }, this.options.uploadMinDelay);
   }
 
   /**
