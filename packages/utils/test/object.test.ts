@@ -200,34 +200,28 @@ describe('dropUndefinedKeys()', () => {
     });
   });
 
-  test('should not throw on objects with circular reference', () => {
-    const chicken: any = {
+  test('objects with circular reference', () => {
+    const dog: any = {
       food: undefined,
     };
 
-    const egg = {
-      edges: undefined,
-      contains: chicken,
+    const human = {
+      brain: undefined,
+      pets: dog,
     };
 
-    chicken.lays = egg;
+    const rat = {
+      scares: human,
+      weight: '4kg',
+    };
 
-    const droppedChicken = dropUndefinedKeys(chicken);
+    dog.chases = rat;
 
-    // Removes undefined keys
-    expect(Object.keys(droppedChicken)).toEqual(['lays']);
-    expect(Object.keys(droppedChicken.lays)).toEqual(['contains']);
-
-    // Returns new object
-    expect(chicken === droppedChicken).toBe(false);
-    expect(chicken.lays === droppedChicken.lays).toBe(false);
-
-    // Returns new references within objects
-    expect(chicken === droppedChicken.lays.contains).toBe(false);
-    expect(egg === droppedChicken.lays.contains.lays).toBe(false);
-
-    // Keeps circular reference
-    expect(droppedChicken.lays.contains === droppedChicken).toBe(true);
+    expect(dropUndefinedKeys(human)).toStrictEqual({
+      pets: {
+        chases: rat,
+      },
+    });
   });
 
   test('arrays with circular reference', () => {
