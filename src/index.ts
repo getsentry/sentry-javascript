@@ -19,7 +19,7 @@ import {
 } from './session/constants';
 import { getSession } from './session/getSession';
 import { updateSessionActivity } from './session/updateSessionActivity';
-import {
+import type {
   RRWebEvent,
   RRWebOptions,
   ReplaySpan,
@@ -31,8 +31,10 @@ import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
 import { handleDom, handleScope, handleFetch, handleXhr } from './coreHandlers';
 
-
-type AddReplayEventCallback = () => boolean;
+/**
+ * Returns true if we want to flush immediately, otherwise continue with normal batching
+ */
+type AddUpdateCallback = () => boolean;
 
 interface PluginOptions {
   /**
@@ -77,6 +79,19 @@ export class SentryReplay implements Integration {
    */
   public events: RRWebEvent[] = [];
 
+  /**
+   * Buffer of breadcrumbs to be uploaded
+   */
+  public breadcrumbs: Breadcrumb[] = [];
+
+  /**
+   * Buffer of replay spans to be uploaded
+   */
+  public replaySpans: ReplaySpan[] = [];
+
+  /**
+   * List of PerformanceEntry from PerformanceObserver
+   */
   public performanceEvents: PerformanceEntry[] = [];
 
   /**
@@ -91,14 +106,11 @@ export class SentryReplay implements Integration {
    */
   private timeout: number;
 
-  private breadcrumbs: Breadcrumb[] = [];
-
   /**
    * The timestamp of the first event since the last flush.
    * This is used to determine if the maximum allowed time has passed before we should flush events again.
    */
   private initialEventTimestampSinceFlush: number | null = null;
-  public replaySpans: ReplaySpan[] = [];
 
   private performanceObserver: PerformanceObserver | null = null;
 
@@ -177,7 +189,16 @@ export class SentryReplay implements Integration {
     record({
       ...this.rrwebRecordOptions,
       emit: (event: RRWebEvent, isCheckout?: boolean) => {
-        this.addReplayEvent(() => {
+        // If this is false, it means session is expired, create and a new session and wait for checkout
+        if (!this.checkAndHandleExpiredSession()) {
+          logger.error(
+            new Error('Received replay event after session expired.')
+          );
+
+          return;
+        }
+
+        this.addUpdate(() => {
           // We need to clear existing events on a checkout, otherwise they are
           // incremental event updates and should be appended
           if (isCheckout) {
@@ -209,7 +230,7 @@ export class SentryReplay implements Integration {
    * Accepts a callback to perform side-effects and returns a boolean value if we
    * should flush events immediately
    */
-  addReplayEvent(cb: AddReplayEventCallback) {
+  addUpdate(cb?: AddUpdateCallback) {
     const now = new Date().getTime();
 
     // Timestamp of the first replay event since the last flush, this gets
@@ -223,15 +244,8 @@ export class SentryReplay implements Integration {
       window.clearTimeout(this.timeout);
     }
 
-    // If this is false, it means session is expired, create and a new session and wait for checkout
-    if (!this.checkAndHandleExpiredSession()) {
-      logger.error(new Error('Received replay event after session expired.'));
-
-      return;
-    }
-
-    if (cb() === true) {
-      this.finishReplayEvent();
+    if (cb?.() === true) {
+      this.flushUpdate();
       return;
     }
 
@@ -245,7 +259,7 @@ export class SentryReplay implements Integration {
     // Otherwise schedule it to be finished in `this.options.uploadMinDelay`
     if (uploadMaxDelayExceeded) {
       logger.log('replay max delay exceeded, finishing replay event');
-      this.finishReplayEvent();
+      this.flushUpdate();
       return;
     }
 
@@ -254,7 +268,7 @@ export class SentryReplay implements Integration {
     // elapses.
     this.timeout = window.setTimeout(() => {
       logger.log('replay timeout exceeded, finishing replay event');
-      this.finishReplayEvent();
+      this.flushUpdate();
     }, this.options.uploadMinDelay);
   }
 
@@ -374,7 +388,7 @@ export class SentryReplay implements Integration {
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
     if (document.visibilityState !== 'visible') {
-      this.finishReplayEvent();
+      this.flushUpdate();
     }
   };
 
@@ -409,6 +423,8 @@ export class SentryReplay implements Integration {
     }
 
     handlerStore.push(result);
+
+    this.addUpdate();
   };
 
   /**
@@ -495,7 +511,7 @@ export class SentryReplay implements Integration {
     return false;
   }
 
-  finishReplayEvent() {
+  flushUpdate() {
     if (!this.checkAndHandleExpiredSession()) {
       logger.error(
         new Error('Attempting to finish replay event after session expired.')
@@ -577,8 +593,14 @@ export class SentryReplay implements Integration {
    * Finalize and send the current replay event to Sentry
    */
   async sendReplay(eventId: string) {
-    // short circuit if theres no events to replay
-    if (!this.events.length) return;
+    // short circuit if theres no events to upload
+    if (
+      !this.events.length &&
+      !this.replaySpans.length &&
+      !this.breadcrumbs.length
+    ) {
+      return;
+    }
 
     // Make a copy of the events array reference and immediately clear the
     // events member so that we do not lose new events while uploading

@@ -25,6 +25,8 @@ jest.mock('rrweb', () => {
 });
 
 import * as Sentry from '@sentry/browser';
+import * as SentryUtils from '@sentry/utils';
+import type { Breadcrumbs } from '@sentry/browser/types/integrations';
 import * as rrweb from 'rrweb';
 
 import { SentryReplay } from '@';
@@ -34,7 +36,6 @@ import {
 } from '@/session/constants';
 import { BASE_TIMESTAMP } from '@test';
 import { ReplaySpan, RRWebEvent } from '@/types';
-import { Breadcrumbs } from '@sentry/browser/types/integrations';
 
 type RecordAdditionalProperties = {
   takeFullSnapshot: jest.Mock;
@@ -56,16 +57,22 @@ const mockRecord = rrweb.record as RecordMock;
 
 jest.useFakeTimers();
 
-// TODO: tests for our breadcrumbs / spans
 describe('SentryReplay', () => {
   let replay: SentryReplay;
   type MockSendReplayRequest = jest.MockedFunction<
     typeof replay.sendReplayRequest
   >;
   let mockSendReplayRequest: MockSendReplayRequest;
+  let domHandler: (args: any) => any;
 
   beforeAll(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    jest
+      .spyOn(SentryUtils, 'addInstrumentationHandler')
+      .mockImplementation((_type, handler: (args: any) => any) => {
+        domHandler = handler;
+      });
+
     // XXX: We can only call `Sentry.init` once, not sure how to destroy it
     // after it has been in initialized
     replay = new SentryReplay({
@@ -305,6 +312,39 @@ describe('SentryReplay', () => {
     expect(replay).not.toHaveSameSession(initialSession);
 
     mockSendReplayRequest.mockReset();
+  });
+
+  it('uploads a dom breadcrumb 5 seconds after listener receives an event', () => {
+    domHandler({
+      name: 'click',
+    });
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+
+    const regex = new RegExp(
+      'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
+    );
+    expect(replay.sendReplayRequest).toHaveBeenCalledWith({
+      endpoint: expect.stringMatching(regex),
+      events: [],
+      replaySpans: [],
+      breadcrumbs: [
+        {
+          timestamp: BASE_TIMESTAMP / 1000,
+          type: 'default',
+          category: `ui.click`,
+          message: '<unknown>',
+          data: {},
+        },
+      ],
+    });
+
+    expect(replay.session.sequenceId).toBe(1);
+
+    // breadcrumbs array should be empty
+    expect(replay.breadcrumbs).toHaveLength(0);
   });
 
   it('fails to upload data on first call and retries after five seconds, sending successfully', async () => {

@@ -28,7 +28,7 @@ export function handleDom(handlerData: any) {
     message: target,
     data: {
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
-      nodeId: targetNode ? record.mirror.getId(targetNode as any) : undefined,
+      ...(targetNode ? { nodeId: record.mirror.getId(targetNode as any) } : {}),
     },
   };
 }
