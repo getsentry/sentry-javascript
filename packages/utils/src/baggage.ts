@@ -153,7 +153,6 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggag
  * @param rawBaggageString
  * @param traceparentData
  */
-//              parseBaggagePlusMutability
 export function parseAndFreezeBaggageIfNecessary(
   rawBaggageString: string | false | undefined | null,
   traceparentData: TraceparentData | string | false | undefined | null,

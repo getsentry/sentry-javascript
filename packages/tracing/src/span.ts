@@ -5,7 +5,7 @@ import {
   createBaggage,
   dropUndefinedKeys,
   isBaggageEmpty,
-  isSentryBaggageEmpty,
+  isBaggageFrozen,
   setBaggageValue,
   timestampWithMs,
   uuid4,
@@ -313,10 +313,8 @@ export class Span implements SpanInterface {
   public getBaggage(): Baggage | undefined {
     const existingBaggage = this.transaction && this.transaction.metadata.baggage;
 
-    const finalBaggage =
-      !existingBaggage || isSentryBaggageEmpty(existingBaggage)
-        ? this._getBaggageWithSentryValues(existingBaggage)
-        : existingBaggage;
+    const canModifyBaggage = !(existingBaggage && isBaggageFrozen(existingBaggage));
+    const finalBaggage = canModifyBaggage ? this._getBaggageWithSentryValues(existingBaggage) : existingBaggage;
 
     return isBaggageEmpty(finalBaggage) ? undefined : finalBaggage;
   }
