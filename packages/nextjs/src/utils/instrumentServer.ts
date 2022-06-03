@@ -13,7 +13,7 @@ import {
   fill,
   isString,
   logger,
-  parseBaggageString,
+  parseAndFreezeBaggageIfNecessary,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -257,8 +257,8 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
-          const baggage =
-            nextReq.headers && isString(nextReq.headers.baggage) && parseBaggageString(nextReq.headers.baggage);
+          const rawBaggageString = nextReq.headers && isString(nextReq.headers.baggage) && nextReq.headers.baggage;
+          const baggage = parseAndFreezeBaggageIfNecessary(rawBaggageString, traceparentData);
 
           // pull off query string, if any
           const reqPath = stripUrlQueryAndFragment(nextReq.url);
@@ -271,9 +271,8 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',
-              metadata: { requestPath: reqPath },
+              metadata: { requestPath: reqPath, baggage },
               ...traceparentData,
-              ...(baggage && { metadata: { baggage: baggage } }),
             },
             // Extra context passed to the `tracesSampler` (Note: We're combining `nextReq` and `req` this way in order
             // to not break people's `tracesSampler` functions, even though the format of `nextReq` has changed (see

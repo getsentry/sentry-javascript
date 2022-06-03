@@ -6,6 +6,7 @@ import {
   isString,
   logger,
   objectify,
+  parseAndFreezeBaggageIfNecessary,
   parseBaggageString,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
@@ -53,7 +54,8 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
             __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
-          const baggage = req.headers && isString(req.headers.baggage) && parseBaggageString(req.headers.baggage);
+          const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
+          const baggage = parseAndFreezeBaggageIfNecessary(rawBaggageString, traceparentData);
 
           const url = `${req.url}`;
           // pull off query string, if any
@@ -73,7 +75,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
-              ...(baggage && { metadata: { baggage: baggage } }),
+              metadata: { baggage: baggage },
             },
             // extra context passed to the `tracesSampler`
             { request: req },

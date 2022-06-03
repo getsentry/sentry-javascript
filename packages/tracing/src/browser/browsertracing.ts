@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger, parseBaggageString } from '@sentry/utils';
+import { getGlobalObject, logger, parseAndFreezeBaggageIfNecessary, parseBaggageString } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
@@ -255,7 +255,7 @@ export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | un
   const baggageValue = getMetaContent('baggage');
 
   const sentrytraceData = sentrytraceValue ? extractTraceparentData(sentrytraceValue) : undefined;
-  const baggage = baggageValue ? parseBaggageString(baggageValue) : undefined;
+  const baggage = parseAndFreezeBaggageIfNecessary(baggageValue, sentrytraceValue);
 
   // TODO more extensive checks for baggage validity/emptyness?
   if (sentrytraceData || baggage) {

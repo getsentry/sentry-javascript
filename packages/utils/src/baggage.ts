@@ -1,4 +1,4 @@
-import { Baggage, BaggageObj } from '@sentry/types';
+import { Baggage, BaggageObj, TraceparentData } from '@sentry/types';
 
 import { logger } from './logger';
 
@@ -16,8 +16,8 @@ export const SENTRY_BAGGAGE_KEY_PREFIX_REGEX = /^sentry-/;
 export const MAX_BAGGAGE_STRING_LENGTH = 8192;
 
 /** Create an instance of Baggage */
-export function createBaggage(initItems: BaggageObj, baggageString: string = ''): Baggage {
-  return [{ ...initItems }, baggageString];
+export function createBaggage(initItems: BaggageObj, baggageString: string = '', frozen: boolean = false): Baggage {
+  return [{ ...initItems }, baggageString, frozen];
 }
 
 /** Get a value from baggage */
@@ -27,7 +27,9 @@ export function getBaggageValue(baggage: Baggage, key: keyof BaggageObj): Baggag
 
 /** Add a value to baggage */
 export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: BaggageObj[keyof BaggageObj]): void {
-  baggage[0][key] = value;
+  if (!isBaggageFrozen(baggage)) {
+    baggage[0][key] = value;
+  }
 }
 
 /** Check if the Sentry part of the passed baggage (i.e. the first element in the tuple) is empty */
@@ -54,6 +56,23 @@ export function getThirdPartyBaggage(baggage: Baggage): string {
   return baggage[1];
 }
 
+/**
+ * Checks if baggage is frozen (i.e. immutable)
+ * @param baggage
+ * @returns true if baggage is frozen, else false
+ */
+export function isBaggageFrozen(baggage: Baggage): boolean {
+  return baggage[2];
+}
+
+/**
+ * Freezes baggage (i.e. makes it immutable)
+ * @param baggage
+ */
+export function freezeBaggage(baggage: Baggage): void {
+  baggage[2] = true;
+}
+
 /** Serialize a baggage object */
 export function serializeBaggage(baggage: Baggage): string {
   return Object.keys(baggage[0]).reduce((prev, key: keyof BaggageObj) => {
@@ -70,7 +89,7 @@ export function serializeBaggage(baggage: Baggage): string {
   }, baggage[1]);
 }
 
-/** Parse a baggage header to a string */
+/** Parse a baggage header from a string and return a Baggage object */
 export function parseBaggageString(inputBaggageString: string): Baggage {
   return inputBaggageString.split(',').reduce(
     ([baggageObj, baggageString], curr) => {
@@ -83,12 +102,13 @@ export function parseBaggageString(inputBaggageString: string): Baggage {
             [baggageKey]: decodeURIComponent(val),
           },
           baggageString,
+          false,
         ];
       } else {
-        return [baggageObj, baggageString === '' ? curr : `${baggageString},${curr}`];
+        return [baggageObj, baggageString === '' ? curr : `${baggageString},${curr}`, false];
       }
     },
-    [{}, ''],
+    [{}, '', false],
   );
 }
 
@@ -119,4 +139,28 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggag
     thirdPartyHeaderBaggage || (incomingBaggage && incomingBaggage[1]) || '',
   );
   return serializeBaggage(finalBaggage);
+}
+
+/**
+ * Helper function that takes a raw baggage string (if available) and the processed sentry-trace header
+ * data (if available), parses the baggage string and creates a Baggage object
+ * If there is no baggage string, it will create an empty Baggage object.
+ * In a second step, this functions determines when the created Baggage object should be frozen to prevent mutation
+ * of the Sentry data.
+ *
+ * Extracted this logic to a function because it's duplicated in a lot of places.
+ *
+ * @param rawBaggageString
+ * @param traceparentData
+ */
+//              parseBaggagePlusMutability
+export function parseAndFreezeBaggageIfNecessary(
+  rawBaggageString: string | false | undefined | null,
+  traceparentData: TraceparentData | string | false | undefined | null,
+): Baggage {
+  const baggage = parseBaggageString(rawBaggageString || '');
+  if (!isSentryBaggageEmpty(baggage) || (traceparentData && isSentryBaggageEmpty(baggage))) {
+    freezeBaggage(baggage);
+  }
+  return baggage;
 }
