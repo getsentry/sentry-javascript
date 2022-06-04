@@ -1,7 +1,6 @@
 import { Scope } from '@sentry/node';
 import { Context as SentryContext } from '@sentry/types';
 import type { Request, Response } from 'express';
-import { hostname } from 'os';
 
 export interface HttpFunction {
   (req: Request, res: Response): any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -54,11 +53,6 @@ export interface WrapperOptions {
  * @param context event context
  */
 export function configureScopeWithContext(scope: Scope, context: Context): void {
-  scope.setContext('runtime', {
-    name: 'node',
-    version: global.process.version,
-  });
-  scope.setTag('server_name', process.env.SENTRY_NAME || hostname());
   scope.setContext('gcp.function.context', { ...context } as SentryContext);
 }
 

@@ -1,4 +1,6 @@
 import { Scope, SessionFlusher } from '@sentry/hub';
+import { Event, EventHint } from '@sentry/types';
+import * as os from 'os';
 
 import { NodeClient } from '../src';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
@@ -185,6 +187,69 @@ describe('NodeClient', () => {
 
       const requestSession = scope.getRequestSession();
       expect(requestSession!.status).toEqual('ok');
+    });
+  });
+
+  describe('_prepareEvent', () => {
+    test('adds platform to event', () => {
+      const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN });
+      client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      (client as any)._prepareEvent(event, hint);
+
+      expect(event.platform).toEqual('node');
+    });
+
+    test('adds runtime context to event', () => {
+      const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN });
+      client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      (client as any)._prepareEvent(event, hint);
+
+      expect(event.contexts?.runtime).toEqual({
+        name: 'node',
+        version: process.version,
+      });
+    });
+
+    test('adds server name to event when value passed in options', () => {
+      const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, serverName: 'foo' });
+      client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      (client as any)._prepareEvent(event, hint);
+
+      expect(event.server_name).toEqual('foo');
+    });
+
+    test('adds server name to event when value given in env', () => {
+      const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN });
+      client = new NodeClient(options);
+      process.env.SENTRY_NAME = 'foo';
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      (client as any)._prepareEvent(event, hint);
+
+      expect(event.server_name).toEqual('foo');
+
+      delete process.env.SENTRY_NAME;
+    });
+
+    test('adds hostname as event server name when no value given', () => {
+      const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN });
+      client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      (client as any)._prepareEvent(event, hint);
+
+      expect(event.server_name).toEqual(os.hostname());
     });
   });
 });

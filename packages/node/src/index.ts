@@ -15,6 +15,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
+export type { AddRequestDataToEventOptions, ExpressRequest } from '@sentry/utils';
 
 export type { NodeOptions } from './types';
 
@@ -41,6 +42,7 @@ export {
   setUser,
   withScope,
 } from '@sentry/core';
+export { addRequestDataToEvent, extractRequestData } from '@sentry/utils';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';

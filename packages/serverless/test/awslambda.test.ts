@@ -46,8 +46,6 @@ function expectScopeSettings() {
   // @ts-ignore see "Why @ts-ignore" note
   expect(Sentry.fakeScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
   // @ts-ignore see "Why @ts-ignore" note
-  expect(Sentry.fakeScope.setContext).toBeCalledWith('runtime', { name: 'node', version: expect.anything() });
-  // @ts-ignore see "Why @ts-ignore" note
   expect(Sentry.fakeScope.setContext).toBeCalledWith(
     'aws.lambda',
     expect.objectContaining({
@@ -181,7 +179,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on sync handler', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const handler: Handler = (_event, _context, callback) => {
         callback(null, 42);
@@ -197,7 +195,7 @@ describe('AWSLambda', () => {
     });
 
     test('unsuccessful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('sorry');
       const handler: Handler = (_event, _context, callback) => {
@@ -264,7 +262,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('wat');
       const handler: Handler = (_event, _context, _callback) => {
@@ -294,7 +292,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const handler: Handler = async (_event, _context) => {
         return 42;
@@ -321,7 +319,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context) => {
@@ -359,7 +357,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler with a callback method (aka incorrect usage)', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const handler: Handler = async (_event, _context, _callback) => {
         return 42;
@@ -386,7 +384,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context, _callback) => {

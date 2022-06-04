@@ -1,17 +1,29 @@
-import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
+import {
+  addRequestDataToEvent,
+  AddRequestDataToEventOptions,
+  captureException,
+  flush,
+  getCurrentHub,
+  startTransaction,
+} from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { isString, logger, parseBaggageString, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
 
-type ParseRequestOptions = Handlers.ParseRequestOptions;
-
-export interface HttpFunctionWrapperOptions extends WrapperOptions {
-  parseRequestOptions: ParseRequestOptions;
+// TODO (v8 / #5190): Remove this
+interface OldHttpFunctionWrapperOptions extends WrapperOptions {
+  /**
+   * @deprecated Use `addRequestDataToEventOptions` instead.
+   */
+  parseRequestOptions: AddRequestDataToEventOptions;
+}
+interface NewHttpFunctionWrapperOptions extends WrapperOptions {
+  addRequestDataToEventOptions: AddRequestDataToEventOptions;
 }
 
-const { parseRequest } = Handlers;
+export type HttpFunctionWrapperOptions = OldHttpFunctionWrapperOptions | NewHttpFunctionWrapperOptions;
 
 /**
  * Wraps an HTTP function handler adding it error capture and tracing capabilities.
@@ -40,9 +52,13 @@ export function wrapHttpFunction(
 
 /** */
 function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWrapperOptions> = {}): HttpFunction {
+  // TODO (v8 / #5190): Remove this
+  // eslint-disable-next-line deprecation/deprecation
+  const { parseRequestOptions } = wrapOptions as OldHttpFunctionWrapperOptions;
+
   const options: HttpFunctionWrapperOptions = {
     flushTimeout: 2000,
-    parseRequestOptions: {},
+    addRequestDataToEventOptions: parseRequestOptions ? parseRequestOptions : {},
     ...wrapOptions,
   };
   return (req, res) => {
@@ -72,7 +88,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
     getCurrentHub().configureScope(scope => {
-      scope.addEventProcessor(event => parseRequest(event, req, options.parseRequestOptions));
+      scope.addEventProcessor(event => addRequestDataToEvent(event, req, options.addRequestDataToEventOptions));
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
     });

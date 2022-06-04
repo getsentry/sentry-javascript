@@ -1,10 +1,10 @@
 /* eslint-disable max-lines */
 import {
+  addRequestDataToEvent,
   captureException,
   configureScope,
   deepReadDirSync,
   getCurrentHub,
-  Handlers,
   startTransaction,
 } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
@@ -21,8 +21,6 @@ import * as http from 'http';
 import { default as createNextServer } from 'next';
 import * as querystring from 'querystring';
 import * as url from 'url';
-
-const { parseRequest } = Handlers;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -246,7 +244,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, nextReq));
+        currentScope.addEventProcessor(event => addRequestDataToEvent(event, nextReq));
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(nextReq.url, publicDirFiles)) {

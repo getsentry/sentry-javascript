@@ -212,7 +212,7 @@ describe('GCPFunction', () => {
   });
 
   test('wrapHttpFunction request data', async () => {
-    expect.assertions(7);
+    expect.assertions(6);
 
     const handler: HttpFunction = (_req, res) => {
       res.end();
@@ -223,7 +223,6 @@ describe('GCPFunction', () => {
     Sentry.fakeScope.addEventProcessor.mockImplementation(cb => cb(event));
     await handleHttp(wrappedHandler);
     expect(event.transaction).toEqual('POST /path');
-    expect(event.contexts?.runtime).toEqual({ name: 'node', version: expect.anything() });
     expect(event.request?.method).toEqual('POST');
     expect(event.request?.url).toEqual('http://hostname/path?q=query');
     expect(event.request?.query_string).toEqual('q=query');
@@ -362,15 +361,11 @@ describe('GCPFunction', () => {
   });
 
   test('wrapEventFunction scope data', async () => {
-    expect.assertions(3);
+    expect.assertions(1);
 
     const handler: EventFunction = (_data, _context) => 42;
     const wrappedHandler = wrapEventFunction(handler);
     await handleEvent(wrappedHandler);
-    // @ts-ignore see "Why @ts-ignore" note
-    expect(Sentry.fakeScope.setContext).toBeCalledWith('runtime', { name: 'node', version: expect.anything() });
-    // @ts-ignore see "Why @ts-ignore" note
-    expect(Sentry.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
     // @ts-ignore see "Why @ts-ignore" note
     expect(Sentry.fakeScope.setContext).toBeCalledWith('gcp.function.context', {
       eventType: 'event.type',
@@ -466,15 +461,11 @@ describe('GCPFunction', () => {
   });
 
   test('wrapCloudEventFunction scope data', async () => {
-    expect.assertions(3);
+    expect.assertions(1);
 
     const handler: CloudEventFunction = _context => 42;
     const wrappedHandler = wrapCloudEventFunction(handler);
     await handleCloudEvent(wrappedHandler);
-    // @ts-ignore see "Why @ts-ignore" note
-    expect(Sentry.fakeScope.setContext).toBeCalledWith('runtime', { name: 'node', version: expect.anything() });
-    // @ts-ignore see "Why @ts-ignore" note
-    expect(Sentry.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
     // @ts-ignore see "Why @ts-ignore" note
     expect(Sentry.fakeScope.setContext).toBeCalledWith('gcp.function.context', { type: 'event.type' });
   });
