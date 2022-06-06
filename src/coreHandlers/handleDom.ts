@@ -1,6 +1,7 @@
 import { record } from 'rrweb';
 
 import { htmlTreeAsString } from '@sentry/utils';
+import createBreadcrumb from '@/util/createBreadcrumb';
 
 export function handleDom(handlerData: any) {
   // Taken from https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/integrations/breadcrumbs.ts#L112
@@ -21,14 +22,12 @@ export function handleDom(handlerData: any) {
     return null;
   }
 
-  return {
-    timestamp: new Date().getTime() / 1000,
-    type: 'default',
+  return createBreadcrumb({
     category: `ui.${handlerData.name}`,
     message: target,
     data: {
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
       ...(targetNode ? { nodeId: record.mirror.getId(targetNode as any) } : {}),
     },
-  };
+  });
 }

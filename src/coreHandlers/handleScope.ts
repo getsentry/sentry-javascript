@@ -1,3 +1,4 @@
+import createBreadcrumb from '@/util/createBreadcrumb';
 import { Scope } from '@sentry/hub';
 
 export function handleScope(scope: Scope) {
@@ -11,5 +12,5 @@ export function handleScope(scope: Scope) {
     return null;
   }
 
-  return { type: 'default', ...newBreadcrumb };
+  return createBreadcrumb(newBreadcrumb);
 }

@@ -30,11 +30,12 @@ import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
 import { handleDom, handleScope, handleFetch, handleXhr } from './coreHandlers';
+import createBreadcrumb from './util/createBreadcrumb';
 
 /**
  * Returns true if we want to flush immediately, otherwise continue with normal batching
  */
-type AddUpdateCallback = () => boolean;
+type AddUpdateCallback = () => boolean | void;
 
 interface PluginOptions {
   /**
@@ -303,6 +304,7 @@ export class SentryReplay implements Integration {
 
   addListeners() {
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    window.addEventListener('beforeunload', this.handleWindowUnload);
 
     // Listeners from core SDK //
     const scope = Sentry.getCurrentHub().getScope();
@@ -342,6 +344,8 @@ export class SentryReplay implements Integration {
       'visibilitychange',
       this.handleVisibilityChange
     );
+
+    document.removeEventListener('beforeunload', this.handleWindowUnload);
 
     if (this.performanceObserver) {
       this.performanceObserver.disconnect();
@@ -392,6 +396,17 @@ export class SentryReplay implements Integration {
     }
   };
 
+  handleWindowUnload = () => {
+    this.addUpdate(() => {
+      this.breadcrumbs.push(
+        createBreadcrumb({
+          category: 'ui.exit',
+          message: '',
+        })
+      );
+    });
+  };
+
   handleCoreListener = (type: InstrumentationType) => (handlerData: any) => {
     const handlerMap: Record<
       InstrumentationType,
@@ -422,9 +437,9 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    handlerStore.push(result);
-
-    this.addUpdate();
+    this.addUpdate(() => {
+      handlerStore.push(result);
+    });
   };
 
   /**
