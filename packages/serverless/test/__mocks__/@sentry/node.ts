@@ -1,7 +1,6 @@
 const origSentry = jest.requireActual('@sentry/node');
 export const defaultIntegrations = origSentry.defaultIntegrations; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
 export const Handlers = origSentry.Handlers; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
-export const addRequestDataToEvent = origSentry.addRequestDataToEvent;
 export const SDK_VERSION = '6.6.6';
 export const Severity = {
   Warning: 'warning',
