@@ -132,6 +132,8 @@ jobs:
   job_pack_aws_lambda_layer:
     name: Pack and Upload AWS Lambda Layer
     needs: [job_get_metadata, job_build]
+    # only upload the zipped layer file if we're about to release
+    if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
