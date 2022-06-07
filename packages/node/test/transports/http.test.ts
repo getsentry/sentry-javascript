@@ -1,8 +1,9 @@
 import { createTransport } from '@sentry/core';
 import { EventEnvelope, EventItem } from '@sentry/types';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import { TextEncoder } from 'util';
+import { createGunzip } from 'zlib';
 
 import { makeNodeTransport } from '../../src/transports';
 
@@ -34,17 +35,19 @@ let testServer: http.Server | undefined;
 
 function setupTestServer(
   options: TestServerOptions,
-  requestInspector?: (req: http.IncomingMessage, body: string) => void,
+  requestInspector?: (req: http.IncomingMessage, body: string, raw: Uint8Array) => void,
 ) {
   testServer = http.createServer((req, res) => {
-    let body = '';
+    const chunks: Buffer[] = [];
 
-    req.on('data', data => {
-      body += data;
+    const stream = req.headers['content-encoding'] === 'gzip' ? req.pipe(createGunzip({})) : req;
+
+    stream.on('data', data => {
+      chunks.push(data);
     });
 
-    req.on('end', () => {
-      requestInspector?.(req, body);
+    stream.on('end', () => {
+      requestInspector?.(req, chunks.join(), Buffer.concat(chunks));
     });
 
     res.writeHead(options.statusCode, options.responseHeaders);
@@ -68,6 +71,16 @@ const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
 ]);
 
 const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE, new TextEncoder());
+
+const ATTACHMENT_ITEM = createAttachmentEnvelopeItem(
+  { filename: 'empty-file.bin', data: new Uint8Array(50_000) },
+  new TextEncoder(),
+);
+const EVENT_ATTACHMENT_ENVELOPE = addItemToEnvelope(EVENT_ENVELOPE, ATTACHMENT_ITEM);
+const SERIALIZED_EVENT_ATTACHMENT_ENVELOPE = serializeEnvelope(
+  EVENT_ATTACHMENT_ENVELOPE,
+  new TextEncoder(),
+) as Uint8Array;
 
 const defaultOptions = {
   url: TEST_SERVER_URL,
@@ -155,6 +168,40 @@ describe('makeNewHttpTransport()', () => {
     });
   });
 
+  describe('compression', () => {
+    it('small envelopes should not be compressed', async () => {
+      await setupTestServer(
+        {
+          statusCode: SUCCESS,
+          responseHeaders: {},
+        },
+        (req, body) => {
+          expect(req.headers['content-encoding']).toBeUndefined();
+          expect(body).toBe(SERIALIZED_EVENT_ENVELOPE);
+        },
+      );
+
+      const transport = makeNodeTransport(defaultOptions);
+      await transport.send(EVENT_ENVELOPE);
+    });
+
+    it('large envelopes should be compressed', async () => {
+      await setupTestServer(
+        {
+          statusCode: SUCCESS,
+          responseHeaders: {},
+        },
+        (req, _, raw) => {
+          expect(req.headers['content-encoding']).toEqual('gzip');
+          expect(raw.buffer).toStrictEqual(SERIALIZED_EVENT_ATTACHMENT_ENVELOPE.buffer);
+        },
+      );
+
+      const transport = makeNodeTransport(defaultOptions);
+      await transport.send(EVENT_ATTACHMENT_ENVELOPE);
+    });
+  });
+
   describe('proxy', () => {
     it('can be configured through option', () => {
       makeNodeTransport({
@@ -236,104 +283,106 @@ describe('makeNewHttpTransport()', () => {
     });
   });
 
-  it('should register TransportRequestExecutor that returns the correct object from server response (rate limit)', async () => {
-    await setupTestServer({
-      statusCode: RATE_LIMIT,
-      responseHeaders: {},
-    });
-
-    makeNodeTransport(defaultOptions);
-    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
-
-    const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
-      category: 'error',
-    });
-
-    await expect(executorResult).resolves.toEqual(
-      expect.objectContaining({
+  describe('should register TransportRequestExecutor that returns the correct object from server response', () => {
+    it('rate limit', async () => {
+      await setupTestServer({
         statusCode: RATE_LIMIT,
-      }),
-    );
-  });
+        responseHeaders: {},
+      });
 
-  it('should register TransportRequestExecutor that returns the correct object from server response (OK)', async () => {
-    await setupTestServer({
-      statusCode: SUCCESS,
+      makeNodeTransport(defaultOptions);
+      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+      const executorResult = registeredRequestExecutor({
+        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        category: 'error',
+      });
+
+      await expect(executorResult).resolves.toEqual(
+        expect.objectContaining({
+          statusCode: RATE_LIMIT,
+        }),
+      );
     });
 
-    makeNodeTransport(defaultOptions);
-    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
-
-    const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
-      category: 'error',
-    });
-
-    await expect(executorResult).resolves.toEqual(
-      expect.objectContaining({
+    it('OK', async () => {
+      await setupTestServer({
         statusCode: SUCCESS,
-        headers: {
-          'retry-after': null,
-          'x-sentry-rate-limits': null,
-        },
-      }),
-    );
-  });
+      });
 
-  it('should register TransportRequestExecutor that returns the correct object from server response (OK with rate-limit headers)', async () => {
-    await setupTestServer({
-      statusCode: SUCCESS,
-      responseHeaders: {
-        'Retry-After': '2700',
-        'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
-      },
+      makeNodeTransport(defaultOptions);
+      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+      const executorResult = registeredRequestExecutor({
+        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        category: 'error',
+      });
+
+      await expect(executorResult).resolves.toEqual(
+        expect.objectContaining({
+          statusCode: SUCCESS,
+          headers: {
+            'retry-after': null,
+            'x-sentry-rate-limits': null,
+          },
+        }),
+      );
     });
 
-    makeNodeTransport(defaultOptions);
-    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
-
-    const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
-      category: 'error',
-    });
-
-    await expect(executorResult).resolves.toEqual(
-      expect.objectContaining({
+    it('OK with rate-limit headers', async () => {
+      await setupTestServer({
         statusCode: SUCCESS,
-        headers: {
-          'retry-after': '2700',
-          'x-sentry-rate-limits': '60::organization, 2700::organization',
+        responseHeaders: {
+          'Retry-After': '2700',
+          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
         },
-      }),
-    );
-  });
+      });
 
-  it('should register TransportRequestExecutor that returns the correct object from server response (NOK with rate-limit headers)', async () => {
-    await setupTestServer({
-      statusCode: RATE_LIMIT,
-      responseHeaders: {
-        'Retry-After': '2700',
-        'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
-      },
+      makeNodeTransport(defaultOptions);
+      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+      const executorResult = registeredRequestExecutor({
+        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        category: 'error',
+      });
+
+      await expect(executorResult).resolves.toEqual(
+        expect.objectContaining({
+          statusCode: SUCCESS,
+          headers: {
+            'retry-after': '2700',
+            'x-sentry-rate-limits': '60::organization, 2700::organization',
+          },
+        }),
+      );
     });
 
-    makeNodeTransport(defaultOptions);
-    const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
-
-    const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
-      category: 'error',
-    });
-
-    await expect(executorResult).resolves.toEqual(
-      expect.objectContaining({
+    it('NOK with rate-limit headers', async () => {
+      await setupTestServer({
         statusCode: RATE_LIMIT,
-        headers: {
-          'retry-after': '2700',
-          'x-sentry-rate-limits': '60::organization, 2700::organization',
+        responseHeaders: {
+          'Retry-After': '2700',
+          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
         },
-      }),
-    );
+      });
+
+      makeNodeTransport(defaultOptions);
+      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+
+      const executorResult = registeredRequestExecutor({
+        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        category: 'error',
+      });
+
+      await expect(executorResult).resolves.toEqual(
+        expect.objectContaining({
+          statusCode: RATE_LIMIT,
+          headers: {
+            'retry-after': '2700',
+            'x-sentry-rate-limits': '60::organization, 2700::organization',
+          },
+        }),
+      );
+    });
   });
 });
