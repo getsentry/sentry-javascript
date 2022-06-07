@@ -2,7 +2,6 @@ import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
-import * as os from 'os';
 import { TextEncoder } from 'util';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
@@ -140,14 +139,9 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    */
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'node';
-    event.contexts = {
-      ...event.contexts,
-      runtime: {
-        name: 'node',
-        version: global.process.version,
-      },
-    };
-    event.server_name = this.getOptions().serverName || global.process.env.SENTRY_NAME || os.hostname();
+    if (this.getOptions().serverName) {
+      event.server_name = this.getOptions().serverName;
+    }
     return super._prepareEvent(event, hint, scope);
   }
 
