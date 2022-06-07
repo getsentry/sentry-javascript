@@ -145,20 +145,20 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggag
  * Helper function that takes a raw baggage string (if available) and the processed sentry-trace header
  * data (if available), parses the baggage string and creates a Baggage object
  * If there is no baggage string, it will create an empty Baggage object.
- * In a second step, this functions determines when the created Baggage object should be set immutable
+ * In a second step, this functions determines if the created Baggage object should be set immutable
  * to prevent mutation of the Sentry data.
  *
  * Extracted this logic to a function because it's duplicated in a lot of places.
  *
  * @param rawBaggageString
- * @param traceparentData
+ * @param sentryTraceData
  */
 export function parseBaggageSetMutability(
   rawBaggageString: string | false | undefined | null,
-  traceparentData: TraceparentData | string | false | undefined | null,
+  sentryTraceData: TraceparentData | string | false | undefined | null,
 ): Baggage {
   const baggage = parseBaggageString(rawBaggageString || '');
-  if (!isSentryBaggageEmpty(baggage) || (traceparentData && isSentryBaggageEmpty(baggage))) {
+  if (!isSentryBaggageEmpty(baggage) || (sentryTraceData && isSentryBaggageEmpty(baggage))) {
     setBaggageImmutable(baggage);
   }
   return baggage;
