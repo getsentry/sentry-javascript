@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.1.0
+
+- feat(tracing): Propagate environment and release values in baggage Http headers (#5193)
+- feat(node): Compression support for `http` transport (#5209)
+- fix(core): Normalize trace context (#5171)
+- fix(utils): Fix faulty references in `dropUndefinedKeys` (#5201)
+- fix(build): Add missing debug logger plugin in `debug.min` bundle variant config (#5192)
+- fix(tracing): Fix missing page load metrics in Electron renderer (#5187)
+- ref(node): Move non-handler code out of `handlers` module (#5190)
+- ref: Switch to magic string for logger statements (#5155)
+- chore(build): Only upload lambda layer when releasing (#5208)
+
 ## 7.0.0
 
 Version 7 of the Sentry JavaScript SDK brings a variety of features and fixes including bundle size and performance improvements, brand new integrations, support for the attachments API, and key bug fixes.
