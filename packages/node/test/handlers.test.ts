@@ -369,8 +369,8 @@ describe('tracingHandler', () => {
     expect(transaction.parentSpanId).toEqual('1121201211212012');
     expect(transaction.sampled).toEqual(false);
     expect(transaction.metadata?.baggage).toBeDefined();
-    expect(isBaggageEmpty(transaction.metadata?.baggage)).toBeTruthy();
-    expect(isBaggageMutable(transaction.metadata?.baggage)).toBeFalsy();
+    expect(isBaggageEmpty(transaction.metadata?.baggage)).toBe(true);
+    expect(isBaggageMutable(transaction.metadata?.baggage)).toBe(false);
   });
 
   it("pulls parent's data from tracing and baggage headers on the request", () => {

@@ -398,7 +398,7 @@ describe('BrowserTracing', () => {
 
         expect(headerContext).toBeDefined();
         expect(headerContext?.metadata?.baggage).toBeDefined();
-        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBeTruthy();
+        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
       });
 
       it('does not crash if the baggage header is malformed', () => {
@@ -421,7 +421,7 @@ describe('BrowserTracing', () => {
 
         expect(headerContext).toBeDefined();
         expect(headerContext?.metadata?.baggage).toBeDefined();
-        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBeTruthy();
+        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
       });
     });
 
@@ -475,7 +475,7 @@ describe('BrowserTracing', () => {
         expect(transaction.parentSpanId).toEqual('1121201211212012');
         expect(transaction.sampled).toBe(false);
         expect(baggage).toBeDefined();
-        expect(isSentryBaggageEmpty(baggage)).toBeTruthy();
+        expect(isSentryBaggageEmpty(baggage)).toBe(true);
         expect(baggage[1]).toBeDefined();
         expect(baggage[1]).toEqual('foo=bar');
       });
