@@ -3,7 +3,7 @@ import * as path from 'path';
 import { getAPIResponse, runServer } from '../../../../utils/index';
 import { TestAPIResponse } from '../server';
 
-test('Should assign `baggage` header which contains 3rd party trace baggage data of an outgoing request.', async () => {
+test('Should assign `baggage` header which contains 3rd party trace baggage data to an outgoing request.', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
@@ -14,39 +14,39 @@ test('Should assign `baggage` header which contains 3rd party trace baggage data
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: expect.stringContaining('foo=bar,bar=baz'),
+      baggage: 'foo=bar,bar=baz,sentry-environment=prod,sentry-release=1.0',
     },
   });
 });
 
-test('Should assign `baggage` header which contains sentry trace baggage data of an outgoing request.', async () => {
+test('Should not overwrite baggage if the incoming request already has Sentry baggage data.', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
-    baggage: 'sentry-version=1.0.0,sentry-environment=production',
+    baggage: 'sentry-version=2.0.0,sentry-environment=myEnv',
   })) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: expect.stringContaining('sentry-version=1.0.0,sentry-environment=production'),
+      baggage: 'sentry-version=2.0.0,sentry-environment=myEnv',
     },
   });
 });
 
-test('Should assign `baggage` header which contains sentry and 3rd party trace baggage data of an outgoing request.', async () => {
+test('Should pass along sentry and 3rd party trace baggage data from an incoming to an outgoing request.', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
-    baggage: 'sentry-version=1.0.0,sentry-environment=production,dogs=great',
+    baggage: 'sentry-version=2.0.0,sentry-environment=myEnv,dogs=great',
   })) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: expect.stringContaining('dogs=great,sentry-version=1.0.0,sentry-environment=production'),
+      baggage: expect.stringContaining('dogs=great,sentry-version=2.0.0,sentry-environment=myEnv'),
     },
   });
 });

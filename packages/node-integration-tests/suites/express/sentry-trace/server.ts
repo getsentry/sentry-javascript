@@ -11,6 +11,7 @@ export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': strin
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
+  environment: 'prod',
   integrations: [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
 });

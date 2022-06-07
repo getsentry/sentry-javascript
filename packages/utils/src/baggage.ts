@@ -30,9 +30,15 @@ export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: 
   baggage[0][key] = value;
 }
 
-/** Check if the baggage object (i.e. the first element in the tuple) is empty */
-export function isBaggageEmpty(baggage: Baggage): boolean {
+/** Check if the Sentry part of the passed baggage (i.e. the first element in the tuple) is empty */
+export function isSentryBaggageEmpty(baggage: Baggage): boolean {
   return Object.keys(baggage[0]).length === 0;
+}
+
+/** Check if the Sentry part of the passed baggage (i.e. the first element in the tuple) is empty */
+export function isBaggageEmpty(baggage: Baggage): boolean {
+  const thirdPartyBaggage = getThirdPartyBaggage(baggage);
+  return isSentryBaggageEmpty(baggage) && (thirdPartyBaggage == undefined || thirdPartyBaggage.length === 0);
 }
 
 /** Returns Sentry specific baggage values */
