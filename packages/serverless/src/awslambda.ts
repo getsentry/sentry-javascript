@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { extensionRelayDSN, isString, logger, parseBaggageString } from '@sentry/utils';
+import { isString, logger, parseBaggageString } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -77,8 +77,6 @@ export function init(options: Sentry.NodeOptions = {}): void {
     ],
     version: Sentry.SDK_VERSION,
   };
-
-  options.dsn = extensionRelayDSN(options.dsn);
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
