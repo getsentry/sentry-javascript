@@ -1,4 +1,12 @@
-import { Attachment, AttachmentItem, DataCategory, Envelope, EnvelopeItem, EnvelopeItemType } from '@sentry/types';
+import {
+  Attachment,
+  AttachmentItem,
+  DataCategory,
+  Envelope,
+  EnvelopeItem,
+  EnvelopeItemType,
+  TextEncoderInternal,
+} from '@sentry/types';
 
 import { dropUndefinedKeys } from './object';
 
@@ -34,11 +42,6 @@ export function forEachEnvelopeItem<E extends Envelope>(
     const envelopeItemType = envelopeItem[0].type;
     callback(envelopeItem, envelopeItemType);
   });
-}
-
-// Combination of global TextEncoder and Node require('util').TextEncoder
-interface TextEncoderInternal extends TextEncoderCommon {
-  encode(input?: string): Uint8Array;
 }
 
 function encodeUTF8(input: string, textEncoder?: TextEncoderInternal): Uint8Array {
