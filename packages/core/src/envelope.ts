@@ -128,19 +128,12 @@ function createEventEnvelopeHeaders(
     ...(event.type === 'transaction' &&
       event.contexts &&
       event.contexts.trace && {
-        // TODO: Grab this from baggage
         trace: dropUndefinedKeys({
           // Trace context must be defined for transactions
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          trace_id: event.contexts!.trace.trace_id as string,
-          environment: event.environment,
-          release: event.release,
-          transaction: event.transaction,
-          user: event.user && {
-            id: event.user.id,
-            segment: event.user.segment,
-          },
+          trace_id: (event.contexts!.trace as Record<string, unknown>).trace_id as string,
           public_key: dsn.publicKey,
+          ...event.contexts.baggage,
         }),
       }),
   };
