@@ -8,6 +8,7 @@
 
 - feat(tracing): Propagate environment and release values in baggage Http headers (#5193)
 - feat(node): Compression support for `http` transport (#5209)
+- fix(serverless): Do not change DSN in Serverless integration (#5212)
 - fix(core): Normalize trace context (#5171)
 - fix(utils): Fix faulty references in `dropUndefinedKeys` (#5201)
 - fix(build): Add missing debug logger plugin in `debug.min` bundle variant config (#5192)
