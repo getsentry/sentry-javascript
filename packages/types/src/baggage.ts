@@ -13,7 +13,7 @@ export type BaggageObj = Partial<Record<AllowedBaggageKeys, string> & Record<str
  * set/used by sentry, they will be stored in an object to be easily accessed.
  * If they are not, they are kept as a string to be only accessed when serialized
  * at baggage propagation time.
- * The third tuple member controls the mutability of the baggage. If it is `true`,
- * the baggage can not be modified any longer (i.e. is immutable).
+ * The third tuple member controls the mutability of the baggage. If it is `false`,
+ * the baggage can no longer longer be modified (i.e. is immutable).
  */
 export type Baggage = [BaggageObj, string, boolean];

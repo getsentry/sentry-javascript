@@ -6,7 +6,7 @@ import {
   isString,
   logger,
   objectify,
-  parseAndFreezeBaggageIfNecessary,
+  parseBaggageSetMutability,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -54,7 +54,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
           }
 
           const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
-          const baggage = parseAndFreezeBaggageIfNecessary(rawBaggageString, traceparentData);
+          const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
           const url = `${req.url}`;
           // pull off query string, if any

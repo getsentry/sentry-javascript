@@ -1,6 +1,6 @@
 import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
-import { isString, logger, parseAndFreezeBaggageIfNecessary, stripUrlQueryAndFragment } from '@sentry/utils';
+import { isString, logger, parseBaggageSetMutability, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
@@ -59,7 +59,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     const rawBaggageString =
       reqWithHeaders.headers && isString(reqWithHeaders.headers.baggage) && reqWithHeaders.headers.baggage;
 
-    const baggage = parseAndFreezeBaggageIfNecessary(rawBaggageString, traceparentData);
+    const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
     const transaction = startTransaction({
       name: `${reqMethod} ${reqUrl}`,

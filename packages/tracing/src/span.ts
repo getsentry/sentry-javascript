@@ -4,10 +4,10 @@ import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext, Transactio
 import {
   createBaggage,
   dropUndefinedKeys,
-  freezeBaggage,
   isBaggageEmpty,
-  isBaggageFrozen,
+  isBaggageMutable,
   isSentryBaggageEmpty,
+  setBaggageImmutable,
   setBaggageValue,
   timestampWithMs,
   uuid4,
@@ -316,9 +316,9 @@ export class Span implements SpanInterface {
     const existingBaggage = this.transaction && this.transaction.metadata.baggage;
 
     // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
-    // empty and not yet set immutable
+    // empty and mutable
     const finalBaggage =
-      !existingBaggage || (!isBaggageFrozen(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
+      !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
         ? this._getBaggageWithSentryValues(existingBaggage)
         : existingBaggage;
 
@@ -378,7 +378,7 @@ export class Span implements SpanInterface {
     environment && setBaggageValue(baggage, 'environment', environment);
     release && setBaggageValue(baggage, 'release', release);
 
-    freezeBaggage(baggage);
+    setBaggageImmutable(baggage);
 
     return baggage;
   }

@@ -234,7 +234,7 @@ describe('BrowserTracing', () => {
           parentSpanId: 'b6e54397b12a2a0f',
           parentSampled: true,
           metadata: {
-            baggage: [{ release: '2.1.14' }, 'foo=bar', true],
+            baggage: [{ release: '2.1.14' }, 'foo=bar', false],
           },
         }),
         expect.any(Number),

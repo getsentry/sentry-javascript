@@ -428,7 +428,7 @@ describe('Span', () => {
       const transaction = new Transaction(
         {
           name: 'tx',
-          metadata: { baggage: createBaggage({}, '', false) },
+          metadata: { baggage: createBaggage({}, '', true) },
         },
         hub,
       );

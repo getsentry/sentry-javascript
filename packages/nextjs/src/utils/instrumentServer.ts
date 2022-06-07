@@ -13,7 +13,7 @@ import {
   fill,
   isString,
   logger,
-  parseAndFreezeBaggageIfNecessary,
+  parseBaggageSetMutability,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -258,7 +258,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           }
 
           const rawBaggageString = nextReq.headers && isString(nextReq.headers.baggage) && nextReq.headers.baggage;
-          const baggage = parseAndFreezeBaggageIfNecessary(rawBaggageString, traceparentData);
+          const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
           // pull off query string, if any
           const reqPath = stripUrlQueryAndFragment(nextReq.url);
