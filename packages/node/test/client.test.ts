@@ -216,6 +216,24 @@ describe('NodeClient', () => {
       });
     });
 
+    test('does not add runtime context to event if already defined on event', () => {
+      const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN });
+      client = new NodeClient(options);
+
+      const event: Event = {
+        contexts: {
+          runtime: {
+            name: 'Electron',
+            version: '19.0.0',
+          },
+        },
+      };
+      const hint: EventHint = {};
+      (client as any)._prepareEvent(event, hint);
+
+      expect(event.contexts?.runtime).toEqual(event.contexts?.runtime);
+    });
+
     test('adds server name to event when value passed in options', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, serverName: 'foo' });
       client = new NodeClient(options);

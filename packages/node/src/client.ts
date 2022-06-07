@@ -142,7 +142,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     event.platform = event.platform || 'node';
     event.contexts = {
       ...event.contexts,
-      runtime: {
+      runtime: event.contexts?.runtime || {
         name: 'node',
         version: global.process.version,
       },
