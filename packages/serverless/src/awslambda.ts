@@ -79,6 +79,7 @@ export function init(options: Sentry.NodeOptions = {}): void {
     version: Sentry.SDK_VERSION,
   };
 
+  // Point the SDK to the Lambda Extension instead of the host specified in the DSN
   options.dsn = extensionRelayDSN(options.dsn);
 
   Sentry.init(options);
