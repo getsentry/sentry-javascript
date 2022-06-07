@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.1.1
+
+- **Revert** "ref(node): Move non-handler code out of handlers module" (#5223)
+- fix(types): Vendor in TextEncoderCommon type (#5221)
+
 ## 7.1.0
 
 - feat(tracing): Propagate environment and release values in baggage Http headers (#5193)
