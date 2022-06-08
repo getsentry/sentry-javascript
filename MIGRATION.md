@@ -11,7 +11,7 @@ Below we will outline all the breaking changes you should consider when upgradin
 - `whitelistUrls` and `blacklistUrls` have been renamed to `allowUrls` and `denyUrls` in the `Sentry.init()` options.
 - The `UserAgent` integration is now called `HttpContext`.
 - If you are using Performance Monitoring and with tracing enabled, you might have to [make adjustments to
-your server's CORS settings](#-propagation-of-baggage-header)
+your server's CORS settings](#propagation-of-baggage-header)
 
 ## Dropping Support for Node.js v6
 
