@@ -15,7 +15,7 @@ export * from '@sentry/node';
 
 // Here we want to make sure to only include what doesn't have browser specifics
 // because or SSR of next.js we can only use this.
-export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
+export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/react';
 
 type GlobalWithDistDir = typeof global & { __rewriteFramesDistDir__: string };
 const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
