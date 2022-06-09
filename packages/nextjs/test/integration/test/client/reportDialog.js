@@ -1,4 +1,4 @@
-const { equal } = require('assert');
+const assert = require('assert');
 
 module.exports = async ({ page, url }) => {
   await page.goto(`${url}/reportDialog`);
@@ -10,5 +10,5 @@ module.exports = async ({ page, url }) => {
   const dialogScript = await page.waitForSelector(dialogScriptSelector, { state: 'attached' });
   const dialogScriptSrc = await (await dialogScript.getProperty('src')).jsonValue();
 
-  equal(dialogScriptSrc?.startsWith('https://dsn.ingest.sentry.io/api/embed/error-page/?'), true);
+  assert(dialogScriptSrc.startsWith('https://dsn.ingest.sentry.io/api/embed/error-page/?'));
 };
