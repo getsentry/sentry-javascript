@@ -14,7 +14,6 @@ import {
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
-import * as os from 'os';
 import * as url from 'url';
 
 import { NodeClient } from './client';
@@ -292,10 +291,8 @@ export function extractRequestData(
 export interface ParseRequestOptions {
   ip?: boolean;
   request?: boolean | string[];
-  serverName?: boolean;
   transaction?: boolean | TransactionNamingScheme;
   user?: boolean | string[];
-  version?: boolean;
 }
 
 /**
@@ -311,22 +308,10 @@ export function parseRequest(event: Event, req: ExpressRequest, options?: ParseR
   options = {
     ip: false,
     request: true,
-    serverName: true,
     transaction: true,
     user: true,
-    version: true,
     ...options,
   };
-
-  if (options.version) {
-    event.contexts = {
-      ...event.contexts,
-      runtime: {
-        name: 'node',
-        version: global.process.version,
-      },
-    };
-  }
 
   if (options.request) {
     // if the option value is `true`, use the default set of keys by not passing anything to `extractRequestData()`
@@ -337,10 +322,6 @@ export function parseRequest(event: Event, req: ExpressRequest, options?: ParseR
       ...event.request,
       ...extractedRequestData,
     };
-  }
-
-  if (options.serverName && !event.server_name) {
-    event.server_name = global.process.env.SENTRY_NAME || os.hostname();
   }
 
   if (options.user) {

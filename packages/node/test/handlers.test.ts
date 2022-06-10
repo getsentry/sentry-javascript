@@ -2,7 +2,7 @@ import * as sentryCore from '@sentry/core';
 import * as sentryHub from '@sentry/hub';
 import { Hub } from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
-import { Baggage, Runtime } from '@sentry/types';
+import { Baggage } from '@sentry/types';
 import { isBaggageEmpty, isBaggageMutable, SentryError } from '@sentry/utils';
 import * as http from 'http';
 import * as net from 'net';
@@ -53,25 +53,6 @@ describe('parseRequest', () => {
         username: 'tobias',
       },
     };
-  });
-
-  describe('parseRequest.contexts runtime', () => {
-    test('runtime name must contain node', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
-      expect((parsedRequest.contexts!.runtime as Runtime).name).toEqual('node');
-    });
-
-    test('runtime version must contain current node version', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest);
-      expect((parsedRequest.contexts!.runtime as Runtime).version).toEqual(process.version);
-    });
-
-    test('runtime disbaled by options', () => {
-      const parsedRequest: Event = parseRequest({}, mockReq as ExpressRequest, {
-        version: false,
-      });
-      expect(parsedRequest).not.toHaveProperty('contexts.runtime');
-    });
   });
 
   describe('parseRequest.user properties', () => {
