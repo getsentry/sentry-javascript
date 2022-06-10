@@ -16,6 +16,7 @@ const NODE_8_SKIP_TESTS_PACKAGES = [
   '@sentry/serverless',
   '@sentry/nextjs',
   '@sentry/angular',
+  '@sentry/remix',
 ];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
@@ -26,7 +27,11 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'jest-environment-node@25.x',
   'ts-jest@25.x',
 ];
+
+const NODE_10_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix'];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x'];
+
+const NODE_12_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix'];
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
@@ -157,12 +162,12 @@ function runTests(): void {
   else if (CURRENT_NODE_VERSION === '10') {
     installLegacyDeps(NODE_10_LEGACY_DEPENDENCIES);
     es6ifyTestTSConfig('utils');
-    runWithIgnores(DEFAULT_SKIP_TESTS_PACKAGES);
+    runWithIgnores(NODE_10_SKIP_TESTS_PACKAGES);
   }
   //
   else if (CURRENT_NODE_VERSION === '12') {
     es6ifyTestTSConfig('utils');
-    runWithIgnores(DEFAULT_SKIP_TESTS_PACKAGES);
+    runWithIgnores(NODE_12_SKIP_TESTS_PACKAGES);
   }
   //
   else {
