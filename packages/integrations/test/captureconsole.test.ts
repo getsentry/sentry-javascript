@@ -81,9 +81,9 @@ describe('CaptureConsole setup', () => {
       expect(global.console.error).not.toBe(originalConsole.error);
       expect(global.console.log).not.toBe(originalConsole.log);
       expect(global.console.assert).not.toBe(originalConsole.assert);
+      expect(global.console.trace).not.toBe(originalConsole.trace);
 
       // any other fields should not have been patched
-      expect(global.console.trace).toBe(originalConsole.trace);
       expect(global.console.table).toBe(originalConsole.table);
     });
 
