@@ -58,7 +58,7 @@
     "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
-    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular --exclude 'config/types\\.ts' src/index.server.ts # see https://github.com/pahen/madge/issues/306",
+    "circularDepCheck": "madge --circular src/index.client.tsx && madge --circular --exclude 'config/types\\.ts' src/index.server.ts # see https://github.com/pahen/madge/issues/306",
     "clean": "rimraf build coverage",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
