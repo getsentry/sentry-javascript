@@ -241,3 +241,9 @@ export function errorHandler(options?: {
     next(error);
   };
 }
+
+// TODO (v8 / #5257): Remove this
+// eslint-disable-next-line deprecation/deprecation
+export type { ParseRequestOptions, ExpressRequest } from './requestDataDeprecated';
+// eslint-disable-next-line deprecation/deprecation
+export { parseRequest, extractRequestData } from './requestDataDeprecated';
