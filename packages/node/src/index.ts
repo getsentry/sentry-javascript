@@ -15,6 +15,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
+export type { AddRequestDataToEventOptions, CrossPlatformRequest } from '@sentry/utils';
 
 export type { NodeOptions } from './types';
 
@@ -44,7 +45,17 @@ export {
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
-export { defaultIntegrations, init, defaultStackParser, lastEventId, flush, close, getSentryRelease } from './sdk';
+export {
+  addRequestDataToEvent,
+  extractRequestData,
+  defaultIntegrations,
+  init,
+  defaultStackParser,
+  lastEventId,
+  flush,
+  close,
+  getSentryRelease,
+} from './sdk';
 export { deepReadDirSync } from './utils';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
