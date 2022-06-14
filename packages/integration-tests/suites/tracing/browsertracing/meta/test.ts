@@ -22,7 +22,7 @@ sentryTest(
 );
 
 sentryTest(
-  'should pick up `baggage` <meta> tag and propagate the content in transaction',
+  'should pick up `baggage` <meta> tag, propagate the content in transaction and not add own data',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
