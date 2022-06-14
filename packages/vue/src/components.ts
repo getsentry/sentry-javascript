@@ -30,6 +30,11 @@ export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): stri
     return ROOT_COMPONENT_NAME;
   }
 
+  // https://github.com/getsentry/sentry-javascript/issues/5204 $options can be undefined
+  if (!vm.$options) {
+    return ANONYMOUS_COMPONENT_NAME;
+  }
+
   const options = vm.$options;
 
   let name = options.name || options._componentTag;
