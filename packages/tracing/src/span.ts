@@ -5,7 +5,9 @@ import {
   createBaggage,
   dropUndefinedKeys,
   isBaggageEmpty,
+  isBaggageMutable,
   isSentryBaggageEmpty,
+  setBaggageImmutable,
   setBaggageValue,
   timestampWithMs,
   uuid4,
@@ -313,8 +315,10 @@ export class Span implements SpanInterface {
   public getBaggage(): Baggage | undefined {
     const existingBaggage = this.transaction && this.transaction.metadata.baggage;
 
+    // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
+    // empty and mutable
     const finalBaggage =
-      !existingBaggage || isSentryBaggageEmpty(existingBaggage)
+      !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
         ? this._getBaggageWithSentryValues(existingBaggage)
         : existingBaggage;
 
@@ -352,9 +356,17 @@ export class Span implements SpanInterface {
   }
 
   /**
+   * Collects and adds data to the passed baggage object.
+   *
+   * Note: This function does not explicitly check if the passed baggage object is allowed
+   * to be modified. Implicitly, `setBaggageValue` will not make modification to the object
+   * if it was already set immutable.
+   *
+   * After adding the data, the baggage object is set immutable to prevent further modifications.
    *
    * @param baggage
-   * @returns
+   *
+   * @returns modified and immutable maggage object
    */
   private _getBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -365,6 +377,8 @@ export class Span implements SpanInterface {
 
     environment && setBaggageValue(baggage, 'environment', environment);
     release && setBaggageValue(baggage, 'release', release);
+
+    setBaggageImmutable(baggage);
 
     return baggage;
   }

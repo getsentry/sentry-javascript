@@ -419,16 +419,16 @@ describe('Span', () => {
       const baggage = span.getBaggage();
 
       expect(hubSpy).toHaveBeenCalledTimes(0);
-      expect(baggage && isSentryBaggageEmpty(baggage)).toBeFalsy();
+      expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
       expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({ environment: 'myEnv' });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
 
-    test('add Sentry baggage data to baggage if Sentry content is empty', () => {
+    test('add Sentry baggage data to baggage if Sentry content is empty and baggage is mutable', () => {
       const transaction = new Transaction(
         {
           name: 'tx',
-          metadata: { baggage: createBaggage({}, '') },
+          metadata: { baggage: createBaggage({}, '', true) },
         },
         hub,
       );
@@ -440,7 +440,7 @@ describe('Span', () => {
       const baggage = span.getBaggage();
 
       expect(hubSpy).toHaveBeenCalledTimes(1);
-      expect(baggage && isSentryBaggageEmpty(baggage)).toBeFalsy();
+      expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
       expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({ release: '1.0.1', environment: 'production' });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
