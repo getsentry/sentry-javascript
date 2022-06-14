@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowJs": true,
     "declaration": true,
     "declarationDir": "./dist",
     "module": "esnext",
@@ -8,6 +9,7 @@
     "noEmitOnError": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
     "outDir": "./dist",
     "target": "es5",

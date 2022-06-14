@@ -1,8 +1,6 @@
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
 
-import * as SentryUtils from '@sentry/utils';
-
 import { SentryReplay } from '@';
 import {
   SESSION_IDLE_DURATION,
@@ -16,24 +14,17 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-describe('SentryReplay', () => {
+describe('SentryReplay (no sticky)', () => {
   let replay: SentryReplay;
   type MockSendReplayRequest = jest.MockedFunction<
     typeof replay.sendReplayRequest
   >;
   let mockSendReplayRequest: MockSendReplayRequest;
-  let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest
-      .spyOn(SentryUtils, 'addInstrumentationHandler')
-      .mockImplementation((_type, handler: (args: any) => any) => {
-        domHandler = handler;
-      });
-
-    ({ replay } = mockSdk());
+    ({ replay } = mockSdk({ replayOptions: { stickySession: false } }));
     jest.spyOn(replay, 'sendReplayRequest');
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
     mockSendReplayRequest.mockImplementation(
@@ -47,39 +38,17 @@ describe('SentryReplay', () => {
   beforeEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     mockSendReplayRequest.mockClear();
+    mockRecord.takeFullSnapshot.mockClear();
   });
 
   afterEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    sessionStorage.clear();
     replay.clearSession();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
-    mockRecord.takeFullSnapshot.mockClear();
   });
 
   afterAll(() => {
     replay && replay.destroy();
-  });
-
-  it('calls rrweb.record with custom options', async () => {
-    expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
-      Object {
-        "blockClass": "sr-block",
-        "emit": [Function],
-        "ignoreClass": "sr-test",
-        "maskAllInputs": true,
-        "maskTextClass": "sr-mask",
-      }
-    `);
-  });
-
-  it('should have a session after setup', () => {
-    expect(replay.session).toMatchObject({
-      lastActivity: BASE_TIMESTAMP,
-      started: BASE_TIMESTAMP,
-    });
-    expect(replay.session.id).toBeDefined();
-    expect(replay.session.sequenceId).toBeDefined();
   });
 
   it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
@@ -138,26 +107,27 @@ describe('SentryReplay', () => {
         return 'hidden';
       },
     });
+
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
     jest.advanceTimersByTime(ELAPSED);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
     replay.eventBuffer.addEvent(TEST_EVENT);
+
     document.dispatchEvent(new Event('visibilitychange'));
+
     await new Promise(process.nextTick);
+
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    const regex = new RegExp(
-      'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
-    );
-    expect(replay.sendReplayRequest).toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalledWith({
-      endpoint: expect.stringMatching(regex),
-      events: JSON.stringify([TEST_EVENT]),
-    });
+
+    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
+
     // Session's last activity should be updated
-    expect(replay.session.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
-    // // events array should be empty
+    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+    expect(replay.session.sequenceId).toBe(1);
+
+    // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
   });
 
@@ -170,15 +140,7 @@ describe('SentryReplay', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    const regex = new RegExp(
-      'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
-    );
-
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(replay.sendReplayRequest).toHaveBeenCalledWith({
-      endpoint: expect.stringMatching(regex),
-      events: JSON.stringify([TEST_EVENT]),
-    });
+    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);
@@ -208,7 +170,6 @@ describe('SentryReplay', () => {
     // There should also not be another attempt at an upload 5 seconds after the last replay event
     mockSendReplayRequest.mockClear();
     await advanceTimers(5000);
-
     expect(replay).not.toHaveSentReplay();
 
     expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP + 16000);
@@ -252,96 +213,17 @@ describe('SentryReplay', () => {
     // and produce a checkout based on a previous checkout + updates, and then
     // replay the event on top. Or maybe replay the event on top of a refresh
     // snapshot.
-    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
 
     expect(replay).toHaveSentReplay(
       JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
       ])
     );
+    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
 
     // Should be a new session
     expect(replay).not.toHaveSameSession(initialSession);
 
     mockSendReplayRequest.mockReset();
-  });
-
-  it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {
-    domHandler({
-      name: 'click',
-    });
-
-    // Pretend 5 seconds have passed
-    await advanceTimers(5000);
-
-    expect(replay).toHaveSentReplay(
-      JSON.stringify([
-        {
-          type: 5,
-          timestamp: BASE_TIMESTAMP,
-          data: {
-            tag: 'breadcrumb',
-            payload: {
-              timestamp: BASE_TIMESTAMP / 1000,
-              type: 'default',
-              category: `ui.click`,
-              message: '<unknown>',
-              data: {},
-            },
-          },
-        },
-      ])
-    );
-
-    expect(replay.session.sequenceId).toBe(1);
-
-    // breadcrumbs array should be empty
-    expect(replay.breadcrumbs).toHaveLength(0);
-  });
-
-  it('fails to upload data on first call and retries after five seconds, sending successfully', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
-    // Suppress console.errors
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    const mockConsole = console.error as jest.MockedFunction<
-      typeof console.error
-    >;
-    // fail the first request and pass the second one
-    mockSendReplayRequest.mockImplementationOnce(() => {
-      throw new Error('Something bad happened');
-    });
-    mockRecord._emitter(TEST_EVENT);
-
-    await new Promise(process.nextTick);
-
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
-
-    // Reset console.error mock to minimize the amount of time we are hiding
-    // console messages in case an error happens after
-    mockConsole.mockClear();
-
-    // next tick should retry and succeed
-    mockSendReplayRequest.mockReset();
-    mockSendReplayRequest.mockImplementationOnce(() => {
-      return Promise.resolve();
-    });
-    advanceTimers(5000);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
-
-    // No activity has occurred, session's last activity should remain the same
-    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session.sequenceId).toBe(1);
-
-    // next tick should do nothing
-
-    mockSendReplayRequest.mockReset();
-    mockSendReplayRequest.mockImplementationOnce(() => {
-      return Promise.resolve();
-    });
-    advanceTimers(5000);
-    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
   });
 });

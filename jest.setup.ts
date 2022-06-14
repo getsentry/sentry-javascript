@@ -41,7 +41,7 @@ expect.extend({
    */
   toHaveSentReplay(
     received: jest.Mocked<SentryReplay>,
-    expected?: RRWebEvent[]
+    expected?: string | Uint8Array
   ) {
     const { calls } = received.sendReplayRequest.mock;
     const lastCall = calls[calls.length - 1];
@@ -82,7 +82,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
-      toHaveSentReplay(expected?: RRWebEvent[]): CustomMatcherResult;
+      toHaveSentReplay(expected?: string | Uint8Array): CustomMatcherResult;
       toHaveSameSession(expected: ReplaySession): CustomMatcherResult;
     }
   }

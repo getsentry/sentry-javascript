@@ -1,8 +1,6 @@
 import { ReplaySpan } from '@/types';
 
 export function handleXhr(handlerData: any): ReplaySpan {
-  // TODO: add status code into data, etc.
-
   if (handlerData.startTimestamp) {
     handlerData.xhr.__sentry_xhr__.startTimestamp = handlerData.startTimestamp;
   }
@@ -18,5 +16,8 @@ export function handleXhr(handlerData: any): ReplaySpan {
       handlerData.xhr.__sentry_xhr__.startTimestamp / 1000 ||
       handlerData.endTimestamp / 1000.0,
     endTimestamp: handlerData.endTimestamp / 1000.0,
+    data: {
+      statusCode: handlerData.response.status,
+    },
   };
 }

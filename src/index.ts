@@ -3,13 +3,14 @@ import { captureEvent } from '@sentry/browser';
 import { addInstrumentationHandler, uuid4 } from '@sentry/utils';
 import { DsnComponents, Event, Integration, Breadcrumb } from '@sentry/types';
 
-import { record } from 'rrweb';
+import { EventType, record } from 'rrweb';
 
 import {
   createPerformanceEntries,
   createMemoryEntry,
   ReplayPerformanceEntry,
 } from './createPerformanceEntry';
+import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import { ReplaySession } from './session';
 import {
   REPLAY_EVENT_NAME,
@@ -25,6 +26,8 @@ import type {
   ReplaySpan,
   ReplayRequest,
   InstrumentationType,
+  SentryReplayPluginOptions,
+  SentryReplayConfiguration,
 } from './types';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
@@ -36,30 +39,6 @@ import createBreadcrumb from './util/createBreadcrumb';
  * Returns true if we want to flush immediately, otherwise continue with normal batching
  */
 type AddUpdateCallback = () => boolean | void;
-
-interface PluginOptions {
-  /**
-   * The amount of time to wait before sending a replay
-   */
-  uploadMinDelay?: number;
-
-  /**
-   * The max amount of time to wait before sending a replay
-   */
-  uploadMaxDelay?: number;
-
-  /**
-   * If false, will create a new session per pageload
-   */
-  stickySession?: boolean;
-}
-
-interface SentryReplayConfiguration extends PluginOptions {
-  /**
-   * Options for `rrweb.recordsetup
-   */
-  rrwebConfig?: RRWebOptions;
-}
 
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 5;
@@ -75,10 +54,7 @@ export class SentryReplay implements Integration {
    */
   public name: string = SentryReplay.id;
 
-  /**
-   * Buffer of rrweb events that will be serialized as JSON and saved as an attachment to a Sentry event
-   */
-  public events: RRWebEvent[] = [];
+  public eventBuffer: IEventBuffer;
 
   /**
    * Buffer of breadcrumbs to be uploaded
@@ -100,7 +76,7 @@ export class SentryReplay implements Integration {
    */
   readonly rrwebRecordOptions: RRWebOptions;
 
-  readonly options: PluginOptions;
+  readonly options: SentryReplayPluginOptions;
 
   /**
    * setTimeout id used for debouncing sending rrweb attachments
@@ -133,6 +109,7 @@ export class SentryReplay implements Integration {
     uploadMinDelay = 5000,
     uploadMaxDelay = 15000,
     stickySession = false, // TBD: Making this opt-in for now
+    useCompression = true,
     rrwebConfig: {
       maskAllInputs = true,
       blockClass = 'sr-block',
@@ -150,7 +127,7 @@ export class SentryReplay implements Integration {
     };
 
     this.options = { uploadMinDelay, uploadMaxDelay, stickySession };
-    this.events = [];
+    this.eventBuffer = createEventBuffer({ useCompression });
   }
 
   setupOnce() {
@@ -202,11 +179,7 @@ export class SentryReplay implements Integration {
         this.addUpdate(() => {
           // We need to clear existing events on a checkout, otherwise they are
           // incremental event updates and should be appended
-          if (isCheckout) {
-            this.events = [event];
-          } else {
-            this.events.push(event);
-          }
+          this.eventBuffer.addEvent(event, isCheckout);
 
           // This event type is a fullsnapshot, we should save immediately when this occurs
           // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -269,15 +242,16 @@ export class SentryReplay implements Integration {
     // elapses.
     this.timeout = window.setTimeout(() => {
       logger.log('replay timeout exceeded, finishing replay event');
-      this.flushUpdate();
+      this.flushUpdate(now);
     }, this.options.uploadMinDelay);
   }
 
   /**
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK does not support a teardown
    */
-  teardown() {
+  destroy() {
     this.removeListeners();
+    this.eventBuffer.destroy();
   }
 
   clearSession() {
@@ -358,7 +332,6 @@ export class SentryReplay implements Integration {
    */
   handleVisibilityChange = () => {
     const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
-
     if (isExpired) {
       if (document.visibilityState === 'visible') {
         // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
@@ -376,12 +349,11 @@ export class SentryReplay implements Integration {
       // the tab.
       return;
     }
-
     // Otherwise if session is not expired...
-
     // Update with current timestamp as the last session activity
     // Only updating session on visibility change to be conservative about
     // writing to session storage. This could be changed in the future.
+
     this.updateSession(
       updateSessionActivity({
         stickySession: this.options.stickySession,
@@ -397,13 +369,22 @@ export class SentryReplay implements Integration {
   };
 
   handleWindowUnload = () => {
+    const breadcrumb = createBreadcrumb({
+      category: 'ui.exit',
+      message: '',
+    });
+
     this.addUpdate(() => {
-      this.breadcrumbs.push(
-        createBreadcrumb({
-          category: 'ui.exit',
-          message: '',
-        })
-      );
+      this.eventBuffer.addEvent({
+        type: EventType.Custom,
+        // TODO: We were converting from ms to seconds for breadcrumbs, spans,
+        // but maybe we should just keep them as milliseconds
+        timestamp: breadcrumb.timestamp,
+        data: {
+          tag: 'breadcrumb',
+          payload: breadcrumb,
+        },
+      });
     });
   };
 
@@ -414,22 +395,20 @@ export class SentryReplay implements Integration {
         handler: InstrumentationType extends 'fetch' | 'xhr'
           ? (handlerData: any) => ReplaySpan
           : (handlerData: any) => Breadcrumb,
-        store: InstrumentationType extends 'fetch' | 'xhr'
-          ? ReplaySpan[]
-          : Breadcrumb[]
+        eventType: string
       ]
     > = {
-      scope: [handleScope, this.breadcrumbs],
-      dom: [handleDom, this.breadcrumbs],
-      fetch: [handleFetch, this.replaySpans],
-      xhr: [handleXhr, this.replaySpans],
+      scope: [handleScope, 'breadcrumb'],
+      dom: [handleDom, 'breadcrumb'],
+      fetch: [handleFetch, 'span'],
+      xhr: [handleXhr, 'span'],
     };
 
     if (!(type in handlerMap)) {
       throw new Error(`No handler defined for type: ${type}`);
     }
 
-    const [handlerFn, handlerStore] = handlerMap[type];
+    const [handlerFn, eventType] = handlerMap[type];
 
     const result = handlerFn(handlerData);
 
@@ -437,8 +416,23 @@ export class SentryReplay implements Integration {
       return;
     }
 
+    if (['sentry.transaction'].includes(result.category)) {
+      return;
+    }
+
     this.addUpdate(() => {
-      handlerStore.push(result);
+      this.eventBuffer.addEvent({
+        type: EventType.Custom,
+        // TODO: We were converting from ms to seconds for breadcrumbs, spans,
+        // but maybe we should just keep them as milliseconds
+        timestamp:
+          (result as Breadcrumb).timestamp * 1000 ||
+          (result as ReplaySpan).startTimestamp * 1000,
+        data: {
+          tag: eventType,
+          payload: result,
+        },
+      });
     });
   };
 
@@ -466,12 +460,19 @@ export class SentryReplay implements Integration {
    */
   createPerformanceSpans(entries: ReplayPerformanceEntry[]) {
     entries.forEach(({ type, start, end, name, data }) => {
-      this.replaySpans.push({
-        op: type,
-        description: name,
-        startTimestamp: start,
-        endTimestamp: end,
-        data,
+      this.eventBuffer.addEvent({
+        type: EventType.Custom,
+        timestamp: start,
+        data: {
+          tag: 'performanceSpan',
+          payload: {
+            op: type,
+            description: name,
+            startTimestamp: start,
+            endTimestamp: end,
+            data,
+          },
+        },
       });
     });
   }
@@ -526,7 +527,7 @@ export class SentryReplay implements Integration {
     return false;
   }
 
-  flushUpdate() {
+  async flushUpdate(lastActivity?: number) {
     if (!this.checkAndHandleExpiredSession()) {
       logger.error(
         new Error('Attempting to finish replay event after session expired.')
@@ -537,7 +538,7 @@ export class SentryReplay implements Integration {
       console.error(new Error('[Sentry]: No transaction, no replay'));
       return;
     }
-    // TEMP: keep sending a replay event just for the duration
+    // // TEMP: keep sending a replay event just for the duration
     captureEvent({
       message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
       tags: {
@@ -547,11 +548,12 @@ export class SentryReplay implements Integration {
     });
 
     this.addPerformanceEntries();
-    this.sendReplay(this.session.id);
+    const recordingData = await this.eventBuffer.finish();
+    this.sendReplay(this.session.id, recordingData);
 
     this.initialEventTimestampSinceFlush = null;
     // TBD: Alternatively we could update this after every rrweb event
-    this.session.lastActivity = new Date().getTime();
+    this.session.lastActivity = lastActivity || new Date().getTime();
   }
 
   /**
@@ -564,28 +566,18 @@ export class SentryReplay implements Integration {
   /**
    * Send replay attachment using either `sendBeacon()` or `fetch()`
    */
-  async sendReplayRequest({
-    endpoint,
-    events,
-    replaySpans,
-    breadcrumbs,
-  }: ReplayRequest) {
-    const stringifiedPayload = JSON.stringify({
-      recording: events,
-      replaySpans: replaySpans,
-      breadcrumbs: breadcrumbs,
-    });
+  async sendReplayRequest({ endpoint, events }: ReplayRequest) {
     const formData = new FormData();
-    formData.append(
-      'rrweb',
-      new Blob([stringifiedPayload], {
-        type: 'application/json',
-      }),
-      `rrweb-${new Date().getTime()}.json`
-    );
+    const payloadBlob = new Blob([events], {
+      type: 'application/json',
+    });
+
+    logger.log('blob size in bytes: ', payloadBlob.size);
+
+    formData.append('rrweb', payloadBlob, `rrweb-${new Date().getTime()}.json`);
 
     // If sendBeacon is supported and payload is smol enough...
-    if (this.hasSendBeacon() && stringifiedPayload.length <= 65536) {
+    if (this.hasSendBeacon() && payloadBlob.size <= 65535) {
       logger.log(`uploading attachment via sendBeacon()`);
       window.navigator.sendBeacon(endpoint, formData);
       return;
@@ -607,25 +599,11 @@ export class SentryReplay implements Integration {
   /**
    * Finalize and send the current replay event to Sentry
    */
-  async sendReplay(eventId: string) {
-    // short circuit if theres no events to upload
-    if (
-      !this.events.length &&
-      !this.replaySpans.length &&
-      !this.breadcrumbs.length
-    ) {
+  async sendReplay(eventId: string, events: Uint8Array | string) {
+    // short circuit if there's no events to upload
+    if (!events.length) {
       return;
     }
-
-    // Make a copy of the events array reference and immediately clear the
-    // events member so that we do not lose new events while uploading
-    // attachment.
-    const events = this.events;
-    const replaySpans = this.replaySpans;
-    const breadcrumbs = this.breadcrumbs;
-    this.replaySpans = [];
-    this.breadcrumbs = [];
-    this.events = [];
 
     const client = Sentry.getCurrentHub().getClient();
     const endpoint = SentryReplay.attachmentUrlFromDsn(
@@ -637,26 +615,22 @@ export class SentryReplay implements Integration {
       await this.sendReplayRequest({
         endpoint,
         events,
-        replaySpans,
-        breadcrumbs,
       });
       this.resetRetries();
       return true;
     } catch (ex) {
       // we have to catch this otherwise it throws an infinite loop in Sentry
       console.error(ex);
-      // If an error happened here, it's likely that uploading the attachment failed, we'll want to restore the events that failed to upload
-      this.events = [...events, ...this.events];
-      this.replaySpans = [...replaySpans, ...this.replaySpans];
-      this.breadcrumbs = [...replaySpans, ...this.breadcrumbs];
 
+      // If an error happened here, it's likely that uploading the attachment
+      // failed, we'll can retry with the same events payload
       if (this.retryCount >= MAX_RETRY_COUNT) {
         this.resetRetries();
       } else {
         this.retryCount = this.retryCount + 1;
         // will retry in intervals of 5, 10, 15, 20, 25 seconds
         this.retryInterval = this.retryCount * this.retryInterval;
-        setTimeout(() => this.sendReplay(eventId), this.retryInterval);
+        setTimeout(() => this.sendReplay(eventId, events), this.retryInterval);
       }
       return false;
     }
